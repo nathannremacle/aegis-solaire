@@ -84,7 +84,7 @@ function calculateROI(formData: FormData): ROIResults {
   // Power: ~150W per m2 for panels
   const installedPower = Math.round((surfaceArea * 0.15) * 10) / 10 // kWc
   
-  // Annual production: ~1100 kWh per kWc in France
+  // Annual production: ~1100 kWh per kWc (ordre de grandeur France / Belgique)
   const annualProduction = Math.round(installedPower * 1100)
   
   // Electricity price assumption: 0.18 EUR/kWh

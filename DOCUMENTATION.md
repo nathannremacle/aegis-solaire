@@ -35,6 +35,7 @@
 
 ```
 /                         → Page d’accueil (landing + simulateur)
+/ressources               → Ressources (études de cas, subventions, webinaires Loi LOM « Bientôt disponible »)
 /mentions-legales          → Mentions légales
 /politique-confidentialite → RGPD, droits, désinscription (#desinscription)
 /cgv                      → Conditions générales de vente
@@ -50,11 +51,11 @@ Ordre des sections :
 
 1. **Hero** – Titre accroche (« centres de profit », Loi LOM), CTA unique : « Lancer ma simulation de rentabilité »
 2. **Preuve** (`#preuve`) – Études de cas chiffrées + témoignages clients
-3. **Expert** (`#expert`) – Texte PPA / stockage / Décret Tertiaire + placeholder vidéo Fondateur
+3. **Expert** (`#expert`) – Texte PPA / stockage / Décret Tertiaire + vidéo Fondateur (configurable via `NEXT_PUBLIC_FOUNDER_VIDEO_URL`, YouTube/Vimeo)
 4. **Avantages** (`#benefits`) – Pourquoi passer au solaire B2B
 5. **Simulateur** (`#simulator`) – Formulaire multi-étapes (voir ci-dessous)
 
-Header et footer incluent la baseline, les liens Preuve / Expert / Avantages / Simulateur, une colonne **Ressources** (études de cas, subventions & financement, webinaires Loi LOM à venir), les pages légales et le lien **Désinscription / Opposition** vers `politique-confidentialite#desinscription`.
+Header et footer incluent la baseline, les liens Preuve / Expert / Avantages / Simulateur, une colonne **Ressources** pointant vers `/ressources` (études de cas, subventions & financement, webinaires Loi LOM avec badge « Bientôt disponible »), les pages légales et le lien **Désinscription / Opposition** vers `politique-confidentialite#desinscription`.
 
 ### 3.3 Alignement avec le fonctionnement imaginé (entonnoir en 5 étapes)
 
@@ -62,7 +63,7 @@ Le site implémente le funnel décrit dans *Fonctionnement imaginé de Aegis Sol
 
 | Étape | Implémentation sur le site |
 |-------|----------------------------|
-| **1. Acquisition** | Landing optimisée SEO (Loi LOM, Décret Tertiaire), études de cas (Preuve), CTA unique. Prêt pour Google Ads / LinkedIn Ads ; footer « Ressources » pour contenu à venir (subventions, webinaires). |
+| **1. Acquisition** | Landing optimisée SEO (Loi LOM, Décret Tertiaire), études de cas (Preuve), CTA unique. Prêt pour Google Ads / LinkedIn Ads ; page **Ressources** (`/ressources`) : études de cas, subventions & financement, webinaires Loi LOM (bientôt). |
 | **2. Qualification (simulateur)** | Saisie nature du site (parking > 1 500 m², toiture > 500 m²) + facture ; calcul ROI (8–12 ans) ; **gated content** : message explicite « audit de faisabilité complet et résultats détaillés » contre coordonnées pro. |
 | **3. Traitement & RGPD** | Opt-in non pré-coché, mentions Art. 13/14, désinscription. **Filtrage automatique** : surface min selon type, facture min 5 000 €, refus des emails grand public (gmail, etc.) pour ne garder que des contacts B2B. |
 | **4. Distribution** | Enregistrement en base + **webhook optionnel** (`LEAD_WEBHOOK_URL`) : envoi en temps réel du lead vers CRM (HubSpot, Pipedrive, CBM Manager) ou installateur partenaire. |
@@ -143,6 +144,7 @@ Script d’initialisation : `scripts/001_create_leads_table.sql` (à exécuter d
 | `SUPABASE_SERVICE_ROLE_KEY` | Clé service role pour l’API (insertion `leads`) – **ne pas exposer au client** |
 | `NEXT_PUBLIC_SITE_URL` | URL canonique du site (ex. `https://www.aegis-solaire.fr`) pour sitemap, robots, JSON-LD, métadonnées |
 | `LEAD_WEBHOOK_URL` | (Optionnel) URL de webhook pour envoi temps réel du lead vers CRM ou installateur (POST JSON). Ne pas exposer au client. |
+| `NEXT_PUBLIC_FOUNDER_VIDEO_URL` | (Optionnel) URL YouTube ou Vimeo de la vidéo Fondateur (section Expert). Si défini, la vidéo est affichée en embed ; sinon placeholder « Vidéo à venir ». |
 
 Sans `NEXT_PUBLIC_SITE_URL`, la valeur par défaut utilisée dans le code est `https://www.aegis-solaire.fr`.
 

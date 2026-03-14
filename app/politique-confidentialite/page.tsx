@@ -17,12 +17,12 @@ export default function PolitiqueConfidentialite() {
       <main className="flex-1 bg-background py-8 sm:py-12">
         <div className="mx-auto max-w-3xl min-w-0 px-4 sm:px-6 lg:px-8">
           <h1 className="mb-6 text-2xl font-bold text-foreground sm:mb-8 sm:text-3xl">
-            Politique de Confidentialite
+            Politique de confidentialité
           </h1>
 
           <div className="prose prose-gray max-w-none">
             <p className="mb-8 text-muted-foreground">
-              Derniere mise a jour : Mars 2026
+              Dernière mise à jour : Mars 2026
             </p>
 
             <section className="mb-8">
@@ -30,27 +30,27 @@ export default function PolitiqueConfidentialite() {
                 1. Responsable du traitement
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Aegis Solaire SAS est responsable du traitement de vos
-                donnees personnelles collectees sur ce site.
+                Aegis Solaire est responsable du traitement de vos
+                données personnelles collectées sur ce site.
               </p>
             </section>
 
             <section className="mb-8">
               <h2 className="text-xl font-semibold text-foreground">
-                2. Donnees collectees
+                2. Données collectées
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Dans le cadre du simulateur ROI, nous collectons les donnees
+                Dans le cadre du simulateur ROI, nous collectons les données
                 suivantes :
               </p>
               <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
-                <li>Nom et prenom</li>
+                <li>Nom et prénom</li>
                 <li>Adresse email professionnelle</li>
-                <li>Numero de telephone</li>
+                <li>Numéro de téléphone</li>
                 <li>Fonction dans l'entreprise</li>
                 <li>Nom de l'entreprise (optionnel)</li>
-                <li>Caracteristiques du site (type de surface, superficie)</li>
-                <li>Donnees de consommation energetique</li>
+                <li>Caractéristiques du site (type de surface, superficie)</li>
+                <li>Données de consommation énergétique</li>
               </ul>
             </section>
 
@@ -77,28 +77,28 @@ export default function PolitiqueConfidentialite() {
 
             <section className="mb-8">
               <h2 className="text-xl font-semibold text-foreground">
-                4. Base legale
+                4. Base légale
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Le traitement de vos donnees repose sur :
+                Le traitement de vos données repose sur :
               </p>
               <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
                 <li>
                   Votre consentement (formulaire de contact, newsletter)
                 </li>
                 <li>
-                  L'execution de mesures precontractuelles (simulation ROI)
+                  L'exécution de mesures précontractuelles (simulation ROI)
                 </li>
-                <li>Notre interet legitime (amelioration des services)</li>
+                <li>Notre intérêt légitime (amélioration des services)</li>
               </ul>
             </section>
 
             <section className="mb-8">
               <h2 className="text-xl font-semibold text-foreground">
-                5. Duree de conservation
+                5. Durée de conservation
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Vos donnees sont conservees pendant une duree maximale de{" "}
+                Vos données sont conservées pendant une durée maximale de{" "}
                 <strong>3 ans</strong> a compter de votre derniere interaction
                 avec nos services, conformement aux recommandations de la CNIL.
               </p>
@@ -106,20 +106,20 @@ export default function PolitiqueConfidentialite() {
 
             <section className="mb-8">
               <h2 className="text-xl font-semibold text-foreground">
-                6. Destinataires des donnees
+                6. Destinataires des données
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Vos donnees peuvent etre transmises a :
+                Vos données peuvent être transmises a :
               </p>
               <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
-                <li>Nos equipes commerciales internes</li>
+                <li>Nos équipes commerciales internes</li>
                 <li>
                   Nos partenaires installateurs certifies (apres qualification)
                 </li>
                 <li>Nos sous-traitants techniques (hebergement, CRM)</li>
               </ul>
               <p className="mt-2 text-muted-foreground">
-                Nous ne vendons jamais vos donnees a des tiers.
+                Nous ne vendons jamais vos données à des tiers.
               </p>
             </section>
 
@@ -131,7 +131,7 @@ export default function PolitiqueConfidentialite() {
                 Conformement au RGPD, vous disposez des droits suivants :
               </p>
               <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
-                <li>Droit d'acces a vos donnees</li>
+                <li>Droit d'accès à vos données</li>
                 <li>Droit de rectification</li>
                 <li>Droit a l'effacement ("droit a l'oubli")</li>
                 <li>Droit a la limitation du traitement</li>
@@ -172,7 +172,7 @@ export default function PolitiqueConfidentialite() {
               </h2>
               <p className="mt-4 text-muted-foreground">
                 Nous mettons en oeuvre des mesures techniques et
-                organisationnelles appropriees pour proteger vos donnees contre
+                organisationnelles appropriées pour proteger vos données contre
                 tout acces non autorise, modification, divulgation ou
                 destruction.
               </p>
@@ -183,8 +183,8 @@ export default function PolitiqueConfidentialite() {
                 9. Réclamation
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Si vous estimez que vos droits ne sont pas respectes, vous
-                pouvez introduire une reclamation aupres de la CNIL :{" "}
+                Si vous estimez que vos droits ne sont pas respectés, vous
+                pouvez introduire une réclamation auprès de la CNIL :{" "}
                 <a
                   href="https://www.cnil.fr"
                   target="_blank"

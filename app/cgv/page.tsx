@@ -17,12 +17,12 @@ export default function CGV() {
       <main className="flex-1 bg-background py-8 sm:py-12">
         <div className="mx-auto max-w-3xl min-w-0 px-4 sm:px-6 lg:px-8">
           <h1 className="mb-6 text-2xl font-bold text-foreground sm:mb-8 sm:text-3xl">
-            Conditions Generales de Vente
+            Conditions générales de vente
           </h1>
 
           <div className="prose prose-gray max-w-none">
             <p className="mb-8 text-muted-foreground">
-              Derniere mise a jour : Mars 2026
+              Dernière mise à jour : Mars 2026
             </p>
 
             <section className="mb-8">
@@ -30,25 +30,25 @@ export default function CGV() {
                 1. Objet
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Les presentes conditions generales de vente (CGV) regissent les
-                relations contractuelles entre Aegis Solaire SAS et ses
+                Les présentes conditions générales de vente (CGV) regissent les
+                relations contractuelles entre Aegis Solaire et ses
                 clients professionnels dans le cadre de la mise en relation avec
-                des installateurs photovoltaiques certifies.
+                des installateurs photovoltaïques certifiés.
               </p>
             </section>
 
             <section className="mb-8">
               <h2 className="text-xl font-semibold text-foreground">
-                2. Services proposes
+                2. Services proposés
               </h2>
               <p className="mt-4 text-muted-foreground">
                 Aegis Solaire propose les services suivants :
               </p>
               <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
-                <li>Simulation de retour sur investissement photovoltaique</li>
-                <li>Mise en relation avec des installateurs certifies RGE</li>
+                <li>Simulation de retour sur investissement photovoltaïque</li>
+                <li>Mise en relation avec des installateurs certifiés RGE</li>
                 <li>Accompagnement dans le montage du dossier de financement</li>
-                <li>Suivi de projet jusqu'a la mise en service</li>
+                <li>Suivi de projet jusqu'à la mise en service</li>
               </ul>
             </section>
 
@@ -57,11 +57,11 @@ export default function CGV() {
                 3. Simulateur ROI
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Le simulateur de retour sur investissement est fourni a titre
-                indicatif. Les resultats sont bases sur des estimations et ne
+                Le simulateur de retour sur investissement est fourni à titre
+                indicatif. Les résultats sont basés sur des estimations et ne
                 constituent pas un engagement contractuel. Une etude detaillee
-                sera realisee par nos experts pour vous fournir une estimation
-                precise.
+                sera réalisée par nos experts pour vous fournir une estimation
+                précise.
               </p>
             </section>
 
@@ -71,9 +71,9 @@ export default function CGV() {
               </h2>
               <p className="mt-4 text-muted-foreground">
                 La simulation ROI et la mise en relation initiale sont gratuites
-                pour le client. Les tarifs des installations photovoltaiques
-                seront communiques par les installateurs partenaires lors de
-                l'etude detaillee.
+                pour le client. Les tarifs des installations photovoltaïques
+                seront communiqués par les installateurs partenaires lors de
+                l'étude détaillée.
               </p>
             </section>
 
@@ -86,9 +86,9 @@ export default function CGV() {
               </p>
               <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
                 <li>
-                  Proposer uniquement des installateurs certifies RGE et QualiPV
+                  Proposer uniquement des installateurs certifiés RGE et QualiPV
                 </li>
-                <li>Recontacter le client sous 48h ouvrees</li>
+                <li>Recontacter le client sous 48 h ouvrées</li>
                 <li>
                   Garantir la confidentialite des informations communiquees
                 </li>
@@ -102,7 +102,7 @@ export default function CGV() {
               </h2>
               <p className="mt-4 text-muted-foreground">
                 Aegis Solaire agit en qualité d'intermédiaire et ne saurait
-                etre tenu responsable des prestations realisees par les
+                être tenu responsable des prestations réalisées par les
                 installateurs partenaires. Les contrats d'installation sont
                 conclus directement entre le client et l'installateur choisi.
               </p>
@@ -113,8 +113,8 @@ export default function CGV() {
                 7. Droit applicable
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Les presentes CGV sont soumises au droit francais. En cas de
-                litige, les tribunaux de Paris seront seuls competents.
+                Les présentes CGV sont soumises au droit applicable (France, Belgique, francophonie). En cas de
+                litige, les tribunaux compétents seront seuls compétents.
               </p>
             </section>
 
@@ -123,7 +123,7 @@ export default function CGV() {
                 8. Contact
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Pour toute question relative aux presentes CGV, contactez-nous a
+                Pour toute question relative aux présentes CGV, contactez-nous à
                 l'adresse :{" "}
                 <a
                   href="mailto:contact@aegis-solaire.fr"

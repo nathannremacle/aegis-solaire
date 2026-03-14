@@ -20,7 +20,7 @@ export function Footer() {
               </div>
             </Link>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              Financement, Rentabilité & Ombrières Pro. La plateforme de référence pour les projets photovoltaïques B2B en France.
+              Financement, Rentabilité & Ombrières Pro. La plateforme de référence pour les projets photovoltaïques B2B en France, en Belgique et en francophonie.
             </p>
           </div>
 
@@ -73,7 +73,7 @@ export function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link
-                  href="/#preuve"
+                  href="/ressources#etudes-de-cas"
                   className="text-sm text-muted-foreground hover:text-foreground"
                 >
                   Études de cas chiffrées
@@ -81,16 +81,19 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/#expert"
+                  href="/ressources#subventions"
                   className="text-sm text-muted-foreground hover:text-foreground"
                 >
                   Subventions & financement
                 </Link>
               </li>
               <li>
-                <span className="text-sm text-muted-foreground">
-                  Webinaires Loi LOM (bientôt)
-                </span>
+                <Link
+                  href="/ressources#webinaires"
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  Webinaires Loi LOM
+                </Link>
               </li>
             </ul>
           </div>
@@ -143,9 +146,6 @@ export function Footer() {
             </h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="break-all">contact@aegis-solaire.fr</li>
-              <li>01 23 45 67 89</li>
-              <li>Du lundi au vendredi</li>
-              <li>9h00 - 18h00</li>
             </ul>
           </div>
         </div>
@@ -153,7 +153,7 @@ export function Footer() {
         <div className="mt-10 border-t border-border pt-6 sm:mt-12 sm:pt-8">
           <p className="text-center text-xs text-muted-foreground sm:text-sm">
             &copy; {new Date().getFullYear()} Aegis Solaire. Tous droits
-            reserves.
+            réservés.
           </p>
         </div>
       </div>

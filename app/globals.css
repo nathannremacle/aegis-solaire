@@ -139,3 +139,27 @@
     height: auto;
   }
 }
+
+/* Bandeau défilant certifications – infinite marquee */
+@keyframes certifications-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.certifications-marquee-track {
+  animation: certifications-marquee 35s linear infinite;
+}
+
+.certifications-marquee-pause:hover .certifications-marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .certifications-marquee-track {
+    animation: certifications-marquee 60s linear infinite;
+  }
+}

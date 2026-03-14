@@ -1,4 +1,6 @@
+import Image from "next/image"
 import { Star, Building2, Car, Factory } from "lucide-react"
+import { CertificationsMarquee } from "@/components/certifications-marquee"
 
 /** Études de cas chiffrées (Section Preuve – MEP) */
 const caseStudies = [
@@ -28,27 +30,30 @@ const caseStudies = [
 const testimonials = [
   {
     quote:
-      "Grâce à Aegis Solaire, nous avons équipé notre entrepôt de 3000 m² et réduit notre facture énergétique de 65 %. Le ROI est au rendez-vous.",
-    author: "Jean-Pierre Martin",
-    role: "Directeur Financier",
-    company: "LogiPark SAS",
+      "Grâce à Aegis Solaire, nous avons équipé notre entrepôt et réduit notre facture énergétique. Le ROI est au rendez-vous.",
+    author: "J.-P.",
+    role: "Directeur financier",
+    company: "Secteur logistique",
     rating: 5,
+    image: "/JeanPierreMartin.jpeg",
   },
   {
     quote:
-      "L'accompagnement a été exemplaire du début à la fin. Le simulateur nous a permis de convaincre notre comité de direction en 10 minutes.",
-    author: "Sophie Durand",
+      "L'accompagnement a été exemplaire du début à la fin. Le simulateur nous a permis de convaincre notre comité de direction rapidement.",
+    author: "S. D.",
     role: "Responsable RSE",
-    company: "Groupe Carrefour Market",
+    company: "Secteur commerce & distribution",
     rating: 5,
+    image: "/SophieDurand.jpeg",
   },
   {
     quote:
-      "Installation réalisée en 3 semaines sans interruption de notre activité. Production conforme aux prévisions depuis 2 ans.",
-    author: "Michel Bernard",
-    role: "Directeur Général",
-    company: "Bernard Industries",
+      "Installation réalisée sans interruption de notre activité. Production conforme aux prévisions.",
+    author: "M. B.",
+    role: "Dirigeant",
+    company: "Secteur industrie",
     rating: 5,
+    image: "/MichelBernard.jpeg",
   },
 ]
 
@@ -94,10 +99,10 @@ export function Testimonials() {
           </h3>
           <div className="mt-6 grid grid-cols-1 gap-6 sm:mt-8 md:grid-cols-3 md:gap-8">
             {testimonials.map((testimonial, index) => (
-<div
-              key={index}
-              className="flex min-w-0 flex-col rounded-xl border border-border bg-card p-4 sm:p-6"
-            >
+              <div
+                key={index}
+                className="flex min-w-0 flex-col rounded-xl border border-border bg-card p-4 sm:p-6"
+              >
                 <div className="mb-4 flex gap-1">
                   {Array.from({ length: testimonial.rating }).map((_, i) => (
                     <Star
@@ -110,38 +115,36 @@ export function Testimonials() {
                 <blockquote className="flex-1 text-foreground">
                   &ldquo;{testimonial.quote}&rdquo;
                 </blockquote>
-                <div className="mt-6 border-t border-border pt-4">
-                  <p className="font-semibold text-foreground">
-                    {testimonial.author}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {testimonial.role}, {testimonial.company}
-                  </p>
+                <div className="mt-6 flex items-center gap-4 border-t border-border pt-4">
+                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-muted">
+                    <Image
+                      src={testimonial.image}
+                      alt=""
+                      fill
+                      className="object-cover"
+                      sizes="48px"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-foreground">
+                      {testimonial.author}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {testimonial.role}, {testimonial.company}
+                    </p>
+                  </div>
                 </div>
               </div>
-            ))}
+              ))}
           </div>
         </div>
 
-        {/* Certifications */}
+        {/* Certifications et partenaires – bandeau défilant */}
         <div className="mt-12 border-t border-border pt-8 sm:mt-16 sm:pt-12">
           <p className="mb-6 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground sm:mb-8 sm:text-sm">
             Certifications et partenaires
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-4 opacity-60 grayscale sm:gap-8">
-            <div className="flex h-12 items-center justify-center rounded bg-muted px-4">
-              <span className="font-bold text-muted-foreground">RGE</span>
-            </div>
-            <div className="flex h-12 items-center justify-center rounded bg-muted px-4">
-              <span className="font-bold text-muted-foreground">QualiPV</span>
-            </div>
-            <div className="flex h-12 items-center justify-center rounded bg-muted px-4">
-              <span className="font-bold text-muted-foreground">ADEME</span>
-            </div>
-            <div className="flex h-12 items-center justify-center rounded bg-muted px-4">
-              <span className="font-bold text-muted-foreground">France Relance</span>
-            </div>
-          </div>
+          <CertificationsMarquee />
         </div>
       </div>
     </section>

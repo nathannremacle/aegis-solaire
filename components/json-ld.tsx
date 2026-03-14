@@ -8,18 +8,13 @@ export function JsonLd() {
     name: 'Aegis Solaire',
     url: baseUrl,
     logo: `${baseUrl}/logo-square.png`,
-    description: "Plateforme de mise en relation et simulateur ROI photovoltaïque B2B pour entreprises. Conformité Loi LOM et Décret Tertiaire.",
-    address: {
-      '@type': 'PostalAddress',
-      addressLocality: 'Paris',
-      addressCountry: 'FR',
-    },
+    description: "Plateforme de mise en relation et simulateur ROI photovoltaïque B2B pour entreprises. France, Belgique, francophonie. Conformité Loi LOM et Décret Tertiaire.",
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'customer service',
       email: 'contact@aegis-solaire.fr',
       availableLanguage: 'French',
-      areaServed: 'FR',
+      areaServed: ['FR', 'BE'],
     },
   }
 
