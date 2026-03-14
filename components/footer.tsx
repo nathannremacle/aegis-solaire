@@ -8,19 +8,16 @@ export function Footer() {
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:gap-10 lg:grid-cols-5 lg:gap-12">
           {/* Brand */}
           <div className="min-w-0 lg:col-span-1">
-            <Link href="/" className="inline-flex items-center gap-2">
-              <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-primary">
+            <Link href="/" className="inline-flex items-center">
+              <div className="relative h-16 w-60 shrink-0 sm:h-20 sm:w-80">
                 <Image
                   src="/logo.png"
                   alt="Aegis Solaire"
-                  width={36}
-                  height={36}
-                  className="object-contain object-center p-0.5"
+                  fill
+                  className="object-contain object-left"
+                  sizes="(max-width: 640px) 240px, 320px"
                 />
               </div>
-              <span className="text-xl font-semibold text-foreground">
-                Aegis <span className="text-accent">Solaire</span>
-              </span>
             </Link>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
               Financement, Rentabilité & Ombrières Pro. La plateforme de référence pour les projets photovoltaïques B2B en France.

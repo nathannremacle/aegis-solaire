@@ -25,7 +25,7 @@
 | Analytics | Vercel Analytics |
 | Hébergement front / API | Prévu pour **Vercel** |
 | **Responsive** | Mobile-first (sm: 640px, md: 768px, lg: 1024px), safe-area pour encoches, zone de touch ≥ 44px, pas de débordement horizontal |
-| **Branding** | Logo `/public/logo.png`. Couleurs : #112f4b (primary), #e6ad35 (accent), #7a8b98 (muted/secondary). Favicon et Open Graph utilisent le logo. Pour un partage social optimal, ajouter une image dédiée `og-image.png` 1200×630 en `public/` si le logo n’est pas à ce format. |
+| **Branding** | Logo horizontal `/public/logo.png` (header, footer). Logo carré `/public/logo-square.png` (favicon, icône Apple, JSON-LD). Couleurs : #112f4b (primary), #e6ad35 (accent), #7a8b98 (muted/secondary). Open Graph utilise logo.png ; Pour un partage optimal, ajouter `og-image.png` 1200×630 si le logo n’est pas à ce format. |
 
 ---
 

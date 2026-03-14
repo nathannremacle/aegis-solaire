@@ -43,8 +43,8 @@ export const metadata: Metadata = {
   alternates: { canonical: siteUrl },
   category: 'technology',
   icons: {
-    icon: '/logo.png',
-    apple: '/logo.png',
+    icon: '/logo-square.png',
+    apple: '/logo-square.png',
   },
 }
 

@@ -19,21 +19,18 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex h-14 min-h-14 max-w-7xl items-center justify-between gap-4 px-4 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] sm:h-16 sm:px-6 lg:px-8">
-        <Link href="/" className="flex min-w-0 shrink items-center gap-2 sm:gap-2">
-          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-primary">
+      <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:min-h-20 sm:py-4 sm:px-6 lg:px-8 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
+        <Link href="/" className="flex min-w-0 shrink items-center gap-3 sm:gap-3">
+          <div className="relative h-16 w-60 shrink-0 sm:h-20 sm:w-80">
             <Image
               src="/logo.png"
               alt="Aegis Solaire"
-              width={36}
-              height={36}
-              className="object-contain object-center p-0.5"
+              fill
+              className="object-contain object-left"
               priority
+              sizes="(max-width: 640px) 240px, 320px"
             />
           </div>
-          <span className="truncate text-lg font-semibold text-foreground sm:text-xl">
-            Aegis <span className="text-accent">Solaire</span>
-          </span>
           <span className="hidden shrink-0 text-xs font-normal text-muted-foreground md:block md:text-sm">
             Financement, Rentabilité & Ombrières Pro
           </span>

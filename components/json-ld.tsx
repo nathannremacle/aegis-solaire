@@ -7,7 +7,7 @@ export function JsonLd() {
     '@type': 'Organization',
     name: 'Aegis Solaire',
     url: baseUrl,
-    logo: `${baseUrl}/logo.png`,
+    logo: `${baseUrl}/logo-square.png`,
     description: "Plateforme de mise en relation et simulateur ROI photovoltaïque B2B pour entreprises. Conformité Loi LOM et Décret Tertiaire.",
     address: {
       '@type': 'PostalAddress',
