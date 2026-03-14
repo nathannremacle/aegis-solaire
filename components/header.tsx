@@ -2,8 +2,9 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Menu, X, Sun } from "lucide-react"
+import { Menu, X } from "lucide-react"
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -18,17 +19,22 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-2">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary">
-              <Sun className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-semibold text-foreground">
-              Aegis <span className="text-accent">Solaire</span>
-            </span>
+      <div className="mx-auto flex h-14 min-h-14 max-w-7xl items-center justify-between gap-4 px-4 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] sm:h-16 sm:px-6 lg:px-8">
+        <Link href="/" className="flex min-w-0 shrink items-center gap-2 sm:gap-2">
+          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-primary">
+            <Image
+              src="/logo.png"
+              alt="Aegis Solaire"
+              width={36}
+              height={36}
+              className="object-contain object-center p-0.5"
+              priority
+            />
           </div>
-          <span className="hidden text-xs font-normal text-muted-foreground sm:block sm:text-sm">
+          <span className="truncate text-lg font-semibold text-foreground sm:text-xl">
+            Aegis <span className="text-accent">Solaire</span>
+          </span>
+          <span className="hidden shrink-0 text-xs font-normal text-muted-foreground md:block md:text-sm">
             Financement, Rentabilité & Ombrières Pro
           </span>
         </Link>
@@ -58,9 +64,9 @@ export function Header() {
           </Button>
         </nav>
 
-        {/* Mobile Menu Button */}
+        {/* Mobile Menu Button – zone de touch 44px min */}
         <button
-          className="md:hidden"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-muted/80 active:bg-muted md:hidden"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label={mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
           aria-expanded={mobileMenuOpen}
@@ -76,31 +82,33 @@ export function Header() {
       {/* Mobile Navigation */}
       {mobileMenuOpen && (
         <div className="border-t border-border bg-background md:hidden">
-          <nav className="flex flex-col gap-4 p-4" aria-label="Menu mobile">
+          <nav className="flex flex-col py-2" aria-label="Menu mobile">
             <Link
               href="#preuve"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted"
               onClick={() => setMobileMenuOpen(false)}
             >
               Preuve
             </Link>
             <Link
               href="#expert"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted"
               onClick={() => setMobileMenuOpen(false)}
             >
               Expertise
             </Link>
             <Link
               href="#benefits"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted"
               onClick={() => setMobileMenuOpen(false)}
             >
               Avantages
             </Link>
-            <Button onClick={scrollToSimulator} size="sm" className="w-full">
-              Lancer ma simulation
-            </Button>
+            <div className="px-4 py-3">
+              <Button onClick={scrollToSimulator} size="sm" className="w-full">
+                Lancer ma simulation
+              </Button>
+            </div>
           </nav>
         </div>
       )}

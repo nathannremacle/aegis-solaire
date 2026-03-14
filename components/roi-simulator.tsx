@@ -214,23 +214,23 @@ export function ROISimulator() {
   // Results screen
   if (submitted && results) {
     return (
-      <section id="simulator" className="bg-primary py-16 sm:py-24">
+      <section id="simulator" className="bg-primary py-12 sm:py-24">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <div className="rounded-2xl bg-card p-8 shadow-2xl sm:p-12">
+          <div className="rounded-xl bg-card p-4 shadow-2xl sm:rounded-2xl sm:p-6 md:p-8 lg:p-10">
             <div className="mb-8 flex items-center justify-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/20">
                 <CheckCircle2 className="h-8 w-8 text-accent" />
               </div>
             </div>
 
-            <h2 className="mb-2 text-center text-2xl font-bold text-foreground sm:text-3xl">
-              Votre estimation personnalisee
+            <h2 className="mb-2 text-center text-xl font-bold text-foreground sm:text-2xl md:text-3xl">
+              Votre estimation personnalisée
             </h2>
-            <p className="mb-8 text-center text-muted-foreground">
-              Merci {formData.firstName}, voici les resultats de votre simulation
+            <p className="mb-6 text-center text-sm text-muted-foreground sm:mb-8 sm:text-base">
+              Merci {formData.firstName}, voici les résultats de votre simulation
             </p>
 
-            <div className="mb-8 grid gap-4 sm:grid-cols-2">
+            <div className="mb-6 grid grid-cols-1 gap-3 sm:mb-8 sm:grid-cols-2 sm:gap-4">
               <div className="rounded-lg bg-accent/10 p-4 text-center">
                 <p className="text-3xl font-bold text-accent">
                   {results.estimatedROIYears} ans
@@ -263,10 +263,10 @@ export function ROISimulator() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-accent/30 bg-accent/5 p-4">
-              <p className="text-center text-sm text-foreground">
-                <strong>Prochaine etape :</strong> Un expert vous contactera sous
-                48h pour une etude detaillee gratuite et sans engagement.
+            <div className="rounded-lg border border-accent/30 bg-accent/5 p-3 sm:p-4">
+              <p className="text-center text-xs text-foreground sm:text-sm">
+                <strong>Prochaine étape :</strong> Un expert vous contactera sous
+                48 h pour une étude détaillée gratuite et sans engagement.
               </p>
             </div>
           </div>
@@ -276,22 +276,22 @@ export function ROISimulator() {
   }
 
   return (
-    <section id="simulator" className="bg-primary py-16 sm:py-24" aria-labelledby="simulator-title">
+    <section id="simulator" className="bg-primary py-12 sm:py-24" aria-labelledby="simulator-title">
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 text-center">
-          <h2 id="simulator-title" className="text-3xl font-bold tracking-tight text-primary-foreground sm:text-4xl">
+        <div className="mb-6 text-center sm:mb-8">
+          <h2 id="simulator-title" className="text-2xl font-bold tracking-tight text-primary-foreground sm:text-3xl md:text-4xl">
             Calculez votre ROI en 2 minutes
           </h2>
-          <p className="mt-4 text-lg text-primary-foreground/80">
+          <p className="mt-3 text-base text-primary-foreground/80 sm:mt-4 sm:text-lg">
             Simulation gratuite et sans engagement
           </p>
         </div>
 
-        <div className="rounded-2xl bg-card p-6 shadow-2xl sm:p-8">
+        <div className="rounded-xl bg-card p-4 shadow-2xl sm:rounded-2xl sm:p-6 md:p-8">
           {/* Étape "calcul en cours" – effet gated */}
           {isCalculating && (
-            <div className="flex flex-col items-center justify-center py-12" role="status" aria-live="polite">
-              <div className="relative h-16 w-16">
+            <div className="flex flex-col items-center justify-center py-10 sm:py-12" role="status" aria-live="polite">
+              <div className="relative h-14 w-14 sm:h-16 sm:w-16">
                 <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
                 <div
                   className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-accent"
@@ -432,21 +432,21 @@ export function ROISimulator() {
           {/* Step 3: Contact – Gated content (audit + résultats détaillés) */}
           {step === 3 && (
             <div className="space-y-6">
-              <div className="rounded-lg border border-accent/30 bg-accent/5 p-4">
-                <p className="text-sm font-medium text-foreground">
+              <div className="rounded-lg border border-accent/30 bg-accent/5 p-3 sm:p-4">
+                <p className="text-xs font-medium leading-relaxed text-foreground sm:text-sm">
                   Pour recevoir votre <strong>audit de faisabilité complet</strong> et les <strong>résultats détaillés</strong> de la simulation, indiquez vos coordonnées professionnelles ci-dessous. Un expert vous recontactera sous 48 h.
                 </p>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
                   <User className="h-5 w-5 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold text-foreground">
+                <h3 className="min-w-0 text-base font-semibold leading-snug text-foreground sm:text-xl">
                   Nom, entreprise, fonction, téléphone direct, email
                 </h3>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="firstName">Prenom</Label>
                   <Input
@@ -565,31 +565,31 @@ export function ROISimulator() {
             </div>
           )}
 
-          {/* Navigation buttons */}
-          <div className="mt-8 flex justify-between gap-4">
+          {/* Navigation buttons – empilés full width sur mobile */}
+          <div className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:justify-between sm:gap-4">
             {step > 1 && !isCalculating ? (
-              <Button variant="outline" onClick={handleBack}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
+              <Button variant="outline" onClick={handleBack} className="w-full sm:order-first sm:w-auto">
+                <ArrowLeft className="mr-2 h-4 w-4 shrink-0" />
                 Retour
               </Button>
             ) : (
-              <div />
+              <div className="hidden sm:block" />
             )}
 
             {step < totalSteps && !isCalculating ? (
               <Button
                 onClick={handleNext}
                 disabled={!validateStep(step)}
-                className="bg-accent text-accent-foreground hover:bg-accent/90"
+                className="w-full bg-accent text-accent-foreground hover:bg-accent/90 sm:w-auto"
               >
                 Continuer
-                <ArrowRight className="ml-2 h-4 w-4" />
+                <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
               </Button>
             ) : step === totalSteps ? (
               <Button
                 onClick={handleSubmit}
                 disabled={!validateStep(step) || isSubmitting}
-                className="bg-accent text-accent-foreground hover:bg-accent/90"
+                className="w-full bg-accent text-accent-foreground hover:bg-accent/90 sm:ml-auto sm:w-auto"
               >
                 {isSubmitting ? (
                   <>

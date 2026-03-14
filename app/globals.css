@@ -4,35 +4,35 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Aegis Solaire - Bleu marine, Blanc, touches vert */
+  /* Aegis Solaire – branding logo : #112f4b, #e6ad35, #7a8b98 */
   --background: oklch(0.985 0 0);
-  --foreground: oklch(0.25 0.03 250);
+  --foreground: oklch(0.22 0.04 254);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.25 0.03 250);
+  --card-foreground: oklch(0.22 0.04 254);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.25 0.03 250);
-  /* Primary: Navy Blue */
-  --primary: oklch(0.35 0.08 250);
+  --popover-foreground: oklch(0.22 0.04 254);
+  /* Primary: #112f4b (bleu marine logo) */
+  --primary: oklch(0.31 0.08 254);
   --primary-foreground: oklch(0.985 0 0);
-  /* Secondary: Light gray */
-  --secondary: oklch(0.96 0.005 250);
-  --secondary-foreground: oklch(0.25 0.03 250);
-  --muted: oklch(0.96 0.005 250);
-  --muted-foreground: oklch(0.5 0.02 250);
-  /* Accent: Green for ecology */
-  --accent: oklch(0.6 0.15 145);
-  --accent-foreground: oklch(0.985 0 0);
+  /* Secondary / muted: #7a8b98 (gris-bleu logo) – tons clairs pour fonds */
+  --secondary: oklch(0.96 0.01 243);
+  --secondary-foreground: oklch(0.28 0.04 254);
+  --muted: oklch(0.96 0.01 243);
+  --muted-foreground: oklch(0.54 0.05 243);
+  /* Accent: #e6ad35 (or / doré logo) */
+  --accent: oklch(0.72 0.17 86);
+  --accent-foreground: oklch(0.22 0.04 254);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.9 0.01 250);
-  --input: oklch(0.9 0.01 250);
-  --ring: oklch(0.35 0.08 250);
-  /* Charts with solar/green theme */
-  --chart-1: oklch(0.6 0.15 145);
-  --chart-2: oklch(0.35 0.08 250);
-  --chart-3: oklch(0.7 0.12 80);
-  --chart-4: oklch(0.5 0.1 200);
-  --chart-5: oklch(0.75 0.1 145);
+  --border: oklch(0.88 0.02 243);
+  --input: oklch(0.88 0.02 243);
+  --ring: oklch(0.31 0.08 254);
+  /* Charts – palette branding */
+  --chart-1: oklch(0.72 0.17 86);
+  --chart-2: oklch(0.31 0.08 254);
+  --chart-3: oklch(0.54 0.05 243);
+  --chart-4: oklch(0.72 0.12 86);
+  --chart-5: oklch(0.35 0.06 254);
   --radius: 0.5rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.25 0.03 250);
@@ -47,18 +47,18 @@
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
+  --card: oklch(0.18 0.02 254);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
+  --popover: oklch(0.18 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
+  --primary: oklch(0.31 0.08 254);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.25 0.04 243);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --accent: oklch(0.72 0.17 86);
+  --accent-foreground: oklch(0.22 0 0);
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.637 0.237 25.331);
   --border: oklch(0.269 0 0);
@@ -125,7 +125,17 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground min-w-0;
+    overflow-x: hidden;
+  }
+  /* Éviter le débordement des conteneurs flex/grid sur petits écrans */
+  img, video, iframe {
+    max-width: 100%;
+    height: auto;
   }
 }

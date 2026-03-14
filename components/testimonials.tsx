@@ -54,31 +54,31 @@ const testimonials = [
 
 export function Testimonials() {
   return (
-    <section id="preuve" className="bg-background py-16 sm:py-24">
+    <section id="preuve" className="bg-background py-12 sm:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">
             Études de cas chiffrées
           </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
+          <p className="mt-3 text-base text-muted-foreground sm:mt-4 sm:text-lg">
             Des résultats concrets pour des entreprises comme la vôtre. Le B2B a besoin de réassurance.
           </p>
         </div>
 
-        {/* Bloc études de cas – chiffres mis en avant */}
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
+        {/* Bloc études de cas – 1 col mobile, 3 cols tablet+ */}
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-12 sm:gap-6 md:grid-cols-3">
           {caseStudies.map((study, index) => (
             <div
               key={index}
-              className="flex flex-col rounded-xl border border-border bg-card p-6 transition-shadow hover:shadow-lg"
+              className="flex min-w-0 flex-col rounded-xl border border-border bg-card p-4 transition-shadow hover:shadow-lg sm:p-6"
             >
               <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-accent/10">
                 <study.icon className="h-6 w-6 text-accent" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground">
+              <h3 className="text-base font-semibold text-foreground sm:text-lg">
                 {study.title}
               </h3>
-              <p className="mt-2 text-2xl font-bold text-primary">
+              <p className="mt-2 text-xl font-bold text-primary sm:text-2xl">
                 {study.figure}
               </p>
               <p className="text-sm text-muted-foreground">{study.figureLabel}</p>
@@ -88,16 +88,16 @@ export function Testimonials() {
         </div>
 
         {/* Témoignages clients */}
-        <div className="mt-16">
-          <h3 className="text-center text-xl font-semibold text-foreground">
+        <div className="mt-12 sm:mt-16">
+          <h3 className="text-center text-lg font-semibold text-foreground sm:text-xl">
             Ils nous font confiance
           </h3>
-          <div className="mt-8 grid gap-8 md:grid-cols-3">
+          <div className="mt-6 grid grid-cols-1 gap-6 sm:mt-8 md:grid-cols-3 md:gap-8">
             {testimonials.map((testimonial, index) => (
-              <div
-                key={index}
-                className="flex flex-col rounded-xl border border-border bg-card p-6"
-              >
+<div
+              key={index}
+              className="flex min-w-0 flex-col rounded-xl border border-border bg-card p-4 sm:p-6"
+            >
                 <div className="mb-4 flex gap-1">
                   {Array.from({ length: testimonial.rating }).map((_, i) => (
                     <Star
@@ -124,11 +124,11 @@ export function Testimonials() {
         </div>
 
         {/* Certifications */}
-        <div className="mt-16 border-t border-border pt-12">
-          <p className="mb-8 text-center text-sm font-medium uppercase tracking-wider text-muted-foreground">
+        <div className="mt-12 border-t border-border pt-8 sm:mt-16 sm:pt-12">
+          <p className="mb-6 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground sm:mb-8 sm:text-sm">
             Certifications et partenaires
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-8 opacity-60 grayscale">
+          <div className="flex flex-wrap items-center justify-center gap-4 opacity-60 grayscale sm:gap-8">
             <div className="flex h-12 items-center justify-center rounded bg-muted px-4">
               <span className="font-bold text-muted-foreground">RGE</span>
             </div>

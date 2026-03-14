@@ -1,22 +1,28 @@
 import Link from "next/link"
-import { Sun } from "lucide-react"
+import Image from "next/image"
 
 export function Footer() {
   return (
     <footer className="border-t border-border bg-secondary" role="contentinfo">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-5">
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:gap-10 lg:grid-cols-5 lg:gap-12">
           {/* Brand */}
-          <div className="lg:col-span-1">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-                <Sun className="h-5 w-5 text-primary-foreground" />
+          <div className="min-w-0 lg:col-span-1">
+            <Link href="/" className="inline-flex items-center gap-2">
+              <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-primary">
+                <Image
+                  src="/logo.png"
+                  alt="Aegis Solaire"
+                  width={36}
+                  height={36}
+                  className="object-contain object-center p-0.5"
+                />
               </div>
               <span className="text-xl font-semibold text-foreground">
                 Aegis <span className="text-accent">Solaire</span>
               </span>
             </Link>
-            <p className="mt-4 text-sm text-muted-foreground">
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
               Financement, Rentabilité & Ombrières Pro. La plateforme de référence pour les projets photovoltaïques B2B en France.
             </p>
           </div>
@@ -134,12 +140,12 @@ export function Footer() {
           </div>
 
           {/* Contact */}
-          <div>
+          <div className="min-w-0">
             <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">
               Contact
             </h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>contact@aegis-solaire.fr</li>
+              <li className="break-all">contact@aegis-solaire.fr</li>
               <li>01 23 45 67 89</li>
               <li>Du lundi au vendredi</li>
               <li>9h00 - 18h00</li>
@@ -147,8 +153,8 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 border-t border-border pt-8">
-          <p className="text-center text-sm text-muted-foreground">
+        <div className="mt-10 border-t border-border pt-6 sm:mt-12 sm:pt-8">
+          <p className="text-center text-xs text-muted-foreground sm:text-sm">
             &copy; {new Date().getFullYear()} Aegis Solaire. Tous droits
             reserves.
           </p>

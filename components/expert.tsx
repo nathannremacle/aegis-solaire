@@ -19,18 +19,18 @@ const stats = [
 
 export function Expert() {
   return (
-    <section id="expert" className="bg-secondary py-16 sm:py-24">
+    <section id="expert" className="bg-secondary py-12 sm:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid items-start gap-12 lg:grid-cols-2">
+        <div className="grid items-start gap-8 lg:grid-cols-2 lg:gap-12">
           {/* Contenu : Décret Tertiaire, PPA, stockage */}
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+          <div className="min-w-0">
+            <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">
               Un partenaire de confiance pour votre transition énergétique
             </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
+            <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
               Aegis Solaire réunit un réseau d'experts certifiés pour vous accompagner de l'étude de faisabilité jusqu'à la maintenance de votre installation. Nous simplifions le financement : <strong>PPA</strong> (achat d'électricité sans mise de fonds), <strong>tiers-investissement</strong> et <strong>stockage batterie</strong> pour maximiser l'autoconsommation.
             </p>
-            <p className="mt-4 text-muted-foreground">
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               Le <strong>Décret Tertiaire</strong> et la <strong>Loi LOM</strong> imposent aux bâtiments &gt; 500 m² et aux parkings &gt; 1 500 m² des obligations de réduction de consommation et de couverture solaire. Nous vous aidons à vous mettre en conformité tout en rentabilisant vos surfaces.
             </p>
 
@@ -45,15 +45,15 @@ export function Expert() {
           </div>
 
           {/* Vidéo Founder POV – placeholder 2–3 min */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold text-foreground">
+          <div className="min-w-0 space-y-4">
+            <h3 className="text-lg font-semibold text-foreground sm:text-xl">
               Vidéo Fondateur – Décret Tertiaire & financement
             </h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground sm:text-sm">
               Explication des obligations légales (Décret Tertiaire) et des solutions de financement (PPA, tiers-investissement, stockage) en 2 à 3 minutes.
             </p>
             <div
-              className="relative aspect-video w-full overflow-hidden rounded-xl border border-border bg-muted"
+              className="relative aspect-video w-full min-w-0 overflow-hidden rounded-xl border border-border bg-muted"
               aria-label="Vidéo explicative du fondateur – à venir"
             >
               {/* Placeholder : intégrer l’URL de la vidéo (YouTube, Vimeo, etc.) */}
@@ -67,13 +67,13 @@ export function Expert() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               {stats.map((stat, index) => (
                 <div
                   key={index}
-                  className="rounded-xl border border-border bg-card p-6 text-center"
+                  className="min-w-0 rounded-xl border border-border bg-card p-4 text-center sm:p-6"
                 >
-                  <p className="text-3xl font-bold text-primary sm:text-4xl">
+                  <p className="text-2xl font-bold text-primary sm:text-3xl md:text-4xl">
                     {stat.value}
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">{stat.label}</p>

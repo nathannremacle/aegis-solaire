@@ -24,6 +24,8 @@
 | Base de données | **Supabase** (PostgreSQL hébergé) |
 | Analytics | Vercel Analytics |
 | Hébergement front / API | Prévu pour **Vercel** |
+| **Responsive** | Mobile-first (sm: 640px, md: 768px, lg: 1024px), safe-area pour encoches, zone de touch ≥ 44px, pas de débordement horizontal |
+| **Branding** | Logo `/public/logo.png`. Couleurs : #112f4b (primary), #e6ad35 (accent), #7a8b98 (muted/secondary). Favicon et Open Graph utilisent le logo. Pour un partage social optimal, ajouter une image dédiée `og-image.png` 1200×630 en `public/` si le logo n’est pas à ce format. |
 
 ---
 
@@ -192,5 +194,6 @@ En résumé : **Vercel + Supabase suffisent pour faire tourner le site et enregi
 
 - **Création** : description complète du fonctionnement, stack, déploiement Vercel, rôle de Digital Ocean, variables d’environnement et recommandation sur l’usage de la clé service role Supabase pour l’API.
 - **Alignement « Fonctionnement imaginé »** : ajout de la section 3.3 (entonnoir 5 étapes : Acquisition, Qualification, RGPD/filtrage, Distribution, Nurturing). Simulateur : promesse « audit de faisabilité complet » et « résultats détaillés » (gated). API : validation surface selon type (1 500 / 500 m²), filtrage email pro (refus domaines grand public), webhook optionnel `LEAD_WEBHOOK_URL` pour distribution temps réel. Politique de confidentialité : qualité des données (filtrage des leads non qualifiés), lead nurturing (témoignages, Loi LOM, webinaires). Footer : colonne Ressources (études de cas, subventions & financement, webinaires à venir).
+- **Responsive** : optimisation multi-appareils (desktop, tablette, smartphone). Base : `overflow-x: hidden`, viewport, `min-w-0` sur conteneurs flex/grid. Header : bouton menu 44px touch, nav mobile avec zones de tap, safe-area. Hero : titres en échelle (2xl → 6xl), CTA et trust grid adaptés. Footer : grille 1/2/5 colonnes, email `break-all`. Simulateur : padding et boutons full-width sur mobile, grilles 1 col puis 2. Sections Preuve, Expert, Benefits : grilles et typo responsive. Pages légales : titres et padding adaptés. Lien d’évitement avec safe-area.
 
 **Règle :** à chaque modification ou ajout significatif sur le site (nouvelles pages, nouvelles routes API, changement de schéma, d’env ou d’hébergement), ce fichier doit être mis à jour en conséquence.

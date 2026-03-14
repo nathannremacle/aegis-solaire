@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     siteName: 'Aegis Solaire',
     title: 'Aegis Solaire | Simulateur ROI Photovoltaïque pour Entreprises',
     description: 'Valorisez vos toitures et parkings. Conformité Loi LOM, Décret Tertiaire. ROI en 2 minutes.',
-    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Aegis Solaire' }],
+    images: [{ url: '/logo.png', width: 1200, height: 630, alt: 'Aegis Solaire' }],
   },
   twitter: {
     card: 'summary_large_image',
@@ -42,10 +42,17 @@ export const metadata: Metadata = {
   },
   alternates: { canonical: siteUrl },
   category: 'technology',
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
 }
 
 export const viewport: Viewport = {
-  themeColor: '#1e3a5f',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: '#112f4b',
 }
 
 export default function RootLayout({
@@ -55,7 +62,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body className={`${inter.variable} ${dmSans.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${dmSans.variable} font-sans antialiased overflow-x-hidden min-w-0`}>
         <JsonLd />
         {children}
         <Analytics />

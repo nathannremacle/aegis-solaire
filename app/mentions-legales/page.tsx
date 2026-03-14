@@ -14,9 +14,9 @@ export default function MentionsLegales() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1 bg-background py-12">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <h1 className="mb-8 text-3xl font-bold text-foreground">
+      <main className="flex-1 bg-background py-8 sm:py-12">
+        <div className="mx-auto max-w-3xl min-w-0 px-4 sm:px-6 lg:px-8">
+          <h1 className="mb-6 text-2xl font-bold text-foreground sm:mb-8 sm:text-3xl">
             Mentions Legales
           </h1>
 
