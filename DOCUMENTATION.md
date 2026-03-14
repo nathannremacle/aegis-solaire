@@ -131,6 +131,15 @@ La table `leads` est protégée par Row Level Security (RLS). Le script SQL pré
 
 Script d’initialisation : `scripts/001_create_leads_table.sql` (à exécuter dans le projet Supabase).
 
+### 5.3 Panel admin
+
+- **Accès :** `/admin` (redirige vers `/admin/dashboard`). Connexion obligatoire sur `/admin/login` (Supabase Auth : email + mot de passe). Seuls les emails listés dans `ADMIN_EMAILS` ont accès.
+- **Fonctions :** tableau de bord (nombre de leads, ce mois, aujourd’hui, derniers leads), liste des leads (filtre par statut, recherche par email, pagination), gestion des installateurs partenaires (création, modification, suppression).
+- **Sécurité :** toutes les routes `/admin/*` (sauf `/admin/login`) et `/api/admin/*` vérifient la session Supabase et que l’email appartient à `ADMIN_EMAILS`. Les données sont lues/écrites via le client **service role** (côté serveur uniquement).
+- **Table `installateurs` :** script `scripts/002_create_installateurs_table.sql` (à exécuter dans Supabase après la table `leads`). Colonnes : id, name, email, phone, region, actif, notes, created_at, updated_at.
+
+Voir **PLAN-ADMIN.md** pour le détail du plan et des évolutions possibles.
+
 ---
 
 ## 6. Variables d’environnement
@@ -145,6 +154,7 @@ Script d’initialisation : `scripts/001_create_leads_table.sql` (à exécuter d
 | `NEXT_PUBLIC_SITE_URL` | URL canonique du site (ex. `https://www.aegis-solaire.fr`) pour sitemap, robots, JSON-LD, métadonnées |
 | `LEAD_WEBHOOK_URL` | (Optionnel) URL de webhook pour envoi temps réel du lead vers CRM ou installateur (POST JSON). Ne pas exposer au client. |
 | `NEXT_PUBLIC_FOUNDER_VIDEO_URL` | (Optionnel) URL YouTube ou Vimeo de la vidéo Fondateur (section Expert). Si défini, la vidéo est affichée en embed ; sinon placeholder « Vidéo à venir ». |
+| `ADMIN_EMAILS` | Liste d’emails autorisés à accéder au panel admin (séparés par des virgules, sans espaces). Ex. : `admin@aegis-solaire.fr`. **Ne pas exposer au client.** |
 
 Sans `NEXT_PUBLIC_SITE_URL`, la valeur par défaut utilisée dans le code est `https://www.aegis-solaire.fr`.
 
