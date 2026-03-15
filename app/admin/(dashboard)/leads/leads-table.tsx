@@ -404,6 +404,12 @@ export function LeadsTable({
           </div>
         </div>
       )}
+
+      <LeadDetailSheet
+        leadId={leadId ?? null}
+        onClose={closeLeadDetail}
+        currentLeadFromList={currentLeadFromList}
+      />
     </div>
   )
 }
