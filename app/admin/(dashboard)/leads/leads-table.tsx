@@ -11,6 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { LeadStatusBadge } from "@/components/admin-lead-status-badge"
+import { LeadDetailSheet } from "./lead-detail-sheet"
 
 type Lead = {
   id: string
@@ -30,6 +32,16 @@ type Lead = {
   created_at: string
 }
 
+function buildLeadsUrl(params: { page?: number; status?: string; search?: string; leadId?: string }) {
+  const q = new URLSearchParams()
+  if (params.page && params.page > 1) q.set("page", String(params.page))
+  if (params.status && params.status !== "all") q.set("status", params.status)
+  if (params.search) q.set("search", params.search)
+  if (params.leadId) q.set("leadId", params.leadId)
+  const s = q.toString()
+  return s ? `/admin/leads?${s}` : "/admin/leads"
+}
+
 export function LeadsTable({
   leads,
   total,
@@ -37,6 +49,8 @@ export function LeadsTable({
   limit,
   statusFilter,
   searchDefault = "",
+  leadId = null,
+  currentLeadFromList = null,
 }: {
   leads: Lead[]
   total: number
@@ -44,9 +58,19 @@ export function LeadsTable({
   limit: number
   statusFilter: string
   searchDefault?: string
+  leadId?: string | null
+  currentLeadFromList?: Lead | null
 }) {
   const router = useRouter()
   const totalPages = Math.ceil(total / limit) || 1
+
+  function openLeadDetail(id: string) {
+    router.push(buildLeadsUrl({ page, status: statusFilter || undefined, search: searchDefault || undefined, leadId: id }))
+  }
+
+  function closeLeadDetail() {
+    router.push(buildLeadsUrl({ page, status: statusFilter || undefined, search: searchDefault || undefined }))
+  }
 
   function onStatusChange(value: string) {
     const params = new URLSearchParams()
@@ -118,7 +142,11 @@ export function LeadsTable({
               </tr>
             ) : (
               leads.map((lead) => (
-                <tr key={lead.id} className="border-b border-border">
+                <tr
+                  key={lead.id}
+                  className="cursor-pointer border-b border-border transition-colors hover:bg-muted/50"
+                  onClick={() => openLeadDetail(lead.id)}
+                >
                   <td className="px-4 py-3 text-muted-foreground">
                     {new Date(lead.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}
                   </td>

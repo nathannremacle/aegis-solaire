@@ -37,13 +37,15 @@ async function getLeads(page: number, limit: number, status: string, search: str
 export default async function AdminLeadsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; status?: string; search?: string }>
+  searchParams: Promise<{ page?: string; status?: string; search?: string; leadId?: string }>
 }) {
-  const { page: pageParam, status, search: searchParam } = await searchParams
+  const { page: pageParam, status, search: searchParam, leadId } = await searchParams
   const page = Math.max(1, parseInt(pageParam ?? "1", 10))
   const limit = 20
 
   const { leads, total, page: currentPage } = await getLeads(page, limit, status ?? "", searchParam ?? "")
+
+  const currentLeadFromList = leadId ? leads.find((l) => l.id === leadId) ?? null : null
 
   return (
     <div className="space-y-6">
@@ -55,6 +57,8 @@ export default async function AdminLeadsPage({
         limit={limit}
         statusFilter={status ?? ""}
         searchDefault={searchParam ?? ""}
+        leadId={leadId ?? null}
+        currentLeadFromList={currentLeadFromList}
       />
     </div>
   )

@@ -41,13 +41,13 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-secondary px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-background to-muted/30 px-4">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground">Administration</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Aegis Solaire</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Administration</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Aegis Solaire · Accès réservé</p>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-border bg-card p-6 shadow-sm">
+        <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-border bg-card p-6 shadow-lg">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -82,9 +82,9 @@ export default function AdminLoginPage() {
             {loading ? "Connexion…" : "Se connecter"}
           </Button>
         </form>
-        <p className="text-center text-xs text-muted-foreground">
-          <Link href="/" className="underline hover:text-foreground">
-            Retour au site
+        <p className="text-center">
+          <Link href="/" className="text-sm text-muted-foreground underline hover:text-foreground">
+            ← Retour au site
           </Link>
         </p>
       </div>

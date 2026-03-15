@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -97,6 +98,7 @@ export function InstallateursClient({ initialData }: { initialData: Installateur
         const data = await res.json()
         if (!res.ok) throw new Error(data.error ?? "Erreur")
         setList((prev) => prev.map((i) => (i.id === editing.id ? { ...i, ...payload } : i)))
+        toast.success("Installateur mis à jour")
       } else {
         const res = await fetch("/api/admin/installateurs", {
           method: "POST",
@@ -106,10 +108,13 @@ export function InstallateursClient({ initialData }: { initialData: Installateur
         const data = await res.json()
         if (!res.ok) throw new Error(data.error ?? "Erreur")
         setList((prev) => [...prev, { ...data }])
+        toast.success("Installateur créé")
       }
       setModalOpen(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur")
+      const msg = err instanceof Error ? err.message : "Erreur"
+      setError(msg)
+      toast.error(msg)
     } finally {
       setLoading(false)
     }
@@ -123,8 +128,10 @@ export function InstallateursClient({ initialData }: { initialData: Installateur
       if (!res.ok) throw new Error("Erreur")
       setList((prev) => prev.filter((i) => i.id !== deleteId))
       setDeleteId(null)
+      toast.success("Installateur supprimé")
     } catch {
       setError("Impossible de supprimer.")
+      toast.error("Impossible de supprimer l'installateur")
     } finally {
       setLoading(false)
     }
