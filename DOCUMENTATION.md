@@ -152,12 +152,12 @@ Voir **PLAN-ADMIN.md** pour le détail du plan et des phases.
 | `NEXT_PUBLIC_SUPABASE_URL` | URL du projet Supabase |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clé anonyme (lecture publique si besoin) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Clé service role pour l’API (insertion `leads`) – **ne pas exposer au client** |
-| `NEXT_PUBLIC_SITE_URL` | URL canonique du site (ex. `https://www.aegis-solaire.fr`) pour sitemap, robots, JSON-LD, métadonnées |
+| `NEXT_PUBLIC_SITE_URL` | URL canonique du site (ex. `https://www.aegissolaire.com`) pour sitemap, robots, JSON-LD, métadonnées |
 | `LEAD_WEBHOOK_URL` | (Optionnel) URL de webhook pour envoi temps réel du lead vers CRM ou installateur (POST JSON). Ne pas exposer au client. |
 | `NEXT_PUBLIC_FOUNDER_VIDEO_URL` | (Optionnel) URL YouTube ou Vimeo de la vidéo Fondateur (section Expert). Si défini, la vidéo est affichée en embed ; sinon placeholder « Vidéo à venir ». |
-| `ADMIN_EMAILS` | Liste d’emails autorisés à accéder au panel admin (séparés par des virgules, sans espaces). Ex. : `admin@aegis-solaire.fr`. **Ne pas exposer au client.** |
+| `ADMIN_EMAILS` | Liste d’emails autorisés à accéder au panel admin (séparés par des virgules, sans espaces). Ex. : `admin@aegissolaire.com`. **Ne pas exposer au client.** |
 
-Sans `NEXT_PUBLIC_SITE_URL`, la valeur par défaut utilisée dans le code est `https://www.aegis-solaire.fr`.
+Sans `NEXT_PUBLIC_SITE_URL`, la valeur par défaut utilisée dans le code est `https://www.aegissolaire.com`.
 
 ---
 

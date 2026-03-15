@@ -2,7 +2,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Metadata } from "next"
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://aegis-solaire.vercel.app'
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.aegissolaire.com'
 
 export const metadata: Metadata = {
   title: "Politique de confidentialité",
@@ -142,10 +142,10 @@ export default function PolitiqueConfidentialite() {
               <p className="mt-4 text-muted-foreground">
                 Pour exercer ces droits, contactez notre DPO à l'adresse :{" "}
                 <a
-                  href="mailto:dpo@aegis-solaire.fr"
+                  href="mailto:dpo@aegissolaire.com"
                   className="text-primary hover:underline"
                 >
-                  dpo@aegis-solaire.fr
+                  dpo@aegissolaire.com
                 </a>
               </p>
             </section>
@@ -157,10 +157,10 @@ export default function PolitiqueConfidentialite() {
               <p className="mt-4 text-muted-foreground">
                 Vous pouvez à tout moment vous opposer à la prospection commerciale ou demander la suppression de vos données. Un processus automatisé permet de traiter les demandes de désinscription sous <strong>24 à 48 heures</strong>. Envoyez votre demande à{" "}
                 <a
-                  href="mailto:dpo@aegis-solaire.fr"
+                  href="mailto:dpo@aegissolaire.com"
                   className="text-primary hover:underline"
                 >
-                  dpo@aegis-solaire.fr
+                  dpo@aegissolaire.com
                 </a>
                 {" "}en précisant « Opposition » ou « Désinscription » et votre adresse email.
               </p>

@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next'
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://aegis-solaire.vercel.app'
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.aegissolaire.com'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [

@@ -145,7 +145,7 @@ export function Footer() {
               Contact
             </h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="break-all">contact@aegis-solaire.fr</li>
+              <li className="break-all">contact@aegissolaire.com</li>
             </ul>
           </div>
         </div>

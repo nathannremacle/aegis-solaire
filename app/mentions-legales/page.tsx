@@ -2,7 +2,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Metadata } from "next"
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://aegis-solaire.vercel.app'
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.aegissolaire.com'
 
 export const metadata: Metadata = {
   title: "Mentions légales",
@@ -28,7 +28,7 @@ export default function MentionsLegales() {
               <p className="mt-4 text-muted-foreground">
                 Aegis Solaire – Plateforme en ligne dédiée aux projets photovoltaïques B2B (France, Belgique, francophonie).
                 <br />
-                Contact : contact@aegis-solaire.fr
+                Contact : contact@aegissolaire.com
               </p>
             </section>
 
@@ -64,7 +64,7 @@ export default function MentionsLegales() {
                 Conformément au RGPD et à la loi Informatique et Libertés, vous
                 disposez d'un droit d'accès, de rectification et de suppression
                 de vos données. Pour exercer ces droits, contactez-nous à
-                l'adresse : dpo@aegis-solaire.fr
+                l'adresse : dpo@aegissolaire.com
               </p>
             </section>
 

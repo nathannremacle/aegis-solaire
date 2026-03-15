@@ -1,4 +1,4 @@
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://aegis-solaire.vercel.app'
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.aegissolaire.com'
 
 /** Données structurées JSON-LD pour SEO (Organization + WebSite) */
 export function JsonLd() {
@@ -12,7 +12,7 @@ export function JsonLd() {
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'customer service',
-      email: 'contact@aegis-solaire.fr',
+      email: 'contact@aegissolaire.com',
       availableLanguage: 'French',
       areaServed: ['FR', 'BE'],
     },

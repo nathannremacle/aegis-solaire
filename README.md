@@ -37,7 +37,7 @@ Ouvrir [http://localhost:3000](http://localhost:3000).
 
 ## Variables d'environnement
 
-- `NEXT_PUBLIC_SITE_URL` — URL canonique du site (ex. `https://www.aegis-solaire.fr`) pour SEO et liens absolus
+- `NEXT_PUBLIC_SITE_URL` — URL canonique du site (ex. `https://www.aegissolaire.com`) pour SEO et liens absolus
 - Variables Supabase : voir `lib/supabase/client.ts` et `lib/supabase/server.ts`
 
 ## Ressources

@@ -4,7 +4,7 @@ import { Footer } from "@/components/footer"
 import { Metadata } from "next"
 import { FileText, Wallet, Video, Clock } from "lucide-react"
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://aegis-solaire.vercel.app"
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.aegissolaire.com"
 
 export const metadata: Metadata = {
   title: "Ressources",

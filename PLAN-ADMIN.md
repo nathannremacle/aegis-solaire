@@ -94,7 +94,7 @@ Toutes les routes ci‑dessous :
 
 | Variable | Usage |
 |----------|--------|
-| `ADMIN_EMAILS` | Liste d’emails admins (séparés par des virgules, sans espaces). Ex. : `admin@aegis-solaire.fr,autre@domaine.fr`. |
+| `ADMIN_EMAILS` | Liste d’emails admins (séparés par des virgules, sans espaces). Ex. : `admin@aegissolaire.com,autre@domaine.fr`. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Déjà utilisé pour l’API leads ; nécessaire pour les routes admin (lecture leads, CRUD installateurs). |
 
 **Création du premier admin :** dans le dashboard Supabase, aller dans **Authentication** → **Users** → **Add user** (créer un utilisateur avec email + mot de passe). Puis ajouter cet email dans `ADMIN_EMAILS`. Vous pourrez ensuite vous connecter sur `/admin/login`.

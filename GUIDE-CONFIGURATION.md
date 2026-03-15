@@ -104,7 +104,7 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 # Admin (obligatoire pour accéder au panel /admin)
-ADMIN_EMAILS=admin@aegis-solaire.fr
+ADMIN_EMAILS=admin@aegissolaire.com
 
 # Optionnel : webhook pour envoyer les leads à un CRM ou un installateur
 # LEAD_WEBHOOK_URL=https://votre-crm.com/webhook
@@ -117,7 +117,7 @@ Remplacez :
 
 - `NEXT_PUBLIC_SUPABASE_URL` et les deux clés par les valeurs de votre projet Supabase (voir 3.2).
 - `ADMIN_EMAILS` par l’email que vous utiliserez pour vous connecter au panel admin (plusieurs emails possibles, séparés par des virgules, sans espaces).
-- En production, `NEXT_PUBLIC_SITE_URL` sera l’URL réelle du site (ex. `https://www.aegis-solaire.fr`).
+- En production, `NEXT_PUBLIC_SITE_URL` sera l’URL réelle du site (ex. `https://www.aegissolaire.com`).
 
 ### 4.2 Sur Vercel (production)
 
@@ -136,7 +136,7 @@ Remplacez :
 | `NEXT_PUBLIC_SUPABASE_URL` | Oui | .env.local + Vercel | URL du projet Supabase |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Oui | .env.local + Vercel | Clé anon (publique) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Oui | .env.local + Vercel (secrète) | Clé service role – ne jamais exposer |
-| `NEXT_PUBLIC_SITE_URL` | Oui | .env.local + Vercel | URL du site (ex. https://www.aegis-solaire.fr) |
+| `NEXT_PUBLIC_SITE_URL` | Oui | .env.local + Vercel | URL du site (ex. https://www.aegissolaire.com) |
 | `ADMIN_EMAILS` | Oui pour l’admin | .env.local + Vercel (secrète) | Emails autorisés à se connecter à /admin |
 | `LEAD_WEBHOOK_URL` | Non | .env.local + Vercel (secrète) | Webhook POST pour envoyer les leads en temps réel |
 | `NEXT_PUBLIC_FOUNDER_VIDEO_URL` | Non | .env.local + Vercel | URL YouTube/Vimeo de la vidéo Fondateur |
@@ -173,11 +173,11 @@ Avant ou après le premier déploiement : **Settings** → **Environment Variabl
 ### 6.3 Déploiement
 
 - **Deploy** : chaque push sur la branche connectée (souvent `main`) déclenche un déploiement.
-- Une fois déployé, le site est accessible à l’URL fournie par Vercel (ex. `https://aegis-solaire.vercel.app`). Vous pouvez ensuite attacher un **domaine personnalisé** (ex. `www.aegis-solaire.fr`) dans **Settings** → **Domains**.
+- Une fois déployé, le site est accessible à l’URL fournie par Vercel (ex. `https://aegis-solaire.vercel.app`). Vous pouvez ensuite attacher un **domaine personnalisé** (ex. `www.aegissolaire.com`) dans **Settings** → **Domains**.
 
 ### 6.4 Après le domaine personnalisé
 
-Mettez à jour **`NEXT_PUBLIC_SITE_URL`** sur Vercel pour qu’elle soit égale à l’URL finale du site (ex. `https://www.aegis-solaire.fr`). Cela sert au sitemap, aux métadonnées et aux redirections (ex. déconnexion admin).
+Mettez à jour **`NEXT_PUBLIC_SITE_URL`** sur Vercel pour qu’elle soit égale à l’URL finale du site (ex. `https://www.aegissolaire.com`). Cela sert au sitemap, aux métadonnées et aux redirections (ex. déconnexion admin).
 
 ---
 

@@ -2,7 +2,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Metadata } from "next"
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://aegis-solaire.vercel.app'
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.aegissolaire.com'
 
 export const metadata: Metadata = {
   title: "Conditions générales de vente",
@@ -126,10 +126,10 @@ export default function CGV() {
                 Pour toute question relative aux présentes CGV, contactez-nous à
                 l'adresse :{" "}
                 <a
-                  href="mailto:contact@aegis-solaire.fr"
+                  href="mailto:contact@aegissolaire.com"
                   className="text-primary hover:underline"
                 >
-                  contact@aegis-solaire.fr
+                  contact@aegissolaire.com
                 </a>
               </p>
             </section>
