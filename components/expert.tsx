@@ -120,8 +120,8 @@ const stats = [
 
 export function Expert() {
   return (
-    <section id="expert" className="scroll-mt-24 bg-secondary py-14 sm:py-20 lg:py-24">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <section id="expert" className="scroll-mt-24 overflow-x-hidden bg-secondary py-14 sm:py-20 lg:py-24 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
+      <div className="mx-auto max-w-7xl min-w-0 px-4 sm:px-6 lg:px-8">
         {/* En-tête : titre + intro */}
         <header className="mb-10 lg:mb-12">
           <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
@@ -133,9 +133,9 @@ export function Expert() {
         </header>
 
         {/* Alerte sanctions : bandeau discret mais visible */}
-        <div className="mb-10 flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 sm:px-5 sm:py-4">
-          <span className="text-lg sm:text-xl" aria-hidden>⚠️</span>
-          <p className="text-sm font-medium text-foreground sm:text-base">
+        <div className="mb-10 flex min-w-0 items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 sm:px-5 sm:py-4">
+          <span className="shrink-0 text-lg sm:text-xl" aria-hidden>⚠️</span>
+          <p className="min-w-0 break-words text-sm font-medium text-foreground sm:text-base">
             <span className="font-semibold text-amber-700 dark:text-amber-400">En 2026</span>, le non-respect de l'obligation de solariser vos parkings vous expose à une amende de <strong>40 000 € par an</strong>.
           </p>
         </div>

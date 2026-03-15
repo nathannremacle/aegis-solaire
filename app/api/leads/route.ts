@@ -87,6 +87,8 @@ export async function POST(request: NextRequest) {
       jobTitle: job_title,
       surfaceArea: data.surfaceArea,
       annualElectricityBill: data.annualElectricityBill,
+      projectTimeline: data.projectTimeline ?? null,
+      wantsIrve: data.wantsIrve === true,
     })
 
     const supabase = await createClient()
@@ -119,6 +121,7 @@ export async function POST(request: NextRequest) {
         source: "simulator",
         status,
         lead_score: score,
+        wants_irve: data.wantsIrve === true,
       })
       .select()
       .single()
@@ -152,6 +155,7 @@ export async function POST(request: NextRequest) {
         estimated_savings: inserted.estimated_savings,
         lead_score: inserted.lead_score ?? null,
         status: inserted.status,
+        wants_irve: inserted.wants_irve ?? false,
         created_at: inserted.created_at,
       }
       fetch(webhookUrl, {

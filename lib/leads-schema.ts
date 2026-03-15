@@ -34,6 +34,8 @@ export const leadSubmitSchema = z.object({
   message: z.string().max(2000).transform((s) => s.trim() || null).nullable().optional(),
   /** Objectif principal (Écran 1) : conformite | reduction_facture | rse | revenu */
   objective: z.string().max(64).transform((s) => s.trim() || null).nullable().optional(),
+  /** Option IRVE : coupler le projet avec bornes de recharge (Loi LOM). */
+  wantsIrve: z.boolean().optional().default(false),
 
   // ——— Résultats simulation (fournis par le client après calcul) ———
   estimatedROIYears: z.number().optional(),

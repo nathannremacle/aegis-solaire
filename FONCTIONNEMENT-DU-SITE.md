@@ -25,14 +25,14 @@ Les **installateurs** ne se connectent pas au site : ils reçoivent les leads so
    - Hero avec CTA « Lancer ma simulation de rentabilité ».  
    - Sections : Preuve (études de cas), Expert (obligations Loi LOM / Décret Tertiaire, financement PPA et tiers-investissement), Avantages, puis **Simulateur**.
 
-2. **Simulateur (formulaire en 5 étapes)**  
-   - **Étape 1 – Votre site** : type de surface (Parking > 1 500 m², Toiture > 500 m², Friche), surface en m².  
-   - **Étape 2 – Délai de votre projet** : Urgent (< 3 mois), 3 à 6 mois, ou Plus de 6 mois (exploratoire).  
-   - **Étape 3 – Précisions sur votre projet** : message libre optionnel (transmis à l’installateur, non utilisé pour le calcul).  
-   - **Étape 4 – Votre consommation** : facture d’électricité annuelle en € HT (min. 5 000 €).  
-     - Au clic sur « Continuer », animation « Calcul en cours » (~2,5 s), puis passage à l’étape 5.  
-   - **Étape 5 – Contact** : prénom, nom, email professionnel, téléphone, fonction, entreprise (optionnel), case consentement (transmission aux installateurs + offres Aegis), bloc RGPD.  
-   - **Bouton « Voir mon ROI »** : envoi du formulaire à l’API.
+2. **Simulateur (formulaire multi-étapes)**  
+   - **Étape 1 – Objectif** : intention principale (conformité, réduction facture, RSE, revenu).  
+   - **Étape 2 – Votre site** : type de surface (Parking, Toiture, Friche), surface en m².  
+   - **Étape 3 – Votre consommation** : facture d’électricité annuelle en € HT (min. 5 000 €), et **option IRVE** : case à cocher optionnelle « Je souhaite coupler ce projet avec l’installation de bornes de recharge (IRVE) ». La Loi LOM impose souvent solaire + IRVE ; un lead Solaire + IRVE a une valeur upsell plus forte.  
+   - **Étape 4 – Délai de votre projet** : Urgent (< 3 mois), 3 à 6 mois, ou Plus de 6 mois (exploratoire).  
+   - **Étape 5 – Transition** : animation « Calcul en cours » (~6 s).  
+   - **Étape 6 – Contact** : prénom, nom, email professionnel, téléphone, fonction, entreprise (optionnel), message libre (optionnel), case consentement (transmission aux installateurs + offres Aegis), bloc RGPD.  
+   - **Bouton « Recevoir mon audit… »** : envoi du formulaire à l’API.
 
 3. **Après soumission**  
    - Si la validation réussit : écran de **remerciement** avec les indicateurs (ROI en années, taux d’autoconsommation, économies annuelles, puissance installée).  
@@ -71,13 +71,14 @@ Les installateurs **n’ont pas de compte ni de page de connexion** sur aegissol
 - Cette URL peut pointer vers un **CRM** (HubSpot, Pipedrive, etc.) ou un **outil interne** qui notifie l’installateur (email, logiciel métier, etc.).
 - En cas d’échec du webhook (timeout 5 s, erreur réseau), l’erreur est loguée côté serveur mais le lead reste bien enregistré et le client voit le succès.
 
-### 3.2 Via l’assignation dans le panel admin
+### 3.2 Via l’assignation dans le panel admin (Speed-to-Lead)
 
 - Dans le panel admin, chaque lead peut être **assigné à un installateur** (liste déroulante dans le détail du lead).
-- Une fois assigné, le lead est « attribué » à cet installateur dans la base ; **la transmission effective** (envoi d’email, envoi du détail du lead, etc.) doit être faite par l’équipe Aegis (processus manuel ou outil externe), car le site ne contient pas encore de fonction « Envoyer un email à l’installateur ».
+- **Dès qu’un administrateur assigne un lead à un installateur**, le site envoie **automatiquement un e-mail transactionnel** à l’adresse e-mail de l’installateur avec les détails du lead (surface, facture, coordonnées, etc.). Un toast de confirmation s’affiche : « Lead assigné et envoyé à l’installateur par e-mail ».  
+  (L’envoi d’e-mail est implémenté côté API ; en développement il peut s’agir d’un `console.log` ; en production on branche Resend, Nodemailer ou un autre service.)
 - La liste des leads peut être **filtrée par installateur** et **exportée en CSV** (bouton « Exporter CSV ») pour partager les leads avec le bon partenaire.
 
-En résumé : **les installateurs voient les leads** soit via l’outil alimenté par le webhook, soit via ce que l’admin leur transmet après assignation (ou export CSV).
+En résumé : **les installateurs reçoivent les leads** soit via le webhook (temps réel), soit par **e-mail automatique** lors de l’assignation dans le panel, soit via l’export CSV transmis manuellement.
 
 ---
 
@@ -93,12 +94,14 @@ Accès : **/admin** (redirection vers **/admin/dashboard**). Connexion obligatoi
 
 ### 4.2 Leads (/admin/leads)
 
-- **Tableau** : date, nom, email, tél., entreprise, installateur assigné, surface, facture, ROI, statut.  
+- **Tableau** : date, nom, email, tél., entreprise, installateur assigné, surface, facture, ROI, **score**, statut.  
+- **Score lead** : affiché sous forme de **badge coloré** (sur 100 points) — **Rouge/Feu** si score > 70, **Orange** si 40–70, **Gris** si < 40. Le score est calculé automatiquement à l’insertion selon les règles métiers (délai, fonction, facture, option IRVE).  
 - **Filtres** : par statut (nouveau, contacté, qualifié, converti, perdu, etc.), par **installateur** (affichage des leads assignés à un installateur donné).  
 - **Recherche** par email.  
 - **Pagination**.  
-- **Clic sur une ligne** : ouverture d’un **détail (drawer)** avec toutes les infos du lead, **changement de statut**, et **assignation à un installateur** (liste déroulante).  
-- **Bouton « Exporter CSV »** : téléchargement d’un fichier CSV des leads (selon les filtres en cours, max 5 000 lignes).
+- **Clic sur une ligne** : ouverture d’un **détail (drawer)** avec toutes les infos du lead (dont option IRVE si cochée), **changement de statut**, et **assignation à un installateur** (liste déroulante). Lors de l’assignation, un e-mail est envoyé à l’installateur et un toast confirme : « Lead assigné et envoyé à l’installateur par e-mail ».  
+- **Bouton « Exporter CSV »** : téléchargement d’un fichier CSV des leads (selon les filtres en cours, max 5 000 lignes).  
+- **Bouton « Nettoyage RGPD (3 ans) »** : lance l’anonymisation des leads dont la date de création est supérieure à 3 ans (voir section 5.1).
 
 ### 4.3 Installateurs (/admin/installateurs)
 
@@ -115,11 +118,15 @@ Accès : **/admin** (redirection vers **/admin/dashboard**). Connexion obligatoi
 
 - **Consultation** : liste et détail dans **Leads** (voir ci-dessus).  
 - **Statut** : chaque lead a un statut (nouveau, contacté, qualifié, converti, perdu, etc.) modifiable dans le détail.  
-- **Assignation** : dans le détail d’un lead, choix de l’installateur dans la liste déroulante « Assigner à un installateur ». Sauvegarde immédiate en base.  
+- **Scoring automatique** : à l’insertion, le score (0–100) est calculé selon les règles métiers :  
+  - Délai « Urgent (< 3 mois) » = +40 pts ; « 3 à 6 mois » = +20 pts ; « > 6 mois » = 0 pt.  
+  - Fonction contenant « Directeur », « DAF », « PDG », « CEO », « Gérant » = +20 pts.  
+  - Facture annuelle > 50 000 € = +20 pts.  
+  - Option IRVE cochée = +20 pts.  
+  Le score est affiché dans le tableau (badge Rouge / Orange / Gris) et dans le détail.  
+- **Assignation** : dans le détail d’un lead, choix de l’installateur dans la liste déroulante « Assigner à un installateur ». Sauvegarde immédiate en base **et envoi automatique d’un e-mail** à l’installateur avec les détails du lead (Speed-to-Lead). Un toast confirme : « Lead assigné et envoyé à l’installateur par e-mail ».  
 - **Export** : export CSV pour partager les leads (par statut, installateur, recherche).  
-- **Scoring** : un score de lead est calculé côté API à l’insertion (surface, facture, etc.) et stocké ; il peut être affiché dans le détail ou l’export selon l’implémentation.
-
-Aucune suppression de lead ni envoi d’email depuis le panel n’est décrit ici (à ajouter si vous les mettez en place).
+- **Nettoyage RGPD** : une route API protégée **POST /api/admin/cleanup-leads** permet d’**anonymiser** les leads dont la date de création (`created_at`) est **strictement supérieure à 3 ans** (36 mois). C’est une obligation légale CNIL pour la prospection B2B. Un bouton « Nettoyage RGPD (3 ans) » est disponible sur la page Leads ; après confirmation, les enregistrements concernés sont anonymisés (nom, email, téléphone, entreprise, message remplacés par des valeurs génériques), les lignes restent en base pour les statistiques agrégées.
 
 ### 5.2 Gestion des installateurs
 
@@ -133,21 +140,21 @@ Aucune suppression de lead ni envoi d’email depuis le panel n’est décrit ic
 ## 6. Flux de données (résumé)
 
 ```
-Visiteur remplit le simulateur (5 étapes)
+Visiteur remplit le simulateur (étapes : objectif, surface, facture + option IRVE, délai, contact)
         ↓
 POST /api/leads (validation : email pro, téléphone FR/BE, surface, facture, etc.)
         ↓
-Insertion en base (table leads) + calcul du score
+Insertion en base (table leads) + calcul du score (délai, fonction, facture > 50k, IRVE)
         ↓
 Réponse succès au client → écran de remerciement
         ↓
-[Optionnel] POST vers LEAD_WEBHOOK_URL (même payload) → CRM / outil installateur
+[Optionnel] POST vers LEAD_WEBHOOK_URL (même payload, dont wants_irve) → CRM / outil installateur
         ↓
-Admin voit le lead dans /admin/leads
+Admin voit le lead dans /admin/leads (avec badge score Rouge / Orange / Gris)
         ↓
-Admin peut : changer le statut, assigner à un installateur, exporter en CSV
+Admin peut : changer le statut, assigner à un installateur, exporter en CSV, lancer le nettoyage RGPD (3 ans)
         ↓
-Transmission du lead à l’installateur : via le webhook déjà reçu, ou manuellement (email, export, etc.)
+Lors de l’assignation → envoi automatique d’un e-mail à l’installateur (Speed-to-Lead)
 ```
 
 ---
@@ -156,11 +163,14 @@ Transmission du lead à l’installateur : via le webhook déjà reçu, ou manue
 
 | Rôle | Fichier / variable |
 |------|--------------------|
-| Simulateur (étapes, formulaire) | `components/roi-simulator.tsx` |
-| API enregistrement lead | `app/api/leads/route.ts` |
+| Simulateur (étapes, formulaire, option IRVE) | `components/roi-simulator.tsx` |
+| API enregistrement lead (scoring, wants_irve) | `app/api/leads/route.ts` |
+| Calcul du score lead (délai, fonction, facture, IRVE) | `lib/lead-score.ts` |
+| Notification e-mail à l’installateur (Speed-to-Lead) | `lib/notify-installateur.ts` |
 | Webhook (URL) | Variable d’env. `LEAD_WEBHOOK_URL` |
 | Panel admin (pages) | `app/admin/(dashboard)/` |
-| API admin (leads, installateurs, stats, export) | `app/api/admin/` |
+| API admin (leads, installateurs, stats, export, cleanup) | `app/api/admin/` |
+| Nettoyage RGPD (anonymiser leads > 3 ans) | `POST /api/admin/cleanup-leads` |
 | Liste des admins | Variable d’env. `ADMIN_EMAILS` (emails séparés par des virgules) |
 
 Pour plus de détails techniques (stack, schéma BDD, déploiement), voir **DOCUMENTATION.md** et **PLAN-ADMIN.md**.

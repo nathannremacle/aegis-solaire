@@ -20,8 +20,8 @@ export function Header() {
   return (
     <header className="sticky top-0 z-[100] w-full border-b border-border/40 bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:min-h-20 sm:py-4 sm:px-6 lg:px-8 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
-        <Link href="/" className="flex min-w-0 shrink items-center gap-3 sm:gap-3">
-          <div className="relative h-16 w-60 shrink-0 sm:h-20 sm:w-80">
+        <Link href="/" className="flex min-w-0 shrink items-center gap-2 sm:gap-3">
+          <div className="relative h-12 w-48 min-w-0 max-w-[55vw] shrink sm:h-16 sm:w-60 sm:max-w-none md:h-20 md:w-80">
             <Image
               src="/logo.png"
               alt="Aegis Solaire"

@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   const supabase = createServiceRoleClient()
   let query = supabase
     .from("leads")
-    .select("id, first_name, last_name, email, phone, job_title, company, message, surface_type, surface_area, project_timeline, annual_electricity_bill, estimated_roi_years, autoconsumption_rate, estimated_savings, status, lead_score, installateur_id, created_at")
+    .select("id, first_name, last_name, email, phone, job_title, company, message, surface_type, surface_area, project_timeline, annual_electricity_bill, estimated_roi_years, autoconsumption_rate, estimated_savings, status, lead_score, installateur_id, wants_irve, created_at")
     .order("created_at", { ascending: false })
     .limit(EXPORT_MAX)
 
@@ -59,6 +59,7 @@ export async function GET(request: NextRequest) {
     status: string
     lead_score: number | null
     installateur_id: string | null
+    wants_irve: boolean
     created_at: string
   }>
 
@@ -81,6 +82,7 @@ export async function GET(request: NextRequest) {
     "Statut",
     "Score",
     "Installateur ID",
+    "IRVE",
     "Date création",
   ]
   const csvRows = [header.map(escapeCsv).join(",")]
@@ -105,6 +107,7 @@ export async function GET(request: NextRequest) {
         l.status,
         l.lead_score ?? "",
         l.installateur_id ?? "",
+        l.wants_irve ? "Oui" : "Non",
         l.created_at,
       ].map(escapeCsv).join(",")
     )

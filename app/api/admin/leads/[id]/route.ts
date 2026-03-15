@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
+import { sendLeadAssignedEmail } from "@/lib/notify-installateur"
 
-const LEAD_SELECT = "id, first_name, last_name, email, phone, job_title, company, message, surface_type, surface_area, project_timeline, annual_electricity_bill, estimated_roi_years, autoconsumption_rate, estimated_savings, status, lead_score, installateur_id, created_at, updated_at"
+const LEAD_SELECT = "id, first_name, last_name, email, phone, job_title, company, message, surface_type, surface_area, project_timeline, annual_electricity_bill, estimated_roi_years, autoconsumption_rate, estimated_savings, status, lead_score, installateur_id, wants_irve, created_at, updated_at"
 
 const VALID_STATUSES = ["new", "contacted", "qualified", "converted", "lost", "HOT_LEAD", "NEEDS_HUMAN_REVIEW"] as const
 
@@ -52,6 +53,8 @@ export async function PATCH(
     updated_at: new Date().toISOString(),
   }
 
+  let installateurEmailForNotify: string | null = null
+
   if (typeof status === "string" && VALID_STATUSES.includes(status as (typeof VALID_STATUSES)[number])) {
     updates.status = status
   }
@@ -61,11 +64,12 @@ export async function PATCH(
       updates.installateur_id = null
     } else if (typeof installateurId === "string" && /^[0-9a-f-]{36}$/i.test(installateurId)) {
       const supabaseCheck = createServiceRoleClient()
-      const { data: inst } = await supabaseCheck.from("installateurs").select("id").eq("id", installateurId).single()
+      const { data: inst } = await supabaseCheck.from("installateurs").select("id, email").eq("id", installateurId).single()
       if (!inst) {
         return NextResponse.json({ error: "Installateur introuvable." }, { status: 400 })
       }
       updates.installateur_id = installateurId
+      installateurEmailForNotify = inst.email ?? null
     } else {
       return NextResponse.json({ error: "installateur_id invalide." }, { status: 400 })
     }
@@ -91,5 +95,29 @@ export async function PATCH(
     return NextResponse.json({ error: "Erreur lors de la mise à jour du statut" }, { status: 500 })
   }
 
-  return NextResponse.json(data)
+  let installateur_notified = false
+  if (installateurEmailForNotify && data) {
+    try {
+      await sendLeadAssignedEmail(installateurEmailForNotify, {
+        first_name: data.first_name,
+        last_name: data.last_name,
+        email: data.email,
+        phone: data.phone,
+        job_title: data.job_title,
+        company: data.company ?? null,
+        surface_type: data.surface_type,
+        surface_area: data.surface_area,
+        annual_electricity_bill: data.annual_electricity_bill,
+        project_timeline: data.project_timeline ?? null,
+        estimated_roi_years: data.estimated_roi_years ?? null,
+        estimated_savings: data.estimated_savings ?? null,
+        message: data.message ?? null,
+      })
+      installateur_notified = true
+    } catch (err) {
+      console.error("Notify installateur failed:", err)
+    }
+  }
+
+  return NextResponse.json({ ...data, installateur_notified })
 }

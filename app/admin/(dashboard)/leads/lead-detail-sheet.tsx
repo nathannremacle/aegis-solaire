@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { LeadStatusBadge } from "@/components/admin-lead-status-badge"
+import { LeadScoreBadge } from "@/components/admin-lead-score-badge"
 import { toast } from "sonner"
 
 const PROJECT_TIMELINE_LABELS: Record<string, string> = {
@@ -47,6 +48,7 @@ type Lead = {
   status: string
   lead_score?: number | null
   installateur_id?: string | null
+  wants_irve?: boolean
   created_at: string
   updated_at?: string
 }
@@ -62,6 +64,7 @@ export function LeadDetailSheet({
 }) {
   const router = useRouter()
   const [lead, setLead] = useState<Lead | null>(currentLeadFromList ?? null)
+  const [installateurs, setInstallateurs] = useState<Installateur[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const open = !!leadId
@@ -131,7 +134,11 @@ export function LeadDetailSheet({
       if (!res.ok) throw new Error("Erreur")
       const data = await res.json()
       setLead((prev) => (prev ? { ...prev, ...data } : null))
-      toast.success("Installateur assigné")
+      if (data.installateur_notified) {
+        toast.success("Lead assigné et envoyé à l'installateur par e-mail")
+      } else {
+        toast.success("Installateur assigné")
+      }
     } catch {
       toast.error("Erreur lors de l'assignation")
     } finally {
@@ -155,7 +162,10 @@ export function LeadDetailSheet({
           <div className="space-y-6 px-4 pb-8">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-lg font-semibold">{lead.first_name} {lead.last_name}</span>
-              <LeadStatusBadge status={lead.status} />
+              <div className="flex items-center gap-2">
+                <LeadScoreBadge score={lead.lead_score} />
+                <LeadStatusBadge status={lead.status} />
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -212,6 +222,12 @@ export function LeadDetailSheet({
                 <div>
                   <Label className="text-muted-foreground">Économies estimées</Label>
                   <p className="font-medium">{lead.estimated_savings.toLocaleString("fr-FR")} € / an</p>
+                </div>
+              )}
+              {lead.wants_irve && (
+                <div>
+                  <Label className="text-muted-foreground">Option IRVE</Label>
+                  <p className="font-medium">Oui – souhaite coupler avec bornes de recharge</p>
                 </div>
               )}
             </div>

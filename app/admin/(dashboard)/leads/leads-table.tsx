@@ -1,8 +1,10 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -12,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { LeadStatusBadge } from "@/components/admin-lead-status-badge"
+import { LeadScoreBadge } from "@/components/admin-lead-score-badge"
 import { LeadDetailSheet } from "./lead-detail-sheet"
 
 type Installateur = { id: string; name: string; actif: boolean }
@@ -33,8 +36,33 @@ type Lead = {
   autoconsumption_rate: number | null
   estimated_savings: number | null
   status: string
+  lead_score?: number | null
   installateur_id?: string | null
   created_at: string
+}
+
+function CleanupLeadsButton() {
+  const [loading, setLoading] = useState(false)
+  async function handleCleanup() {
+    if (!confirm("Anonymiser les leads de plus de 3 ans (conformité RGPD) ? Cette action est irréversible.")) return
+    setLoading(true)
+    try {
+      const res = await fetch("/api/admin/cleanup-leads", { method: "POST" })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Erreur")
+      toast.success(data.message ?? `${data.anonymized_count} lead(s) anonymisés.`)
+      if (data.anonymized_count > 0) window.location.reload()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur lors du nettoyage RGPD")
+    } finally {
+      setLoading(false)
+    }
+  }
+  return (
+    <Button variant="outline" size="sm" onClick={handleCleanup} disabled={loading}>
+      {loading ? "Nettoyage…" : "Nettoyage RGPD (3 ans)"}
+    </Button>
+  )
 }
 
 function buildLeadsUrl(params: { page?: number; status?: string; search?: string; installateur?: string; leadId?: string }) {
@@ -166,6 +194,7 @@ export function LeadsTable({
         <a href={exportCsvUrl()} target="_blank" rel="noopener noreferrer">
           <Button variant="outline" size="sm">Exporter CSV</Button>
         </a>
+        <CleanupLeadsButton />
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-border">
@@ -181,13 +210,14 @@ export function LeadsTable({
               <th className="px-4 py-3 text-left font-medium">Surface</th>
               <th className="px-4 py-3 text-left font-medium">Facture</th>
               <th className="px-4 py-3 text-left font-medium">ROI</th>
+              <th className="px-4 py-3 text-left font-medium">Score</th>
               <th className="px-4 py-3 text-left font-medium">Statut</th>
             </tr>
           </thead>
           <tbody>
             {leads.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={11} className="px-4 py-8 text-center text-muted-foreground">
                   Aucun lead.
                 </td>
               </tr>
@@ -210,7 +240,10 @@ export function LeadsTable({
                   <td className="px-4 py-3">{lead.annual_electricity_bill.toLocaleString("fr-FR")} €</td>
                   <td className="px-4 py-3">{lead.estimated_roi_years != null ? `${lead.estimated_roi_years} ans` : "–"}</td>
                   <td className="px-4 py-3">
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">{lead.status}</span>
+                    <LeadScoreBadge score={lead.lead_score} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <LeadStatusBadge status={lead.status} />
                   </td>
                 </tr>
               ))

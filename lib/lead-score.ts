@@ -1,39 +1,33 @@
 /**
  * Scoring prédictif du lead (qualification B2B).
- * Attribue une note sur 100 et détermine le statut recommandé (HOT_LEAD / new / NEEDS_HUMAN_REVIEW).
+ * Attribue une note sur 100 selon les règles métiers et détermine le statut recommandé (HOT_LEAD / new / NEEDS_HUMAN_REVIEW).
+ *
+ * Règles :
+ * - Délai "Urgent (< 3 mois)" = +40 pts / "3 à 6 mois" = +20 pts / "> 6 mois" = 0 pt.
+ * - Fonction contient "Directeur", "DAF", "PDG", "CEO", "Gérant" = +20 pts.
+ * - Facture annuelle > 50 000 € = +20 pts.
+ * - Option IRVE cochée = +20 pts.
  */
 
-const HIGH_VALUE_JOB_TITLES = [
+const HIGH_VALUE_JOB_KEYWORDS = [
+  "directeur",
   "daf",
-  "directeur financier",
-  "directeur general",
-  "directeur général",
   "pdg",
-  "directeur rse",
-  "responsable rse",
+  "ceo",
+  "gérant",
+  "gerant",
 ]
 
 /** Détecte noms/prénoms suspects (suites de lettres sans sens, caractères bizarres). */
 function hasSuspiciousName(name: string): boolean {
   const cleaned = name.trim().toLowerCase()
   if (cleaned.length < 2) return true
-  // Suite de caractères répétitifs ou très peu variés
   const uniqueLetters = new Set(cleaned.replace(/\s/g, "").split("")).size
   if (uniqueLetters <= 2) return true
-  // Mots "clavier" type asdf, qwerty, aaaa
   const nonsense = /^(.)\1{3,}$|^[asdfqwer]+$|^[qwerty]+$|^[azerty]+$/i
   if (nonsense.test(cleaned)) return true
-  // Caractères non lettres (sauf espaces, tirets, apostrophes)
   if (/[0-9<>{}[\]\\|]/.test(cleaned)) return true
   return false
-}
-
-/** Vérifie si la facture d'électricité est cohérente avec la surface (ordre de grandeur). */
-function isBillCoherentWithSurface(annualBill: number, surfaceArea: number): boolean {
-  // ~150 W/m² × 1100 h × 0.18 €/kWh ≈ 30 €/m²/an en prod ; conso souvent 50–150 €/m²/an pour du tertiaire/industriel
-  const minExpected = surfaceArea * 20  // au moins 20 €/m²
-  const maxExpected = surfaceArea * 200  // au plus 200 €/m²
-  return annualBill >= minExpected && annualBill <= maxExpected
 }
 
 export type LeadScoreInput = {
@@ -42,6 +36,10 @@ export type LeadScoreInput = {
   jobTitle: string
   surfaceArea: number
   annualElectricityBill: number
+  /** Délai projet : urgent | 3_6_months | 6_plus_months */
+  projectTimeline?: string | null
+  /** Option IRVE cochée */
+  wantsIrve?: boolean
 }
 
 export type LeadScoreResult = {
@@ -51,25 +49,30 @@ export type LeadScoreResult = {
 
 /**
  * Calcule le score de qualification du lead (0–100) et le statut recommandé.
- * - score < 40 → NEEDS_HUMAN_REVIEW (ne pas envoyer auto aux installateurs)
- * - score > 70 → HOT_LEAD
- * - sinon → new
+ * - score > 70 → HOT_LEAD (badge rouge/feu)
+ * - score 40–70 → new (badge orange)
+ * - score < 40 → NEEDS_HUMAN_REVIEW (badge gris)
  */
 export function calculateLeadScore(data: LeadScoreInput): LeadScoreResult {
-  let score = 50 // base
+  let score = 0
 
-  // +30 si fonction à fort pouvoir de décision
+  // Délai : Urgent = +40, 3 à 6 mois = +20, > 6 mois = 0
+  if (data.projectTimeline === "urgent") score += 40
+  else if (data.projectTimeline === "3_6_months") score += 20
+  // 6_plus_months ou non renseigné = 0
+
+  // Fonction à fort pouvoir de décision = +20
   const jobLower = data.jobTitle.trim().toLowerCase()
-  const isHighValueJob = HIGH_VALUE_JOB_TITLES.some((title) => jobLower.includes(title))
-  if (isHighValueJob) score += 30
+  const isHighValueJob = HIGH_VALUE_JOB_KEYWORDS.some((kw) => jobLower.includes(kw))
+  if (isHighValueJob) score += 20
 
-  // +30 si surface > 1500 m² (gros projet)
-  if (data.surfaceArea > 1500) score += 30
+  // Facture annuelle > 50 000 € = +20
+  if (data.annualElectricityBill > 50_000) score += 20
 
-  // +20 si facture cohérente avec la surface
-  if (isBillCoherentWithSurface(data.annualElectricityBill, data.surfaceArea)) score += 20
+  // Option IRVE cochée = +20
+  if (data.wantsIrve === true) score += 20
 
-  // -50 si nom ou prénom suspects (bot / faux)
+  // Pénalité si nom/prénom suspects (bot / faux)
   if (hasSuspiciousName(data.firstName) || hasSuspiciousName(data.lastName)) score -= 50
 
   score = Math.max(0, Math.min(100, score))

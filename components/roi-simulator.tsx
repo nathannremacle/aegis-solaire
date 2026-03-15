@@ -46,6 +46,8 @@ type FormData = {
   electricityBillBracket: string
   /** Montant exact facture annuelle € HT (optionnel, prioritaire sur les tranches) */
   annualElectricityBillCustom: string
+  /** Option IRVE : coupler avec bornes de recharge (étape 3) */
+  wantsIrve: boolean
   // Écran 4 : Délai
   projectTimeline: string
   // Écran 6 : Capture
@@ -75,6 +77,7 @@ const initialFormData: FormData = {
   surfaceAreaCustom: "",
   electricityBillBracket: "",
   annualElectricityBillCustom: "",
+  wantsIrve: false,
   projectTimeline: "",
   firstName: "",
   lastName: "",
@@ -330,6 +333,7 @@ export function ROISimulator() {
         surfaceArea,
         annualElectricityBill,
         projectTimeline: formData.projectTimeline,
+        wantsIrve: formData.wantsIrve,
         marketingConsent: formData.marketingConsent,
         estimatedROIYears: roiResults.estimatedROIYears,
         autoconsumptionRate: roiResults.autoconsumptionRate,
@@ -360,9 +364,9 @@ export function ROISimulator() {
   if (submitted && results) {
     const calendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL || "#"
     return (
-      <section id="simulator" className="scroll-mt-24 bg-primary py-12 sm:py-24">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <div className="rounded-xl bg-card p-4 shadow-2xl sm:rounded-2xl sm:p-6 md:p-8 lg:p-10">
+      <section id="simulator" className="scroll-mt-24 bg-primary py-12 sm:py-24 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
+        <div className="mx-auto max-w-3xl min-w-0 px-4 sm:px-6 lg:px-8">
+          <div className="min-w-0 rounded-xl bg-card p-4 shadow-2xl sm:rounded-2xl sm:p-6 md:p-8 lg:p-10">
             <div className="mb-8 flex items-center justify-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/20">
                 <CheckCircle2 className="h-8 w-8 text-accent" />
@@ -376,24 +380,24 @@ export function ROISimulator() {
               Un expert en ingénierie financière partenaire d'Aegis Solaire va analyser vos données et vous contactera d'ici 24 à 48 heures pour vous présenter vos options de financement (PPA, Tiers-Investissement).
             </p>
 
-            <div className="mb-6 grid grid-cols-1 gap-3 sm:mb-8 sm:grid-cols-2 sm:gap-4">
-              <div className="rounded-lg bg-accent/10 p-4 text-center">
-                <p className="text-3xl font-bold text-accent">{results.estimatedROIYears} ans</p>
-                <p className="text-sm text-muted-foreground">Retour sur investissement</p>
+            <div className="mb-6 grid grid-cols-2 min-w-0 gap-2 sm:mb-8 sm:gap-4">
+              <div className="rounded-lg bg-accent/10 p-3 text-center sm:p-4">
+                <p className="text-2xl font-bold text-accent sm:text-3xl">{results.estimatedROIYears} ans</p>
+                <p className="text-xs text-muted-foreground sm:text-sm">Retour sur investissement</p>
               </div>
-              <div className="rounded-lg bg-primary/10 p-4 text-center">
-                <p className="text-3xl font-bold text-primary">{results.autoconsumptionRate}%</p>
-                <p className="text-sm text-muted-foreground">Taux d'autoconsommation</p>
+              <div className="rounded-lg bg-primary/10 p-3 text-center sm:p-4">
+                <p className="text-2xl font-bold text-primary sm:text-3xl">{results.autoconsumptionRate}%</p>
+                <p className="text-xs text-muted-foreground sm:text-sm">Taux d'autoconsommation</p>
               </div>
-              <div className="rounded-lg bg-secondary p-4 text-center">
-                <p className="text-3xl font-bold text-foreground">
+              <div className="rounded-lg bg-secondary p-3 text-center sm:p-4">
+                <p className="text-2xl font-bold text-foreground sm:text-3xl">
                   {results.estimatedSavings.toLocaleString("fr-FR")} EUR
                 </p>
-                <p className="text-sm text-muted-foreground">Économies annuelles</p>
+                <p className="text-xs text-muted-foreground sm:text-sm">Économies annuelles</p>
               </div>
-              <div className="rounded-lg bg-secondary p-4 text-center">
-                <p className="text-3xl font-bold text-foreground">{results.installedPower} kWc</p>
-                <p className="text-sm text-muted-foreground">Puissance estimée</p>
+              <div className="rounded-lg bg-secondary p-3 text-center sm:p-4">
+                <p className="text-2xl font-bold text-foreground sm:text-3xl">{results.installedPower} kWc</p>
+                <p className="text-xs text-muted-foreground sm:text-sm">Puissance estimée</p>
               </div>
             </div>
 
@@ -403,9 +407,9 @@ export function ROISimulator() {
                   href={calendlyUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center rounded-lg bg-accent px-6 py-3 font-medium text-accent-foreground transition-colors hover:bg-accent/90"
+                  className="inline-flex min-h-[44px] min-w-0 items-center justify-center rounded-lg bg-accent px-4 py-3 font-medium text-accent-foreground transition-colors hover:bg-accent/90 w-full text-center sm:w-auto sm:px-6"
                 >
-                  Prendre un rendez-vous téléphonique de 10 min dès maintenant
+                  <span className="break-words">Prendre un rendez-vous téléphonique de 10 min dès maintenant</span>
                 </a>
               </div>
             )}
@@ -416,8 +420,8 @@ export function ROISimulator() {
   }
 
   return (
-    <section id="simulator" className="scroll-mt-24 bg-primary py-12 sm:py-24" aria-labelledby="simulator-title">
-      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+    <section id="simulator" className="scroll-mt-24 overflow-x-hidden bg-primary py-12 sm:py-24 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]" aria-labelledby="simulator-title">
+      <div className="mx-auto max-w-3xl min-w-0 px-4 sm:px-6 lg:px-8">
         <div className="mb-6 text-center sm:mb-8">
           <h2 id="simulator-title" className="text-2xl font-bold tracking-tight text-primary-foreground sm:text-3xl md:text-4xl">
             Calculez votre ROI en 2 minutes
@@ -427,7 +431,7 @@ export function ROISimulator() {
           </p>
         </div>
 
-        <div className="rounded-xl bg-card p-4 shadow-2xl sm:rounded-2xl sm:p-6 md:p-8">
+        <div className="min-w-0 overflow-hidden rounded-xl bg-card p-4 shadow-2xl sm:rounded-2xl sm:p-6 md:p-8">
           {/* Écran 5 : Transition (messages tournants 1,5 s) */}
           {isCalculating && (
             <div className="flex flex-col items-center justify-center py-12 sm:py-16" role="status" aria-live="polite">
@@ -477,11 +481,11 @@ export function ROISimulator() {
                       key={opt.value}
                       type="button"
                       variant={formData.objective === opt.value ? "default" : "outline"}
-                      className={`h-auto justify-start gap-3 py-4 text-left font-normal ${formData.objective === opt.value ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+                      className={`h-auto min-h-[48px] justify-start gap-3 py-4 text-left font-normal break-words ${formData.objective === opt.value ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
                       onClick={() => updateFormData("objective", opt.value)}
                     >
                       <Icon className="h-5 w-5 shrink-0" />
-                      {opt.label}
+                      <span className="min-w-0">{opt.label}</span>
                     </Button>
                   )
                 })}
@@ -507,7 +511,7 @@ export function ROISimulator() {
                       <Button
                         type="button"
                         variant={selected ? "default" : "outline"}
-                        className={`w-full h-auto justify-start gap-3 py-4 text-left font-normal ${selected ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+                        className={`w-full h-auto min-h-[48px] justify-start gap-3 py-4 text-left font-normal break-words ${selected ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
                         onClick={() => {
                           updateFormData("surfaceType", opt.value)
                           updateFormData("surfaceRange", "")
@@ -515,13 +519,15 @@ export function ROISimulator() {
                         }}
                       >
                         <Icon className="h-5 w-5 shrink-0" />
-                        {opt.label}
-                        {opt.ranges.length > 0 && (
-                          <span className="text-muted-foreground"> (Sélectionner la surface ci-dessous)</span>
-                        )}
+                        <span className="min-w-0">
+                          {opt.label}
+                          {opt.ranges.length > 0 && (
+                            <span className="text-muted-foreground max-sm:block sm:inline"> (Sélectionner ci-dessous)</span>
+                          )}
+                        </span>
                       </Button>
                       {selected && opt.ranges.length > 0 && (
-                        <div className="ml-8 flex flex-wrap gap-2">
+                        <div className="ml-4 flex flex-wrap gap-2 sm:ml-8">
                           {opt.ranges.map((r) => (
                             <Button
                               key={r.value}
@@ -551,7 +557,7 @@ export function ROISimulator() {
                     Ou indiquez une surface exacte
                   </p>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
-                    <div className="flex-1 max-w-[12rem]">
+                    <div className="w-full flex-1 sm:max-w-[12rem]">
                       <Label htmlFor="surfaceAreaCustom" className="sr-only">
                         Surface en m²
                       </Label>
@@ -599,7 +605,7 @@ export function ROISimulator() {
                     key={b.value}
                     type="button"
                     variant={formData.electricityBillBracket === b.value && !formData.annualElectricityBillCustom ? "default" : "outline"}
-                    className={`h-auto py-4 font-normal ${formData.electricityBillBracket === b.value && !formData.annualElectricityBillCustom ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+                    className={`h-auto min-h-[48px] py-4 font-normal break-words text-left ${formData.electricityBillBracket === b.value && !formData.annualElectricityBillCustom ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
                     onClick={() => {
                       updateFormData("electricityBillBracket", b.value)
                       updateFormData("annualElectricityBillCustom", "")
@@ -615,7 +621,7 @@ export function ROISimulator() {
                   Ou indiquez un montant exact
                 </p>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
-                  <div className="flex-1 max-w-[14rem]">
+                  <div className="w-full flex-1 sm:max-w-[14rem]">
                     <Label htmlFor="annualElectricityBillCustom" className="sr-only">
                       Facture annuelle en € HT
                     </Label>
@@ -642,6 +648,23 @@ export function ROISimulator() {
                   </p>
                 )}
               </div>
+
+              {/* Option IRVE (upsell Loi LOM) */}
+              <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-4">
+                <Checkbox
+                  id="wantsIrve"
+                  checked={formData.wantsIrve}
+                  onCheckedChange={(checked) => updateFormData("wantsIrve", checked === true)}
+                />
+                <div className="min-w-0">
+                  <Label htmlFor="wantsIrve" className="cursor-pointer text-sm font-medium text-foreground">
+                    Je souhaite coupler ce projet avec l'installation de bornes de recharge (IRVE).
+                  </Label>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    La Loi LOM impose souvent solaire et IRVE ensemble ; cette option augmente la valeur de votre dossier.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -660,7 +683,7 @@ export function ROISimulator() {
                     key={opt.value}
                     type="button"
                     variant={formData.projectTimeline === opt.value ? "default" : "outline"}
-                    className={`h-auto justify-start gap-2 py-4 text-left font-normal ${formData.projectTimeline === opt.value ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+                    className={`h-auto min-h-[48px] justify-start gap-2 py-4 text-left font-normal ${formData.projectTimeline === opt.value ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
                     onClick={() => updateFormData("projectTimeline", opt.value)}
                   >
                     <span>{opt.icon}</span> {opt.label}
@@ -741,13 +764,13 @@ export function ROISimulator() {
               </div>
 
               {/* Teasing : message adapté à l'éligibilité réelle (ROI, surface, facture) */}
-              <div className="relative rounded-lg border border-accent/30 bg-accent/5 p-4 sm:p-6">
+              <div className="relative min-w-0 rounded-lg border border-accent/30 bg-accent/5 p-4 sm:p-6">
                 <div className="absolute inset-0 rounded-lg bg-card/80 backdrop-blur-sm" aria-hidden />
-                <div className="relative">
-                  <h3 className="text-lg font-semibold text-foreground">
+                <div className="relative min-w-0">
+                  <h3 className="text-base font-semibold text-foreground sm:text-lg">
                     {teaserTitle}
                   </h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
+                  <p className="mt-2 break-words text-sm text-muted-foreground">
                     {teaserText}
                   </p>
                 </div>
@@ -899,7 +922,7 @@ export function ROISimulator() {
           {/* Navigation : Retour + Continuer ou CTA Or */}
           <div className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:justify-between sm:gap-4">
             {step > 1 && step !== 5 && !isCalculating ? (
-              <Button variant="outline" onClick={handleBack} className="w-full sm:order-first sm:w-auto">
+              <Button variant="outline" onClick={handleBack} className="min-h-[44px] w-full sm:order-first sm:w-auto">
                 <ArrowLeft className="mr-2 h-4 w-4 shrink-0" />
                 Retour
               </Button>
@@ -911,7 +934,7 @@ export function ROISimulator() {
               <Button
                 onClick={handleNext}
                 disabled={!validateStep(step)}
-                className="w-full bg-accent text-accent-foreground hover:bg-accent/90 sm:w-auto"
+                className="min-h-[44px] w-full bg-accent text-accent-foreground hover:bg-accent/90 sm:w-auto"
               >
                 Continuer
                 <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
@@ -922,7 +945,7 @@ export function ROISimulator() {
               <Button
                 onClick={handleSubmit}
                 disabled={!validateStep(6) || isSubmitting}
-                className="w-full bg-accent text-accent-foreground hover:bg-accent/90 sm:ml-auto sm:w-auto"
+                className="min-h-[44px] w-full bg-accent text-accent-foreground hover:bg-accent/90 sm:ml-auto sm:w-auto"
               >
                 {isSubmitting ? (
                   <>

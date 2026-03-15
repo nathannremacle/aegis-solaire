@@ -3,13 +3,13 @@ import Image from "next/image"
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-secondary" role="contentinfo">
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
+    <footer className="border-t border-border bg-secondary [padding-bottom:max(2.5rem,env(safe-area-inset-bottom))]" role="contentinfo">
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:gap-10 lg:grid-cols-5 lg:gap-12">
           {/* Brand */}
           <div className="min-w-0 lg:col-span-1">
-            <Link href="/" className="inline-flex items-center">
-              <div className="relative h-16 w-60 shrink-0 sm:h-20 sm:w-80">
+            <Link href="/" className="inline-flex min-w-0 items-center">
+              <div className="relative h-12 w-48 min-w-0 max-w-[55vw] shrink sm:h-16 sm:w-60 sm:max-w-none md:h-20 md:w-80">
                 <Image
                   src="/logo.png"
                   alt="Aegis Solaire"

@@ -12,14 +12,14 @@ export function Hero() {
   }
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 to-background py-12 sm:py-24 lg:py-32">
+    <section className="relative overflow-x-hidden bg-gradient-to-b from-primary/5 to-background py-12 sm:py-24 lg:py-32 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
       {/* Background decoration */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-accent/10 blur-3xl" />
         <div className="absolute bottom-0 left-0 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl min-w-0 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
           {/* Badge */}
           <div className="mb-4 flex flex-wrap justify-center gap-2 sm:mb-6">
