@@ -200,6 +200,55 @@ export function LeadDetailSheet({
               </div>
             </div>
 
+            {/* Assignation et statut en premier pour être visibles sans scroller */}
+            <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-4">
+              <div>
+                <Label className="text-muted-foreground mb-2 block">Changer le statut</Label>
+                <Select value={lead.status} onValueChange={handleStatusChange} disabled={saving}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">Nouveau</SelectItem>
+                    <SelectItem value="contacted">Contacté</SelectItem>
+                    <SelectItem value="qualified">Qualifié</SelectItem>
+                    <SelectItem value="converted">Converti</SelectItem>
+                    <SelectItem value="lost">Perdu</SelectItem>
+                    <SelectItem value="HOT_LEAD">Lead chaud</SelectItem>
+                    <SelectItem value="NEEDS_HUMAN_REVIEW">À contrôler</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-muted-foreground mb-2 block">Assigner à un installateur</Label>
+                <Select
+                  value={lead.installateur_id ?? "none"}
+                  onValueChange={handleInstallateurChange}
+                  disabled={saving}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Aucun" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Aucun</SelectItem>
+                    {installateurs.map((i) => (
+                      <SelectItem key={i.id} value={i.id}>
+                        {i.name}{!i.actif ? " (inactif)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {installateurs.length === 0 && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Aucun installateur. Allez dans <strong>Installateurs</strong> (menu) pour en ajouter un, puis vous pourrez l’assigner ici.
+                  </p>
+                )}
+                {lead.installateur_id && (
+                  <NotifyInstallateurButton leadId={lead.id} className="mt-2" />
+                )}
+              </div>
+            </div>
+
             <div className="space-y-4">
               <div>
                 <Label className="text-muted-foreground">Email</Label>
@@ -262,49 +311,6 @@ export function LeadDetailSheet({
                   <p className="font-medium">Oui – souhaite coupler avec bornes de recharge</p>
                 </div>
               )}
-            </div>
-
-            <div className="border-t border-border pt-4 space-y-4">
-              <div>
-                <Label className="text-muted-foreground mb-2 block">Changer le statut</Label>
-                <Select value={lead.status} onValueChange={handleStatusChange} disabled={saving}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="new">Nouveau</SelectItem>
-                    <SelectItem value="contacted">Contacté</SelectItem>
-                    <SelectItem value="qualified">Qualifié</SelectItem>
-                    <SelectItem value="converted">Converti</SelectItem>
-                    <SelectItem value="lost">Perdu</SelectItem>
-                    <SelectItem value="HOT_LEAD">Lead chaud</SelectItem>
-                    <SelectItem value="NEEDS_HUMAN_REVIEW">À contrôler</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-muted-foreground mb-2 block">Assigner à un installateur</Label>
-                <Select
-                  value={lead.installateur_id ?? "none"}
-                  onValueChange={handleInstallateurChange}
-                  disabled={saving}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Aucun" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Aucun</SelectItem>
-                    {installateurs.map((i) => (
-                      <SelectItem key={i.id} value={i.id}>
-                        {i.name}{!i.actif ? " (inactif)" : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {lead.installateur_id && (
-                  <NotifyInstallateurButton leadId={lead.id} className="mt-2" />
-                )}
-              </div>
             </div>
 
             <p className="text-xs text-muted-foreground">
