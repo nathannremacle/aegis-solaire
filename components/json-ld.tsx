@@ -1,4 +1,4 @@
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.aegis-solaire.fr'
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://aegis-solaire.vercel.app'
 
 /** Données structurées JSON-LD pour SEO (Organization + WebSite) */
 export function JsonLd() {

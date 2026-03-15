@@ -50,7 +50,7 @@ export function LeadsTable({
 
   function onStatusChange(value: string) {
     const params = new URLSearchParams()
-    if (value) params.set("status", value)
+    if (value && value !== "all") params.set("status", value)
     if (searchDefault) params.set("search", searchDefault)
     params.set("page", "1")
     router.push(`/admin/leads?${params.toString()}`)
@@ -79,12 +79,12 @@ export function LeadsTable({
           />
           <Button type="submit" variant="secondary">Rechercher</Button>
         </form>
-        <Select value={statusFilter} onValueChange={onStatusChange}>
+        <Select value={statusFilter || "all"} onValueChange={onStatusChange}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Statut" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Tous</SelectItem>
+            <SelectItem value="all">Tous</SelectItem>
             <SelectItem value="new">Nouveau</SelectItem>
             <SelectItem value="contacted">Contacté</SelectItem>
             <SelectItem value="qualified">Qualifié</SelectItem>

@@ -7,7 +7,7 @@ import './globals.css'
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans" });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.aegis-solaire.fr'
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://aegis-solaire.vercel.app'
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

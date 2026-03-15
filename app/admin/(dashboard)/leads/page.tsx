@@ -17,7 +17,7 @@ async function getLeads(page: number, limit: number, status: string, search: str
     .order("created_at", { ascending: false })
     .range(from, from + limit - 1)
 
-  if (status) {
+  if (status && status !== "all") {
     query = query.eq("status", status)
   }
   if (search.trim()) {

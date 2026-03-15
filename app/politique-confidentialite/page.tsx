@@ -2,7 +2,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Metadata } from "next"
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.aegis-solaire.fr'
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://aegis-solaire.vercel.app'
 
 export const metadata: Metadata = {
   title: "Politique de confidentialité",
