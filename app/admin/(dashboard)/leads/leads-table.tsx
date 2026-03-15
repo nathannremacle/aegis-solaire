@@ -53,8 +53,10 @@ export function LeadsTable({
   total,
   page,
   limit,
+  installateurs = [],
   statusFilter,
   searchDefault = "",
+  installateurFilter = "",
   leadId = null,
   currentLeadFromList = null,
 }: {
@@ -62,25 +64,42 @@ export function LeadsTable({
   total: number
   page: number
   limit: number
+  installateurs?: Installateur[]
   statusFilter: string
   searchDefault?: string
+  installateurFilter?: string
   leadId?: string | null
   currentLeadFromList?: Lead | null
 }) {
   const router = useRouter()
   const totalPages = Math.ceil(total / limit) || 1
 
+  function getInstallateurName(id: string | null | undefined): string {
+    if (!id) return "–"
+    return installateurs.find((i) => i.id === id)?.name ?? "–"
+  }
+
   function openLeadDetail(id: string) {
-    router.push(buildLeadsUrl({ page, status: statusFilter || undefined, search: searchDefault || undefined, leadId: id }))
+    router.push(buildLeadsUrl({ page, status: statusFilter || undefined, installateur: installateurFilter || undefined, search: searchDefault || undefined, leadId: id }))
   }
 
   function closeLeadDetail() {
-    router.push(buildLeadsUrl({ page, status: statusFilter || undefined, search: searchDefault || undefined }))
+    router.push(buildLeadsUrl({ page, status: statusFilter || undefined, installateur: installateurFilter || undefined, search: searchDefault || undefined }))
   }
 
   function onStatusChange(value: string) {
     const params = new URLSearchParams()
     if (value && value !== "all") params.set("status", value)
+    if (installateurFilter && installateurFilter !== "all") params.set("installateur", installateurFilter)
+    if (searchDefault) params.set("search", searchDefault)
+    params.set("page", "1")
+    router.push(`/admin/leads?${params.toString()}`)
+  }
+
+  function onInstallateurChange(value: string) {
+    const params = new URLSearchParams()
+    if (statusFilter) params.set("status", statusFilter)
+    if (value && value !== "all") params.set("installateur", value)
     if (searchDefault) params.set("search", searchDefault)
     params.set("page", "1")
     router.push(`/admin/leads?${params.toString()}`)
