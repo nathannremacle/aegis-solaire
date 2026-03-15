@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
+import { logAudit } from "@/lib/audit-log"
 
 const EXPORT_MAX = 5000
 
@@ -21,8 +22,14 @@ export async function GET(request: NextRequest) {
   const status = searchParams.get("status") ?? ""
   const search = searchParams.get("search") ?? ""
   const installateurId = searchParams.get("installateur") ?? ""
+  const dateFrom = searchParams.get("date_from") ?? ""
+  const dateTo = searchParams.get("date_to") ?? ""
+  const surfaceMin = searchParams.get("surface_min") ?? ""
+  const surfaceType = searchParams.get("surface_type") ?? ""
+  const region = searchParams.get("region") ?? ""
 
   const supabase = createServiceRoleClient()
+
   let query = supabase
     .from("leads")
     .select("id, first_name, last_name, email, phone, job_title, company, message, surface_type, surface_area, project_timeline, annual_electricity_bill, estimated_roi_years, autoconsumption_rate, estimated_savings, status, lead_score, installateur_id, wants_irve, created_at")
@@ -32,6 +39,18 @@ export async function GET(request: NextRequest) {
   if (status && status !== "all") query = query.eq("status", status)
   if (search.trim()) query = query.ilike("email", `%${search.trim()}%`)
   if (installateurId && installateurId !== "all") query = query.eq("installateur_id", installateurId)
+  if (dateFrom) query = query.gte("created_at", dateFrom)
+  if (dateTo) query = query.lte("created_at", dateTo + "T23:59:59.999Z")
+  const surfaceMinNum = parseInt(surfaceMin, 10)
+  if (!Number.isNaN(surfaceMinNum) && surfaceMinNum > 0) query = query.gte("surface_area", surfaceMinNum)
+  if (surfaceType && ["toiture", "parking", "friche"].includes(surfaceType)) query = query.eq("surface_type", surfaceType)
+
+  if (region) {
+    const { data: instIds } = await supabase.from("installateurs").select("id").eq("region", region)
+    const ids = (instIds ?? []).map((i) => i.id)
+    if (ids.length > 0) query = query.in("installateur_id", ids)
+    else query = query.eq("installateur_id", "never-match")
+  }
 
   const { data: leads, error } = await query
 
@@ -115,6 +134,27 @@ export async function GET(request: NextRequest) {
 
   const csv = "\uFEFF" + csvRows.join("\r\n")
   const filename = `leads-aegis-${new Date().toISOString().slice(0, 10)}.csv`
+
+  try {
+    await logAudit({
+      adminEmail: user.email!,
+      action: "leads_export",
+      entityType: "leads",
+      details: {
+        status: status || undefined,
+        search: search || undefined,
+        installateur: installateurId || undefined,
+        date_from: dateFrom || undefined,
+        date_to: dateTo || undefined,
+        surface_min: surfaceMin || undefined,
+        surface_type: surfaceType || undefined,
+        region: region || undefined,
+        row_count: rows.length,
+      },
+    })
+  } catch (e) {
+    console.error("Audit log failed:", e)
+  }
 
   return new NextResponse(csv, {
     status: 200,

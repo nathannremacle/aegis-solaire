@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
+import { logAudit } from "@/lib/audit-log"
 
 /**
  * Nettoyage RGPD : anonymiser les leads dont la date de création est strictement
@@ -59,6 +60,17 @@ export async function POST() {
 
     if (!updateError) anonymized++
     else console.error("Cleanup lead update error for", row.id, updateError)
+  }
+
+  try {
+    await logAudit({
+      adminEmail: user.email!,
+      action: "leads_anonymized",
+      entityType: "leads",
+      details: { anonymized_count: anonymized, cutoff: cutoffIso },
+    })
+  } catch (e) {
+    console.error("Audit log failed:", e)
   }
 
   return NextResponse.json({

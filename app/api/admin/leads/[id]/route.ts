@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { sendLeadAssignedEmail } from "@/lib/notify-installateur"
+import { logAudit } from "@/lib/audit-log"
 
 const LEAD_SELECT = "id, first_name, last_name, email, phone, job_title, company, message, surface_type, surface_area, project_timeline, annual_electricity_bill, estimated_roi_years, autoconsumption_rate, estimated_savings, status, lead_score, installateur_id, wants_irve, created_at, updated_at"
 
@@ -117,6 +118,22 @@ export async function PATCH(
     } catch (err) {
       console.error("Notify installateur failed:", err)
     }
+  }
+
+  try {
+    await logAudit({
+      adminEmail: user.email!,
+      action: "lead_updated",
+      entityType: "lead",
+      entityId: id,
+      details: {
+        status: updates.status,
+        installateur_id: updates.installateur_id,
+        installateur_notified,
+      },
+    })
+  } catch (e) {
+    console.error("Audit log failed:", e)
   }
 
   return NextResponse.json({ ...data, installateur_notified })

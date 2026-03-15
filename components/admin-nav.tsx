@@ -3,7 +3,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Users, FileText, ExternalLink } from "lucide-react"
+import { LayoutDashboard, Users, FileText, ExternalLink, ScrollText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AdminLogoutButton } from "@/components/admin-logout-button"
 import { cn } from "@/lib/utils"
@@ -12,6 +12,7 @@ const navItems = [
   { href: "/admin/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
   { href: "/admin/leads", label: "Leads", icon: FileText },
   { href: "/admin/installateurs", label: "Installateurs", icon: Users },
+  { href: "/admin/audit", label: "Logs d'audit", icon: ScrollText },
 ]
 
 export function AdminNav() {

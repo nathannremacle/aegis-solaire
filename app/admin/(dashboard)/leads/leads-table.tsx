@@ -17,7 +17,18 @@ import { LeadStatusBadge } from "@/components/admin-lead-status-badge"
 import { LeadScoreBadge } from "@/components/admin-lead-score-badge"
 import { LeadDetailSheet } from "./lead-detail-sheet"
 
-type Installateur = { id: string; name: string; actif: boolean }
+type Installateur = { id: string; name: string; actif: boolean; region?: string | null }
+
+type LeadFilters = {
+  status: string
+  search: string
+  installateurId: string
+  dateFrom: string
+  dateTo: string
+  surfaceMin: string
+  surfaceType: string
+  region: string
+}
 
 type Lead = {
   id: string
@@ -65,15 +76,44 @@ function CleanupLeadsButton() {
   )
 }
 
-function buildLeadsUrl(params: { page?: number; status?: string; search?: string; installateur?: string; leadId?: string }) {
+function buildLeadsUrl(params: {
+  page?: number
+  status?: string
+  search?: string
+  installateur?: string
+  leadId?: string
+  date_from?: string
+  date_to?: string
+  surface_min?: string
+  surface_type?: string
+  region?: string
+}) {
   const q = new URLSearchParams()
   if (params.page && params.page > 1) q.set("page", String(params.page))
   if (params.status && params.status !== "all") q.set("status", params.status)
   if (params.installateur && params.installateur !== "all") q.set("installateur", params.installateur)
   if (params.search) q.set("search", params.search)
   if (params.leadId) q.set("leadId", params.leadId)
+  if (params.date_from) q.set("date_from", params.date_from)
+  if (params.date_to) q.set("date_to", params.date_to)
+  if (params.surface_min) q.set("surface_min", params.surface_min)
+  if (params.surface_type) q.set("surface_type", params.surface_type)
+  if (params.region) q.set("region", params.region)
   const s = q.toString()
   return s ? `/admin/leads?${s}` : "/admin/leads"
+}
+
+function filtersToParams(f: LeadFilters) {
+  return {
+    status: f.status || undefined,
+    installateur: f.installateurId !== "all" ? f.installateurId : undefined,
+    search: f.search || undefined,
+    date_from: f.dateFrom || undefined,
+    date_to: f.dateTo || undefined,
+    surface_min: f.surfaceMin || undefined,
+    surface_type: f.surfaceType || undefined,
+    region: f.region || undefined,
+  }
 }
 
 export function LeadsTable({
@@ -82,9 +122,8 @@ export function LeadsTable({
   page,
   limit,
   installateurs = [],
-  statusFilter,
-  searchDefault = "",
-  installateurFilter = "",
+  regions = [],
+  filters,
   leadId = null,
   currentLeadFromList = null,
 }: {
@@ -93,14 +132,17 @@ export function LeadsTable({
   page: number
   limit: number
   installateurs?: Installateur[]
-  statusFilter: string
-  searchDefault?: string
-  installateurFilter?: string
+  regions?: string[]
+  filters: LeadFilters
   leadId?: string | null
   currentLeadFromList?: Lead | null
 }) {
   const router = useRouter()
   const totalPages = Math.ceil(total / limit) || 1
+  const baseUrlParams = () => ({
+    ...filtersToParams(filters),
+    page,
+  })
 
   function getInstallateurName(id: string | null | undefined): string {
     if (!id) return "–"
@@ -108,49 +150,79 @@ export function LeadsTable({
   }
 
   function openLeadDetail(id: string) {
-    router.push(buildLeadsUrl({ page, status: statusFilter || undefined, installateur: installateurFilter || undefined, search: searchDefault || undefined, leadId: id }))
+    router.push(buildLeadsUrl({ ...baseUrlParams(), leadId: id }))
   }
 
   function closeLeadDetail() {
-    router.push(buildLeadsUrl({ page, status: statusFilter || undefined, installateur: installateurFilter || undefined, search: searchDefault || undefined }))
+    router.push(buildLeadsUrl(baseUrlParams()))
+  }
+
+  function applyParams(updates: Partial<LeadFilters> & { page?: number }) {
+    const p = { ...filters, ...updates }
+    const q = new URLSearchParams()
+    q.set("page", String(updates.page ?? 1))
+    if (p.status && p.status !== "all") q.set("status", p.status)
+    if (p.installateurId && p.installateurId !== "all") q.set("installateur", p.installateurId)
+    if (p.search) q.set("search", p.search)
+    if (p.dateFrom) q.set("date_from", p.dateFrom)
+    if (p.dateTo) q.set("date_to", p.dateTo)
+    if (p.surfaceMin) q.set("surface_min", p.surfaceMin)
+    if (p.surfaceType) q.set("surface_type", p.surfaceType)
+    if (p.region) q.set("region", p.region)
+    router.push(`/admin/leads?${q.toString()}`)
   }
 
   function onStatusChange(value: string) {
-    const params = new URLSearchParams()
-    if (value && value !== "all") params.set("status", value)
-    if (installateurFilter && installateurFilter !== "all") params.set("installateur", installateurFilter)
-    if (searchDefault) params.set("search", searchDefault)
-    params.set("page", "1")
-    router.push(`/admin/leads?${params.toString()}`)
+    applyParams({ status: value, page: 1 })
   }
 
   function onInstallateurChange(value: string) {
-    const params = new URLSearchParams()
-    if (statusFilter) params.set("status", statusFilter)
-    if (value && value !== "all") params.set("installateur", value)
-    if (searchDefault) params.set("search", searchDefault)
-    params.set("page", "1")
-    router.push(`/admin/leads?${params.toString()}`)
+    applyParams({ installateurId: value, page: 1 })
   }
 
   function onSearch(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const form = e.currentTarget
     const email = (form.elements.namedItem("search") as HTMLInputElement)?.value?.trim()
-    const params = new URLSearchParams()
-    if (statusFilter) params.set("status", statusFilter)
-    if (installateurFilter && installateurFilter !== "all") params.set("installateur", installateurFilter)
-    if (email) params.set("search", email)
-    params.set("page", "1")
-    router.push(`/admin/leads?${params.toString()}`)
+    applyParams({ search: email ?? "", page: 1 })
+  }
+
+  function onAdvancedFilters(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const form = e.currentTarget
+    const dateFrom = (form.elements.namedItem("date_from") as HTMLInputElement)?.value ?? ""
+    const dateTo = (form.elements.namedItem("date_to") as HTMLInputElement)?.value ?? ""
+    const surfaceMin = (form.elements.namedItem("surface_min") as HTMLInputElement)?.value ?? ""
+    const surfaceType = (form.elements.namedItem("surface_type") as HTMLSelectElement)?.value ?? ""
+    const region = (form.elements.namedItem("region") as HTMLSelectElement)?.value ?? ""
+    applyParams({ dateFrom, dateTo, surfaceMin, surfaceType, region, page: 1 })
   }
 
   const exportCsvUrl = () => {
     const params = new URLSearchParams()
-    if (statusFilter && statusFilter !== "all") params.set("status", statusFilter)
-    if (installateurFilter && installateurFilter !== "all") params.set("installateur", installateurFilter)
-    if (searchDefault) params.set("search", searchDefault)
+    if (filters.status && filters.status !== "all") params.set("status", filters.status)
+    if (filters.installateurId && filters.installateurId !== "all") params.set("installateur", filters.installateurId)
+    if (filters.search) params.set("search", filters.search)
+    if (filters.dateFrom) params.set("date_from", filters.dateFrom)
+    if (filters.dateTo) params.set("date_to", filters.dateTo)
+    if (filters.surfaceMin) params.set("surface_min", filters.surfaceMin)
+    if (filters.surfaceType) params.set("surface_type", filters.surfaceType)
+    if (filters.region) params.set("region", filters.region)
     return `/api/admin/leads/export?${params.toString()}`
+  }
+
+  function paginationQueryForPage(pageNum: number) {
+    const q = new URLSearchParams()
+    q.set("page", String(pageNum))
+    if (filters.status && filters.status !== "all") q.set("status", filters.status)
+    if (filters.installateurId && filters.installateurId !== "all") q.set("installateur", filters.installateurId)
+    if (filters.search) q.set("search", filters.search)
+    if (filters.dateFrom) q.set("date_from", filters.dateFrom)
+    if (filters.dateTo) q.set("date_to", filters.dateTo)
+    if (filters.surfaceMin) q.set("surface_min", filters.surfaceMin)
+    if (filters.surfaceType) q.set("surface_type", filters.surfaceType)
+    if (filters.region) q.set("region", filters.region)
+    return q.toString()
   }
 
   return (
@@ -161,11 +233,11 @@ export function LeadsTable({
             name="search"
             placeholder="Rechercher par email..."
             className="w-48"
-            defaultValue={searchDefault}
+            defaultValue={filters.search}
           />
           <Button type="submit" variant="secondary">Rechercher</Button>
         </form>
-        <Select value={statusFilter || "all"} onValueChange={onStatusChange}>
+        <Select value={filters.status || "all"} onValueChange={onStatusChange}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Statut" />
           </SelectTrigger>
@@ -180,7 +252,7 @@ export function LeadsTable({
             <SelectItem value="NEEDS_HUMAN_REVIEW">À contrôler</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={installateurFilter || "all"} onValueChange={onInstallateurChange}>
+        <Select value={filters.installateurId || "all"} onValueChange={onInstallateurChange}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Installateur" />
           </SelectTrigger>
@@ -196,6 +268,67 @@ export function LeadsTable({
         </a>
         <CleanupLeadsButton />
       </div>
+
+      {/* Filtres avancés : date, surface, région */}
+      <form onSubmit={onAdvancedFilters} className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-muted/30 p-3">
+        <span className="text-sm font-medium text-foreground w-full sm:w-auto">Filtres avancés</span>
+        <label className="flex flex-col gap-1 text-xs">
+          <span className="text-muted-foreground">Du</span>
+          <Input
+            type="date"
+            name="date_from"
+            className="h-8 w-36"
+            defaultValue={filters.dateFrom}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs">
+          <span className="text-muted-foreground">Au</span>
+          <Input
+            type="date"
+            name="date_to"
+            className="h-8 w-36"
+            defaultValue={filters.dateTo}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs">
+          <span className="text-muted-foreground">Surface min (m²)</span>
+          <Input
+            type="number"
+            name="surface_min"
+            min={0}
+            placeholder="500"
+            className="h-8 w-24"
+            defaultValue={filters.surfaceMin}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs">
+          <span className="text-muted-foreground">Type surface</span>
+          <select
+            name="surface_type"
+            className="h-8 w-32 rounded-md border border-input bg-transparent px-2 text-sm"
+            defaultValue={filters.surfaceType}
+          >
+            <option value="">Tous</option>
+            <option value="toiture">Toiture</option>
+            <option value="parking">Parking</option>
+            <option value="friche">Friche</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs">
+          <span className="text-muted-foreground">Région installateur</span>
+          <select
+            name="region"
+            className="h-8 w-40 rounded-md border border-input bg-transparent px-2 text-sm"
+            defaultValue={filters.region}
+          >
+            <option value="">Toutes</option>
+            {regions.map((r) => (
+              <option key={r} value={r}>{r}</option>
+            ))}
+          </select>
+        </label>
+        <Button type="submit" variant="secondary" size="sm">Appliquer</Button>
+      </form>
 
       <div className="overflow-x-auto rounded-xl border border-border">
         <table className="w-full text-sm">
@@ -259,20 +392,12 @@ export function LeadsTable({
           </p>
           <div className="flex gap-2">
             <Link
-              href={
-                page > 1
-                  ? `/admin/leads?page=${page - 1}${statusFilter ? `&status=${statusFilter}` : ""}${installateurFilter && installateurFilter !== "all" ? `&installateur=${encodeURIComponent(installateurFilter)}` : ""}${searchDefault ? `&search=${encodeURIComponent(searchDefault)}` : ""}`
-                  : "#"
-              }
+              href={page > 1 ? `/admin/leads?${paginationQueryForPage(page - 1)}` : "#"}
             >
               <Button variant="outline" size="sm" disabled={page <= 1}>Précédent</Button>
             </Link>
             <Link
-              href={
-                page < totalPages
-                  ? `/admin/leads?page=${page + 1}${statusFilter ? `&status=${statusFilter}` : ""}${installateurFilter && installateurFilter !== "all" ? `&installateur=${encodeURIComponent(installateurFilter)}` : ""}${searchDefault ? `&search=${encodeURIComponent(searchDefault)}` : ""}`
-                  : "#"
-              }
+              href={page < totalPages ? `/admin/leads?${paginationQueryForPage(page + 1)}` : "#"}
             >
               <Button variant="outline" size="sm" disabled={page >= totalPages}>Suivant</Button>
             </Link>

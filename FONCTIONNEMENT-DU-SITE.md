@@ -23,9 +23,12 @@ Les **installateurs** ne se connectent pas au site : ils reçoivent les leads so
 
 1. **Page d’accueil**  
    - Hero avec CTA « Lancer ma simulation de rentabilité ».  
-   - Sections : Preuve (études de cas), Expert (obligations Loi LOM / Décret Tertiaire, financement PPA et tiers-investissement), Avantages, puis **Simulateur**.
+   - Sections : Preuve (études de cas), Expert (obligations Loi LOM / Décret Tertiaire, financement PPA et tiers-investissement), Avantages, puis **Simulateur**. Le footer propose un lien **« Devenir Partenaire »** vers **/partenaires**.
 
-2. **Simulateur (formulaire multi-étapes)**  
+2. **Page Devenir Partenaire (/partenaires)**  
+   - Landing B2B inversée (Aegis s’adresse aux installateurs) : hero, avantages (leads exclusifs, qualification, RGPD), formulaire de candidature. Formulaire : entreprise (nom, SIRET), contact (prénom, nom, fonction, email pro, téléphone), certifications **RGE** et **QualiPV** (numéro RGE + case QualiPV obligatoire), zone d’intervention (région). Soumission vers **POST /api/installateurs/register**. Message de succès : « Votre demande a bien été envoyée. Notre équipe va vérifier vos certifications RGE/QualiPV et vous recontactera sous 48h. »
+
+3. **Simulateur (formulaire multi-étapes)**  
    - **Étape 1 – Objectif** : intention principale (conformité, réduction facture, RSE, revenu).  
    - **Étape 2 – Votre site** : type de surface (Parking, Toiture, Friche), surface en m².  
    - **Étape 3 – Votre consommation** : facture d’électricité annuelle en € HT (min. 5 000 €), et **option IRVE** : case à cocher optionnelle « Je souhaite coupler ce projet avec l’installation de bornes de recharge (IRVE) ». La Loi LOM impose souvent solaire + IRVE ; un lead Solaire + IRVE a une valeur upsell plus forte.  
@@ -34,7 +37,7 @@ Les **installateurs** ne se connectent pas au site : ils reçoivent les leads so
    - **Étape 6 – Contact** : prénom, nom, email professionnel, téléphone, fonction, entreprise (optionnel), message libre (optionnel), case consentement (transmission aux installateurs + offres Aegis), bloc RGPD.  
    - **Bouton « Recevoir mon audit… »** : envoi du formulaire à l’API.
 
-3. **Après soumission**  
+4. **Après soumission**  
    - Si la validation réussit : écran de **remerciement** avec les indicateurs (ROI en années, taux d’autoconsommation, économies annuelles, puissance installée).  
    - Message du type : « Un expert vous contactera sous 48 h pour une étude détaillée gratuite et sans engagement. »
 
@@ -96,16 +99,23 @@ Accès : **/admin** (redirection vers **/admin/dashboard**). Connexion obligatoi
 
 - **Tableau** : date, nom, email, tél., entreprise, installateur assigné, surface, facture, ROI, **score**, statut.  
 - **Score lead** : affiché sous forme de **badge coloré** (sur 100 points) — **Rouge/Feu** si score > 70, **Orange** si 40–70, **Gris** si < 40. Le score est calculé automatiquement à l’insertion selon les règles métiers (délai, fonction, facture, option IRVE).  
-- **Filtres** : par statut (nouveau, contacté, qualifié, converti, perdu, etc.), par **installateur** (affichage des leads assignés à un installateur donné).  
-- **Recherche** par email.  
-- **Pagination**.  
-- **Clic sur une ligne** : ouverture d’un **détail (drawer)** avec toutes les infos du lead (dont option IRVE si cochée), **changement de statut**, et **assignation à un installateur** (liste déroulante). Lors de l’assignation, un e-mail est envoyé à l’installateur et un toast confirme : « Lead assigné et envoyé à l’installateur par e-mail ».  
-- **Bouton « Exporter CSV »** : téléchargement d’un fichier CSV des leads (selon les filtres en cours, max 5 000 lignes).  
+- **Filtres** : par statut, par **installateur**, **recherche par email**.  
+- **Filtres avancés** (bloc dédié) : **date** (du / au sur la date de création), **surface min** (m²), **type de surface** (toiture, parking, friche), **région** (région de l’installateur assigné). Bouton « Appliquer » pour mettre à jour la liste.  
+- **Pagination** (conserve tous les filtres).  
+- **Clic sur une ligne** : ouverture d’un **détail (drawer)** avec toutes les infos du lead (dont option IRVE si cochée), **changement de statut**, et **assignation à un installateur** (liste déroulante). Lors de l’assignation, un e-mail est envoyé automatiquement à l’installateur (toast : « Lead assigné et envoyé à l’installateur par e-mail »). Si un installateur est déjà assigné, un bouton **« Renvoyer l’email à l’installateur »** permet d’envoyer à nouveau les détails du lead par e-mail.  
+- **Bouton « Exporter CSV »** : téléchargement d’un fichier CSV des leads en appliquant **tous les filtres en cours** (statut, installateur, recherche, date, surface, région ; max 5 000 lignes).  
 - **Bouton « Nettoyage RGPD (3 ans) »** : lance l’anonymisation des leads dont la date de création est supérieure à 3 ans (voir section 5.1).
 
 ### 4.3 Installateurs (/admin/installateurs)
 
 - **Liste** des installateurs partenaires : nom, email, téléphone, région, actif.  
+- La **région** de chaque installateur est utilisée pour le filtre « Région installateur » sur la page Leads (affichage des leads assignés à un installateur de cette région).
+
+### 4.4 Logs d’audit (/admin/audit)
+
+- **Tableau** des dernières actions admin : date, email de l’admin, action, entité concernée, détails (JSON).  
+- Actions enregistrées : **lead_updated** (changement de statut ou d’installateur), **lead_notify_installateur** (renvoi d’email à l’installateur), **leads_export** (export CSV avec les filtres utilisés), **leads_anonymized** (nettoyage RGPD).  
+- Permet de tracer **qui a fait quoi** (conformité, support, revue).  
 - **Création** d’un nouvel installateur (nom, email obligatoires ; téléphone, région, actif, notes optionnels).  
 - **Modification** et **suppression** d’un installateur.  
 - Les installateurs **inactifs** restent dans la liste (utile pour l’historique) mais peuvent être exclus des listes d’assignation si besoin (selon l’UI).
@@ -124,8 +134,10 @@ Accès : **/admin** (redirection vers **/admin/dashboard**). Connexion obligatoi
   - Facture annuelle > 50 000 € = +20 pts.  
   - Option IRVE cochée = +20 pts.  
   Le score est affiché dans le tableau (badge Rouge / Orange / Gris) et dans le détail.  
-- **Assignation** : dans le détail d’un lead, choix de l’installateur dans la liste déroulante « Assigner à un installateur ». Sauvegarde immédiate en base **et envoi automatique d’un e-mail** à l’installateur avec les détails du lead (Speed-to-Lead). Un toast confirme : « Lead assigné et envoyé à l’installateur par e-mail ».  
-- **Export** : export CSV pour partager les leads (par statut, installateur, recherche).  
+- **Assignation** : dans le détail d’un lead, choix de l’installateur dans la liste déroulante « Assigner à un installateur ». Sauvegarde immédiate en base **et envoi automatique d’un e-mail** à l’installateur (Speed-to-Lead). Un bouton **« Renvoyer l’email à l’installateur »** permet d’envoyer à nouveau l’email si un installateur est déjà assigné (route **POST /api/admin/leads/[id]/notify-installateur**).  
+- **Export** : export CSV pour partager les leads ; **tous les filtres** sont appliqués (statut, installateur, recherche, date du/au, surface min, type de surface, région installateur).  
+- **Filtres avancés** : date (création), surface minimum (m²), type de surface, région de l’installateur assigné (liste dérivée des installateurs).  
+- **Logs d’audit** : toutes les actions sensibles (modification lead, envoi email installateur, export CSV, nettoyage RGPD) sont enregistrées dans la table `audit_log` (admin, action, entité, détails). Consultation dans **/admin/audit**.  
 - **Nettoyage RGPD** : une route API protégée **POST /api/admin/cleanup-leads** permet d’**anonymiser** les leads dont la date de création (`created_at`) est **strictement supérieure à 3 ans** (36 mois). C’est une obligation légale CNIL pour la prospection B2B. Un bouton « Nettoyage RGPD (3 ans) » est disponible sur la page Leads ; après confirmation, les enregistrements concernés sont anonymisés (nom, email, téléphone, entreprise, message remplacés par des valeurs génériques), les lignes restent en base pour les statistiques agrégées.
 
 ### 5.2 Gestion des installateurs
@@ -171,6 +183,11 @@ Lors de l’assignation → envoi automatique d’un e-mail à l’installateur 
 | Panel admin (pages) | `app/admin/(dashboard)/` |
 | API admin (leads, installateurs, stats, export, cleanup) | `app/api/admin/` |
 | Nettoyage RGPD (anonymiser leads > 3 ans) | `POST /api/admin/cleanup-leads` |
+| Renvoyer email à l’installateur (panel) | `POST /api/admin/leads/[id]/notify-installateur` |
+| Export CSV (filtres : date, surface, région) | `GET /api/admin/leads/export?status=…&installateur=…&search=…&date_from=…&date_to=…&surface_min=…&surface_type=…&region=…` |
+| Logs d’audit (qui a fait quoi) | Table `audit_log` ; `lib/audit-log.ts` ; page `/admin/audit` ; `GET /api/admin/audit` |
+| Page Devenir Partenaire (candidature installateurs) | `app/partenaires/page.tsx`, `components/installer-registration-form.tsx` |
+| Candidature installateur (API) | `POST /api/installateurs/register`, `lib/installer-registration-schema.ts` |
 | Liste des admins | Variable d’env. `ADMIN_EMAILS` (emails séparés par des virgules) |
 
 Pour plus de détails techniques (stack, schéma BDD, déploiement), voir **DOCUMENTATION.md** et **PLAN-ADMIN.md**.

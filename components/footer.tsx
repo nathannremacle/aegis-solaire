@@ -62,6 +62,14 @@ export function Footer() {
                   Simulateur ROI
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/partenaires"
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  Devenir Partenaire
+                </Link>
+              </li>
             </ul>
           </div>
 

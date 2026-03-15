@@ -1,15 +1,21 @@
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { redirect } from "next/navigation"
-import Link from "next/link"
 import { LeadsTable } from "./leads-table"
 
 async function getLeads(
   page: number,
   limit: number,
-  status: string,
-  search: string,
-  installateurId: string
+  filters: {
+    status: string
+    search: string
+    installateurId: string
+    dateFrom: string
+    dateTo: string
+    surfaceMin: string
+    surfaceType: string
+    region: string
+  }
 ) {
   const user = await getAdminUser()
   if (!user) redirect("/admin/login")
@@ -23,14 +29,36 @@ async function getLeads(
     .order("created_at", { ascending: false })
     .range(from, from + limit - 1)
 
-  if (status && status !== "all") {
-    query = query.eq("status", status)
+  if (filters.status && filters.status !== "all") {
+    query = query.eq("status", filters.status)
   }
-  if (search.trim()) {
-    query = query.ilike("email", `%${search.trim()}%`)
+  if (filters.search.trim()) {
+    query = query.ilike("email", `%${filters.search.trim()}%`)
   }
-  if (installateurId && installateurId !== "all") {
-    query = query.eq("installateur_id", installateurId)
+  if (filters.installateurId && filters.installateurId !== "all") {
+    query = query.eq("installateur_id", filters.installateurId)
+  }
+  if (filters.dateFrom) {
+    query = query.gte("created_at", filters.dateFrom)
+  }
+  if (filters.dateTo) {
+    query = query.lte("created_at", filters.dateTo + "T23:59:59.999Z")
+  }
+  const surfaceMinNum = parseInt(filters.surfaceMin, 10)
+  if (!Number.isNaN(surfaceMinNum) && surfaceMinNum > 0) {
+    query = query.gte("surface_area", surfaceMinNum)
+  }
+  if (filters.surfaceType && ["toiture", "parking", "friche"].includes(filters.surfaceType)) {
+    query = query.eq("surface_type", filters.surfaceType)
+  }
+  if (filters.region) {
+    const { data: instIds } = await supabase.from("installateurs").select("id").eq("region", filters.region)
+    const ids = (instIds ?? []).map((i) => i.id)
+    if (ids.length > 0) {
+      query = query.in("installateur_id", ids)
+    } else {
+      query = query.eq("installateur_id", "never-match")
+    }
   }
 
   const { data, error, count } = await query
@@ -47,22 +75,55 @@ async function getInstallateurs() {
   const user = await getAdminUser()
   if (!user) return []
   const supabase = createServiceRoleClient()
-  const { data } = await supabase.from("installateurs").select("id, name, actif").order("name")
+  const { data } = await supabase.from("installateurs").select("id, name, actif, region").order("name")
   return data ?? []
+}
+
+async function getRegions() {
+  const user = await getAdminUser()
+  if (!user) return []
+  const supabase = createServiceRoleClient()
+  const { data } = await supabase.from("installateurs").select("region").not("region", "is", null)
+  const regions = [...new Set((data ?? []).map((r) => r.region).filter(Boolean))] as string[]
+  return regions.sort()
 }
 
 export default async function AdminLeadsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; status?: string; search?: string; installateur?: string; leadId?: string }>
+  searchParams: Promise<{
+    page?: string
+    status?: string
+    search?: string
+    installateur?: string
+    leadId?: string
+    date_from?: string
+    date_to?: string
+    surface_min?: string
+    surface_type?: string
+    region?: string
+  }>
 }) {
-  const { page: pageParam, status, search: searchParam, installateur: installateurParam, leadId } = await searchParams
+  const params = await searchParams
+  const { page: pageParam, status, search: searchParam, installateur: installateurParam, leadId, date_from: dateFromParam, date_to: dateToParam, surface_min: surfaceMinParam, surface_type: surfaceTypeParam, region: regionParam } = params
   const page = Math.max(1, parseInt(pageParam ?? "1", 10))
   const limit = 20
 
-  const [leadsResult, installateurs] = await Promise.all([
-    getLeads(page, limit, status ?? "", searchParam ?? "", installateurParam ?? ""),
+  const filters = {
+    status: status ?? "",
+    search: searchParam ?? "",
+    installateurId: installateurParam ?? "",
+    dateFrom: dateFromParam ?? "",
+    dateTo: dateToParam ?? "",
+    surfaceMin: surfaceMinParam ?? "",
+    surfaceType: surfaceTypeParam ?? "",
+    region: regionParam ?? "",
+  }
+
+  const [leadsResult, installateurs, regions] = await Promise.all([
+    getLeads(page, limit, filters),
     getInstallateurs(),
+    getRegions(),
   ])
   const { leads, total, page: currentPage } = leadsResult
   const currentLeadFromList = leadId ? leads.find((l) => l.id === leadId) ?? null : null
@@ -76,9 +137,8 @@ export default async function AdminLeadsPage({
         page={currentPage}
         limit={limit}
         installateurs={installateurs}
-        statusFilter={status ?? ""}
-        searchDefault={searchParam ?? ""}
-        installateurFilter={installateurParam ?? ""}
+        regions={regions}
+        filters={filters}
         leadId={leadId ?? null}
         currentLeadFromList={currentLeadFromList}
       />

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { Mail } from "lucide-react"
+import { cn } from "@/lib/utils"
 import {
   Sheet,
   SheetContent,
@@ -20,6 +22,36 @@ import {
 import { LeadStatusBadge } from "@/components/admin-lead-status-badge"
 import { LeadScoreBadge } from "@/components/admin-lead-score-badge"
 import { toast } from "sonner"
+
+function NotifyInstallateurButton({ leadId, className }: { leadId: string; className?: string }) {
+  const [loading, setLoading] = useState(false)
+  async function handleClick() {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/admin/leads/${leadId}/notify-installateur`, { method: "POST" })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Erreur")
+      toast.success(data.message ?? "Email envoyé à l'installateur.")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Échec de l'envoi.")
+    } finally {
+      setLoading(false)
+    }
+  }
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className={cn("w-full gap-2", className)}
+      onClick={handleClick}
+      disabled={loading}
+    >
+      <Mail className="h-4 w-4" />
+      {loading ? "Envoi…" : "Renvoyer l'email à l'installateur"}
+    </Button>
+  )
+}
 
 const PROJECT_TIMELINE_LABELS: Record<string, string> = {
   urgent: "Urgent (Moins de 3 mois)",
@@ -269,6 +301,9 @@ export function LeadDetailSheet({
                     ))}
                   </SelectContent>
                 </Select>
+                {lead.installateur_id && (
+                  <NotifyInstallateurButton leadId={lead.id} className="mt-2" />
+                )}
               </div>
             </div>
 
