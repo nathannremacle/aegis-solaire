@@ -23,6 +23,7 @@ import {
   Calculator,
   Loader2,
   CalendarClock,
+  MessageSquare,
 } from "lucide-react"
 
 type FormData = {
@@ -57,7 +58,9 @@ type ROIResults = {
 const initialFormData: FormData = {
   surfaceType: "",
   surfaceArea: "",
+  projectTimeline: "",
   annualElectricityBill: "",
+  message: "",
   firstName: "",
   lastName: "",
   email: "",
@@ -66,6 +69,12 @@ const initialFormData: FormData = {
   company: "",
   marketingConsent: false,
 }
+
+const projectTimelineOptions = [
+  { value: "urgent", label: "Urgent (Moins de 3 mois)" },
+  { value: "3_6_months", label: "3 à 6 mois" },
+  { value: "6_plus_months", label: "Plus de 6 mois (Exploratoire)" },
+] as const
 
 const surfaceTypes = [
   { value: "parking", label: "Parking (> 1 500 m²)" },
@@ -131,10 +140,10 @@ export function ROISimulator() {
   const [error, setError] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
   const [isCalculating, setIsCalculating] = useState(false)
-  // Time-to-fill : timestamp d'affichage du formulaire contact (étape 4) pour anti-bot
+  // Time-to-fill : timestamp d'affichage du formulaire contact (étape 5) pour anti-bot
   const formContactOpenedAtRef = useRef<string | null>(null)
 
-  const totalSteps = 4
+  const totalSteps = 5
 
   const updateFormData = (field: keyof FormData, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -150,8 +159,10 @@ export function ROISimulator() {
       case 2:
         return projectTimelineOptions.some((o) => o.value === formData.projectTimeline)
       case 3:
-        return parseInt(formData.annualElectricityBill) >= 5000
+        return true // Réponse libre optionnelle
       case 4:
+        return parseInt(formData.annualElectricityBill) >= 5000
+      case 5:
         return (
           formData.firstName.length >= 2 &&
           formData.lastName.length >= 2 &&
@@ -166,13 +177,13 @@ export function ROISimulator() {
 
   const handleNext = () => {
     if (!validateStep(step)) return
-    if (step === 3) {
+    if (step === 4) {
       // Après consommation : animation "calcul en cours" puis formulaire contact
       setIsCalculating(true)
       setTimeout(() => {
         setIsCalculating(false)
         formContactOpenedAtRef.current = new Date().toISOString()
-        setStep(4)
+        setStep(5)
       }, 2500)
     } else if (step < totalSteps) {
       setStep(step + 1)
@@ -187,7 +198,7 @@ export function ROISimulator() {
   }
 
   const handleSubmit = async () => {
-    if (!validateStep(4)) return
+    if (!validateStep(5)) return
 
     setIsSubmitting(true)
     setError(null)
@@ -207,7 +218,7 @@ export function ROISimulator() {
         estimatedSavings: roiResults.estimatedSavings,
         // Anti-bot : honeypot (reste vide pour un humain)
         fax_number: formData.fax_number ?? "",
-        // Time-to-fill : si soumission < 4 s après affichage étape 4 (contact), rejetée côté API
+        // Time-to-fill : si soumission < 4 s après affichage étape 5 (contact), rejetée côté API
         form_opened_at: formContactOpenedAtRef.current ?? undefined,
       }
       const response = await fetch("/api/leads", {
@@ -232,7 +243,7 @@ export function ROISimulator() {
   // Results screen
   if (submitted && results) {
     return (
-      <section id="simulator" className="bg-primary py-12 sm:py-24">
+      <section id="simulator" className="scroll-mt-24 bg-primary py-12 sm:py-24">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <div className="rounded-xl bg-card p-4 shadow-2xl sm:rounded-2xl sm:p-6 md:p-8 lg:p-10">
             <div className="mb-8 flex items-center justify-center">
@@ -294,7 +305,7 @@ export function ROISimulator() {
   }
 
   return (
-    <section id="simulator" className="bg-primary py-12 sm:py-24" aria-labelledby="simulator-title">
+    <section id="simulator" className="scroll-mt-24 bg-primary py-12 sm:py-24" aria-labelledby="simulator-title">
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         <div className="mb-6 text-center sm:mb-8">
           <h2 id="simulator-title" className="text-2xl font-bold tracking-tight text-primary-foreground sm:text-3xl md:text-4xl">
@@ -427,8 +438,38 @@ export function ROISimulator() {
             </div>
           )}
 
-          {/* Step 3: Consumption */}
+          {/* Step 3: Précisions / réponse libre (optionnel, avant le calcul) */}
           {step === 3 && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/10">
+                  <MessageSquare className="h-5 w-5 text-accent" />
+                </div>
+                <h3 className="text-xl font-semibold text-foreground">
+                  Précisions sur votre projet
+                </h3>
+              </div>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Optionnel : décrivez brièvement votre contexte ou vos questions. Ce message n'est pas utilisé pour le calcul du ROI et sera transmis à l'installateur partenaire.
+                </p>
+                <div>
+                  <Label htmlFor="message">Message ou précisions (optionnel)</Label>
+                  <Textarea
+                    id="message"
+                    placeholder="Ex : parking de 2000 m², objectif mise en conformité Loi LOM, souhait de devis PPA..."
+                    value={formData.message}
+                    onChange={(e) => updateFormData("message", e.target.value)}
+                    className="mt-1.5 min-h-[120px] resize-y"
+                    maxLength={2000}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Consumption */}
+          {step === 4 && (
             <div className="space-y-6">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/10">
@@ -648,7 +689,7 @@ export function ROISimulator() {
                 Continuer
                 <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
               </Button>
-            ) : step === 4 ? (
+            ) : step === 5 ? (
               <Button
                 onClick={handleSubmit}
                 disabled={!validateStep(step) || isSubmitting}
@@ -668,7 +709,7 @@ export function ROISimulator() {
               </Button>
             ) : null}
           </div>
-          {step === 4 && !isCalculating && (
+          {step === 5 && !isCalculating && (
             <p className="mt-4 text-xs text-muted-foreground">
               Conformément au RGPD, vos données sont utilisées pour traiter votre demande de simulation. Vous disposez d'un droit d'accès et d'opposition (voir{" "}
               <a href="/politique-confidentialite" className="underline hover:text-foreground">Politique de confidentialité</a>{" "}

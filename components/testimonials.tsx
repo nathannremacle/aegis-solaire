@@ -59,7 +59,7 @@ const testimonials = [
 
 export function Testimonials() {
   return (
-    <section id="preuve" className="bg-background py-12 sm:py-24">
+    <section id="preuve" className="scroll-mt-24 bg-background py-12 sm:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">
@@ -83,10 +83,14 @@ export function Testimonials() {
               <h3 className="text-base font-semibold text-foreground sm:text-lg">
                 {study.title}
               </h3>
-              <p className="mt-2 text-xl font-bold text-primary sm:text-2xl">
-                {study.figure}
-              </p>
-              <p className="text-sm text-muted-foreground">{study.figureLabel}</p>
+              <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-0">
+                <span className="text-xl font-bold text-primary sm:text-2xl">
+                  − {study.figure}
+                </span>
+                <span className="text-sm font-medium text-muted-foreground">
+                  en moins · {study.figureLabel}
+                </span>
+              </div>
               <p className="mt-2 text-sm text-muted-foreground">{study.detail}</p>
             </div>
           ))}

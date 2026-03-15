@@ -2,7 +2,6 @@
 
 import { useRef, useState } from "react"
 import { CheckCircle2, Pause, Play } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 /** Retourne l'URL d'embed YouTube ou Vimeo, ou null si non reconnu. */
 function getEmbedVideoUrl(url: string): string | null {
@@ -121,86 +120,105 @@ const stats = [
 
 export function Expert() {
   return (
-    <section id="expert" className="bg-secondary py-12 sm:py-24">
+    <section id="expert" className="scroll-mt-24 bg-secondary py-14 sm:py-20 lg:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid items-start gap-8 lg:grid-cols-2 lg:gap-12">
-          {/* Contenu : Décret Tertiaire, PPA, stockage */}
-          <div className="min-w-0">
-            <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">
-              Un partenaire de confiance pour votre transition énergétique
-            </h2>
-            <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
-              Aegis Solaire réunit un réseau d'experts certifiés pour vous accompagner de l'étude de faisabilité jusqu'à la maintenance de votre installation, en France, en Belgique et en francophonie.
-            </p>
-            <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Le <strong>Décret Tertiaire</strong> et la <strong>Loi LOM</strong> imposent aux bâtiments &gt; 500 m² et aux parkings &gt; 1 500 m² des obligations de réduction de consommation et de couverture solaire. Nous vous aidons à vous mettre en conformité tout en rentabilisant vos surfaces.
-            </p>
+        {/* En-tête : titre + intro */}
+        <header className="mb-10 lg:mb-12">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
+            Un partenaire de confiance pour votre transition énergétique
+          </h2>
+          <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+            Aegis Solaire réunit un réseau d'experts certifiés pour vous accompagner de l'étude de faisabilité jusqu'à la maintenance de votre installation, en France, en Belgique et en francophonie.
+          </p>
+        </header>
 
-            <div className="mt-6 rounded-lg border-2 border-destructive/80 bg-destructive/10 p-4 text-destructive">
-              <p className="text-sm font-semibold sm:text-base">
-                ⚠️ Attention : En 2026, le non-respect de l'obligation de solariser vos parkings vous expose à une amende de 40 000 € par an.
+        {/* Alerte sanctions : bandeau discret mais visible */}
+        <div className="mb-10 flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 sm:px-5 sm:py-4">
+          <span className="text-lg sm:text-xl" aria-hidden>⚠️</span>
+          <p className="text-sm font-medium text-foreground sm:text-base">
+            <span className="font-semibold text-amber-700 dark:text-amber-400">En 2026</span>, le non-respect de l'obligation de solariser vos parkings vous expose à une amende de <strong>40 000 € par an</strong>.
+          </p>
+        </div>
+
+        <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-14">
+          {/* Colonne gauche */}
+          <div className="min-w-0 space-y-8">
+            <div>
+              <h3 className="text-base font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
+                Conformité & cadre légal
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-foreground sm:text-base">
+                Le <strong>Décret Tertiaire</strong> et la <strong>Loi LOM</strong> imposent aux bâtiments &gt; 500 m² et aux parkings &gt; 1 500 m² des obligations de réduction de consommation et de couverture solaire. Nous vous aidons à vous mettre en conformité tout en rentabilisant vos surfaces.
               </p>
             </div>
 
-            <p className="mt-6 text-sm font-medium text-foreground">Solutions de financement</p>
-            <div className="mt-3 grid gap-4 sm:grid-cols-2">
-              <Card className="border-accent/30 bg-accent/5">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base text-foreground sm:text-lg">
+            <div>
+              <h3 className="text-base font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
+                Solutions de financement
+              </h3>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                {/* Carte Tiers-Investissement – texte collé en bas */}
+                <div className="flex min-h-[180px] flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md sm:min-h-[200px]">
+                  <h4 className="text-base font-semibold leading-snug text-foreground sm:text-lg">
                     Tiers-Investissement (Zéro CAPEX)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <p className="text-sm text-muted-foreground">
+                  </h4>
+                  <p className="mt-auto pt-3 text-sm leading-relaxed text-muted-foreground">
                     L'investisseur finance 100 % de l'installation et de la maintenance. Rentabilité dès la première année sans avance de trésorerie.
                   </p>
-                </CardContent>
-              </Card>
-              <Card className="border-primary/30 bg-primary/5">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base text-foreground sm:text-lg">
+                </div>
+                {/* Carte PPA – texte collé en bas comme l'autre */}
+                <div className="flex min-h-[180px] flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md sm:min-h-[200px]">
+                  <h4 className="text-base font-semibold leading-snug text-foreground sm:text-lg">
                     Contrat PPA
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <p className="text-sm text-muted-foreground">
-                    Achat d'électricité à prix fixe sur 15 à 25 ans. Sécurisez votre budget face à la volatilité du marché.
+                  </h4>
+                  <p className="mt-auto pt-3 text-sm leading-relaxed text-muted-foreground">
+                    Achat d'électricité à prix fixe sur 15 à 25 ans. Sécurisez votre budget énergétique et préservez votre trésorerie sur la durée du contrat.
                   </p>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
 
-            <ul className="mt-8 space-y-4">
-              {credentials.map((credential, index) => (
-                <li key={index} className="flex items-start gap-3">
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
-                  <span className="text-foreground">{credential}</span>
-                </li>
-              ))}
-            </ul>
+            <div>
+              <h3 className="text-base font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
+                Nos engagements
+              </h3>
+              <ul className="mt-4 space-y-3">
+                {credentials.map((credential, index) => (
+                  <li key={index} className="flex items-start gap-3">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
+                    <span className="text-sm text-foreground sm:text-base">{credential}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
-          {/* Vidéo Founder POV – configurable via NEXT_PUBLIC_FOUNDER_VIDEO_URL */}
-          <div className="min-w-0 space-y-4">
-            <h3 className="text-lg font-semibold text-foreground sm:text-xl">
-              Vidéo Explicative - Décret Tertiaire et Financement
-            </h3>
-            <p className="text-xs text-muted-foreground sm:text-sm">
-              Explication des obligations légales (Décret Tertiaire) et des solutions de financement (PPA, tiers-investissement, stockage) en 2 minutes.
-            </p>
-            <FounderVideoBlock />
+          {/* Colonne droite : Vidéo + Stats */}
+          <div className="min-w-0 space-y-6 lg:sticky lg:top-28">
+            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+              <div className="border-b border-border px-4 py-4 sm:px-5 sm:py-4">
+                <h3 className="text-base font-semibold text-foreground sm:text-lg">
+                  Vidéo – Décret Tertiaire et Financement
+                </h3>
+                <p className="mt-1.5 text-sm text-muted-foreground">
+                  Obligations légales et solutions de financement (PPA, tiers-investissement, stockage) en 2 minutes.
+                </p>
+              </div>
+              <div className="p-4 sm:p-5">
+                <FounderVideoBlock />
+              </div>
+            </div>
 
-            {/* Stats */}
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
               {stats.map((stat, index) => (
                 <div
                   key={index}
-                  className="min-w-0 rounded-xl border border-border bg-card p-4 text-center sm:p-6"
+                  className="rounded-xl border border-border bg-card p-4 text-center shadow-sm transition-shadow hover:shadow-md sm:p-5"
                 >
-                  <p className="text-2xl font-bold text-primary sm:text-3xl md:text-4xl">
+                  <p className="text-2xl font-bold text-primary sm:text-3xl">
                     {stat.value}
                   </p>
-                  <p className="mt-2 text-sm text-muted-foreground">{stat.label}</p>
+                  <p className="mt-1.5 text-xs text-muted-foreground sm:text-sm">{stat.label}</p>
                 </div>
               ))}
             </div>
