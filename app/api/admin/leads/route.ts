@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   const supabase = createServiceRoleClient()
   let query = supabase
     .from("leads")
-    .select("id, first_name, last_name, email, phone, job_title, company, surface_type, surface_area, annual_electricity_bill, estimated_roi_years, autoconsumption_rate, estimated_savings, status, created_at", { count: "exact" })
+    .select("id, first_name, last_name, email, phone, job_title, company, message, surface_type, surface_area, annual_electricity_bill, estimated_roi_years, autoconsumption_rate, estimated_savings, status, lead_score, created_at", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(from, from + limit - 1)
 

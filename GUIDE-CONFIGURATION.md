@@ -64,6 +64,8 @@ Copiez ces trois valeurs dans un endroit sûr (vous les collerez dans les variab
 3. Copiez-collez **tout** le contenu du fichier **`scripts/001_create_leads_table.sql`** du projet (table `leads` + index + RLS + fonction `update_updated_at_column` + trigger).
 4. Cliquez sur **Run** (ou Ctrl+Entrée). Vous devez voir « Success ».
 5. Nouvelle requête : copiez-collez **tout** le contenu de **`scripts/002_create_installateurs_table.sql`** (table `installateurs`).
+6. Exécutez **`scripts/003_add_leads_message.sql`** pour ajouter la colonne « message » (réponse libre du formulaire simulateur).
+7. Exécutez **`scripts/004_lead_status_score.sql`** pour la colonne `lead_score` et les statuts de qualification (`HOT_LEAD`, `NEEDS_HUMAN_REVIEW`).
 6. **Run**. Si une erreur indique que la fonction ou le trigger existe déjà, c’est souvent parce que le script `001` a déjà créé la fonction ; dans ce cas vous pouvez adapter le script (par ex. créer uniquement la table et les policies) ou ignorer l’erreur si la table `installateurs` est bien créée.
 
 Vérification : dans **Table Editor**, vous devez voir les tables **`leads`** et **`installateurs`**.
@@ -187,6 +189,8 @@ Cochez au fur et à mesure :
   - [ ] Projet créé
   - [ ] Script `001_create_leads_table.sql` exécuté (table `leads` visible)
   - [ ] Script `002_create_installateurs_table.sql` exécuté (table `installateurs` visible)
+  - [ ] Script `003_add_leads_message.sql` exécuté (colonne `message` pour la réponse libre)
+  - [ ] Script `004_lead_status_score.sql` exécuté (score + statuts NEEDS_HUMAN_REVIEW, HOT_LEAD)
   - [ ] URL + anon key + service_role key copiées
 - [ ] **Variables d’environnement**
   - [ ] `.env.local` créé en local avec les 5 variables obligatoires

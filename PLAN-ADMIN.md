@@ -42,7 +42,7 @@ Panel de gestion complet et sécurisé pour administrer les leads et les install
 ### 4.1 Table `leads` (existante)
 
 - Aucune modification obligatoire. Lecture via API admin avec **service role** (bypass RLS ou politique dédiée admin).
-- Optionnel : ajout d’une colonne `installateur_id` (FK vers `installateurs`) pour assigner un lead à un installateur (phase 2).
+- **Phase 2 (implémentée) :** colonne d’une colonne `installateur_id` (FK vers `installateurs`) pour assigner un lead à un installateur. Script : `scripts/006_add_lead_installateur_id.sql`.
 
 ### 4.2 Nouvelle table `installateurs`
 
@@ -115,7 +115,18 @@ Toutes les routes ci‑dessous :
 
 ---
 
-## 9. Évolutions possibles (hors scope initial)
+## 9. Phases et évolutions
+
+### Phase 1 (réalisée)
+- Panel admin, leads, installateurs CRUD, dashboard, authentification.
+
+### Phase 2 (réalisée)
+- **Assignation lead → installateur :** colonne `installateur_id` sur `leads`, PATCH `/api/admin/leads/[id]` accepte `installateur_id`. Dans le détail d'un lead, sélecteur « Assigner à un installateur ». Liste des leads : filtre par installateur, colonne « Installateur ».
+
+### Évolutions réalisées
+- **Export CSV des leads :** GET `/api/admin/leads/export?status=…&installateur=…&search=…` (max 5 000 lignes). Bouton « Exporter CSV » sur la page Leads (respecte les filtres en cours).
+
+### Évolutions possibles (non implémentées)
 
 - Assignation d’un lead à un installateur (`installateur_id` sur `leads`).
 - Envoi d’un email à l’installateur depuis le panel.

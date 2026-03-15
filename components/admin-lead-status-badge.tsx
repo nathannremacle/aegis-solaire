@@ -7,6 +7,8 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   qualified: { label: "Qualifié", className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30" },
   converted: { label: "Converti", className: "bg-primary/15 text-primary border-primary/30" },
   lost: { label: "Perdu", className: "bg-muted text-muted-foreground border-border" },
+  HOT_LEAD: { label: "Lead chaud", className: "bg-emerald-600/20 text-emerald-800 dark:text-emerald-200 border-emerald-600/40" },
+  NEEDS_HUMAN_REVIEW: { label: "À contrôler", className: "bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/30" },
 }
 
 export function LeadStatusBadge({ status, className }: { status: string; className?: string }) {

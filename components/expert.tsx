@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react"
 import { CheckCircle2, Pause, Play } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 /** Retourne l'URL d'embed YouTube ou Vimeo, ou null si non reconnu. */
 function getEmbedVideoUrl(url: string): string | null {
@@ -129,11 +130,45 @@ export function Expert() {
               Un partenaire de confiance pour votre transition énergétique
             </h2>
             <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
-              Aegis Solaire réunit un réseau d'experts certifiés pour vous accompagner de l'étude de faisabilité jusqu'à la maintenance de votre installation, en France, en Belgique et en francophonie. Nous simplifions le financement : <strong>PPA</strong> (achat d'électricité sans mise de fonds), <strong>tiers-investissement</strong> et <strong>stockage batterie</strong> pour maximiser l'autoconsommation.
+              Aegis Solaire réunit un réseau d'experts certifiés pour vous accompagner de l'étude de faisabilité jusqu'à la maintenance de votre installation, en France, en Belgique et en francophonie.
             </p>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               Le <strong>Décret Tertiaire</strong> et la <strong>Loi LOM</strong> imposent aux bâtiments &gt; 500 m² et aux parkings &gt; 1 500 m² des obligations de réduction de consommation et de couverture solaire. Nous vous aidons à vous mettre en conformité tout en rentabilisant vos surfaces.
             </p>
+
+            <div className="mt-6 rounded-lg border-2 border-destructive/80 bg-destructive/10 p-4 text-destructive">
+              <p className="text-sm font-semibold sm:text-base">
+                ⚠️ Attention : En 2026, le non-respect de l'obligation de solariser vos parkings vous expose à une amende de 40 000 € par an.
+              </p>
+            </div>
+
+            <p className="mt-6 text-sm font-medium text-foreground">Solutions de financement</p>
+            <div className="mt-3 grid gap-4 sm:grid-cols-2">
+              <Card className="border-accent/30 bg-accent/5">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base text-foreground sm:text-lg">
+                    Tiers-Investissement (Zéro CAPEX)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <p className="text-sm text-muted-foreground">
+                    L'investisseur finance 100 % de l'installation et de la maintenance. Rentabilité dès la première année sans avance de trésorerie.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border-primary/30 bg-primary/5">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base text-foreground sm:text-lg">
+                    Contrat PPA
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <p className="text-sm text-muted-foreground">
+                    Achat d'électricité à prix fixe sur 15 à 25 ans. Sécurisez votre budget face à la volatilité du marché.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
 
             <ul className="mt-8 space-y-4">
               {credentials.map((credential, index) => (

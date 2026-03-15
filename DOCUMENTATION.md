@@ -134,11 +134,12 @@ Script d’initialisation : `scripts/001_create_leads_table.sql` (à exécuter d
 ### 5.3 Panel admin
 
 - **Accès :** `/admin` (redirige vers `/admin/dashboard`). Connexion obligatoire sur `/admin/login` (Supabase Auth : email + mot de passe). Seuls les emails listés dans `ADMIN_EMAILS` ont accès.
-- **Fonctions :** tableau de bord (nombre de leads, ce mois, aujourd’hui, derniers leads), liste des leads (filtre par statut, recherche par email, pagination), gestion des installateurs partenaires (création, modification, suppression).
+- **Fonctions :** tableau de bord (nombre de leads, ce mois, aujourd’hui, derniers leads), liste des leads (filtre par statut, filtre par installateur assigné, recherche par email, pagination, export CSV), détail lead avec assignation à un installateur (Phase 2), gestion des installateurs partenaires (création, modification, suppression).
 - **Sécurité :** toutes les routes `/admin/*` (sauf `/admin/login`) et `/api/admin/*` vérifient la session Supabase et que l’email appartient à `ADMIN_EMAILS`. Les données sont lues/écrites via le client **service role** (côté serveur uniquement).
 - **Table `installateurs` :** script `scripts/002_create_installateurs_table.sql` (à exécuter dans Supabase après la table `leads`). Colonnes : id, name, email, phone, region, actif, notes, created_at, updated_at.
+- **Phase 2 (assignation lead → installateur) :** colonne `installateur_id` sur `leads` (FK vers `installateurs`). Script `scripts/006_add_lead_installateur_id.sql`. PATCH `/api/admin/leads/[id]` accepte `installateur_id`. Export CSV : GET `/api/admin/leads/export?status=…&installateur=…&search=…` (max 5 000 lignes).
 
-Voir **PLAN-ADMIN.md** pour le détail du plan et des évolutions possibles.
+Voir **PLAN-ADMIN.md** pour le détail du plan et des phases.
 
 ---
 

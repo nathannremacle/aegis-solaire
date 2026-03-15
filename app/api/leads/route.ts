@@ -1,151 +1,122 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { leadSubmitSchema } from "@/lib/leads-schema"
+import { calculateLeadScore } from "@/lib/lead-score"
+import { checkRateLimit } from "@/lib/rate-limit"
 
-// Validation helpers
-function validateEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+// ——— Sanitization : réduction des risques XSS sur les données stockées (affichage admin) ———
+function sanitizeString(input: string, maxLength = 255): string {
+  const trimmed = String(input).trim().slice(0, maxLength)
+  return trimmed.replace(/[<>]/g, "") // retrait des chevrons pour éviter injection de balises
 }
 
-function validatePhone(phone: string): boolean {
-  // Accept French phone numbers (10 digits, may include spaces/dots/dashes)
-  const cleanPhone = phone.replace(/[\s.-]/g, "")
-  return /^(0|\+33)[1-9][0-9]{8}$/.test(cleanPhone)
-}
-
-function sanitizeString(input: string): string {
-  return input.trim().slice(0, 255)
-}
+/** Délai minimum (ms) entre affichage du formulaire contact et soumission (anti-bot). */
+const MIN_FORM_FILL_TIME_MS = 4000
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    // Extract and validate required fields
-    const {
-      firstName,
-      lastName,
-      email,
-      phone,
-      jobTitle,
-      company,
-      surfaceType,
-      surfaceArea,
-      annualElectricityBill,
-      estimatedROIYears,
-      autoconsumptionRate,
-      estimatedSavings,
-      marketingConsent,
-    } = body
+    // ——— 1. Honeypot (pot de miel) : si un robot remplit le champ caché "fax_number", on simule un succès sans rien enregistrer ———
+    if (body.fax_number != null && String(body.fax_number).trim() !== "") {
+      return NextResponse.json({
+        success: true,
+        message: "Lead enregistré avec succès",
+        leadId: crypto.randomUUID(),
+      })
+    }
 
-    // Validation
-    if (!firstName || firstName.length < 2) {
+    // ——— 2. Rate limiting : max 3 soumissions par heure et par IP ———
+    if (!checkRateLimit(request)) {
       return NextResponse.json(
-        { error: "Le prenom est requis (minimum 2 caracteres)" },
-        { status: 400 }
+        { error: "Trop de demandes. Veuillez réessayer dans une heure." },
+        { status: 429 }
       )
     }
 
-    if (!lastName || lastName.length < 2) {
-      return NextResponse.json(
-        { error: "Le nom est requis (minimum 2 caracteres)" },
-        { status: 400 }
-      )
+    // ——— 3. Time-to-fill : rejet si le formulaire a été soumis en moins de 4 secondes (comportement typique d’un bot) ———
+    const formOpenedAt = body.form_opened_at
+    if (formOpenedAt) {
+      const opened = new Date(formOpenedAt).getTime()
+      const now = Date.now()
+      if (Number.isNaN(opened) || now - opened < MIN_FORM_FILL_TIME_MS) {
+        return NextResponse.json(
+          { error: "Une erreur est survenue. Veuillez reessayer." },
+          { status: 400 }
+        )
+      }
     }
 
-    if (!email || !validateEmail(email)) {
-      return NextResponse.json(
-        { error: "Email invalide" },
-        { status: 400 }
-      )
+    // ——— 4. Validation multi-points via schéma Zod (email pro, téléphone français valide, etc.) ———
+    const parseResult = leadSubmitSchema.safeParse({
+      ...body,
+      surfaceArea: typeof body.surfaceArea === "number" ? body.surfaceArea : parseInt(body.surfaceArea, 10),
+      annualElectricityBill: typeof body.annualElectricityBill === "number" ? body.annualElectricityBill : parseInt(body.annualElectricityBill, 10),
+    })
+
+    if (!parseResult.success) {
+      const firstError = parseResult.error.flatten().fieldErrors
+      const message = firstError.email?.[0]
+        ?? firstError.phone?.[0]
+        ?? firstError.firstName?.[0]
+        ?? firstError.lastName?.[0]
+        ?? firstError.surfaceArea?.[0]
+        ?? firstError.annualElectricityBill?.[0]
+        ?? firstError.jobTitle?.[0]
+        ?? firstError.projectTimeline?.[0]
+        ?? firstError.surfaceType?.[0]
+        ?? "Données invalides. Vérifiez les champs."
+      return NextResponse.json({ error: message }, { status: 400 })
     }
 
-    if (!phone || !validatePhone(phone)) {
-      return NextResponse.json(
-        { error: "Numero de telephone invalide" },
-        { status: 400 }
-      )
-    }
+    const data = parseResult.data
 
-    if (!jobTitle) {
-      return NextResponse.json(
-        { error: "La fonction est requise" },
-        { status: 400 }
-      )
-    }
+    // ——— 5. Nettoyage final des chaînes avant insertion (sanitization) ———
+    const first_name = sanitizeString(data.firstName)
+    const last_name = sanitizeString(data.lastName)
+    const email = data.email.toLowerCase().trim()
+    const phone = data.phone.replace(/[\s.-]/g, "")
+    const job_title = sanitizeString(data.jobTitle)
+    const company = data.company ? sanitizeString(data.company) : null
+    const message = data.message ? sanitizeString(data.message, 2000) : null
 
-    if (!surfaceType || !["toiture", "parking", "friche"].includes(surfaceType)) {
-      return NextResponse.json(
-        { error: "Type de surface invalide" },
-        { status: 400 }
-      )
-    }
+    // ——— 6. Scoring prédictif et statut de qualification ———
+    const { score, status } = calculateLeadScore({
+      firstName: first_name,
+      lastName: last_name,
+      jobTitle: job_title,
+      surfaceArea: data.surfaceArea,
+      annualElectricityBill: data.annualElectricityBill,
+    })
 
-    const minSurface = surfaceType === "parking" ? 1500 : 500
-    if (!surfaceArea || surfaceArea < minSurface) {
-      return NextResponse.json(
-        {
-          error:
-            surfaceType === "parking"
-              ? "Surface minimum de 1 500 m² requise pour un parking (Loi LOM)."
-              : "Surface minimum de 500 m² requise.",
-        },
-        { status: 400 }
-      )
-    }
-
-    if (!annualElectricityBill || annualElectricityBill < 5000) {
-      return NextResponse.json(
-        { error: "Facture annuelle minimum de 5 000 € requise pour une étude B2B." },
-        { status: 400 }
-      )
-    }
-
-    // Filtrage B2B : refuser les emails de messagerie grand public (particuliers hors cible)
-    const freeEmailDomains = [
-      "gmail.com", "googlemail.com", "hotmail.com", "hotmail.fr", "live.com",
-      "outlook.com", "outlook.fr", "yahoo.com", "yahoo.fr", "orange.fr",
-      "wanadoo.fr", "free.fr", "sfr.fr", "laposte.net", "icloud.com",
-    ]
-    const emailDomain = email.split("@")[1]?.toLowerCase()
-    if (emailDomain && freeEmailDomains.includes(emailDomain)) {
-      return NextResponse.json(
-        {
-          error:
-            "Merci de renseigner une adresse email professionnelle pour recevoir votre audit B2B.",
-        },
-        { status: 400 }
-      )
-    }
-
-    // Create Supabase client
     const supabase = await createClient()
 
-    // Calculate RGPD data retention (3 years from now)
     const consentDate = new Date()
     const dataRetentionUntil = new Date()
     dataRetentionUntil.setFullYear(dataRetentionUntil.getFullYear() + 3)
 
-    // Insert lead into database
-    const { data, error } = await supabase
+    const { data: inserted, error } = await supabase
       .from("leads")
       .insert({
-        first_name: sanitizeString(firstName),
-        last_name: sanitizeString(lastName),
-        email: email.toLowerCase().trim(),
-        phone: phone.replace(/[\s.-]/g, ""),
-        job_title: sanitizeString(jobTitle),
-        company: company ? sanitizeString(company) : null,
-        surface_type: surfaceType,
-        surface_area: surfaceArea,
-        annual_electricity_bill: annualElectricityBill,
-        estimated_roi_years: estimatedROIYears,
-        autoconsumption_rate: autoconsumptionRate,
-        estimated_savings: estimatedSavings,
-        marketing_consent: marketingConsent === true,
-        consent_date: marketingConsent ? consentDate.toISOString() : null,
+        first_name,
+        last_name,
+        email,
+        phone,
+        job_title,
+        company,
+        message,
+        surface_type: data.surfaceType,
+        surface_area: data.surfaceArea,
+        annual_electricity_bill: data.annualElectricityBill,
+        estimated_roi_years: data.estimatedROIYears ?? null,
+        autoconsumption_rate: data.autoconsumptionRate ?? null,
+        estimated_savings: data.estimatedSavings ?? null,
+        marketing_consent: data.marketingConsent === true,
+        consent_date: data.marketingConsent ? consentDate.toISOString() : null,
         data_retention_until: dataRetentionUntil.toISOString(),
         source: "simulator",
-        status: "new",
+        status,
+        lead_score: score,
       })
       .select()
       .single()
@@ -158,24 +129,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Distribution temps réel : webhook optionnel vers CRM ou installateur partenaire
     const webhookUrl = process.env.LEAD_WEBHOOK_URL
     if (webhookUrl) {
       const payload = {
-        id: data.id,
-        first_name: data.first_name,
-        last_name: data.last_name,
-        email: data.email,
-        phone: data.phone,
-        job_title: data.job_title,
-        company: data.company,
-        surface_type: data.surface_type,
-        surface_area: data.surface_area,
-        annual_electricity_bill: data.annual_electricity_bill,
-        estimated_roi_years: data.estimated_roi_years,
-        autoconsumption_rate: data.autoconsumption_rate,
-        estimated_savings: data.estimated_savings,
-        created_at: data.created_at,
+        id: inserted.id,
+        first_name: inserted.first_name,
+        last_name: inserted.last_name,
+        email: inserted.email,
+        phone: inserted.phone,
+        job_title: inserted.job_title,
+        company: inserted.company,
+        message: inserted.message ?? null,
+        surface_type: inserted.surface_type,
+        surface_area: inserted.surface_area,
+        project_timeline: inserted.project_timeline ?? null,
+        annual_electricity_bill: inserted.annual_electricity_bill,
+        estimated_roi_years: inserted.estimated_roi_years,
+        autoconsumption_rate: inserted.autoconsumption_rate,
+        estimated_savings: inserted.estimated_savings,
+        lead_score: inserted.lead_score ?? null,
+        status: inserted.status,
+        created_at: inserted.created_at,
       }
       fetch(webhookUrl, {
         method: "POST",
@@ -188,7 +162,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "Lead enregistré avec succès",
-      leadId: data.id,
+      leadId: inserted.id,
     })
   } catch (error) {
     console.error("API error:", error)

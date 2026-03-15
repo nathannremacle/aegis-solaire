@@ -20,6 +20,14 @@ import {
 import { LeadStatusBadge } from "@/components/admin-lead-status-badge"
 import { toast } from "sonner"
 
+const PROJECT_TIMELINE_LABELS: Record<string, string> = {
+  urgent: "Urgent (Moins de 3 mois)",
+  "3_6_months": "3 à 6 mois",
+  "6_plus_months": "Plus de 6 mois (Exploratoire)",
+}
+
+type Installateur = { id: string; name: string; email: string; actif: boolean }
+
 type Lead = {
   id: string
   first_name: string
@@ -28,13 +36,17 @@ type Lead = {
   phone: string
   job_title: string
   company: string | null
+  message?: string | null
   surface_type: string
   surface_area: number
+  project_timeline?: string | null
   annual_electricity_bill: number
   estimated_roi_years: number | null
   autoconsumption_rate: number | null
   estimated_savings: number | null
   status: string
+  lead_score?: number | null
+  installateur_id?: string | null
   created_at: string
   updated_at?: string
 }
@@ -61,21 +73,29 @@ export function LeadDetailSheet({
     }
     if (currentLeadFromList && currentLeadFromList.id === leadId) {
       setLead(currentLeadFromList)
-      return
+    } else {
+      setLoading(true)
+      fetch(`/api/admin/leads/${leadId}`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Lead introuvable")
+          return res.json()
+        })
+        .then((data: Lead) => setLead(data))
+        .catch(() => {
+          toast.error("Impossible de charger le lead")
+          onClose()
+        })
+        .finally(() => setLoading(false))
     }
-    setLoading(true)
-    fetch(`/api/admin/leads/${leadId}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Lead introuvable")
-        return res.json()
-      })
-      .then((data: Lead) => setLead(data))
-      .catch(() => {
-        toast.error("Impossible de charger le lead")
-        onClose()
-      })
-      .finally(() => setLoading(false))
   }, [leadId, currentLeadFromList?.id])
+
+  useEffect(() => {
+    if (!open) return
+    fetch("/api/admin/installateurs")
+      .then((res) => res.ok ? res.json() : [])
+      .then((data: Installateur[]) => setInstallateurs(data))
+      .catch(() => setInstallateurs([]))
+  }, [open])
 
   async function handleStatusChange(value: string) {
     if (!lead || value === lead.status) return
@@ -92,6 +112,28 @@ export function LeadDetailSheet({
       toast.success("Statut mis à jour")
     } catch {
       toast.error("Erreur lors de la mise à jour du statut")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleInstallateurChange(value: string) {
+    if (!lead) return
+    const installateurId = value === "none" ? null : value
+    if (installateurId === lead.installateur_id) return
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/admin/leads/${lead.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ installateur_id: installateurId }),
+      })
+      if (!res.ok) throw new Error("Erreur")
+      const data = await res.json()
+      setLead((prev) => (prev ? { ...prev, ...data } : null))
+      toast.success("Installateur assigné")
+    } catch {
+      toast.error("Erreur lors de l'assignation")
     } finally {
       setSaving(false)
     }
@@ -133,6 +175,12 @@ export function LeadDetailSheet({
                 <Label className="text-muted-foreground">Entreprise</Label>
                 <p className="font-medium">{lead.company ?? "–"}</p>
               </div>
+              {lead.message?.trim() ? (
+                <div>
+                  <Label className="text-muted-foreground">Message / précisions</Label>
+                  <p className="mt-1 whitespace-pre-wrap rounded-md bg-muted/50 p-3 text-sm">{lead.message}</p>
+                </div>
+              ) : null}
             </div>
 
             <div className="border-t border-border pt-4 space-y-4">
@@ -140,6 +188,12 @@ export function LeadDetailSheet({
                 <Label className="text-muted-foreground">Surface</Label>
                 <p className="font-medium">{lead.surface_area} m² ({lead.surface_type})</p>
               </div>
+              {lead.project_timeline ? (
+                <div>
+                  <Label className="text-muted-foreground">Délai projet</Label>
+                  <p className="font-medium">{PROJECT_TIMELINE_LABELS[lead.project_timeline] ?? lead.project_timeline}</p>
+                </div>
+              ) : null}
               <div>
                 <Label className="text-muted-foreground">Facture annuelle</Label>
                 <p className="font-medium">{lead.annual_electricity_bill.toLocaleString("fr-FR")} €</p>
@@ -162,20 +216,44 @@ export function LeadDetailSheet({
               )}
             </div>
 
-            <div className="border-t border-border pt-4">
-              <Label className="text-muted-foreground mb-2 block">Changer le statut</Label>
-              <Select value={lead.status} onValueChange={handleStatusChange} disabled={saving}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="new">Nouveau</SelectItem>
-                  <SelectItem value="contacted">Contacté</SelectItem>
-                  <SelectItem value="qualified">Qualifié</SelectItem>
-                  <SelectItem value="converted">Converti</SelectItem>
-                  <SelectItem value="lost">Perdu</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="border-t border-border pt-4 space-y-4">
+              <div>
+                <Label className="text-muted-foreground mb-2 block">Changer le statut</Label>
+                <Select value={lead.status} onValueChange={handleStatusChange} disabled={saving}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">Nouveau</SelectItem>
+                    <SelectItem value="contacted">Contacté</SelectItem>
+                    <SelectItem value="qualified">Qualifié</SelectItem>
+                    <SelectItem value="converted">Converti</SelectItem>
+                    <SelectItem value="lost">Perdu</SelectItem>
+                    <SelectItem value="HOT_LEAD">Lead chaud</SelectItem>
+                    <SelectItem value="NEEDS_HUMAN_REVIEW">À contrôler</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-muted-foreground mb-2 block">Assigner à un installateur</Label>
+                <Select
+                  value={lead.installateur_id ?? "none"}
+                  onValueChange={handleInstallateurChange}
+                  disabled={saving}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Aucun" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Aucun</SelectItem>
+                    {installateurs.map((i) => (
+                      <SelectItem key={i.id} value={i.id}>
+                        {i.name}{!i.actif ? " (inactif)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <p className="text-xs text-muted-foreground">

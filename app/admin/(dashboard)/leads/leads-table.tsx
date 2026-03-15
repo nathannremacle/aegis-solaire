@@ -14,6 +14,8 @@ import {
 import { LeadStatusBadge } from "@/components/admin-lead-status-badge"
 import { LeadDetailSheet } from "./lead-detail-sheet"
 
+type Installateur = { id: string; name: string; actif: boolean }
+
 type Lead = {
   id: string
   first_name: string
@@ -22,20 +24,24 @@ type Lead = {
   phone: string
   job_title: string
   company: string | null
+  message?: string | null
   surface_type: string
   surface_area: number
+  project_timeline?: string | null
   annual_electricity_bill: number
   estimated_roi_years: number | null
   autoconsumption_rate: number | null
   estimated_savings: number | null
   status: string
+  installateur_id?: string | null
   created_at: string
 }
 
-function buildLeadsUrl(params: { page?: number; status?: string; search?: string; leadId?: string }) {
+function buildLeadsUrl(params: { page?: number; status?: string; search?: string; installateur?: string; leadId?: string }) {
   const q = new URLSearchParams()
   if (params.page && params.page > 1) q.set("page", String(params.page))
   if (params.status && params.status !== "all") q.set("status", params.status)
+  if (params.installateur && params.installateur !== "all") q.set("installateur", params.installateur)
   if (params.search) q.set("search", params.search)
   if (params.leadId) q.set("leadId", params.leadId)
   const s = q.toString()
@@ -86,9 +92,18 @@ export function LeadsTable({
     const email = (form.elements.namedItem("search") as HTMLInputElement)?.value?.trim()
     const params = new URLSearchParams()
     if (statusFilter) params.set("status", statusFilter)
+    if (installateurFilter && installateurFilter !== "all") params.set("installateur", installateurFilter)
     if (email) params.set("search", email)
     params.set("page", "1")
     router.push(`/admin/leads?${params.toString()}`)
+  }
+
+  const exportCsvUrl = () => {
+    const params = new URLSearchParams()
+    if (statusFilter && statusFilter !== "all") params.set("status", statusFilter)
+    if (installateurFilter && installateurFilter !== "all") params.set("installateur", installateurFilter)
+    if (searchDefault) params.set("search", searchDefault)
+    return `/api/admin/leads/export?${params.toString()}`
   }
 
   return (
@@ -114,8 +129,24 @@ export function LeadsTable({
             <SelectItem value="qualified">Qualifié</SelectItem>
             <SelectItem value="converted">Converti</SelectItem>
             <SelectItem value="lost">Perdu</SelectItem>
+            <SelectItem value="HOT_LEAD">Lead chaud</SelectItem>
+            <SelectItem value="NEEDS_HUMAN_REVIEW">À contrôler</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={installateurFilter || "all"} onValueChange={onInstallateurChange}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Installateur" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les installateurs</SelectItem>
+            {installateurs.map((i) => (
+              <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <a href={exportCsvUrl()} target="_blank" rel="noopener noreferrer">
+          <Button variant="outline" size="sm">Exporter CSV</Button>
+        </a>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-border">
@@ -127,6 +158,7 @@ export function LeadsTable({
               <th className="px-4 py-3 text-left font-medium">Email</th>
               <th className="px-4 py-3 text-left font-medium">Tél.</th>
               <th className="px-4 py-3 text-left font-medium">Entreprise</th>
+              <th className="px-4 py-3 text-left font-medium">Installateur</th>
               <th className="px-4 py-3 text-left font-medium">Surface</th>
               <th className="px-4 py-3 text-left font-medium">Facture</th>
               <th className="px-4 py-3 text-left font-medium">ROI</th>
@@ -136,7 +168,7 @@ export function LeadsTable({
           <tbody>
             {leads.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={10} className="px-4 py-8 text-center text-muted-foreground">
                   Aucun lead.
                 </td>
               </tr>
@@ -154,6 +186,7 @@ export function LeadsTable({
                   <td className="px-4 py-3">{lead.email}</td>
                   <td className="px-4 py-3 text-muted-foreground">{lead.phone}</td>
                   <td className="px-4 py-3 text-muted-foreground">{lead.company ?? "–"}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{getInstallateurName(lead.installateur_id)}</td>
                   <td className="px-4 py-3">{lead.surface_area} m² ({lead.surface_type})</td>
                   <td className="px-4 py-3">{lead.annual_electricity_bill.toLocaleString("fr-FR")} €</td>
                   <td className="px-4 py-3">{lead.estimated_roi_years != null ? `${lead.estimated_roi_years} ans` : "–"}</td>
@@ -173,10 +206,22 @@ export function LeadsTable({
             {total} lead{total !== 1 ? "s" : ""} · page {page} / {totalPages}
           </p>
           <div className="flex gap-2">
-            <Link href={page > 1 ? `/admin/leads?page=${page - 1}${statusFilter ? `&status=${statusFilter}` : ""}${searchDefault ? `&search=${encodeURIComponent(searchDefault)}` : ""}` : "#"}>
+            <Link
+              href={
+                page > 1
+                  ? `/admin/leads?page=${page - 1}${statusFilter ? `&status=${statusFilter}` : ""}${installateurFilter && installateurFilter !== "all" ? `&installateur=${encodeURIComponent(installateurFilter)}` : ""}${searchDefault ? `&search=${encodeURIComponent(searchDefault)}` : ""}`
+                  : "#"
+              }
+            >
               <Button variant="outline" size="sm" disabled={page <= 1}>Précédent</Button>
             </Link>
-            <Link href={page < totalPages ? `/admin/leads?page=${page + 1}${statusFilter ? `&status=${statusFilter}` : ""}${searchDefault ? `&search=${encodeURIComponent(searchDefault)}` : ""}` : "#"}>
+            <Link
+              href={
+                page < totalPages
+                  ? `/admin/leads?page=${page + 1}${statusFilter ? `&status=${statusFilter}` : ""}${installateurFilter && installateurFilter !== "all" ? `&installateur=${encodeURIComponent(installateurFilter)}` : ""}${searchDefault ? `&search=${encodeURIComponent(searchDefault)}` : ""}`
+                  : "#"
+              }
+            >
               <Button variant="outline" size="sm" disabled={page >= totalPages}>Suivant</Button>
             </Link>
           </div>

@@ -1,8 +1,9 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Users, FileText, LogOut, ExternalLink } from "lucide-react"
+import { LayoutDashboard, Users, FileText, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AdminLogoutButton } from "@/components/admin-logout-button"
 import { cn } from "@/lib/utils"
@@ -18,9 +19,18 @@ export function AdminNav() {
 
   return (
     <>
-      <div className="flex h-14 items-center border-b border-border px-4 md:h-16">
-        <Link href="/admin/dashboard" className="font-semibold text-foreground">
-          Aegis Admin
+      <div className="flex h-14 items-center gap-3 border-b border-border px-4 md:h-16">
+        <Link href="/admin/dashboard" className="flex min-w-0 items-center gap-3 font-semibold text-foreground">
+          <span className="relative h-8 w-8 shrink-0 md:h-9 md:w-9">
+            <Image
+              src="/logo-square.png"
+              alt=""
+              fill
+              className="object-contain"
+              sizes="36px"
+            />
+          </span>
+          <span className="truncate">Aegis Admin</span>
         </Link>
       </div>
       <nav className="flex flex-row gap-1 p-2 md:flex-col">

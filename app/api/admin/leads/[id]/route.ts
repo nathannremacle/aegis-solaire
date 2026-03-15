@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 
-const LEAD_SELECT = "id, first_name, last_name, email, phone, job_title, company, surface_type, surface_area, annual_electricity_bill, estimated_roi_years, autoconsumption_rate, estimated_savings, status, created_at, updated_at"
+const LEAD_SELECT = "id, first_name, last_name, email, phone, job_title, company, message, surface_type, surface_area, project_timeline, annual_electricity_bill, estimated_roi_years, autoconsumption_rate, estimated_savings, status, lead_score, installateur_id, created_at, updated_at"
 
-const VALID_STATUSES = ["new", "contacted", "qualified", "converted", "lost"] as const
+const VALID_STATUSES = ["new", "contacted", "qualified", "converted", "lost", "HOT_LEAD", "NEEDS_HUMAN_REVIEW"] as const
 
 export async function GET(
   _request: NextRequest,
@@ -46,19 +46,39 @@ export async function PATCH(
 
   const { id } = await params
   const body = await request.json()
-  const { status } = body
+  const { status, installateur_id: installateurId } = body
 
-  if (typeof status !== "string" || !VALID_STATUSES.includes(status as (typeof VALID_STATUSES)[number])) {
-    return NextResponse.json(
-      { error: "Statut invalide. Valeurs acceptées : new, contacted, qualified, converted, lost" },
-      { status: 400 }
-    )
+  const updates: { status?: string; installateur_id?: string | null; updated_at: string } = {
+    updated_at: new Date().toISOString(),
+  }
+
+  if (typeof status === "string" && VALID_STATUSES.includes(status as (typeof VALID_STATUSES)[number])) {
+    updates.status = status
+  }
+
+  if (installateurId !== undefined) {
+    if (installateurId === null || installateurId === "") {
+      updates.installateur_id = null
+    } else if (typeof installateurId === "string" && /^[0-9a-f-]{36}$/i.test(installateurId)) {
+      const supabaseCheck = createServiceRoleClient()
+      const { data: inst } = await supabaseCheck.from("installateurs").select("id").eq("id", installateurId).single()
+      if (!inst) {
+        return NextResponse.json({ error: "Installateur introuvable." }, { status: 400 })
+      }
+      updates.installateur_id = installateurId
+    } else {
+      return NextResponse.json({ error: "installateur_id invalide." }, { status: 400 })
+    }
+  }
+
+  if (Object.keys(updates).length <= 1) {
+    return NextResponse.json({ error: "Aucune modification valide (status ou installateur_id)." }, { status: 400 })
   }
 
   const supabase = createServiceRoleClient()
   const { data, error } = await supabase
     .from("leads")
-    .update({ status, updated_at: new Date().toISOString() })
+    .update(updates)
     .eq("id", id)
     .select(LEAD_SELECT)
     .single()
