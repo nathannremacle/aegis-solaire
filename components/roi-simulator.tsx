@@ -25,6 +25,12 @@ import {
   CalendarClock,
   MessageSquare,
 } from "lucide-react"
+import {
+  getEmailError,
+  getPhoneError,
+  getSurfaceError,
+  getFactureError,
+} from "@/lib/leads-validation"
 
 type FormData = {
   // Step 1: Site
@@ -149,26 +155,50 @@ export function ROISimulator() {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  // Messages d'erreur par champ (affichés sous les champs, empêchent de valider)
+  const surfaceError = getSurfaceError(formData.surfaceType, formData.surfaceArea)
+  const surfaceTypeError = formData.surfaceType === "" ? "Veuillez sélectionner le type de surface." : null
+  const surfaceAreaError = formData.surfaceType !== "" ? getSurfaceError(formData.surfaceType, formData.surfaceArea) : null
+  const factureError = getFactureError(formData.annualElectricityBill)
+  const emailError = getEmailError(formData.email)
+  const phoneError = getPhoneError(formData.phone)
+  const firstNameError =
+    step === 5
+      ? formData.firstName.trim().length === 0
+        ? "Le prénom est requis."
+        : formData.firstName.trim().length < 2
+          ? "Le prénom doit contenir au moins 2 caractères."
+          : null
+      : null
+  const lastNameError =
+    step === 5
+      ? formData.lastName.trim().length === 0
+        ? "Le nom est requis."
+        : formData.lastName.trim().length < 2
+          ? "Le nom doit contenir au moins 2 caractères."
+          : null
+      : null
+  const jobTitleError =
+    step === 5 && formData.jobTitle === "" ? "Veuillez sélectionner votre fonction." : null
+
   const validateStep = (currentStep: number): boolean => {
     switch (currentStep) {
-      case 1: {
-        const area = parseInt(formData.surfaceArea) || 0
-        const minArea = formData.surfaceType === "parking" ? 1500 : 500
-        return formData.surfaceType !== "" && area >= minArea
-      }
+      case 1:
+        return surfaceError === null
       case 2:
         return projectTimelineOptions.some((o) => o.value === formData.projectTimeline)
       case 3:
         return true // Réponse libre optionnelle
       case 4:
-        return parseInt(formData.annualElectricityBill) >= 5000
+        return factureError === null
       case 5:
         return (
-          formData.firstName.length >= 2 &&
-          formData.lastName.length >= 2 &&
-          /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) &&
-          formData.phone.length >= 10 &&
-          formData.jobTitle !== ""
+          emailError === null &&
+          phoneError === null &&
+          formData.firstName.trim().length >= 2 &&
+          formData.lastName.trim().length >= 2 &&
+          formData.jobTitle !== "" &&
+          formData.marketingConsent === true
         )
       default:
         return false
@@ -372,7 +402,7 @@ export function ROISimulator() {
                     value={formData.surfaceType}
                     onValueChange={(value) => updateFormData("surfaceType", value)}
                   >
-                    <SelectTrigger id="surfaceType" className="mt-1.5">
+                    <SelectTrigger id="surfaceType" className={`mt-1.5 ${surfaceTypeError ? "border-destructive" : ""}`} aria-invalid={!!surfaceTypeError} aria-describedby={surfaceTypeError ? "surface-type-error" : undefined}>
                       <SelectValue placeholder="Sélectionnez le type de surface" />
                     </SelectTrigger>
                     <SelectContent>
@@ -383,6 +413,11 @@ export function ROISimulator() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {surfaceTypeError && (
+                    <p id="surface-type-error" className="mt-1.5 text-xs text-destructive" role="alert">
+                      {surfaceTypeError}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -394,13 +429,21 @@ export function ROISimulator() {
                     placeholder={formData.surfaceType === "parking" ? "Ex: 2000" : "Ex: 1000"}
                     value={formData.surfaceArea}
                     onChange={(e) => updateFormData("surfaceArea", e.target.value)}
-                    className="mt-1.5"
+                    className={`mt-1.5 ${surfaceAreaError ? "border-destructive" : ""}`}
+                    aria-invalid={!!surfaceAreaError}
+                    aria-describedby={surfaceAreaError ? "surface-error" : undefined}
                   />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {formData.surfaceType === "parking"
-                      ? "Minimum 1 500 m² (Loi LOM – ombrières)."
-                      : "Minimum 500 m² pour toiture ou friche."}
-                  </p>
+                  {surfaceAreaError ? (
+                    <p id="surface-error" className="mt-1.5 text-xs text-destructive" role="alert">
+                      {surfaceAreaError}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {formData.surfaceType === "parking"
+                        ? "Minimum 1 500 m² (Loi LOM – ombrières)."
+                        : "Minimum 500 m² pour toiture ou friche."}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -494,11 +537,19 @@ export function ROISimulator() {
                     onChange={(e) =>
                       updateFormData("annualElectricityBill", e.target.value)
                     }
-                    className="mt-1.5"
+                    className={`mt-1.5 ${factureError ? "border-destructive" : ""}`}
+                    aria-invalid={!!factureError}
+                    aria-describedby={factureError ? "facture-error" : undefined}
                   />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Minimum 5 000 €/an pour une étude B2B
-                  </p>
+                  {factureError ? (
+                    <p id="facture-error" className="mt-1.5 text-xs text-destructive" role="alert">
+                      {factureError}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Minimum 5 000 €/an pour une étude B2B
+                    </p>
+                  )}
                 </div>
 
                 <div className="rounded-lg bg-secondary p-4">
@@ -520,8 +571,8 @@ export function ROISimulator() {
             </div>
           )}
 
-          {/* Step 4: Contact – Gated content (audit + résultats détaillés) */}
-          {step === 4 && (
+          {/* Step 5: Contact – Gated content (audit + résultats détaillés) */}
+          {step === 5 && (
             <div className="space-y-6">
               {/* Honeypot anti-bot : champ invisible (sr-only), les robots le remplissent souvent */}
               <div className="sr-only" aria-hidden="true">
@@ -557,8 +608,15 @@ export function ROISimulator() {
                     placeholder="Jean"
                     value={formData.firstName}
                     onChange={(e) => updateFormData("firstName", e.target.value)}
-                    className="mt-1.5"
+                    className={`mt-1.5 ${firstNameError ? "border-destructive" : ""}`}
+                    aria-invalid={!!firstNameError}
+                    aria-describedby={firstNameError ? "firstName-error" : undefined}
                   />
+                  {firstNameError && (
+                    <p id="firstName-error" className="mt-1.5 text-xs text-destructive" role="alert">
+                      {firstNameError}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="lastName">Nom</Label>
@@ -567,8 +625,15 @@ export function ROISimulator() {
                     placeholder="Dupont"
                     value={formData.lastName}
                     onChange={(e) => updateFormData("lastName", e.target.value)}
-                    className="mt-1.5"
+                    className={`mt-1.5 ${lastNameError ? "border-destructive" : ""}`}
+                    aria-invalid={!!lastNameError}
+                    aria-describedby={lastNameError ? "lastName-error" : undefined}
                   />
+                  {lastNameError && (
+                    <p id="lastName-error" className="mt-1.5 text-xs text-destructive" role="alert">
+                      {lastNameError}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -580,8 +645,15 @@ export function ROISimulator() {
                   placeholder="jean.dupont@entreprise.fr"
                   value={formData.email}
                   onChange={(e) => updateFormData("email", e.target.value)}
-                  className="mt-1.5"
+                  className={`mt-1.5 ${emailError ? "border-destructive" : ""}`}
+                  aria-invalid={!!emailError}
+                  aria-describedby={emailError ? "email-error" : undefined}
                 />
+                {emailError && (
+                  <p id="email-error" className="mt-1.5 text-xs text-destructive" role="alert">
+                    {emailError}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -592,8 +664,15 @@ export function ROISimulator() {
                   placeholder="06 12 34 56 78"
                   value={formData.phone}
                   onChange={(e) => updateFormData("phone", e.target.value)}
-                  className="mt-1.5"
+                  className={`mt-1.5 ${phoneError ? "border-destructive" : ""}`}
+                  aria-invalid={!!phoneError}
+                  aria-describedby={phoneError ? "phone-error" : undefined}
                 />
+                {phoneError && (
+                  <p id="phone-error" className="mt-1.5 text-xs text-destructive" role="alert">
+                    {phoneError}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -602,7 +681,7 @@ export function ROISimulator() {
                   value={formData.jobTitle}
                   onValueChange={(value) => updateFormData("jobTitle", value)}
                 >
-                  <SelectTrigger id="jobTitle" className="mt-1.5">
+                  <SelectTrigger id="jobTitle" className={`mt-1.5 ${jobTitleError ? "border-destructive" : ""}`} aria-invalid={!!jobTitleError} aria-describedby={jobTitleError ? "jobTitle-error" : undefined}>
                     <SelectValue placeholder="Selectionnez votre fonction" />
                   </SelectTrigger>
                   <SelectContent>
@@ -613,6 +692,11 @@ export function ROISimulator() {
                     ))}
                   </SelectContent>
                 </Select>
+                {jobTitleError && (
+                  <p id="jobTitle-error" className="mt-1.5 text-xs text-destructive" role="alert">
+                    {jobTitleError}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -626,8 +710,13 @@ export function ROISimulator() {
                 />
               </div>
 
-              
-              <div className="flex items-start gap-3 rounded-lg border border-border p-4">
+              {step === 5 && !formData.marketingConsent && (
+                <p className="text-xs text-destructive" role="alert">
+                  Pour recevoir votre étude, veuillez accepter la transmission de vos données en cochant la case ci-dessous.
+                </p>
+              )}
+
+              <div className={`flex items-start gap-3 rounded-lg border p-4 ${step === 5 && !formData.marketingConsent ? "border-destructive" : "border-border"}`}>
                 <Checkbox
                   id="marketingConsent"
                   checked={formData.marketingConsent}
