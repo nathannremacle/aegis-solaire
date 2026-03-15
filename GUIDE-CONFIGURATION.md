@@ -144,6 +144,7 @@ Remplacez :
 | `LEAD_WEBHOOK_URL` | Non | .env.local + Vercel (secrète) | Webhook POST pour envoyer les leads en temps réel |
 | `NEXT_PUBLIC_FOUNDER_VIDEO_URL` | Non | .env.local + Vercel | URL YouTube/Vimeo de la vidéo Fondateur |
 | `NEXT_PUBLIC_CALENDLY_URL` | Non | .env.local + Vercel | URL Calendly pour le bouton « Prendre un rendez-vous » (page de remerciement simulateur) |
+| `RESEND_API_KEY` | Non (e-mails) | .env.local + Vercel (secrète) | Clé API Resend pour l’envoi d’e-mails aux installateurs (assignation lead). Voir **GUIDE-EMAILS-GRATUITS.md** pour la mise en place complète. |
 
 ---
 
