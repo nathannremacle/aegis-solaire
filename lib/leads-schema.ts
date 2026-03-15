@@ -32,6 +32,8 @@ export const leadSubmitSchema = z.object({
   // ——— Champs optionnels ———
   company: z.string().max(255).transform((s) => s.trim() || null).nullable().optional(),
   message: z.string().max(2000).transform((s) => s.trim() || null).nullable().optional(),
+  /** Objectif principal (Écran 1) : conformite | reduction_facture | rse | revenu */
+  objective: z.string().max(64).transform((s) => s.trim() || null).nullable().optional(),
 
   // ——— Résultats simulation (fournis par le client après calcul) ———
   estimatedROIYears: z.number().optional(),
@@ -43,10 +45,10 @@ export const leadSubmitSchema = z.object({
 })
   .refine(
     (data) => {
-      const min = data.surfaceType === "parking" ? 1500 : 500
+      const min = 500
       return data.surfaceArea >= min
     },
-    { message: "Surface minimum : 1 500 m² pour un parking, 500 m² pour toiture ou friche.", path: ["surfaceArea"] }
+    { message: "Surface minimum : 500 m² pour enregistrer votre demande.", path: ["surfaceArea"] }
   )
 
 export type LeadSubmitInput = z.infer<typeof leadSubmitSchema>

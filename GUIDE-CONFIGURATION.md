@@ -140,6 +140,7 @@ Remplacez :
 | `ADMIN_EMAILS` | Oui pour l’admin | .env.local + Vercel (secrète) | Emails autorisés à se connecter à /admin |
 | `LEAD_WEBHOOK_URL` | Non | .env.local + Vercel (secrète) | Webhook POST pour envoyer les leads en temps réel |
 | `NEXT_PUBLIC_FOUNDER_VIDEO_URL` | Non | .env.local + Vercel | URL YouTube/Vimeo de la vidéo Fondateur |
+| `NEXT_PUBLIC_CALENDLY_URL` | Non | .env.local + Vercel | URL Calendly pour le bouton « Prendre un rendez-vous » (page de remerciement simulateur) |
 
 ---
 
