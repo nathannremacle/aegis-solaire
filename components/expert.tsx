@@ -1,6 +1,7 @@
 "use client"
 
-import { CheckCircle2, Play } from "lucide-react"
+import { useRef, useState } from "react"
+import { CheckCircle2, Pause, Play } from "lucide-react"
 
 /** Retourne l'URL d'embed YouTube ou Vimeo, ou null si non reconnu. */
 function getEmbedVideoUrl(url: string): string | null {
@@ -24,6 +25,9 @@ function getEmbedVideoUrl(url: string): string | null {
   return null
 }
 
+const LOCAL_VIDEO_SRC = "/videos/decrettertiaireetfinancement.mp4"
+const VIDEO_TITLE = "Vidéo Explicative - Décret Tertiaire et Financement"
+
 function FounderVideoBlock() {
   const videoUrl = process.env.NEXT_PUBLIC_FOUNDER_VIDEO_URL
   const embedUrl = videoUrl ? getEmbedVideoUrl(videoUrl) : null
@@ -32,11 +36,11 @@ function FounderVideoBlock() {
     return (
       <div
         className="relative aspect-video w-full min-w-0 overflow-hidden rounded-xl border border-border bg-muted"
-        aria-label="Vidéo explicative du fondateur"
+        aria-label={VIDEO_TITLE}
       >
         <iframe
           src={embedUrl}
-          title="Vidéo Fondateur – Décret Tertiaire & financement"
+          title={VIDEO_TITLE}
           className="absolute inset-0 h-full w-full"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
@@ -45,17 +49,55 @@ function FounderVideoBlock() {
     )
   }
 
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+
+  const togglePlay = () => {
+    const video = videoRef.current
+    if (!video) return
+    if (video.paused) {
+      video.play()
+      setIsPlaying(true)
+    } else {
+      video.pause()
+      setIsPlaying(false)
+    }
+  }
+
   return (
     <div
-      className="relative aspect-video w-full min-w-0 overflow-hidden rounded-xl border border-border bg-muted"
-      aria-label="Vidéo explicative du fondateur – à venir"
+      className="group relative aspect-video w-full min-w-0 cursor-pointer overflow-hidden rounded-xl border border-border bg-muted"
+      aria-label={VIDEO_TITLE}
+      onClick={togglePlay}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), togglePlay())}
+      role="button"
+      tabIndex={0}
     >
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/20">
-          <Play className="h-8 w-8 text-primary" />
-        </div>
-        <span className="text-sm font-medium">Vidéo à venir</span>
-        <span className="text-xs">Fondateur – Loi LOM, PPA & stockage</span>
+      <video
+        ref={videoRef}
+        src={LOCAL_VIDEO_SRC}
+        title={VIDEO_TITLE}
+        className="absolute left-1/2 top-1/2 h-[102%] w-[102%] min-h-[102%] min-w-[102%] -translate-x-1/2 -translate-y-1/2 object-cover"
+        playsInline
+        preload="metadata"
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+      >
+        Votre navigateur ne prend pas en charge la lecture de vidéos.
+      </video>
+      <div
+        className="pointer-events-none absolute inset-0 flex items-center justify-center transition-opacity duration-200"
+        aria-hidden
+      >
+        <span
+          className={`flex h-14 w-14 items-center justify-center rounded-full bg-black/50 text-white shadow-lg backdrop-blur-sm transition-opacity duration-200 ${isPlaying ? "opacity-0 group-hover:opacity-100" : "opacity-100"}`}
+        >
+          {isPlaying ? (
+            <Pause className="h-7 w-7" />
+          ) : (
+            <Play className="h-7 w-7 translate-x-0.5" />
+          )}
+        </span>
       </div>
     </div>
   )
@@ -106,10 +148,10 @@ export function Expert() {
           {/* Vidéo Founder POV – configurable via NEXT_PUBLIC_FOUNDER_VIDEO_URL */}
           <div className="min-w-0 space-y-4">
             <h3 className="text-lg font-semibold text-foreground sm:text-xl">
-              Vidéo Fondateur – Décret Tertiaire & financement
+              Vidéo Explicative - Décret Tertiaire et Financement
             </h3>
             <p className="text-xs text-muted-foreground sm:text-sm">
-              Explication des obligations légales (Décret Tertiaire) et des solutions de financement (PPA, tiers-investissement, stockage) en 2 à 3 minutes.
+              Explication des obligations légales (Décret Tertiaire) et des solutions de financement (PPA, tiers-investissement, stockage) en 2 minutes.
             </p>
             <FounderVideoBlock />
 

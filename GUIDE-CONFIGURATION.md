@@ -209,6 +209,7 @@ Cochez au fur et à mesure :
 
 | Problème | Piste de solution |
 |----------|-------------------|
+| **Je n'arrive pas à accéder à /admin** | C'est normal : l'admin exige une connexion. Aller sur **/admin** ou **/admin/login** : vous devez voir la page de connexion. Si erreur (500, 404), vérifier `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `ADMIN_EMAILS`, puis créer un utilisateur dans Supabase Auth (section 5). |
 | « Invalid login credentials » sur /admin/login | Vérifier que l’utilisateur existe dans Supabase (Authentication → Users) et que l’email correspond exactement à celui dans `ADMIN_EMAILS`. |
 | Après connexion, redirection vers /admin/login ou 404 | Vérifier que `ADMIN_EMAILS` contient bien l’email (sans espace, même casse). Vérifier les cookies (connexion bien établie). |
 | Les leads ne s’enregistrent pas (erreur 500) | Vérifier que la table `leads` existe et que `SUPABASE_SERVICE_ROLE_KEY` est définie (et que l’API utilise bien le client avec cette clé). Vérifier les logs Supabase (Logs → API) et les logs Vercel. |

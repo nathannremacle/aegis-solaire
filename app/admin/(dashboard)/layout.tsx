@@ -10,7 +10,12 @@ export default async function AdminDashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const user = await getAdminUser()
+  let user = null
+  try {
+    user = await getAdminUser()
+  } catch {
+    redirect("/admin/login")
+  }
   if (!user) {
     redirect("/admin/login")
   }
