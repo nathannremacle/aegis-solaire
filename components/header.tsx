@@ -36,7 +36,7 @@ export function Header() {
           </span>
         </Link>
 
-        {/* Desktop Navigation – MEP: Preuve, Expert, Avantages */}
+        {/* Desktop Navigation – MEP: Preuve, Expert, Avantages, Webinaire */}
         <nav className="hidden items-center gap-6 md:flex" aria-label="Navigation principale">
           <Link
             href="#preuve"
@@ -55,6 +55,12 @@ export function Header() {
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             Avantages
+          </Link>
+          <Link
+            href="/webinaire"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Webinaire
           </Link>
           <Button onClick={scrollToSimulator} size="sm">
             Lancer ma simulation
@@ -100,6 +106,13 @@ export function Header() {
               onClick={() => setMobileMenuOpen(false)}
             >
               Avantages
+            </Link>
+            <Link
+              href="/webinaire"
+              className="px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground active:bg-muted"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Webinaire
             </Link>
             <div className="px-4 py-3">
               <Button onClick={scrollToSimulator} size="sm" className="w-full">
