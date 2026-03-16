@@ -3,6 +3,7 @@ import { Hero } from "@/components/hero"
 import { Benefits } from "@/components/benefits"
 import { Expert } from "@/components/expert"
 import { Testimonials } from "@/components/testimonials"
+import { WebinairePromo } from "@/components/webinaire-promo"
 import { ROISimulator } from "@/components/roi-simulator"
 import { Footer } from "@/components/footer"
 
@@ -20,6 +21,7 @@ export default function Home() {
         <Hero />
         <Testimonials />
         <Expert />
+        <WebinairePromo />
         <Benefits />
         <ROISimulator />
       </main>
