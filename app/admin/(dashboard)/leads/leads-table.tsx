@@ -33,16 +33,16 @@ type LeadFilters = {
 type Lead = {
   id: string
   first_name: string
-  last_name: string
+  last_name: string | null
   email: string
-  phone: string
+  phone: string | null
   job_title: string
   company: string | null
   message?: string | null
-  surface_type: string
-  surface_area: number
+  surface_type: string | null
+  surface_area: number | null
   project_timeline?: string | null
-  annual_electricity_bill: number
+  annual_electricity_bill: number | null
   estimated_roi_years: number | null
   autoconsumption_rate: number | null
   estimated_savings: number | null
@@ -364,13 +364,17 @@ export function LeadsTable({
                   <td className="px-4 py-3 text-muted-foreground">
                     {new Date(lead.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}
                   </td>
-                  <td className="px-4 py-3 font-medium">{lead.first_name} {lead.last_name}</td>
+                  <td className="px-4 py-3 font-medium">{lead.first_name}{lead.last_name ? ` ${lead.last_name}` : ""}</td>
                   <td className="px-4 py-3">{lead.email}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{lead.phone}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{lead.phone ?? "–"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{lead.company ?? "–"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{getInstallateurName(lead.installateur_id)}</td>
-                  <td className="px-4 py-3">{lead.surface_area} m² ({lead.surface_type})</td>
-                  <td className="px-4 py-3">{lead.annual_electricity_bill.toLocaleString("fr-FR")} €</td>
+                  <td className="px-4 py-3">
+                    {lead.surface_area != null && lead.surface_type ? `${lead.surface_area} m² (${lead.surface_type})` : "–"}
+                  </td>
+                  <td className="px-4 py-3">
+                    {lead.annual_electricity_bill != null ? `${lead.annual_electricity_bill.toLocaleString("fr-FR")} €` : "–"}
+                  </td>
                   <td className="px-4 py-3">{lead.estimated_roi_years != null ? `${lead.estimated_roi_years} ans` : "–"}</td>
                   <td className="px-4 py-3">
                     <LeadScoreBadge score={lead.lead_score} />

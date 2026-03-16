@@ -64,16 +64,16 @@ type Installateur = { id: string; name: string; email: string; actif: boolean }
 type Lead = {
   id: string
   first_name: string
-  last_name: string
+  last_name: string | null
   email: string
-  phone: string
+  phone: string | null
   job_title: string
   company: string | null
   message?: string | null
-  surface_type: string
-  surface_area: number
+  surface_type: string | null
+  surface_area: number | null
   project_timeline?: string | null
-  annual_electricity_bill: number
+  annual_electricity_bill: number | null
   estimated_roi_years: number | null
   autoconsumption_rate: number | null
   estimated_savings: number | null
@@ -193,7 +193,7 @@ export function LeadDetailSheet({
         ) : lead ? (
           <div className="space-y-6 px-4 pb-8">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-lg font-semibold">{lead.first_name} {lead.last_name}</span>
+              <span className="text-lg font-semibold">{lead.first_name}{lead.last_name ? ` ${lead.last_name}` : ""}</span>
               <div className="flex items-center gap-2">
                 <LeadScoreBadge score={lead.lead_score} />
                 <LeadStatusBadge status={lead.status} />
@@ -256,7 +256,7 @@ export function LeadDetailSheet({
               </div>
               <div>
                 <Label className="text-muted-foreground">Téléphone</Label>
-                <p className="font-medium">{lead.phone}</p>
+                <p className="font-medium">{lead.phone ?? "–"}</p>
               </div>
               <div>
                 <Label className="text-muted-foreground">Fonction</Label>
@@ -277,7 +277,9 @@ export function LeadDetailSheet({
             <div className="border-t border-border pt-4 space-y-4">
               <div>
                 <Label className="text-muted-foreground">Surface</Label>
-                <p className="font-medium">{lead.surface_area} m² ({lead.surface_type})</p>
+                <p className="font-medium">
+                  {lead.surface_area != null && lead.surface_type ? `${lead.surface_area} m² (${lead.surface_type})` : "–"}
+                </p>
               </div>
               {lead.project_timeline ? (
                 <div>
@@ -287,7 +289,9 @@ export function LeadDetailSheet({
               ) : null}
               <div>
                 <Label className="text-muted-foreground">Facture annuelle</Label>
-                <p className="font-medium">{lead.annual_electricity_bill.toLocaleString("fr-FR")} €</p>
+                <p className="font-medium">
+                  {lead.annual_electricity_bill != null ? `${lead.annual_electricity_bill.toLocaleString("fr-FR")} €` : "–"}
+                </p>
               </div>
               <div>
                 <Label className="text-muted-foreground">ROI estimé</Label>
