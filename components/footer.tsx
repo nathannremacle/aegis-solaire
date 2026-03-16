@@ -97,7 +97,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/ressources#webinaires"
+                  href="/webinaire"
                   className="text-sm text-muted-foreground hover:text-foreground"
                 >
                   Webinaires Loi LOM

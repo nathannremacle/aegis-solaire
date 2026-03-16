@@ -37,9 +37,9 @@ const resources = [
     icon: Video,
     title: "Webinaires Loi LOM",
     description:
-      "Sessions en ligne pour tout comprendre sur les obligations Loi LOM, le Décret Tertiaire et la valorisation de vos surfaces.",
-    href: null,
-    available: false,
+      "Replay : Masterclass Zéro CAPEX — financer 100% de vos installations photovoltaïques grâce au Tiers-Investissement. Accédez au décryptage vidéo exclusif.",
+    href: "/webinaire",
+    available: true,
   },
 ]
 
