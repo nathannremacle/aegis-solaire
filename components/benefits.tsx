@@ -29,7 +29,7 @@ const benefits = [
 
 export function Benefits() {
   return (
-    <section id="benefits" className="scroll-mt-24 overflow-x-hidden bg-background py-12 sm:py-24 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
+    <section id="benefits" className="scroll-mt-24 overflow-x-hidden bg-background py-10 sm:py-18 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
       <div className="mx-auto max-w-7xl min-w-0 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <h4 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">
@@ -40,19 +40,19 @@ export function Benefits() {
           </p>
         </div>
 
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-12 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4 lg:gap-8">
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4 lg:gap-8">
           {benefits.map((benefit, index) => (
             <div
               key={index}
-              className="group relative min-w-0 rounded-xl border border-border bg-card p-4 transition-all hover:border-accent/50 hover:shadow-lg sm:p-6"
+              className="group relative min-w-0 rounded-2xl border border-border/70 bg-card p-4 transition-all hover:border-accent/50 hover:shadow-lg sm:p-6"
             >
-              <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-accent/10">
+              <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10">
                 <benefit.icon className="h-6 w-6 text-accent" />
               </div>
                 <h4 className="text-base font-semibold text-foreground sm:text-lg">
                 {benefit.title}
                 </h4>
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-sm">
                 {benefit.description}
               </p>
             </div>

@@ -65,7 +65,7 @@ export default function Home() {
       <main id="main-content" className="min-w-0 flex-1 [padding-bottom:env(safe-area-inset-bottom)]" role="main">
         <Hero />
         <section
-          className="scroll-mt-24 overflow-x-hidden bg-background py-10 sm:py-16 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
+          className="scroll-mt-24 overflow-x-hidden bg-background py-8 sm:py-12 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
           aria-label="FAQ AISO et GEO"
         >
           <div className="mx-auto max-w-5xl min-w-0 px-4 sm:px-6 lg:px-8">
@@ -82,12 +82,12 @@ export default function Home() {
                 </p>
               </div>
 
-              <div className="mt-8 rounded-2xl border border-border bg-card/40 p-4 sm:p-6 lg:p-8">
+              <div className="mt-7 rounded-2xl border border-border bg-gradient-to-br from-card/70 via-background/70 to-background p-4 shadow-sm backdrop-blur sm:p-6 lg:p-8">
                 <div className="grid gap-4 sm:grid-cols-2">
                   {faqItems.slice(0, 6).map((item, idx) => (
                     <article
                       key={item.question}
-                      className="rounded-xl border border-border bg-background/60 p-4 transition-colors hover:bg-background"
+                      className="group rounded-xl border border-border bg-background/70 p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
                     >
                       <h2
                         id={`faq-${idx}`}
@@ -95,12 +95,14 @@ export default function Home() {
                       >
                         {item.question}
                       </h2>
-                      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.answer}</p>
+                      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                        {item.answer}
+                      </p>
                     </article>
                   ))}
                 </div>
 
-                <article className="mt-4 rounded-xl border border-border bg-background/60 p-4 sm:p-5">
+                <article className="mt-4 rounded-xl border border-border bg-background/70 p-4 sm:p-5">
                   <h2 id="faq-6" className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
                     {faqItems[6].question}
                   </h2>
@@ -163,7 +165,7 @@ export default function Home() {
                   </div>
                 </article>
 
-                <article className="mt-4 rounded-xl border border-border bg-background/60 p-4 sm:p-5">
+                <article className="mt-4 rounded-xl border border-border bg-background/70 p-4 sm:p-5">
                   <h2 id="faq-7" className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
                     {faqItems[7].question}
                   </h2>

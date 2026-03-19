@@ -12,7 +12,7 @@ export function Hero() {
   }
 
   return (
-    <section className="relative overflow-x-hidden bg-gradient-to-b from-primary/5 to-background py-12 sm:py-24 lg:py-32 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
+    <section className="relative overflow-x-hidden bg-gradient-to-b from-primary/5 to-background py-10 sm:py-20 lg:py-28 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
       {/* Background decoration */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-accent/10 blur-3xl" />
@@ -66,22 +66,22 @@ export function Hero() {
           </div>
 
           {/* Trust indicators – 1 col mobile, 3 cols tablet+ */}
-          <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-12 sm:grid-cols-3 sm:gap-6">
-            <div className="flex items-center justify-center gap-3 rounded-lg border border-border bg-card p-4 min-[480px]:p-4">
+          <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-10 sm:grid-cols-3 sm:gap-6">
+            <div className="flex items-center justify-center gap-3 rounded-xl border border-border/70 bg-card/60 p-4 shadow-sm backdrop-blur">
               <TrendingUp className="h-8 w-8 text-accent" />
               <div className="text-left">
                 <p className="text-2xl font-bold text-foreground">7 ans</p>
                 <p className="text-sm text-muted-foreground">ROI moyen</p>
               </div>
             </div>
-            <div className="flex items-center justify-center gap-3 rounded-lg border border-border bg-card p-4">
+            <div className="flex items-center justify-center gap-3 rounded-xl border border-border/70 bg-card/60 p-4 shadow-sm backdrop-blur">
               <Shield className="h-8 w-8 text-accent" />
               <div className="text-left">
                 <p className="text-2xl font-bold text-foreground">25 ans</p>
                 <p className="text-sm text-muted-foreground">Garantie panneaux</p>
               </div>
             </div>
-            <div className="flex items-center justify-center gap-3 rounded-lg border border-border bg-card p-4">
+            <div className="flex items-center justify-center gap-3 rounded-xl border border-border/70 bg-card/60 p-4 shadow-sm backdrop-blur">
               <Zap className="h-8 w-8 text-accent" />
               <div className="text-left">
                 <p className="text-2xl font-bold text-foreground">70%</p>

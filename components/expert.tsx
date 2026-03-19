@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useState } from "react"
-import { CheckCircle2, Pause, Play } from "lucide-react"
+import { CheckCircle2, Pause, Play, AlertTriangle } from "lucide-react"
 
 /** Retourne l'URL d'embed YouTube ou Vimeo, ou null si non reconnu. */
 function getEmbedVideoUrl(url: string): string | null {
@@ -133,8 +133,8 @@ export function Expert() {
         </header>
 
         {/* Alerte sanctions : bandeau discret mais visible */}
-        <div className="mb-10 flex min-w-0 items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 sm:px-5 sm:py-4">
-          <span className="shrink-0 text-lg sm:text-xl" aria-hidden>⚠️</span>
+        <div className="mb-10 flex min-w-0 items-start gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-4 sm:px-5 sm:py-5">
+          <AlertTriangle className="mt-0.5 h-6 w-6 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden />
           <p className="min-w-0 break-words text-sm font-medium text-foreground sm:text-base">
             <span className="font-semibold text-amber-700 dark:text-amber-400">En 2026</span>, le non-respect de l'obligation de solariser vos parkings vous expose à une amende de <strong>40 000 € par an</strong>.
           </p>

@@ -71,13 +71,13 @@ export function Testimonials() {
         </div>
 
         {/* Bloc études de cas – 1 col mobile, 3 cols tablet+ */}
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-12 sm:gap-6 md:grid-cols-3">
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-10 sm:gap-6 md:grid-cols-3">
           {caseStudies.map((study, index) => (
             <div
               key={index}
-              className="flex min-w-0 flex-col rounded-xl border border-border bg-card p-4 transition-shadow hover:shadow-lg sm:p-6"
+              className="flex min-w-0 flex-col rounded-2xl border border-border bg-card p-4 transition-shadow hover:shadow-lg sm:p-6"
             >
-              <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-accent/10">
+              <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10">
                 <study.icon className="h-6 w-6 text-accent" />
               </div>
               <h4 className="text-base font-semibold text-foreground sm:text-lg">
@@ -91,7 +91,7 @@ export function Testimonials() {
                   en moins · {study.figureLabel}
                 </span>
               </div>
-              <p className="mt-2 text-sm text-muted-foreground">{study.detail}</p>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{study.detail}</p>
             </div>
           ))}
         </div>
