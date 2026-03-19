@@ -23,7 +23,7 @@ const caseStudies = [
     title: "Site industriel 5 000 m²",
     figure: "120 000 €",
     figureLabel: "économies annuelles",
-    detail: "PPA sans mise de fonds. Mise en conformité Décret Tertiaire.",
+    detail: "Contrat PPA sans mise de fonds. Mise en conformité Décret Tertiaire.",
   },
 ]
 
@@ -62,9 +62,9 @@ export function Testimonials() {
     <section id="preuve" className="scroll-mt-24 overflow-x-hidden bg-background py-12 sm:py-24 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
       <div className="mx-auto max-w-7xl min-w-0 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">
+          <h4 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">
             Études de cas chiffrées
-          </h2>
+          </h4>
           <p className="mt-3 text-base text-muted-foreground sm:mt-4 sm:text-lg">
             Des résultats concrets pour des entreprises comme la vôtre. Le B2B a besoin de réassurance.
           </p>
@@ -80,9 +80,9 @@ export function Testimonials() {
               <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-accent/10">
                 <study.icon className="h-6 w-6 text-accent" />
               </div>
-              <h3 className="text-base font-semibold text-foreground sm:text-lg">
+              <h4 className="text-base font-semibold text-foreground sm:text-lg">
                 {study.title}
-              </h3>
+              </h4>
               <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-0">
                 <span className="text-xl font-bold text-primary sm:text-2xl">
                   − {study.figure}
@@ -98,9 +98,9 @@ export function Testimonials() {
 
         {/* Témoignages clients */}
         <div className="mt-12 sm:mt-16">
-          <h3 className="text-center text-lg font-semibold text-foreground sm:text-xl">
+          <h4 className="text-center text-lg font-semibold text-foreground sm:text-xl">
             Ils nous font confiance
-          </h3>
+          </h4>
           <div className="mt-6 grid grid-cols-1 gap-6 sm:mt-8 md:grid-cols-3 md:gap-8">
             {testimonials.map((testimonial, index) => (
               <div

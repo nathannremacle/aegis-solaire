@@ -32,9 +32,9 @@ export function Benefits() {
     <section id="benefits" className="scroll-mt-24 overflow-x-hidden bg-background py-12 sm:py-24 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
       <div className="mx-auto max-w-7xl min-w-0 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">
+          <h4 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">
             Pourquoi passer au solaire B2B ?
-          </h2>
+          </h4>
           <p className="mt-3 text-base text-muted-foreground sm:mt-4 sm:text-lg">
             Des avantages concrets pour votre entreprise et votre bilan carbone.
           </p>
@@ -49,9 +49,9 @@ export function Benefits() {
               <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-accent/10">
                 <benefit.icon className="h-6 w-6 text-accent" />
               </div>
-              <h3 className="text-base font-semibold text-foreground sm:text-lg">
+                <h4 className="text-base font-semibold text-foreground sm:text-lg">
                 {benefit.title}
-              </h3>
+                </h4>
               <p className="mt-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">
                 {benefit.description}
               </p>

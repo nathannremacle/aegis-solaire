@@ -17,9 +17,9 @@ export function WebinairePromo() {
               <Video className="h-7 w-7 text-accent" />
             </div>
             <div className="min-w-0">
-              <h2 id="webinaire-promo-title" className="text-lg font-bold text-foreground sm:text-xl">
+              <h4 id="webinaire-promo-title" className="text-lg font-bold text-foreground sm:text-xl">
                 Replay : Masterclass Zéro CAPEX
-              </h2>
+              </h4>
               <p className="mt-1 text-sm text-muted-foreground">
                 Financer 100% de votre solaire par le Tiers-Investissement — replay vidéo exclusif (Sofiac, Orange Business).
               </p>

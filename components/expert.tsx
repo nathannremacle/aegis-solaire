@@ -31,6 +31,9 @@ const VIDEO_TITLE = "Vidéo Explicative - Décret Tertiaire et Financement"
 function FounderVideoBlock() {
   const videoUrl = process.env.NEXT_PUBLIC_FOUNDER_VIDEO_URL
   const embedUrl = videoUrl ? getEmbedVideoUrl(videoUrl) : null
+  // Hooks must be called unconditionally (lint rule-of-hooks).
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
 
   if (embedUrl) {
     return (
@@ -48,9 +51,6 @@ function FounderVideoBlock() {
       </div>
     )
   }
-
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
 
   const togglePlay = () => {
     const video = videoRef.current
@@ -124,9 +124,9 @@ export function Expert() {
       <div className="mx-auto max-w-7xl min-w-0 px-4 sm:px-6 lg:px-8">
         {/* En-tête : titre + intro */}
         <header className="mb-10 lg:mb-12">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
+          <h4 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
             Un partenaire de confiance pour votre transition énergétique
-          </h2>
+          </h4>
           <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground sm:text-lg">
             Aegis Solaire réunit un réseau d'experts certifiés pour vous accompagner de l'étude de faisabilité jusqu'à la maintenance de votre installation, en France, en Belgique et en francophonie.
           </p>
@@ -144,18 +144,18 @@ export function Expert() {
           {/* Colonne gauche */}
           <div className="min-w-0 space-y-8">
             <div>
-              <h3 className="text-base font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
+              <h4 className="text-base font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
                 Conformité & cadre légal
-              </h3>
+              </h4>
               <p className="mt-2 text-sm leading-relaxed text-foreground sm:text-base">
                 Le <strong>Décret Tertiaire</strong> et la <strong>Loi LOM</strong> imposent aux bâtiments &gt; 500 m² et aux parkings &gt; 1 500 m² des obligations de réduction de consommation et de couverture solaire. Nous vous aidons à vous mettre en conformité tout en rentabilisant vos surfaces.
               </p>
             </div>
 
             <div>
-              <h3 className="text-base font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
+              <h4 className="text-base font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
                 Solutions de financement
-              </h3>
+              </h4>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 {/* Carte Tiers-Investissement – texte collé en bas */}
                 <div className="flex min-h-[180px] flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md sm:min-h-[200px]">
@@ -179,9 +179,9 @@ export function Expert() {
             </div>
 
             <div>
-              <h3 className="text-base font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
+              <h4 className="text-base font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
                 Nos engagements
-              </h3>
+              </h4>
               <ul className="mt-4 space-y-3">
                 {credentials.map((credential, index) => (
                   <li key={index} className="flex items-start gap-3">
@@ -197,9 +197,9 @@ export function Expert() {
           <div className="min-w-0 space-y-6 lg:sticky lg:top-28">
             <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               <div className="border-b border-border px-4 py-4 sm:px-5 sm:py-4">
-                <h3 className="text-base font-semibold text-foreground sm:text-lg">
+                  <h4 className="text-base font-semibold text-foreground sm:text-lg">
                   Vidéo – Décret Tertiaire et Financement
-                </h3>
+                  </h4>
                 <p className="mt-1.5 text-sm text-muted-foreground">
                   Obligations légales et solutions de financement (PPA, tiers-investissement, stockage) en 2 minutes.
                 </p>

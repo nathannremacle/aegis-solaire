@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter, DM_Sans } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
-import { JsonLd } from '@/components/json-ld'
+import { StructuredData } from '@/components/StructuredData'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
@@ -13,10 +13,10 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.aegissolaire.co
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: 'Aegis Solaire | Simulateur ROI Photovoltaïque B2B – Loi LOM & Décret Tertiaire',
+    default: 'Aegis Solaire | Rentabilité solaire B2B (Loi LOM, Décret Tertiaire) – PPA & Tiers-investissement',
     template: '%s | Aegis Solaire',
   },
-  description: 'Valorisez vos toitures et parkings : mise en conformité Loi LOM et Décret Tertiaire. Calculez votre ROI photovoltaïque en 2 minutes. Solution B2B pour entreprises (France, Belgique, francophonie).',
+  description: 'Rentabilité solaire B2B : conformité Loi LOM et Décret Tertiaire, solutions PPA et Tiers-investissement, simulation de ROI en 2 minutes pour entreprises (France, Belgique, francophonie).',
   keywords: ['photovoltaïque B2B', 'solaire entreprise', 'Loi LOM', 'Décret Tertiaire', 'PPA', 'ombrière parking', 'toiture solaire', 'ROI photovoltaïque', 'autoconsommation', 'énergie renouvelable', 'France', 'Belgique', 'francophonie'],
   authors: [{ name: 'Aegis Solaire', url: siteUrl }],
   creator: 'Aegis Solaire',
@@ -64,7 +64,7 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className={`${inter.variable} ${dmSans.variable} font-sans antialiased overflow-x-hidden min-w-0`}>
-        <JsonLd />
+        <StructuredData />
         {children}
         <Toaster richColors position="top-right" />
         <Analytics />

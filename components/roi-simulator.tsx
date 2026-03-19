@@ -373,9 +373,9 @@ export function ROISimulator() {
               </div>
             </div>
 
-            <h2 className="mb-2 text-center text-xl font-bold text-foreground sm:text-2xl md:text-3xl">
+            <h4 className="mb-2 text-center text-xl font-bold text-foreground sm:text-2xl md:text-3xl">
               Félicitations ! Votre audit est en route vers votre boîte mail.
-            </h2>
+            </h4>
             <p className="mb-6 text-center text-sm text-muted-foreground sm:mb-8 sm:text-base">
               Un expert en ingénierie financière partenaire d'Aegis Solaire va analyser vos données et vous contactera d'ici 24 à 48 heures pour vous présenter vos options de financement (PPA, Tiers-Investissement).
             </p>
@@ -423,9 +423,9 @@ export function ROISimulator() {
     <section id="simulator" className="scroll-mt-24 overflow-x-hidden bg-primary py-12 sm:py-24 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]" aria-labelledby="simulator-title">
       <div className="mx-auto max-w-3xl min-w-0 px-4 sm:px-6 lg:px-8">
         <div className="mb-6 text-center sm:mb-8">
-          <h2 id="simulator-title" className="text-2xl font-bold tracking-tight text-primary-foreground sm:text-3xl md:text-4xl">
+          <h4 id="simulator-title" className="text-2xl font-bold tracking-tight text-primary-foreground sm:text-3xl md:text-4xl">
             Calculez votre ROI en 2 minutes
-          </h2>
+          </h4>
           <p className="mt-3 text-base text-primary-foreground/80 sm:mt-4 sm:text-lg">
             Simulation gratuite et sans engagement
           </p>
@@ -467,9 +467,9 @@ export function ROISimulator() {
           {/* Écran 1 : Intention */}
           {step === 1 && (
             <div className="space-y-6">
-              <h3 className="text-xl font-semibold text-foreground sm:text-2xl">
+              <h4 className="text-xl font-semibold text-foreground sm:text-2xl">
                 Quel est l'objectif principal de votre démarche aujourd'hui ?
-              </h3>
+              </h4>
               <p className="text-sm text-muted-foreground">
                 Sélectionnez la priorité de votre entreprise.
               </p>
@@ -496,9 +496,9 @@ export function ROISimulator() {
           {/* Écran 2 : Foncier */}
           {step === 2 && (
             <div className="space-y-6">
-              <h3 className="text-xl font-semibold text-foreground sm:text-2xl">
+              <h4 className="text-xl font-semibold text-foreground sm:text-2xl">
                 Quel type de surface souhaitez-vous valoriser ?
-              </h3>
+              </h4>
               <p className="text-sm text-muted-foreground">
                 Aegis Solaire accompagne exclusivement les projets d'envergure professionnelle.
               </p>
@@ -593,9 +593,9 @@ export function ROISimulator() {
           {/* Écran 3 : Facture (tranches ou montant libre) */}
           {step === 3 && (
             <div className="space-y-6">
-              <h3 className="text-xl font-semibold text-foreground sm:text-2xl">
+              <h4 className="text-xl font-semibold text-foreground sm:text-2xl">
                 À combien s'élève votre facture annuelle d'électricité ?
-              </h3>
+              </h4>
               <p className="text-sm text-muted-foreground">
                 Cette donnée nous permet de calculer votre potentiel d'autoconsommation.
               </p>
@@ -671,9 +671,9 @@ export function ROISimulator() {
           {/* Écran 4 : Délai projet */}
           {step === 4 && (
             <div className="space-y-6">
-              <h3 className="text-xl font-semibold text-foreground sm:text-2xl">
+              <h4 className="text-xl font-semibold text-foreground sm:text-2xl">
                 Sous quel délai souhaitez-vous concrétiser ce projet ?
-              </h3>
+              </h4>
               <p className="text-sm text-muted-foreground">
                 L'étude de faisabilité et les raccordements peuvent prendre plusieurs mois.
               </p>
@@ -767,9 +767,9 @@ export function ROISimulator() {
               <div className="relative min-w-0 rounded-lg border border-accent/30 bg-accent/5 p-4 sm:p-6">
                 <div className="absolute inset-0 rounded-lg bg-card/80 backdrop-blur-sm" aria-hidden />
                 <div className="relative min-w-0">
-                  <h3 className="text-base font-semibold text-foreground sm:text-lg">
+                  <h4 className="text-base font-semibold text-foreground sm:text-lg">
                     {teaserTitle}
-                  </h3>
+                  </h4>
                   <p className="mt-2 break-words text-sm text-muted-foreground">
                     {teaserText}
                   </p>

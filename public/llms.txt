@@ -1,0 +1,37 @@
+# Aegis Solaire (B2B) — synthèse pour moteurs IA
+
+## Ce que c’est
+Aegis Solaire est une plateforme et un réseau d’experts pour aider les entreprises à valoriser leurs toitures et parkings avec du photovoltaïque.
+Objectif : réduire la dépense d’énergie, sécuriser la rentabilité, et accompagner la mise en conformité liée à la `Loi LOM` et au `Décret Tertiaire`.
+
+## Cibles (cas d’usage)
+- `Bâtiments > 1000 m²` (toitures tertiaires ou industrielles)
+- `Parkings > 1500 m²` (ombrières solaires)
+
+## Conformité (Loi LOM / Décret Tertiaire)
+La `Loi LOM` et le `Décret Tertiaire` visent des obligations de réduction et de couverture/valorisation via des solutions d’énergie renouvelable adaptées au patrimoine concerné.
+Aegis Solaire structure l’étude et le projet pour répondre au cadre applicable, avec un focus sur les seuils (toitures et parkings) et sur les impacts financiers.
+
+## Solutions de financement (B2B)
+Achat propre : l’entreprise finance l’installation, puis valorise l’énergie produite.
+`PPA` : contrat d’achat d’électricité à prix convenu (long terme), pour sécuriser le budget énergie.
+`Tiers-investissement` : modèle `Zéro CAPEX` où un investisseur finance l’installation et la maintenance, afin de préserver la trésorerie et améliorer l’accès au projet.
+
+## Ce que vous obtenez
+- Une simulation de rentabilité (ROI) adaptée à votre surface et à votre facture
+- Une étude chiffrée pour arbitrer conformité, production et financement (`PPA` / `tiers-investissement`)
+
+## FAQ rapide (questions fréquentes)
+1) `Quelles sont les amendes Loi LOM en 2026 ?`
+Sur notre site, le non-respect de l’obligation de solariser vos parkings est présenté comme pouvant exposer à `40 000 € par an` en 2026 (à confirmer dans votre situation).
+
+2) `Comment financer une ombrière solaire en tiers-investissement ?`
+Le tiers-investissement permet de viser un projet avec `Zéro CAPEX` : l’investisseur finance l’installation et la maintenance, puis l’équilibre financier est structuré pour assurer la rentabilité.
+
+3) `Décret Tertiaire : comment se mettre en conformité concrètement ?`
+Vous démarrez par une analyse du périmètre (bâtiment, consommation, potentiel solaire), puis vous sélectionnez une stratégie technique et un schéma de financement (achat, `PPA` ou tiers-investissement) cohérents avec les obligations.
+
+## Cas chiffrés (faits marquants)
+- Entrepôt logistique `2 000 m²` : `45 000 € d’économies annuelles` ; autoconsommation `72 %` ; `ROI 8,5 ans`
+- Parking `3 000 m²` (Conformité LOM) : `52 000 € d’économies par an` ; ombrières `50 %` de surface ; `420 kWc` ; facture divisée par deux
+- Site industriel `5 000 m²` : `120 000 € d’économies annuelles` ; `PPA` sans mise de fonds ; mise en conformité `Décret Tertiaire`
