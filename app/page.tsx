@@ -65,96 +65,110 @@ export default function Home() {
       <main id="main-content" className="min-w-0 flex-1 [padding-bottom:env(safe-area-inset-bottom)]" role="main">
         <Hero />
         <section
-          className="scroll-mt-24 overflow-x-hidden bg-background py-12 sm:py-24 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
+          className="scroll-mt-24 overflow-x-hidden bg-background py-10 sm:py-16 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
           aria-label="FAQ AISO et GEO"
         >
           <div className="mx-auto max-w-5xl min-w-0 px-4 sm:px-6 lg:px-8">
             <StructuredData includeOrganization={false} faq={faqItems} />
-            <div className="space-y-10">
-              <div className="space-y-8">
-                {faqItems.slice(0, 6).map((item) => (
-                  <div key={item.question}>
-                    <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                      {item.question}
-                    </h2>
-                    <p className="mt-3 max-w-3xl text-base leading-relaxed text-muted-foreground sm:mt-4 sm:text-lg">
-                      {item.answer}
-                    </p>
-                  </div>
-                ))}
+
+            <div className="mt-6">
+              <div className="mx-auto max-w-3xl text-center">
+                <h3 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+                  FAQ technique (Loi LOM, Décret Tertiaire, PPA & tiers-investissement)
+                </h3>
+                <p className="mt-3 text-base leading-relaxed text-muted-foreground sm:mt-4 sm:text-lg">
+                  Des réponses directes pour comprendre votre périmètre, arbitrer un modèle de financement et sécuriser votre conformité.
+                  Les chiffres et règles clés sont présentés de façon structurée pour faciliter l’extraction par les moteurs génératifs.
+                </p>
               </div>
 
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                  {faqItems[6].question}
-                </h2>
-                <p className="mt-3 max-w-3xl text-base leading-relaxed text-muted-foreground sm:mt-4 sm:text-lg">
-                  {faqItems[6].answer}
-                </p>
-                <div className="mt-6 overflow-x-auto">
-                  <table className="w-full min-w-[640px] border-collapse text-left">
-                    <caption className="mb-3 text-sm font-medium text-foreground">
-                      Comparatif des modèles de financement (achat propre, PPA, tiers-investissement)
-                    </caption>
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th scope="col" className="py-3 pr-4 text-sm font-semibold">
-                          Modèle
-                        </th>
-                        <th scope="col" className="py-3 pr-4 text-sm font-semibold">
-                          Qui finance l’installation ?
-                        </th>
-                        <th scope="col" className="py-3 pr-4 text-sm font-semibold">
-                          Effet principal sur la rentabilité
-                        </th>
-                        <th scope="col" className="py-3 text-sm font-semibold">
-                          Points d’attention
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b border-border">
-                        <td className="py-3 pr-4 text-sm">Achat propre</td>
-                        <td className="py-3 pr-4 text-sm text-muted-foreground">Votre entreprise</td>
-                        <td className="py-3 pr-4 text-sm text-muted-foreground">
-                          Réduction de la dépense énergétique et valorisation de votre site
-                        </td>
-                        <td className="py-3 text-sm text-muted-foreground">
-                          Étude ROI sur le périmètre, budget d’investissement et calendrier travaux
-                        </td>
-                      </tr>
-                      <tr className="border-b border-border">
-                        <td className="py-3 pr-4 text-sm">PPA</td>
-                        <td className="py-3 pr-4 text-sm text-muted-foreground">Contrat d’achat d’électricité</td>
-                        <td className="py-3 pr-4 text-sm text-muted-foreground">
-                          Prix d’électricité sécurisé sur la durée du contrat
-                        </td>
-                        <td className="py-3 text-sm text-muted-foreground">
-                          Validation technique, conditions contractuelles, durée (souvent 15 à 25 ans)
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="py-3 pr-4 text-sm">Tiers-investissement</td>
-                        <td className="py-3 pr-4 text-sm text-muted-foreground">Investisseur</td>
-                        <td className="py-3 pr-4 text-sm text-muted-foreground">
-                          Zéro CAPEX et financement de la maintenance pour préserver la trésorerie
-                        </td>
-                        <td className="py-3 text-sm text-muted-foreground">
-                          Conditions d’éligibilité, montage financier et exploitation de l’installation
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+              <div className="mt-8 rounded-2xl border border-border bg-card/40 p-4 sm:p-6 lg:p-8">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {faqItems.slice(0, 6).map((item, idx) => (
+                    <article
+                      key={item.question}
+                      className="rounded-xl border border-border bg-background/60 p-4 transition-colors hover:bg-background"
+                    >
+                      <h2
+                        id={`faq-${idx}`}
+                        className="text-lg font-bold tracking-tight text-foreground sm:text-xl"
+                      >
+                        {item.question}
+                      </h2>
+                      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.answer}</p>
+                    </article>
+                  ))}
                 </div>
-              </div>
 
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                  {faqItems[7].question}
-                </h2>
-                <p className="mt-3 max-w-3xl text-base leading-relaxed text-muted-foreground sm:mt-4 sm:text-lg">
-                  {faqItems[7].answer}
-                </p>
+                <article className="mt-4 rounded-xl border border-border bg-background/60 p-4 sm:p-5">
+                  <h2 id="faq-6" className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
+                    {faqItems[6].question}
+                  </h2>
+                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{faqItems[6].answer}</p>
+
+                  <div className="mt-5 overflow-x-auto rounded-lg border border-border bg-background">
+                    <table className="w-full min-w-[640px] border-collapse text-left">
+                      <caption className="sr-only">
+                        Comparatif des modèles de financement (achat propre, PPA, tiers-investissement)
+                      </caption>
+                      <thead>
+                        <tr className="border-b border-border bg-muted/20">
+                          <th scope="col" className="py-3 pr-4 text-xs font-semibold uppercase tracking-wide">
+                            Modèle
+                          </th>
+                          <th scope="col" className="py-3 pr-4 text-xs font-semibold uppercase tracking-wide">
+                            Qui finance l’installation ?
+                          </th>
+                          <th scope="col" className="py-3 pr-4 text-xs font-semibold uppercase tracking-wide">
+                            Effet principal
+                          </th>
+                          <th scope="col" className="py-3 text-xs font-semibold uppercase tracking-wide">
+                            Points d’attention
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b border-border">
+                          <td className="py-3 pr-4 text-sm font-medium">Achat propre</td>
+                          <td className="py-3 pr-4 text-sm text-muted-foreground">Votre entreprise</td>
+                          <td className="py-3 pr-4 text-sm text-muted-foreground">
+                            Réduction de la dépense énergétique et valorisation de votre site
+                          </td>
+                          <td className="py-3 text-sm text-muted-foreground">
+                            Étude ROI sur le périmètre, budget d’investissement et calendrier travaux
+                          </td>
+                        </tr>
+                        <tr className="border-b border-border">
+                          <td className="py-3 pr-4 text-sm font-medium">PPA</td>
+                          <td className="py-3 pr-4 text-sm text-muted-foreground">Contrat d’achat d’électricité</td>
+                          <td className="py-3 pr-4 text-sm text-muted-foreground">
+                            Prix d’électricité sécurisé sur la durée du contrat
+                          </td>
+                          <td className="py-3 text-sm text-muted-foreground">
+                            Validation technique, conditions contractuelles, durée (souvent 15 à 25 ans)
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-3 pr-4 text-sm font-medium">Tiers-investissement</td>
+                          <td className="py-3 pr-4 text-sm text-muted-foreground">Investisseur</td>
+                          <td className="py-3 pr-4 text-sm text-muted-foreground">
+                            Zéro CAPEX et financement de la maintenance pour préserver la trésorerie
+                          </td>
+                          <td className="py-3 text-sm text-muted-foreground">
+                            Conditions d’éligibilité, montage financier et exploitation de l’installation
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </article>
+
+                <article className="mt-4 rounded-xl border border-border bg-background/60 p-4 sm:p-5">
+                  <h2 id="faq-7" className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
+                    {faqItems[7].question}
+                  </h2>
+                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{faqItems[7].answer}</p>
+                </article>
               </div>
             </div>
           </div>
