@@ -20,7 +20,7 @@ export function Footer() {
               </div>
             </Link>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              Financement, Rentabilité & Ombrières Pro. La plateforme de référence pour les projets photovoltaïques B2B en France, en Belgique et en francophonie.
+              Financement, rentabilité et ombrières professionnelles. La plateforme de référence pour le solaire B2B et les obligations PEB en Wallonie.
             </p>
           </div>
 
@@ -100,7 +100,7 @@ export function Footer() {
                   href="/webinaire"
                   className="text-sm text-muted-foreground hover:text-foreground"
                 >
-                  Webinaires Loi LOM
+                  Webinaires & masterclass
                 </Link>
               </li>
             </ul>

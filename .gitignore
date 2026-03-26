@@ -7,6 +7,9 @@ next.user-config.*
 # Environment variables
 .env*.local
 
+# Local tooling / caches
+tmp-lh/
+
 # Common ignores
 node_modules/
 .next/

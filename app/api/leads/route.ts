@@ -4,20 +4,17 @@ import { leadSubmitSchema } from "@/lib/leads-schema"
 import { calculateLeadScore } from "@/lib/lead-score"
 import { checkRateLimit } from "@/lib/rate-limit"
 
-// ——— Sanitization : réduction des risques XSS sur les données stockées (affichage admin) ———
 function sanitizeString(input: string, maxLength = 255): string {
   const trimmed = String(input).trim().slice(0, maxLength)
-  return trimmed.replace(/[<>]/g, "") // retrait des chevrons pour éviter injection de balises
+  return trimmed.replace(/[<>]/g, "")
 }
 
-/** Délai minimum (ms) entre affichage du formulaire contact et soumission (anti-bot). */
 const MIN_FORM_FILL_TIME_MS = 4000
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    // ——— 1. Honeypot (pot de miel) : si un robot remplit le champ caché "fax_number", on simule un succès sans rien enregistrer ———
     if (body.fax_number != null && String(body.fax_number).trim() !== "") {
       return NextResponse.json({
         success: true,
@@ -26,7 +23,6 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // ——— 2. Rate limiting : max 3 soumissions par heure et par IP ———
     if (!checkRateLimit(request)) {
       return NextResponse.json(
         { error: "Trop de demandes. Veuillez réessayer dans une heure." },
@@ -34,7 +30,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // ——— 3. Time-to-fill : rejet si le formulaire a été soumis en moins de 4 secondes (comportement typique d’un bot) ———
     const formOpenedAt = body.form_opened_at
     if (formOpenedAt) {
       const opened = new Date(formOpenedAt).getTime()
@@ -47,48 +42,53 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ——— 4. Validation multi-points via schéma Zod (email pro, téléphone français valide, etc.) ———
     const parseResult = leadSubmitSchema.safeParse({
       ...body,
       surfaceArea: typeof body.surfaceArea === "number" ? body.surfaceArea : parseInt(body.surfaceArea, 10),
-      annualElectricityBill: typeof body.annualElectricityBill === "number" ? body.annualElectricityBill : parseInt(body.annualElectricityBill, 10),
+      annualElectricityBill:
+        typeof body.annualElectricityBill === "number"
+          ? body.annualElectricityBill
+          : parseInt(body.annualElectricityBill, 10),
+      marketingConsent: body.marketingConsent === true,
     })
 
     if (!parseResult.success) {
       const firstError = parseResult.error.flatten().fieldErrors
-      const message = firstError.email?.[0]
-        ?? firstError.phone?.[0]
-        ?? firstError.firstName?.[0]
-        ?? firstError.lastName?.[0]
-        ?? firstError.surfaceArea?.[0]
-        ?? firstError.annualElectricityBill?.[0]
-        ?? firstError.jobTitle?.[0]
-        ?? firstError.projectTimeline?.[0]
-        ?? firstError.surfaceType?.[0]
-        ?? "Données invalides. Vérifiez les champs."
+      const message =
+        firstError.email?.[0] ??
+        firstError.phone?.[0] ??
+        firstError.firstName?.[0] ??
+        firstError.lastName?.[0] ??
+        firstError.company?.[0] ??
+        firstError.companyVat?.[0] ??
+        firstError.surfaceArea?.[0] ??
+        firstError.annualElectricityBill?.[0] ??
+        firstError.jobTitle?.[0] ??
+        firstError.surfaceType?.[0] ??
+        firstError.province?.[0] ??
+        firstError.marketingConsent?.[0] ??
+        "Données invalides. Vérifiez les champs."
       return NextResponse.json({ error: message }, { status: 400 })
     }
 
     const data = parseResult.data
 
-    // ——— 5. Nettoyage final des chaînes avant insertion (sanitization) ———
     const first_name = sanitizeString(data.firstName)
     const last_name = sanitizeString(data.lastName)
     const email = data.email.toLowerCase().trim()
     const phone = data.phone.replace(/[\s.-]/g, "")
     const job_title = sanitizeString(data.jobTitle)
-    const company = data.company ? sanitizeString(data.company) : null
-    const message = data.message ? sanitizeString(data.message, 2000) : null
+    const company = sanitizeString(data.company)
+    const company_vat = sanitizeString(data.companyVat, 32)
+    const projectDetailsText = data.projectDetails ? sanitizeString(data.projectDetails, 2000) : null
 
-    // ——— 6. Scoring prédictif et statut de qualification ———
     const { score, status } = calculateLeadScore({
       firstName: first_name,
       lastName: last_name,
       jobTitle: job_title,
       surfaceArea: data.surfaceArea,
       annualElectricityBill: data.annualElectricityBill,
-      projectTimeline: data.projectTimeline ?? null,
-      wantsIrve: data.wantsIrve === true,
+      grd: data.grd ?? null,
     })
 
     const supabase = await createClient()
@@ -97,34 +97,35 @@ export async function POST(request: NextRequest) {
     const dataRetentionUntil = new Date()
     dataRetentionUntil.setFullYear(dataRetentionUntil.getFullYear() + 3)
 
-    const { data: inserted, error } = await supabase
-      .from("leads")
-      .insert({
-        first_name,
-        last_name,
-        email,
-        phone,
-        job_title,
-        company,
-        message,
-        objective: data.objective ?? null,
-        surface_type: data.surfaceType,
-        surface_area: data.surfaceArea,
-        project_timeline: data.projectTimeline ?? null,
-        annual_electricity_bill: data.annualElectricityBill,
-        estimated_roi_years: data.estimatedROIYears ?? null,
-        autoconsumption_rate: data.autoconsumptionRate ?? null,
-        estimated_savings: data.estimatedSavings ?? null,
-        marketing_consent: data.marketingConsent === true,
-        consent_date: data.marketingConsent ? consentDate.toISOString() : null,
-        data_retention_until: dataRetentionUntil.toISOString(),
-        source: "simulator",
-        status,
-        lead_score: score,
-        wants_irve: data.wantsIrve === true,
-      })
-      .select()
-      .single()
+    const insertPayload: Record<string, unknown> = {
+      first_name,
+      last_name,
+      email,
+      phone,
+      job_title,
+      company,
+      message,
+      objective: null,
+      surface_type: data.surfaceType,
+      surface_area: data.surfaceArea,
+      province: data.province,
+      grd: data.grd ?? null,
+      company_vat,
+      project_timeline: null,
+      annual_electricity_bill: data.annualElectricityBill,
+      estimated_roi_years: data.estimatedROIYears ?? null,
+      autoconsumption_rate: data.autoconsumptionRate ?? null,
+      estimated_savings: data.estimatedSavings ?? null,
+      marketing_consent: data.marketingConsent === true,
+      consent_date: data.marketingConsent ? consentDate.toISOString() : null,
+      data_retention_until: dataRetentionUntil.toISOString(),
+      source: "simulator",
+      status,
+      lead_score: score,
+      wants_irve: false,
+    }
+
+    const { data: inserted, error } = await supabase.from("leads").insert(insertPayload).select().single()
 
     if (error) {
       console.error("Database error:", error)
@@ -144,10 +145,16 @@ export async function POST(request: NextRequest) {
         phone: inserted.phone,
         job_title: inserted.job_title,
         company: inserted.company,
-        message: inserted.message ?? null,
+        company_vat: (inserted as { company_vat?: string }).company_vat ?? company_vat,
+        message: (inserted as { project_details?: string | null; message?: string | null }).project_details
+          ?? (inserted as { message?: string | null }).message
+          ?? null,
+        project_details: (inserted as { project_details?: string | null }).project_details ?? projectDetailsText,
         objective: inserted.objective ?? null,
         surface_type: inserted.surface_type,
         surface_area: inserted.surface_area,
+        province: (inserted as { province?: string }).province ?? data.province,
+        grd: (inserted as { grd?: string | null }).grd ?? data.grd ?? null,
         project_timeline: inserted.project_timeline ?? null,
         annual_electricity_bill: inserted.annual_electricity_bill,
         estimated_roi_years: inserted.estimated_roi_years,

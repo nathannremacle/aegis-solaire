@@ -70,8 +70,8 @@ Le bloc de texte au-dessus du formulaire (« Bonne nouvelle… », « Votre proj
 ### Phrases ajoutées selon le type de surface
 
 - **Parking** :
-  - Surface **≥ 1 500 m²** : « Pour un parking de cette envergure, la Loi LOM (ombrières) peut s'appliquer. »
-  - Surface **< 1 500 m²** : « Votre surface est inférieure au seuil d'éligibilité Loi LOM (1 500 m²) ; une étude personnalisée peut préciser les options pour votre cas. »
+  - Surface **≥ 1 500 m²** : « Pour un parking de cette envergure, la solarisation / ombrières peut être un levier fort (IRVE, pics de puissance). »
+  - Surface **< 1 500 m²** : « Votre surface est sous le seuil souvent retenu pour les grands parkings ; une étude personnalisée peut préciser les options pour votre cas. »
 - **Toiture** : « Les toitures tertiaires et industrielles sont des gisements solaires prioritaires. »
 - **Friche** : « La valorisation d'un terrain ou d'une friche par le solaire est un levier de revenu et de décarbonation. »
 

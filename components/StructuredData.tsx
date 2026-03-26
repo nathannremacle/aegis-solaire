@@ -33,11 +33,11 @@ function getDefaultOrganization(): OrganizationInput {
     url: baseUrl,
     logoUrl: `${baseUrl}/logo-square.png`,
     description:
-      "Plateforme de mise en relation et simulateur ROI photovoltaïque B2B pour entreprises. France, Belgique, francophonie. Conformité Loi LOM et Décret Tertiaire.",
+      "Simulateur ROI et mise en relation photovoltaïque B2B pour entreprises en Wallonie. Obligations PEB, Certificats Verts (CWaPE), rentabilité entreprises, Corporate PPA et tiers-investissement.",
     contact: {
       email: "contact@aegissolaire.com",
       availableLanguage: "French",
-      areaServed: ["FR", "BE"],
+      areaServed: ["BE"],
     },
   }
 }
@@ -79,7 +79,8 @@ export function StructuredData({
         "@type": "WebSite",
         name: org.name,
         url: org.url,
-        description: "Simulateur ROI photovoltaïque B2B – Loi LOM, Décret Tertiaire. Valorisez toitures et parkings.",
+        description:
+          "Panneaux solaires B2B Wallonie — obligations PEB, rentabilité entreprises. Valorisez toitures et parkings.",
         inLanguage: "fr-FR",
         publisher: { "@id": `${org.url}#organization` },
         potentialAction: {

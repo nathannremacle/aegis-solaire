@@ -9,7 +9,7 @@ const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.aegissolaire.co
 export const metadata: Metadata = {
   title: "Ressources",
   description:
-    "Études de cas, subventions & financement, webinaires Loi LOM. Ressources Aegis Solaire pour votre projet photovoltaïque B2B.",
+    "Études de cas, subventions & financement, webinaires B2B Wallonie. Ressources Aegis Solaire pour panneaux solaires entreprises et obligations PEB.",
   alternates: { canonical: `${baseUrl}/ressources` },
 }
 
@@ -19,7 +19,7 @@ const resources = [
     icon: FileText,
     title: "Études de cas chiffrées",
     description:
-      "Résultats concrets : entrepôts, parkings, sites industriels. ROI, économies annuelles et mise en conformité Loi LOM.",
+      "Résultats concrets : entrepôts, parkings, sites industriels. ROI, économies annuelles et alignement PEB / Certificats Verts.",
     href: "/#preuve",
     available: true,
   },
@@ -35,7 +35,7 @@ const resources = [
   {
     id: "webinaires",
     icon: Video,
-    title: "Webinaires Loi LOM",
+    title: "Webinaires & masterclass",
     description:
       "Replay : Masterclass Zéro CAPEX — financer 100% de vos installations photovoltaïques grâce au Tiers-Investissement. Accédez au décryptage vidéo exclusif.",
     href: "/webinaire",

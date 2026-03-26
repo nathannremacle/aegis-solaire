@@ -26,7 +26,7 @@ function getEmbedVideoUrl(url: string): string | null {
 }
 
 const LOCAL_VIDEO_SRC = "/videos/decrettertiaireetfinancement.mp4"
-const VIDEO_TITLE = "Vidéo Explicative - Décret Tertiaire et Financement"
+const VIDEO_TITLE = "Vidéo — Wallonie : PEB, Plan PACE 2030 et financement (PPA, tiers-investissement)"
 
 function FounderVideoBlock() {
   const videoUrl = process.env.NEXT_PUBLIC_FOUNDER_VIDEO_URL
@@ -104,10 +104,10 @@ function FounderVideoBlock() {
 }
 
 const credentials = [
-  "Plus de 15 ans d'expérience dans le photovoltaïque B2B",
+  "Plus de 15 ans d'expérience dans le photovoltaïque B2B (Belgique, francophonie)",
   "Certification RGE et QualiPV",
   "Partenaire exclusif de fabricants premium (SunPower, Enphase)",
-  "Accompagnement complet : audit, financement, installation, maintenance",
+  "Structuration de projets : audit, réservation CV (SPW), montage Corporate PPA ou tiers-investissement, installation, maintenance",
   "Garantie décennale et assurance tous risques",
 ]
 
@@ -128,7 +128,7 @@ export function Expert() {
             Un partenaire de confiance pour votre transition énergétique
           </h4>
           <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Aegis Solaire réunit un réseau d'experts certifiés pour vous accompagner de l'étude de faisabilité jusqu'à la maintenance de votre installation, en France, en Belgique et en francophonie.
+            Aegis Solaire simplifie la lecture de la rentabilité et du financement face aux nouvelles obligations PEB et à la trajectoire du Plan Air Climat Énergie (PACE 2030) en Wallonie. Nous structurons vos dossiers avec des Corporate PPA ou du tiers-investissement, en intégrant le mécanisme des Certificats Verts (CWaPE) lorsque votre centrale est éligible.
           </p>
         </header>
 
@@ -136,7 +136,7 @@ export function Expert() {
         <div className="mb-10 flex min-w-0 items-start gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-4 sm:px-5 sm:py-5">
           <AlertTriangle className="mt-0.5 h-6 w-6 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden />
           <p className="min-w-0 break-words text-sm font-medium text-foreground sm:text-base">
-            <span className="font-semibold text-amber-700 dark:text-amber-400">En 2026</span>, le non-respect de l'obligation de solariser vos parkings vous expose à une amende de <strong>40 000 € par an</strong>.
+            <span className="font-semibold text-amber-700 dark:text-amber-400">En Wallonie</span>, le durcissement des exigences PEB et l&apos;accélération du Plan PACE 2030 transforment la transition énergétique en enjeu de valeur : un patrimoine industriel ou logistique mal aligné sur ces trajectoires peut perdre en attractivité et en liquidité à la revente ou au refinancement.
           </p>
         </div>
 
@@ -148,7 +148,7 @@ export function Expert() {
                 Conformité & cadre légal
               </h4>
               <p className="mt-2 text-sm leading-relaxed text-foreground sm:text-base">
-                Le <strong>Décret Tertiaire</strong> et la <strong>Loi LOM</strong> imposent aux bâtiments &gt; 500 m² et aux parkings &gt; 1 500 m² des obligations de réduction de consommation et de couverture solaire. Nous vous aidons à vous mettre en conformité tout en rentabilisant vos surfaces.
+                Les exigences de <strong>performance PEB</strong> pour le non résidentiel, le <strong>Plan PACE 2030</strong> et la transposition progressive de la directive européenne PEB (solarisation des grands bâtiments, trajectoire ZEB) imposent d&apos;intégrer massivement les énergies renouvelables et de sécuriser l&apos;électrification des sites (y compris via les <strong>IRVE</strong> sur parkings). Nous vous aidons à cadrer le projet réglementairement tout en maximisant la rentabilité — notamment via les <strong>Certificats Verts</strong> et le pilotage avec les gestionnaires de réseau (ex. <strong>Ores</strong>, <strong>Resa</strong>, <strong>Elia</strong> selon le cas).
               </p>
             </div>
 
@@ -163,16 +163,16 @@ export function Expert() {
                     Tiers-Investissement (Zéro CAPEX)
                   </h4>
                   <p className="mt-auto pt-3 text-sm leading-relaxed text-muted-foreground">
-                    L'investisseur finance 100 % de l'installation et de la maintenance. Rentabilité dès la première année sans avance de trésorerie.
+                    Un tiers finance 100 % du CAPEX et de la maintenance ; les flux de <strong>Certificats Verts</strong> et la vente d&apos;électricité à votre site structurent le retour pour l&apos;investisseur, pendant que vous sécurisez prix et conformité sans alourdir le bilan.
                   </p>
                 </div>
                 {/* Carte PPA – texte collé en bas comme l'autre */}
                 <div className="flex min-h-[180px] flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md sm:min-h-[200px]">
                   <h4 className="text-base font-semibold leading-snug text-foreground sm:text-lg">
-                    Contrat PPA
+                    Corporate PPA
                   </h4>
                   <p className="mt-auto pt-3 text-sm leading-relaxed text-muted-foreground">
-                    Achat d'électricité à prix fixe sur 15 à 25 ans. Sécurisez votre budget énergétique et préservez votre trésorerie sur la durée du contrat.
+                    <strong>Corporate PPA</strong> (souvent 10 à 25 ans) : prix de l&apos;électricité fixé contractuellement, couverture contre la volatilité du marché. En <strong>on-site</strong>, l&apos;énergie est livrée derrière le compteur — levier majeur pour l&apos;autoconsommation et la maîtrise des coûts réseau, selon votre GRD et votre schéma de raccordement.
                   </p>
                 </div>
               </div>
@@ -198,10 +198,10 @@ export function Expert() {
             <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               <div className="border-b border-border px-4 py-4 sm:px-5 sm:py-4">
                   <h4 className="text-base font-semibold text-foreground sm:text-lg">
-                  Vidéo – Décret Tertiaire et Financement
+                  Vidéo — Wallonie : obligations PEB, PACE 2030 et rentabilité
                   </h4>
                 <p className="mt-1.5 text-sm text-muted-foreground">
-                  Obligations légales et solutions de financement (PPA, tiers-investissement, stockage) en 2 minutes.
+                  Transition énergétique en Wallonie, rôle des Certificats Verts (CWaPE) et structuration Corporate PPA ou tiers-investissement — vision d&apos;ensemble en quelques minutes.
                 </p>
               </div>
               <div className="p-4 sm:p-5">

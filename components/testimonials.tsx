@@ -2,28 +2,31 @@ import Image from "next/image"
 import { Star, Building2, Car, Factory } from "lucide-react"
 import { CertificationsMarquee } from "@/components/certifications-marquee"
 
-/** Études de cas chiffrées (Section Preuve – MEP) */
+/** Études de cas chiffrées (Section Preuve – MEP) — Wallonie B2B */
 const caseStudies = [
   {
     icon: Building2,
     title: "Entrepôt logistique 2 000 m²",
     figure: "45 000 €",
-    figureLabel: "d'économies annuelles",
-    detail: "Toiture équipée, autoconsommation 72 %, ROI 8,5 ans.",
+    figureLabel: "d'économies annuelles sur la facture",
+    detail:
+      "Toiture équipée, autoconsommation 72 %. Les Certificats Verts (CWaPE), avec le mécanisme de soutien wallon, viennent en complément des économies sur prélèvements pour structurer un retour sur investissement cible 5 à 7 ans selon hypothèses de marché.",
   },
   {
     icon: Car,
-    title: "Parking 3 000 m² – Conformité LOM",
+    title: "Parking 3 000 m² – Ombrières & IRVE",
     figure: "52 000 €",
     figureLabel: "d'économies par an",
-    detail: "Ombrières 50 % surface, production 420 kWc, facture divisée par deux.",
+    detail:
+      "Ombrières sur 50 % de la surface, 420 kWc, facture divisée par deux. Projet dimensionné pour absorber les pics de recharge (IRVE) et sécuriser le quota PEB sans surdimensionner l'injection vers le GRD (ex. Ores, Resa).",
   },
   {
     icon: Factory,
     title: "Site industriel 5 000 m²",
     figure: "120 000 €",
     figureLabel: "économies annuelles",
-    detail: "Contrat PPA sans mise de fonds. Mise en conformité Décret Tertiaire.",
+    detail:
+      "Corporate PPA sans mise de fonds. Alignement avec les exigences PEB wallonnes et la trajectoire du Plan PACE 2030 ; les Certificats Verts restent le levier de soutien principal pour les centrales industrielles éligibles.",
   },
 ]
 
@@ -66,7 +69,7 @@ export function Testimonials() {
             Études de cas chiffrées
           </h4>
           <p className="mt-3 text-base text-muted-foreground sm:mt-4 sm:text-lg">
-            Des résultats concrets pour des entreprises comme la vôtre. Le B2B a besoin de réassurance.
+            Des résultats concrets pour des actifs industriels et logistiques en Wallonie. L&apos;inaction face au Plan PACE 2030 et aux normes PEB peut pénaliser la valeur et la liquidité de votre patrimoine immobilier : le B2B exige des chiffres et un cadre réglementaire assumé.
           </p>
         </div>
 

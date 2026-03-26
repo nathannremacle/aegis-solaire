@@ -21,7 +21,7 @@ export function isProfessionalEmail(email: string): boolean {
 export const EMAIL_PRO_MESSAGE =
   "Veuillez utiliser une adresse e-mail professionnelle (domaines personnels type gmail, orange, free, etc. non acceptés)."
 
-/** Pays acceptés pour le téléphone (France + Belgique). */
+/** Numéros belges et français acceptés (formats courants +32 / +33). */
 const PHONE_COUNTRIES = ["FR", "BE"] as const
 
 /** Valide un numéro français ou belge (format valide, pas de suites évidentes). */
@@ -78,6 +78,28 @@ export function getSurfaceError(surfaceType: string, surfaceArea: string): strin
 /** Message facture minimale. */
 export const FACTURE_MIN_MESSAGE =
   "Facture annuelle minimum de 5 000 € requise pour une étude B2B."
+
+/** Normalise un numéro TVA belge (espaces, points). */
+export function normalizeBelgianVat(input: string): string {
+  return input.replace(/[\s.]/g, "").toUpperCase()
+}
+
+/** Valide le format BE + 10 chiffres (TVA entreprise belge). */
+export function isValidBelgianVat(input: string): boolean {
+  const n = normalizeBelgianVat(input)
+  return /^BE\d{10}$/.test(n)
+}
+
+export const VAT_BE_MESSAGE =
+  "Indiquez un numéro TVA belge valide (ex. BE0123456789)."
+
+/** Erreur affichée sous le champ TVA (null si valide). */
+export function getVatError(vat: string): string | null {
+  const trimmed = vat.trim()
+  if (!trimmed) return "Le numéro d'entreprise (TVA BE) est requis."
+  if (!isValidBelgianVat(trimmed)) return VAT_BE_MESSAGE
+  return null
+}
 
 /** Retourne le message d'erreur pour la facture (null si valide). */
 export function getFactureError(annualElectricityBill: string): string | null {

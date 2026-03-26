@@ -13,28 +13,45 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.aegissolaire.co
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: 'Aegis Solaire | Rentabilité solaire B2B (Loi LOM, Décret Tertiaire) – PPA & Tiers-investissement',
+    default:
+      'Panneaux solaires B2B Wallonie | Obligations PEB & rentabilité entreprises | Aegis Solaire',
     template: '%s | Aegis Solaire',
   },
-  description: 'Rentabilité solaire B2B : conformité Loi LOM et Décret Tertiaire, solutions PPA et Tiers-investissement, simulation de ROI en 2 minutes pour entreprises (France, Belgique, francophonie).',
-  keywords: ['photovoltaïque B2B', 'solaire entreprise', 'Loi LOM', 'Décret Tertiaire', 'PPA', 'ombrière parking', 'toiture solaire', 'ROI photovoltaïque', 'autoconsommation', 'énergie renouvelable', 'France', 'Belgique', 'francophonie'],
+  description:
+    'Panneaux solaires B2B en Wallonie : obligations PEB, Certificats Verts (CWaPE), PACE 2030 et rentabilité entreprises. Simulateur ROI, Corporate PPA et tiers-investissement — étude de faisabilité en quelques minutes.',
+  keywords: [
+    'panneaux solaires B2B Wallonie',
+    'obligations PEB',
+    'rentabilité entreprises',
+    'photovoltaïque entreprise Belgique',
+    'Certificats Verts CWaPE',
+    'PACE 2030',
+    'Corporate PPA',
+    'tiers-investissement',
+    'ombrière parking',
+    'toiture solaire industriel',
+    'autoconsommation',
+    'GRD Wallonie',
+  ],
   authors: [{ name: 'Aegis Solaire', url: siteUrl }],
   creator: 'Aegis Solaire',
   publisher: 'Aegis Solaire',
   formatDetection: { email: false, telephone: false },
   openGraph: {
     type: 'website',
-    locale: 'fr_FR',
+    locale: 'fr_BE',
     url: siteUrl,
     siteName: 'Aegis Solaire',
-    title: 'Aegis Solaire | Simulateur ROI Photovoltaïque pour Entreprises',
-    description: 'Valorisez vos toitures et parkings. Conformité Loi LOM, Décret Tertiaire. ROI en 2 minutes.',
+    title: 'Panneaux solaires B2B Wallonie | Obligations PEB & rentabilité entreprises',
+    description:
+      'Obligations PEB, rentabilité entreprises et solaire B2B en Wallonie. Simulateur ROI, PPA et tiers-investissement.',
     images: [{ url: '/logo.png', width: 1200, height: 630, alt: 'Aegis Solaire' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Aegis Solaire | Simulateur ROI Photovoltaïque B2B',
-    description: 'Conformité Loi LOM & Décret Tertiaire. Calculez votre ROI solaire en 2 minutes.',
+    title: 'Panneaux solaires B2B Wallonie | Aegis Solaire',
+    description:
+      'Obligations PEB et rentabilité entreprises. Simulateur photovoltaïque B2B pour la Wallonie.',
   },
   robots: {
     index: true,
@@ -62,7 +79,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="fr">
+    <html lang="fr-BE">
       <body className={`${inter.variable} ${dmSans.variable} font-sans antialiased overflow-x-hidden min-w-0`}>
         <StructuredData />
         {children}

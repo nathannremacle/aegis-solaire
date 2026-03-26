@@ -7,7 +7,7 @@ Indicateur de progression : Une barre de progression visuelle en haut (ex: "Éta
 ÉCRAN 1 : Le déclencheur (L'intention)
 Titre : Quel est l'objectif principal de votre démarche aujourd'hui ? Sous-titre : Sélectionnez la priorité de votre entreprise.
 Les choix (Boutons cliquables larges) :
-🏛️ Mise en conformité légale (Loi APER / Décret Tertiaire)
+🏛️ Mise en conformité légale (PEB, PACE 2030 — Wallonie)
 💰 Réduction de la facture d'électricité (Autoconsommation)
 🌍 Démarche RSE & Décarbonation
 💶 Générer un nouveau revenu (Location de toiture/terrain)
@@ -21,9 +21,7 @@ Les choix :
 🚗 Parking extérieur (Sélectionner la surface : < 1 500 m² / > 1 500 m²)
 🏭 Toiture tertiaire ou industrielle (Sélectionner la surface : < 500 m² / 500 à 1000 m² / > 1000 m²)
 🌾 Terrain nu ou Friche
-💡 Pourquoi cette question ? C'est votre filtre anti-particuliers. Les seuils mentionnés ne sont pas choisis au hasard : la loi APER impose les ombrières pour les parkings de plus de 1 500 m²
-, et le Décret Tertiaire vise les bâtiments de plus de 1 000 m²
-. Si le prospect choisit une surface trop petite, il peut être disqualifié (ou revendu moins cher).
+💡 Pourquoi cette question ? C'est votre filtre anti-particuliers. Les seuils mentionnés correspondent aux projets B2B de taille industrielle / tertiaire en Wallonie. Si le prospect choisit une surface trop petite, il peut être disqualifié (ou revendu moins cher).
 
 --------------------------------------------------------------------------------
 ÉCRAN 3 : Le profil énergétique (Le besoin financier)

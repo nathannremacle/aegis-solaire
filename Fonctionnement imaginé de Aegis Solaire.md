@@ -38,7 +38,7 @@ C'est ici que la plateforme génère son chiffre d'affaires.
 Tous les décideurs ne sont pas prêts à signer un devis immédiatement (le cycle de décision en B2B prend de 3 à 6 mois).
 
 - Pour les leads "tièdes" ou "froids", la plateforme enclenche des **scénarios d'emails automatisés** (Nurturing) via le CRM.
-- Elle leur envoie régulièrement des témoignages d'autres entreprises, des rappels sur les échéances légales de la Loi LOM, ou des invitations à des webinaires animés par des experts certifiés.
+- Elle leur envoie régulièrement des témoignages d'autres entreprises, des rappels sur les échéances PEB / réglementaires wallonnes, ou des invitations à des webinaires animés par des experts certifiés.
 - Dès que le prospect montre un signe d'achat fort (ex: il clique sur "Demander un devis final"), il est reclassé comme lead "chaud" et transféré au partenaire commercial.
 
 En résumé, la plateforme agit comme un **tiers de confiance expert**. Elle absorbe la complexité technique et légale pour le visiteur, qualifie rigoureusement la demande, et livre sur un plateau d'argent des opportunités d'affaires clés en main aux installateurs solaires, prenant une marge substantielle au passage.

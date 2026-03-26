@@ -242,10 +242,10 @@ export default function WebinairePage() {
                         1
                       </span>
                       <div className="min-w-0 space-y-2">
-                        <h3 className="font-semibold text-foreground">L’urgence réglementaire de 2025 (Décret Tertiaire & BACS)</h3>
+                        <h3 className="font-semibold text-foreground">L’urgence réglementaire : PEB, PACE 2030 et performance des bâtiments</h3>
                         <p className="text-sm leading-relaxed text-muted-foreground">
-                          L’année 2025 marque un tournant juridique. Outre l’obligation d’installer un système d’automatisation (GTB) pour les bâtiments de plus de 290 kW imposée par le décret BACS, la plateforme OPERAT va délivrer les premières attestations définitives liées au Décret Tertiaire.{" "}
-                          <strong className="text-foreground">La non-conformité de vos bâtiments impactera désormais directement leur valeur financière</strong> en cas de revente ou de transaction.
+                          En Wallonie comme ailleurs, la trajectoire climat-énergie resserre les exigences sur le parc tertiaire et industriel : performance énergétique des bâtiments, intégration d’énergies renouvelables et alignement avec le Plan PACE 2030.{" "}
+                          <strong className="text-foreground">Un patrimoine mal aligné sur ces attentes peut impacter la valeur résiduelle et les conditions de refinancement</strong> lors d’une revente ou d’une transaction.
                         </p>
                       </div>
                     </li>

@@ -11,44 +11,45 @@ import type { FaqItem } from "@/components/StructuredData"
 
 const faqItems: FaqItem[] = [
   {
-    question: "Quelles amendes la Loi LOM prévoit-elle en 2026 pour les parkings concernés ?",
+    question:
+      "Comment les Certificats Verts (CWaPE) influencent-ils la rentabilité d'une centrale B2B en Wallonie ?",
     answer:
-      "En 2026, le non-respect de l’obligation de solariser vos parkings (seuils > 1 500 m²) est présenté sur notre site comme pouvant exposer à une amende de 40 000 € par an. L’applicabilité exacte dépend de votre périmètre et de la situation de votre bâtiment. Une étude clarifie les obligations.",
+      "Au-delà de 10 kW, le soutien wallon s'appuie sur le marché des Certificats Verts, sous supervision de la CWaPE. Le nombre de CV dépend de la production certifiée et de coefficients réglementaires (kECO, kCO2) ; le SPW Énergie gère des enveloppes avec réservation préalable. Les CV s'ajoutent aux économies sur prélèvements ; le cadre prévoit un filet de rachat par Elia à prix plancher pour les CV invendus, ce qui aide la bancabilité — sous réserve de dossier conforme (RGIE) et de calendrier de réservation.",
   },
   {
-    question: "Comment financer une ombrière solaire en tiers-investissement (Zéro CAPEX) ?",
+    question: "Pourquoi un DAF doit-il anticiper la réservation auprès du SPW Énergie avant d'engager un investissement ?",
     answer:
-      "Le tiers-investissement vise un projet avec Zéro CAPEX : un investisseur finance l’installation et la maintenance, puis le montage transforme la production solaire en flux permettant la rentabilité. Pour vous, l’enjeu est de valider faisabilité, périmètre, et conditions d’exploitation afin de sécuriser la trésorerie.",
+      "Les droits à Certificats Verts sont plafonnés par enveloppes budgétaires : la règle du premier arrivé, premier servi peut repousser ou conditionner votre rentabilité si le dossier arrive trop tard. Avant commande de matériel, il faut un dossier technique solide, souvent validé en amont avec le gestionnaire de réseau de distribution (GRD). Pour un DAF, c'est un risque de calendrier et de VAN : l'étude doit synchroniser investissement, réservation SPW et raccordement.",
   },
   {
-    question: "Comment se mettre en conformité avec le Décret Tertiaire et la Loi LOM ?",
+    question: "Quelles exigences PEB (2026-2030) concernent le non résidentiel en Wallonie ?",
     answer:
-      "Pour se mettre en conformité, on commence par analyser le périmètre : type de bâtiment ou parking, consommation, et potentiel solaire. Ensuite, on choisit une stratégie technique (toiture/ombrières) et un schéma de financement cohérent : achat propre, PPA ou tiers-investissement. L’objectif est de réduire la consommation et de valoriser le site dans le cadre Loi LOM et Décret Tertiaire.",
+      "La trajectoire wallonne renforce l'intégration d'énergies renouvelables sur site ou à proximité (ex. quota élevé de couverture du besoin pour le neuf ou travaux assimilés), accompagne l'interdiction de certains chauffages fossiles sur neuf/reconstruction, et croise les obligations en mobilité (IRVE) qui augmentent les pics de puissance. La solarisation des toitures et parkings devient un levier pour tenir la performance PEB tout en maîtrisant l'injection vers le GRD.",
   },
   {
-    question: "Quel résultat peut-on obtenir sur un entrepôt logistique de 2 000 m² ?",
+    question: "En quoi le Plan PACE 2030 impacte-t-il la stratégie patrimoniale d'une entreprise ?",
     answer:
-      "Sur un entrepôt logistique de 2 000 m², notre étude retient 45 000 € d'économies annuelles. Toiture équipée, autoconsommation 72 %, ROI 8,5 ans. Ces données chiffrées servent de repère pour arbitrer technique et modèle de financement avant décision, sans biais sur votre configuration.",
+      "Le Plan Air Climat Énergie fixe des objectifs de réduction de consommation et d'émissions pour le tertiaire et l'industrie léger : l'inaction peut se traduire par un patrimoine mal aligné sur les attentes de marché (revente, refinancement, critères ESG). Un programme solaire documenté améliore la lisibilité de votre trajectoire bas-carbone et la valeur résiduelle de l'actif.",
   },
   {
-    question: "Quel résultat peut-on obtenir sur un parking de 3 000 m² en conformité LOM ?",
+    question: "Ores, Resa, autres GRD : qu'est-ce qui conditionne coût et délai de raccordement ?",
     answer:
-      "Pour un parking de 3 000 m² (Conformité LOM), le scénario retient 52 000 € d'économies par an. Ombrières 50 % surface, production 420 kWc, facture divisée par deux. Ces paramètres guident l'optimisation et le choix du financement, selon la lecture Loi LOM et votre site.",
+      "Votre site est raccordé via un gestionnaire de réseau de distribution (GRD) — en Wallonie, notamment Ores ou Resa selon la zone. Le GRD valide la capacité d'accueil, les protections et parfois le renforcement ; au-delà d'un certain seuil, le transport (Elia) entre en jeu. L'injection excédentaire est valorisée à un tarif d'injection inférieur au prix d'achat : le dimensionnement doit maximiser l'autoconsommation et éviter une surproduction coûteuse en réseau.",
   },
   {
-    question: "Quel résultat peut-on obtenir sur un site industriel de 5 000 m² ?",
+    question: "Quel ordre de grandeur sur un entrepôt logistique de 2 000 m² en Wallonie ?",
     answer:
-      "Pour un site industriel de 5 000 m², le cas chiffré retient 120 000 € d'économies annuelles. Contrat PPA sans mise de fonds. Mise en conformité Décret Tertiaire. Ces éléments structurent l'étude et permettent d'arbitrer rentabilité et respect du cadre réglementaire sur la durée.",
+      "À titre indicatif, une étude type sur 2 000 m² peut retenir de l'ordre de 45 000 € d'économies annuelles sur la facture, avec une autoconsommation cible autour de 72 % et un TRI souvent discuté dans une fourchette 5 à 7 ans selon hypothèses de prix, de CV et de montage. Les chiffres réels dépendent du profil de charge, du GRD et de la réservation SPW.",
   },
   {
-    question: "Achat propre, PPA ou tiers-investissement : quel modèle choisir ?",
+    question: "Achat propre, Corporate PPA ou tiers-investissement : comment un DAF wallon arbitre-t-il ?",
     answer:
-      "Pour choisir entre achat propre, PPA et tiers-investissement, vous arbitreriez financement, risque et niveau de contrôle. L’achat propre vise une valorisation interne ; le PPA sécurise un prix d’électricité sur la durée ; le tiers-investissement vise un Zéro CAPEX avec un investisseur qui finance installation et maintenance. Votre ROI dépend du périmètre, des seuils et des conditions contractuelles.",
+      "L'achat propre capitalise la DPI à 40 % (depuis 2025) et peut se combiner au prêt subordonné Easy'Green (Wallonie Entreprendre) pour préserver les garanties bancaires. Le Corporate PPA fige un prix sur 10-25 ans et limite l'exposition au marché ; le tiers-investissement vise un zéro CAPEX en transférant le risque technique et le bénéfice des CV au partenaire financier. Le bon modèle dépend du WACC, du bilan, des plafonds d'enveloppe SPW et de la politique de couverture énergétique du groupe.",
   },
   {
-    question: "Pourquoi nos partenaires sont certifiés RGE et QualiPV ?",
+    question: "Pourquoi nos partenaires sont-ils certifiés RGE et QualiPV ?",
     answer:
-      "Aegis Solaire s’appuie sur des partenaires certifiés RGE et QualiPV. Cette expertise couvre l’étude de faisabilité, le montage de financement (achat propre, PPA ou tiers-investissement), la mise en conformité et l’exécution technique. Pour un projet B2B, cela réduit l’aléa et accélère le passage de l’analyse au déploiement, avec une démarche structurée et traçable.",
+      "Les installations B2B doivent tenir la conformité électrique (RGIE), la qualité de mise en service et les exigences des assureurs et du marché des CV. Des partenaires RGE et QualiPV réduisent l'aléa technique, sécurisent les délais et la traçabilité du dossier — critère décisif quand un DAF engage la signature du client et le calendrier de réservation SPW.",
   },
 ]
 
@@ -66,7 +67,7 @@ export default function Home() {
         <Hero />
         <section
           className="scroll-mt-24 overflow-x-hidden bg-background py-8 sm:py-12 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
-          aria-label="FAQ AISO et GEO"
+          aria-label="FAQ technique Wallonie B2B"
         >
           <div className="mx-auto max-w-5xl min-w-0 px-4 sm:px-6 lg:px-8">
             <StructuredData includeOrganization={false} faq={faqItems} />
@@ -74,11 +75,10 @@ export default function Home() {
             <div className="mt-6">
               <div className="mx-auto max-w-3xl text-center">
                 <h3 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-                  FAQ technique (Loi LOM, Décret Tertiaire, PPA & tiers-investissement)
+                  FAQ technique (Certificats Verts, PEB, PACE 2030 et financement B2B)
                 </h3>
                 <p className="mt-3 text-base leading-relaxed text-muted-foreground sm:mt-4 sm:text-lg">
-                  Des réponses directes pour comprendre votre périmètre, arbitrer un modèle de financement et sécuriser votre conformité.
-                  Les chiffres et règles clés sont présentés de façon structurée pour faciliter l’extraction par les moteurs génératifs.
+                  Des réponses orientées DAF et direction générale : CWaPE, réservation SPW, trajectoire PEB, Plan PACE 2030, raccordement GRD (Ores, Resa) et montages Corporate PPA ou tiers-investissement — pour arbitrer risque, rentabilité et valeur immobilière.
                 </p>
               </div>
 
@@ -111,7 +111,7 @@ export default function Home() {
                   <div className="mt-5 overflow-x-auto rounded-lg border border-border bg-background">
                     <table className="w-full min-w-[640px] border-collapse text-left">
                       <caption className="sr-only">
-                        Comparatif des modèles de financement (achat propre, PPA, tiers-investissement)
+                        Comparatif des modèles de financement wallon (achat propre, Corporate PPA, tiers-investissement)
                       </caption>
                       <thead>
                         <tr className="border-b border-border bg-muted/20">
@@ -134,30 +134,30 @@ export default function Home() {
                           <td className="py-3 pr-4 text-sm font-medium">Achat propre</td>
                           <td className="py-3 pr-4 text-sm text-muted-foreground">Votre entreprise</td>
                           <td className="py-3 pr-4 text-sm text-muted-foreground">
-                            Réduction de la dépense énergétique et valorisation de votre site
+                            Maîtrise de l’actif, DPI à 40 % possible, captation des Certificats Verts côté société
                           </td>
                           <td className="py-3 text-sm text-muted-foreground">
-                            Étude ROI sur le périmètre, budget d’investissement et calendrier travaux
+                            CAPEX, dépôt SPW, coordination GRD ; levier dette type Easy&apos;Green (Wallonie Entreprendre) à modéliser
                           </td>
                         </tr>
                         <tr className="border-b border-border">
-                          <td className="py-3 pr-4 text-sm font-medium">PPA</td>
-                          <td className="py-3 pr-4 text-sm text-muted-foreground">Contrat d’achat d’électricité</td>
+                          <td className="py-3 pr-4 text-sm font-medium">Corporate PPA</td>
+                          <td className="py-3 pr-4 text-sm text-muted-foreground">Producteur / investisseur</td>
                           <td className="py-3 pr-4 text-sm text-muted-foreground">
-                            Prix d’électricité sécurisé sur la durée du contrat
+                            Prix de l’électricité fixé sur 10 à 25 ans, couverture contre la volatilité (hedging)
                           </td>
                           <td className="py-3 text-sm text-muted-foreground">
-                            Validation technique, conditions contractuelles, durée (souvent 15 à 25 ans)
+                            On-site : souvent derrière le compteur ; structuration contrat, profil de charge et GRD (Ores, Resa, etc.)
                           </td>
                         </tr>
                         <tr>
                           <td className="py-3 pr-4 text-sm font-medium">Tiers-investissement</td>
-                          <td className="py-3 pr-4 text-sm text-muted-foreground">Investisseur</td>
+                          <td className="py-3 pr-4 text-sm text-muted-foreground">Investisseur / ESCO</td>
                           <td className="py-3 pr-4 text-sm text-muted-foreground">
-                            Zéro CAPEX et financement de la maintenance pour préserver la trésorerie
+                            Zéro CAPEX, CV et vente d’électricité au site pour structurer le retour investisseur
                           </td>
                           <td className="py-3 text-sm text-muted-foreground">
-                            Conditions d’éligibilité, montage financier et exploitation de l’installation
+                            Montage juridique (superficie, etc.), répartition des CV, échéance de rétrocession
                           </td>
                         </tr>
                       </tbody>

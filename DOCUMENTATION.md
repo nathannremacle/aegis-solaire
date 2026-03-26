@@ -6,7 +6,7 @@
 
 ## 1. Vue d’ensemble
 
-**Aegis Solaire** est une plateforme de **génération de leads B2B** pour le photovoltaïque (marché C&I : commerce et industrie). Elle cible les décideurs (DAF, directeurs RSE) souhaitant équiper toitures (> 500 m²) ou parkings (> 1 500 m²) pour la **conformité Loi LOM** et **Décret Tertiaire**.
+**Aegis Solaire** est une plateforme de **génération de leads B2B** pour le photovoltaïque en Wallonie (marché C&I). Elle cible les décideurs (DAF, directeurs RSE) souhaitant équiper toitures (> 500 m²) ou parkings (> 1 500 m²) dans le cadre des **obligations PEB**, du **Plan PACE 2030** et de la **rentabilité entreprises**.
 
 - **Positionnement :** « Financement, Rentabilité & Ombrières Pro »
 - **Cœur métier :** simulateur de rentabilité (ROI) + capture de coordonnées B2B ; les leads sont enregistrés puis peuvent être revendus ou traités par des installateurs partenaires.
@@ -35,7 +35,7 @@
 
 ```
 /                         → Page d’accueil (landing + simulateur)
-/ressources               → Ressources (études de cas, subventions, webinaires Loi LOM « Bientôt disponible »)
+/ressources               → Ressources (études de cas, subventions, webinaires B2B Wallonie)
 /mentions-legales          → Mentions légales
 /politique-confidentialite → RGPD, droits, désinscription (#desinscription)
 /cgv                      → Conditions générales de vente
@@ -43,19 +43,19 @@
 ```
 
 - **Sitemap / SEO :** `app/sitemap.ts` et `app/robots.ts` génèrent sitemap et robots.txt.  
-- **JSON-LD :** composant `JsonLd` (Organization + WebSite) injecté dans `app/layout.tsx`.
+- **JSON-LD :** composant `StructuredData` (Organization + WebSite) injecté dans `app/layout.tsx`.
 
 ### 3.2 Structure de la page d’accueil (MEP)
 
 Ordre des sections :
 
-1. **Hero** – Titre accroche (« centres de profit », Loi LOM), CTA unique : « Lancer ma simulation de rentabilité »
+1. **Hero** – Titre accroche (« centres de profit », contexte PEB / Wallonie), CTA unique : « Lancer ma simulation de rentabilité »
 2. **Preuve** (`#preuve`) – Études de cas chiffrées + témoignages clients
-3. **Expert** (`#expert`) – Texte PPA / stockage / Décret Tertiaire + vidéo Fondateur (configurable via `NEXT_PUBLIC_FOUNDER_VIDEO_URL`, YouTube/Vimeo)
+3. **Expert** (`#expert`) – Texte PPA / stockage / cadre wallon (PEB, CV) + vidéo Fondateur (configurable via `NEXT_PUBLIC_FOUNDER_VIDEO_URL`, YouTube/Vimeo)
 4. **Avantages** (`#benefits`) – Pourquoi passer au solaire B2B
 5. **Simulateur** (`#simulator`) – Formulaire multi-étapes (voir ci-dessous)
 
-Header et footer incluent la baseline, les liens Preuve / Expert / Avantages / Simulateur, une colonne **Ressources** pointant vers `/ressources` (études de cas, subventions & financement, webinaires Loi LOM avec badge « Bientôt disponible »), les pages légales et le lien **Désinscription / Opposition** vers `politique-confidentialite#desinscription`.
+Header et footer incluent la baseline, les liens Preuve / Expert / Avantages / Simulateur, une colonne **Ressources** pointant vers `/ressources` (études de cas, subventions & financement, webinaires), les pages légales et le lien **Désinscription / Opposition** vers `politique-confidentialite#desinscription`.
 
 ### 3.3 Alignement avec le fonctionnement imaginé (entonnoir en 5 étapes)
 
@@ -63,11 +63,11 @@ Le site implémente le funnel décrit dans *Fonctionnement imaginé de Aegis Sol
 
 | Étape | Implémentation sur le site |
 |-------|----------------------------|
-| **1. Acquisition** | Landing optimisée SEO (Loi LOM, Décret Tertiaire), études de cas (Preuve), CTA unique. Prêt pour Google Ads / LinkedIn Ads ; page **Ressources** (`/ressources`) : études de cas, subventions & financement, webinaires Loi LOM (bientôt). |
+| **1. Acquisition** | Landing optimisée SEO (PEB, panneaux solaires B2B Wallonie), études de cas (Preuve), CTA unique. Prêt pour Google Ads / LinkedIn Ads ; page **Ressources** (`/ressources`) : études de cas, subventions & financement, webinaires. |
 | **2. Qualification (simulateur)** | Saisie nature du site (parking > 1 500 m², toiture > 500 m²) + facture ; calcul ROI (8–12 ans) ; **gated content** : message explicite « audit de faisabilité complet et résultats détaillés » contre coordonnées pro. |
 | **3. Traitement & RGPD** | Opt-in non pré-coché, mentions Art. 13/14, désinscription. **Filtrage automatique** : surface min selon type, facture min 5 000 €, refus des emails grand public (gmail, etc.) pour ne garder que des contacts B2B. |
 | **4. Distribution** | Enregistrement en base + **webhook optionnel** (`LEAD_WEBHOOK_URL`) : envoi en temps réel du lead vers CRM (HubSpot, Pipedrive, CBM Manager) ou installateur partenaire. |
-| **5. Nurturing** | Mentionné en politique de confidentialité (témoignages, échéances Loi LOM, webinaires) ; à opérer côté CRM / emailing. |
+| **5. Nurturing** | Mentionné en politique de confidentialité (témoignages, actualités réglementaires Wallonie / PEB, webinaires) ; à opérer côté CRM / emailing. |
 
 ---
 
@@ -206,7 +206,7 @@ En résumé : **Vercel + Supabase suffisent pour faire tourner le site et enregi
 ## 10. Historique des mises à jour du document
 
 - **Création** : description complète du fonctionnement, stack, déploiement Vercel, rôle de Digital Ocean, variables d’environnement et recommandation sur l’usage de la clé service role Supabase pour l’API.
-- **Alignement « Fonctionnement imaginé »** : ajout de la section 3.3 (entonnoir 5 étapes : Acquisition, Qualification, RGPD/filtrage, Distribution, Nurturing). Simulateur : promesse « audit de faisabilité complet » et « résultats détaillés » (gated). API : validation surface selon type (1 500 / 500 m²), filtrage email pro (refus domaines grand public), webhook optionnel `LEAD_WEBHOOK_URL` pour distribution temps réel. Politique de confidentialité : qualité des données (filtrage des leads non qualifiés), lead nurturing (témoignages, Loi LOM, webinaires). Footer : colonne Ressources (études de cas, subventions & financement, webinaires à venir).
+- **Alignement « Fonctionnement imaginé »** : ajout de la section 3.3 (entonnoir 5 étapes : Acquisition, Qualification, RGPD/filtrage, Distribution, Nurturing). Simulateur : promesse « audit de faisabilité complet » et « résultats détaillés » (gated). API : validation surface selon type (1 500 / 500 m²), filtrage email pro (refus domaines grand public), webhook optionnel `LEAD_WEBHOOK_URL` pour distribution temps réel. Politique de confidentialité : qualité des données (filtrage des leads non qualifiés), lead nurturing (témoignages, actualités PEB / Wallonie, webinaires). Footer : colonne Ressources (études de cas, subventions & financement, webinaires).
 - **Responsive** : optimisation multi-appareils (desktop, tablette, smartphone). Base : `overflow-x: hidden`, viewport, `min-w-0` sur conteneurs flex/grid. Header : bouton menu 44px touch, nav mobile avec zones de tap, safe-area. Hero : titres en échelle (2xl → 6xl), CTA et trust grid adaptés. Footer : grille 1/2/5 colonnes, email `break-all`. Simulateur : padding et boutons full-width sur mobile, grilles 1 col puis 2. Sections Preuve, Expert, Benefits : grilles et typo responsive. Pages légales : titres et padding adaptés. Lien d’évitement avec safe-area.
 
 **Règle :** à chaque modification ou ajout significatif sur le site (nouvelles pages, nouvelles routes API, changement de schéma, d’env ou d’hébergement), ce fichier doit être mis à jour en conséquence.

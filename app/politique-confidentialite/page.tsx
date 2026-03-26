@@ -6,7 +6,8 @@ const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.aegissolaire.co
 
 export const metadata: Metadata = {
   title: "Politique de confidentialité",
-  description: "Politique de confidentialité et protection des données personnelles d'Aegis Solaire. RGPD, durée de conservation, droits d'accès et de suppression.",
+  description:
+    "Politique de confidentialité Aegis Solaire (Belgique). RGPD, APD, durée de conservation, droits d'accès et réclamation.",
   alternates: { canonical: `${baseUrl}/politique-confidentialite` },
 }
 
@@ -65,7 +66,7 @@ export default function PolitiqueConfidentialite() {
                 <li>Calculer votre estimation de retour sur investissement</li>
                 <li>Vous recontacter pour une étude personnalisée et un audit de faisabilité</li>
                 <li>
-                  Vous envoyer des informations commerciales et du <strong>lead nurturing</strong> (témoignages d'entreprises, échéances Loi LOM, actualités, invitations webinaires) si vous avez consenti
+                  Vous envoyer des informations commerciales et du <strong>lead nurturing</strong> (témoignages d'entreprises, actualités réglementaires Wallonie / PEB, invitations webinaires) si vous avez consenti
                 </li>
                 <li>Transmission aux installateurs partenaires pour une proposition commerciale</li>
                 <li>Améliorer nos services</li>
@@ -100,7 +101,7 @@ export default function PolitiqueConfidentialite() {
               <p className="mt-4 text-muted-foreground">
                 Vos données sont conservées pendant une durée maximale de{" "}
                 <strong>3 ans</strong> a compter de votre derniere interaction
-                avec nos services, conformement aux recommandations de la CNIL.
+                avec nos services, dans le respect des bonnes pratiques RGPD et des lignes directrices de l'APD (Belgique).
               </p>
             </section>
 
@@ -184,14 +185,14 @@ export default function PolitiqueConfidentialite() {
               </h2>
               <p className="mt-4 text-muted-foreground">
                 Si vous estimez que vos droits ne sont pas respectés, vous
-                pouvez introduire une réclamation auprès de la CNIL :{" "}
+                pouvez introduire une réclamation auprès de l&apos;APD (Autorité de protection des données) :{" "}
                 <a
-                  href="https://www.cnil.fr"
+                  href="https://www.autoriteprotectiondonnees.be"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline"
                 >
-                  www.cnil.fr
+                  www.autoriteprotectiondonnees.be
                 </a>
               </p>
             </section>

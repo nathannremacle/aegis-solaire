@@ -18,10 +18,10 @@ export function WebinairePromo() {
             </div>
             <div className="min-w-0">
               <h4 id="webinaire-promo-title" className="text-lg font-bold text-foreground sm:text-xl">
-                Replay : Masterclass Zéro CAPEX
+                Replay : sécuriser prix & patrimoine en Wallonie
               </h4>
               <p className="mt-1 text-sm text-muted-foreground">
-                Financer 100% de votre solaire par le Tiers-Investissement — replay vidéo exclusif (Sofiac, Orange Business).
+                Corporate PPA, tiers-investissement et lecture des Certificats Verts pour les DAF : comment Aegis Solaire structure des projets B2B à forte valeur, sans perdre le fil du raccordement GRD (Ores, Resa) ni du calendrier SPW.
               </p>
             </div>
           </div>

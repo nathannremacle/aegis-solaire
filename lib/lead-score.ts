@@ -1,12 +1,5 @@
 /**
- * Scoring prédictif du lead (qualification B2B).
- * Attribue une note sur 100 selon les règles métiers et détermine le statut recommandé (HOT_LEAD / new / NEEDS_HUMAN_REVIEW).
- *
- * Règles :
- * - Délai "Urgent (< 3 mois)" = +40 pts / "3 à 6 mois" = +20 pts / "> 6 mois" = 0 pt.
- * - Fonction contient "Directeur", "DAF", "PDG", "CEO", "Gérant" = +20 pts.
- * - Facture annuelle > 50 000 € = +20 pts.
- * - Option IRVE cochée = +20 pts.
+ * Scoring prédictif du lead (qualification B2B) — tunnel Wallonie.
  */
 
 const HIGH_VALUE_JOB_KEYWORDS = [
@@ -16,6 +9,7 @@ const HIGH_VALUE_JOB_KEYWORDS = [
   "ceo",
   "gérant",
   "gerant",
+  "dirigeant",
 ]
 
 /** Détecte noms/prénoms suspects (suites de lettres sans sens, caractères bizarres). */
@@ -36,10 +30,8 @@ export type LeadScoreInput = {
   jobTitle: string
   surfaceArea: number
   annualElectricityBill: number
-  /** Délai projet : urgent | 3_6_months | 6_plus_months */
-  projectTimeline?: string | null
-  /** Option IRVE cochée */
-  wantsIrve?: boolean
+  /** GRD renseigné (hors « je ne sais pas ») */
+  grd?: string | null
 }
 
 export type LeadScoreResult = {
@@ -49,30 +41,23 @@ export type LeadScoreResult = {
 
 /**
  * Calcule le score de qualification du lead (0–100) et le statut recommandé.
- * - score > 70 → HOT_LEAD (badge rouge/feu)
- * - score 40–70 → new (badge orange)
- * - score < 40 → NEEDS_HUMAN_REVIEW (badge gris)
  */
 export function calculateLeadScore(data: LeadScoreInput): LeadScoreResult {
   let score = 0
 
-  // Délai : Urgent = +40, 3 à 6 mois = +20, > 6 mois = 0
-  if (data.projectTimeline === "urgent") score += 40
-  else if (data.projectTimeline === "3_6_months") score += 20
-  // 6_plus_months ou non renseigné = 0
+  if (data.annualElectricityBill > 100_000) score += 35
+  else if (data.annualElectricityBill > 50_000) score += 25
+  else if (data.annualElectricityBill > 20_000) score += 15
 
-  // Fonction à fort pouvoir de décision = +20
+  if (data.surfaceArea >= 1_500) score += 20
+  else if (data.surfaceArea >= 500) score += 10
+
   const jobLower = data.jobTitle.trim().toLowerCase()
   const isHighValueJob = HIGH_VALUE_JOB_KEYWORDS.some((kw) => jobLower.includes(kw))
   if (isHighValueJob) score += 20
 
-  // Facture annuelle > 50 000 € = +20
-  if (data.annualElectricityBill > 50_000) score += 20
+  if (data.grd && data.grd !== "unknown") score += 5
 
-  // Option IRVE cochée = +20
-  if (data.wantsIrve === true) score += 20
-
-  // Pénalité si nom/prénom suspects (bot / faux)
   if (hasSuspiciousName(data.firstName) || hasSuspiciousName(data.lastName)) score -= 50
 
   score = Math.max(0, Math.min(100, score))

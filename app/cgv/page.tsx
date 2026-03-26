@@ -113,7 +113,7 @@ export default function CGV() {
                 7. Droit applicable
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Les présentes CGV sont soumises au droit applicable (France, Belgique, francophonie). En cas de
+                Les présentes CGV sont soumises au droit belge. En cas de
                 litige, les tribunaux compétents seront seuls compétents.
               </p>
             </section>

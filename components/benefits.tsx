@@ -5,25 +5,25 @@ const benefits = [
     icon: Wallet,
     title: "Réduisez vos coûts énergétiques",
     description:
-      "Jusqu'à 70 % d'économies sur votre facture d'électricité grâce à l'autoconsommation. Amortissez votre investissement en moins de 8 ans.",
+      "Autoconsommation et arbitrage sur les flux de Certificats Verts pour améliorer la VAN : un projet B2B wallon se modèle sur votre profil de charge, votre GRD et votre réservation SPW.",
   },
   {
     icon: Leaf,
-    title: "Renforcez votre engagement RSE",
+    title: "Alignez RSE et exigences PEB / PACE",
     description:
-      "Réduisez votre empreinte carbone et communiquez sur vos actions concrètes pour l'environnement auprès de vos clients et partenaires.",
+      "Donnez de la lisibilité à votre trajectoire bas-carbone et aux critères ESG : un actif mieux documenté soutient le financement et la crédibilité auprès des partenaires et investisseurs.",
   },
   {
     icon: Building2,
-    title: "Valorisez votre patrimoine",
+    title: "Valorisez votre patrimoine industriel",
     description:
-      "Une installation photovoltaïque augmente la valeur de vos actifs immobiliers et améliore le DPE de vos bâtiments.",
+      "Un site aligné sur la performance PEB et le Plan PACE 2030 limite le risque de décote sur les actifs logistiques ou industriels lors d'une cession ou d'un refinancement.",
   },
   {
     icon: BarChart3,
     title: "Sécurisez votre budget énergie",
     description:
-      "Protégez-vous contre la volatilité des prix de l'électricité avec une production stable et prévisible sur 25 ans.",
+      "Corporate PPA ou tiers-investissement pour figer un prix ou éviter le CAPEX : réduisez l'exposition au marché de gros tout en protégeant votre trésorerie sur la durée du contrat.",
   },
 ]
 
@@ -36,7 +36,7 @@ export function Benefits() {
             Pourquoi passer au solaire B2B ?
           </h4>
           <p className="mt-3 text-base text-muted-foreground sm:mt-4 sm:text-lg">
-            Des avantages concrets pour votre entreprise et votre bilan carbone.
+            Aegis Solaire accompagne les directions financières et techniques sur le marché wallon : rentabilité, conformité et valeur d’actif, sans sous-estimer le réseau (raccordement, injection).
           </p>
         </div>
 

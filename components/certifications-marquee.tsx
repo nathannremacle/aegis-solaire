@@ -2,14 +2,14 @@
 
 /**
  * Bandeau défilant des logos certifications / partenaires.
- * Fichiers attendus dans public/logos/ : rge.png, qualipv.png, ademe.png, france-relance.png
+ * Fichiers attendus dans public/logos/ : rge.png, qualipv.png, ademe.png, spw-energie.png (ou .svg)
  * (ou .svg à la place de .png). Hauteur recommandée : 96–120 px.
  */
 const LOGOS = [
   { src: "/logos/rge.png", alt: "RGE - Reconnu Garant de l'Environnement", name: "RGE" },
   { src: "/logos/qualipv.png", alt: "QualiPV", name: "QualiPV" },
   { src: "/logos/ademe.png", alt: "ADEME", name: "ADEME" },
-  { src: "/logos/france-relance.png", alt: "France Relance", name: "France Relance" },
+  { src: "/logos/spw-energie.png", alt: "SPW Énergie — Wallonie", name: "SPW Énergie" },
 ]
 
 function LogoItem({ src, alt, name }: { src: string; alt: string; name: string }) {

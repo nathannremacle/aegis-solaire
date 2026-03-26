@@ -23,7 +23,7 @@ Les **installateurs** ne se connectent pas au site : ils reçoivent les leads so
 
 1. **Page d’accueil**  
    - Hero avec CTA « Lancer ma simulation de rentabilité ».  
-   - Sections : Preuve (études de cas), Expert (obligations Loi LOM / Décret Tertiaire, financement PPA et tiers-investissement), Avantages, puis **Simulateur**. Le footer propose un lien **« Devenir Partenaire »** vers **/partenaires**.
+   - Sections : Preuve (études de cas), Expert (cadre wallon PEB / CV, financement PPA et tiers-investissement), Avantages, puis **Simulateur**. Le footer propose un lien **« Devenir Partenaire »** vers **/partenaires**.
 
 2. **Page Devenir Partenaire (/partenaires)**  
    - Landing B2B inversée (Aegis s’adresse aux installateurs) : hero, avantages (leads exclusifs, qualification, RGPD), formulaire de candidature. Formulaire : entreprise (nom, SIRET), contact (prénom, nom, fonction, email pro, téléphone), certifications **RGE** et **QualiPV** (numéro RGE + case QualiPV obligatoire), zone d’intervention (région). Soumission vers **POST /api/installateurs/register**. Message de succès : « Votre demande a bien été envoyée. Notre équipe va vérifier vos certifications RGE/QualiPV et vous recontactera sous 48h. »
@@ -31,7 +31,7 @@ Les **installateurs** ne se connectent pas au site : ils reçoivent les leads so
 3. **Simulateur (formulaire multi-étapes)**  
    - **Étape 1 – Objectif** : intention principale (conformité, réduction facture, RSE, revenu).  
    - **Étape 2 – Votre site** : type de surface (Parking, Toiture, Friche), surface en m².  
-   - **Étape 3 – Votre consommation** : facture d’électricité annuelle en € HT (min. 5 000 €), et **option IRVE** : case à cocher optionnelle « Je souhaite coupler ce projet avec l’installation de bornes de recharge (IRVE) ». La Loi LOM impose souvent solaire + IRVE ; un lead Solaire + IRVE a une valeur upsell plus forte.  
+   - **Étape 3 – Votre consommation** : facture d’électricité annuelle en € HT (min. 5 000 €), et **option IRVE** : case à cocher optionnelle « Je souhaite coupler ce projet avec l’installation de bornes de recharge (IRVE) ». Coupler solaire et IRVE renforce souvent la cohérence du dossier ; un lead Solaire + IRVE a une valeur upsell plus forte.  
    - **Étape 4 – Délai de votre projet** : Urgent (< 3 mois), 3 à 6 mois, ou Plus de 6 mois (exploratoire).  
    - **Étape 5 – Transition** : animation « Calcul en cours » (~6 s).  
    - **Étape 6 – Contact** : prénom, nom, email professionnel, téléphone, fonction, entreprise (optionnel), message libre (optionnel), case consentement (transmission aux installateurs + offres Aegis), bloc RGPD.  
@@ -138,7 +138,7 @@ Accès : **/admin** (redirection vers **/admin/dashboard**). Connexion obligatoi
 - **Export** : export CSV pour partager les leads ; **tous les filtres** sont appliqués (statut, installateur, recherche, date du/au, surface min, type de surface, région installateur).  
 - **Filtres avancés** : date (création), surface minimum (m²), type de surface, région de l’installateur assigné (liste dérivée des installateurs).  
 - **Logs d’audit** : toutes les actions sensibles (modification lead, envoi email installateur, export CSV, nettoyage RGPD) sont enregistrées dans la table `audit_log` (admin, action, entité, détails). Consultation dans **/admin/audit**.  
-- **Nettoyage RGPD** : une route API protégée **POST /api/admin/cleanup-leads** permet d’**anonymiser** les leads dont la date de création (`created_at`) est **strictement supérieure à 3 ans** (36 mois). C’est une obligation légale CNIL pour la prospection B2B. Un bouton « Nettoyage RGPD (3 ans) » est disponible sur la page Leads ; après confirmation, les enregistrements concernés sont anonymisés (nom, email, téléphone, entreprise, message remplacés par des valeurs génériques), les lignes restent en base pour les statistiques agrégées.
+- **Nettoyage RGPD** : une route API protégée **POST /api/admin/cleanup-leads** permet d’**anonymiser** les leads dont la date de création (`created_at`) est **strictement supérieure à 3 ans** (36 mois). Aligné sur les recommandations RGPD / APD (Belgique) pour la prospection B2B. Un bouton « Nettoyage RGPD (3 ans) » est disponible sur la page Leads ; après confirmation, les enregistrements concernés sont anonymisés (nom, email, téléphone, entreprise, message remplacés par des valeurs génériques), les lignes restent en base pour les statistiques agrégées.
 
 ### 5.2 Gestion des installateurs
 

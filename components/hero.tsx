@@ -33,13 +33,13 @@ export function Hero() {
 
           {/* Headline – échelle responsive mobile → desktop */}
           <h1 className="text-balance text-2xl font-bold tracking-tight text-foreground min-[480px]:text-3xl sm:text-4xl sm:min-[640px]:text-5xl lg:text-6xl">
-            Transformez vos parkings et toitures en{" "}
-            <span className="text-primary">centres de profit</span>. Mise en conformité Loi LOM garantie.
+            Transformez vos parkings et toitures industrielles en{" "}
+            <span className="text-primary">centres de profit</span>.
           </h1>
 
           {/* Subheadline */}
           <p className="mt-4 text-pretty text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg sm:min-[640px]:text-xl">
-            Décret Tertiaire, ombrières &gt; 1 500 m², toitures &gt; 500 m² : calculez votre ROI en 2 minutes et recevez une étude personnalisée gratuite.
+            Anticipez les objectifs du Plan PACE 2030 et optimisez votre performance PEB. Estimez votre ROI en 2 minutes et découvrez comment financer votre projet grâce aux Certificats Verts (CWaPE), au Tiers-investissement ou au Prêt Easy&apos;Green.
           </p>
 
           {/* CTA unique et contrasté */}

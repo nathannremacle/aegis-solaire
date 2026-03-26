@@ -5,7 +5,7 @@ import { logAudit } from "@/lib/audit-log"
 
 /**
  * Nettoyage RGPD : anonymiser les leads dont la date de création est strictement
- * supérieure à 3 ans (36 mois). Obligation CNIL pour la prospection B2B.
+ * supérieure à 3 ans (36 mois). Aligné sur les recommandations RGPD / APD (Belgique) pour la prospection B2B.
  * Protégé : réservé aux administrateurs (ADMIN_EMAILS).
  */
 export async function POST() {

@@ -26,7 +26,7 @@ export default function MentionsLegales() {
                 1. Éditeur du site
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Aegis Solaire – Plateforme en ligne dédiée aux projets photovoltaïques B2B (France, Belgique, francophonie).
+                Aegis Solaire – Plateforme en ligne dédiée aux projets photovoltaïques B2B en Wallonie et en Belgique.
                 <br />
                 Contact : contact@aegissolaire.com
               </p>
@@ -61,7 +61,7 @@ export default function MentionsLegales() {
                 4. Données personnelles
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Conformément au RGPD et à la loi Informatique et Libertés, vous
+                Conformément au RGPD et au droit belge en matière de protection des données, vous
                 disposez d'un droit d'accès, de rectification et de suppression
                 de vos données. Pour exercer ces droits, contactez-nous à
                 l'adresse : dpo@aegissolaire.com

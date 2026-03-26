@@ -7,7 +7,7 @@ import { Shield, Users, FileCheck, ArrowDown } from "lucide-react"
 export const metadata = {
   title: "Devenir Partenaire | Aegis Solaire",
   description:
-    "Rejoignez le réseau d'installateurs Aegis Solaire. Recevez des chantiers photovoltaïques B2B exclusifs (toitures > 500 m², ombrières > 1 500 m²). Certifications RGE et QualiPV requises.",
+    "Rejoignez le réseau d'installateurs Aegis Solaire en Wallonie. Chantiers photovoltaïques B2B qualifiés (toitures, parkings). Certifications RGE et QualiPV requises.",
 }
 
 export default function PartenairesPage() {
@@ -26,7 +26,7 @@ export default function PartenairesPage() {
               Accélérez votre croissance. Recevez des chantiers photovoltaïques B2B exclusifs.
             </h1>
             <p className="mt-6 text-pretty text-base leading-relaxed text-primary-foreground/90 sm:text-lg lg:text-xl">
-              Toitures &gt; 500 m², Ombrières de parkings &gt; 1 500 m². Nous sourçons et qualifions les décideurs soumis au Décret Tertiaire. Vous signez les chantiers.
+              Toitures &gt; 500 m², ombrières de parkings &gt; 1 500 m². Nous sourçons et qualifions les décideurs confrontés aux obligations PEB et à la rentabilité solaire en Wallonie. Vous signez les chantiers.
             </p>
             <div className="mt-10">
               <a href="#candidature">

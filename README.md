@@ -1,6 +1,6 @@
 # Aegis Solaire
 
-Plateforme de mise en relation (lead generation) dédiée au photovoltaïque B2B pour les entreprises et l'industrie (C&I). Cible : décideurs souhaitant équiper toitures (> 500 m²) ou parkings (> 1 500 m²) pour la conformité Loi LOM et Décret Tertiaire.
+Plateforme de mise en relation (lead generation) dédiée au photovoltaïque B2B en Wallonie : obligations PEB, Certificats Verts, rentabilité entreprises et mise en relation avec des installateurs certifiés.
 
 **→ Fonctionnement détaillé, déploiement (Vercel / Digital Ocean) et architecture : voir [DOCUMENTATION.md](./DOCUMENTATION.md).** Ce fichier est tenu à jour à chaque modification ou ajout sur le site.
 
