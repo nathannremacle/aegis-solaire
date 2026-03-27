@@ -12,38 +12,36 @@ export function Hero() {
   }
 
   return (
-    <section className="relative overflow-x-hidden bg-gradient-to-b from-primary/5 to-background py-10 sm:py-20 lg:py-28 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
-      {/* Background decoration */}
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-accent/10 blur-3xl" />
-        <div className="absolute bottom-0 left-0 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
-      </div>
+    <section
+      className="relative flex min-h-[calc(100dvh-4rem)] flex-col overflow-x-hidden bg-[url('/hero-background.png')] bg-cover bg-center bg-no-repeat sm:min-h-[calc(100dvh-5rem)] [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
+    >
+      <div className="absolute inset-0 bg-gradient-to-b from-primary/40 via-primary/70 to-primary/95" />
 
-      <div className="mx-auto max-w-7xl min-w-0 px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 mx-auto flex max-w-7xl flex-1 items-center min-w-0 px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
           {/* Badge */}
-          <div className="mb-4 flex flex-wrap justify-center gap-2 sm:mb-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1.5 sm:px-4">
+          <div className="mb-3 flex flex-wrap justify-center gap-2 sm:mb-5">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 sm:px-4">
               <Zap className="h-4 w-4 shrink-0 text-accent" />
-              <span className="text-xs font-medium text-accent sm:text-sm">
+              <span className="text-xs font-medium text-neutral-50 sm:text-sm">
                 +500 entreprises accompagnées
               </span>
             </div>
           </div>
 
-          {/* Headline – échelle responsive mobile → desktop */}
-          <h1 className="text-balance text-2xl font-bold tracking-tight text-foreground min-[480px]:text-3xl sm:text-4xl sm:min-[640px]:text-5xl lg:text-6xl">
+          {/* Headline */}
+          <h1 className="text-balance text-2xl font-bold tracking-tight text-white min-[480px]:text-3xl sm:text-4xl md:text-5xl lg:text-6xl">
             Transformez vos parkings et toitures industrielles en{" "}
-            <span className="text-primary">centres de profit</span>.
+            <span className="text-accent">centres de profit</span>.
           </h1>
 
           {/* Subheadline */}
-          <p className="mt-4 text-pretty text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg sm:min-[640px]:text-xl">
+          <p className="mt-3 text-pretty text-sm leading-relaxed text-neutral-200 sm:mt-5 sm:text-lg md:text-xl">
             Anticipez les objectifs du Plan PACE 2030 et optimisez votre performance PEB. Estimez votre ROI en 2 minutes et découvrez comment financer votre projet grâce aux Certificats Verts (CWaPE), au Tiers-investissement ou au Prêt Easy&apos;Green.
           </p>
 
-          {/* CTA unique et contrasté */}
-          <div className="mt-8 flex flex-col items-stretch justify-center gap-4 sm:mt-10 sm:flex-row sm:items-center">
+          {/* CTA */}
+          <div className="mt-5 flex flex-col items-stretch justify-center gap-3 sm:mt-8 sm:flex-row sm:items-center">
             <Button
               size="lg"
               onClick={scrollToSimulator}
@@ -55,7 +53,7 @@ export function Hero() {
             </Button>
             <a
               href="#expert"
-              className="py-2 text-center text-sm text-muted-foreground underline hover:text-foreground sm:py-0"
+              className="py-1 text-center text-sm text-neutral-300 underline hover:text-white sm:py-0"
               onClick={(e) => {
                 e.preventDefault()
                 document.getElementById("expert")?.scrollIntoView({ behavior: "smooth" })
@@ -65,27 +63,27 @@ export function Hero() {
             </a>
           </div>
 
-          {/* Trust indicators – 1 col mobile, 3 cols tablet+ */}
-          <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-10 sm:grid-cols-3 sm:gap-6">
-            <div className="flex items-center justify-center gap-3 rounded-xl border border-border/70 bg-card/60 p-4 shadow-sm backdrop-blur">
-              <TrendingUp className="h-8 w-8 text-accent" />
-              <div className="text-left">
-                <p className="text-2xl font-bold text-foreground">7 ans</p>
-                <p className="text-sm text-muted-foreground">ROI moyen</p>
+          {/* Trust indicators — always 3 cols */}
+          <div className="mt-5 grid grid-cols-3 gap-2 sm:mt-8 sm:gap-5">
+            <div className="flex flex-col items-center gap-1 rounded-xl border border-white/15 bg-white/10 px-2 py-3 shadow-sm backdrop-blur-sm sm:flex-row sm:gap-3 sm:px-4 sm:py-4">
+              <TrendingUp className="h-6 w-6 text-accent sm:h-8 sm:w-8" />
+              <div className="text-center sm:text-left">
+                <p className="text-lg font-bold text-white sm:text-2xl">7 ans</p>
+                <p className="text-[11px] leading-tight text-neutral-300 sm:text-sm">ROI moyen</p>
               </div>
             </div>
-            <div className="flex items-center justify-center gap-3 rounded-xl border border-border/70 bg-card/60 p-4 shadow-sm backdrop-blur">
-              <Shield className="h-8 w-8 text-accent" />
-              <div className="text-left">
-                <p className="text-2xl font-bold text-foreground">25 ans</p>
-                <p className="text-sm text-muted-foreground">Garantie panneaux</p>
+            <div className="flex flex-col items-center gap-1 rounded-xl border border-white/15 bg-white/10 px-2 py-3 shadow-sm backdrop-blur-sm sm:flex-row sm:gap-3 sm:px-4 sm:py-4">
+              <Shield className="h-6 w-6 text-accent sm:h-8 sm:w-8" />
+              <div className="text-center sm:text-left">
+                <p className="text-lg font-bold text-white sm:text-2xl">25 ans</p>
+                <p className="text-[11px] leading-tight text-neutral-300 sm:text-sm">Garantie panneaux</p>
               </div>
             </div>
-            <div className="flex items-center justify-center gap-3 rounded-xl border border-border/70 bg-card/60 p-4 shadow-sm backdrop-blur">
-              <Zap className="h-8 w-8 text-accent" />
-              <div className="text-left">
-                <p className="text-2xl font-bold text-foreground">70%</p>
-                <p className="text-sm text-muted-foreground">Autoconsommation</p>
+            <div className="flex flex-col items-center gap-1 rounded-xl border border-white/15 bg-white/10 px-2 py-3 shadow-sm backdrop-blur-sm sm:flex-row sm:gap-3 sm:px-4 sm:py-4">
+              <Zap className="h-6 w-6 text-accent sm:h-8 sm:w-8" />
+              <div className="text-center sm:text-left">
+                <p className="text-lg font-bold text-white sm:text-2xl">70%</p>
+                <p className="text-[11px] leading-tight text-neutral-300 sm:text-sm">Autoconsommation</p>
               </div>
             </div>
           </div>

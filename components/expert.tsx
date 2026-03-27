@@ -1,9 +1,22 @@
 "use client"
 
 import { useRef, useState } from "react"
-import { CheckCircle2, Pause, Play, AlertTriangle } from "lucide-react"
+import {
+  CheckCircle2,
+  Pause,
+  Play,
+  AlertTriangle,
+  Scale,
+  Banknote,
+  Users,
+  Zap,
+  Activity,
+  Clock,
+  ShieldCheck,
+  Wrench,
+  Award,
+} from "lucide-react"
 
-/** Retourne l'URL d'embed YouTube ou Vimeo, ou null si non reconnu. */
 function getEmbedVideoUrl(url: string): string | null {
   try {
     const u = new URL(url)
@@ -26,19 +39,19 @@ function getEmbedVideoUrl(url: string): string | null {
 }
 
 const LOCAL_VIDEO_SRC = "/videos/virageenergitiquewallon.mp4"
-const VIDEO_TITLE = "Vidéo — Wallonie : PEB, Plan PACE 2030 et financement (PPA, tiers-investissement)"
+const VIDEO_TITLE =
+  "Vidéo — Wallonie : PEB, Plan PACE 2030 et financement (PPA, tiers-investissement)"
 
 function FounderVideoBlock() {
   const videoUrl = process.env.NEXT_PUBLIC_FOUNDER_VIDEO_URL
   const embedUrl = videoUrl ? getEmbedVideoUrl(videoUrl) : null
-  // Hooks must be called unconditionally (lint rule-of-hooks).
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
 
   if (embedUrl) {
     return (
       <div
-        className="relative aspect-video w-full min-w-0 overflow-hidden rounded-xl border border-border bg-muted"
+        className="relative aspect-video w-full min-w-0 overflow-hidden rounded-xl bg-muted"
         aria-label={VIDEO_TITLE}
       >
         <iframe
@@ -66,10 +79,13 @@ function FounderVideoBlock() {
 
   return (
     <div
-      className="group relative aspect-video w-full min-w-0 cursor-pointer overflow-hidden rounded-xl border border-border bg-muted"
+      className="group relative aspect-video w-full min-w-0 cursor-pointer overflow-hidden rounded-xl bg-muted"
       aria-label={VIDEO_TITLE}
       onClick={togglePlay}
-      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), togglePlay())}
+      onKeyDown={(e) =>
+        (e.key === "Enter" || e.key === " ") &&
+        (e.preventDefault(), togglePlay())
+      }
       role="button"
       tabIndex={0}
     >
@@ -104,124 +120,189 @@ function FounderVideoBlock() {
 }
 
 const credentials = [
-  "Plus de 15 ans d'expérience dans le photovoltaïque B2B (Belgique, francophonie)",
-  "Partenaires d'installation couverts par la certification RESCERT Photovoltaïque et respect strict du RGIE (régime général sur les installations électriques) — indispensable pour assurances et Certificats Verts",
-  "Partenaire exclusif de fabricants premium (SunPower, Enphase)",
-  "Structuration de projets : audit, réservation CV (SPW Énergie), montage Corporate PPA ou tiers-investissement, installation, maintenance",
-  "Garantie décennale et assurance tous risques",
+  {
+    icon: Award,
+    text: "15+ ans d\u2019exp\u00e9rience en photovolta\u00efque B2B (Belgique & Europe)",
+  },
+  {
+    icon: ShieldCheck,
+    text: "Installateurs certifi\u00e9s RESCERT Photovolta\u00efque & conformes RGIE",
+  },
+  {
+    icon: Zap,
+    text: "Partenaire exclusif SunPower & Enphase (fabricants premium)",
+  },
+  {
+    icon: Wrench,
+    text: "Audit \u2192 r\u00e9servation Certificats Verts \u2192 installation \u2192 maintenance",
+  },
+  {
+    icon: ShieldCheck,
+    text: "Garantie d\u00e9cennale & assurance tous risques incluses",
+  },
 ]
 
 const stats = [
-  { value: "500+", label: "Entreprises équipées" },
-  { value: "150 MW", label: "Puissance installée" },
-  { value: "98%", label: "Satisfaction client" },
-  { value: "24/7", label: "Monitoring inclus" },
+  { value: "500+", label: "Entreprises \u00e9quip\u00e9es", icon: Users },
+  { value: "150 MW", label: "Puissance install\u00e9e", icon: Zap },
+  { value: "98 %", label: "Satisfaction client", icon: Activity },
+  { value: "24/7", label: "Monitoring inclus", icon: Clock },
 ]
 
 export function Expert() {
   return (
-    <section id="expert" className="scroll-mt-24 overflow-x-hidden bg-secondary py-14 sm:py-20 lg:py-24 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
+    <section
+      id="expert"
+      className="scroll-mt-24 overflow-x-hidden bg-secondary py-16 sm:py-20 lg:py-28 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
+    >
       <div className="mx-auto max-w-7xl min-w-0 px-4 sm:px-6 lg:px-8">
-        {/* En-tête : titre + intro */}
-        <header className="mb-10 lg:mb-12">
-          <h4 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
+        {/* ── Header ── */}
+        <header className="mx-auto mb-12 max-w-3xl text-center lg:mb-16">
+          <span className="mb-3 inline-block text-xs font-semibold uppercase tracking-widest text-accent sm:text-sm">
+            Notre expertise
+          </span>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl xl:text-[2.75rem] xl:leading-tight">
             Un partenaire de confiance pour votre transition énergétique
-          </h4>
-          <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Aegis Solaire simplifie la lecture de la rentabilité et du financement face aux nouvelles obligations PEB et à la trajectoire du Plan Air Climat Énergie (PACE 2030) en Wallonie. Nous structurons vos dossiers avec des Corporate PPA ou du tiers-investissement, en intégrant le mécanisme des Certificats Verts (CWaPE) lorsque votre centrale est éligible.
+          </h2>
+          <p className="mt-4 text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
+            Rentabilité, financement et conformité PEB en Wallonie : nous
+            structurons vos dossiers Corporate PPA ou tiers-investissement et
+            intégrons les Certificats Verts (CWaPE) dès que votre centrale est
+            éligible.
           </p>
         </header>
 
-        {/* Alerte sanctions : bandeau discret mais visible */}
-        <div className="mb-10 flex min-w-0 items-start gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-4 sm:px-5 sm:py-5">
-          <AlertTriangle className="mt-0.5 h-6 w-6 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden />
-          <p className="min-w-0 break-words text-sm font-medium text-foreground sm:text-base">
-            <span className="font-semibold text-amber-700 dark:text-amber-400">En Wallonie</span>, le durcissement des exigences PEB et l&apos;accélération du Plan PACE 2030 transforment la transition énergétique en enjeu de valeur : un patrimoine industriel ou logistique mal aligné sur ces trajectoires peut perdre en attractivité et en liquidité à la revente ou au refinancement.
-          </p>
-        </div>
-
-        <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-14">
-          {/* Colonne gauche */}
-          <div className="min-w-0 space-y-8">
-            <div>
-              <h4 className="text-base font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
-                Conformité & cadre légal
-              </h4>
-              <p className="mt-2 text-sm leading-relaxed text-foreground sm:text-base">
-                Les exigences de <strong>performance PEB</strong> pour le non résidentiel, le <strong>Plan PACE 2030</strong> et la transposition progressive de la directive européenne PEB (solarisation des grands bâtiments, trajectoire ZEB) imposent d&apos;intégrer massivement les énergies renouvelables et de sécuriser l&apos;électrification des sites (y compris via les <strong>IRVE</strong> sur parkings). Nous vous aidons à cadrer le projet réglementairement tout en maximisant la rentabilité — notamment via les <strong>Certificats Verts</strong> et le pilotage avec les gestionnaires de réseau (ex. <strong>Ores</strong>, <strong>Resa</strong>, <strong>Elia</strong> selon le cas).
+        {/* ── Stats strip ── */}
+        <div className="mb-12 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 lg:mb-16">
+          {stats.map((stat) => (
+            <div
+              key={stat.label}
+              className="group relative overflow-hidden rounded-2xl border border-border bg-card p-5 text-center shadow-sm transition-all hover:shadow-md sm:p-6"
+            >
+              <stat.icon className="mx-auto mb-2 h-6 w-6 text-accent opacity-70 transition-transform group-hover:scale-110 sm:h-7 sm:w-7" />
+              <p className="text-2xl font-bold text-primary sm:text-3xl">
+                {stat.value}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+                {stat.label}
               </p>
             </div>
+          ))}
+        </div>
 
-            <div>
-              <h4 className="text-base font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
-                Solutions de financement
-              </h4>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                {/* Carte Tiers-Investissement – texte collé en bas */}
-                <div className="flex min-h-[180px] flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md sm:min-h-[200px]">
-                  <h4 className="text-base font-semibold leading-snug text-foreground sm:text-lg">
-                    Tiers-Investissement (Zéro CAPEX)
-                  </h4>
-                  <p className="mt-auto pt-3 text-sm leading-relaxed text-muted-foreground">
-                    Un tiers finance 100 % du CAPEX et de la maintenance ; les flux de <strong>Certificats Verts</strong> et la vente d&apos;électricité à votre site structurent le retour pour l&apos;investisseur, pendant que vous sécurisez prix et conformité sans alourdir le bilan.
-                  </p>
-                </div>
-                {/* Carte PPA – texte collé en bas comme l'autre */}
-                <div className="flex min-h-[180px] flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md sm:min-h-[200px]">
-                  <h4 className="text-base font-semibold leading-snug text-foreground sm:text-lg">
-                    Corporate PPA
-                  </h4>
-                  <p className="mt-auto pt-3 text-sm leading-relaxed text-muted-foreground">
-                    <strong>Corporate PPA</strong> (souvent 10 à 25 ans) : prix de l&apos;électricité fixé contractuellement, couverture contre la volatilité du marché. En <strong>on-site</strong>, l&apos;énergie est livrée derrière le compteur — levier majeur pour l&apos;autoconsommation et la maîtrise des coûts réseau, selon votre GRD et votre schéma de raccordement.
-                  </p>
-                </div>
-              </div>
+        {/* ── Video + Conformité (2 cols, stretch to same height) ── */}
+        <div className="grid items-stretch gap-6 lg:grid-cols-2 lg:gap-10">
+          {/* Video card */}
+          <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+            <div className="border-b border-border px-5 py-4">
+              <h3 className="text-base font-semibold text-foreground sm:text-lg">
+                Obligations PEB, PACE 2030 et rentabilité
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Certificats Verts, Corporate PPA et tiers-investissement —
+                vision d&apos;ensemble en quelques minutes.
+              </p>
             </div>
-
-            <div>
-              <h4 className="text-base font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
-                Nos engagements
-              </h4>
-              <ul className="mt-4 space-y-3">
-                {credentials.map((credential, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
-                    <span className="text-sm text-foreground sm:text-base">{credential}</span>
-                  </li>
-                ))}
-              </ul>
+            <div className="flex flex-1 items-center p-4 sm:p-5">
+              <FounderVideoBlock />
             </div>
           </div>
 
-          {/* Colonne droite : Vidéo + Stats */}
-          <div className="min-w-0 space-y-6 lg:sticky lg:top-28">
-            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-              <div className="border-b border-border px-4 py-4 sm:px-5 sm:py-4">
-                  <h4 className="text-base font-semibold text-foreground sm:text-lg">
-                  Vidéo — Wallonie : obligations PEB, PACE 2030 et rentabilité
-                  </h4>
-                <p className="mt-1.5 text-sm text-muted-foreground">
-                  Transition énergétique en Wallonie, rôle des Certificats Verts (CWaPE) et structuration Corporate PPA ou tiers-investissement — vision d&apos;ensemble en quelques minutes.
+          {/* Right — Conformité card stretches + alert at bottom */}
+          <div className="flex min-w-0 flex-col gap-5">
+            <div className="flex flex-1 flex-col rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+              <div className="mb-3 flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                  <Scale className="h-5 w-5 text-primary" />
+                </div>
+                <h3 className="text-base font-semibold text-foreground sm:text-lg">
+                  Conformité &amp; cadre légal
+                </h3>
+              </div>
+              <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+                Exigences <strong>PEB non résidentiel</strong>,{" "}
+                <strong>Plan PACE 2030</strong> et directive européenne
+                (solarisation, trajectoire ZEB) imposent d&apos;intégrer les
+                renouvelables et de sécuriser l&apos;électrification des
+                sites — y compris les <strong>IRVE</strong> sur parkings.
+                Nous cadrons le volet réglementaire en maximisant la
+                rentabilité via les <strong>Certificats Verts</strong> et le
+                pilotage avec votre GRD (Ores, Resa, Elia).
+              </p>
+              <div className="mt-auto flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-50/60 px-4 py-3 pt-4 dark:bg-amber-500/10">
+                <AlertTriangle
+                  className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400"
+                  aria-hidden
+                />
+                <p className="min-w-0 text-sm leading-relaxed text-foreground">
+                  <span className="font-semibold text-amber-700 dark:text-amber-400">
+                    Enjeu patrimonial&nbsp;:
+                  </span>{" "}
+                  un bâtiment mal aligné sur les trajectoires PEB / PACE 2030
+                  peut perdre en attractivité et en liquidité à la revente.
                 </p>
               </div>
-              <div className="p-4 sm:p-5">
-                <FounderVideoBlock />
-              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Financement ── */}
+        <div className="mt-10 lg:mt-14">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/15">
+              <Banknote className="h-5 w-5 text-accent" />
+            </div>
+            <h3 className="text-base font-semibold text-foreground sm:text-lg">
+              Solutions de financement
+            </h3>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="group flex flex-col rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:border-accent/40 hover:shadow-md sm:p-6">
+              <span className="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent/15 text-xs font-bold text-accent">
+                0 &euro;
+              </span>
+              <h4 className="text-base font-semibold text-foreground">
+                Tiers-Investissement
+              </h4>
+              <p className="mt-auto pt-3 text-sm leading-relaxed text-muted-foreground">
+                Un tiers finance 100 % du CAPEX et de la maintenance. Les
+                flux de <strong>Certificats Verts</strong> et la vente
+                d&apos;électricité structurent le retour investisseur — vous
+                sécurisez prix et conformité sans alourdir le bilan.
+              </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              {stats.map((stat, index) => (
-                <div
-                  key={index}
-                  className="rounded-xl border border-border bg-card p-4 text-center shadow-sm transition-shadow hover:shadow-md sm:p-5"
-                >
-                  <p className="text-2xl font-bold text-primary sm:text-3xl">
-                    {stat.value}
-                  </p>
-                  <p className="mt-1.5 text-xs text-muted-foreground sm:text-sm">{stat.label}</p>
-                </div>
-              ))}
+            <div className="group flex flex-col rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:border-accent/40 hover:shadow-md sm:p-6">
+              <span className="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                PPA
+              </span>
+              <h4 className="text-base font-semibold text-foreground">
+                Corporate PPA
+              </h4>
+              <p className="mt-auto pt-3 text-sm leading-relaxed text-muted-foreground">
+                Contrat 10–25 ans à prix fixe : couverture contre la
+                volatilité du marché. En <strong>on-site</strong>,
+                l&apos;énergie est livrée derrière le compteur — levier
+                majeur pour l&apos;autoconsommation et la maîtrise des coûts
+                réseau.
+              </p>
             </div>
+          </div>
+        </div>
+
+        {/* ── Engagements (compact strip) ── */}
+        <div className="mt-10 rounded-2xl border border-border bg-card px-5 py-6 shadow-sm sm:px-8 sm:py-8 lg:mt-14">
+          <h3 className="mb-5 text-center text-base font-semibold text-foreground sm:text-lg">
+            Nos engagements
+          </h3>
+          <div className="flex flex-wrap items-start justify-center gap-x-8 gap-y-4 sm:gap-x-10">
+            {credentials.map((c, i) => (
+              <div key={i} className="flex items-center gap-2.5">
+                <c.icon className="h-5 w-5 shrink-0 text-accent" />
+                <span className="text-sm text-foreground">{c.text}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
