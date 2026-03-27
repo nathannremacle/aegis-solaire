@@ -25,7 +25,7 @@ function getEmbedVideoUrl(url: string): string | null {
   return null
 }
 
-const LOCAL_VIDEO_SRC = "/videos/decrettertiaireetfinancement.mp4"
+const LOCAL_VIDEO_SRC = "/videos/virageenergitiquewallon.mp4"
 const VIDEO_TITLE = "Vidéo — Wallonie : PEB, Plan PACE 2030 et financement (PPA, tiers-investissement)"
 
 function FounderVideoBlock() {
