@@ -46,7 +46,7 @@ export default function CGV() {
               </p>
               <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
                 <li>Simulation de retour sur investissement photovoltaïque</li>
-                <li>Mise en relation avec des installateurs certifiés RGE</li>
+                <li>Mise en relation avec des installateurs certifiés RESCERT Photovoltaïque</li>
                 <li>Accompagnement dans le montage du dossier de financement</li>
                 <li>Suivi de projet jusqu'à la mise en service</li>
               </ul>
@@ -86,7 +86,7 @@ export default function CGV() {
               </p>
               <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
                 <li>
-                  Proposer uniquement des installateurs certifiés RGE et QualiPV
+                  Proposer uniquement des installateurs couverts par la certification RESCERT Photovoltaïque
                 </li>
                 <li>Recontacter le client sous 48 h ouvrées</li>
                 <li>

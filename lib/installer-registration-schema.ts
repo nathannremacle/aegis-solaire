@@ -13,10 +13,9 @@ export const installerRegistrationSchema = z.object({
     .transform((s) => s.trim()),
   siret: z
     .string()
-    .min(1, "Le numéro SIRET est requis")
+    .min(1, "Le numéro d'entreprise est requis (ex. BCE / KBO : 10 chiffres en Belgique)")
     .transform((s) => cleanSiret(s))
-    .refine((s) => s.length === 14, "Le SIRET doit comporter exactement 14 chiffres")
-    .refine((s) => /^\d{14}$/.test(s), "Le SIRET ne doit contenir que des chiffres"),
+    .refine((s) => s.length >= 10 && s.length <= 14 && /^\d+$/.test(s), "Numéro d'entreprise invalide (souvent 10 chiffres pour le BCE/KBO en Belgique)."),
   firstName: z
     .string()
     .min(2, "Le prénom est requis (minimum 2 caractères)")
@@ -45,13 +44,16 @@ export const installerRegistrationSchema = z.object({
     .refine(isValidFrBePhone, {
       message: "Veuillez indiquer un numéro de téléphone français ou belge valide.",
     }),
-  rgeNumber: z
+  rescertPhotovoltaicRef: z
     .string()
-    .min(1, "Le numéro de certification RGE est requis")
+    .min(1, "La référence RESCERT Photovoltaïque est requise")
     .max(64)
     .transform((s) => s.trim()),
-  qualiPvCertified: z.literal(true, {
-    errorMap: () => ({ message: "Vous devez certifier que votre entreprise possède la qualification QualiPV à jour." }),
+  rescertPhotovoltaicConfirmed: z.literal(true, {
+    errorMap: () => ({
+      message:
+        "Vous devez certifier que votre entreprise est couverte par la certification RESCERT Photovoltaïque à jour.",
+    }),
   }),
   region: z
     .string()
@@ -60,21 +62,15 @@ export const installerRegistrationSchema = z.object({
 
 export type InstallerRegistrationInput = z.infer<typeof installerRegistrationSchema>
 
-/** Liste des régions pour le select (zone d'intervention). */
+/** Zones d'intervention (Belgique / Wallonie). */
 export const INSTALLER_REGIONS = [
-  "Auvergne-Rhône-Alpes",
-  "Bourgogne-Franche-Comté",
-  "Bretagne",
-  "Centre-Val de Loire",
-  "Corse",
-  "Grand Est",
-  "Hauts-de-France",
-  "Île-de-France",
-  "Normandie",
-  "Nouvelle-Aquitaine",
-  "Occitanie",
-  "Pays de la Loire",
-  "Provence-Alpes-Côte d'Azur",
-  "Belgique",
-  "Autre / Multi-régions",
+  "Liège",
+  "Hainaut",
+  "Namur",
+  "Luxembourg (BE)",
+  "Brabant wallon",
+  "Bruxelles-Capitale",
+  "Flandre",
+  "Toute la Belgique",
+  "Autre / transfrontalier",
 ] as const

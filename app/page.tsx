@@ -39,7 +39,7 @@ const faqItems: FaqItem[] = [
   {
     question: "Quel ordre de grandeur sur un entrepôt logistique de 2 000 m² en Wallonie ?",
     answer:
-      "À titre indicatif, une étude type sur 2 000 m² peut retenir de l'ordre de 45 000 € d'économies annuelles sur la facture, avec une autoconsommation cible autour de 72 % et un TRI souvent discuté dans une fourchette 5 à 7 ans selon hypothèses de prix, de CV et de montage. Les chiffres réels dépendent du profil de charge, du GRD et de la réservation SPW.",
+      "À titre indicatif, une étude type sur 2 000 m² peut retenir de l'ordre de 45 000 € d'économies annuelles sur la facture, avec une autoconsommation cible autour de 72 % et un TRI souvent discuté dans une fourchette 5 à 7 ans selon hypothèses de prix, de CV et de montage. Les chiffres réels dépendent du profil de charge, du GRD et de la réservation SPW Énergie.",
   },
   {
     question: "Achat propre, Corporate PPA ou tiers-investissement : comment un DAF wallon arbitre-t-il ?",
@@ -47,9 +47,9 @@ const faqItems: FaqItem[] = [
       "L'achat propre capitalise la DPI à 40 % (depuis 2025) et peut se combiner au prêt subordonné Easy'Green (Wallonie Entreprendre) pour préserver les garanties bancaires. Le Corporate PPA fige un prix sur 10-25 ans et limite l'exposition au marché ; le tiers-investissement vise un zéro CAPEX en transférant le risque technique et le bénéfice des CV au partenaire financier. Le bon modèle dépend du WACC, du bilan, des plafonds d'enveloppe SPW et de la politique de couverture énergétique du groupe.",
   },
   {
-    question: "Pourquoi nos partenaires sont-ils certifiés RGE et QualiPV ?",
+    question: "Pourquoi nos partenaires sont-ils certifiés RESCERT Photovoltaïque ?",
     answer:
-      "Les installations B2B doivent tenir la conformité électrique (RGIE), la qualité de mise en service et les exigences des assureurs et du marché des CV. Des partenaires RGE et QualiPV réduisent l'aléa technique, sécurisent les délais et la traçabilité du dossier — critère décisif quand un DAF engage la signature du client et le calendrier de réservation SPW.",
+      "En Belgique, la conformité au RGIE et une qualification reconnue comme RESCERT Photovoltaïque sont essentielles pour les assurances, la mise en service et le marché des Certificats Verts (CWaPE). Nos partenaires suivent ce cadre pour réduire l'aléa technique et sécuriser les délais — critère décisif quand un DAF engage la signature du client et le calendrier de réservation SPW Énergie.",
   },
 ]
 

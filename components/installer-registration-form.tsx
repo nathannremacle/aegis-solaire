@@ -41,8 +41,8 @@ export function InstallerRegistrationForm() {
       jobTitle: "",
       email: "",
       phone: "",
-      rgeNumber: "",
-      qualiPvCertified: false,
+      rescertPhotovoltaicRef: "",
+      rescertPhotovoltaicConfirmed: false,
       region: "",
     },
   })
@@ -61,7 +61,8 @@ export function InstallerRegistrationForm() {
         return
       }
       toast.success(
-        data.message ?? "Votre demande a bien été envoyée. Notre équipe va vérifier vos certifications RGE/QualiPV et vous recontactera sous 48h."
+        data.message ??
+          "Votre demande a bien été envoyée. Notre équipe va vérifier votre certification RESCERT Photovoltaïque et vous recontactera sous 48h."
       )
       form.reset()
     } catch {
@@ -95,10 +96,10 @@ export function InstallerRegistrationForm() {
             name="siret"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>SIRET (14 chiffres)</FormLabel>
+                <FormLabel>Numéro d&apos;entreprise (BCE / KBO — 10 chiffres en Belgique)</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Ex. 123 456 789 00012"
+                    placeholder="Ex. 0123456789"
                     inputMode="numeric"
                     maxLength={20}
                     {...field}
@@ -161,7 +162,7 @@ export function InstallerRegistrationForm() {
               <FormItem>
                 <FormLabel>Email professionnel</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="jean.dupont@entreprise.fr" {...field} />
+                  <Input type="email" placeholder="jean.dupont@entreprise.be" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -174,7 +175,7 @@ export function InstallerRegistrationForm() {
               <FormItem>
                 <FormLabel>Téléphone</FormLabel>
                 <FormControl>
-                  <Input type="tel" placeholder="06 12 34 56 78" {...field} />
+                  <Input type="tel" placeholder="+32 475 12 34 56" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -182,17 +183,17 @@ export function InstallerRegistrationForm() {
           />
         </div>
 
-        {/* Qualification RGE / QualiPV */}
+        {/* Certification RESCERT Photovoltaïque (Belgique) */}
         <div className="space-y-4 rounded-lg border border-border bg-muted/30 p-4">
-          <h3 className="text-sm font-semibold text-foreground">Certifications requises</h3>
+          <h3 className="text-sm font-semibold text-foreground">Certification requise (Belgique)</h3>
           <FormField
             control={form.control}
-            name="rgeNumber"
+            name="rescertPhotovoltaicRef"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Numéro de certification RGE (Reconnu Garant de l'Environnement)</FormLabel>
+                <FormLabel>Référence RESCERT Photovoltaïque</FormLabel>
                 <FormControl>
-                  <Input placeholder="Ex. RGE-123456" {...field} />
+                  <Input placeholder="Ex. numéro ou identifiant RESCERT" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -200,21 +201,21 @@ export function InstallerRegistrationForm() {
           />
           <FormField
             control={form.control}
-            name="qualiPvCertified"
+            name="rescertPhotovoltaicConfirmed"
             render={({ field }) => (
               <FormItem className="flex flex-row items-start gap-3 space-y-0">
                 <FormControl>
                   <Checkbox
                     checked={field.value}
                     onCheckedChange={field.onChange}
-                    aria-describedby="qualipv-error"
+                    aria-describedby="rescert-error"
                   />
                 </FormControl>
                 <div className="space-y-1 leading-none">
                   <FormLabel className="cursor-pointer font-normal">
-                    Je certifie que mon entreprise possède la qualification QualiPV à jour.
+                    Je certifie que mon entreprise est couverte par la certification RESCERT Photovoltaïque à jour (conformité reconnue pour le marché belge, RGIE et assurances).
                   </FormLabel>
-                  <FormMessage id="qualipv-error" />
+                  <FormMessage id="rescert-error" />
                 </div>
               </FormItem>
             )}

@@ -5,7 +5,7 @@ const benefits = [
     icon: Wallet,
     title: "Réduisez vos coûts énergétiques",
     description:
-      "Autoconsommation et arbitrage sur les flux de Certificats Verts pour améliorer la VAN : un projet B2B wallon se modèle sur votre profil de charge, votre GRD et votre réservation SPW.",
+      "Autoconsommation et arbitrage sur les flux de Certificats Verts pour améliorer la VAN : un projet B2B wallon se modèle sur votre profil de charge, votre GRD et votre réservation auprès du SPW Énergie. Les réseaux réalisés par des installateurs RESCERT, conformes au RGIE, sécurisent la bancabilité et la traçabilité.",
   },
   {
     icon: Leaf,

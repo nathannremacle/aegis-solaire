@@ -1,0 +1,23 @@
+**Document de Synthèse Copywriting : Landing Page B2B Solaire Belgique (2025-2026)**
+
+**Les 3 "Pains" (Douleurs/Peurs) majeurs d'un dirigeant belge face à l'énergie**
+
+1. **L'étau réglementaire coercitif (Le mur de 2026-2027) :** Les dirigeants craignent les sanctions liées à la non-conformité aux nouvelles lois. Dès le 1er janvier 2026, la Wallonie impose au secteur non résidentiel (nouveau ou assimilé) de couvrir au moins 35 % de sa consommation par des énergies renouvelables et interdit les chauffages au mazout ou au charbon. Pire, la transposition de la Directive européenne (UE) 2024/1275 imposera dès 2027 la solarisation stricte de tous les bâtiments non résidentiels de plus de 250 m². Le volontariat RSE est mort, place à l'obligation légale.
+2. **L'asphyxie financière liée au réseau et à la fin de la "compensation" :** Le principe du "compteur qui tourne à l'envers" a définitivement disparu pour les nouvelles installations, remplacé par un comptage séparé via compteur intelligent (double flux). Les entreprises sont terrifiées par l'asymétrie tarifaire : l'électricité excédentaire injectée est rachetée à un prix dérisoire, tandis que l'énergie prélevée sur le réseau coûte très cher. De plus, l'obligation de placer des bornes de recharge (IRVE) sur les parkings génère des appels de puissance massifs qui saturent les cabines haute tension et font exploser la facture.
+3. **La peur d'assécher la trésorerie et d'alourdir le bilan (CAPEX) :** Les DAF et dirigeants refusent de bloquer leurs liquidités dans des panneaux solaires au détriment de leur "core business", ou de subir des exigences de garanties bancaires lourdes (hypothèque sur le bâtiment) qui bloqueraient leurs futures lignes de crédit.
+
+**Les 3 promesses ROIstes d'une installation solaire B2B en Belgique**
+
+1. **La mise en conformité immédiate à Zéro CAPEX :** La promesse de transformer des toitures et parkings en centres de profit sans débourser 1 euro. Grâce aux modèles de Tiers-investissement (où un investisseur tiers finance 100 % de l'installation et de la maintenance) ou aux Corporate PPAs (Power Purchase Agreements) sur site, l'entreprise se met en conformité légale et divise sa facture énergétique instantanément, en sécurisant un prix d'électricité fixe sur 10 à 25 ans.
+2. **Un "Bouclier Fiscal" de 40 % et un ROI fulgurant (5 à 7 ans) :** Pour les entreprises qui souhaitent autofinancer, l'État a déployé l'arme lourde avec la nouvelle Déduction pour Investissement (DPI) majorée à 40 % depuis le 1er janvier 2025. De plus, le financement peut être couvert à 100 % par le prêt subordonné wallon **Easy'Green**, qui agit comme un quasi-fonds propre pour lever de la dette bancaire, sans aucune prise de garantie réelle. Le retour sur investissement s'effondre à une moyenne de 5 à 7 ans.
+3. **Autoconsommation maximisée et "Peak Shaving" (Lissage des pics) :** L'installation ne se limite plus à des panneaux, mais inclut des Systèmes de Gestion de l'Énergie (EMS) et des batteries industrielles (BESS). La promesse est d'effacer les pics de puissance très coûteux ("peak shaving"), de délester l'énergie de manière dynamique vers les machines ou les bornes de recharge, et de garantir un flux de revenus stabilisé par le rachat automatique garanti des Certificats Verts (CV) par Elia à 65 € minimum.
+
+**Le vocabulaire technique exact à utiliser (Positionnement expert 100% belge)**
+
+Pour crédibiliser le copywriting auprès des DAF, CEO et responsables techniques en Belgique (et particulièrement en Wallonie), utilisez ce lexique précis :
+
+- **Acteurs & Institutions :** La _CWaPE_ (le régulateur), le _SPW Énergie_ (Service Public de Wallonie), _Elia_ (gestionnaire du réseau de transport), les _GRD_ comme _Ores_ et _Resa_, _Wallonie Entreprendre_.
+- **Normes & Réglementation :** _Exigences PEB 2026_, _PACE 2030_ (Plan Air Climat Énergie), _Directive (UE) 2024/1275_, _ZEB_ (Zero Emission Building), _RGIE_ (Règlement Général sur les Installations Électriques).
+- **Ingénierie Financière :** _DPI à 40%_ (Déduction pour Investissement), _Prêt subordonné Easy'Green_, _ISoc_ (Impôt des sociétés), _Corporate PPA On-site / Off-site_ (Power Purchase Agreement), _Tiers-investissement_ (Zéro CAPEX), _ESCO_ (Energy Service Company).
+- **Soutien Public (Subsides) :** _Certificats Verts (CV)_, réservation _d'enveloppe budgétaire_, coefficients _kECO_ et _kCO2_, garantie de rachat _Elia_.
+- **Technique & Réseau :** Fin du _"compteur qui tourne à l'envers"_ (principe de compensation), _Compteur communicant / Double flux_, puissance _> 10 kVA_ (exemptée du tarif prosumer industriel), _Puissance Nette Développable (Pend)_, _Autoconsommation physique instantanée_, _Peak Shaving_ (lissage de charge), _EMS_, _BESS_, _Ombrières de parking_, _IRVE_.

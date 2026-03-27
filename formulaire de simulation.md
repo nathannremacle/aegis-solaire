@@ -66,7 +66,7 @@ Email professionnel : (Validation stricte Zod : rejet des @gmail.com, @yahoo.fr,
 )
 Téléphone direct : (Validation libphonenumber-js pour s'assurer que c'est un format français valide).
 La conformité RGPD (Sous le bouton de validation) :
-Checkbox (non pré-cochée) : "J'accepte d'être recontacté par Aegis Solaire et ses installateurs partenaires certifiés RGE pour évaluer mon projet."
+Checkbox (non pré-cochée) : "J'accepte d'être recontacté par Aegis Solaire et ses installateurs partenaires certifiés RESCERT Photovoltaïque pour évaluer mon projet."
 Texte légal (en petit) : "Conformément au RGPD, vos données sont collectées sur la base de votre consentement pour traiter votre demande de simulation. Elles seront conservées pour une durée maximale de 3 ans après notre dernier contact
 . Vous disposez d'un droit d'accès, de rectification et d'opposition immédiate à tout moment
 ."

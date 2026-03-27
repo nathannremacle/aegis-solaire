@@ -21,8 +21,8 @@ export async function POST(request: NextRequest) {
         firstError.jobTitle?.[0] ??
         firstError.email?.[0] ??
         firstError.phone?.[0] ??
-        firstError.rgeNumber?.[0] ??
-        firstError.qualiPvCertified?.[0] ??
+        firstError.rescertPhotovoltaicRef?.[0] ??
+        firstError.rescertPhotovoltaicConfirmed?.[0] ??
         firstError.region?.[0] ??
         "Données invalides. Vérifiez les champs."
       return NextResponse.json({ error: message }, { status: 400 })
@@ -30,13 +30,13 @@ export async function POST(request: NextRequest) {
 
     const data = parseResult.data
 
-    // TODO: Insert into Supabase 'installers' table (candidatures en attente de vérification RGE/QualiPV)
+    // TODO: Insert into Supabase 'installers' table (candidatures en attente de vérification RESCERT)
     // Exemple: await supabase.from('installer_applications').insert({ ... })
 
     return NextResponse.json({
       success: true,
       message:
-        "Votre demande a bien été envoyée. Notre équipe va vérifier vos certifications RGE/QualiPV et vous recontactera sous 48h.",
+        "Votre demande a bien été envoyée. Notre équipe va vérifier votre certification RESCERT Photovoltaïque et vous recontactera sous 48h.",
     })
   } catch (error) {
     console.error("Installateur register API error:", error)

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { leadSubmitSchema } from "@/lib/leads-schema"
 import { calculateLeadScore } from "@/lib/lead-score"
 import { checkRateLimit } from "@/lib/rate-limit"
+import { sendPartnerLeadTeaserEmails } from "@/lib/partner-lead-teaser-email"
 
 function sanitizeString(input: string, maxLength = 255): string {
   const trimmed = String(input).trim().slice(0, maxLength)
@@ -104,7 +105,8 @@ export async function POST(request: NextRequest) {
       phone,
       job_title,
       company,
-      message,
+      message: projectDetailsText,
+      project_details: projectDetailsText,
       objective: null,
       surface_type: data.surfaceType,
       surface_area: data.surfaceArea,
@@ -134,6 +136,15 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
+
+    void sendPartnerLeadTeaserEmails({
+      province: data.province,
+      surfaceType: data.surfaceType,
+      surfaceArea: data.surfaceArea,
+      annualElectricityBill: data.annualElectricityBill,
+      grd: data.grd ?? null,
+      projectDetails: projectDetailsText,
+    }).catch((err) => console.error("[Partner teaser] envoi non bloquant échoué:", err))
 
     const webhookUrl = process.env.LEAD_WEBHOOK_URL
     if (webhookUrl) {

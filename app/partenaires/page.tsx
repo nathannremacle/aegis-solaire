@@ -7,7 +7,7 @@ import { Shield, Users, FileCheck, ArrowDown } from "lucide-react"
 export const metadata = {
   title: "Devenir Partenaire | Aegis Solaire",
   description:
-    "Rejoignez le réseau d'installateurs Aegis Solaire en Wallonie. Chantiers photovoltaïques B2B qualifiés (toitures, parkings). Certifications RGE et QualiPV requises.",
+    "Rejoignez le réseau d'installateurs Aegis Solaire en Wallonie. Chantiers photovoltaïques B2B qualifiés (toitures, parkings). Certification RESCERT Photovoltaïque requise.",
 }
 
 export default function PartenairesPage() {
@@ -91,7 +91,7 @@ export default function PartenairesPage() {
                 Postuler au réseau de partenaires
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Seuls les installateurs certifiés RGE et QualiPV peuvent s'inscrire. Tous les champs sont obligatoires.
+                Seuls les installateurs couverts par la certification RESCERT Photovoltaïque peuvent s&apos;inscrire. Tous les champs sont obligatoires.
               </p>
               <div className="mt-8">
                 <InstallerRegistrationForm />

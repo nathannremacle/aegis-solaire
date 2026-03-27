@@ -1,6 +1,6 @@
 # Aegis Solaire
 
-Plateforme de mise en relation (lead generation) dédiée au photovoltaïque B2B en Wallonie : obligations PEB, Certificats Verts, rentabilité entreprises et mise en relation avec des installateurs certifiés.
+Plateforme de mise en relation (lead generation) dédiée au photovoltaïque B2B en Wallonie : obligations PEB, Certificats Verts, rentabilité entreprises et mise en relation avec des installateurs RESCERT Photovoltaïque.
 
 **→ Fonctionnement détaillé, déploiement (Vercel / Digital Ocean) et architecture : voir [DOCUMENTATION.md](./DOCUMENTATION.md).** Ce fichier est tenu à jour à chaque modification ou ajout sur le site.
 

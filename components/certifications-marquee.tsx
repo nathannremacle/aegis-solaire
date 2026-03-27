@@ -1,15 +1,18 @@
 "use client"
 
 /**
- * Bandeau défilant des logos certifications / partenaires.
- * Fichiers attendus dans public/logos/ : rge.png, qualipv.png, ademe.png, spw-energie.png (ou .svg)
- * (ou .svg à la place de .png). Hauteur recommandée : 96–120 px.
+ * Bandeau défilant — labels belges (logos optionnels dans public/logos/).
+ * Fichiers attendus : rescert.png, cwape.png, wallonie-entreprendre.png, spw-energie.png (ou .svg)
  */
 const LOGOS = [
-  { src: "/logos/rge.png", alt: "RGE - Reconnu Garant de l'Environnement", name: "RGE" },
-  { src: "/logos/qualipv.png", alt: "QualiPV", name: "QualiPV" },
-  { src: "/logos/ademe.png", alt: "ADEME", name: "ADEME" },
-  { src: "/logos/spw-energie.png", alt: "SPW Énergie — Wallonie", name: "SPW Énergie" },
+  { src: "/logos/rescert.png", alt: "RESCERT — certification photovoltaïque (Belgique)", name: "RESCERT" },
+  { src: "/logos/cwape.png", alt: "CWaPE — régulateur belge de l'énergie", name: "CWaPE" },
+  {
+    src: "/logos/wallonie-entreprendre.png",
+    alt: "Wallonie Entreprendre",
+    name: "Wallonie Entreprendre",
+  },
+  { src: "/logos/spw-energie.png", alt: "SPW Énergie — Service public de Wallonie", name: "SPW Énergie" },
 ]
 
 function LogoItem({ src, alt, name }: { src: string; alt: string; name: string }) {
@@ -42,8 +45,11 @@ function LogoItem({ src, alt, name }: { src: string; alt: string; name: string }
 
 export function CertificationsMarquee() {
   return (
-    <div className="certifications-marquee-pause relative w-full overflow-hidden py-2" role="region" aria-label="Logos certifications et partenaires">
-      {/* Masques en dégradé pour un fondu propre sur les bords */}
+    <div
+      className="certifications-marquee-pause relative w-full overflow-hidden py-2"
+      role="region"
+      aria-label="Références marché belge : RESCERT, CWaPE, Wallonie Entreprendre, SPW Énergie"
+    >
       <div
         className="pointer-events-none absolute left-0 top-0 z-10 h-full w-12 bg-gradient-to-r from-background to-transparent sm:w-20"
         aria-hidden

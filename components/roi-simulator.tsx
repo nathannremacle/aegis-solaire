@@ -167,9 +167,14 @@ export function ROISimulator() {
   const [error, setError] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
   const [isCalculating, setIsCalculating] = useState(false)
+  /** Horodatage début de parcours — l’API exige >4 s entre ce moment et la soumission ; ne pas le fixer à l’étape contact seule (sinon soumission rapide = erreur). */
   const formContactOpenedAtRef = useRef<string | null>(null)
 
   const totalSteps = 5
+
+  useEffect(() => {
+    formContactOpenedAtRef.current = new Date().toISOString()
+  }, [])
 
   const updateFormData = (field: keyof FormData, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -242,7 +247,6 @@ export function ROISimulator() {
       setTransitionMessageIndex(0)
       setTimeout(() => {
         setIsCalculating(false)
-        formContactOpenedAtRef.current = new Date().toISOString()
         setStep(5)
       }, 6000)
     } else if (step < totalSteps && step !== 4) {
@@ -793,8 +797,8 @@ export function ROISimulator() {
                       />
                       <div>
                         <Label htmlFor="marketingConsent" className="text-sm font-normal leading-relaxed">
-                          J&apos;accepte d&apos;être recontacté par Aegis Solaire et par un installateur partenaire certifié en
-                          Wallonie pour affiner mon étude de faisabilité et mon projet photovoltaïque.
+                          J&apos;accepte d&apos;être recontacté par Aegis Solaire et par un installateur partenaire RESCERT
+                          Photovoltaïque en Wallonie pour affiner mon étude de faisabilité et mon projet photovoltaïque.
                         </Label>
                       </div>
                     </div>

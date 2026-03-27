@@ -26,7 +26,7 @@ Les **installateurs** ne se connectent pas au site : ils reçoivent les leads so
    - Sections : Preuve (études de cas), Expert (cadre wallon PEB / CV, financement PPA et tiers-investissement), Avantages, puis **Simulateur**. Le footer propose un lien **« Devenir Partenaire »** vers **/partenaires**.
 
 2. **Page Devenir Partenaire (/partenaires)**  
-   - Landing B2B inversée (Aegis s’adresse aux installateurs) : hero, avantages (leads exclusifs, qualification, RGPD), formulaire de candidature. Formulaire : entreprise (nom, SIRET), contact (prénom, nom, fonction, email pro, téléphone), certifications **RGE** et **QualiPV** (numéro RGE + case QualiPV obligatoire), zone d’intervention (région). Soumission vers **POST /api/installateurs/register**. Message de succès : « Votre demande a bien été envoyée. Notre équipe va vérifier vos certifications RGE/QualiPV et vous recontactera sous 48h. »
+   - Landing B2B inversée (Aegis s’adresse aux installateurs) : hero, avantages (leads exclusifs, qualification, RGPD), formulaire de candidature. Formulaire : entreprise (nom, numéro d’entreprise BCE/KBO), contact (prénom, nom, fonction, email pro, téléphone), certification **RESCERT Photovoltaïque** (référence + attestation obligatoire), zone d’intervention (Belgique / Wallonie). Soumission vers **POST /api/installateurs/register**. Message de succès : vérification **RESCERT** et recontact sous 48h.
 
 3. **Simulateur (formulaire multi-étapes)**  
    - **Étape 1 – Objectif** : intention principale (conformité, réduction facture, RSE, revenu).  

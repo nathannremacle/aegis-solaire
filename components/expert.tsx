@@ -105,9 +105,9 @@ function FounderVideoBlock() {
 
 const credentials = [
   "Plus de 15 ans d'expérience dans le photovoltaïque B2B (Belgique, francophonie)",
-  "Certification RGE et QualiPV",
+  "Partenaires d'installation couverts par la certification RESCERT Photovoltaïque et respect strict du RGIE (régime général sur les installations électriques) — indispensable pour assurances et Certificats Verts",
   "Partenaire exclusif de fabricants premium (SunPower, Enphase)",
-  "Structuration de projets : audit, réservation CV (SPW), montage Corporate PPA ou tiers-investissement, installation, maintenance",
+  "Structuration de projets : audit, réservation CV (SPW Énergie), montage Corporate PPA ou tiers-investissement, installation, maintenance",
   "Garantie décennale et assurance tous risques",
 ]
 
