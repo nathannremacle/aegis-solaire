@@ -16,13 +16,6 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
   installerRegistrationSchema,
   type InstallerRegistrationInput,
   INSTALLER_REGIONS,
@@ -43,7 +36,7 @@ export function InstallerRegistrationForm() {
       phone: "",
       rescertPhotovoltaicRef: "",
       rescertPhotovoltaicConfirmed: false,
-      region: "",
+      regions: [],
     },
   })
 
@@ -222,27 +215,39 @@ export function InstallerRegistrationForm() {
           />
         </div>
 
-        {/* Zone d'intervention */}
+        {/* Zones d'intervention (multi-sélection) */}
         <FormField
           control={form.control}
-          name="region"
+          name="regions"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Région(s) couverte(s)</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Sélectionnez votre zone d'intervention" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {INSTALLER_REGIONS.map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {r}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <p className="mb-3 text-xs text-muted-foreground">Cochez toutes les zones où vous intervenez.</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {INSTALLER_REGIONS.map((r) => {
+                  const selected = field.value ?? []
+                  const checked = selected.includes(r)
+                  return (
+                    <label
+                      key={r}
+                      className={`flex min-h-[44px] cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition-colors hover:bg-muted/40 ${
+                        checked ? "border-accent/60 bg-accent/5" : "border-border"
+                      }`}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(isOn) => {
+                          const next = new Set(selected)
+                          if (isOn === true) next.add(r)
+                          else next.delete(r)
+                          field.onChange(Array.from(next))
+                        }}
+                      />
+                      <span className="font-normal leading-snug text-foreground">{r}</span>
+                    </label>
+                  )
+                })}
+              </div>
               <FormMessage />
             </FormItem>
           )}

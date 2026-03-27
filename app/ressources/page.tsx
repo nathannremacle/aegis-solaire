@@ -2,7 +2,7 @@ import Link from "next/link"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Metadata } from "next"
-import { FileText, Wallet, Video, Clock } from "lucide-react"
+import { FileText, Wallet, Video, Clock, BookOpen } from "lucide-react"
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.aegissolaire.com"
 
@@ -39,6 +39,15 @@ const resources = [
     description:
       "Replay : Masterclass Zéro CAPEX — financer 100% de vos installations photovoltaïques grâce au Tiers-Investissement. Accédez au décryptage vidéo exclusif.",
     href: "/webinaire",
+    available: true,
+  },
+  {
+    id: "faq-technique",
+    icon: BookOpen,
+    title: "FAQ technique Wallonie",
+    description:
+      "Certificats Verts (CWaPE), réservation SPW, PEB, PACE 2030, GRD et arbitrage financement (PPA, tiers-investissement) — pour DAF et direction.",
+    href: "/faq-technique",
     available: true,
   },
 ]

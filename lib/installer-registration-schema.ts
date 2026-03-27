@@ -5,6 +5,19 @@ function cleanSiret(s: string): string {
   return s.replace(/\s/g, "")
 }
 
+/** Zones d'intervention (Belgique / Wallonie). */
+export const INSTALLER_REGIONS = [
+  "Liège",
+  "Hainaut",
+  "Namur",
+  "Luxembourg (BE)",
+  "Brabant wallon",
+  "Bruxelles-Capitale",
+  "Flandre",
+  "Toute la Belgique",
+  "Autre / transfrontalier",
+] as const
+
 export const installerRegistrationSchema = z.object({
   companyName: z
     .string()
@@ -49,28 +62,19 @@ export const installerRegistrationSchema = z.object({
     .min(1, "La référence RESCERT Photovoltaïque est requise")
     .max(64)
     .transform((s) => s.trim()),
-  rescertPhotovoltaicConfirmed: z.literal(true, {
-    errorMap: () => ({
+  rescertPhotovoltaicConfirmed: z
+    .boolean()
+    .refine((v) => v === true, {
       message:
         "Vous devez certifier que votre entreprise est couverte par la certification RESCERT Photovoltaïque à jour.",
     }),
-  }),
-  region: z
-    .string()
-    .min(1, "Veuillez sélectionner au moins une zone d'intervention"),
+  regions: z
+    .array(z.string())
+    .min(1, "Veuillez sélectionner au moins une zone d'intervention")
+    .refine(
+      (arr) => arr.every((r) => (INSTALLER_REGIONS as readonly string[]).includes(r)),
+      { message: "Une ou plusieurs zones sélectionnées sont invalides." }
+    ),
 })
 
 export type InstallerRegistrationInput = z.infer<typeof installerRegistrationSchema>
-
-/** Zones d'intervention (Belgique / Wallonie). */
-export const INSTALLER_REGIONS = [
-  "Liège",
-  "Hainaut",
-  "Namur",
-  "Luxembourg (BE)",
-  "Brabant wallon",
-  "Bruxelles-Capitale",
-  "Flandre",
-  "Toute la Belgique",
-  "Autre / transfrontalier",
-] as const

@@ -103,6 +103,14 @@ export function Footer() {
                   Webinaires & masterclass
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/faq-technique"
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  FAQ technique (PEB, CV, financement)
+                </Link>
+              </li>
             </ul>
           </div>
 

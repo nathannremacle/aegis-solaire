@@ -83,7 +83,7 @@ export default function WebinairePage() {
               Zéro CAPEX : financer 100% de votre solaire par le Tiers-Investissement
             </h1>
             <p className="mt-4 text-pretty text-sm leading-relaxed text-primary-foreground/90 sm:text-base">
-              Décryptage vidéo exclusif — bâtiment tertiaire et parkings sans investissement initial.
+              Décryptage vidéo — bâtiments tertiaires et parkings en Wallonie : zéro investissement initial, lecture transposable au cadre belge (GRD, SPW Énergie).
             </p>
           </div>
         </section>
@@ -173,7 +173,7 @@ export default function WebinairePage() {
                           <Input
                             id="email"
                             type="email"
-                            placeholder="jean.dupont@entreprise.fr"
+                            placeholder="jean.dupont@entreprise.be"
                             {...form.register("email")}
                             className={form.formState.errors.email ? "border-destructive" : ""}
                           />
@@ -222,7 +222,7 @@ export default function WebinairePage() {
                 <div className="flex flex-wrap items-center justify-center gap-2 rounded-xl border border-primary/10 bg-muted/30 px-4 py-3 text-center">
                   <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />
                   <p className="text-sm text-muted-foreground">
-                    Ressource experte sélectionnée par Aegis Solaire : l’exemple du modèle Sofiac.
+                    Ressource experte sélectionnée par Aegis Solaire : cas d’étude de tiers-investissement et GTB connectée (replay).
                   </p>
                 </div>
 
@@ -232,7 +232,7 @@ export default function WebinairePage() {
                     Résumé de la Masterclass : Rénover ses bâtiments tertiaires sans investissement (Zéro CAPEX)
                   </h2>
                   <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-                    Ce webinaire exclusif, animé par les experts de Sobre Énergie, Orange Business et la Sofiac, décrypte les méthodes pour mettre votre parc immobilier en conformité avec la loi sans mobiliser votre trésorerie.
+                    Ce replay décrypte des méthodes éprouvées (GTB connectée, tiers-investissement) pour aligner un parc immobilier sur les obligations PEB, le PACE 2030 et la performance énergétique — sans mobiliser votre trésorerie. Les intervenants illustrent des cas européens ; à transposer au cadre wallon (GRD, SPW Énergie, Certificats Verts).
                   </p>
                   <p className="mt-3 text-sm font-medium text-foreground">Voici les 4 points clés à retenir :</p>
 
@@ -257,7 +257,7 @@ export default function WebinairePage() {
                       <div className="min-w-0 space-y-3">
                         <h3 className="font-semibold text-foreground">L’optimisation technique grâce à la GTB &quot;Light&quot; (IoT)</h3>
                         <p className="text-sm leading-relaxed text-muted-foreground">
-                          Pour réduire vos factures, Orange Business présente une solution de rupture : la Gestion Technique du Bâtiment par objets connectés (IoT). Contrairement aux systèmes traditionnels impliquant de lourds travaux de câblage, la GTB sans fil est non intrusive et centralisée dans le Cloud.
+                          Pour réduire vos factures, le replay présente une solution de rupture : la Gestion Technique du Bâtiment par objets connectés (IoT). Contrairement aux systèmes traditionnels impliquant de lourds travaux de câblage, la GTB sans fil est non intrusive et centralisée dans le Cloud.
                         </p>
                         <ul className="list-disc space-y-1 pl-4 text-sm text-muted-foreground">
                           <li><strong className="text-foreground">Le résultat :</strong> Une installation en moyenne jusqu’à 40 % moins chère, générant environ <strong className="text-foreground">20 % d’économies d’énergie</strong>.</li>
@@ -271,13 +271,13 @@ export default function WebinairePage() {
                         3
                       </span>
                       <div className="min-w-0 space-y-3">
-                        <h3 className="font-semibold text-foreground">Le levier financier : le Tiers-Investissement (Modèle Sofiac)</h3>
+                        <h3 className="font-semibold text-foreground">Le levier financier : le tiers-investissement (ESCO)</h3>
                         <p className="text-sm leading-relaxed text-muted-foreground">
-                          La Sofiac propose d’investir <strong className="text-foreground">100 % du coût de vos projets de rénovation</strong> (à partir d’un million d’euros) sur des durées allant jusqu’à 15 ans.
+                          Dans le cas d’étude présenté, le financeur investit <strong className="text-foreground">100 % du coût des travaux de rénovation</strong> (à partir d’un million d’euros) sur des durées allant jusqu’à 15 ans.
                         </p>
                         <ul className="list-disc space-y-1 pl-4 text-sm text-muted-foreground">
                           <li><strong className="text-foreground">Aucune garantie exigée et zéro avance de trésorerie.</strong></li>
-                          <li>Remboursement via un partage des économies d’énergie, encadré par un <strong className="text-foreground">Contrat de Performance Énergétique (CPE)</strong> certifié (ex. AFNOR).</li>
+                          <li>Remboursement via un partage des économies d’énergie, encadré par un <strong className="text-foreground">Contrat de Performance Énergétique (CPE)</strong> certifié (audit externe / référentiel reconnu).</li>
                           <li><strong className="text-foreground">Vous devenez propriétaire des équipements dès le premier jour</strong> des travaux.</li>
                           <li>Montage possible hors-bilan ou en dette fournisseur pour ne pas impacter votre capacité d’endettement.</li>
                         </ul>
@@ -294,8 +294,8 @@ export default function WebinairePage() {
                           La méthode du tiers-investissement a déjà fait ses preuves sur des projets combinant solaire, GTB, relamping et pompes à chaleur :
                         </p>
                         <ul className="list-disc space-y-2 pl-4 text-sm text-muted-foreground">
-                          <li><strong className="text-foreground">Un collège privé (47 000 m²) :</strong> 2 M€ de travaux financés par la Sofiac, <strong className="text-foreground">175 000 € d’économies de trésorerie annuelles</strong>, baisse de 34 % de la consommation sur 15 ans.</li>
-                          <li><strong className="text-foreground">Un centre de recherche Biotech :</strong> 2,3 M€ investis sans avance, réduction de ~80 % de la consommation de gaz et 150 000 € d’économies par an.</li>
+                          <li><strong className="text-foreground">Complexe tertiaire (47 000 m²) :</strong> 2 M€ de travaux financés en tiers-investissement, <strong className="text-foreground">175 000 € d’économies de trésorerie annuelles</strong>, baisse de 34 % de la consommation sur 15 ans.</li>
+                          <li><strong className="text-foreground">Site R&amp;D (biotech) :</strong> 2,3 M€ investis sans avance, réduction d’environ 80 % de la consommation de gaz et 150 000 € d’économies par an.</li>
                         </ul>
                       </div>
                     </li>

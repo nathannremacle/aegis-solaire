@@ -443,27 +443,33 @@ export function ROISimulator() {
                       }}
                       className="mt-4 gap-4"
                     >
-                      <div className="flex items-center gap-3 rounded-lg border border-border p-4">
+                      <label
+                        className="flex min-h-[52px] cursor-pointer items-center gap-3 rounded-lg border border-border p-4 transition-colors hover:bg-muted/40 has-[[data-state=checked]]:border-accent/60 has-[[data-state=checked]]:bg-accent/5"
+                      >
                         <RadioGroupItem value="toiture" id="st-toiture" />
-                        <Label htmlFor="st-toiture" className="flex cursor-pointer items-center gap-2 font-normal">
-                          <Factory className="h-5 w-5 shrink-0 text-accent" />
+                        <span className="flex flex-1 items-center gap-2 text-sm font-medium leading-snug text-foreground">
+                          <Factory className="h-5 w-5 shrink-0 text-accent" aria-hidden />
                           Toiture industrielle
-                        </Label>
-                      </div>
-                      <div className="flex items-center gap-3 rounded-lg border border-border p-4">
+                        </span>
+                      </label>
+                      <label
+                        className="flex min-h-[52px] cursor-pointer items-center gap-3 rounded-lg border border-border p-4 transition-colors hover:bg-muted/40 has-[[data-state=checked]]:border-accent/60 has-[[data-state=checked]]:bg-accent/5"
+                      >
                         <RadioGroupItem value="parking" id="st-parking" />
-                        <Label htmlFor="st-parking" className="flex cursor-pointer items-center gap-2 font-normal">
-                          <Car className="h-5 w-5 shrink-0 text-accent" />
+                        <span className="flex flex-1 items-center gap-2 text-sm font-medium leading-snug text-foreground">
+                          <Car className="h-5 w-5 shrink-0 text-accent" aria-hidden />
                           Parking
-                        </Label>
-                      </div>
-                      <div className="flex items-center gap-3 rounded-lg border border-border p-4">
+                        </span>
+                      </label>
+                      <label
+                        className="flex min-h-[52px] cursor-pointer items-center gap-3 rounded-lg border border-border p-4 transition-colors hover:bg-muted/40 has-[[data-state=checked]]:border-accent/60 has-[[data-state=checked]]:bg-accent/5"
+                      >
                         <RadioGroupItem value="terrain" id="st-terrain" />
-                        <Label htmlFor="st-terrain" className="flex cursor-pointer items-center gap-2 font-normal">
-                          <Sprout className="h-5 w-5 shrink-0 text-accent" />
+                        <span className="flex flex-1 items-center gap-2 text-sm font-medium leading-snug text-foreground">
+                          <Sprout className="h-5 w-5 shrink-0 text-accent" aria-hidden />
                           Terrain au sol
-                        </Label>
-                      </div>
+                        </span>
+                      </label>
                     </RadioGroup>
                   </div>
 
@@ -785,8 +791,8 @@ export function ROISimulator() {
                       </p>
                     )}
 
-                    <div
-                      className={`flex items-start gap-3 rounded-lg border p-4 ${
+                    <label
+                      className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 ${
                         step === 5 && !formData.marketingConsent ? "border-destructive" : "border-border"
                       }`}
                     >
@@ -794,14 +800,13 @@ export function ROISimulator() {
                         id="marketingConsent"
                         checked={formData.marketingConsent}
                         onCheckedChange={(checked) => updateFormData("marketingConsent", checked === true)}
+                        className="mt-0.5"
                       />
-                      <div>
-                        <Label htmlFor="marketingConsent" className="text-sm font-normal leading-relaxed">
-                          J&apos;accepte d&apos;être recontacté par Aegis Solaire et par un installateur partenaire RESCERT
-                          Photovoltaïque en Wallonie pour affiner mon étude de faisabilité et mon projet photovoltaïque.
-                        </Label>
-                      </div>
-                    </div>
+                      <span className="text-sm font-normal leading-relaxed text-foreground">
+                        J&apos;accepte d&apos;être recontacté par Aegis Solaire et par un installateur partenaire RESCERT
+                        Photovoltaïque en Wallonie pour affiner mon étude de faisabilité et mon projet photovoltaïque.
+                      </span>
+                    </label>
 
                     <div className="rounded-lg border border-border bg-muted/50 p-4 text-xs text-muted-foreground">
                       <p className="font-medium text-foreground">Conformité RGPD</p>

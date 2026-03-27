@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
         firstError.phone?.[0] ??
         firstError.rescertPhotovoltaicRef?.[0] ??
         firstError.rescertPhotovoltaicConfirmed?.[0] ??
-        firstError.region?.[0] ??
+        firstError.regions?.[0] ??
         "Données invalides. Vérifiez les champs."
       return NextResponse.json({ error: message }, { status: 400 })
     }
