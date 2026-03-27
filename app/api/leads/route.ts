@@ -67,6 +67,7 @@ export async function POST(request: NextRequest) {
         firstError.jobTitle?.[0] ??
         firstError.surfaceType?.[0] ??
         firstError.province?.[0] ??
+        firstError.provinceFreeText?.[0] ??
         firstError.marketingConsent?.[0] ??
         "Données invalides. Vérifiez les champs."
       return NextResponse.json({ error: message }, { status: 400 })
@@ -81,7 +82,12 @@ export async function POST(request: NextRequest) {
     const job_title = sanitizeString(data.jobTitle)
     const company = sanitizeString(data.company)
     const company_vat = sanitizeString(data.companyVat, 32)
-    const projectDetailsText = data.projectDetails ? sanitizeString(data.projectDetails, 2000) : null
+    const projectDetailsOnly = data.projectDetails ? sanitizeString(data.projectDetails, 2000) : null
+    const provinceFreeSanitized = data.provinceFreeText ? sanitizeString(data.provinceFreeText, 400) : null
+    const projectDetailsText =
+      [provinceFreeSanitized ? `Précision localisation : ${provinceFreeSanitized}` : null, projectDetailsOnly]
+        .filter(Boolean)
+        .join("\n\n") || null
 
     const { score, status } = calculateLeadScore({
       firstName: first_name,
@@ -139,11 +145,13 @@ export async function POST(request: NextRequest) {
 
     void sendPartnerLeadTeaserEmails({
       province: data.province,
+      provinceFreeText: data.provinceFreeText ?? null,
       surfaceType: data.surfaceType,
       surfaceArea: data.surfaceArea,
       annualElectricityBill: data.annualElectricityBill,
       grd: data.grd ?? null,
-      projectDetails: projectDetailsText,
+      /** Texte « projet » seul (sans doublon avec la ligne Province). */
+      projectDetails: projectDetailsOnly,
     }).catch((err) => console.error("[Partner teaser] envoi non bloquant échoué:", err))
 
     const webhookUrl = process.env.LEAD_WEBHOOK_URL
@@ -165,6 +173,7 @@ export async function POST(request: NextRequest) {
         surface_type: inserted.surface_type,
         surface_area: inserted.surface_area,
         province: (inserted as { province?: string }).province ?? data.province,
+        province_free_text: data.provinceFreeText ?? null,
         grd: (inserted as { grd?: string | null }).grd ?? data.grd ?? null,
         project_timeline: inserted.project_timeline ?? null,
         annual_electricity_bill: inserted.annual_electricity_bill,

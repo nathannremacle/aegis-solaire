@@ -153,7 +153,7 @@ export function InstallerRegistrationForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email professionnel</FormLabel>
+                <FormLabel>E-mail</FormLabel>
                 <FormControl>
                   <Input type="email" placeholder="jean.dupont@entreprise.be" {...field} />
                 </FormControl>

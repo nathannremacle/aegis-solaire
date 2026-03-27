@@ -46,7 +46,7 @@ export default function PolitiqueConfidentialite() {
               </p>
               <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
                 <li>Nom et prénom</li>
-                <li>Adresse email professionnelle</li>
+                <li>Adresse e-mail</li>
                 <li>Numéro de téléphone</li>
                 <li>Fonction dans l'entreprise</li>
                 <li>Nom de l'entreprise (optionnel)</li>

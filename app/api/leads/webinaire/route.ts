@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
         firstError.firstName?.[0] ??
         firstError.jobTitle?.[0] ??
         firstError.email?.[0] ??
+        firstError.companyName?.[0] ??
         "Données invalides. Vérifiez les champs."
       return NextResponse.json({ error: message }, { status: 400 })
     }
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
     const first_name = sanitizeString(data.firstName)
     const job_title = sanitizeString(data.jobTitle)
     const email = data.email.toLowerCase().trim()
+    const company = data.companyName ? sanitizeString(data.companyName, 255) : null
 
     const supabase = await createClient()
     const consentDate = new Date()
@@ -51,7 +53,7 @@ export async function POST(request: NextRequest) {
         email,
         phone: null,
         job_title,
-        company: null,
+        company,
         message: null,
         objective: null,
         surface_type: null,

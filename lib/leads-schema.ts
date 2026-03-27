@@ -1,5 +1,8 @@
 import { z } from "zod"
-import { isProfessionalEmail, isValidFrBePhone, isValidBelgianVat, normalizeBelgianVat } from "@/lib/leads-validation"
+import { BELGIUM_PROVINCE_KEYS, type BelgiumProvinceKey } from "@/lib/belgium-regions"
+import { isValidFrBePhone, isValidBelgianVat, normalizeBelgianVat } from "@/lib/leads-validation"
+
+const provinceEnum = z.enum(BELGIUM_PROVINCE_KEYS as unknown as [BelgiumProvinceKey, ...BelgiumProvinceKey[]])
 
 const jobTitleEnum = ["Dirigeant", "DAF", "Resp. RSE ou Technique", "Autre"] as const
 
@@ -15,10 +18,7 @@ export const leadSubmitSchema = z.object({
     .min(2, "Le nom est requis (minimum 2 caractères)")
     .max(255)
     .transform((s) => s.trim()),
-  email: z
-    .string()
-    .email("Adresse e-mail invalide.")
-    .refine(isProfessionalEmail, { message: "Veuillez utiliser une adresse e-mail professionnelle (domaines personnels type gmail, orange, free, etc. non acceptés)." }),
+  email: z.string().email("Adresse e-mail invalide."),
   phone: z
     .string()
     .min(1, "Le numéro de téléphone est requis.")
@@ -33,10 +33,18 @@ export const leadSubmitSchema = z.object({
 
   surfaceType: z.enum(["toiture", "parking", "terrain"], { errorMap: () => ({ message: "Type de surface invalide" }) }),
   surfaceArea: z.number().int().positive("Surface requise"),
-  province: z.enum(["liege", "hainaut", "namur", "brabant_wallon", "luxembourg"], {
-    errorMap: () => ({ message: "Province invalide" }),
-  }),
-  grd: z.enum(["ores", "resa", "aieg", "rew", "unknown"]).optional().nullable(),
+  province: provinceEnum,
+  /** Précision locale (obligatoire si province = autre ; optionnel sinon : commune, site, pays limitrophe…). */
+  provinceFreeText: z
+    .string()
+    .max(400, "Maximum 400 caractères pour la précision de localisation.")
+    .optional()
+    .transform((s) => {
+      if (s === undefined || s === null) return undefined
+      const t = s.trim()
+      return t === "" ? undefined : t
+    }),
+  grd: z.enum(["ores", "resa", "aieg", "rew", "fluvius", "unknown"]).optional().nullable(),
   annualElectricityBill: z.number().int().min(5000, "Facture annuelle minimum de 5 000 € requise pour une étude B2B."),
   marketingConsent: z
     .boolean()
@@ -61,6 +69,13 @@ export const leadSubmitSchema = z.object({
   .refine(
     (data) => data.surfaceArea >= 200,
     { message: "Surface représentative trop faible pour une étude B2B.", path: ["surfaceArea"] }
+  )
+  .refine(
+    (data) => {
+      if (data.province !== "autre") return true
+      return Boolean(data.provinceFreeText && data.provinceFreeText.length >= 2)
+    },
+    { message: "Indiquez la localisation dans le champ libre (commune, zone, pays…).", path: ["provinceFreeText"] }
   )
 
 export type LeadSubmitInput = z.infer<typeof leadSubmitSchema>

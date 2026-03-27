@@ -1,4 +1,5 @@
 import { Resend } from "resend"
+import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 
 const resendApiKey = process.env.RESEND_API_KEY
 const fromEmail = process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev"
@@ -17,14 +18,6 @@ function dashboardUrl(): string {
   return `${base}/partenaires`
 }
 
-const PROVINCE_LABELS: Record<string, string> = {
-  liege: "Liège",
-  hainaut: "Hainaut",
-  namur: "Namur",
-  brabant_wallon: "Brabant wallon",
-  luxembourg: "Luxembourg",
-}
-
 const SURFACE_TYPE_LABELS: Record<string, string> = {
   toiture: "Toiture",
   parking: "Parking",
@@ -37,11 +30,13 @@ const GRD_LABELS: Record<string, string> = {
   resa: "Resa",
   aieg: "AIEG",
   rew: "REW",
+  fluvius: "Fluvius",
   unknown: "Je ne sais pas",
 }
 
 export type PartnerLeadTeaserPayload = {
   province: string
+  provinceFreeText?: string | null
   surfaceType: string
   surfaceArea: number
   annualElectricityBill: number
@@ -63,7 +58,7 @@ export function buildPartnerLeadTeaserContent(payload: PartnerLeadTeaserPayload)
   text: string
   html: string
 } {
-  const provinceLabel = PROVINCE_LABELS[payload.province] ?? payload.province
+  const provinceLabel = getProvinceDisplayLabel(payload.province, payload.provinceFreeText)
   const typeLabel = SURFACE_TYPE_LABELS[payload.surfaceType] ?? payload.surfaceType
   const grdKey = payload.grd ?? "unknown"
   const grdLabel = GRD_LABELS[grdKey] ?? (payload.grd ?? "—")

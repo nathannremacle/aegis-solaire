@@ -9,10 +9,13 @@ import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { BELGIUM_PROVINCE_GROUPS, getProvinceDisplayLabel } from "@/lib/belgium-regions"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
   ArrowRight,
@@ -33,6 +36,8 @@ type FormData = {
   surfaceType: string
   surfaceRange: string
   province: string
+  /** Commune, site, précision si « Autre », ou détail optionnel pour toute région */
+  provinceFreeText: string
   grd: string
   electricityBillBracket: string
   annualElectricityBillCustom: string
@@ -60,6 +65,7 @@ const initialFormData: FormData = {
   surfaceType: "",
   surfaceRange: "",
   province: "",
+  provinceFreeText: "",
   grd: "",
   electricityBillBracket: "",
   annualElectricityBillCustom: "",
@@ -80,19 +86,12 @@ const surfaceRangeOptions = [
   { value: "gt_1500", label: "Plus de 1 500 m²" },
 ] as const
 
-const provinceOptions = [
-  { value: "liege", label: "Liège" },
-  { value: "hainaut", label: "Hainaut" },
-  { value: "namur", label: "Namur" },
-  { value: "brabant_wallon", label: "Brabant wallon" },
-  { value: "luxembourg", label: "Luxembourg" },
-] as const
-
 const grdOptions = [
-  { value: "ores", label: "Ores" },
-  { value: "resa", label: "Resa" },
+  { value: "ores", label: "Ores (Wallonie)" },
+  { value: "resa", label: "Resa (Wallonie)" },
   { value: "aieg", label: "AIEG" },
   { value: "rew", label: "REW" },
+  { value: "fluvius", label: "Fluvius (Flandre)" },
   { value: "unknown", label: "Je ne sais pas" },
 ] as const
 
@@ -208,7 +207,9 @@ export function ROISimulator() {
       case 1:
         return formData.surfaceType !== "" && formData.surfaceRange !== ""
       case 2:
-        return formData.province !== ""
+        if (formData.province === "") return false
+        if (formData.province === "autre") return formData.provinceFreeText.trim().length >= 2
+        return true
       case 3:
         return formData.electricityBillBracket !== "" || isCustomBillValid(formData.annualElectricityBillCustom)
       case 4:
@@ -290,6 +291,7 @@ export function ROISimulator() {
         surfaceType: formData.surfaceType,
         surfaceArea,
         province: formData.province,
+        provinceFreeText: formData.provinceFreeText.trim() || undefined,
         grd: grdValue,
         annualElectricityBill,
         marketingConsent: formData.marketingConsent,
@@ -500,20 +502,60 @@ export function ROISimulator() {
                 <div className="space-y-6">
                   <div>
                     <Label htmlFor="province" className="text-base font-semibold text-foreground">
-                      Dans quelle province se situe votre projet ?
+                      Région ou province du projet
                     </Label>
-                    <Select value={formData.province} onValueChange={(v) => updateFormData("province", v)}>
-                      <SelectTrigger id="province" className="mt-2 h-11">
-                        <SelectValue placeholder="Sélectionnez une province" />
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Toute la Belgique : Wallonie, Bruxelles, Flandre — ou précisez en champ libre si besoin.
+                    </p>
+                    <Select
+                      value={formData.province}
+                      onValueChange={(v) => updateFormData("province", v)}
+                    >
+                      <SelectTrigger id="province" className="mt-2 h-11 w-full min-w-0">
+                        <SelectValue placeholder="Sélectionnez une région" />
                       </SelectTrigger>
-                      <SelectContent>
-                        {provinceOptions.map((o) => (
-                          <SelectItem key={o.value} value={o.value}>
-                            {o.label}
-                          </SelectItem>
+                      <SelectContent className="max-h-[min(24rem,70vh)]">
+                        {BELGIUM_PROVINCE_GROUPS.map((group) => (
+                          <SelectGroup key={group.heading}>
+                            <SelectLabel className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                              {group.heading}
+                            </SelectLabel>
+                            {group.items.map((o) => (
+                              <SelectItem key={o.value} value={o.value}>
+                                {o.label}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="provinceFreeText">
+                      Précision{" "}
+                      <span className="font-normal text-muted-foreground">
+                        {formData.province === "autre" ? "(obligatoire si « Autre »)" : "(optionnelle)"}
+                      </span>
+                    </Label>
+                    <Textarea
+                      id="provinceFreeText"
+                      rows={3}
+                      maxLength={400}
+                      placeholder="Ex. : commune, site industriel, plusieurs sites, pays limitrophe…"
+                      value={formData.provinceFreeText}
+                      onChange={(e) =>
+                        updateFormData("provinceFreeText", e.target.value.slice(0, 400))
+                      }
+                      className={`mt-2 min-h-[80px] resize-y ${
+                        formData.province === "autre" && formData.provinceFreeText.trim().length < 2
+                          ? "border-destructive"
+                          : ""
+                      }`}
+                      aria-invalid={formData.province === "autre" && formData.provinceFreeText.trim().length < 2}
+                    />
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      {formData.provinceFreeText.length}/400 — utile pour affiner le raccordement (GRD) et la zone CWaPE.
+                    </p>
                   </div>
                   <div>
                     <Label htmlFor="grd" className="text-base font-semibold text-foreground">
@@ -521,7 +563,7 @@ export function ROISimulator() {
                       <span className="font-normal text-muted-foreground">(optionnel)</span>
                     </Label>
                     <Select value={formData.grd || undefined} onValueChange={(v) => updateFormData("grd", v)}>
-                      <SelectTrigger id="grd" className="mt-2 h-11">
+                      <SelectTrigger id="grd" className="mt-2 h-11 w-full min-w-0">
                         <SelectValue placeholder="Sélectionnez ou laissez vide" />
                       </SelectTrigger>
                       <SelectContent>
@@ -597,7 +639,10 @@ export function ROISimulator() {
 
               {step === 5 && (() => {
                 const previewResults = calculateROI(formData)
-                const provinceLabel = provinceOptions.find((p) => p.value === formData.province)?.label ?? ""
+                const provinceLabel = getProvinceDisplayLabel(
+                  formData.province,
+                  formData.provinceFreeText || undefined
+                )
 
                 return (
                   <div className="space-y-6">
@@ -730,7 +775,7 @@ export function ROISimulator() {
                     </div>
 
                     <div>
-                      <Label htmlFor="email">Email professionnel</Label>
+                      <Label htmlFor="email">E-mail</Label>
                       <Input
                         id="email"
                         type="email"

@@ -43,7 +43,7 @@ export default function WebinairePage() {
 
   const form = useForm<WebinaireLeadInput>({
     resolver: zodResolver(webinaireLeadSchema),
-    defaultValues: { firstName: "", jobTitle: undefined, email: "" },
+    defaultValues: { firstName: "", jobTitle: undefined, email: "", companyName: "" },
   })
 
   async function onSubmit(data: WebinaireLeadInput) {
@@ -111,7 +111,7 @@ export default function WebinairePage() {
                         Remplissez le formulaire pour débloquer le replay
                       </p>
                       <p className="text-center text-sm text-primary-foreground/80">
-                        ~30 secondes • Email professionnel uniquement
+                        ~30 secondes • Une adresse e-mail suffit
                       </p>
                     </div>
                   </div>
@@ -123,7 +123,7 @@ export default function WebinairePage() {
                     <CardHeader className="space-y-1 pb-4">
                       <CardTitle className="text-xl">Accédez au replay gratuit</CardTitle>
                       <CardDescription>
-                        Coordonnées professionnelles — pas de spam, accès immédiat.
+                        Quelques champs — pas de spam, accès immédiat.
                       </CardDescription>
                     </CardHeader>
                     <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -169,7 +169,7 @@ export default function WebinairePage() {
                           )}
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="email">Email professionnel</Label>
+                          <Label htmlFor="email">E-mail</Label>
                           <Input
                             id="email"
                             type="email"
@@ -180,6 +180,20 @@ export default function WebinairePage() {
                           {form.formState.errors.email && (
                             <p className="text-xs text-destructive">
                               {form.formState.errors.email.message}
+                            </p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="companyName">Entreprise ou secteur</Label>
+                          <Input
+                            id="companyName"
+                            placeholder="Ex. PME industrielle, retail… (optionnel)"
+                            {...form.register("companyName")}
+                            className={form.formState.errors.companyName ? "border-destructive" : ""}
+                          />
+                          {form.formState.errors.companyName && (
+                            <p className="text-xs text-destructive">
+                              {form.formState.errors.companyName.message}
                             </p>
                           )}
                         </div>

@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { isProfessionalEmail, isValidFrBePhone } from "@/lib/leads-validation"
+import { isValidFrBePhone } from "@/lib/leads-validation"
 
 function cleanSiret(s: string): string {
   return s.replace(/\s/g, "")
@@ -44,13 +44,7 @@ export const installerRegistrationSchema = z.object({
     .min(1, "La fonction est requise")
     .max(255)
     .transform((s) => s.trim()),
-  email: z
-    .string()
-    .min(1, "L'adresse e-mail est requise")
-    .email("Adresse e-mail invalide")
-    .refine(isProfessionalEmail, {
-      message: "Veuillez utiliser une adresse e-mail professionnelle (domaines personnels type gmail, orange, free, etc. non acceptés).",
-    }),
+  email: z.string().min(1, "L'adresse e-mail est requise").email("Adresse e-mail invalide"),
   phone: z
     .string()
     .min(1, "Le numéro de téléphone est requis")

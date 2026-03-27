@@ -1,6 +1,4 @@
 import { z } from "zod"
-import { isProfessionalEmail } from "@/lib/leads-validation"
-
 const FONCTION_OPTIONS = ["DAF", "RSE", "Dirigeant", "Autre"] as const
 
 export const webinaireLeadSchema = z.object({
@@ -12,12 +10,15 @@ export const webinaireLeadSchema = z.object({
   jobTitle: z.enum(FONCTION_OPTIONS, {
     errorMap: () => ({ message: "Veuillez sélectionner une fonction." }),
   }),
-  email: z
+  email: z.string().email("Adresse e-mail invalide."),
+  companyName: z
     .string()
-    .email("Adresse e-mail invalide.")
-    .refine(isProfessionalEmail, {
-      message:
-        "Veuillez utiliser une adresse e-mail professionnelle (gmail, yahoo, etc. non acceptés).",
+    .max(200, "Maximum 200 caractères.")
+    .optional()
+    .transform((s) => {
+      if (s === undefined || s === null) return undefined
+      const t = s.trim()
+      return t === "" ? undefined : t
     }),
 })
 

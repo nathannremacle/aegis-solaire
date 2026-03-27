@@ -1,26 +1,5 @@
 import { parsePhoneNumberFromString, isValidPhoneNumber } from "libphonenumber-js"
 
-// ——— Domaines e-mail interdits (freemail / grand public) ———
-const FREE_EMAIL_DOMAINS = [
-  "gmail.com", "googlemail.com", "hotmail.com", "hotmail.fr", "live.com",
-  "outlook.com", "outlook.fr", "yahoo.com", "yahoo.fr", "orange.fr",
-  "wanadoo.fr", "free.fr", "sfr.fr", "laposte.net", "icloud.com",
-  "protonmail.com", "mail.com", "gmx.com", "gmx.fr", "yahoo.co.uk",
-  "hotmail.co.uk", "live.co.uk", "outlook.co.uk", "bbox.fr", "aliceadsl.fr",
-  "skynet.be", "telenet.be", "hotmail.be", "live.be",
-] as const
-
-/** Vérifie que l'email n'est pas un freemail (B2B : email professionnel requis). */
-export function isProfessionalEmail(email: string): boolean {
-  const domain = email.split("@")[1]?.toLowerCase()
-  if (!domain) return false
-  return !FREE_EMAIL_DOMAINS.includes(domain as (typeof FREE_EMAIL_DOMAINS)[number])
-}
-
-/** Message à afficher si l'email n'est pas professionnel. */
-export const EMAIL_PRO_MESSAGE =
-  "Veuillez utiliser une adresse e-mail professionnelle (domaines personnels type gmail, orange, free, etc. non acceptés)."
-
 /** Numéros belges et français acceptés (formats courants +32 / +33). */
 const PHONE_COUNTRIES = ["FR", "BE"] as const
 
@@ -50,7 +29,6 @@ export function getEmailError(email: string): string | null {
   const trimmed = email.trim()
   if (!trimmed) return "L'adresse e-mail est requise."
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return "Adresse e-mail invalide."
-  if (!isProfessionalEmail(trimmed)) return EMAIL_PRO_MESSAGE
   return null
 }
 

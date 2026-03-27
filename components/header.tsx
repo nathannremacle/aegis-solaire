@@ -31,8 +31,8 @@ export function Header() {
               sizes="(max-width: 640px) 240px, 320px"
             />
           </div>
-          <span className="hidden shrink-0 text-xs font-normal text-muted-foreground md:block md:text-sm">
-            Financement, Rentabilité & Ombrières Pro
+          <span className="hidden max-w-[14rem] shrink-0 text-balance text-xs font-normal leading-snug text-muted-foreground lg:max-w-none md:block md:text-sm">
+            B2B Wallonie — financement, rentabilité & ombrières pro
           </span>
         </Link>
 
