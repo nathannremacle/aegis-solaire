@@ -92,7 +92,10 @@ export function InstallateursClient({ initialData }: { initialData: Installateur
       if (editing) {
         const res = await fetch(`/api/admin/installateurs/${editing.id}`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "x-admin-request": "true"
+          },
           body: JSON.stringify(payload),
         })
         const data = await res.json()
@@ -102,7 +105,10 @@ export function InstallateursClient({ initialData }: { initialData: Installateur
       } else {
         const res = await fetch("/api/admin/installateurs", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "x-admin-request": "true"
+          },
           body: JSON.stringify(payload),
         })
         const data = await res.json()
@@ -124,7 +130,10 @@ export function InstallateursClient({ initialData }: { initialData: Installateur
     if (!deleteId) return
     setLoading(true)
     try {
-      const res = await fetch(`/api/admin/installateurs/${deleteId}`, { method: "DELETE" })
+      const res = await fetch(`/api/admin/installateurs/${deleteId}`, { 
+        method: "DELETE",
+        headers: { "x-admin-request": "true" }
+      })
       if (!res.ok) throw new Error("Erreur")
       setList((prev) => prev.filter((i) => i.id !== deleteId))
       setDeleteId(null)

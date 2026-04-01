@@ -58,7 +58,10 @@ function CleanupLeadsButton() {
     if (!confirm("Anonymiser les leads de plus de 3 ans (conformité RGPD) ? Cette action est irréversible.")) return
     setLoading(true)
     try {
-      const res = await fetch("/api/admin/cleanup-leads", { method: "POST" })
+      const res = await fetch("/api/admin/cleanup-leads", { 
+        method: "POST",
+        headers: { "x-admin-request": "true" }
+      })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Erreur")
       toast.success(data.message ?? `${data.anonymized_count} lead(s) anonymisés.`)

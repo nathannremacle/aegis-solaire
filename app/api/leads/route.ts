@@ -4,6 +4,7 @@ import { leadSubmitSchema } from "@/lib/leads-schema"
 import { calculateLeadScore } from "@/lib/lead-score"
 import { checkRateLimit } from "@/lib/rate-limit"
 import { sendPartnerLeadTeaserEmails } from "@/lib/partner-lead-teaser-email"
+import { createHmac } from "crypto"
 
 function sanitizeString(input: string, maxLength = 255): string {
   const trimmed = String(input).trim().slice(0, maxLength)
@@ -11,6 +12,12 @@ function sanitizeString(input: string, maxLength = 255): string {
 }
 
 const MIN_FORM_FILL_TIME_MS = 4000
+
+export function getClientIp(request: Request): string {
+  // En environnement Next.js / Vercel, l'IP est injectée sur l'objet de requête
+  const nextRequest = request as any
+  return nextRequest.ip || nextRequest.headers.get("x-forwarded-for") || "unknown"
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,7 +31,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    if (!checkRateLimit(request)) {
+    if (!(await checkRateLimit(request))) {
       return NextResponse.json(
         { error: "Trop de demandes. Veuillez réessayer dans une heure." },
         { status: 429 }
@@ -165,8 +172,11 @@ export async function POST(request: NextRequest) {
     }).catch((err) => console.error("[Partner teaser] envoi non bloquant échoué:", err))
 
     const webhookUrl = process.env.LEAD_WEBHOOK_URL
+    const webhookSecret = process.env.LEAD_WEBHOOK_SECRET
+
     if (webhookUrl) {
       const payload = {
+        // ... (same fields)
         id: inserted.id,
         first_name: inserted.first_name,
         last_name: inserted.last_name,
@@ -195,10 +205,22 @@ export async function POST(request: NextRequest) {
         wants_irve: inserted.wants_irve ?? false,
         created_at: inserted.created_at,
       }
+
+      const body = JSON.stringify(payload)
+      const headers: Record<string, string> = { "Content-Type": "application/json" }
+
+      // Signature HMAC si le secret est configuré
+      if (webhookSecret) {
+        const signature = createHmac("sha256", webhookSecret)
+          .update(body)
+          .digest("hex")
+        headers["x-payload-signature"] = signature
+      }
+
       fetch(webhookUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        headers,
+        body,
         signal: AbortSignal.timeout(5000),
       }).catch((err) => console.error("Webhook delivery failed:", err))
     }

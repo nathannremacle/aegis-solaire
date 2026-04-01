@@ -28,7 +28,10 @@ function NotifyInstallateurButton({ leadId, className }: { leadId: string; class
   async function handleClick() {
     setLoading(true)
     try {
-      const res = await fetch(`/api/admin/leads/${leadId}/notify-installateur`, { method: "POST" })
+      const res = await fetch(`/api/admin/leads/${leadId}/notify-installateur`, { 
+        method: "POST",
+        headers: { "x-admin-request": "true" }
+      })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Erreur")
       toast.success(data.message ?? "Email envoyé à l'installateur.")
@@ -110,7 +113,9 @@ export function LeadDetailSheet({
       setLead(currentLeadFromList)
     } else {
       setLoading(true)
-      fetch(`/api/admin/leads/${leadId}`)
+      fetch(`/api/admin/leads/${leadId}`, {
+        headers: { "x-admin-request": "true" }
+      })
         .then((res) => {
           if (!res.ok) throw new Error("Lead introuvable")
           return res.json()
@@ -126,7 +131,9 @@ export function LeadDetailSheet({
 
   useEffect(() => {
     if (!open) return
-    fetch("/api/admin/installateurs")
+    fetch("/api/admin/installateurs", {
+      headers: { "x-admin-request": "true" }
+    })
       .then((res) => res.ok ? res.json() : [])
       .then((data: Installateur[]) => setInstallateurs(data))
       .catch(() => setInstallateurs([]))
@@ -138,7 +145,10 @@ export function LeadDetailSheet({
     try {
       const res = await fetch(`/api/admin/leads/${lead.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-admin-request": "true"
+        },
         body: JSON.stringify({ status: value }),
       })
       if (!res.ok) throw new Error("Erreur")
@@ -160,7 +170,10 @@ export function LeadDetailSheet({
     try {
       const res = await fetch(`/api/admin/leads/${lead.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-admin-request": "true"
+        },
         body: JSON.stringify({ installateur_id: installateurId }),
       })
       if (!res.ok) throw new Error("Erreur")

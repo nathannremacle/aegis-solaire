@@ -8,11 +8,19 @@ import { logAudit } from "@/lib/audit-log"
  * supérieure à 3 ans (36 mois). Aligné sur les recommandations RGPD / APD (Belgique) pour la prospection B2B.
  * Protégé : réservé aux administrateurs (ADMIN_EMAILS).
  */
-export async function POST() {
+export async function POST(request: Request) {
+  // 1. Autorisation : soit un Admin connecté, soit une requête Cron avec le bon secret
   const user = await getAdminUser()
-  if (!user) {
+  const authHeader = request.headers.get("authorization")
+  const cronSecret = process.env.CRON_SECRET
+
+  const isCron = cronSecret && authHeader === `Bearer ${cronSecret}`
+
+  if (!user && !isCron) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
   }
+
+  const adminEmail = user?.email ?? "system-cron@aegis-solaire.be"
 
   const cutoff = new Date()
   cutoff.setMonth(cutoff.getMonth() - 36)
@@ -64,7 +72,7 @@ export async function POST() {
 
   try {
     await logAudit({
-      adminEmail: user.email!,
+      adminEmail,
       action: "leads_anonymized",
       entityType: "leads",
       details: { anonymized_count: anonymized, cutoff: cutoffIso },
