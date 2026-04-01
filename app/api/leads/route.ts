@@ -79,9 +79,9 @@ export async function POST(request: NextRequest) {
     const last_name = sanitizeString(data.lastName)
     const email = data.email.toLowerCase().trim()
     const phone = data.phone.replace(/[\s.-]/g, "")
-    const job_title = sanitizeString(data.jobTitle)
-    const company = sanitizeString(data.company)
-    const company_vat = sanitizeString(data.companyVat, 32)
+    const job_title = data.jobTitle ? sanitizeString(data.jobTitle) : null
+    const company = data.company ? sanitizeString(data.company) : null
+    const company_vat = data.companyVat ? sanitizeString(data.companyVat, 32) : null
     const projectDetailsOnly = data.projectDetails ? sanitizeString(data.projectDetails, 2000) : null
     const provinceFreeSanitized = data.provinceFreeText ? sanitizeString(data.provinceFreeText, 400) : null
     const projectDetailsText =
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     const { score, status } = calculateLeadScore({
       firstName: first_name,
       lastName: last_name,
-      jobTitle: job_title,
+      jobTitle: job_title ?? "",
       surfaceArea: data.surfaceArea,
       annualElectricityBill: data.annualElectricityBill,
       grd: data.grd ?? null,
@@ -105,6 +105,7 @@ export async function POST(request: NextRequest) {
     dataRetentionUntil.setFullYear(dataRetentionUntil.getFullYear() + 3)
 
     const insertPayload: Record<string, unknown> = {
+      segment: data.segment,
       first_name,
       last_name,
       email,
@@ -143,7 +144,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const { data: partners } = await supabase
+      .from("partners")
+      .select("email")
+      .in("segment", [data.segment, "BOTH"])
+
+    const targetEmails = partners ? partners.map((p) => p.email).filter(Boolean) : []
+
     void sendPartnerLeadTeaserEmails({
+      targetEmails,
+      segment: data.segment,
       province: data.province,
       provinceFreeText: data.provinceFreeText ?? null,
       surfaceType: data.surfaceType,

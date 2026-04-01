@@ -3,7 +3,7 @@ import Image from "next/image"
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-secondary [padding-bottom:max(2.5rem,env(safe-area-inset-bottom))]" role="contentinfo">
+    <footer className="border-t border-neutral-200 bg-white text-neutral-800 [padding-bottom:max(2.5rem,env(safe-area-inset-bottom))]" role="contentinfo">
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:gap-10 lg:grid-cols-5 lg:gap-12">
           {/* Brand */}
@@ -19,21 +19,21 @@ export function Footer() {
                 />
               </div>
             </Link>
-            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-4 text-sm leading-relaxed text-neutral-500">
               Financement, rentabilité et ombrières professionnelles. La plateforme de référence pour le solaire B2B et les obligations PEB en Wallonie.
             </p>
           </div>
 
           {/* Navigation */}
           <div>
-            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">
+            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-[#001D3D]">
               Navigation
             </h4>
             <ul className="space-y-2">
               <li>
                 <Link
                   href="#preuve"
-                  className="text-sm text-muted-foreground hover:text-foreground"
+                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
                 >
                   Études de cas
                 </Link>
@@ -41,7 +41,7 @@ export function Footer() {
               <li>
                 <Link
                   href="#expert"
-                  className="text-sm text-muted-foreground hover:text-foreground"
+                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
                 >
                   Notre expertise
                 </Link>
@@ -49,7 +49,7 @@ export function Footer() {
               <li>
                 <Link
                   href="#benefits"
-                  className="text-sm text-muted-foreground hover:text-foreground"
+                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
                 >
                   Avantages
                 </Link>
@@ -57,7 +57,7 @@ export function Footer() {
               <li>
                 <Link
                   href="#simulator"
-                  className="text-sm text-muted-foreground hover:text-foreground"
+                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
                 >
                   Simulateur ROI
                 </Link>
@@ -65,7 +65,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/partenaires"
-                  className="text-sm text-muted-foreground hover:text-foreground"
+                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
                 >
                   Devenir Partenaire
                 </Link>
@@ -75,14 +75,14 @@ export function Footer() {
 
           {/* Ressources (Content Marketing / SEO) */}
           <div>
-            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">
+            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-[#001D3D]">
               Ressources
             </h4>
             <ul className="space-y-2">
               <li>
                 <Link
                   href="/ressources#etudes-de-cas"
-                  className="text-sm text-muted-foreground hover:text-foreground"
+                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
                 >
                   Études de cas chiffrées
                 </Link>
@@ -90,7 +90,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/ressources#subventions"
-                  className="text-sm text-muted-foreground hover:text-foreground"
+                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
                 >
                   Subventions & financement
                 </Link>
@@ -98,7 +98,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/webinaire"
-                  className="text-sm text-muted-foreground hover:text-foreground"
+                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
                 >
                   Webinaires & masterclass
                 </Link>
@@ -106,7 +106,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/faq-technique"
-                  className="text-sm text-muted-foreground hover:text-foreground"
+                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
                 >
                   FAQ technique (PEB, CV, financement)
                 </Link>
@@ -116,14 +116,14 @@ export function Footer() {
 
           {/* Legal */}
           <div>
-            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">
+            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-[#001D3D]">
               Informations légales
             </h4>
             <ul className="space-y-2">
               <li>
                 <Link
                   href="/mentions-legales"
-                  className="text-sm text-muted-foreground hover:text-foreground"
+                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
                 >
                   Mentions légales
                 </Link>
@@ -131,7 +131,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/politique-confidentialite"
-                  className="text-sm text-muted-foreground hover:text-foreground"
+                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
                 >
                   Politique de confidentialité
                 </Link>
@@ -139,7 +139,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/politique-confidentialite#desinscription"
-                  className="text-sm text-muted-foreground hover:text-foreground"
+                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
                 >
                   Désinscription / Opposition
                 </Link>
@@ -147,7 +147,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/cgv"
-                  className="text-sm text-muted-foreground hover:text-foreground"
+                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
                 >
                   CGV
                 </Link>
@@ -157,17 +157,17 @@ export function Footer() {
 
           {/* Contact */}
           <div className="min-w-0">
-            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">
+            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-[#001D3D]">
               Contact
             </h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+            <ul className="space-y-2 text-sm text-neutral-500">
               <li className="break-all">contact@aegissolaire.com</li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-10 border-t border-border pt-6 sm:mt-12 sm:pt-8">
-          <p className="text-center text-xs text-muted-foreground sm:text-sm">
+        <div className="mt-10 border-t border-neutral-200 pt-6 sm:mt-12 sm:pt-8">
+          <p className="text-center text-xs text-neutral-400 sm:text-sm">
             &copy; {new Date().getFullYear()} Aegis Solaire. Tous droits
             réservés.
           </p>

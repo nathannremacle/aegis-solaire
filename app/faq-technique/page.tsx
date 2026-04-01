@@ -44,15 +44,15 @@ export default function FaqTechniquePage() {
             <FaqTechniqueAccordion items={FAQ_TECHNIQUE_ITEMS} />
           </div>
 
-          <div className="mt-12 flex flex-col items-center gap-4 rounded-2xl border border-dashed border-primary/25 bg-primary/5 px-6 py-8 text-center sm:mt-16">
-            <p className="max-w-lg text-sm text-muted-foreground sm:text-base">
-              Besoin d&apos;une étude chiffrée sur votre site ? Lancez le simulateur — un expert vous recontacte sous 24 à 48 h.
+          <div className="mt-12 flex flex-col items-center gap-6 rounded-3xl border border-white/10 bg-[radial-gradient(ellipse_at_top,rgba(0,29,61,0.5)_0%,rgba(0,10,25,0.8)_100%)] px-8 py-10 text-center shadow-[0_0_30px_rgba(0,0,0,0.5)] backdrop-blur-md sm:mt-16 sm:px-12 sm:py-14">
+            <p className="max-w-xl text-base font-medium leading-relaxed text-neutral-300 sm:text-lg">
+              Besoin d&apos;une modélisation financière et technique sur votre site ? Lancez le simulateur — un expert vous recontacte sous 24 à 48 h avec un dossier complet.
             </p>
             <Link
               href="/#simulator"
-              className="inline-flex items-center justify-center rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow transition hover:bg-primary/90"
+              className="inline-flex items-center justify-center rounded-xl bg-accent px-8 py-4 text-base font-bold text-black shadow-[0_0_20px_rgba(255,184,0,0.3)] transition-all hover:scale-105 hover:bg-accent/90"
             >
-              Simuler mon ROI
+              Simuler la rentabilité de mon site
             </Link>
           </div>
         </div>

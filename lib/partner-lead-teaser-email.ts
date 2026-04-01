@@ -5,7 +5,7 @@ const resendApiKey = process.env.RESEND_API_KEY
 const fromEmail = process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev"
 
 /** Liste d’e-mails installateurs (virgule). Ex. : "a@x.be,b@y.be" */
-function getPartnerAlertRecipients(): string[] {
+function getEnvPartnerAlertRecipients(): string[] {
   const raw = process.env.PARTNER_LEAD_ALERT_EMAILS ?? ""
   return raw
     .split(",")
@@ -35,6 +35,8 @@ const GRD_LABELS: Record<string, string> = {
 }
 
 export type PartnerLeadTeaserPayload = {
+  targetEmails: string[]
+  segment?: string
   province: string
   provinceFreeText?: string | null
   surfaceType: string
@@ -116,14 +118,15 @@ Débloquer ce lead complet (Se connecter au Dashboard) -> ${ctaUrl}`
 }
 
 /**
- * Envoie le teaser anonymisé à tous les destinataires configurés.
- * Sans RESEND_API_KEY ou sans PARTNER_LEAD_ALERT_EMAILS : log uniquement, pas d’erreur.
+ * Envoie le teaser anonymisé aux destinataires ciblés (depuis DB + fallback env).
  */
 export async function sendPartnerLeadTeaserEmails(payload: PartnerLeadTeaserPayload): Promise<void> {
-  const recipients = getPartnerAlertRecipients()
+  const envRecipients = getEnvPartnerAlertRecipients()
+  const recipients = Array.from(new Set([...payload.targetEmails, ...envRecipients]))
+
   if (recipients.length === 0) {
     console.log(
-      "[Partner teaser] PARTNER_LEAD_ALERT_EMAILS non défini ou vide — e-mail d’alerte non envoyé."
+      "[Partner teaser] Aucun destinataire BDD ni ENV trouvé — e-mail d’alerte non envoyé."
     )
     return
   }

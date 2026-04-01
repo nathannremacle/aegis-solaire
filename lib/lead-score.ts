@@ -27,7 +27,7 @@ function hasSuspiciousName(name: string): boolean {
 export type LeadScoreInput = {
   firstName: string
   lastName: string
-  jobTitle: string
+  jobTitle?: string | null
   surfaceArea: number
   annualElectricityBill: number
   /** GRD renseigné (hors « je ne sais pas ») */
@@ -52,9 +52,11 @@ export function calculateLeadScore(data: LeadScoreInput): LeadScoreResult {
   if (data.surfaceArea >= 1_500) score += 20
   else if (data.surfaceArea >= 500) score += 10
 
-  const jobLower = data.jobTitle.trim().toLowerCase()
-  const isHighValueJob = HIGH_VALUE_JOB_KEYWORDS.some((kw) => jobLower.includes(kw))
-  if (isHighValueJob) score += 20
+  if (data.jobTitle) {
+    const jobLower = data.jobTitle.trim().toLowerCase()
+    const isHighValueJob = HIGH_VALUE_JOB_KEYWORDS.some((kw) => jobLower.includes(kw))
+    if (isHighValueJob) score += 20
+  }
 
   if (data.grd && data.grd !== "unknown") score += 5
 

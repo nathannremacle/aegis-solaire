@@ -70,15 +70,16 @@ export default function WebinairePage() {
       <Header />
       <main className="min-w-0 flex-1">
         {/* Hero — compact et lisible */}
-        <section className="relative overflow-hidden bg-primary py-10 sm:py-14 lg:py-16 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
+        <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top,rgba(0,29,61,1)_0%,rgba(0,10,25,1)_100%)] py-12 sm:py-16 lg:py-24 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
+          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1548618753-157945d81c4e?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay" />
           <div className="absolute inset-0 -z-10">
-            <div className="absolute right-0 top-0 h-80 w-80 rounded-full bg-accent/15 blur-3xl" />
-            <div className="absolute bottom-0 left-0 h-48 w-48 rounded-full bg-white/5 blur-2xl" />
+            <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-accent/20 blur-[100px]" />
+            <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-white/5 blur-3xl" />
           </div>
-          <div className="mx-auto max-w-4xl min-w-0 px-4 text-center sm:px-6 lg:px-8">
-            <p className="text-xs font-medium uppercase tracking-wider text-primary-foreground/70 sm:text-sm">
+          <div className="mx-auto max-w-4xl min-w-0 px-4 text-center sm:px-6 lg:px-8 relative z-10">
+            <span className="mb-6 inline-block rounded-full bg-accent/20 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[#FFE066] sm:text-sm shadow-[0_0_20px_rgba(255,184,0,0.15)] ring-1 ring-accent/40">
               Replay Masterclass
-            </p>
+            </span>
             <h1 className="mt-2 text-balance text-2xl font-bold tracking-tight text-primary-foreground min-[480px]:text-3xl sm:text-4xl">
               Zéro CAPEX : financer 100% de votre solaire par le Tiers-Investissement
             </h1>
@@ -94,24 +95,23 @@ export default function WebinairePage() {
               /* ——— État verrouillé : layout clair formulaire + vignette vidéo ——— */
               <div className="grid gap-8 lg:grid-cols-[1fr,400px] lg:items-start lg:gap-12">
                 {/* Bloc vidéo floutée (gauche sur desktop, en haut sur mobile pour donner envie) */}
-                <div className="relative order-2 overflow-hidden rounded-2xl border border-border bg-muted shadow-xl lg:order-1">
+                <div className="relative order-2 overflow-hidden rounded-2xl border border-border shadow-2xl lg:order-1 transition-transform hover:scale-[1.01]">
                   <div className="relative aspect-video w-full">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={YOUTUBE_THUMB}
                       alt=""
                       className="absolute inset-0 h-full w-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-primary/70 backdrop-blur-[6px]" />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-4">
-                      <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-2 border-primary-foreground/30 bg-primary/90 shadow-lg">
-                        <Lock className="h-10 w-10 text-primary-foreground" />
+                    <div className="absolute inset-0 bg-[#001D3D]/80 backdrop-blur-[8px]" />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-4 text-center">
+                      <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-accent/40 bg-accent/10 shadow-[0_0_30px_rgba(255,184,0,0.4)]">
+                        <Lock className="h-10 w-10 text-accent" />
                       </div>
-                      <p className="max-w-sm text-center text-base font-semibold text-primary-foreground sm:text-lg">
-                        Remplissez le formulaire pour débloquer le replay
+                      <p className="max-w-sm text-center text-lg font-bold text-white sm:text-xl drop-shadow-md">
+                        Remplissez le formulaire de réservation pour visualiser le replay
                       </p>
-                      <p className="text-center text-sm text-primary-foreground/80">
-                        ~30 secondes • Une adresse e-mail suffit
+                      <p className="inline-flex rounded-full bg-white/10 px-3 py-1 text-sm text-neutral-300 font-medium">
+                        ~ 30 secondes • Accès direct
                       </p>
                     </div>
                   </div>
@@ -119,38 +119,44 @@ export default function WebinairePage() {
 
                 {/* Formulaire (droite sur desktop) */}
                 <div className="order-1 lg:order-2 lg:sticky lg:top-24">
-                  <Card className="border-2 border-primary/10 bg-card shadow-lg">
-                    <CardHeader className="space-y-1 pb-4">
-                      <CardTitle className="text-xl">Accédez au replay gratuit</CardTitle>
-                      <CardDescription>
-                        Quelques champs — pas de spam, accès immédiat.
-                      </CardDescription>
-                    </CardHeader>
-                    <form onSubmit={form.handleSubmit(onSubmit)}>
-                      <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="firstName">Prénom</Label>
+                  <div className="min-w-0 overflow-hidden rounded-xl bg-card p-5 shadow-2xl sm:rounded-2xl sm:p-8">
+                    <div className="mb-6 space-y-2">
+                      <h3 className="text-xl font-semibold text-foreground sm:text-2xl">
+                        Accès au replay (Gratuit)
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Renseignez vos coordonnées pour débloquer le lecteur instantanément.
+                      </p>
+                    </div>
+
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                      <div className="grid grid-cols-1 gap-5">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="firstName" className="font-medium text-foreground">
+                            Prénom
+                          </Label>
                           <Input
                             id="firstName"
                             placeholder="Jean"
                             {...form.register("firstName")}
-                            className={form.formState.errors.firstName ? "border-destructive" : ""}
+                            className={`h-11 ${form.formState.errors.firstName ? "border-destructive" : "border-input"}`}
                           />
                           {form.formState.errors.firstName && (
-                            <p className="text-xs text-destructive">
-                              {form.formState.errors.firstName.message}
-                            </p>
+                            <p className="text-xs text-destructive">{form.formState.errors.firstName.message}</p>
                           )}
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="jobTitle">Fonction</Label>
+
+                        <div className="space-y-1.5">
+                          <Label htmlFor="jobTitle" className="font-medium text-foreground">
+                            Fonction
+                          </Label>
                           <Select
                             onValueChange={(v) => form.setValue("jobTitle", v as WebinaireLeadInput["jobTitle"])}
                             value={form.watch("jobTitle") ?? ""}
                           >
                             <SelectTrigger
                               id="jobTitle"
-                              className={form.formState.errors.jobTitle ? "border-destructive" : ""}
+                              className={`h-11 ${form.formState.errors.jobTitle ? "border-destructive" : "border-input"}`}
                             >
                               <SelectValue placeholder="Sélectionnez votre fonction" />
                             </SelectTrigger>
@@ -163,59 +169,60 @@ export default function WebinairePage() {
                             </SelectContent>
                           </Select>
                           {form.formState.errors.jobTitle && (
-                            <p className="text-xs text-destructive">
-                              {form.formState.errors.jobTitle.message}
-                            </p>
+                            <p className="text-xs text-destructive">{form.formState.errors.jobTitle.message}</p>
                           )}
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="email">E-mail</Label>
+
+                        <div className="space-y-1.5">
+                          <Label htmlFor="email" className="font-medium text-foreground">
+                            E-mail pro
+                          </Label>
                           <Input
                             id="email"
                             type="email"
                             placeholder="jean.dupont@entreprise.be"
                             {...form.register("email")}
-                            className={form.formState.errors.email ? "border-destructive" : ""}
+                            className={`h-11 ${form.formState.errors.email ? "border-destructive" : "border-input"}`}
                           />
                           {form.formState.errors.email && (
-                            <p className="text-xs text-destructive">
-                              {form.formState.errors.email.message}
-                            </p>
+                            <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>
                           )}
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="companyName">Entreprise ou secteur</Label>
+
+                        <div className="space-y-1.5">
+                          <Label htmlFor="companyName" className="font-medium text-foreground">
+                            Secteur ou entreprise
+                          </Label>
                           <Input
                             id="companyName"
-                            placeholder="Ex. PME industrielle, retail… (optionnel)"
+                            placeholder="Ex. PME industrielle, retail..."
                             {...form.register("companyName")}
-                            className={form.formState.errors.companyName ? "border-destructive" : ""}
+                            className={`h-11 ${form.formState.errors.companyName ? "border-destructive" : "border-input"}`}
                           />
                           {form.formState.errors.companyName && (
-                            <p className="text-xs text-destructive">
-                              {form.formState.errors.companyName.message}
-                            </p>
+                            <p className="text-xs text-destructive">{form.formState.errors.companyName.message}</p>
                           )}
                         </div>
-                      </CardContent>
-                      <CardFooter className="flex flex-col gap-3 pt-2">
+                      </div>
+
+                      <div className="pt-2 flex flex-col gap-4">
                         <Button
                           type="submit"
                           size="lg"
-                          className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+                          className="w-full bg-accent text-lg font-bold text-accent-foreground hover:bg-accent/90 focus:ring-2 focus:ring-accent focus:ring-offset-2"
                           disabled={form.formState.isSubmitting}
                         >
-                          {form.formState.isSubmitting ? "Envoi…" : "Débloquer le replay"}
+                          {form.formState.isSubmitting ? "Déverrouillage..." : "Débloquer le replay gratuit"}
                         </Button>
                         <p className="text-center text-xs text-muted-foreground">
-                          En soumettant, vous acceptez d’être recontacté dans le cadre de votre projet.{" "}
+                          Vos données restent confidentielles et sécurisées.{" "}
                           <Link href="/politique-confidentialite" className="underline hover:text-foreground">
                             Confidentialité
                           </Link>
                         </p>
-                      </CardFooter>
+                      </div>
                     </form>
-                  </Card>
+                  </div>
                 </div>
               </div>
             ) : (

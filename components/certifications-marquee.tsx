@@ -44,6 +44,9 @@ function LogoItem({ src, alt, name }: { src: string; alt: string; name: string }
 }
 
 export function CertificationsMarquee() {
+  // On multiplie les logos pour garantir que la moitié de la piste (50%) couvre l'écran le plus large (ex: 4k).
+  const extendedLogos = [...LOGOS, ...LOGOS, ...LOGOS, ...LOGOS, ...LOGOS]
+
   return (
     <div
       className="certifications-marquee-pause relative w-full overflow-hidden py-2"
@@ -61,13 +64,13 @@ export function CertificationsMarquee() {
 
       <div className="certifications-marquee-track flex w-max gap-0">
         <ul className="flex items-center gap-0" aria-hidden>
-          {LOGOS.map((logo) => (
-            <LogoItem key={`a-${logo.name}`} {...logo} />
+          {extendedLogos.map((logo, index) => (
+            <LogoItem key={`a-${logo.name}-${index}`} {...logo} />
           ))}
         </ul>
         <ul className="flex items-center gap-0" aria-hidden>
-          {LOGOS.map((logo) => (
-            <LogoItem key={`b-${logo.name}`} {...logo} />
+          {extendedLogos.map((logo, index) => (
+            <LogoItem key={`b-${logo.name}-${index}`} {...logo} />
           ))}
         </ul>
       </div>

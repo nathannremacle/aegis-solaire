@@ -6,8 +6,9 @@ const provinceEnum = z.enum(BELGIUM_PROVINCE_KEYS as unknown as [BelgiumProvince
 
 const jobTitleEnum = ["Dirigeant", "DAF", "Resp. RSE ou Technique", "Autre"] as const
 
-/** Schéma Zod pour la soumission lead — tunnel Wallonie B2B. */
+/** Schéma Zod pour la soumission lead — hybride B2B/B2C. */
 export const leadSubmitSchema = z.object({
+  segment: z.enum(["B2B", "B2C"]).default("B2B"),
   firstName: z
     .string()
     .min(2, "Le prénom est requis (minimum 2 caractères)")
@@ -23,13 +24,13 @@ export const leadSubmitSchema = z.object({
     .string()
     .min(1, "Le numéro de téléphone est requis.")
     .refine(isValidFrBePhone, { message: "Veuillez indiquer un numéro de téléphone français ou belge valide." }),
-  jobTitle: z.enum(jobTitleEnum, { message: "Veuillez sélectionner votre fonction." }),
-  company: z.string().min(1, "Le nom de l'entreprise est requis.").max(255).transform((s) => s.trim()),
+  jobTitle: z.enum(jobTitleEnum).optional(),
+  company: z.string().max(255).transform((s) => s.trim()).optional(),
   companyVat: z
     .string()
-    .min(1, "Le numéro TVA belge est requis.")
     .transform((s) => normalizeBelgianVat(s))
-    .refine(isValidBelgianVat, { message: "Numéro TVA belge invalide (format BE + 10 chiffres)." }),
+    .refine((s) => !s || isValidBelgianVat(s), { message: "Numéro TVA belge invalide (format BE + 10 chiffres)." })
+    .optional(),
 
   surfaceType: z.enum(["toiture", "parking", "terrain"], { errorMap: () => ({ message: "Type de surface invalide" }) }),
   surfaceArea: z.number().int().positive("Surface requise"),
@@ -45,7 +46,7 @@ export const leadSubmitSchema = z.object({
       return t === "" ? undefined : t
     }),
   grd: z.enum(["ores", "resa", "aieg", "rew", "fluvius", "unknown"]).optional().nullable(),
-  annualElectricityBill: z.number().int().min(5000, "Facture annuelle minimum de 5 000 € requise pour une étude B2B."),
+  annualElectricityBill: z.number().int().positive("Facture annuelle requise"),
   marketingConsent: z
     .boolean()
     .refine((v) => v === true, { message: "Le consentement est requis pour transmettre votre demande." }),
@@ -67,8 +68,32 @@ export const leadSubmitSchema = z.object({
   form_opened_at: z.string().optional(),
 })
   .refine(
-    (data) => data.surfaceArea >= 200,
-    { message: "Surface représentative trop faible pour une étude B2B.", path: ["surfaceArea"] }
+    (data) => {
+      // Pour les B2B, on impose 200m² min, JobTitle, Company et CompanyVat obligatoires.
+      if (data.segment === "B2B") {
+        if (data.surfaceArea < 200) return false
+      }
+      return true
+    },
+    { message: "Surface représentative trop faible pour une étude B2B (> 200m²).", path: ["surfaceArea"] }
+  )
+  .refine(
+    (data) => {
+      if (data.segment === "B2B") {
+        return Boolean(data.company && data.company.length > 0)
+      }
+      return true
+    },
+    { message: "Nom de l'entreprise requis en B2B.", path: ["company"] }
+  )
+  .refine(
+    (data) => {
+      if (data.segment === "B2B") {
+        return Boolean(data.companyVat && data.companyVat.length > 4)
+      }
+      return true
+    },
+    { message: "Numéro TVA BE requis en B2B.", path: ["companyVat"] }
   )
   .refine(
     (data) => {

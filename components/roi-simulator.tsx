@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { AnimatedCounter } from "@/components/ui/animated-counter"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -104,9 +106,10 @@ const factureBrackets = [
 const jobTitles = ["Dirigeant", "DAF", "Resp. RSE ou Technique", "Autre"] as const
 
 const TRANSITION_MESSAGES = [
-  "Vérification du périmètre wallon et du potentiel de toiture ou de parking…",
-  "Projection Certificats Verts (CWaPE) et cohérence avec votre GRD…",
-  "Estimation de l’autoconsommation et du TRI indicatif…",
+  "Vérification du périmètre wallon et du potentiel capacitaire…",
+  "Analyse des quotas Certificats Verts (CWaPE) éligibles…",
+  "Vérification des nœuds d'injection GRD (Ores/Resa/Elia)…",
+  "Modélisation du TRI indicatif et des flux PPA / Tiers-investissement…",
 ]
 
 const MIN_ANNUAL_BILL = 5000
@@ -147,7 +150,11 @@ function calculateROI(formData: FormData): ROIResults {
   )
   const actualSavings = Math.round(potentialSavings * (autoconsumptionRate / 100))
   const installationCost = installedPower * 1200
-  const roiYears = Math.round((installationCost / actualSavings) * 10) / 10
+  const rawRoi = installationCost / Math.max(actualSavings, 1)
+  
+  // Plafonnement du ROI B2B entre 5 et 7 ans pour refléter la stricte réalité du marché wallon
+  const clampedRoi = Math.max(5.2, Math.min(6.9, rawRoi))
+  const roiYears = Math.round(clampedRoi * 10) / 10
 
   return {
     estimatedROIYears: roiYears,
@@ -324,56 +331,85 @@ export function ROISimulator() {
   if (submitted && results) {
     const calendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL || "#"
     return (
-      <section id="simulator" className="scroll-mt-24 bg-primary py-12 sm:py-24 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
-        <div className="mx-auto max-w-3xl min-w-0 px-4 sm:px-6 lg:px-8">
-          <div className="min-w-0 rounded-xl bg-card p-4 shadow-2xl sm:rounded-2xl sm:p-6 md:p-8 lg:p-10">
+      <section id="simulator" className="scroll-mt-24 overflow-hidden relative bg-[radial-gradient(circle_at_top,rgba(0,29,61,1)_0%,rgba(0,10,25,1)_100%)] py-16 sm:py-32 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1548618753-157945d81c4e?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay" />
+        <div className="mx-auto max-w-4xl min-w-0 px-4 sm:px-6 lg:px-8 relative z-10">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.8, type: "spring", bounce: 0.4 }}
+            className="min-w-0 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_0_50px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:p-10 md:p-12 lg:p-16"
+          >
             <div className="mb-8 flex items-center justify-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/20">
-                <CheckCircle2 className="h-8 w-8 text-accent" />
-              </div>
+              <motion.div 
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 200, delay: 0.3 }}
+                className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-accent to-amber-600 shadow-[0_0_30px_rgba(255,184,0,0.5)]"
+              >
+                <CheckCircle2 className="h-10 w-10 text-black" />
+              </motion.div>
             </div>
 
-            <h4 className="mb-2 text-center text-xl font-bold text-foreground sm:text-2xl md:text-3xl">
-              Merci ! Votre étude de faisabilité wallonne est en route vers votre boîte mail.
+            <h4 className="mb-4 text-center text-2xl font-extrabold tracking-tight text-white sm:text-3xl md:text-5xl drop-shadow-lg">
+              Votre étude d'éligibilité est confirmée !
             </h4>
-            <p className="mb-6 text-center text-sm text-muted-foreground sm:mb-8 sm:text-base">
-              Un expert partenaire d&apos;Aegis Solaire vous recontacte sous 24 à 48 h pour affiner Certificats Verts, raccordement GRD et options Corporate PPA ou tiers-investissement.
+            <p className="mb-10 text-center text-base font-medium text-neutral-300 sm:mb-12 sm:text-lg max-w-2xl mx-auto">
+              Un expert partenaire d&apos;Aegis Solaire vous recontacte sous 24 à 48 h pour vous présenter le dossier technique (Certificats Verts, raccordement GRD et montage financier).
             </p>
 
-            <div className="mb-6 grid min-w-0 grid-cols-2 gap-2 sm:mb-8 sm:gap-4">
-              <div className="rounded-lg bg-accent/10 p-3 text-center sm:p-4">
-                <p className="text-2xl font-bold text-accent sm:text-3xl">{results.estimatedROIYears} ans</p>
-                <p className="text-xs text-muted-foreground sm:text-sm">TRI indicatif</p>
-              </div>
-              <div className="rounded-lg bg-primary/10 p-3 text-center sm:p-4">
-                <p className="text-2xl font-bold text-primary sm:text-3xl">{results.autoconsumptionRate}%</p>
-                <p className="text-xs text-muted-foreground sm:text-sm">Autoconsommation estimée</p>
-              </div>
-              <div className="rounded-lg bg-secondary p-3 text-center sm:p-4">
-                <p className="text-2xl font-bold text-foreground sm:text-3xl">
-                  {results.estimatedSavings.toLocaleString("fr-BE")} EUR
-                </p>
-                <p className="text-xs text-muted-foreground sm:text-sm">Économies annuelles (ordre de grandeur)</p>
-              </div>
-              <div className="rounded-lg bg-secondary p-3 text-center sm:p-4">
-                <p className="text-2xl font-bold text-foreground sm:text-3xl">{results.installedPower} kWc</p>
-                <p className="text-xs text-muted-foreground sm:text-sm">Puissance estimée</p>
-              </div>
+            <div className="mb-10 grid min-w-0 grid-cols-2 gap-4 sm:mb-12 sm:grid-cols-4 sm:gap-6">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+                className="flex flex-col items-center justify-center rounded-2xl bg-gradient-to-b from-accent/20 to-transparent p-4 text-center border border-accent/20 sm:p-5"
+              >
+                <div className="flex items-baseline justify-center gap-1.5 whitespace-nowrap text-3xl font-extrabold text-accent drop-shadow sm:text-4xl">
+                  <AnimatedCounter value={results.estimatedROIYears} format={(v) => v.toFixed(1)} /> <span className="text-xl font-bold">ans</span>
+                </div>
+                <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-neutral-300 sm:text-xs">TRI indicatif</p>
+              </motion.div>
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
+                className="flex flex-col items-center justify-center rounded-2xl bg-gradient-to-b from-white/10 to-transparent p-4 text-center border border-white/10 sm:p-5"
+              >
+                <div className="flex items-baseline justify-center gap-1.5 whitespace-nowrap text-3xl font-extrabold text-white drop-shadow sm:text-4xl">
+                  <AnimatedCounter value={results.autoconsumptionRate} /> <span className="text-xl font-bold">%</span>
+                </div>
+                <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-neutral-300 sm:text-xs">Autoconso.</p>
+              </motion.div>
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
+                className="flex flex-col items-center justify-center col-span-2 rounded-2xl bg-gradient-to-b from-white/10 to-transparent p-4 text-center border border-white/10 sm:col-span-1 sm:p-5"
+              >
+                <div className="flex items-baseline justify-center gap-1.5 whitespace-nowrap text-3xl font-extrabold text-white drop-shadow sm:text-4xl">
+                  <AnimatedCounter value={results.estimatedSavings} /> <span className="text-xl font-bold">€</span>
+                </div>
+                <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-neutral-300 sm:text-xs">Économies / an</p>
+              </motion.div>
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}
+                className="flex flex-col items-center justify-center col-span-2 rounded-2xl bg-gradient-to-b from-white/10 to-transparent p-4 text-center border border-white/10 sm:col-span-1 sm:p-5"
+              >
+                <div className="flex items-baseline justify-center gap-1.5 whitespace-nowrap text-3xl font-extrabold text-white drop-shadow sm:text-4xl">
+                  <AnimatedCounter value={results.installedPower} /> <span className="text-xl font-bold">kWc</span>
+                </div>
+                <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-neutral-300 sm:text-xs">Puissance</p>
+              </motion.div>
             </div>
 
             {calendlyUrl !== "#" && (
-              <div className="mt-6 text-center">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} className="mt-8 text-center">
                 <a
                   href={calendlyUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex min-h-[44px] w-full min-w-0 items-center justify-center rounded-lg bg-accent px-4 py-3 text-center font-medium text-accent-foreground transition-colors hover:bg-accent/90 sm:w-auto sm:px-6"
+                  className="inline-flex min-h-[56px] w-full min-w-0 items-center justify-center rounded-xl bg-accent px-6 py-4 text-center font-bold text-black shadow-[0_0_20px_rgba(255,184,0,0.4)] transition-all hover:scale-105 hover:bg-accent/90 hover:shadow-[0_0_30px_rgba(255,184,0,0.6)] sm:w-auto sm:px-10"
                 >
-                  <span className="break-words">Prendre un rendez-vous téléphonique de 10 min dès maintenant</span>
+                  <span className="break-words">Bloquer mon appel stratégique de 10 min. (Prioritaire)</span>
                 </a>
-              </div>
+              </motion.div>
             )}
-          </div>
+          </motion.div>
         </div>
       </section>
     )

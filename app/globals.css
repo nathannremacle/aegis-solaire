@@ -11,17 +11,17 @@
   --card-foreground: oklch(0.22 0.04 254);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.22 0.04 254);
-  /* Primary: #112f4b (bleu marine logo) */
-  --primary: oklch(0.31 0.08 254);
-  --primary-foreground: oklch(0.985 0 0);
+  /* Primary: #001D3D (Bleu Nuit Institutionnel) */
+  --primary: #001D3D;
+  --primary-foreground: #FFFFFF;
   /* Secondary / muted: #7a8b98 (gris-bleu logo) – tons clairs pour fonds */
   --secondary: oklch(0.96 0.01 243);
   --secondary-foreground: oklch(0.28 0.04 254);
   --muted: oklch(0.96 0.01 243);
   --muted-foreground: oklch(0.54 0.05 243);
-  /* Accent: #e6ad35 (or / doré logo) */
-  --accent: oklch(0.72 0.17 86);
-  --accent-foreground: oklch(0.22 0.04 254);
+  /* Accent: #FFB800 (Or Solaire) */
+  --accent: #FFB800;
+  --accent-foreground: #000000;
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.88 0.02 243);
@@ -51,14 +51,14 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.18 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.31 0.08 254);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary: #001D3D;
+  --primary-foreground: #FFFFFF;
   --secondary: oklch(0.25 0.04 243);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.72 0.17 86);
-  --accent-foreground: oklch(0.22 0 0);
+  --accent: #FFB800;
+  --accent-foreground: #000000;
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.637 0.237 25.331);
   --border: oklch(0.269 0 0);
@@ -151,7 +151,7 @@
 }
 
 .certifications-marquee-track {
-  animation: certifications-marquee 35s linear infinite;
+  animation: certifications-marquee 120s linear infinite;
 }
 
 .certifications-marquee-pause:hover .certifications-marquee-track {
@@ -160,6 +160,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .certifications-marquee-track {
-    animation: certifications-marquee 60s linear infinite;
+    animation: certifications-marquee 240s linear infinite;
   }
 }
