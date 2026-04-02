@@ -12,7 +12,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Fix Turbopack root auto-detection (multiple lockfiles).
+  experimental: {
+    viewTransition: true,
+  },
   turbopack: {
     root: __dirname,
   },

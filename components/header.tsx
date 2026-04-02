@@ -47,7 +47,10 @@ export function Header() {
           </Link>
 
           {/* Segment Toggle – Desktop (Left Aligned for Space) */}
-          <div className="hidden md:flex h-11 items-center rounded-full border border-neutral-200 bg-neutral-100 p-1 shadow-sm">
+          <div
+            className="hidden md:flex h-11 items-center rounded-full border border-neutral-200 bg-neutral-100 p-1 shadow-sm"
+            style={{ viewTransitionName: "segment-toggle" }}
+          >
             <Link
               href="/"
               className={`relative flex h-full min-w-[140px] items-center justify-center rounded-full px-5 text-sm font-semibold transition-all duration-300 ${

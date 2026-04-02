@@ -163,3 +163,27 @@
     animation: certifications-marquee 240s linear infinite;
   }
 }
+
+/* Bandeau défilant avis clients */
+@keyframes avis-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.avis-marquee-track {
+  animation: avis-marquee 90s linear infinite;
+}
+
+.avis-marquee-pause:hover .avis-marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avis-marquee-track {
+    animation: avis-marquee 180s linear infinite;
+  }
+}
