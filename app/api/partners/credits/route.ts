@@ -21,7 +21,9 @@ export async function GET() {
       .limit(50),
     admin
       .from("lead_purchases")
-      .select("id, credits_spent, purchased_at, leads(province, segment)")
+      .select(
+        "id, credits_spent, purchased_at, leads(id, first_name, last_name, email, phone, company, company_vat, province, segment, surface_type, surface_area, annual_electricity_bill, grd)"
+      )
       .eq("partner_id", partner.id)
       .order("purchased_at", { ascending: false })
       .limit(50),

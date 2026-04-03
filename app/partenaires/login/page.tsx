@@ -3,11 +3,30 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Building2, ArrowLeft } from "lucide-react"
+import { ArrowLeft, Loader2, Zap } from "lucide-react"
+import { motion } from "framer-motion"
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.12, delayChildren: 0.1 },
+  },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring" as const, stiffness: 300, damping: 24 },
+  },
+}
 
 export default function PartnerLoginPage() {
   const router = useRouter()
@@ -44,31 +63,67 @@ export default function PartnerLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#001D3D] px-4">
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#001D3D] px-4">
+      {/* Hero background */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30"
+        style={{
+          backgroundImage: "url('/hero-partenaires.png')",
+          maskImage:
+            "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.5) 60%, rgba(0,0,0,0) 100%)",
+          WebkitMaskImage:
+            "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.5) 60%, rgba(0,0,0,0) 100%)",
+        }}
+      />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,29,61,0.2)_0%,rgba(0,29,61,0.85)_100%)]" />
+
+      {/* Ambient orbs */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-40 top-20 h-[500px] w-[500px] rounded-full bg-accent/[0.05] blur-[120px]" />
-        <div className="absolute -right-32 bottom-20 h-[400px] w-[400px] rounded-full bg-blue-500/[0.04] blur-[100px]" />
+        <div className="absolute -left-40 top-20 h-[500px] w-[500px] rounded-full bg-accent/[0.04] blur-[120px]" />
+        <div className="absolute -right-32 bottom-20 h-[400px] w-[400px] rounded-full bg-blue-500/[0.03] blur-[100px]" />
       </div>
 
-      <div className="relative z-10 w-full max-w-sm space-y-8">
-        <div className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10 ring-1 ring-accent/20">
-            <Building2 className="h-7 w-7 text-accent" />
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="relative z-10 w-full max-w-sm space-y-8"
+      >
+        {/* Branding */}
+        <motion.div variants={itemVariants} className="text-center">
+          <Link href="/" className="mx-auto mb-6 block">
+            <div className="relative mx-auto h-10 w-44">
+              <Image
+                src="/logo.png"
+                alt="Aegis Solaire"
+                fill
+                className="object-contain brightness-0 invert"
+                priority
+              />
+            </div>
+          </Link>
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-white/5 px-4 py-1.5 shadow-[0_0_15px_rgba(255,184,0,0.1)] backdrop-blur-md">
+            <Zap className="h-3.5 w-3.5 text-accent drop-shadow-[0_0_6px_rgba(255,184,0,0.6)]" />
+            <span className="text-xs font-bold uppercase tracking-widest text-accent">
+              Portail Installateur
+            </span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-white">
-            Portail Installateur
+            Accédez à vos leads
           </h1>
-          <p className="mt-2 text-sm text-neutral-500">
-            Aegis Solaire · Marketplace Leads
+          <p className="mt-2 text-sm text-neutral-400">
+            Marketplace solaire qualifié · Wallonie
           </p>
-        </div>
+        </motion.div>
 
-        <form
+        {/* Login Form */}
+        <motion.form
+          variants={itemVariants}
           onSubmit={handleSubmit}
-          className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-xl"
+          className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-[0_8px_32px_rgba(0,0,0,0.3)] backdrop-blur-xl"
         >
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-neutral-300">
+            <Label htmlFor="email" className="text-sm font-medium text-neutral-300">
               Email
             </Label>
             <Input
@@ -83,7 +138,7 @@ export default function PartnerLoginPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-neutral-300">
+            <Label htmlFor="password" className="text-sm font-medium text-neutral-300">
               Mot de passe
             </Label>
             <Input
@@ -97,29 +152,42 @@ export default function PartnerLoginPage() {
             />
           </div>
           {error && (
-            <p className="text-sm text-red-400" role="alert">
+            <motion.p
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-300"
+              role="alert"
+            >
               {error}
-            </p>
+            </motion.p>
           )}
           <Button
             type="submit"
-            className="h-11 w-full bg-accent font-bold text-[#001D3D] hover:bg-accent/90"
+            className="h-12 w-full bg-accent text-base font-bold text-[#001D3D] shadow-[0_0_20px_rgba(255,184,0,0.25)] transition-all hover:scale-[1.01] hover:bg-[#e6a600] hover:shadow-[0_0_30px_rgba(255,184,0,0.4)]"
             disabled={loading}
           >
-            {loading ? "Connexion…" : "Se connecter"}
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Connexion…
+              </span>
+            ) : (
+              "Se connecter"
+            )}
           </Button>
-        </form>
+        </motion.form>
 
-        <p className="text-center">
+        {/* Footer link */}
+        <motion.p variants={itemVariants} className="text-center">
           <Link
             href="/partenaires"
-            className="inline-flex items-center gap-1.5 text-sm text-neutral-500 underline-offset-4 hover:text-white hover:underline"
+            className="inline-flex items-center gap-1.5 text-sm text-neutral-500 underline-offset-4 transition-colors hover:text-white hover:underline"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Retour au programme partenaires
           </Link>
-        </p>
-      </div>
+        </motion.p>
+      </motion.div>
     </div>
   )
 }
