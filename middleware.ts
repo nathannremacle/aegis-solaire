@@ -47,22 +47,23 @@ export function middleware(request: NextRequest) {
   // 3. Protection CSRF pour le panel ADMIN
   // On vérifie que toute requête de mutation (POST, PUT, DELETE) vers /api/admin/*
   // possède un header personnalisé 'x-admin-request' pour empêcher les soumissions cross-site simples.
-  if (pathname.startsWith("/api/admin")) {
+  const isProtectedApi =
+    pathname.startsWith("/api/admin") || pathname.startsWith("/api/media-partners")
+
+  if (isProtectedApi) {
     const method = request.method
     if (["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
-      const adminHeader = request.headers.get("x-admin-request")
+      const csrfHeader = request.headers.get("x-admin-request")
       const origin = request.headers.get("origin")
       const host = request.headers.get("host")
 
-      // Vérification 1 : Header personnalisé obligatoire
-      if (!adminHeader) {
+      if (!csrfHeader) {
         return new NextResponse(
-          JSON.stringify({ error: "Sécurité : Header de requête admin manquant (CSRF prevention)" }),
+          JSON.stringify({ error: "Sécurité : Header de requête manquant (CSRF prevention)" }),
           { status: 403, headers: { "Content-Type": "application/json" } }
         )
       }
 
-      // Vérification 2 : Comparaison de l'origine (si présente) pour bloquer les requêtes cross-origin
       if (origin && host) {
         const originUrl = new URL(origin)
         if (originUrl.host !== host) {

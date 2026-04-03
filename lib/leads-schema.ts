@@ -66,6 +66,7 @@ export const leadSubmitSchema = z.object({
   estimatedSavings: z.number().optional(),
 
   form_opened_at: z.string().optional(),
+  mediaPartnerCode: z.string().max(50).optional(),
 })
   .refine(
     (data) => {

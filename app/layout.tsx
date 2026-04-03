@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter, DM_Sans } from 'next/font/google'
+import { Suspense } from 'react'
 import { Analytics } from '@vercel/analytics/next'
 import { StructuredData } from '@/components/StructuredData'
 import { Toaster } from '@/components/ui/sonner'
+import { MediaPartnerRefTracker } from '@/components/media-partner-ref-tracker'
 import './globals.css'
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -82,6 +84,9 @@ export default function RootLayout({
     <html lang="fr-BE">
       <body className={`${inter.variable} ${dmSans.variable} font-sans antialiased overflow-x-hidden min-w-0`}>
         <StructuredData />
+        <Suspense fallback={null}>
+          <MediaPartnerRefTracker />
+        </Suspense>
         {children}
         <Toaster richColors position="top-right" />
         <Analytics />

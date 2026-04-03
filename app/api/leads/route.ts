@@ -111,8 +111,13 @@ export async function POST(request: NextRequest) {
     const dataRetentionUntil = new Date()
     dataRetentionUntil.setFullYear(dataRetentionUntil.getFullYear() + 3)
 
+    const mediaPartnerCode = data.mediaPartnerCode
+      ? data.mediaPartnerCode.trim().slice(0, 50)
+      : null
+
     const insertPayload: Record<string, unknown> = {
       segment: data.segment,
+      media_partner_code: mediaPartnerCode,
       first_name,
       last_name,
       email,

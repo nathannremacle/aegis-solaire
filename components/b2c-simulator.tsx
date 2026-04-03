@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { BELGIUM_PROVINCE_GROUPS } from "@/lib/belgium-regions"
+import { getStoredMediaPartnerRef } from "@/components/media-partner-ref-tracker"
 import { AnimatedCounter } from "@/components/ui/animated-counter"
 import {
   ArrowRight,
@@ -314,6 +315,7 @@ export function B2CSimulator() {
         autoconsumptionRate: results.autoconsumptionRate,
         estimatedSavings: results.annualSavings,
         form_opened_at: openedAt.current,
+        mediaPartnerCode: getStoredMediaPartnerRef() ?? undefined,
       }
 
       const res = await fetch("/api/leads", {

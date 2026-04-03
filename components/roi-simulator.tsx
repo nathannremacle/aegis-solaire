@@ -33,6 +33,7 @@ import {
   getPhoneError,
   getVatError,
 } from "@/lib/leads-validation"
+import { getStoredMediaPartnerRef } from "@/components/media-partner-ref-tracker"
 
 type FormData = {
   surfaceType: string
@@ -308,6 +309,7 @@ export function ROISimulator() {
         projectDetails: formData.projectDetails.trim() || undefined,
         fax_number: formData.fax_number ?? "",
         form_opened_at: formContactOpenedAtRef.current ?? undefined,
+        mediaPartnerCode: getStoredMediaPartnerRef() ?? undefined,
       }
       const response = await fetch("/api/leads", {
         method: "POST",
