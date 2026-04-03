@@ -39,7 +39,7 @@ export async function POST(request: Request) {
   const { data: lead } = await admin
     .from("leads")
     .select(
-      "id, first_name, last_name, email, phone, company, company_vat, province, segment, surface_type, surface_area, annual_electricity_bill, grd"
+      "id, first_name, last_name, email, phone, company, company_vat, province, segment, surface_type, surface_area, annual_electricity_bill, grd, project_details, message"
     )
     .eq("id", body.leadId)
     .single()

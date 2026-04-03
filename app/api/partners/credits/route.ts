@@ -22,7 +22,7 @@ export async function GET() {
     admin
       .from("lead_purchases")
       .select(
-        "id, credits_spent, purchased_at, leads(id, first_name, last_name, email, phone, company, company_vat, province, segment, surface_type, surface_area, annual_electricity_bill, grd)"
+        "id, credits_spent, purchased_at, leads(id, first_name, last_name, email, phone, company, company_vat, province, segment, surface_type, surface_area, annual_electricity_bill, grd, project_details, message)"
       )
       .eq("partner_id", partner.id)
       .order("purchased_at", { ascending: false })

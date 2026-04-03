@@ -15,7 +15,7 @@ export async function GET() {
   const { data: leads, error } = await admin
     .from("leads")
     .select(
-      "id, province, segment, surface_type, surface_area, annual_electricity_bill, credit_cost, marketplace_status, created_at"
+      "id, province, segment, surface_type, surface_area, annual_electricity_bill, credit_cost, marketplace_status, created_at, grd"
     )
     .eq("marketplace_status", "available")
     .order("created_at", { ascending: false })
@@ -68,6 +68,7 @@ export async function GET() {
       estimatedRevenue: revenueEstimate,
       creditCost: cost,
       createdAt: lead.created_at,
+      grd: lead.grd,
       slots: {
         max: maxSlots,
         taken: lp.length,
