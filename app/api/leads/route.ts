@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { leadSubmitSchema } from "@/lib/leads-schema"
 import { calculateLeadScore } from "@/lib/lead-score"
 import { checkRateLimit } from "@/lib/rate-limit"
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       grd: data.grd ?? null,
     })
 
-    const supabase = await createClient()
+    const supabase = createServiceRoleClient()
 
     const consentDate = new Date()
     const dataRetentionUntil = new Date()
