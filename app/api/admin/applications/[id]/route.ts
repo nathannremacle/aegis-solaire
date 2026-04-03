@@ -69,6 +69,46 @@ async function syncInstallateurFromApplication(
   return { created: true, installateurId: inserted?.id }
 }
 
+const DEFAULT_STARTER_CREDITS = 10
+
+async function syncPartnerFromApplication(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  app: ApplicationRow
+) {
+  const email = app.email.toLowerCase().trim()
+
+  const { data: existing } = await supabase
+    .from("partners")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle()
+
+  if (existing?.id) {
+    return { created: false, partnerId: existing.id }
+  }
+
+  const { data: inserted, error } = await supabase
+    .from("partners")
+    .insert({
+      company_name: app.company_name.trim().slice(0, 255),
+      email,
+      phone: app.phone?.trim().slice(0, 50) || null,
+      credits: DEFAULT_STARTER_CREDITS,
+      segment: "BOTH",
+    })
+    .select("id")
+    .single()
+
+  if (error) {
+    if (error.code === "23505") {
+      const { data: row } = await supabase.from("partners").select("id").eq("email", email).maybeSingle()
+      if (row?.id) return { created: false, partnerId: row.id }
+    }
+    throw error
+  }
+  return { created: true, partnerId: inserted?.id }
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -108,9 +148,11 @@ export async function PATCH(
   }
 
   let installateurSync: { created: boolean; installateurId?: string } | null = null
+  let partnerSync: { created: boolean; partnerId?: string } | null = null
   if (data.status === "approved") {
+    const app = data as ApplicationRow
     try {
-      installateurSync = await syncInstallateurFromApplication(supabase, data as ApplicationRow)
+      installateurSync = await syncInstallateurFromApplication(supabase, app)
     } catch (e) {
       console.error("[admin/applications] sync installateur:", e)
       return NextResponse.json(
@@ -122,7 +164,13 @@ export async function PATCH(
         { status: 500 }
       )
     }
+
+    try {
+      partnerSync = await syncPartnerFromApplication(supabase, app)
+    } catch (e) {
+      console.error("[admin/applications] sync partner:", e)
+    }
   }
 
-  return NextResponse.json({ ...data, installateurSync })
+  return NextResponse.json({ ...data, installateurSync, partnerSync })
 }
