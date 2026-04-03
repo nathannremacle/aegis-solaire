@@ -70,6 +70,14 @@ export function Footer() {
                   Devenir Partenaire
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/media-partners"
+                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
+                >
+                  Media Partners
+                </Link>
+              </li>
             </ul>
           </div>
 
