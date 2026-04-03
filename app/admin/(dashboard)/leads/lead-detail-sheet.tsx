@@ -84,6 +84,11 @@ type Lead = {
   lead_score?: number | null
   installateur_id?: string | null
   wants_irve?: boolean
+  segment?: string | null
+  province?: string | null
+  media_partner_code?: string | null
+  company_vat?: string | null
+  grd?: string | null
   created_at: string
   updated_at?: string
 }
@@ -262,6 +267,23 @@ export function LeadDetailSheet({
               </div>
             </div>
 
+            {/* Segment & Attribution */}
+            <div className="flex flex-wrap gap-2">
+              {lead.segment && (
+                <span className={`rounded px-2 py-0.5 text-xs font-bold ${lead.segment === "B2C" ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"}`}>
+                  {lead.segment}
+                </span>
+              )}
+              {lead.province && (
+                <span className="rounded bg-muted px-2 py-0.5 text-xs capitalize text-muted-foreground">{lead.province.replace("_", " ")}</span>
+              )}
+              {lead.media_partner_code && (
+                <span className="rounded bg-purple-100 px-2 py-0.5 font-mono text-xs text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                  Marketeur: {lead.media_partner_code}
+                </span>
+              )}
+            </div>
+
             <div className="space-y-4">
               <div>
                 <Label className="text-muted-foreground">Email</Label>
@@ -279,6 +301,18 @@ export function LeadDetailSheet({
                 <Label className="text-muted-foreground">Entreprise</Label>
                 <p className="font-medium">{lead.company ?? "–"}</p>
               </div>
+              {lead.company_vat && (
+                <div>
+                  <Label className="text-muted-foreground">TVA</Label>
+                  <p className="font-mono font-medium">{lead.company_vat}</p>
+                </div>
+              )}
+              {lead.grd && (
+                <div>
+                  <Label className="text-muted-foreground">GRD</Label>
+                  <p className="font-medium uppercase">{lead.grd}</p>
+                </div>
+              )}
               {lead.message?.trim() ? (
                 <div>
                   <Label className="text-muted-foreground">Message / précisions</Label>

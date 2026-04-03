@@ -4,7 +4,7 @@ import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { sendLeadAssignedEmail } from "@/lib/notify-installateur"
 import { logAudit } from "@/lib/audit-log"
 
-const LEAD_SELECT = "id, first_name, last_name, email, phone, job_title, company, message, surface_type, surface_area, project_timeline, annual_electricity_bill, estimated_roi_years, autoconsumption_rate, estimated_savings, status, lead_score, installateur_id, wants_irve, created_at, updated_at"
+const LEAD_SELECT = "id, first_name, last_name, email, phone, job_title, company, company_vat, message, surface_type, surface_area, project_timeline, annual_electricity_bill, estimated_roi_years, autoconsumption_rate, estimated_savings, status, lead_score, installateur_id, wants_irve, segment, province, grd, media_partner_code, created_at, updated_at"
 
 const VALID_STATUSES = ["new", "contacted", "qualified", "converted", "lost", "HOT_LEAD", "NEEDS_HUMAN_REVIEW"] as const
 

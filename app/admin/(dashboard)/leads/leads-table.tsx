@@ -49,6 +49,9 @@ type Lead = {
   status: string
   lead_score?: number | null
   installateur_id?: string | null
+  segment?: string | null
+  province?: string | null
+  media_partner_code?: string | null
   created_at: string
 }
 
@@ -340,12 +343,12 @@ export function LeadsTable({
               <th className="px-4 py-3 text-left font-medium">Date</th>
               <th className="px-4 py-3 text-left font-medium">Nom</th>
               <th className="px-4 py-3 text-left font-medium">Email</th>
-              <th className="px-4 py-3 text-left font-medium">Tél.</th>
+              <th className="px-4 py-3 text-left font-medium">Seg.</th>
+              <th className="px-4 py-3 text-left font-medium">Province</th>
               <th className="px-4 py-3 text-left font-medium">Entreprise</th>
-              <th className="px-4 py-3 text-left font-medium">Installateur</th>
               <th className="px-4 py-3 text-left font-medium">Surface</th>
               <th className="px-4 py-3 text-left font-medium">Facture</th>
-              <th className="px-4 py-3 text-left font-medium">ROI</th>
+              <th className="px-4 py-3 text-left font-medium">Source</th>
               <th className="px-4 py-3 text-left font-medium">Score</th>
               <th className="px-4 py-3 text-left font-medium">Statut</th>
             </tr>
@@ -369,16 +372,24 @@ export function LeadsTable({
                   </td>
                   <td className="px-4 py-3 font-medium">{lead.first_name}{lead.last_name ? ` ${lead.last_name}` : ""}</td>
                   <td className="px-4 py-3">{lead.email}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{lead.phone ?? "–"}</td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold ${lead.segment === "B2C" ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"}`}>
+                      {lead.segment ?? "B2B"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground capitalize text-xs">{lead.province?.replace("_", " ") ?? "–"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{lead.company ?? "–"}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{getInstallateurName(lead.installateur_id)}</td>
                   <td className="px-4 py-3">
                     {lead.surface_area != null && lead.surface_type ? `${lead.surface_area} m² (${lead.surface_type})` : "–"}
                   </td>
                   <td className="px-4 py-3">
                     {lead.annual_electricity_bill != null ? `${lead.annual_electricity_bill.toLocaleString("fr-FR")} €` : "–"}
                   </td>
-                  <td className="px-4 py-3">{lead.estimated_roi_years != null ? `${lead.estimated_roi_years} ans` : "–"}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">
+                    {lead.media_partner_code ? (
+                      <span className="rounded bg-purple-100 px-1.5 py-0.5 font-mono text-[10px] text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">ref:{lead.media_partner_code}</span>
+                    ) : "Direct"}
+                  </td>
                   <td className="px-4 py-3">
                     <LeadScoreBadge score={lead.lead_score} />
                   </td>

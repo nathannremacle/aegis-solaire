@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { installerRegistrationSchema } from "@/lib/installer-registration-schema"
+import { createServiceRoleClient } from "@/lib/supabase/admin"
 
-/**
- * Candidature installateur (Devenir Partenaire).
- * Valide les données avec Zod, simule l'enregistrement.
- * TODO: Insert into Supabase 'installers' table (ou table dédiée candidatures).
- */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -29,9 +25,28 @@ export async function POST(request: NextRequest) {
     }
 
     const data = parseResult.data
+    const supabase = createServiceRoleClient()
 
-    // TODO: Insert into Supabase 'installers' table (candidatures en attente de vérification RESCERT)
-    // Exemple: await supabase.from('installer_applications').insert({ ... })
+    const { error } = await supabase.from("installer_applications").insert({
+      company_name: data.companyName.trim(),
+      siret: data.siret.trim(),
+      first_name: data.firstName.trim(),
+      last_name: data.lastName.trim(),
+      job_title: data.jobTitle.trim(),
+      email: data.email.toLowerCase().trim(),
+      phone: data.phone.trim(),
+      rescert_ref: data.rescertPhotovoltaicRef.trim(),
+      regions: data.regions,
+      status: "pending",
+    })
+
+    if (error) {
+      console.error("[installer register] DB error:", error)
+      return NextResponse.json(
+        { error: "Une erreur est survenue. Veuillez réessayer." },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({
       success: true,
