@@ -15,29 +15,42 @@ export default function PartenairesPage() {
     <div className="flex min-h-screen min-w-0 flex-col overflow-x-hidden">
       <Header />
       <main className="min-w-0 flex-1">
-        {/* Hero */}
-        <section className="relative overflow-x-hidden bg-primary py-16 sm:py-24 lg:py-32 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
-          <div className="absolute inset-0 -z-10">
-            <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-accent/10 blur-3xl" />
-            <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-white/5 blur-2xl" />
-          </div>
-          <div className="mx-auto max-w-4xl min-w-0 px-4 text-center sm:px-6 lg:px-8">
-            <h1 className="text-balance text-2xl font-bold tracking-tight text-primary-foreground min-[480px]:text-3xl sm:text-4xl lg:text-5xl">
-              Accélérez votre croissance. Recevez des chantiers photovoltaïques B2B exclusifs.
-            </h1>
-            <p className="mt-6 text-pretty text-base leading-relaxed text-primary-foreground/90 sm:text-lg lg:text-xl">
-              Toitures &gt; 500 m², ombrières de parkings &gt; 1 500 m². Nous sourçons et qualifions les décideurs confrontés aux obligations PEB et à la rentabilité solaire en Wallonie. Vous signez les chantiers.
-            </p>
-            <div className="mt-10">
-              <a href="#candidature">
-                <Button
-                  size="lg"
-                  className="w-full gap-2 bg-accent text-accent-foreground hover:bg-accent/90 sm:w-auto sm:min-w-[260px]"
-                >
-                  Postuler au réseau de partenaires
-                  <ArrowDown className="h-4 w-4 sm:hidden" />
-                </Button>
-              </a>
+        {/* Hero — même config que particuliers / page d'accueil (viewport-fit, image + masque + radial) */}
+        <section
+          className="relative flex min-h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[#001D3D] sm:min-h-[calc(100dvh-5rem)] [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
+          style={{ viewTransitionName: "hero-section" }}
+        >
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-80"
+            style={{
+              backgroundImage: "url('/hero-partenaires.png')",
+              maskImage:
+                "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.1) 100%)",
+              WebkitMaskImage:
+                "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.1) 100%)",
+            }}
+          />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,29,61,0.15)_0%,rgba(0,29,61,0.75)_100%)]" />
+
+          <div className="relative z-10 mx-auto flex max-w-4xl min-w-0 flex-1 items-center px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+            <div className="mx-auto w-full text-center">
+              <h1 className="text-balance text-2xl font-extrabold tracking-tight text-white min-[480px]:text-3xl sm:text-4xl lg:text-5xl">
+                Accélérez votre croissance. Recevez des chantiers photovoltaïques B2B exclusifs.
+              </h1>
+              <p className="mx-auto mt-6 max-w-3xl text-pretty text-base leading-relaxed text-neutral-300 sm:text-lg lg:text-xl">
+                Toitures &gt; 500 m², ombrières de parkings &gt; 1 500 m². Nous sourçons et qualifions les décideurs confrontés aux obligations PEB et à la rentabilité solaire en Wallonie. Vous signez les chantiers.
+              </p>
+              <div className="mt-10">
+                <a href="#candidature">
+                  <Button
+                    size="lg"
+                    className="h-14 w-full gap-2 bg-accent text-base font-bold text-[#001D3D] shadow-[0_0_25px_rgba(255,184,0,0.3)] transition-all hover:scale-[1.02] hover:bg-[#e6a600] hover:shadow-[0_0_35px_rgba(255,184,0,0.45)] sm:w-auto sm:min-w-[260px]"
+                  >
+                    Postuler au réseau de partenaires
+                    <ArrowDown className="h-4 w-4 sm:hidden" />
+                  </Button>
+                </a>
+              </div>
             </div>
           </div>
         </section>

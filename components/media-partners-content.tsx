@@ -136,22 +136,22 @@ function GlassCard({ children, className = "" }: { children: React.ReactNode; cl
 export function MediaPartnersContent() {
   return (
     <>
-      {/* ═══ HERO ═══ */}
-      <section className="relative flex min-h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[#000a19] sm:min-h-[calc(100dvh-5rem)] [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
-        {/* Ambient orbs */}
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-40 top-20 h-[500px] w-[500px] rounded-full bg-accent/[0.07] blur-[120px]" />
-          <div className="absolute -right-32 bottom-20 h-[400px] w-[400px] rounded-full bg-blue-500/[0.06] blur-[100px]" />
-          <div className="absolute left-1/2 top-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/[0.04] blur-[80px]" />
-        </div>
-        {/* Grid overlay */}
+      {/* ═══ HERO — même config que particuliers / page d'accueil (image + masque + radial) ═══ */}
+      <section
+        className="relative flex min-h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[#001D3D] sm:min-h-[calc(100dvh-5rem)] [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
+        style={{ viewTransitionName: "hero-section" }}
+      >
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.03]"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-80"
           style={{
-            backgroundImage: "linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
+            backgroundImage: "url('/hero-media-partner.png')",
+            maskImage:
+              "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.1) 100%)",
+            WebkitMaskImage:
+              "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.1) 100%)",
           }}
         />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,29,61,0.15)_0%,rgba(0,29,61,0.75)_100%)]" />
 
         <div className="relative z-10 mx-auto flex max-w-5xl flex-1 items-center px-4 py-12 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
