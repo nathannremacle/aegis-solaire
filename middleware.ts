@@ -48,7 +48,9 @@ export function middleware(request: NextRequest) {
   // On vérifie que toute requête de mutation (POST, PUT, DELETE) vers /api/admin/*
   // possède un header personnalisé 'x-admin-request' pour empêcher les soumissions cross-site simples.
   const isProtectedApi =
-    pathname.startsWith("/api/admin") || pathname.startsWith("/api/media-partners")
+    pathname.startsWith("/api/admin") ||
+    pathname.startsWith("/api/media-partners") ||
+    pathname.startsWith("/api/partners")
 
   if (isProtectedApi) {
     const method = request.method
