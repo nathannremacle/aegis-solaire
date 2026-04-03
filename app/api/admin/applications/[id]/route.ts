@@ -2,6 +2,73 @@ import { NextRequest, NextResponse } from "next/server"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 
+type ApplicationRow = {
+  id: string
+  company_name: string
+  siret: string
+  first_name: string
+  last_name: string
+  job_title: string
+  email: string
+  phone: string
+  rescert_ref: string
+  regions: string[]
+  admin_notes: string | null
+}
+
+/**
+ * À l'approbation : crée ou met à jour un installateur (liste /admin/installateurs)
+ * pour assignation des leads simulateur, etc.
+ */
+async function syncInstallateurFromApplication(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  app: ApplicationRow
+) {
+  const email = app.email.toLowerCase().trim()
+  const regionStr =
+    Array.isArray(app.regions) && app.regions.length > 0
+      ? app.regions.join(", ").slice(0, 255)
+      : null
+  const notesParts = [
+    `Candidature approuvée — ref. ${app.id}`,
+    `Contact : ${app.first_name} ${app.last_name} — ${app.job_title}`,
+    `BCE/KBO : ${app.siret}`,
+    `RESCERT PV : ${app.rescert_ref}`,
+  ]
+  if (app.admin_notes?.trim()) notesParts.push(`Notes admin : ${app.admin_notes.trim()}`)
+  const notes = notesParts.join("\n").slice(0, 2000)
+
+  const payload = {
+    name: app.company_name.trim().slice(0, 255),
+    email,
+    phone: app.phone?.trim().slice(0, 50) || null,
+    region: regionStr,
+    actif: true,
+    notes,
+  }
+
+  const { data: existing } = await supabase.from("installateurs").select("id").eq("email", email).maybeSingle()
+
+  if (existing?.id) {
+    const { error } = await supabase.from("installateurs").update(payload).eq("id", existing.id)
+    if (error) throw error
+    return { created: false, installateurId: existing.id }
+  }
+
+  const { data: inserted, error } = await supabase.from("installateurs").insert(payload).select("id").single()
+  if (error) {
+    if (error.code === "23505") {
+      const { data: row } = await supabase.from("installateurs").select("id").eq("email", email).maybeSingle()
+      if (row?.id) {
+        await supabase.from("installateurs").update(payload).eq("id", row.id)
+        return { created: false, installateurId: row.id }
+      }
+    }
+    throw error
+  }
+  return { created: true, installateurId: inserted?.id }
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -40,5 +107,22 @@ export async function PATCH(
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json(data)
+  let installateurSync: { created: boolean; installateurId?: string } | null = null
+  if (data.status === "approved") {
+    try {
+      installateurSync = await syncInstallateurFromApplication(supabase, data as ApplicationRow)
+    } catch (e) {
+      console.error("[admin/applications] sync installateur:", e)
+      return NextResponse.json(
+        {
+          error:
+            "Candidature mise à jour mais échec de la création de l'installateur (vérifiez l'email unique ou les logs).",
+          application: data,
+        },
+        { status: 500 }
+      )
+    }
+  }
+
+  return NextResponse.json({ ...data, installateurSync })
 }

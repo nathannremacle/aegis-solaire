@@ -64,9 +64,20 @@ export default function ApplicationsPage() {
       })
       if (!res.ok) throw new Error()
       const updated = await res.json()
-      setApps((prev) => prev.map((a) => (a.id === id ? { ...a, ...updated } : a)))
+      const { installateurSync, ...appRow } = updated as Application & {
+        installateurSync?: { created: boolean; installateurId?: string }
+      }
+      setApps((prev) => prev.map((a) => (a.id === id ? { ...a, ...appRow } : a)))
       setSelected(null)
-      toast.success(status === "approved" ? "Candidature approuvée" : "Candidature rejetée")
+      if (status === "approved") {
+        toast.success(
+          installateurSync?.created
+            ? "Candidature approuvée — installateur ajouté (menu Installateurs)."
+            : "Candidature approuvée — fiche installateur mise à jour."
+        )
+      } else {
+        toast.success("Candidature rejetée")
+      }
     } catch {
       toast.error("Erreur lors de la mise à jour")
     } finally {
@@ -178,6 +189,16 @@ export default function ApplicationsPage() {
                     Approuver
                   </Button>
                 </>
+              )}
+              {selected.status === "approved" && (
+                <Button
+                  variant="secondary"
+                  onClick={() => handleAction(selected.id, "approved")}
+                  disabled={saving}
+                  className="mr-auto"
+                >
+                  Mettre à jour la fiche Installateurs
+                </Button>
               )}
               {selected.status !== "pending" && (
                 <Button variant="outline" onClick={() => setSelected(null)}>Fermer</Button>
