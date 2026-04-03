@@ -14,11 +14,9 @@ const CREDIT_PACKS: Record<string, { credits: number; priceEur: number }> = {
 /**
  * POST /api/payments/revolut
  *
- * Simulated Revolut Pay webhook handler.
- * In production:
- *   1. Verify the webhook signature from Revolut headers.
- *   2. Map `event.order_id` → packId + partnerId.
- *   3. Idempotency: check if transactionId was already processed.
+ * Stub / démo : accepte un JSON minimal (event, partnerId, packId, transactionId).
+ * Production : voir docs/FONCTIONNEMENT-SITE.md § 7.4 (signature Revolut, metadata
+ * commande → partnerId + packId, idempotence avant add_credits).
  */
 export async function POST(request: Request) {
   let body: {

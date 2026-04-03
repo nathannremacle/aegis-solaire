@@ -143,7 +143,7 @@ Les routes Next.js critiques utilisent **`createServiceRoleClient()`** pour lire
 | Installateurs | CRUD installateurs (affectation classique) |
 | Marketplace partners (`/admin/partners`) | Liste partenaires, crédits, stats d’achat, **ajout manuel de crédits** via `add_credits` |
 | Media partners (`/admin/media-partners`) | Liste marketeurs, stats leads attribués, commissions dues, édition taux / statut |
-| Candidatures (`/admin/applications`) | Voir / approuver / rejeter les demandes installateurs ; à l’approbation : sync vers **`installateurs`** et **`partners`** (crédits de départ, segment) |
+| Candidatures (`/admin/applications`) | Voir / approuver / rejeter les demandes installateurs ; à l’approbation : sync vers **`installateurs`** et **`partners`** (**0 crédit offert** par défaut ; crédits via achat Revolut ou ajout admin) |
 | Audit | Journal d’audit si activé (`009_audit_log.sql`, API associée) |
 
 ---
@@ -174,9 +174,24 @@ Important : avoir un compte Auth ne suffit pas sans ligne **`partners`** corresp
 
 Les requêtes **POST** vers `/api/partners/*` doivent inclure **`x-admin-request`** (convention CSRF du projet, nom historique).
 
-### 7.4 Paiement simulé
+### 7.4 Crédits et paiement Revolut Pay
 
-- **`POST /api/payments/revolut`** : simule un webhook `payment.completed`, mappe `packId` → nombre de crédits, appelle **`add_credits`**. En production, remplacer par la vérification de signature Revolut et l’idempotence.
+**Comportement actuel (développement / démo)**
+
+- Nouveau partenaire marketplace : **solde initial 0** (pas de crédits offerts à l’approbation).
+- La page **`/partenaires/dashboard/credits`** appelle **`POST /api/payments/revolut`** avec un corps JSON factice (`event: "payment.completed"`, `partnerId`, `packId`, `transactionId`). Ce n’est **pas** un vrai paiement : la route crédite quand même via RPC **`add_credits`**. Utile pour tester l’UX et la base.
+
+**Passer en production avec Revolut Merchant**
+
+1. **Compte** : Revolut Business avec **Merchant API** activée ([documentation développeur](https://developer.revolut.com/docs/guides/accept-payments/get-started/make-your-first-payment)).
+2. **Clés** : dans le dashboard Revolut (Developers / API), récupérer les identifiants **sandbox** puis **production** ; les stocker en variables d’environnement côté Vercel (ex. `REVOLUT_MERCHANT_API_KEY`, **jamais** exposées au navigateur).
+3. **Création de commande (backend)** : avant d’afficher Revolut Pay, votre API Next.js doit créer une **order** (ou équivalent selon la doc du moment) avec un montant aligné sur le pack (voir les prix dans `app/api/payments/revolut/route.ts` et `app/partenaires/dashboard/credits/page.tsx`). Dans les **metadata** de la commande, enregistrer au minimum **`partnerId`** (UUID `partners.id`) et **`packId`** (`pack_10`, `pack_50`, `pack_100`) pour les retrouver au webhook.
+4. **Webhooks** : dans Revolut, créer un webhook pointant vers une URL publique, par ex. **`https://votredomaine.com/api/payments/revolut`**. Noter le **signing secret** ([création / rotation de webhook](https://developer.revolut.com/docs/merchant/2024-05-01/create-webhook)).
+5. **Sécurité** : pour chaque notification, **vérifier la signature** HMAC des en-têtes `Revolut-Signature` et `Revolut-Request-Timestamp` ([guide officiel — verify payload](https://developer.revolut.com/docs/guides/accept-payments/tutorials/work-with-webhooks/verify-the-payload-signature)) ; rejeter si le timestamp est trop ancien (replay). Le corps réel Revolut ne correspond pas au JSON de démo : adapter le handler pour l’**événement** réel (souvent lié à la complétion de commande / paiement) et extraire `order_id` puis les metadata.
+6. **Idempotence** : avant d’appeler **`add_credits`**, vérifier que l’identifiant de transaction Revolut (ou `order_id`) n’a pas déjà été traité (table dédiée ou contrainte sur `credit_transactions.reference`).
+7. **Frontend** : remplacer le bouton « simulé » par le **widget / redirect** Revolut Pay documenté pour votre intégration (SDK ou hosted checkout), en passant l’`order_id` retourné par votre API.
+
+En résumé : aujourd’hui la route **`/api/payments/revolut`** est un **stub** prêt à être remplacé par la logique signature + mapping order → `partnerId` / `packId` + **`add_credits`**.
 
 ---
 
@@ -214,7 +229,7 @@ Simulateur → validation → insert **`leads`** → (optionnel) webhook → ema
 
 ### 10.2 Candidature installateur → Accès marketplace
 
-Formulaire `/partenaires` → **`installer_applications`** → admin **approuve** → création / mise à jour **`installateurs`** + **`partners`** (avec crédits initiaux) → l’installateur peut se connecter sur **`/partenaires/login`** si son email Auth correspond.
+Formulaire `/partenaires` → **`installer_applications`** → admin **approuve** → création / mise à jour **`installateurs`** + **`partners`** (**0 crédit** par défaut) → l’installateur peut se connecter sur **`/partenaires/login`** si son email Auth correspond ; les crédits s’obtiennent par **paiement** (Revolut en prod) ou **ajout manuel** admin.
 
 ### 10.3 Achat de lead (marketplace)
 

@@ -69,8 +69,6 @@ async function syncInstallateurFromApplication(
   return { created: true, installateurId: inserted?.id }
 }
 
-const DEFAULT_STARTER_CREDITS = 10
-
 async function syncPartnerFromApplication(
   supabase: ReturnType<typeof createServiceRoleClient>,
   app: ApplicationRow
@@ -93,7 +91,7 @@ async function syncPartnerFromApplication(
       company_name: app.company_name.trim().slice(0, 255),
       email,
       phone: app.phone?.trim().slice(0, 50) || null,
-      credits: DEFAULT_STARTER_CREDITS,
+      credits: 0,
       segment: "BOTH",
     })
     .select("id")

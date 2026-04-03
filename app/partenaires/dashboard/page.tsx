@@ -24,9 +24,9 @@ import {
   ChevronDown,
   Filter,
   LayoutGrid,
-  Sun,
   FileText,
   Gauge,
+  CreditCard,
 } from "lucide-react"
 
 /* ═══════════════════════════════════════════════════════
@@ -125,9 +125,9 @@ const stagger = {
 }
 
 const fadeRow = {
-  hidden: { opacity: 0, y: 12 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
-  exit: { opacity: 0, y: -8, transition: { duration: 0.2 } },
+  hidden: { opacity: 0, y: 8 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
+  exit: { opacity: 0, y: -6, transition: { duration: 0.15 } },
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -135,29 +135,27 @@ const fadeRow = {
    ═══════════════════════════════════════════════════════ */
 
 function SlotProgress({ taken, max }: { taken: number; max: number }) {
-  const pct = Math.round((taken / max) * 100)
   const remaining = max - taken
+  const pct = Math.round((taken / max) * 100)
   return (
-    <div className="flex items-center gap-3">
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+    <div className="flex items-center gap-2.5">
+      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
         <motion.div
-          className={`h-full rounded-full ${pct >= 100 ? "bg-red-400" : pct >= 66 ? "bg-amber-400" : "bg-emerald-400"}`}
+          className={`h-full rounded-full ${pct >= 100 ? "bg-red-500" : pct >= 66 ? "bg-amber-500" : "bg-emerald-500"}`}
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
           transition={{ duration: 0.6, ease: "easeOut" }}
         />
       </div>
-      <span className="font-mono text-[11px] tabular-nums text-neutral-400">
-        {remaining > 0
-          ? `${remaining}/${max} dispo`
-          : "complet"}
+      <span className="font-mono text-[11px] tabular-nums text-slate-500">
+        {remaining > 0 ? `${remaining}/${max}` : "complet"}
       </span>
     </div>
   )
 }
 
 /* ═══════════════════════════════════════════════════════
-   Locked Lead Row (institutional table aesthetic)
+   Locked Lead Row — light institutional style
    ═══════════════════════════════════════════════════════ */
 
 function LockedLeadRow({
@@ -176,69 +174,63 @@ function LockedLeadRow({
   const isMine = lead.alreadyPurchased
   const isPurchasing = purchasing === lead.id
   const soldOut = lead.slots.taken >= lead.slots.max && !isMine
-
   const hasReveal = isMine && revealedLead
 
   return (
     <motion.div variants={fadeRow} layout className="group">
-      {/* Main row */}
       <div
-        className={`relative grid grid-cols-[1fr_auto] items-center gap-4 border-b border-white/[0.04] px-5 py-4 transition-colors sm:grid-cols-[minmax(0,2fr)_repeat(4,minmax(0,1fr))_auto] ${
-          hasReveal ? "bg-[#FFC300]/[0.02]" : "hover:bg-white/[0.02]"
+        className={`relative grid grid-cols-[1fr_auto] items-center gap-4 border-b border-slate-100 px-5 py-3.5 transition-colors sm:grid-cols-[minmax(0,2fr)_repeat(4,minmax(0,1fr))_auto] ${
+          hasReveal ? "bg-[#001D3D]/[0.015]" : "hover:bg-slate-50/60"
         }`}
       >
         {/* Col 1 — Province + Segment + Surface */}
         <div className="flex items-center gap-3 min-w-0">
-          <div
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-              isB2C ? "bg-blue-400/10" : "bg-[#FFC300]/10"
+          <span
+            className={`flex h-7 shrink-0 items-center justify-center rounded-md px-2 text-[10px] font-bold uppercase tracking-wider ${
+              isB2C
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-blue-50 text-blue-700"
             }`}
           >
-            <span
-              className={`text-[10px] font-black tracking-wider ${
-                isB2C ? "text-blue-400" : "text-[#FFC300]"
-              }`}
-            >
-              {lead.segment}
-            </span>
-          </div>
+            {lead.segment}
+          </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-white">
+            <p className="truncate text-sm font-semibold text-slate-900">
               {label(PROVINCE_LABELS, lead.province)}
             </p>
-            <p className="text-[11px] text-neutral-500">
+            <p className="text-[11px] text-slate-400">
               {label(SURFACE_LABELS, lead.surfaceType)}
               {lead.grd ? ` · ${label(GRD_LABELS, lead.grd)}` : ""}
             </p>
           </div>
         </div>
 
-        {/* Col 2 — Puissance (hidden mobile) */}
+        {/* Col 2 — Puissance */}
         <div className="hidden sm:block">
-          <p className="font-mono text-sm font-semibold tabular-nums text-white">
+          <p className="font-mono text-sm font-semibold tabular-nums text-slate-900">
             {lead.estimatedPowerKwc.toLocaleString("fr-BE")}{" "}
-            <span className="text-[11px] font-normal text-neutral-500">kWc</span>
+            <span className="text-[11px] font-normal text-slate-400">kWc</span>
           </p>
         </div>
 
-        {/* Col 3 — Économies est. (hidden mobile) */}
+        {/* Col 3 — Économies */}
         <div className="hidden sm:block">
-          <p className="font-mono text-sm font-semibold tabular-nums text-[#FFC300]">
+          <p className="font-mono text-sm font-semibold tabular-nums text-[#001D3D]">
             {lead.estimatedRevenue.toLocaleString("fr-BE")}{" "}
-            <span className="text-[11px] font-normal text-[#FFC300]/60">€/an</span>
+            <span className="text-[11px] font-normal text-slate-400">€/an</span>
           </p>
         </div>
 
-        {/* Col 4 — Concurrence / Slot (hidden mobile) */}
+        {/* Col 4 — Concurrence / Slot */}
         <div className="hidden sm:block">
           {isB2C ? (
             <SlotProgress taken={lead.slots.taken} max={lead.slots.max} />
           ) : (
             <span
-              className={`inline-block rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+              className={`inline-block rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
                 lead.slots.taken > 0
-                  ? "bg-red-400/10 text-red-400"
-                  : "bg-emerald-400/10 text-emerald-400"
+                  ? "bg-red-50 text-red-600"
+                  : "bg-emerald-50 text-emerald-600"
               }`}
             >
               {lead.slots.taken > 0 ? "attribué" : "exclusif"}
@@ -246,9 +238,9 @@ function LockedLeadRow({
           )}
         </div>
 
-        {/* Col 5 — Age (hidden mobile) */}
+        {/* Col 5 — Age */}
         <div className="hidden sm:block">
-          <p className="text-[11px] text-neutral-600">{timeAgo(lead.createdAt)}</p>
+          <p className="text-[11px] text-slate-400">{timeAgo(lead.createdAt)}</p>
         </div>
 
         {/* Col 6 — Action */}
@@ -256,7 +248,7 @@ function LockedLeadRow({
           {isMine ? (
             <button
               onClick={() => setExpanded(!expanded)}
-              className="flex h-9 items-center gap-1.5 rounded-lg border border-[#FFC300]/20 bg-[#FFC300]/[0.06] px-3 text-xs font-semibold text-[#FFC300] transition-all hover:bg-[#FFC300]/10"
+              className="flex h-8 items-center gap-1.5 rounded-lg border border-[#001D3D]/15 bg-[#001D3D]/[0.04] px-3 text-xs font-semibold text-[#001D3D] transition-all hover:bg-[#001D3D]/[0.08]"
             >
               <Unlock className="h-3.5 w-3.5" />
               Voir
@@ -265,7 +257,7 @@ function LockedLeadRow({
               />
             </button>
           ) : soldOut ? (
-            <span className="flex h-9 items-center gap-1.5 rounded-lg bg-white/[0.03] px-3 text-xs font-medium text-neutral-500">
+            <span className="flex h-8 items-center gap-1.5 rounded-lg bg-slate-50 px-3 text-xs font-medium text-slate-400">
               <Lock className="h-3 w-3" />
               Complet
             </span>
@@ -273,16 +265,14 @@ function LockedLeadRow({
             <button
               onClick={() => onPurchase(lead.id)}
               disabled={!!purchasing}
-              className="flex h-9 items-center gap-1.5 rounded-lg bg-[#FFC300] px-4 text-xs font-bold text-[#001D3D] transition-all hover:bg-[#e6b000] disabled:opacity-40"
+              className="flex h-8 items-center gap-1.5 rounded-lg bg-[#001D3D] px-4 text-xs font-bold text-white shadow-sm transition-all hover:bg-[#00152e] hover:shadow-md disabled:opacity-40"
             >
               {isPurchasing ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
                 <Lock className="h-3.5 w-3.5" />
               )}
-              {isPurchasing
-                ? "…"
-                : `Débloquer · ${lead.creditCost} cr`}
+              {isPurchasing ? "…" : `Débloquer · ${lead.creditCost} cr`}
             </button>
           )}
         </div>
@@ -295,51 +285,51 @@ function LockedLeadRow({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
             className="overflow-hidden"
           >
-            <div className="border-b border-[#FFC300]/10 bg-[#FFC300]/[0.02] px-5 py-5">
+            <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-5">
               <div className="grid gap-6 sm:grid-cols-3">
                 {/* Contact */}
                 <div>
-                  <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.15em] text-[#FFC300]/70">
+                  <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.15em] text-[#001D3D]/50">
                     Contact
                   </p>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm">
-                      <User className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
-                      <span className="font-medium text-white">
+                      <User className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                      <span className="font-semibold text-slate-900">
                         {revealedLead.first_name} {revealedLead.last_name}
                       </span>
                     </div>
                     {revealedLead.company && (
                       <div className="flex items-center gap-2 text-sm">
-                        <Building2 className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
-                        <span className="text-neutral-300">{revealedLead.company}</span>
+                        <Building2 className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        <span className="text-slate-600">{revealedLead.company}</span>
                       </div>
                     )}
                     <div className="flex items-center gap-2 text-sm">
-                      <Phone className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
+                      <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                       <a
                         href={`tel:${revealedLead.phone}`}
-                        className="font-mono text-white underline-offset-2 hover:underline"
+                        className="font-mono text-[#001D3D] underline-offset-2 hover:underline"
                       >
                         {revealedLead.phone}
                       </a>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
-                      <Mail className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
+                      <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                       <a
                         href={`mailto:${revealedLead.email}`}
-                        className="text-blue-300 underline-offset-2 hover:underline"
+                        className="text-blue-600 underline-offset-2 hover:underline"
                       >
                         {revealedLead.email}
                       </a>
                     </div>
                     {revealedLead.company_vat && (
                       <div className="flex items-center gap-2 text-sm">
-                        <Hash className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
-                        <span className="font-mono text-neutral-400">
+                        <Hash className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        <span className="font-mono text-slate-500">
                           TVA {revealedLead.company_vat}
                         </span>
                       </div>
@@ -349,13 +339,13 @@ function LockedLeadRow({
 
                 {/* Localisation */}
                 <div>
-                  <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500">
+                  <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
                     Localisation
                   </p>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2">
-                      <MapPin className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
-                      <span className="text-white">
+                      <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                      <span className="text-slate-900">
                         {label(PROVINCE_LABELS, revealedLead.province)}, Belgique
                       </span>
                     </div>
@@ -365,7 +355,7 @@ function LockedLeadRow({
                       )}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] text-blue-400 underline-offset-2 hover:underline"
+                      className="inline-flex items-center gap-1 text-[11px] text-blue-600 underline-offset-2 hover:underline"
                     >
                       Voir sur Google Maps
                       <ExternalLink className="h-3 w-3" />
@@ -375,26 +365,26 @@ function LockedLeadRow({
 
                 {/* Détails techniques */}
                 <div>
-                  <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500">
+                  <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
                     Détails techniques
                   </p>
                   <div className="space-y-1.5 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-neutral-500">Surface</span>
-                      <span className="font-mono font-medium text-white">
+                      <span className="text-slate-400">Surface</span>
+                      <span className="font-mono font-semibold text-slate-900">
                         {(revealedLead.surface_area ?? 0).toLocaleString("fr-BE")} m²
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-neutral-500">Facture élec.</span>
-                      <span className="font-mono font-medium text-[#FFC300]">
+                      <span className="text-slate-400">Facture élec.</span>
+                      <span className="font-mono font-semibold text-[#001D3D]">
                         {(revealedLead.annual_electricity_bill ?? 0).toLocaleString("fr-BE")} €
                       </span>
                     </div>
                     {revealedLead.grd && (
                       <div className="flex justify-between">
-                        <span className="text-neutral-500">GRD</span>
-                        <span className="font-medium text-neutral-300">
+                        <span className="text-slate-400">GRD</span>
+                        <span className="font-medium text-slate-600">
                           {label(GRD_LABELS, revealedLead.grd)}
                         </span>
                       </div>
@@ -403,13 +393,12 @@ function LockedLeadRow({
                 </div>
               </div>
 
-              {/* Commentaire prospect */}
               {(revealedLead.project_details || revealedLead.message) && (
-                <div className="mt-5 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
-                  <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500">
+                <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
+                  <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
                     Commentaire prospect
                   </p>
-                  <p className="whitespace-pre-line text-sm leading-relaxed text-neutral-300">
+                  <p className="whitespace-pre-line text-sm leading-relaxed text-slate-600">
                     {revealedLead.project_details || revealedLead.message}
                   </p>
                 </div>
@@ -432,27 +421,23 @@ function PurchasedRow({ lead, index }: { lead: RevealedLead; index: number }) {
     <motion.div variants={fadeRow} custom={index}>
       <button
         onClick={() => setOpen(!open)}
-        className="grid w-full cursor-pointer grid-cols-[1fr_auto] items-center gap-4 border-b border-white/[0.04] px-5 py-4 text-left transition-colors hover:bg-white/[0.02] sm:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_auto]"
+        className="grid w-full cursor-pointer grid-cols-[1fr_auto] items-center gap-4 border-b border-slate-100 px-5 py-3.5 text-left transition-colors hover:bg-slate-50/60 sm:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_auto]"
       >
         <div className="flex items-center gap-3 min-w-0">
-          <div
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-              lead.segment === "B2C" ? "bg-blue-400/10" : "bg-[#FFC300]/10"
+          <span
+            className={`flex h-7 shrink-0 items-center justify-center rounded-md px-2 text-[10px] font-bold uppercase tracking-wider ${
+              lead.segment === "B2C"
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-blue-50 text-blue-700"
             }`}
           >
-            <span
-              className={`text-[10px] font-black tracking-wider ${
-                lead.segment === "B2C" ? "text-blue-400" : "text-[#FFC300]"
-              }`}
-            >
-              {lead.segment}
-            </span>
-          </div>
+            {lead.segment}
+          </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-white">
+            <p className="truncate text-sm font-semibold text-slate-900">
               {lead.first_name} {lead.last_name}
             </p>
-            <p className="text-[11px] text-neutral-500">
+            <p className="text-[11px] text-slate-400">
               {label(PROVINCE_LABELS, lead.province)} · {label(SURFACE_LABELS, lead.surface_type)}
             </p>
           </div>
@@ -461,25 +446,25 @@ function PurchasedRow({ lead, index }: { lead: RevealedLead; index: number }) {
           <a
             href={`tel:${lead.phone}`}
             onClick={(e) => e.stopPropagation()}
-            className="font-mono text-sm text-white underline-offset-2 hover:underline"
+            className="font-mono text-sm text-[#001D3D] underline-offset-2 hover:underline"
           >
             {lead.phone}
           </a>
         </div>
         <div className="hidden sm:block">
-          <p className="font-mono text-sm font-medium tabular-nums text-[#FFC300]">
+          <p className="font-mono text-sm font-semibold tabular-nums text-[#001D3D]">
             {(lead.annual_electricity_bill ?? 0).toLocaleString("fr-BE")} €
           </p>
         </div>
         <div className="hidden sm:block">
           {lead.company ? (
-            <p className="truncate text-sm text-neutral-300">{lead.company}</p>
+            <p className="truncate text-sm text-slate-600">{lead.company}</p>
           ) : (
-            <p className="text-sm text-neutral-600">Particulier</p>
+            <p className="text-sm text-slate-400">Particulier</p>
           )}
         </div>
         <ChevronDown
-          className={`h-4 w-4 text-neutral-500 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`h-4 w-4 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
         />
       </button>
 
@@ -492,38 +477,38 @@ function PurchasedRow({ lead, index }: { lead: RevealedLead; index: number }) {
             transition={{ duration: 0.3 }}
             className="overflow-hidden"
           >
-            <div className="border-b border-[#FFC300]/10 bg-[#FFC300]/[0.02] px-5 py-5">
+            <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-5">
               <div className="grid gap-6 sm:grid-cols-3">
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#FFC300]/70">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#001D3D]/50">
                     Contact
                   </p>
                   <div className="flex items-center gap-2 text-sm">
-                    <Phone className="h-3.5 w-3.5 text-neutral-500" />
-                    <a href={`tel:${lead.phone}`} className="font-mono text-white underline-offset-2 hover:underline">
+                    <Phone className="h-3.5 w-3.5 text-slate-400" />
+                    <a href={`tel:${lead.phone}`} className="font-mono text-[#001D3D] underline-offset-2 hover:underline">
                       {lead.phone}
                     </a>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <Mail className="h-3.5 w-3.5 text-neutral-500" />
-                    <a href={`mailto:${lead.email}`} className="text-blue-300 underline-offset-2 hover:underline">
+                    <Mail className="h-3.5 w-3.5 text-slate-400" />
+                    <a href={`mailto:${lead.email}`} className="text-blue-600 underline-offset-2 hover:underline">
                       {lead.email}
                     </a>
                   </div>
                   {lead.company_vat && (
                     <div className="flex items-center gap-2 text-sm">
-                      <Hash className="h-3.5 w-3.5 text-neutral-500" />
-                      <span className="font-mono text-neutral-400">TVA {lead.company_vat}</span>
+                      <Hash className="h-3.5 w-3.5 text-slate-400" />
+                      <span className="font-mono text-slate-500">TVA {lead.company_vat}</span>
                     </div>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
                     Localisation
                   </p>
                   <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="h-3.5 w-3.5 text-neutral-500" />
-                    <span className="text-white">{label(PROVINCE_LABELS, lead.province)}, Belgique</span>
+                    <MapPin className="h-3.5 w-3.5 text-slate-400" />
+                    <span className="text-slate-900">{label(PROVINCE_LABELS, lead.province)}, Belgique</span>
                   </div>
                   <a
                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
@@ -531,37 +516,37 @@ function PurchasedRow({ lead, index }: { lead: RevealedLead; index: number }) {
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] text-blue-400 underline-offset-2 hover:underline"
+                    className="inline-flex items-center gap-1 text-[11px] text-blue-600 underline-offset-2 hover:underline"
                   >
                     Google Maps <ExternalLink className="h-3 w-3" />
                   </a>
                 </div>
                 <div className="space-y-1.5">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
                     Technique
                   </p>
                   <div className="flex justify-between text-sm">
-                    <span className="text-neutral-500">Surface</span>
-                    <span className="font-mono text-white">{(lead.surface_area ?? 0).toLocaleString("fr-BE")} m²</span>
+                    <span className="text-slate-400">Surface</span>
+                    <span className="font-mono text-slate-900">{(lead.surface_area ?? 0).toLocaleString("fr-BE")} m²</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-neutral-500">Facture</span>
-                    <span className="font-mono text-[#FFC300]">{(lead.annual_electricity_bill ?? 0).toLocaleString("fr-BE")} €/an</span>
+                    <span className="text-slate-400">Facture</span>
+                    <span className="font-mono text-[#001D3D]">{(lead.annual_electricity_bill ?? 0).toLocaleString("fr-BE")} €/an</span>
                   </div>
                   {lead.grd && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-neutral-500">GRD</span>
-                      <span className="text-neutral-300">{label(GRD_LABELS, lead.grd)}</span>
+                      <span className="text-slate-400">GRD</span>
+                      <span className="text-slate-600">{label(GRD_LABELS, lead.grd)}</span>
                     </div>
                   )}
                 </div>
               </div>
               {(lead.project_details || lead.message) && (
-                <div className="mt-5 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
-                  <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500">
+                <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
+                  <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
                     Commentaire
                   </p>
-                  <p className="whitespace-pre-line text-sm leading-relaxed text-neutral-300">
+                  <p className="whitespace-pre-line text-sm leading-relaxed text-slate-600">
                     {lead.project_details || lead.message}
                   </p>
                 </div>
@@ -575,7 +560,7 @@ function PurchasedRow({ lead, index }: { lead: RevealedLead; index: number }) {
 }
 
 /* ═══════════════════════════════════════════════════════
-   Filter Chip
+   Filter Chip — light style
    ═══════════════════════════════════════════════════════ */
 
 function Chip({
@@ -590,10 +575,10 @@ function Chip({
   return (
     <button
       onClick={onClick}
-      className={`rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition-all ${
+      className={`rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition-all ${
         active
-          ? "bg-[#FFC300]/15 text-[#FFC300] ring-1 ring-[#FFC300]/25"
-          : "text-neutral-400 hover:bg-white/[0.04] hover:text-neutral-200"
+          ? "bg-[#001D3D] text-white shadow-sm"
+          : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
       }`}
     >
       {children}
@@ -618,7 +603,6 @@ export default function PartnerDashboardPage() {
   const [segmentFilter, setSegmentFilter] = useState<SegmentFilter>("ALL")
   const [provinceFilter, setProvinceFilter] = useState<ProvinceFilter>(null)
 
-  /* Fetching */
   const fetchMarketplace = useCallback(async () => {
     try {
       const res = await fetch("/api/partners/marketplace")
@@ -650,7 +634,6 @@ export default function PartnerDashboardPage() {
     fetchMyLeads()
   }, [fetchMarketplace, fetchMyLeads])
 
-  /* Filters */
   const provinces = useMemo(
     () => Array.from(new Set(leads.map((l) => l.province).filter(Boolean))).sort(),
     [leads]
@@ -664,13 +647,11 @@ export default function PartnerDashboardPage() {
     })
   }, [leads, segmentFilter, provinceFilter])
 
-  /* KPIs */
   const totalPower = filteredLeads.reduce((s, l) => s + l.estimatedPowerKwc, 0)
   const totalRevenue = filteredLeads.reduce((s, l) => s + l.estimatedRevenue, 0)
   const b2bCount = filteredLeads.filter((l) => l.segment === "B2B").length
   const b2cCount = filteredLeads.filter((l) => l.segment === "B2C").length
 
-  /* Purchase */
   async function handlePurchase(leadId: string) {
     setPurchasing(leadId)
     setError(null)
@@ -702,64 +683,62 @@ export default function PartnerDashboardPage() {
     window.location.href = "/partenaires/login"
   }
 
-  /* Loading */
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#001D3D]">
-        <Loader2 className="h-6 w-6 animate-spin text-[#FFC300]" />
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <Loader2 className="h-6 w-6 animate-spin text-[#001D3D]" />
       </div>
     )
   }
 
   return (
-    <div className="relative min-h-screen bg-[#001D3D] font-sans">
-      {/* ─── Header ─── */}
-      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#001D3D]/90 backdrop-blur-2xl">
-        <div className="mx-auto flex h-14 max-w-[1440px] items-center justify-between gap-4 px-5">
+    <div className="relative min-h-screen bg-slate-50 font-sans">
+      {/* ─── Header — mirrors main site header ─── */}
+      <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white/95 shadow-sm backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:h-18 sm:px-6 lg:px-8">
           {/* Left */}
           <div className="flex items-center gap-4 min-w-0">
             <Link href="/" className="shrink-0">
-              <div className="relative h-6 w-24">
-                <Image src="/logo.png" alt="Aegis Solaire" fill className="object-contain brightness-0 invert opacity-60" />
+              <div className="relative h-10 w-36 sm:h-12 sm:w-44">
+                <Image src="/logo.png" alt="Aegis Solaire" fill className="object-contain object-left" priority />
               </div>
             </Link>
-            <div className="h-5 w-px bg-white/[0.08]" />
-            <p className="hidden truncate text-sm font-medium text-white sm:block">
-              {partner?.companyName}
-            </p>
+            <div className="h-6 w-px bg-slate-200" />
+            <div className="hidden sm:block">
+              <p className="text-sm font-semibold text-slate-900">{partner?.companyName}</p>
+              <p className="text-[11px] text-slate-400">Portail Installateur</p>
+            </div>
           </div>
 
           {/* Right */}
           <div className="flex items-center gap-3">
-            {/* Credit display */}
-            <div className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 backdrop-blur-xl">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
-                Crédits
-              </span>
-              <motion.span
-                key={partner?.credits}
-                initial={{ y: -6, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                className="font-mono text-lg font-bold tabular-nums text-[#FFC300]"
-              >
-                {partner?.credits ?? 0}
-              </motion.span>
+            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
+              <Zap className="h-4 w-4 text-accent" />
+              <div className="text-right">
+                <p className="hidden text-[10px] font-medium uppercase tracking-wider text-slate-400 sm:block">
+                  Crédits
+                </p>
+                <motion.span
+                  key={partner?.credits}
+                  initial={{ y: -6, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  className="font-mono text-lg font-bold tabular-nums text-[#001D3D]"
+                >
+                  {partner?.credits ?? 0}
+                </motion.span>
+              </div>
             </div>
 
-            {/* Recharge CTA */}
             <Link href="/partenaires/dashboard/credits">
-              <button className="group relative flex h-9 items-center gap-2 overflow-hidden rounded-lg bg-gradient-to-r from-[#0075EB] to-[#003580] px-4 text-xs font-bold text-white shadow-[0_2px_12px_rgba(0,117,235,0.25)] transition-all hover:shadow-[0_2px_20px_rgba(0,117,235,0.4)]">
-                <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100">
-                  <div className="absolute -left-full top-0 h-full w-1/2 skew-x-[-20deg] bg-gradient-to-r from-transparent via-white/10 to-transparent transition-all duration-700 group-hover:left-[150%]" />
-                </div>
-                <Sun className="h-3.5 w-3.5" />
+              <Button size="sm" className="bg-[#001D3D] font-bold text-white shadow-md hover:bg-[#00152e]">
+                <CreditCard className="mr-1.5 h-3.5 w-3.5" />
                 Recharger
-              </button>
+              </Button>
             </Link>
 
             <button
               onClick={handleLogout}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-white/[0.04] hover:text-neutral-300"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
               title="Déconnexion"
             >
               <LogOut className="h-4 w-4" />
@@ -769,41 +748,32 @@ export default function PartnerDashboardPage() {
       </header>
 
       {/* ─── KPI Strip ─── */}
-      <div className="border-b border-white/[0.04] bg-white/[0.01]">
-        <div className="mx-auto flex max-w-[1440px] items-center gap-6 overflow-x-auto px-5 py-3 sm:gap-10">
+      <div className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-7xl items-center gap-6 overflow-x-auto px-4 py-3 sm:gap-10 sm:px-6 lg:px-8">
+          {[
+            { icon: LayoutGrid, label: "Leads", value: String(filteredLeads.length), color: "text-slate-900" },
+            { icon: Gauge, label: "Puissance tot.", value: `${totalPower.toLocaleString("fr-BE")} kWc`, color: "text-slate-900" },
+            { icon: TrendingUp, label: "Économies tot.", value: `${totalRevenue.toLocaleString("fr-BE")} €`, color: "text-[#001D3D]" },
+          ].map((kpi) => (
+            <div key={kpi.label} className="flex items-center gap-2 whitespace-nowrap">
+              <kpi.icon className="h-3.5 w-3.5 text-slate-400" />
+              <span className="text-[11px] text-slate-400">{kpi.label}</span>
+              <span className={`font-mono text-sm font-bold ${kpi.color}`}>{kpi.value}</span>
+            </div>
+          ))}
           <div className="flex items-center gap-2 whitespace-nowrap">
-            <LayoutGrid className="h-3.5 w-3.5 text-neutral-500" />
-            <span className="text-[11px] text-neutral-500">Leads</span>
-            <span className="font-mono text-sm font-bold text-white">{filteredLeads.length}</span>
-          </div>
-          <div className="flex items-center gap-2 whitespace-nowrap">
-            <Gauge className="h-3.5 w-3.5 text-neutral-500" />
-            <span className="text-[11px] text-neutral-500">Puissance tot.</span>
-            <span className="font-mono text-sm font-bold text-white">
-              {totalPower.toLocaleString("fr-BE")} kWc
-            </span>
-          </div>
-          <div className="flex items-center gap-2 whitespace-nowrap">
-            <TrendingUp className="h-3.5 w-3.5 text-neutral-500" />
-            <span className="text-[11px] text-neutral-500">Économies tot.</span>
-            <span className="font-mono text-sm font-bold text-[#FFC300]">
-              {totalRevenue.toLocaleString("fr-BE")} €
-            </span>
-          </div>
-          <div className="flex items-center gap-2 whitespace-nowrap">
-            <span className="text-[11px] text-neutral-500">B2B</span>
-            <span className="font-mono text-sm font-bold text-white">{b2bCount}</span>
-            <span className="text-neutral-600">|</span>
-            <span className="text-[11px] text-neutral-500">B2C</span>
-            <span className="font-mono text-sm font-bold text-white">{b2cCount}</span>
+            <span className="text-[11px] text-slate-400">B2B</span>
+            <span className="font-mono text-sm font-bold text-slate-900">{b2bCount}</span>
+            <span className="text-slate-300">|</span>
+            <span className="text-[11px] text-slate-400">B2C</span>
+            <span className="font-mono text-sm font-bold text-slate-900">{b2cCount}</span>
           </div>
         </div>
       </div>
 
       {/* ─── Tab Bar + Filters ─── */}
-      <div className="border-b border-white/[0.04]">
-        <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-5 py-2.5">
-          {/* Tabs */}
+      <div className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-2.5 sm:px-6 lg:px-8">
           <div className="flex items-center gap-1">
             <Chip active={tab === "feed"} onClick={() => setTab("feed")}>
               <span className="flex items-center gap-1.5">
@@ -812,9 +782,9 @@ export default function PartnerDashboardPage() {
             </Chip>
             <Chip active={tab === "portfolio"} onClick={() => setTab("portfolio")}>
               <span className="flex items-center gap-1.5">
-                <FileText className="h-3 w-3" /> Portfolio
+                <FileText className="h-3 w-3" /> Mes Leads
                 {myLeads.length > 0 && (
-                  <span className="ml-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded bg-[#FFC300]/20 px-1 text-[9px] font-bold text-[#FFC300]">
+                  <span className="ml-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#001D3D] px-1.5 text-[9px] font-bold text-white">
                     {myLeads.length}
                   </span>
                 )}
@@ -822,10 +792,9 @@ export default function PartnerDashboardPage() {
             </Chip>
           </div>
 
-          {/* Filters (feed only) */}
           {tab === "feed" && (
-            <div className="flex items-center gap-2 overflow-x-auto">
-              <Filter className="hidden h-3.5 w-3.5 shrink-0 text-neutral-600 sm:block" />
+            <div className="flex items-center gap-1.5 overflow-x-auto">
+              <Filter className="hidden h-3.5 w-3.5 shrink-0 text-slate-400 sm:block" />
               <Chip active={segmentFilter === "ALL"} onClick={() => setSegmentFilter("ALL")}>
                 Tous
               </Chip>
@@ -835,7 +804,7 @@ export default function PartnerDashboardPage() {
               <Chip active={segmentFilter === "B2C"} onClick={() => setSegmentFilter("B2C")}>
                 B2C
               </Chip>
-              <div className="hidden h-4 w-px bg-white/[0.06] sm:block" />
+              <div className="hidden h-4 w-px bg-slate-200 sm:block" />
               <Chip active={provinceFilter === null} onClick={() => setProvinceFilter(null)}>
                 Wallonie
               </Chip>
@@ -850,7 +819,7 @@ export default function PartnerDashboardPage() {
               ))}
               <button
                 onClick={() => { setLoading(true); fetchMarketplace() }}
-                className="ml-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-white/[0.04] hover:text-neutral-300"
+                className="ml-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
                 title="Actualiser"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
@@ -867,100 +836,80 @@ export default function PartnerDashboardPage() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="border-b border-red-500/20 bg-red-500/[0.06]"
+            className="border-b border-red-200 bg-red-50"
           >
-            <div className="mx-auto max-w-[1440px] px-5 py-2.5 text-sm text-red-300">{error}</div>
+            <div className="mx-auto max-w-7xl px-4 py-2.5 text-sm text-red-700 sm:px-6 lg:px-8">{error}</div>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* ─── Content ─── */}
-      <main className="mx-auto max-w-[1440px]">
-        {tab === "feed" && (
-          <>
-            {/* Column headers */}
-            <div className="hidden border-b border-white/[0.04] sm:grid sm:grid-cols-[minmax(0,2fr)_repeat(4,minmax(0,1fr))_auto] items-center gap-4 px-5 py-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-600">
-                Projet
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-600">
-                Puissance
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-600">
-                Économies
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-600">
-                Disponibilité
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-600">
-                Reçu
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-600">
-                Action
-              </span>
-            </div>
-
-            {filteredLeads.length === 0 ? (
-              <div className="px-5 py-20 text-center">
-                <p className="text-sm text-neutral-500">Aucun lead ne correspond aux filtres actuels.</p>
-              </div>
-            ) : (
-              <motion.div variants={stagger} initial="hidden" animate="visible">
-                <AnimatePresence mode="popLayout">
-                  {filteredLeads.map((lead) => (
-                    <LockedLeadRow
-                      key={lead.id}
-                      lead={lead}
-                      onPurchase={handlePurchase}
-                      purchasing={purchasing}
-                      revealedLead={revealed[lead.id] ?? null}
-                    />
-                  ))}
-                </AnimatePresence>
-              </motion.div>
-            )}
-          </>
-        )}
-
-        {tab === "portfolio" && (
-          <>
-            {/* Column headers */}
-            <div className="hidden border-b border-white/[0.04] sm:grid sm:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_auto] items-center gap-4 px-5 py-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-600">
-                Contact
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-600">
-                Téléphone
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-600">
-                Facture
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-600">
-                Entreprise
-              </span>
-              <span />
-            </div>
-
-            {myLeads.length === 0 ? (
-              <div className="px-5 py-20 text-center">
-                <Lock className="mx-auto mb-3 h-5 w-5 text-neutral-600" />
-                <p className="text-sm text-neutral-500">Aucun lead dans votre portfolio.</p>
-                <button
-                  onClick={() => setTab("feed")}
-                  className="mt-4 text-xs font-semibold text-[#FFC300] underline-offset-4 hover:underline"
-                >
-                  Ouvrir le Live Feed
-                </button>
-              </div>
-            ) : (
-              <motion.div variants={stagger} initial="hidden" animate="visible">
-                {myLeads.map((lead, i) => (
-                  <PurchasedRow key={lead.id ?? i} lead={lead} index={i} />
+      <main className="mx-auto max-w-7xl">
+        <div className="overflow-hidden rounded-b-2xl bg-white shadow-sm sm:mx-4 sm:my-4 sm:rounded-2xl sm:border sm:border-slate-200 lg:mx-6">
+          {tab === "feed" && (
+            <>
+              {/* Column headers */}
+              <div className="hidden border-b border-slate-100 bg-slate-50/50 sm:grid sm:grid-cols-[minmax(0,2fr)_repeat(4,minmax(0,1fr))_auto] items-center gap-4 px-5 py-2.5">
+                {["Projet", "Puissance", "Économies", "Disponibilité", "Reçu", "Action"].map((h) => (
+                  <span key={h} className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    {h}
+                  </span>
                 ))}
-              </motion.div>
-            )}
-          </>
-        )}
+              </div>
+
+              {filteredLeads.length === 0 ? (
+                <div className="px-5 py-20 text-center">
+                  <p className="text-sm text-slate-400">Aucun lead ne correspond aux filtres actuels.</p>
+                </div>
+              ) : (
+                <motion.div variants={stagger} initial="hidden" animate="visible">
+                  <AnimatePresence mode="popLayout">
+                    {filteredLeads.map((lead) => (
+                      <LockedLeadRow
+                        key={lead.id}
+                        lead={lead}
+                        onPurchase={handlePurchase}
+                        purchasing={purchasing}
+                        revealedLead={revealed[lead.id] ?? null}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+              )}
+            </>
+          )}
+
+          {tab === "portfolio" && (
+            <>
+              <div className="hidden border-b border-slate-100 bg-slate-50/50 sm:grid sm:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_auto] items-center gap-4 px-5 py-2.5">
+                {["Contact", "Téléphone", "Facture", "Entreprise", ""].map((h, i) => (
+                  <span key={i} className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    {h}
+                  </span>
+                ))}
+              </div>
+
+              {myLeads.length === 0 ? (
+                <div className="px-5 py-20 text-center">
+                  <Lock className="mx-auto mb-3 h-5 w-5 text-slate-300" />
+                  <p className="text-sm text-slate-400">Aucun lead dans votre portfolio.</p>
+                  <button
+                    onClick={() => setTab("feed")}
+                    className="mt-4 text-xs font-semibold text-[#001D3D] underline-offset-4 hover:underline"
+                  >
+                    Ouvrir le Live Feed
+                  </button>
+                </div>
+              ) : (
+                <motion.div variants={stagger} initial="hidden" animate="visible">
+                  {myLeads.map((lead, i) => (
+                    <PurchasedRow key={lead.id ?? i} lead={lead} index={i} />
+                  ))}
+                </motion.div>
+              )}
+            </>
+          )}
+        </div>
       </main>
     </div>
   )
