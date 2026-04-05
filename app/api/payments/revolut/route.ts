@@ -15,8 +15,8 @@ const CREDIT_PACKS: Record<string, { credits: number; priceEur: number }> = {
  * POST /api/payments/revolut
  *
  * Stub / démo : accepte un JSON minimal (event, partnerId, packId, transactionId).
- * Production : voir docs/FONCTIONNEMENT-SITE.md § 7.4 (signature Revolut, metadata
- * commande → partnerId + packId, idempotence avant add_credits).
+ * Production : voir docs/FONCTIONNEMENT-SITE.md, section « Crédits et paiement Revolut Pay »
+ * (signature Revolut, metadata commande → partnerId + packId, idempotence avant add_credits).
  */
 export async function POST(request: Request) {
   let body: {

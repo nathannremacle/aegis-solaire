@@ -417,7 +417,7 @@ export default function CreditsPage() {
                         </div>
                       </div>
                       <span
-                        className={`font-mono text-sm font-bold tabular-nums ${
+                        className={`font-sans text-sm font-bold tabular-nums ${
                           isCredit ? "text-emerald-600" : "text-red-600"
                         }`}
                       >

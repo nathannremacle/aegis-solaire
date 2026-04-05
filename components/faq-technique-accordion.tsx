@@ -2,33 +2,8 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ChevronDown, Sparkles } from "lucide-react"
+import { ChevronDown } from "lucide-react"
 import type { FaqItem } from "@/components/StructuredData"
-
-export function FaqTechniqueHero({ className = "" }: { className?: string }) {
-  return (
-    <motion.div 
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      className={`relative overflow-hidden rounded-3xl bg-[radial-gradient(circle_at_top,rgba(0,29,61,1)_0%,rgba(0,10,25,1)_100%)] p-8 text-white shadow-2xl sm:p-12 ${className}`}
-    >
-      <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1548618753-157945d81c4e?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay" />
-      <div className="absolute right-0 top-0 h-64 w-64 -translate-y-1/2 translate-x-1/3 rounded-full bg-accent/20 blur-[80px]" />
-      <div className="relative z-10 flex flex-col items-center text-center">
-        <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 border border-white/10 shadow-[0_0_30px_rgba(255,184,0,0.2)] backdrop-blur-md">
-          <Sparkles className="h-8 w-8 text-accent" />
-        </div>
-        <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl">
-          FAQ Technique (PPA, PEB & Wallonie)
-        </h1>
-        <p className="mt-4 max-w-2xl text-base font-medium leading-relaxed text-neutral-300 sm:text-lg">
-          L'essentiel pour les Directions Administratives et Financières : décryptage des Certificats Verts, du Plan PACE 2030 et des montages Tiers-Investisseur.
-        </p>
-      </div>
-    </motion.div>
-  )
-}
 
 export function FaqTechniqueAccordion({ items }: { items: FaqItem[] }) {
   const [openIndex, setOpenIndex] = useState<number | null>(0)
@@ -41,9 +16,10 @@ export function FaqTechniqueAccordion({ items }: { items: FaqItem[] }) {
           <motion.div
             key={index}
             initial={false}
-            animate={{ backgroundColor: isOpen ? "rgba(var(--background), 1)" : "rgba(var(--background), 0.5)" }}
-            className={`overflow-hidden rounded-2xl border transition-all duration-300 ${
-              isOpen ? "border-accent/40 shadow-[0_10px_30px_rgba(0,29,61,0.1)]" : "border-border/60 hover:border-accent/20"
+            className={`overflow-hidden rounded-2xl border bg-card transition-all duration-300 ${
+              isOpen
+                ? "border-accent/30 shadow-md"
+                : "border-border shadow-sm hover:border-accent/20 hover:-translate-y-0.5 hover:shadow-md"
             }`}
           >
             <button

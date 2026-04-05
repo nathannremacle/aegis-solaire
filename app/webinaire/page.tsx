@@ -69,22 +69,30 @@ export default function WebinairePage() {
     <div className="flex min-h-screen min-w-0 flex-col overflow-x-hidden">
       <Header />
       <main className="min-w-0 flex-1">
-        {/* Hero — compact et lisible */}
-        <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top,rgba(0,29,61,1)_0%,rgba(0,10,25,1)_100%)] py-12 sm:py-16 lg:py-24 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
-          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1548618753-157945d81c4e?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay" />
-          <div className="absolute inset-0 -z-10">
-            <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-accent/20 blur-[100px]" />
-            <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-white/5 blur-3xl" />
-          </div>
-          <div className="mx-auto max-w-4xl min-w-0 px-4 text-center sm:px-6 lg:px-8 relative z-10">
-            <span className="mb-6 inline-block rounded-full bg-accent/20 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[#FFE066] sm:text-sm shadow-[0_0_20px_rgba(255,184,0,0.15)] ring-1 ring-accent/40">
-              Replay Masterclass
+        {/* Hero institutionnel (DA : #001D3D, image + masque, or sur badge uniquement) */}
+        <section className="relative overflow-hidden bg-[#001D3D] py-14 sm:py-16 lg:py-24 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-80"
+            style={{
+              backgroundImage:
+                "url('https://images.unsplash.com/photo-1548618753-157945d81c4e?q=80&w=2670&auto=format&fit=crop')",
+              maskImage:
+                "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.55) 75%, rgba(0,0,0,0.12) 100%)",
+              WebkitMaskImage:
+                "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.55) 75%, rgba(0,0,0,0.12) 100%)",
+            }}
+          />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,29,61,0.2)_0%,rgba(0,29,61,0.82)_100%)]" />
+          <div className="relative z-10 mx-auto max-w-4xl min-w-0 px-4 text-center sm:px-6 lg:px-8">
+            <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-widest text-accent backdrop-blur-md sm:text-sm">
+              Replay masterclass
             </span>
-            <h1 className="mt-2 text-balance text-2xl font-bold tracking-tight text-primary-foreground min-[480px]:text-3xl sm:text-4xl">
-              Zéro CAPEX : financer 100% de votre solaire par le Tiers-Investissement
+            <h1 className="text-balance text-2xl font-extrabold tracking-tight text-white min-[480px]:text-3xl sm:text-4xl md:text-5xl">
+              Zéro CAPEX : financer 100&nbsp;% de votre solaire par le tiers-investissement
             </h1>
-            <p className="mt-4 text-pretty text-sm leading-relaxed text-primary-foreground/90 sm:text-base">
-              Décryptage vidéo — bâtiments tertiaires et parkings en Wallonie : zéro investissement initial, lecture transposable au cadre belge (GRD, SPW Énergie).
+            <p className="mx-auto mt-4 max-w-2xl text-pretty text-sm font-medium leading-relaxed text-neutral-300 sm:text-base">
+              Décryptage vidéo — bâtiments tertiaires et parkings en Wallonie : lecture transposable au cadre
+              belge (GRD, SPW Énergie).
             </p>
           </div>
         </section>

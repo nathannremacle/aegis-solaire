@@ -236,4 +236,4 @@ Cochez au fur et à mesure :
 - **Configuration complète** : créer le projet Supabase, exécuter les 2 scripts SQL, récupérer URL + anon + service_role, créer `.env.local` et les variables sur Vercel, créer un utilisateur Auth et l’ajouter dans `ADMIN_EMAILS`.
 - Une fois ces étapes faites, le site est **100 % fonctionnel** : landing, simulateur, enregistrement des leads, panel admin (dashboard, leads, installateurs).
 
-Pour plus de détails sur le fonctionnement du site et l’architecture, voir **DOCUMENTATION.md**. Pour le panel admin, voir **PLAN-ADMIN.md**.
+Pour le **fonctionnement détaillé** (parcours, marketplace, SQL, sécurité), voir **`docs/FONCTIONNEMENT-SITE.md`**. Compléments : **DOCUMENTATION.md** (déploiement / stack), **PLAN-ADMIN.md** (panel admin).

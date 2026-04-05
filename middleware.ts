@@ -47,9 +47,11 @@ export function middleware(request: NextRequest) {
   // 3. Protection CSRF pour le panel ADMIN
   // On vérifie que toute requête de mutation (POST, PUT, DELETE) vers /api/admin/*
   // possède un header personnalisé 'x-admin-request' pour empêcher les soumissions cross-site simples.
+  const isPublicMediaPartnerRegister = pathname === "/api/media-partners/register"
+
   const isProtectedApi =
     pathname.startsWith("/api/admin") ||
-    pathname.startsWith("/api/media-partners") ||
+    (pathname.startsWith("/api/media-partners") && !isPublicMediaPartnerRegister) ||
     pathname.startsWith("/api/partners")
 
   if (isProtectedApi) {

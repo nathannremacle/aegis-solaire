@@ -147,7 +147,7 @@ function SlotProgress({ taken, max }: { taken: number; max: number }) {
           transition={{ duration: 0.6, ease: "easeOut" }}
         />
       </div>
-      <span className="font-mono text-[11px] tabular-nums text-slate-500">
+      <span className="font-sans text-[11px] tabular-nums text-slate-500">
         {remaining > 0 ? `${remaining}/${max}` : "complet"}
       </span>
     </div>
@@ -207,7 +207,7 @@ function LockedLeadRow({
 
         {/* Col 2 — Puissance */}
         <div className="hidden sm:block">
-          <p className="font-mono text-sm font-semibold tabular-nums text-slate-900">
+          <p className="font-sans text-sm font-semibold tabular-nums text-slate-900">
             {lead.estimatedPowerKwc.toLocaleString("fr-BE")}{" "}
             <span className="text-[11px] font-normal text-slate-400">kWc</span>
           </p>
@@ -215,7 +215,7 @@ function LockedLeadRow({
 
         {/* Col 3 — Économies */}
         <div className="hidden sm:block">
-          <p className="font-mono text-sm font-semibold tabular-nums text-[#001D3D]">
+          <p className="font-sans text-sm font-semibold tabular-nums text-[#001D3D]">
             {lead.estimatedRevenue.toLocaleString("fr-BE")}{" "}
             <span className="text-[11px] font-normal text-slate-400">€/an</span>
           </p>
@@ -371,13 +371,13 @@ function LockedLeadRow({
                   <div className="space-y-1.5 text-sm">
                     <div className="flex justify-between">
                       <span className="text-slate-400">Surface</span>
-                      <span className="font-mono font-semibold text-slate-900">
+                      <span className="font-sans font-semibold tabular-nums text-slate-900">
                         {(revealedLead.surface_area ?? 0).toLocaleString("fr-BE")} m²
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-400">Facture élec.</span>
-                      <span className="font-mono font-semibold text-[#001D3D]">
+                      <span className="font-sans font-semibold tabular-nums text-[#001D3D]">
                         {(revealedLead.annual_electricity_bill ?? 0).toLocaleString("fr-BE")} €
                       </span>
                     </div>
@@ -452,7 +452,7 @@ function PurchasedRow({ lead, index }: { lead: RevealedLead; index: number }) {
           </a>
         </div>
         <div className="hidden sm:block">
-          <p className="font-mono text-sm font-semibold tabular-nums text-[#001D3D]">
+          <p className="font-sans text-sm font-semibold tabular-nums text-[#001D3D]">
             {(lead.annual_electricity_bill ?? 0).toLocaleString("fr-BE")} €
           </p>
         </div>
@@ -527,11 +527,11 @@ function PurchasedRow({ lead, index }: { lead: RevealedLead; index: number }) {
                   </p>
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-400">Surface</span>
-                    <span className="font-mono text-slate-900">{(lead.surface_area ?? 0).toLocaleString("fr-BE")} m²</span>
+                    <span className="font-sans tabular-nums text-slate-900">{(lead.surface_area ?? 0).toLocaleString("fr-BE")} m²</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-400">Facture</span>
-                    <span className="font-mono text-[#001D3D]">{(lead.annual_electricity_bill ?? 0).toLocaleString("fr-BE")} €/an</span>
+                    <span className="font-sans tabular-nums text-[#001D3D]">{(lead.annual_electricity_bill ?? 0).toLocaleString("fr-BE")} €/an</span>
                   </div>
                   {lead.grd && (
                     <div className="flex justify-between text-sm">
@@ -722,7 +722,7 @@ export default function PartnerDashboardPage() {
                   key={partner?.credits}
                   initial={{ y: -6, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
-                  className="font-mono text-lg font-bold tabular-nums text-[#001D3D]"
+                  className="font-sans text-lg font-bold tabular-nums text-[#001D3D]"
                 >
                   {partner?.credits ?? 0}
                 </motion.span>
@@ -758,15 +758,15 @@ export default function PartnerDashboardPage() {
             <div key={kpi.label} className="flex items-center gap-2 whitespace-nowrap">
               <kpi.icon className="h-3.5 w-3.5 text-slate-400" />
               <span className="text-[11px] text-slate-400">{kpi.label}</span>
-              <span className={`font-mono text-sm font-bold ${kpi.color}`}>{kpi.value}</span>
+              <span className={`font-sans text-sm font-bold tabular-nums ${kpi.color}`}>{kpi.value}</span>
             </div>
           ))}
           <div className="flex items-center gap-2 whitespace-nowrap">
             <span className="text-[11px] text-slate-400">B2B</span>
-            <span className="font-mono text-sm font-bold text-slate-900">{b2bCount}</span>
+            <span className="font-sans text-sm font-bold tabular-nums text-slate-900">{b2bCount}</span>
             <span className="text-slate-300">|</span>
             <span className="text-[11px] text-slate-400">B2C</span>
-            <span className="font-mono text-sm font-bold text-slate-900">{b2cCount}</span>
+            <span className="font-sans text-sm font-bold tabular-nums text-slate-900">{b2cCount}</span>
           </div>
         </div>
       </div>
@@ -848,6 +848,25 @@ export default function PartnerDashboardPage() {
         <div className="overflow-hidden rounded-b-2xl bg-white shadow-sm sm:mx-4 sm:my-4 sm:rounded-2xl sm:border sm:border-slate-200 lg:mx-6">
           {tab === "feed" && (
             <>
+              <div className="border-b border-slate-100 bg-slate-50/90 px-4 py-2.5 sm:px-5">
+                <p className="flex flex-col gap-1.5 text-[11px] leading-snug text-slate-600 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-0 sm:text-xs">
+                  <span>
+                    <span className="font-semibold text-slate-800">Qualification :</span> revue équipe Aegis + algorithmes.
+                  </span>
+                  <span className="hidden h-3 w-px bg-slate-200 sm:block" aria-hidden />
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-700">
+                      B2B
+                    </span>
+                    <span>1 acheteur / lead</span>
+                    <span className="text-slate-300">·</span>
+                    <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                      B2C
+                    </span>
+                    <span>jusqu&apos;à 3 · places sur la ligne</span>
+                  </span>
+                </p>
+              </div>
               {/* Column headers */}
               <div className="hidden border-b border-slate-100 bg-slate-50/50 sm:grid sm:grid-cols-[minmax(0,2fr)_repeat(4,minmax(0,1fr))_auto] items-center gap-4 px-5 py-2.5">
                 {["Projet", "Puissance", "Économies", "Disponibilité", "Reçu", "Action"].map((h) => (

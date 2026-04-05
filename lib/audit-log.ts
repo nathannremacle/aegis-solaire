@@ -5,6 +5,8 @@ export type AuditAction =
   | "lead_notify_installateur"
   | "leads_export"
   | "leads_anonymized"
+  | "media_partner_application_approved"
+  | "media_partner_application_rejected"
 
 export type AuditEntry = {
   adminEmail: string

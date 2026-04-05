@@ -2,6 +2,8 @@
 
 **Ce fichier décrit le fonctionnement du site et l’architecture technique. Il est mis à jour lorsque des modifications ou ajouts sont effectués sur le projet.**
 
+**Référence unique (parcours utilisateurs, admin, marketplace, marketeurs, Supabase, sécurité, scripts SQL) : [docs/FONCTIONNEMENT-SITE.md](./docs/FONCTIONNEMENT-SITE.md).**
+
 ---
 
 ## 1. Vue d’ensemble
@@ -35,7 +37,6 @@
 
 ```
 /                         → Page d’accueil (landing + simulateur)
-/ressources               → Ressources (études de cas, subventions, webinaires B2B Wallonie)
 /mentions-legales          → Mentions légales
 /politique-confidentialite → RGPD, droits, désinscription (#desinscription)
 /cgv                      → Conditions générales de vente
@@ -55,7 +56,7 @@ Ordre des sections :
 4. **Avantages** (`#benefits`) – Pourquoi passer au solaire B2B
 5. **Simulateur** (`#simulator`) – Formulaire multi-étapes (voir ci-dessous)
 
-Header et footer incluent la baseline, les liens Preuve / Expert / Avantages / Simulateur, une colonne **Ressources** pointant vers `/ressources` (études de cas, subventions & financement, webinaires), les pages légales et le lien **Désinscription / Opposition** vers `politique-confidentialite#desinscription`.
+Header et footer incluent la baseline, les liens Preuve / Expert / Avantages / Simulateur, une colonne **Ressources** du footer avec liens directs vers les ancres d’accueil **#preuve** / **#expert**, **/webinaire**, **/faq-technique**, les pages légales et le lien **Désinscription / Opposition** vers `politique-confidentialite#desinscription`.
 
 ### 3.3 Alignement avec le fonctionnement imaginé (entonnoir en 5 étapes)
 
@@ -63,9 +64,9 @@ Le site implémente le funnel décrit dans *Fonctionnement imaginé de Aegis Sol
 
 | Étape | Implémentation sur le site |
 |-------|----------------------------|
-| **1. Acquisition** | Landing optimisée SEO (PEB, panneaux solaires B2B Wallonie), études de cas (Preuve), CTA unique. Prêt pour Google Ads / LinkedIn Ads ; page **Ressources** (`/ressources`) : études de cas, subventions & financement, webinaires. |
+| **1. Acquisition** | Landing optimisée SEO (PEB, panneaux solaires B2B Wallonie), études de cas (Preuve), CTA unique. Prêt pour Google Ads / LinkedIn Ads ; contenus associés accessibles depuis le footer (**#preuve**, **#expert**, webinaire, FAQ technique). |
 | **2. Qualification (simulateur)** | Saisie nature du site (parking > 1 500 m², toiture > 500 m²) + facture ; calcul ROI (8–12 ans) ; **gated content** : message explicite « audit de faisabilité complet et résultats détaillés » contre coordonnées pro. |
-| **3. Traitement & RGPD** | Opt-in non pré-coché, mentions Art. 13/14, désinscription. **Filtrage automatique** : surface min selon type, facture min 5 000 €, refus des emails grand public (gmail, etc.) pour ne garder que des contacts B2B. |
+| **3. Traitement & RGPD** | Opt-in non pré-coché, mentions Art. 13/14, désinscription. **Contrôles automatiques** (surface min selon type, facture min 5 000 €, refus des e-mails grand public pour le B2B, etc.) complétés par un **tri et une qualification manuels** par l’équipe Aegis, **soutenus par des algorithmes avancés** (scoring, signaux de fraude, règles métier). |
 | **4. Distribution** | Enregistrement en base + **webhook optionnel** (`LEAD_WEBHOOK_URL`) : envoi en temps réel du lead vers CRM (HubSpot, Pipedrive, CBM Manager) ou installateur partenaire. |
 | **5. Nurturing** | Mentionné en politique de confidentialité (témoignages, actualités réglementaires Wallonie / PEB, webinaires) ; à opérer côté CRM / emailing. |
 

@@ -89,7 +89,7 @@ export function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link
-                  href="/ressources#etudes-de-cas"
+                  href="/#preuve"
                   className="text-sm text-neutral-500 hover:text-[#001D3D]"
                 >
                   Études de cas chiffrées
@@ -97,7 +97,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/ressources#subventions"
+                  href="/#expert"
                   className="text-sm text-neutral-500 hover:text-[#001D3D]"
                 >
                   Subventions & financement

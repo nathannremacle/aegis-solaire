@@ -3,11 +3,30 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Euro, ArrowLeft } from "lucide-react"
+import { ArrowLeft, Loader2, Megaphone } from "lucide-react"
+import { motion } from "framer-motion"
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.12, delayChildren: 0.1 },
+  },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring" as const, stiffness: 300, damping: 24 },
+  },
+}
 
 export default function MediaPartnerLoginPage() {
   const router = useRouter()
@@ -29,7 +48,7 @@ export default function MediaPartnerLoginPage() {
       if (authError) {
         setError(
           authError.message === "Invalid login credentials"
-            ? "Email ou mot de passe incorrect."
+            ? "E-mail ou mot de passe incorrect."
             : authError.message
         )
         setLoading(false)
@@ -44,32 +63,37 @@ export default function MediaPartnerLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#000a19] px-4">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-40 top-20 h-[500px] w-[500px] rounded-full bg-accent/[0.05] blur-[120px]" />
-        <div className="absolute -right-32 bottom-20 h-[400px] w-[400px] rounded-full bg-blue-500/[0.04] blur-[100px]" />
-      </div>
-
-      <div className="relative z-10 w-full max-w-sm space-y-8">
-        <div className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10 ring-1 ring-accent/20">
-            <Euro className="h-7 w-7 text-accent" />
+    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 [padding-bottom:env(safe-area-inset-bottom)]">
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="w-full max-w-sm space-y-8"
+      >
+        <motion.div variants={itemVariants} className="text-center">
+          <Link href="/" className="mx-auto mb-6 block">
+            <div className="relative mx-auto h-12 w-48">
+              <Image src="/logo.png" alt="Aegis Solaire" fill className="object-contain" priority />
+            </div>
+          </Link>
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-1.5 shadow-sm">
+            <Megaphone className="h-3.5 w-3.5 text-accent" />
+            <span className="text-xs font-bold uppercase tracking-widest text-[#001D3D]">
+              Partenaires média
+            </span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
-            Media Partners
-          </h1>
-          <p className="mt-2 text-sm text-neutral-500">
-            Aegis Solaire · Espace affilié
-          </p>
-        </div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Espace affilié</h1>
+          <p className="mt-2 text-sm text-slate-500">Suivi des leads et commissions · Aegis Solaire</p>
+        </motion.div>
 
-        <form
+        <motion.form
+          variants={itemVariants}
           onSubmit={handleSubmit}
-          className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-xl"
+          className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
         >
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-neutral-300">
-              Email
+            <Label htmlFor="email" className="text-sm font-medium text-slate-700">
+              E-mail
             </Label>
             <Input
               id="email"
@@ -79,11 +103,11 @@ export default function MediaPartnerLoginPage() {
               placeholder="partenaire@email.com"
               required
               autoComplete="email"
-              className="h-11 border-white/10 bg-white/[0.06] text-white placeholder:text-neutral-600 focus-visible:border-accent/50 focus-visible:ring-accent/30"
+              className="h-11 rounded-xl"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-neutral-300">
+            <Label htmlFor="password" className="text-sm font-medium text-slate-700">
               Mot de passe
             </Label>
             <Input
@@ -93,33 +117,45 @@ export default function MediaPartnerLoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
-              className="h-11 border-white/10 bg-white/[0.06] text-white placeholder:text-neutral-600 focus-visible:border-accent/50 focus-visible:ring-accent/30"
+              className="h-11 rounded-xl"
             />
           </div>
           {error && (
-            <p className="text-sm text-red-400" role="alert">
+            <motion.p
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+              role="alert"
+            >
               {error}
-            </p>
+            </motion.p>
           )}
           <Button
             type="submit"
-            className="h-11 w-full bg-accent font-bold text-[#001D3D] hover:bg-accent/90"
+            className="h-12 w-full bg-[#001D3D] text-base font-bold text-white shadow-md transition-all hover:bg-[#00152e] hover:shadow-lg"
             disabled={loading}
           >
-            {loading ? "Connexion…" : "Se connecter"}
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Connexion…
+              </span>
+            ) : (
+              "Se connecter"
+            )}
           </Button>
-        </form>
+        </motion.form>
 
-        <p className="text-center">
+        <motion.p variants={itemVariants} className="text-center">
           <Link
             href="/media-partners"
-            className="inline-flex items-center gap-1.5 text-sm text-neutral-500 underline-offset-4 hover:text-white hover:underline"
+            className="inline-flex items-center gap-1.5 text-sm text-slate-500 underline-offset-4 transition-colors hover:text-slate-900 hover:underline"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Retour au programme
+            Retour au programme partenaires média
           </Link>
-        </p>
-      </div>
+        </motion.p>
+      </motion.div>
     </div>
   )
 }
