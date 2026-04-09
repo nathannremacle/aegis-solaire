@@ -143,8 +143,8 @@ export default function CGV() {
             Si un lead acheté s&apos;avère manifestement non conforme (fausses coordonnées, doublon avéré,
             prospect hors zone géographique), le Partenaire Installateur peut signaler le lead via son
             Dashboard ou par e-mail à{" "}
-            <a href="mailto:nathan@aegissolaire.com" className="text-[#001D3D] font-medium hover:underline">
-              nathan@aegissolaire.com
+            <a href="mailto:cgv@aegissolaire.com" className="text-[#001D3D] font-medium hover:underline">
+              cgv@aegissolaire.com
             </a>{" "}
             dans un délai de <strong>sept (7) jours ouvrés</strong> suivant l&apos;achat. Après vérification,
             l&apos;Exploitant pourra, à sa seule discrétion, créditer le montant correspondant sur le compte
@@ -359,8 +359,8 @@ export default function CGV() {
           <ul className="mt-3 list-none space-y-1 pl-0 text-muted-foreground">
             <li>
               <strong>E-mail :</strong>{" "}
-              <a href="mailto:nathan@aegissolaire.com" className="text-[#001D3D] font-medium hover:underline">
-                nathan@aegissolaire.com
+              <a href="mailto:cgv@aegissolaire.com" className="text-[#001D3D] font-medium hover:underline">
+                cgv@aegissolaire.com
               </a>
             </li>
             <li>
