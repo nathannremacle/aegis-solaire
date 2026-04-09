@@ -75,7 +75,7 @@ export default function WebinairePage() {
             className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-80"
             style={{
               backgroundImage:
-                "url('https://images.unsplash.com/photo-1548618753-157945d81c4e?q=80&w=2670&auto=format&fit=crop')",
+                "url('https://images.unsplash.com/photo-1548618753-157945d81c4e?q=60&w=1200&auto=format&fit=crop')",
               maskImage:
                 "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.55) 75%, rgba(0,0,0,0.12) 100%)",
               WebkitMaskImage:

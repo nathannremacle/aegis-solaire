@@ -1,6 +1,7 @@
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { B2CSimulator } from "@/components/b2c-simulator"
+import { HeroBg } from "@/components/hero-bg"
 import {
   Shield,
   BatteryFull,
@@ -65,17 +66,8 @@ export default function ParticuliersPage() {
           className="relative flex min-h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[#001D3D] sm:min-h-[calc(100dvh-5rem)] [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
           style={{ viewTransitionName: "hero-section" }}
         >
-          {/* Background image with fade mask */}
-          <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-80"
-            style={{
-              backgroundImage: "url('/hero-particuliers.png')",
-              maskImage:
-                "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.1) 100%)",
-              WebkitMaskImage:
-                "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.1) 100%)",
-            }}
-          />
+          {/* Background image with progressive blur-up */}
+          <HeroBg heroKey="hero-particuliers" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,29,61,0.15)_0%,rgba(0,29,61,0.75)_100%)]" />
 
           <div className="relative z-10 mx-auto flex max-w-4xl flex-1 items-center px-4 py-8 sm:px-6 sm:py-12 lg:px-8">

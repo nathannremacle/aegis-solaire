@@ -19,6 +19,8 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MediaPartnerApplicationForm } from "@/components/media-partner-application-form"
+import { ProgressiveHeroBackground } from "@/components/progressive-image"
+import { heroImages } from "@/lib/optimized-images"
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -148,10 +150,13 @@ export function MediaPartnersContent() {
         className="relative flex min-h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[#001D3D] sm:min-h-[calc(100dvh-5rem)] [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
         style={{ viewTransitionName: "hero-section" }}
       >
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-80"
+        <ProgressiveHeroBackground
+          blurDataUrl={heroImages["hero-media-partner"].blurDataUrl}
+          webpSrc={heroImages["hero-media-partner"].webp}
+          mobileSrc={heroImages["hero-media-partner"].mobile}
+          fallbackSrc={heroImages["hero-media-partner"].original}
+          className="opacity-80"
           style={{
-            backgroundImage: "url('/hero-media-partner.png')",
             maskImage:
               "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.1) 100%)",
             WebkitMaskImage:
@@ -426,7 +431,7 @@ export function MediaPartnersContent() {
             className="absolute inset-0 bg-cover bg-center"
             style={{
               backgroundImage:
-                "url('https://images.unsplash.com/photo-1548618753-157945d81c4e?q=80&w=2670&auto=format&fit=crop')",
+                "url('https://images.unsplash.com/photo-1548618753-157945d81c4e?q=40&w=800&auto=format&fit=crop')",
             }}
           />
         </div>

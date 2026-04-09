@@ -334,7 +334,7 @@ export function ROISimulator() {
     const calendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL || "#"
     return (
       <section id="simulator" className="scroll-mt-24 overflow-hidden relative bg-[radial-gradient(circle_at_top,rgba(0,29,61,1)_0%,rgba(0,10,25,1)_100%)] py-16 sm:py-32 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1548618753-157945d81c4e?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay" />
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1548618753-157945d81c4e?q=40&w=800&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay" />
         <div className="mx-auto max-w-4xl min-w-0 px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95, y: 30 }}

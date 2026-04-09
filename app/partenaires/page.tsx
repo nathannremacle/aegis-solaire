@@ -3,6 +3,7 @@ import { Footer } from "@/components/footer"
 import { InstallerRegistrationForm } from "@/components/installer-registration-form"
 import { Button } from "@/components/ui/button"
 import { Shield, FileCheck, ArrowDown, Building2, Home } from "lucide-react"
+import { HeroBg } from "@/components/hero-bg"
 
 export const metadata = {
   title: "Devenir Partenaire | Aegis Solaire",
@@ -20,16 +21,7 @@ export default function PartenairesPage() {
           className="relative flex min-h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[#001D3D] sm:min-h-[calc(100dvh-5rem)] [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
           style={{ viewTransitionName: "hero-section" }}
         >
-          <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-80"
-            style={{
-              backgroundImage: "url('/hero-partenaires.png')",
-              maskImage:
-                "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.1) 100%)",
-              WebkitMaskImage:
-                "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.1) 100%)",
-            }}
-          />
+          <HeroBg heroKey="hero-partenaires" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,29,61,0.15)_0%,rgba(0,29,61,0.75)_100%)]" />
 
           <div className="relative z-10 mx-auto flex max-w-4xl min-w-0 flex-1 flex-col justify-center px-4 py-12 sm:px-6 sm:py-16 lg:px-8">

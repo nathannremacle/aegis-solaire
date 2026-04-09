@@ -1,10 +1,11 @@
 "use client"
 
-import Image from "next/image"
 import { Star, Building2, Car, Factory } from "lucide-react"
 import { CertificationsMarquee } from "@/components/certifications-marquee"
 import { motion } from "framer-motion"
 import { AnimatedCounter } from "@/components/ui/animated-counter"
+import { ProgressiveAvatar } from "@/components/progressive-image"
+import { avatarImages } from "@/lib/optimized-images"
 
 /** Études de cas chiffrées (Section Preuve – MEP) — Wallonie B2B */
 const caseStudies = [
@@ -252,13 +253,17 @@ export function Testimonials() {
                   </blockquote>
                   <div className="mt-4 flex items-center gap-3 border-t border-border/50 pt-3.5">
                     <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-primary/15 bg-muted">
-                      <Image
-                        src={t.image}
-                        alt=""
-                        fill
-                        className="object-cover"
-                        sizes="36px"
-                      />
+                      {avatarImages[t.image] ? (
+                        <ProgressiveAvatar
+                          blurDataUrl={avatarImages[t.image].blurDataUrl}
+                          webpSrc={avatarImages[t.image].webp}
+                          alt=""
+                          size={36}
+                          className="rounded-full"
+                        />
+                      ) : (
+                        <img src={t.image} alt="" className="h-full w-full object-cover" loading="lazy" />
+                      )}
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold leading-tight text-foreground">{t.author}</p>

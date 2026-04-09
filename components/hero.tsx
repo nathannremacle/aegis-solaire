@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button"
 import { ArrowRight, TrendingUp, Shield, Zap, Building2, Home } from "lucide-react"
 import { motion } from "framer-motion"
 import Link from "next/link"
-
-const HERO_BG_URL = "/hero-background.png"
+import { ProgressiveHeroBackground } from "@/components/progressive-image"
+import { heroImages } from "@/lib/optimized-images"
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -40,11 +40,14 @@ export function Hero() {
       className="relative flex min-h-[calc(100dvh-4rem)] flex-col overflow-x-hidden bg-[#001D3D] sm:min-h-[calc(100dvh-5rem)] [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
       style={{ viewTransitionName: "hero-section" }}
     >
-      {/* Background Image */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-80"
+      {/* Background Image — progressive blur-up */}
+      <ProgressiveHeroBackground
+        blurDataUrl={heroImages["hero-background"].blurDataUrl}
+        webpSrc={heroImages["hero-background"].webp}
+        mobileSrc={heroImages["hero-background"].mobile}
+        fallbackSrc={heroImages["hero-background"].original}
+        className="opacity-80"
         style={{
-          backgroundImage: `url('${HERO_BG_URL}')`,
           maskImage: "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.1) 100%)",
           WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.1) 100%)",
         }}
