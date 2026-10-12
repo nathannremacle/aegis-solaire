@@ -39,7 +39,7 @@ export default async function AdminDashboardLayout({
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 antialiased">
       {/* Desktop Fixed Sidebar */}
-      <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-30 shadow-xl shadow-slate-900/10">
+      <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-30 shadow-xs border-r border-slate-200 bg-white">
         <AdminNav 
           pendingApplications={installAppsCount ?? 0} 
           pendingMedia={mediaAppsCount ?? 0}

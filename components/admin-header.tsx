@@ -41,7 +41,7 @@ export function AdminHeader({
                 <span className="sr-only">Ouvrir le menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-72 border-r-0 bg-[#001428]">
+            <SheetContent side="left" className="p-0 w-72 border-r-0 bg-white">
               <SheetTitle className="sr-only">Menu de navigation administrateur</SheetTitle>
               <AdminNav
                 pendingApplications={pendingApplications}

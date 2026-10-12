@@ -150,33 +150,29 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-8 pb-12">
-      {/* 1. Hero Executive Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#001428] via-[#001D3D] to-[#002B54] p-6 sm:p-8 text-white shadow-xl shadow-slate-900/10 border border-slate-800">
-        {/* Subtle decorative glow */}
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
-        <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
-
+      {/* 1. Hero Executive Header (Light Theme) */}
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-gradient-to-r from-white via-slate-50/60 to-blue-50/30 p-6 sm:p-8 shadow-2xs">
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full bg-amber-400/15 border border-amber-400/30 px-3 py-1 text-xs font-bold text-amber-300">
-              <Sparkles className="h-3.5 w-3.5 text-amber-300 animate-pulse" />
+            <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 border border-slate-200 px-3 py-1 text-xs font-bold text-slate-700">
+              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
               <span>Console de Contrôle Opérationnel &amp; Financier</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-              Cockpit Exécutif Aegis Solaire
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+              Aegis Admin — Tableau de bord
             </h1>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
               Supervision en temps réel des leads solaires qualifiés B2B/B2C, des commandes de crédits installateurs et des flux de commissions partenaires en Belgique.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 shrink-0">
             <Link href="/admin/partners">
-              <Button className="h-10 px-4 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-[#001D3D] font-black text-xs gap-2 rounded-xl shadow-lg shadow-amber-500/20 transition-all hover:scale-[1.02] border-0">
-                <Coins className="h-4 w-4 text-[#001D3D]" />
+              <Button className="h-10 px-4 bg-[#001D3D] hover:bg-[#002B54] text-white font-extrabold text-xs gap-2 rounded-xl shadow-xs transition-all hover:scale-[1.02] border-0">
+                <Coins className="h-4 w-4 text-amber-400" />
                 <span>Gérer les Crédits &amp; Virements</span>
                 {stats.pendingCreditOrders.length > 0 && (
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#001D3D] text-[10px] font-black text-amber-300 ml-1">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-[10px] font-black text-[#001D3D] ml-1">
                     {stats.pendingCreditOrders.length}
                   </span>
                 )}
@@ -184,8 +180,8 @@ export default async function AdminDashboardPage() {
             </Link>
 
             <Link href="/admin/leads">
-              <Button variant="outline" className="h-10 px-4 bg-white/10 hover:bg-white/15 text-white border-white/20 font-bold text-xs gap-2 rounded-xl backdrop-blur-xs transition-all hover:scale-[1.02]">
-                <FileText className="h-4 w-4 text-amber-300" />
+              <Button variant="outline" className="h-10 px-4 bg-white hover:bg-slate-50 text-slate-800 border-slate-200 font-bold text-xs gap-2 rounded-xl transition-all hover:scale-[1.02] shadow-2xs">
+                <FileText className="h-4 w-4 text-slate-500" />
                 <span>Registre des Leads</span>
               </Button>
             </Link>
