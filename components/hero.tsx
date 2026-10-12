@@ -37,7 +37,7 @@ export function Hero() {
 
   return (
     <section
-      className="relative flex min-h-[calc(100dvh-4rem)] flex-col overflow-x-hidden bg-[#001D3D] sm:min-h-[calc(100dvh-5rem)] [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
+      className="relative flex min-h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[#001D3D] sm:min-h-[calc(100dvh-5rem)] [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
       style={{ viewTransitionName: "hero-section" }}
     >
       {/* Background Image — progressive blur-up */}
@@ -52,7 +52,7 @@ export function Hero() {
           WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.1) 100%)",
         }}
       />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,29,61,0.15)_0%,rgba(0,29,61,0.75)_100%)]" />
+      <div className="pointer-events-none select-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,29,61,0.15)_0%,rgba(0,29,61,0.75)_100%)]" aria-hidden />
 
       <div className="relative z-10 mx-auto flex max-w-7xl flex-1 items-center min-w-0 px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
         <motion.div

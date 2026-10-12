@@ -64,7 +64,7 @@ export function ProgressiveHeroBackground({
   }, [webpSrc, mobileSrc, fallbackSrc])
 
   return (
-    <>
+    <div className="pointer-events-none select-none absolute inset-0 overflow-hidden" aria-hidden>
       {/* Blur placeholder — instantly visible, fades out once HD loads */}
       <div
         className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-700 ${loaded ? "opacity-0" : "opacity-100"} ${className}`}
@@ -74,7 +74,6 @@ export function ProgressiveHeroBackground({
           transform: "scale(1.1)", // Prevent blur edge artifacts
           ...style,
         }}
-        aria-hidden
       />
       {/* High-quality image — fades in on load */}
       <div
@@ -85,7 +84,7 @@ export function ProgressiveHeroBackground({
           ...style,
         }}
       />
-    </>
+    </div>
   )
 }
 

@@ -74,7 +74,7 @@ export default function ParticuliersPage() {
         >
           {/* Background image with progressive blur-up */}
           <HeroBg heroKey="hero-particuliers" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,29,61,0.15)_0%,rgba(0,29,61,0.75)_100%)]" />
+          <div className="pointer-events-none select-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,29,61,0.15)_0%,rgba(0,29,61,0.75)_100%)]" aria-hidden />
 
           <div className="relative z-10 mx-auto flex max-w-4xl flex-1 items-center px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
             <div className="mx-auto max-w-3xl text-center">
