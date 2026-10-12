@@ -23,11 +23,13 @@ type NavGroup = {
 export function AdminNav({ 
   pendingApplications = 0, 
   pendingMedia = 0,
-  needsReview = 0 
+  needsReview = 0,
+  pendingCreditOrders = 0,
 }: { 
   pendingApplications?: number
   pendingMedia?: number
-  needsReview?: number 
+  needsReview?: number
+  pendingCreditOrders?: number
 }) {
   const pathname = usePathname()
 
@@ -44,13 +46,13 @@ export function AdminNav({
       items: [
         { href: "/admin/installateurs", label: "Installateurs", icon: Users },
         { href: "/admin/applications", label: "Candidatures", icon: ClipboardCheck, badgeCount: pendingApplications },
+        { href: "/admin/partners", label: "Marketplace & Crédits", icon: Building2, badgeCount: pendingCreditOrders },
       ]
     },
     {
       title: "Marketing & Ventes",
       items: [
         { href: "/admin/media-partners", label: "Apporteurs d'affaires", icon: Megaphone, badgeCount: pendingMedia },
-        { href: "/admin/partners", label: "Marketplace Leads", icon: Building2 },
       ]
     },
     {

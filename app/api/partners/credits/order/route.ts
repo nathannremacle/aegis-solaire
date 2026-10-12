@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { getPartner } from "@/lib/partner-auth"
+import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { Resend } from "resend"
 
 export const dynamic = "force-dynamic"
@@ -48,6 +49,24 @@ export async function POST(request: Request) {
     .replace(/[^A-Z0-9]/g, "")
   const timestamp = Date.now().toString().slice(-4)
   const transferReference = `AEGIS-${cleanCompanyName || "PART"}-${pack.credits}CR-${timestamp}`
+
+  // Enregistrement de la commande en base de données
+  try {
+    const admin = createServiceRoleClient()
+    await admin.from("credit_orders").insert({
+      partner_id: partner.id,
+      pack_id: pack.id,
+      pack_name: pack.name,
+      credits: pack.credits,
+      price_htva: pack.priceHtva,
+      vat_amount: vatAmount,
+      price_ttc: priceTtc,
+      transfer_reference: transferReference,
+      status: "pending",
+    })
+  } catch (err) {
+    console.warn("[Credit Order] Erreur insertion credit_orders:", err)
+  }
 
   // Notification admin par email (si configuré)
   const resendApiKey = process.env.RESEND_API_KEY

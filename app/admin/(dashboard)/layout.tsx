@@ -23,12 +23,18 @@ export default async function AdminDashboardLayout({
   const [
     { count: installAppsCount },
     { count: mediaAppsCount },
-    { count: needsReviewCount }
+    { count: needsReviewCount },
+    creditOrdersRes,
   ] = await Promise.all([
     supabase.from("installer_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("media_partner_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
-    supabase.from("leads").select("*", { count: "exact", head: true }).eq("status", "NEEDS_HUMAN_REVIEW")
+    supabase.from("leads").select("*", { count: "exact", head: true }).eq("status", "NEEDS_HUMAN_REVIEW"),
+    Promise.resolve(
+      supabase.from("credit_orders").select("*", { count: "exact", head: true }).eq("status", "pending")
+    ).catch(() => ({ count: 0, data: null, error: null })),
   ])
+
+  const pendingOrdersCount = creditOrdersRes?.count ?? 0
 
   return (
     <div className="flex min-h-screen flex-col bg-background md:flex-row">
@@ -37,6 +43,7 @@ export default async function AdminDashboardLayout({
           pendingApplications={installAppsCount ?? 0} 
           pendingMedia={mediaAppsCount ?? 0}
           needsReview={needsReviewCount ?? 0}
+          pendingCreditOrders={pendingOrdersCount}
         />
       </aside>
       <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">

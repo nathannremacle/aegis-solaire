@@ -14,3 +14,4 @@ tmp-lh/
 node_modules/
 .next/
 .DS_Store
+scratch/

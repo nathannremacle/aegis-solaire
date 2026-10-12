@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { FileText, TrendingUp, Calendar, Zap, Users, Euro, Building2, Megaphone, ClipboardCheck, ArrowRight, Eye, AlertTriangle, ShoppingCart, UserPlus } from "lucide-react"
+import { FileText, TrendingUp, Calendar, Zap, Users, Euro, Building2, Megaphone, ClipboardCheck, ArrowRight, Eye, AlertTriangle, ShoppingCart, UserPlus, CreditCard, Coins, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -34,7 +34,8 @@ const getStatsCached = unstable_cache(
       { data: mpData },
       { data: attributedLeads },
       { data: needsReviewLeads },
-      { data: auditLogs }
+      { data: auditLogs },
+      pendingOrdersRes
     ] = await Promise.all([
       supabase.from("leads").select("*", { count: "exact", head: true }),
       supabase.from("leads").select("*", { count: "exact", head: true }).gte("created_at", startOfMonth.toISOString()),
@@ -49,6 +50,9 @@ const getStatsCached = unstable_cache(
       supabase.from("leads").select("media_partner_code, segment, status").not("media_partner_code", "is", null),
       supabase.from("leads").select("id, first_name, last_name, email, created_at").eq("status", "NEEDS_HUMAN_REVIEW"),
       supabase.from("audit_log").select("id, admin_email, action, entity_type, created_at").order("created_at", { ascending: false }).limit(15),
+      Promise.resolve(
+        supabase.from("credit_orders").select("id, credits, price_ttc, transfer_reference, created_at, status, partners(company_name)").eq("status", "pending").order("created_at", { ascending: false }).limit(5)
+      ).catch(() => ({ data: [] as any[], error: null })),
     ])
 
     let commissionsDue = 0
@@ -79,10 +83,11 @@ const getStatsCached = unstable_cache(
       commissionsDue,
       needsReviewLeads: needsReviewLeads ?? [],
       auditLogs: auditLogs ?? [],
+      pendingCreditOrders: pendingOrdersRes?.data ?? [],
     }
   },
   ["admin-dashboard-stats"],
-  { revalidate: 300, tags: ["admin-dashboard-stats"] }
+  { revalidate: 20, tags: ["admin-dashboard-stats"] }
 )
 
 export default async function AdminDashboardPage() {
@@ -93,18 +98,65 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-bold text-foreground">Tableau de bord</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border pb-4">
+        <div>
+          <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Tableau de bord Administrateur</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Vue d'ensemble opérationnelle, contrôle qualité des leads et gestion des flux financiers.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link href="/admin/partners">
+            <Button size="sm" className="bg-[#001D3D] hover:bg-[#002855] text-white font-bold gap-1.5 rounded-xl shadow-xs">
+              <Coins className="h-4 w-4 text-accent" />
+              Gérer les crédits
+            </Button>
+          </Link>
+        </div>
+      </div>
 
+      {/* Alerte Virements de crédits en attente */}
+      {Array.isArray(stats.pendingCreditOrders) && stats.pendingCreditOrders.length > 0 && (
+        <div className="flex flex-col gap-3 rounded-2xl border border-amber-300 bg-amber-50/70 p-5 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="flex items-center gap-2 text-amber-900">
+              <CreditCard className="h-5 w-5 text-amber-700 animate-pulse" />
+              <h2 className="font-extrabold text-base">
+                {stats.pendingCreditOrders.length} commande{stats.pendingCreditOrders.length > 1 ? "s" : ""} de crédits en attente de validation bancaire
+              </h2>
+            </div>
+            <Link href="/admin/partners">
+              <Button size="sm" className="bg-[#001D3D] hover:bg-[#002855] text-white text-xs font-bold gap-1.5 rounded-lg shadow-xs">
+                Examiner et valider les virements →
+              </Button>
+            </Link>
+          </div>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {stats.pendingCreditOrders.map((o: any) => (
+              <Link key={o.id} href="/admin/partners">
+                <Button variant="outline" size="sm" className="bg-white border-amber-200 text-amber-900 hover:bg-amber-100 shadow-2xs text-xs rounded-lg gap-2">
+                  <span className="font-bold">{o.partners?.company_name || "Installateur"}</span>
+                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-extrabold text-[#001D3D]">+{o.credits} cr</span>
+                  <span className="text-slate-600 font-mono text-[11px]">({Number(o.price_ttc).toFixed(2)} € TTC)</span>
+                  <span className="text-slate-400 font-mono text-[10px]">Réf: {o.transfer_reference}</span>
+                </Button>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Alerte Leads urgents */}
       {stats.needsReviewLeads.length > 0 && (
-        <div className="flex flex-col gap-3 rounded-xl border border-orange-200 bg-orange-50/50 p-5 shadow-sm">
+        <div className="flex flex-col gap-3 rounded-2xl border border-orange-200 bg-orange-50/60 p-5 shadow-sm">
           <div className="flex items-center gap-2 text-orange-800">
             <AlertTriangle className="h-5 w-5" />
-            <h2 className="font-bold text-base">Leads à contrôler urgemment</h2>
+            <h2 className="font-bold text-base">Leads à contrôler urgemment ({stats.needsReviewLeads.length})</h2>
           </div>
           <div className="flex flex-wrap gap-2">
             {stats.needsReviewLeads.map((l: any) => (
               <Link key={l.id} href={`/admin/leads?leadId=${l.id}`}>
-                <Button variant="outline" size="sm" className="bg-white border-orange-200 text-orange-800 hover:bg-orange-100 hover:text-orange-900 shadow-sm transition-all hover:scale-[1.02]">
+                <Button variant="outline" size="sm" className="bg-white border-orange-200 text-orange-800 hover:bg-orange-100 hover:text-orange-900 shadow-sm transition-all hover:scale-[1.02] rounded-lg">
                   {l.first_name} {l.last_name || l.email} <Eye className="ml-2 h-3.5 w-3.5" />
                 </Button>
               </Link>
@@ -114,37 +166,56 @@ export default async function AdminDashboardPage() {
       )}
 
       {/* Quick Cockpit Actions */}
-      <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Link href="/admin/leads?status=new">
-          <Button variant="secondary" className="h-14 gap-3 px-6 shadow-sm border border-border/50 bg-white hover:bg-muted/50">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+          <Button variant="secondary" className="h-16 w-full gap-3 px-4 shadow-xs border border-border/70 bg-card hover:bg-muted/50 rounded-xl justify-start">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
               <Zap className="h-4 w-4" />
             </div>
-            <div className="text-left">
-              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nouveaux leads</div>
-              <div className="text-lg font-bold">Traiter la file</div>
+            <div className="text-left min-w-0">
+              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Nouveaux leads</div>
+              <div className="text-sm font-extrabold truncate">Traiter la file</div>
             </div>
           </Button>
         </Link>
-        <Link href="/admin/leads?installateur=all">
-          <Button variant="secondary" className="h-14 gap-3 px-6 shadow-sm border border-border/50 bg-white hover:bg-muted/50">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">
-              <UserPlus className="h-4 w-4" />
+
+        <Link href="/admin/partners">
+          <Button variant="secondary" className="h-16 w-full gap-3 px-4 shadow-xs border border-border/70 bg-card hover:bg-muted/50 rounded-xl justify-start">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-800 relative">
+              <Coins className="h-4 w-4" />
+              {stats.pendingCreditOrders.length > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-extrabold text-[#001D3D]">
+                  {stats.pendingCreditOrders.length}
+                </span>
+              )}
             </div>
-            <div className="text-left">
-              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Attribution</div>
-              <div className="text-lg font-bold">Assigner les non-attribués</div>
+            <div className="text-left min-w-0">
+              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Crédits &amp; Packs</div>
+              <div className="text-sm font-extrabold truncate">Virements ({stats.pendingCreditOrders.length})</div>
             </div>
           </Button>
         </Link>
+
         <Link href="/admin/applications">
-          <Button variant="secondary" className="h-14 gap-3 px-6 shadow-sm border border-border/50 bg-white hover:bg-muted/50">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+          <Button variant="secondary" className="h-16 w-full gap-3 px-4 shadow-xs border border-border/70 bg-card hover:bg-muted/50 rounded-xl justify-start">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
               <ClipboardCheck className="h-4 w-4" />
             </div>
-            <div className="text-left">
-              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Installer Hub</div>
-              <div className="text-lg font-bold">Gérer les candidatures</div>
+            <div className="text-left min-w-0">
+              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Installer Hub</div>
+              <div className="text-sm font-extrabold truncate">Candidatures ({stats.pendingApps})</div>
+            </div>
+          </Button>
+        </Link>
+
+        <Link href="/admin/leads?installateur=all">
+          <Button variant="secondary" className="h-16 w-full gap-3 px-4 shadow-xs border border-border/70 bg-card hover:bg-muted/50 rounded-xl justify-start">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">
+              <UserPlus className="h-4 w-4" />
+            </div>
+            <div className="text-left min-w-0">
+              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Attribution</div>
+              <div className="text-sm font-extrabold truncate">Assigner leads</div>
             </div>
           </Button>
         </Link>
