@@ -217,7 +217,7 @@ export default function WebinairePage() {
                         <Button
                           type="submit"
                           size="lg"
-                          className="w-full bg-accent text-lg font-bold text-accent-foreground hover:bg-accent/90 focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                          className="w-full h-12 rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 text-base font-bold text-[#001D3D] shadow-[0_4px_0_0_#b47e00,0_10px_20px_rgba(245,158,11,0.25)] transition-all duration-150 hover:from-amber-300 hover:to-amber-400 active:translate-y-1 active:shadow-[0_0_0_0_#b47e00] disabled:opacity-60 disabled:pointer-events-none"
                           disabled={form.formState.isSubmitting}
                         >
                           {form.formState.isSubmitting ? "Déverrouillage..." : "Débloquer le replay gratuit"}
@@ -342,7 +342,7 @@ export default function WebinairePage() {
                         Calculez la rentabilité de vos toitures et parkings en 2 minutes.
                       </CardDescription>
                     </div>
-                    <Button asChild size="lg" className="w-full shrink-0 bg-accent text-accent-foreground hover:bg-accent/90 sm:w-auto">
+                    <Button asChild size="lg" className="w-full shrink-0 rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 font-bold text-[#001D3D] shadow-[0_4px_0_0_#b47e00,0_10px_20px_rgba(245,158,11,0.25)] transition-all duration-150 hover:from-amber-300 hover:to-amber-400 active:translate-y-1 active:shadow-[0_0_0_0_#b47e00] sm:w-auto">
                       <Link href="/#simulator">Lancer ma simulation</Link>
                     </Button>
                   </CardHeader>

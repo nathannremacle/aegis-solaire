@@ -32,7 +32,7 @@ const MP_STEP_META = [
 ] as const
 
 const btnSolar =
-  "h-12 w-full rounded-xl bg-[#FFC300] text-base font-bold text-[#001D3D] shadow-md transition-all hover:bg-[#e6b800] active:scale-[0.99] disabled:opacity-60 sm:h-14 sm:text-lg"
+  "h-12 w-full rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 text-base font-bold text-[#001D3D] shadow-[0_4px_0_0_#b47e00,0_10px_20px_rgba(245,158,11,0.25)] transition-all duration-150 hover:from-amber-300 hover:to-amber-400 active:translate-y-1 active:shadow-[0_0_0_0_#b47e00] disabled:opacity-60 disabled:pointer-events-none sm:h-14 sm:text-lg"
 
 const fieldClass =
   "h-12 rounded-xl border-slate-200 bg-white/90 shadow-sm transition-colors focus-visible:border-[#001D3D]/30 focus-visible:ring-[#001D3D]/20"

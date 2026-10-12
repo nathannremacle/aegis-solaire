@@ -81,7 +81,7 @@ export function StructuredData({
         url: org.url,
         description:
           "Panneaux solaires B2B Wallonie — obligations PEB, rentabilité entreprises. Valorisez toitures et parkings.",
-        inLanguage: "fr-FR",
+        inLanguage: "fr-BE",
         publisher: { "@id": `${org.url}#organization` },
         potentialAction: {
           "@type": "SearchAction",

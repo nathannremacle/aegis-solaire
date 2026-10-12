@@ -110,7 +110,7 @@ export default function ParticuliersPage() {
               <div className="mt-6 flex flex-col items-stretch gap-3 sm:mt-8 sm:flex-row sm:items-center sm:justify-center sm:gap-4">
                 <Link
                   href="#b2c-simulator"
-                  className="group inline-flex h-13 items-center justify-center gap-2.5 rounded-lg bg-accent px-7 text-base font-bold text-[#001D3D] shadow-[0_0_25px_rgba(255,184,0,0.3)] transition-all hover:scale-[1.02] hover:bg-[#e6a600] hover:shadow-[0_0_35px_rgba(255,184,0,0.45)] sm:h-14"
+                  className="group inline-flex h-13 items-center justify-center gap-2.5 rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 px-7 text-base font-bold text-[#001D3D] shadow-[0_4px_0_0_#b47e00,0_10px_20px_rgba(245,158,11,0.25)] transition-all duration-150 hover:from-amber-300 hover:to-amber-400 active:translate-y-1 active:shadow-[0_0_0_0_#b47e00] sm:h-14"
                 >
                   <Home className="h-5 w-5 shrink-0" />
                   <span>Simuler mes économies</span>
@@ -118,7 +118,7 @@ export default function ParticuliersPage() {
                 </Link>
                 <Link
                   href="/"
-                  className="group inline-flex h-13 items-center justify-center gap-2.5 rounded-lg border-2 border-white/30 bg-white/10 px-7 text-base font-bold text-white backdrop-blur-lg transition-all hover:scale-[1.02] hover:border-accent/50 hover:bg-white/15 hover:shadow-[0_0_25px_rgba(255,184,0,0.2)] sm:h-14"
+                  className="group inline-flex h-13 items-center justify-center gap-2.5 rounded-xl border border-white/25 bg-white/10 px-7 text-base font-bold text-white backdrop-blur-md transition-all duration-200 hover:border-white/40 hover:bg-white/15 sm:h-14"
                 >
                   <Building2 className="h-5 w-5 shrink-0 text-accent" />
                   <span>Entreprises &amp; Industrie</span>
@@ -256,7 +256,7 @@ export default function ParticuliersPage() {
             </p>
             <Link
               href="#b2c-simulator"
-              className="mt-8 inline-flex h-14 items-center gap-3 rounded-lg bg-accent px-8 text-base font-bold text-[#001D3D] shadow-[0_0_25px_rgba(255,184,0,0.3)] transition-all hover:scale-[1.02] hover:bg-[#e6a600] hover:shadow-[0_0_35px_rgba(255,184,0,0.45)]"
+              className="mt-8 inline-flex h-14 items-center gap-3 rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 px-8 text-base font-bold text-[#001D3D] shadow-[0_4px_0_0_#b47e00,0_10px_20px_rgba(245,158,11,0.25)] transition-all duration-150 hover:from-amber-300 hover:to-amber-400 active:translate-y-1 active:shadow-[0_0_0_0_#b47e00]"
             >
               Lancer ma simulation
               <ArrowRight className="h-5 w-5" />

@@ -17,6 +17,7 @@ import {
   Activity,
   Bot,
 } from "lucide-react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { MediaPartnerApplicationForm } from "@/components/media-partner-application-form"
 import { ProgressiveHeroBackground } from "@/components/progressive-image"
@@ -205,20 +206,25 @@ export function MediaPartnersContent() {
               animate="visible"
               custom={3}
               variants={fadeUp}
-              className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
+              className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row"
             >
-              <a href="#candidature">
-                <Button
-                  size="lg"
-                  className="h-14 gap-2.5 rounded-xl bg-accent px-8 text-base font-bold text-[#001D3D] shadow-[0_0_25px_rgba(255,184,0,0.25)] transition-all hover:bg-[#e6a600] hover:shadow-[0_0_35px_rgba(255,184,0,0.35)]"
-                >
-                  Candidater
-                  <ArrowRight className="h-5 w-5" />
-                </Button>
+              <a
+                href="#candidature"
+                className="group inline-flex h-14 items-center justify-center gap-2.5 rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 px-8 text-base font-bold text-[#001D3D] shadow-[0_4px_0_0_#b47e00,0_10px_20px_rgba(245,158,11,0.25)] transition-all duration-150 hover:from-amber-300 hover:to-amber-400 active:translate-y-1 active:shadow-[0_0_0_0_#b47e00]"
+              >
+                Candidater au programme
+                <ArrowRight className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
               </a>
+              <Link
+                href="/media-partners/login"
+                className="inline-flex h-14 items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-6 text-sm font-bold text-white backdrop-blur-md transition-all duration-200 hover:border-white/40 hover:bg-white/15"
+              >
+                <KeyRound className="h-4 w-4 text-accent" />
+                Espace affilié (Connexion)
+              </Link>
               <a
                 href="#payout"
-                className="rounded-xl border border-white/30 bg-white/10 px-6 py-3 text-sm font-bold text-white backdrop-blur-lg transition-all hover:border-accent/40 hover:bg-white/15"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-300 underline-offset-4 hover:text-white hover:underline py-2 sm:py-0"
               >
                 Voir les commissions
               </a>

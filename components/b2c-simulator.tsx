@@ -54,6 +54,7 @@ type B2CFormData = {
   lastName: string
   email: string
   phone: string
+  fax_number?: string
   marketingConsent: boolean
   newsletterConsent: boolean
 }
@@ -86,6 +87,7 @@ const INITIAL: B2CFormData = {
   lastName: "",
   email: "",
   phone: "",
+  fax_number: "",
   marketingConsent: false,
   newsletterConsent: false,
 }
@@ -290,6 +292,7 @@ export function B2CSimulator() {
         estimatedROIYears: results.roiYears,
         autoconsumptionRate: results.autoconsumptionRate,
         estimatedSavings: results.annualSavings,
+        fax_number: fd.fax_number ?? "",
         form_opened_at: openedAt.current,
         mediaPartnerCode: getStoredMediaPartnerRef() ?? undefined,
       }
@@ -337,9 +340,8 @@ export function B2CSimulator() {
           <h3 className="text-center text-2xl font-bold text-foreground sm:text-3xl">
             Votre étude est confirmée !
           </h3>
-          <p className="mx-auto mt-3 max-w-lg text-center text-muted-foreground">
-            Un conseiller expert résidentiel wallon vous recontactera très
-            prochainement avec votre dossier personnalisé.
+          <p className="mx-auto mt-3 max-w-lg text-center text-muted-foreground leading-relaxed">
+            Un e-mail récapitulatif complet vient de vous être envoyé à <strong>{fd.email}</strong>. Jusqu&apos;à 3 installateurs certifiés RESCERT de votre région vous recontacteront avec vos devis comparatifs sans engagement.
           </p>
 
           <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
@@ -840,6 +842,18 @@ export function B2CSimulator() {
                       </a>
                     </p>
                   </div>
+
+                  {/* Honeypot invisible */}
+                  <div className="hidden" aria-hidden="true">
+                    <input
+                      type="text"
+                      name="fax_number"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      value={fd.fax_number ?? ""}
+                      onChange={(e) => up("fax_number", e.target.value)}
+                    />
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -853,9 +867,9 @@ export function B2CSimulator() {
                   </div>
                 )}
 
-                <div className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:justify-between">
+                <div className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:items-center sm:justify-between">
                   {step > 1 ? (
-                    <Button variant="outline" onClick={back} className="min-h-[48px] w-full sm:w-auto">
+                    <Button variant="outline" onClick={back} className="min-h-[48px] w-full border-slate-300 font-semibold sm:w-auto">
                       <ArrowLeft className="mr-2 h-4 w-4" />
                       Retour
                     </Button>
@@ -864,21 +878,23 @@ export function B2CSimulator() {
                   )}
 
                   {step <= 4 && (
-                    <Button
+                    <button
+                      type="button"
                       onClick={next}
                       disabled={!valid(step)}
-                      className="min-h-[48px] w-full bg-primary text-primary-foreground hover:bg-primary/90 sm:ml-auto sm:w-auto"
+                      className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-gradient-to-b from-[#001D3D] to-[#00152e] px-8 font-sans text-sm font-bold text-white shadow-md transition-all hover:bg-[#002855] active:scale-[0.99] disabled:opacity-50 sm:ml-auto sm:w-auto"
                     >
                       {step === 4 ? "Calculer mon étude" : "Continuer"}
                       <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    </button>
                   )}
 
                   {step === 6 && (
-                    <Button
+                    <button
+                      type="button"
                       onClick={submit}
                       disabled={!valid(6) || isSubmitting}
-                      className="min-h-[48px] w-full bg-accent text-accent-foreground hover:bg-accent/90 sm:ml-auto sm:w-auto"
+                      className="inline-flex min-h-[50px] w-full items-center justify-center rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 px-8 font-sans text-sm font-extrabold text-slate-950 shadow-[0_4px_0_#b45309,0_8px_16px_rgba(245,158,11,0.25)] transition-all hover:from-amber-300 hover:to-amber-400 active:translate-y-1 active:shadow-[0_1px_0_#b45309] disabled:opacity-50 sm:ml-auto sm:w-auto"
                     >
                       {isSubmitting ? (
                         <>
@@ -891,7 +907,7 @@ export function B2CSimulator() {
                           <ArrowRight className="ml-2 h-4 w-4" />
                         </>
                       )}
-                    </Button>
+                    </button>
                   )}
                 </div>
               </>
