@@ -212,7 +212,17 @@ L'objectif de cet audit est de fiabiliser intégralement la plateforme **Aegis S
   - Support natif du Meta Pixel (`fbq('track', 'Lead')`) et Google Ads (`gtag conversion`).
   - Déclenchement automatique de l'événement de conversion lors de toute validation de lead réussie.
 - **Landing Page Publicitaire Dédiée (`app/devis-panneaux-solaires`)** :
-  - Modèle inspiré de Bobex : parcours sans distraction, entonnoir 5 étapes au-dessus de la ligne de flottaison, sélection de la province wallonne, réassurance forte, tracking de conversion Lead intégré.
+### ✅ Phase 4 — Finitions SEO, Pages d'Erreur & Navigation (COMPLÉTÉ)
+- **Pages d'erreur personnalisées** :
+  - `app/not-found.tsx` : Page 404 aux couleurs d'Aegis avec liens de redirection rapide vers l'accueil B2B, l'espace particuliers et le comparateur de devis.
+  - `app/error.tsx` : Page d'erreur globale avec fonction de réessai (`reset`) et retour accueil.
+- **SEO & Canonical URLs** :
+  - Balises `alternates.canonical` déclarées individuellement sur chaque page publique (`/particuliers`, `/webinaire`, `/partenaires`, `/media-partners`, `/faq-technique`, `/devis-panneaux-solaires`, `/mentions-legales`, `/politique-confidentialite`, `/cgv`).
+  - Suppression de `public/robots.txt` statique pour permettre à `app/robots.ts` dynamique d'exclure proprement `/api/`, `/admin/` et `/partenaires/dashboard/`.
+  - Mise à jour de `app/sitemap.ts` avec les nouvelles routes publiques et priorités ajustées.
+- **Navigation & Liens Footer** :
+  - Liens d'ancres du footer convertis en liens absolus (`/#preuve`, `/#expert`, `/#simulator`) pour fonctionner depuis n'importe quelle sous-page.
+  - Ajout des mentions légales de l'éditeur INIT42 (Nathan Remacle, BCE `1039.899.980`) dans le footer.
 
 ---
 *Ce document fait foi de feuille de route officielle et d'état d'exécution de la plateforme Aegis Solaire.*
