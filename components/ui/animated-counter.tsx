@@ -20,7 +20,7 @@ export function AnimatedCounter({
 }: AnimatedCounterProps) {
   const ref = useRef<HTMLSpanElement>(null)
   const [hasStarted, setHasStarted] = useState(false)
-  const isInView = useInView(ref, { once: true, margin: "-50px" })
+  const isInView = useInView(ref, { once: true, margin: "0px" })
   
   const motionValue = useMotionValue(0)
   const springValue = useSpring(motionValue, {
@@ -31,19 +31,32 @@ export function AnimatedCounter({
 
   useEffect(() => {
     if (isInView && !hasStarted) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         setHasStarted(true)
         motionValue.set(value)
       }, delay * 1000)
+      return () => clearTimeout(timer)
     }
   }, [isInView, hasStarted, value, duration, motionValue, delay])
 
+  // Sécurité mobile : si l'intersection observer tarde ou échoue, afficher la valeur
   useEffect(() => {
-    springValue.on("change", (latest) => {
+    const fallbackTimer = setTimeout(() => {
+      if (!hasStarted) {
+        setHasStarted(true)
+        motionValue.set(value)
+      }
+    }, (delay + 1.5) * 1000)
+    return () => clearTimeout(fallbackTimer)
+  }, [hasStarted, motionValue, value, delay])
+
+  useEffect(() => {
+    const unsubscribe = springValue.on("change", (latest) => {
       if (ref.current) {
         ref.current.textContent = format(latest)
       }
     })
+    return () => unsubscribe()
   }, [springValue, format])
 
   return (

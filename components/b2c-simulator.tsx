@@ -21,6 +21,7 @@ import { BELGIUM_PROVINCE_GROUPS } from "@/lib/belgium-regions"
 import { getStoredMediaPartnerRef } from "@/components/media-partner-ref-tracker"
 import { AnimatedCounter } from "@/components/ui/animated-counter"
 import { calculateB2CSolarROI } from "@/lib/solar-assumptions"
+import { trackLeadConversion } from "@/components/analytics/ad-tracking"
 import {
   ArrowRight,
   ArrowLeft,
@@ -303,6 +304,8 @@ export function B2CSimulator() {
         const data = await res.json()
         throw new Error(data.error || "Erreur lors de l'envoi")
       }
+      const resData = await res.json().catch(() => ({}))
+      trackLeadConversion({ segment: "B2C", leadId: resData?.leadId, value: 35 })
       setSubmitted(true)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Une erreur est survenue")

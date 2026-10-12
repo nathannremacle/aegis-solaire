@@ -5,6 +5,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { StructuredData } from '@/components/StructuredData'
 import { Toaster } from '@/components/ui/sonner'
 import { MediaPartnerRefTracker } from '@/components/media-partner-ref-tracker'
+import { AdTrackingScripts } from '@/components/analytics/ad-tracking'
 import './globals.css'
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -116,6 +117,7 @@ export default function RootLayout({
         {children}
         <Toaster richColors position="top-right" />
         <Analytics />
+        <AdTrackingScripts />
       </body>
     </html>
   )

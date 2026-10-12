@@ -35,6 +35,7 @@ import {
 } from "@/lib/leads-validation"
 import { getStoredMediaPartnerRef } from "@/components/media-partner-ref-tracker"
 import { calculateB2BSolarROI } from "@/lib/solar-assumptions"
+import { trackLeadConversion } from "@/components/analytics/ad-tracking"
 
 type FormData = {
   surfaceType: string
@@ -338,6 +339,8 @@ export function ROISimulator() {
         throw new Error(data.error || "Une erreur est survenue")
       }
 
+      const resData = await response.json().catch(() => ({}))
+      trackLeadConversion({ segment: "B2B", leadId: resData?.leadId, value: 120 })
       setSubmitted(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue")
