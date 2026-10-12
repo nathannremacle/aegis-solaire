@@ -175,4 +175,45 @@ L'objectif de cet audit est de fiabiliser intégralement la plateforme **Aegis S
   - Contrôle du déclenchement des tags de tracking publicitaire lors d'une conversion de lead.
 
 ---
-*Ce document fait foi de feuille de route officielle pour la fiabilisation de la plateforme Aegis Solaire.*
+
+## 5. Journal des Réalisations (Mise à jour Octobre 2026)
+
+### ✅ Phase 0 — Sécurité, Cadre Légal INIT42 & Build (COMPLÉTÉ)
+- **Entité juridique INIT42** : Mentions légales (`app/mentions-legales/page.tsx`), politique de confidentialité (`app/politique-confidentialite/page.tsx`) et CGV (`app/cgv/page.tsx`) alignées sur Nathan Remacle (PP), BCE `1039.899.980`, TVA `BE 1039.899.980`, codes NACEBEL et compte professionnel `BE84 0020 3534 7259`. Compétence juridictionnelle : tribunaux francophones de l'arrondissement judiciaire de Liège.
+- **Sécurisation des paiements & marketplace** :
+  - Endpoint Revolut direct neutralisé (`503 Service Unavailable`).
+  - Nouveau système de commande de crédits sur facture proforma par virement bancaire (`app/api/partners/credits/order/route.ts` & dashboard partenaires).
+  - Migration SQL `020_marketplace_lead_governance.sql` : leads marqués par défaut `pending_review` avant mise en vente ; leads webinaire exclus de la marketplace.
+  - Anonymisation stricte des installateurs concurrents dans l'API marketplace.
+- **Assainissement du Build & Code** :
+  - Suppression de `ignoreBuildErrors: true` dans `next.config.mjs`.
+  - Résolution intégrale des 21 erreurs TypeScript (`npx tsc --noEmit` = 0 erreur).
+  - Résolution des erreurs ESLint (`npm run lint` = 0 erreur).
+- **Consentements RGPD séparés** :
+  - Simulateurs B2B et B2C scindés avec 2 cases distinctes : mise en relation partenaires certifiés (obligatoire) et actualités solaires (optionnelle).
+  - Migration `021_add_newsletter_consent.sql`.
+
+### ✅ Phase 1 — Honnêteté des Contenus & Simulateurs (COMPLÉTÉ)
+- **Suppression des données factices (Option A)** :
+  - `components/hero.tsx` : Suppression du badge `+500 entreprises`, remplacement par le badge factuel « Réseau d'installateurs certifiés RESCERT en Wallonie ».
+  - `components/expert.tsx` : Remplacement des compteurs fictifs (`500+`, `150 MW`, `15 ans`, `98%`) par les engagements vérifiés (100% partenaires RESCERT, 25 ans garantie rendement, horizon PACE 2030, audit préliminaire gratuit).
+  - `components/testimonials.tsx` & `components/b2c-testimonials.tsx` : Suppression des 12 faux avis et photos IA. Conversion en modèles économiques types illustratifs avec hypothèses techniques transparentes (Liège 2 000 m², Brabant wallon 3 000 m², Hainaut 5 000 m² ; et 3 configurations résidentielles types) + Charte qualité installateurs RESCERT.
+- **Moteur de calcul solaire réaliste (`lib/solar-assumptions.ts`)** :
+  - Gisement wallon réaliste de 930 kWh/kWc/an.
+  - Suppression de tous les bridages artificiels (clamping 5.2-6.9 ans en B2B et 7-12 ans en B2C).
+  - Suppression de la prime résidentielle fictive de 300 €/kWc en B2C.
+  - Calcul du ROI exact basé sur l'autoconsommation, l'injection et les économies réelles sur le réseau.
+
+### ✅ Phase 2 & 3 — UX Mobile, Tracking & Campagnes Publicitaires (COMPLÉTÉ)
+- **UX Formulaire B2B & Compteurs Mobiles** :
+  - Correction de l'effet « mur rouge » à l'étape 5 : validation active uniquement après interaction (`touched`) ou tentative de soumission.
+  - Sécurisation de l'`AnimatedCounter` (`margin: "0px"` et repli automatique anti-blocage à 0).
+- **Tracking Publicitaire Meta Ads & Google Ads (`components/analytics/ad-tracking.tsx`)** :
+  - Support natif du Meta Pixel (`fbq('track', 'Lead')`) et Google Ads (`gtag conversion`).
+  - Déclenchement automatique de l'événement de conversion lors de toute validation de lead réussie.
+- **Landing Page Publicitaire Dédiée (`app/devis-panneaux-solaires`)** :
+  - Modèle inspiré de Bobex : parcours sans distraction, entonnoir 5 étapes au-dessus de la ligne de flottaison, sélection de la province wallonne, réassurance forte, tracking de conversion Lead intégré.
+
+---
+*Ce document fait foi de feuille de route officielle et d'état d'exécution de la plateforme Aegis Solaire.*
+
