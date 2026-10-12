@@ -110,17 +110,17 @@ function FounderVideoBlock() {
 }
 
 const credentials = [
-  { icon: Award, text: "15 ans d'expertise en photovoltaïque B2B (Wallonie)" },
-  { icon: ShieldCheck, text: "Installateurs certifiés RESCERT & conformes RGIE" },
-  { icon: Zap, text: "Matériel Premium Tier-1 (Garantie de rendement max)" },
-  { icon: Wrench, text: "Audit → CWaPE → Installation → Monitoring GRD" },
+  { icon: ShieldCheck, text: "Installateurs agréés RESCERT & conformes RGIE en Wallonie" },
+  { icon: Scale, text: "Accompagnement réglementaire Plan PACE 2030 & CWaPE" },
+  { icon: Zap, text: "Matériel certifié Tier-1 (Garantie linéaire de rendement 25 ans)" },
+  { icon: Wrench, text: "Audit sur site → Raccordement Ores / Resa → Monitoring" },
 ]
 
 const stats = [
-  { valueNum: 500, suffix: "+", label: "Entreprises équipées", icon: Users },
-  { valueNum: 150, suffix: " MW", label: "Puissance installée", icon: Zap },
-  { valueNum: 98, suffix: " %", label: "Satisfaction", icon: Activity },
-  { staticValue: "24/7", label: "Monitoring", icon: Clock },
+  { valueNum: 100, suffix: " %", label: "Partenaires certifiés RESCERT", icon: ShieldCheck },
+  { valueNum: 25, suffix: " ans", label: "Garantie linéaire de rendement", icon: Award },
+  { valueNum: 2030, suffix: "", label: "Horizon décret PACE Wallonie", icon: Scale },
+  { staticValue: "0 €", label: "Audit préliminaire sans engagement", icon: Banknote },
 ]
 
 const containerVariants = {

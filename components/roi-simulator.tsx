@@ -34,6 +34,7 @@ import {
   getVatError,
 } from "@/lib/leads-validation"
 import { getStoredMediaPartnerRef } from "@/components/media-partner-ref-tracker"
+import { calculateB2BSolarROI } from "@/lib/solar-assumptions"
 
 type FormData = {
   surfaceType: string
@@ -142,29 +143,20 @@ function calculateROI(formData: FormData): ROIResults {
   const surfaceArea = getSurfaceAreaFromChoices(formData.surfaceType, formData.surfaceRange)
   const annualBill = getAnnualBillFromBracket(formData.electricityBillBracket, formData.annualElectricityBillCustom)
 
-  const installedPower = Math.round(surfaceArea * 0.15 * 10) / 10
-  const annualProduction = Math.round(installedPower * 1100)
-  const electricityPrice = 0.18
-  const potentialSavings = annualProduction * electricityPrice
-  const estimatedConsumption = annualBill / electricityPrice
-  const autoconsumptionRate = Math.min(
-    Math.round((estimatedConsumption / annualProduction) * 100),
-    85
-  )
-  const actualSavings = Math.round(potentialSavings * (autoconsumptionRate / 100))
-  const installationCost = installedPower * 1200
-  const rawRoi = installationCost / Math.max(actualSavings, 1)
-  
-  // Plafonnement du ROI B2B entre 5 et 7 ans pour refléter la stricte réalité du marché wallon
-  const clampedRoi = Math.max(5.2, Math.min(6.9, rawRoi))
-  const roiYears = Math.round(clampedRoi * 10) / 10
+  const res = calculateB2BSolarROI({
+    surfaceType: formData.surfaceType,
+    surfaceRange: formData.surfaceRange,
+    surfaceAreaM2: surfaceArea,
+    annualElectricityBill: annualBill,
+    grd: formData.grd,
+  })
 
   return {
-    estimatedROIYears: roiYears,
-    autoconsumptionRate,
-    estimatedSavings: actualSavings,
-    installedPower,
-    annualProduction,
+    estimatedROIYears: res.estimatedRoiYears,
+    autoconsumptionRate: res.autoconsumptionRate,
+    estimatedSavings: res.estimatedAnnualSavings,
+    installedPower: res.installedPowerKwc,
+    annualProduction: res.annualProductionKwh,
   }
 }
 

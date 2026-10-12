@@ -20,6 +20,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { BELGIUM_PROVINCE_GROUPS } from "@/lib/belgium-regions"
 import { getStoredMediaPartnerRef } from "@/components/media-partner-ref-tracker"
 import { AnimatedCounter } from "@/components/ui/animated-counter"
+import { calculateB2CSolarROI } from "@/lib/solar-assumptions"
 import {
   ArrowRight,
   ArrowLeft,
@@ -135,10 +136,10 @@ const BATTERY_OPTIONS = [
 ]
 
 const TRANSITION_MESSAGES = [
-  "Analyse de votre profil de consommation résidentiel…",
-  "Calcul du dimensionnement optimal pour votre toiture…",
-  "Estimation des primes habitation Région Wallonne…",
-  "Modélisation du tarif prosumer et du compteur bidirectionnel…",
+  "Analyse du gisement solaire régional wallon (930 kWh/kWc)…",
+  "Dimensionnement de la puissance optimale pour votre toiture…",
+  "Modélisation de l'autoconsommation et des flux d'injection…",
+  "Vérification du compteur bidirectionnel Ores / Resa…",
 ]
 
 const TOTAL_STEPS = 6
@@ -152,52 +153,23 @@ function calculateB2CROI(d: B2CFormData): B2CResults {
     ? Math.max(parseInt(d.annualBillCustom.replace(/\s/g, ""), 10) || 0, 500)
     : BILL_BRACKETS.find((b) => b.id === d.annualBillBracket)?.value ?? 1800
 
-  const baseKwc = roof?.kWc ?? 6
-  const orientFactor = orient?.factor ?? 0.9
-  const installedPower = Math.round(baseKwc * 10) / 10
-
-  // ~950 kWh/kWc in Belgium (residential average)
-  const annualProduction = Math.round(installedPower * 950 * orientFactor)
-
-  const elecPrice = 0.32
-  const consumption = bill / elecPrice
-
-  // Autoconsumption: base 30-40%, +15-25% with battery, +5-10% with EV
-  let autoRate = Math.min(Math.round((consumption / Math.max(annualProduction, 1)) * 100), 45)
-  if (d.batteryInterest === "oui") autoRate = Math.min(autoRate + 25, 85)
-  else if (d.batteryInterest === "hesite") autoRate = Math.min(autoRate + 10, 70)
-  if (d.evInterest === "oui" || d.evInterest === "prevu") autoRate = Math.min(autoRate + 8, 85)
-  autoRate = Math.max(autoRate, 25)
-
-  const selfConsumedValue = annualProduction * (autoRate / 100) * elecPrice
-  // Injection: prosumer tariff ~ 0.03-0.05 €/kWh
-  const injectedValue = annualProduction * ((100 - autoRate) / 100) * 0.04
-  const annualSavings = Math.round(selfConsumedValue + injectedValue)
-
-  // Installation cost: ~1500 €/kWc residential, +5000-8000€ for battery
-  let installCost = installedPower * 1500
-  if (d.batteryInterest === "oui") installCost += 6500
-  else if (d.batteryInterest === "hesite") installCost += 3000
-
-  // Walloon residential prime: ~200-400€/kWc for first 6 kWc (simplified)
-  const primeKwc = Math.min(installedPower, 6)
-  const primeAmount = primeKwc * 300
-  const netCost = installCost - primeAmount
-
-  const rawRoi = netCost / Math.max(annualSavings, 1)
-  const roiYears = Math.round(Math.max(7, Math.min(12, rawRoi)) * 10) / 10
-
-  const co2Avoided = Math.round((annualProduction * 0.0004) * 10) / 10
+  const res = calculateB2CSolarROI({
+    roofKwc: roof?.kWc ?? 6,
+    orientationFactor: orient?.factor ?? 0.9,
+    annualBill: bill,
+    hasBattery: (d.batteryInterest as "oui" | "hesite" | "non") || "non",
+    hasEv: (d.evInterest as "oui" | "prevu" | "non") || "non",
+  })
 
   return {
-    installedPower,
-    annualProduction,
-    autoconsumptionRate: autoRate,
-    annualSavings,
-    roiYears,
-    co2Avoided,
-    monthlyGain: Math.round(annualSavings / 12),
-    gain25Years: Math.round(annualSavings * 25),
+    installedPower: res.installedPowerKwc,
+    annualProduction: res.annualProductionKwh,
+    autoconsumptionRate: res.autoconsumptionRate,
+    annualSavings: res.annualSavings,
+    roiYears: res.roiYears,
+    co2Avoided: res.co2AvoidedTons,
+    monthlyGain: res.monthlyGain,
+    gain25Years: res.gain25Years,
   }
 }
 

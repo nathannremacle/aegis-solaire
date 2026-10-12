@@ -64,9 +64,9 @@ export function Hero() {
           {/* Badge */}
           <motion.div variants={itemVariants} className="mb-4 flex flex-wrap justify-center gap-2 sm:mb-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-white/5 px-4 py-1.5 shadow-[0_0_15px_rgba(255,184,0,0.15)] backdrop-blur-md">
-              <Zap className="h-4 w-4 shrink-0 text-accent drop-shadow-[0_0_8px_rgba(255,184,0,0.8)]" />
+              <Shield className="h-4 w-4 shrink-0 text-accent drop-shadow-[0_0_8px_rgba(255,184,0,0.8)]" />
               <span className="text-xs font-medium tracking-wide text-white sm:text-sm">
-                +500 entreprises équipées en Wallonie
+                Réseau d&apos;installateurs certifiés RESCERT en Wallonie
               </span>
             </div>
           </motion.div>

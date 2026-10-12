@@ -1,121 +1,67 @@
 "use client"
 
-import { Star, Building2, Car, Factory } from "lucide-react"
+import { Building2, Car, Factory, ShieldCheck, FileCheck2, Cpu, Award } from "lucide-react"
 import { CertificationsMarquee } from "@/components/certifications-marquee"
 import { motion } from "framer-motion"
 import { AnimatedCounter } from "@/components/ui/animated-counter"
-import { ProgressiveAvatar } from "@/components/progressive-image"
-import { avatarImages } from "@/lib/optimized-images"
 
-/** Études de cas chiffrées (Section Preuve – MEP) — Wallonie B2B */
+/** Modélisations indicatives types — Wallonie B2B (avec hypothèses techniques explicites) */
 const caseStudies = [
   {
     icon: Building2,
+    badge: "Modèle Toiture Logistique",
+    location: "Province de Liège",
     title: "Entrepôt logistique 2 000 m²",
     figure: 45000,
-    figureLabel: "d'économies annuelles sur la facture",
-    detail: "Toiture équipée, autoconsommation 72 %. Les Certificats Verts (CWaPE) viennent structurer un ROI financé de 5 à 7 ans.",
+    figureLabel: "d'économies annuelles estimées",
+    specs: "Puissance type : ~250 kWc | Production : ~232 500 kWh/an",
+    detail: "Toiture industrielle acier/bac, autoconsommation modélisée à 72 %. Amortissement financier en ~5,5 ans via l'économie sur facture réseau et les Certificats Verts CWaPE.",
+    assumptions: "Hypothèses : Facture initiale > 65 000 € HT/an, prix évité 0,20 €/kWh, injection surplus valorisée à 0,045 €/kWh.",
   },
   {
     icon: Car,
-    title: "Parking 3 000 m² – Ombrières",
+    badge: "Modèle Ombrières & IRVE",
+    location: "Brabant wallon",
+    title: "Parking tertiaire 3 000 m²",
     figure: 52000,
-    figureLabel: "d'économies par an",
-    detail: "Projet dimensionné pour IRVE et sécuriser le quota PEB sans surdimensionner l'injection GRD (Ores/Resa).",
+    figureLabel: "d'économies annuelles sur facture",
+    specs: "Puissance type : ~320 kWc | Production : ~297 000 kWh/an",
+    detail: "Ombrières photovoltaïques couplées à des bornes de recharge pour véhicules de société (IRVE). Sécurise les quotas du décret PACE 2030 sans renforcement cabine HT disproportionné.",
+    assumptions: "Hypothèses : Recharge diurne des flottes électriques, puissance de raccordement Ores optimisée, autoconsommation 75 %.",
   },
   {
     icon: Factory,
+    badge: "Modèle PPA / Tiers-Investissement",
+    location: "Province de Hainaut",
     title: "Site industriel 5 000 m²",
-    figure: 120000,
-    figureLabel: "économies annuelles",
-    detail: "Corporate PPA B2B. Alignement parfait avec les exigences du Plan PACE 2030 wallon pour l'industrie lourde.",
+    figure: 115000,
+    figureLabel: "d'économies annuelles sans CAPEX",
+    specs: "Puissance type : ~600 kWc | Production : ~558 000 kWh/an",
+    detail: "Contrat Corporate PPA sur 15 ans : un tiers-investisseur finance 100 % du matériel et de la pose. L'industriel achète l'électricité verte produite sur site avec une décote garantie de 25 %.",
+    assumptions: "Hypothèses : 0 € d'investissement initial, maintenance et assurances intégrées au contrat PPA par le partenaire.",
   },
 ]
 
-const allTestimonials = [
+const charterPillars = [
   {
-    quote: "Honnêtement on a comparé 4 devis, c'est Aegis qui nous a le mieux expliqué le truc des Certificats Verts et le raccordement Ores. Résultat : ROI en 5 ans et demi, validé par notre DAF.",
-    author: "Jean-Pierre M.",
-    subtitle: "Directeur financier · Logistique",
-    rating: 5,
-    image: "/JeanPierreMartin.jpeg",
+    icon: ShieldCheck,
+    title: "Certification RESCERT vérifiée",
+    description: "Chaque installateur partenaire fait l'objet d'un contrôle de son numéro d'agrément RESCERT Photovoltaïque actif auprès de la Région wallonne.",
   },
   {
-    quote: "Ils ont tout géré, l'étude PEB, les démarches administratives, le raccordement… On n'a quasiment rien eu à faire côté interne. Franchement appréciable.",
-    author: "Sophie D.",
-    subtitle: "Responsable RSE · Distribution",
-    rating: 5,
-    image: "/SophieDurand.jpeg",
+    icon: FileCheck2,
+    title: "Assurances & Décennale belge",
+    description: "Attestation de responsabilité civile professionnelle et garantie décennale en cours de validité requises avant toute mise en relation.",
   },
   {
-    quote: "On voulait pas investir de CAPEX, et le tiers-investissement a tout débloqué. Les ombrières de parking tournent depuis 8 mois, zéro souci.",
-    author: "Michel B.",
-    subtitle: "Dirigeant · Industrie",
-    rating: 5,
-    image: "/MichelBernard.jpeg",
+    icon: Cpu,
+    title: "Matériel Tier-1 & Synergrid",
+    description: "Composants certifiés Bloomberg Tier-1 (panneaux garantis 25 ans) et onduleurs conformes aux prescriptions C10/11 pour le raccordement Ores / Resa.",
   },
   {
-    quote: "Ma facture Engie est passée de 210 € à 45 € par mois. Bon, le tarif prosumer pique un peu mais au final c'est tout bénéf. L'install a pris 3 jours.",
-    author: "Catherine V.",
-    subtitle: "Namur",
-    rating: 5,
-    image: "/CatherineV.jpeg",
-  },
-  {
-    quote: "Moi j'y connaissais rien, ils m'ont tout expliqué sans jargon. La déclaration urbanistique, le compteur bidirectionnel, tout a été pris en charge.",
-    author: "Philippe D.",
-    subtitle: "Liège",
-    rating: 5,
-    image: "/PhilippeD.jpeg",
-  },
-  {
-    quote: "Avec mon mari on hésitait beaucoup pour la batterie. Le conseiller nous a montré les vrais chiffres, pas du commercial. On a sauté le pas et on ne regrette rien.",
-    author: "Isabelle L.",
-    subtitle: "Mons",
-    rating: 5,
-    image: "/IsabelleL.jpeg",
-  },
-  {
-    quote: "78 % d'autoconsommation sur notre entrepôt, c'est au-dessus de ce qui était annoncé. Et le montage Certificats Verts, c'est eux qui ont tout ficelé.",
-    author: "Thomas R.",
-    subtitle: "Gérant PME · Charleroi",
-    rating: 5,
-    image: "/ThomasR.jpeg",
-  },
-  {
-    quote: "Ce qui m'a convaincue c'est le suivi après installation. Un an après, j'ai encore un interlocuteur quand j'ai une question. C'est rare dans le solaire.",
-    author: "Nathalie P.",
-    subtitle: "Wavre",
-    rating: 5,
-    image: "/NathalieP.jpeg",
-  },
-  {
-    quote: "Je recharge ma voiture avec mes panneaux 8 mois sur 12. Ma femme pensait que c'était trop beau, mais les chiffres sont là. Meilleur investissement qu'on ait fait.",
-    author: "François G.",
-    subtitle: "Louvain-la-Neuve",
-    rating: 5,
-    image: "/FrancoisG.jpeg",
-  },
-  {
-    quote: "Le dossier de primes wallonnes a été bouclé en 10 jours. Je m'attendais à des semaines de paperasse, au final c'était super fluide.",
-    author: "Émilie S.",
-    subtitle: "Arlon",
-    rating: 4,
-    image: "/EmilieS.jpeg",
-  },
-  {
-    quote: "Avant l'install, ils ont repéré un problème de charpente que l'autre boîte avait zappé. Ça m'aurait coûté cher si j'avais signé ailleurs.",
-    author: "Laurence M.",
-    subtitle: "Tournai",
-    rating: 5,
-    image: "/LaurenceM.jpeg",
-  },
-  {
-    quote: "L'appli de monitoring c'est vraiment sympa. Je vois en direct ce que je produis, ce que j'injecte. Ma fille de 12 ans est devenue obsédée par les graphiques !",
-    author: "Stéphanie W.",
-    subtitle: "Verviers",
-    rating: 5,
-    image: "/StephanieW.jpeg",
+    icon: Award,
+    title: "Audit sur site sans engagement",
+    description: "Visite technique préalable obligatoire (vérification structurelle toiture, tableau général basse tension, dimensionnement réel) avant signature.",
   },
 ]
 
@@ -145,16 +91,25 @@ export function Testimonials() {
       <div className="pointer-events-none absolute left-1/2 top-0 h-[600px] w-full max-w-7xl -translate-x-1/2 bg-[radial-gradient(ellipse_at_top,rgba(0,29,61,0.05)_0%,transparent_70%)]" />
 
       <div className="relative mx-auto max-w-7xl min-w-0 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl text-center">
-          <motion.h4
+        <div className="mx-auto max-w-3xl text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.4 }}
+            className="mb-3 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-primary"
+          >
+            Modélisations indicatives B2B
+          </motion.div>
+          <motion.h3
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.5 }}
             className="text-2xl font-bold tracking-tight text-primary sm:text-3xl md:text-4xl"
           >
-            Chiffres clés & <span className="text-accent">Études de cas</span> B2B
-          </motion.h4>
+            Études de cas & <span className="text-accent">modèles économiques types</span>
+          </motion.h3>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -162,124 +117,105 @@ export function Testimonials() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="mt-4 text-base leading-relaxed text-muted-foreground sm:mt-5 sm:text-lg"
           >
-            Anticipez le <strong className="font-medium text-foreground">Plan PACE 2030</strong> et améliorez votre <strong>score PEB</strong> régional. Découvrez nos modélisations PPA et Tiers-Investissement.
+            Simulations calculées selon le gisement solaire wallon (930 kWh/kWc/an), les coûts de réseau actuels et les exigences de conformité du <strong className="font-semibold text-foreground">Plan PACE 2030</strong>.
           </motion.p>
         </div>
 
-        {/* ── Études de cas – 3 cols ── */}
+        {/* ── Modèles de cas – 3 colonnes détaillées ── */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-100px" }}
-          className="mt-10 grid grid-cols-1 gap-5 sm:mt-14 sm:gap-6 md:grid-cols-3"
+          className="mt-10 grid grid-cols-1 gap-6 sm:mt-14 lg:grid-cols-3"
         >
           {caseStudies.map((study, index) => (
             <motion.div
               key={index}
               variants={itemVariants}
-              className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-primary/10 bg-card/60 p-5 shadow-lg shadow-black/5 backdrop-blur-xl transition-all hover:-translate-y-1 hover:border-accent/30 hover:shadow-xl sm:p-7"
+              className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-primary/10 bg-card/60 p-6 shadow-lg shadow-black/5 backdrop-blur-xl transition-all hover:-translate-y-1 hover:border-accent/30 hover:shadow-xl sm:p-7"
             >
-              <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 transition-transform group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(255,184,0,0.2)]">
-                <study.icon className="h-7 w-7 text-accent drop-shadow-sm" />
-              </div>
-              <h4 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
-                {study.title}
-              </h4>
-              <div className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <span className="bg-gradient-to-br from-accent to-amber-600 bg-clip-text text-2xl font-extrabold tracking-tight text-transparent drop-shadow-sm sm:text-3xl">
-                  − <AnimatedCounter value={study.figure} /> €
-                </span>
-                <span className="text-sm font-medium text-muted-foreground/80">
-                  {study.figureLabel}
+              <div className="flex items-center justify-between gap-3">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 transition-transform group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(255,184,0,0.2)]">
+                  <study.icon className="h-6 w-6 text-accent drop-shadow-sm" />
+                </div>
+                <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                  {study.location}
                 </span>
               </div>
-              <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
+
+              <div className="mt-4">
+                <span className="text-xs font-semibold uppercase tracking-wider text-accent">
+                  {study.badge}
+                </span>
+                <h4 className="mt-1 text-lg font-bold tracking-tight text-foreground sm:text-xl">
+                  {study.title}
+                </h4>
+              </div>
+
+              <div className="mt-4 rounded-xl bg-accent/10 p-3.5">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-extrabold tracking-tight text-accent drop-shadow-sm sm:text-3xl">
+                    − <AnimatedCounter value={study.figure} /> €
+                  </span>
+                  <span className="text-xs font-medium text-foreground/80">
+                    / an
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">{study.specs}</p>
+              </div>
+
+              <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
                 {study.detail}
               </p>
+
+              <div className="mt-auto border-t border-border/50 pt-4">
+                <p className="text-[11px] italic leading-normal text-muted-foreground/80">
+                  {study.assumptions}
+                </p>
+              </div>
             </motion.div>
           ))}
         </motion.div>
 
-        {/* ── Tous les avis — une seule bande défilante ── */}
-        <div className="mt-16 sm:mt-24">
-          <motion.h4
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center text-lg font-bold uppercase tracking-wider text-primary sm:text-xl"
-          >
-            Ils valident notre expertise
-          </motion.h4>
+        {/* ── Charte Qualité Installateurs RESCERT ── */}
+        <div className="mt-16 rounded-3xl border border-border bg-card/40 p-6 shadow-sm backdrop-blur-sm sm:mt-24 sm:p-10 lg:p-12">
+          <div className="mx-auto max-w-3xl text-center">
+            <span className="inline-block rounded-full bg-accent/10 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-accent">
+              Sélection rigoureuse
+            </span>
+            <h4 className="mt-3 text-xl font-bold tracking-tight text-foreground sm:text-2xl md:text-3xl">
+              Notre charte d&apos;engagement pour les installateurs partenaires
+            </h4>
+            <p className="mt-3 text-sm text-muted-foreground sm:text-base">
+              Aegis Solaire agit en intermédiaire indépendant : nous sélectionnons exclusivement des professionnels qualifiés répondant à des critères stricts de conformité technique et juridique.
+            </p>
+          </div>
 
-          <style dangerouslySetInnerHTML={{ __html: `@keyframes avis-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}` }} />
-
-          <div
-            className="relative mt-8 w-full overflow-hidden sm:mt-10"
-            role="region"
-            aria-label="Avis clients"
-          >
-            <div
-              className="pointer-events-none absolute left-0 top-0 z-10 h-full w-12 bg-gradient-to-r from-background to-transparent sm:w-24"
-              aria-hidden
-            />
-            <div
-              className="pointer-events-none absolute right-0 top-0 z-10 h-full w-12 bg-gradient-to-l from-background to-transparent sm:w-24"
-              aria-hidden
-            />
-
-            <div
-              className="flex w-max items-stretch gap-5"
-              style={{ animation: "avis-scroll 80s linear infinite" }}
-              onMouseEnter={(e) => { e.currentTarget.style.animationPlayState = "paused" }}
-              onMouseLeave={(e) => { e.currentTarget.style.animationPlayState = "running" }}
-            >
-              {[...allTestimonials, ...allTestimonials].map((t, i) => (
-                <div
-                  key={i}
-                  className="flex w-[290px] shrink-0 flex-col rounded-2xl border border-border bg-card/60 p-5 shadow-sm backdrop-blur-sm transition-shadow hover:shadow-md sm:w-[330px]"
-                >
-                  <div className="mb-3 flex gap-0.5">
-                    {Array.from({ length: t.rating }).map((_, j) => (
-                      <Star
-                        key={j}
-                        className="h-4 w-4 fill-accent text-accent"
-                        aria-hidden
-                      />
-                    ))}
-                  </div>
-                  <blockquote className="flex-1 text-[13px] leading-relaxed text-foreground/85 sm:text-sm">
-                    &ldquo;{t.quote}&rdquo;
-                  </blockquote>
-                  <div className="mt-4 flex items-center gap-3 border-t border-border/50 pt-3.5">
-                    <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-primary/15 bg-muted">
-                      {avatarImages[t.image] ? (
-                        <ProgressiveAvatar
-                          blurDataUrl={avatarImages[t.image].blurDataUrl}
-                          webpSrc={avatarImages[t.image].webp}
-                          alt=""
-                          size={36}
-                          className="rounded-full"
-                        />
-                      ) : (
-                        <img src={t.image} alt="" className="h-full w-full object-cover" loading="lazy" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold leading-tight text-foreground">{t.author}</p>
-                      <p className="text-xs text-muted-foreground">{t.subtitle}</p>
-                    </div>
-                  </div>
+          <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {charterPillars.map((pillar, i) => (
+              <div
+                key={i}
+                className="flex flex-col rounded-2xl border border-border/60 bg-background/50 p-5 transition-colors hover:border-accent/30"
+              >
+                <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                  <pillar.icon className="h-5 w-5" />
                 </div>
-              ))}
-            </div>
+                <h5 className="text-base font-semibold text-foreground">
+                  {pillar.title}
+                </h5>
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                  {pillar.description}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
 
         {/* ── Certifications et partenaires – bandeau défilant ── */}
         <div className="mt-16 border-t border-border/50 pt-10 sm:mt-24 sm:pt-14">
           <p className="mb-8 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground sm:mb-10 sm:text-sm">
-            Partenaires techniques & Certifications B2B
+            Organismes de référence, Régulateurs & Réseau Wallonie
           </p>
           <div className="opacity-80 transition-opacity hover:opacity-100">
             <CertificationsMarquee />
