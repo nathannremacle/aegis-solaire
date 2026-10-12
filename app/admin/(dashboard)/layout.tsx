@@ -3,6 +3,35 @@ import { getAdminUser } from "@/lib/admin-auth"
 import { AdminNav } from "@/components/admin-nav"
 import { AdminHeader } from "@/components/admin-header"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
+import { unstable_cache } from "next/cache"
+
+const getNavBadgeCountsCached = unstable_cache(
+  async () => {
+    const supabase = createServiceRoleClient()
+    const [
+      { count: installAppsCount },
+      { count: mediaAppsCount },
+      { count: needsReviewCount },
+      creditOrdersRes,
+    ] = await Promise.all([
+      supabase.from("installer_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
+      supabase.from("media_partner_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
+      supabase.from("leads").select("*", { count: "exact", head: true }).eq("status", "NEEDS_HUMAN_REVIEW"),
+      Promise.resolve(
+        supabase.from("credit_orders").select("*", { count: "exact", head: true }).eq("status", "pending")
+      ).catch(() => ({ count: 0, data: null, error: null })),
+    ])
+
+    return {
+      installAppsCount: installAppsCount ?? 0,
+      mediaAppsCount: mediaAppsCount ?? 0,
+      needsReviewCount: needsReviewCount ?? 0,
+      pendingOrdersCount: creditOrdersRes?.count ?? 0,
+    }
+  },
+  ["admin-nav-badge-counts"],
+  { revalidate: 30, tags: ["admin-nav-badge-counts"] }
+)
 
 export default async function AdminDashboardLayout({
   children,
@@ -19,31 +48,21 @@ export default async function AdminDashboardLayout({
     redirect("/admin/login")
   }
 
-  const supabase = createServiceRoleClient()
-  const [
-    { count: installAppsCount },
-    { count: mediaAppsCount },
-    { count: needsReviewCount },
-    creditOrdersRes,
-  ] = await Promise.all([
-    supabase.from("installer_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
-    supabase.from("media_partner_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
-    supabase.from("leads").select("*", { count: "exact", head: true }).eq("status", "NEEDS_HUMAN_REVIEW"),
-    Promise.resolve(
-      supabase.from("credit_orders").select("*", { count: "exact", head: true }).eq("status", "pending")
-    ).catch(() => ({ count: 0, data: null, error: null })),
-  ])
-
-  const pendingOrdersCount = creditOrdersRes?.count ?? 0
+  const {
+    installAppsCount,
+    mediaAppsCount,
+    needsReviewCount,
+    pendingOrdersCount,
+  } = await getNavBadgeCountsCached()
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 antialiased">
       {/* Desktop Fixed Sidebar */}
       <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-30 shadow-xs border-r border-slate-200 bg-white">
         <AdminNav 
-          pendingApplications={installAppsCount ?? 0} 
-          pendingMedia={mediaAppsCount ?? 0}
-          needsReview={needsReviewCount ?? 0}
+          pendingApplications={installAppsCount} 
+          pendingMedia={mediaAppsCount}
+          needsReview={needsReviewCount}
           pendingCreditOrders={pendingOrdersCount}
         />
       </aside>
@@ -52,9 +71,9 @@ export default async function AdminDashboardLayout({
       <div className="flex flex-col min-w-0 md:pl-64 min-h-screen">
         {/* Sticky Header with Breadcrumbs & Mobile Nav */}
         <AdminHeader
-          pendingApplications={installAppsCount ?? 0}
-          pendingMedia={mediaAppsCount ?? 0}
-          needsReview={needsReviewCount ?? 0}
+          pendingApplications={installAppsCount}
+          pendingMedia={mediaAppsCount}
+          needsReview={needsReviewCount}
           pendingCreditOrders={pendingOrdersCount}
         />
 

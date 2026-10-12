@@ -77,20 +77,20 @@ export async function PATCH(
       })
     } catch { /* silent */ }
 
-    // 5. Email de notification au partenaire (si email configuré)
+    // 5. Email de notification au partenaire (en tâche de fond non bloquante pour répondre immédiatement)
     const partnerEmail = order.partners?.email
     if (partnerEmail && process.env.RESEND_API_KEY) {
       try {
         const resend = new Resend(process.env.RESEND_API_KEY)
-        await resend.emails.send({
+        resend.emails.send({
           from: process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com",
           to: partnerEmail,
           subject: `[Aegis Solaire] Vos ${order.credits} crédits ont été activés !`,
           text: `Bonjour ${order.partners?.company_name || ""},\n\nVotre virement bancaire pour la commande ${order.transfer_reference} a bien été réceptionné.\n\n${order.credits} crédits viennent d'être ajoutés à votre compte installateur.\nVotre nouveau solde est de : ${newCredits} crédits.\n\nVous pouvez dès à présent débloquer de nouveaux dossiers dans votre espace :\nhttps://www.aegissolaire.com/partenaires/dashboard\n\nBien à vous,\nL'équipe Aegis Solaire`,
+        }).catch((mailErr) => {
+          console.warn("[validate-order] email notification failed:", mailErr)
         })
-      } catch (mailErr) {
-        console.warn("[validate-order] email notification failed:", mailErr)
-      }
+      } catch { /* silent */ }
     }
 
     return NextResponse.json({

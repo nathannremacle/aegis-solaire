@@ -43,57 +43,58 @@ const getStatsCached = unstable_cache(
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
     const [
-      { count: total },
-      { count: thisMonth },
-      { count: today },
-      { count: b2bCount },
-      { count: b2cCount },
-      { count: newStatusCount },
-      { count: qualifiedCount },
-      { count: availableCount },
-      { count: soldCount },
-      { data: recent },
-      { count: pendingApps },
-      { count: activePartners },
-      partnersCreditsRes,
-      { count: totalPurchases },
-      { data: mpData },
-      { data: attributedLeads },
-      { data: needsReviewLeads },
-      { data: auditLogs },
-      pendingOrdersRes
+      leadsRes,
+      installerAppsRes,
+      partnersRes,
+      purchasesRes,
+      mediaPartnersRes,
+      auditLogsRes,
+      creditOrdersRes
     ] = await Promise.all([
-      supabase.from("leads").select("*", { count: "exact", head: true }),
-      supabase.from("leads").select("*", { count: "exact", head: true }).gte("created_at", startOfMonth.toISOString()),
-      supabase.from("leads").select("*", { count: "exact", head: true }).gte("created_at", startOfDay.toISOString()),
-      supabase.from("leads").select("*", { count: "exact", head: true }).eq("segment", "B2B"),
-      supabase.from("leads").select("*", { count: "exact", head: true }).eq("segment", "B2C"),
-      supabase.from("leads").select("*", { count: "exact", head: true }).eq("status", "new"),
-      supabase.from("leads").select("*", { count: "exact", head: true }).in("status", ["qualified", "converted", "HOT_LEAD"]),
-      supabase.from("leads").select("*", { count: "exact", head: true }).eq("status", "available"),
-      supabase.from("leads").select("*", { count: "exact", head: true }).eq("status", "sold_out"),
-      supabase.from("leads").select("id, first_name, last_name, email, surface_type, surface_area, estimated_roi_years, status, segment, province, media_partner_code, created_at").order("created_at", { ascending: false }).limit(10),
+      // 1 requête consolidée pour tous les leads récents et calculs statistiques (au lieu de 11 requêtes séparées !)
+      supabase
+        .from("leads")
+        .select("id, first_name, last_name, email, surface_type, surface_area, estimated_roi_years, status, marketplace_status, segment, province, media_partner_code, created_at")
+        .order("created_at", { ascending: false })
+        .limit(300),
+      // Candidatures installateurs en attente
       supabase.from("installer_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
-      supabase.from("partners").select("*", { count: "exact", head: true }),
-      supabase.from("partners").select("credits_balance"),
+      // Partenaires et soldes de crédits en 1 seule requête
+      supabase.from("partners").select("id, credits_balance"),
+      // Achats de leads totaux
       supabase.from("lead_purchases").select("*", { count: "exact", head: true }),
+      // Apporteurs d'affaires
       supabase.from("media_partners").select("id, tracking_code, commission_b2b, commission_b2c"),
-      supabase.from("leads").select("media_partner_code, segment, status").not("media_partner_code", "is", null),
-      supabase.from("leads").select("id, first_name, last_name, email, created_at").eq("status", "NEEDS_HUMAN_REVIEW"),
-      supabase.from("audit_log").select("id, admin_email, action, entity_type, created_at").order("created_at", { ascending: false }).limit(15),
+      // Journal d'audit récent
+      supabase.from("audit_log").select("id, admin_email, action, entity_type, created_at").order("created_at", { ascending: false }).limit(10),
+      // Commandes de crédits en attente
       Promise.resolve(
         supabase.from("credit_orders").select("id, credits, price_ttc, price_htva, transfer_reference, created_at, status, partners(company_name)").eq("status", "pending").order("created_at", { ascending: false }).limit(5)
       ).catch(() => ({ data: [] as any[], error: null })),
     ])
 
-    // Calculate total credits in circulation
-    const partnerCreditsList = partnersCreditsRes?.data ?? []
-    const totalCreditsInCirculation = partnerCreditsList.reduce((acc, p) => acc + (p.credits_balance || 0), 0)
+    const allLeads: any[] = (leadsRes.data ?? []) as any[]
+    const total = allLeads.length
+    const thisMonth = allLeads.filter(l => new Date(l.created_at) >= startOfMonth).length
+    const today = allLeads.filter(l => new Date(l.created_at) >= startOfDay).length
+    const b2bCount = allLeads.filter(l => l.segment === "B2B").length
+    const b2cCount = allLeads.filter(l => l.segment === "B2C").length
+    const newStatusCount = allLeads.filter(l => l.status === "new").length
+    const qualifiedCount = allLeads.filter(l => ["qualified", "converted", "HOT_LEAD"].includes(l.status)).length
+    const availableCount = allLeads.filter(l => l.marketplace_status === "available").length
+    const soldCount = allLeads.filter(l => l.marketplace_status === "sold_out").length
+    const needsReviewLeads = allLeads.filter(l => l.status === "NEEDS_HUMAN_REVIEW")
+    const recent = allLeads.slice(0, 10)
+    const attrLeads = allLeads.filter(l => Boolean(l.media_partner_code))
 
-    // Calculate commissions due to media partners
+    // Partenaires & crédits
+    const partnersList: any[] = (partnersRes.data ?? []) as any[]
+    const activePartners = partnersList.length
+    const totalCreditsInCirculation = partnersList.reduce((acc, p) => acc + (p.credits_balance || 0), 0)
+
+    // Commissions apporteurs
     let commissionsDue = 0
-    const mpList = mpData ?? []
-    const attrLeads = attributedLeads ?? []
+    const mpList: any[] = (mediaPartnersRes.data ?? []) as any[]
     const qualifiedStatuses = ["qualified", "converted", "HOT_LEAD"]
     
     for (const mp of mpList) {
@@ -105,30 +106,30 @@ const getStatsCached = unstable_cache(
     }
 
     return {
-      total: total ?? 0,
-      thisMonth: thisMonth ?? 0,
-      today: today ?? 0,
-      b2b: b2bCount ?? 0,
-      b2c: b2cCount ?? 0,
-      newStatusCount: newStatusCount ?? 0,
-      qualifiedCount: qualifiedCount ?? 0,
-      availableCount: availableCount ?? 0,
-      soldCount: soldCount ?? 0,
-      recent: recent ?? [],
-      pendingApps: pendingApps ?? 0,
-      activePartners: activePartners ?? 0,
+      total,
+      thisMonth,
+      today,
+      b2b: b2bCount,
+      b2c: b2cCount,
+      newStatusCount,
+      qualifiedCount,
+      availableCount,
+      soldCount,
+      recent,
+      pendingApps: installerAppsRes.count ?? 0,
+      activePartners,
       totalCreditsInCirculation,
-      totalPurchases: totalPurchases ?? 0,
+      totalPurchases: purchasesRes.count ?? 0,
       mediaPartners: mpList.length,
       attributedLeads: attrLeads.length,
       commissionsDue,
-      needsReviewLeads: needsReviewLeads ?? [],
-      auditLogs: auditLogs ?? [],
-      pendingCreditOrders: pendingOrdersRes?.data ?? [],
+      needsReviewLeads,
+      auditLogs: auditLogsRes.data ?? [],
+      pendingCreditOrders: creditOrdersRes?.data ?? [],
     }
   },
-  ["admin-dashboard-stats-v2"],
-  { revalidate: 20, tags: ["admin-dashboard-stats-v2"] }
+  ["admin-dashboard-stats-v3"],
+  { revalidate: 30, tags: ["admin-dashboard-stats-v3"] }
 )
 
 export default async function AdminDashboardPage() {

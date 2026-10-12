@@ -1,23 +1,29 @@
-import { createClient } from "@supabase/supabase-js"
+import { createClient, SupabaseClient } from "@supabase/supabase-js"
+
+let serviceRoleClientInstance: SupabaseClient<any, "public", any> | null = null
 
 /**
  * Client Supabase avec la clé SERVICE ROLE.
  * À utiliser UNIQUEMENT côté serveur (API routes, Server Actions).
  * Ne jamais exposer ce client au navigateur.
+ * Réutilise l'instance pour préserver le pool de connexions HTTP Keep-Alive.
  */
 export function createServiceRoleClient() {
+  if (serviceRoleClientInstance) return serviceRoleClientInstance
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) {
     throw new Error("NEXT_PUBLIC_SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sont requis pour l'admin.")
   }
-  return createClient(url, key, {
+  serviceRoleClientInstance = createClient(url, key, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
       detectSessionInUrl: false,
     },
   })
+  return serviceRoleClientInstance
 }
 
 const ADMIN_EMAILS_KEY = "ADMIN_EMAILS"

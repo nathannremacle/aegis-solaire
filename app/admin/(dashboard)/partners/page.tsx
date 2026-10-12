@@ -160,11 +160,13 @@ export default function AdminPartnersPage() {
 
       toast.success(`Virement validé ! ${order.credits} crédits ajoutés à ${order.partners?.company_name || "l'installateur"}.`)
       
-      // Mettre à jour localement
+      // Mettre à jour localement les commandes et le solde du partenaire en direct
       setOrders((prev) =>
         prev.map((o) => (o.id === order.id ? { ...o, status: "paid", validated_at: new Date().toISOString() } : o))
       )
-      loadPartners() // Recharger soldes partenaires
+      setPartners((prev) =>
+        prev.map((p) => (p.id === order.partner_id ? { ...p, credits: (p.credits || 0) + order.credits } : p))
+      )
     } catch (err: any) {
       toast.error(err.message || "Erreur de validation")
     } finally {

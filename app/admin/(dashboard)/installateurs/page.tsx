@@ -16,7 +16,7 @@ async function getInstallateurs() {
   if (!data) return []
 
   return data.map((inst: any) => {
-    const instLeads = leads?.filter(l => l.installateur_id === inst.id) || []
+    const instLeads = ((leads as any[]) || []).filter(l => l.installateur_id === inst.id)
     const lastLead = instLeads.sort((a,b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())[0]
 
     return {

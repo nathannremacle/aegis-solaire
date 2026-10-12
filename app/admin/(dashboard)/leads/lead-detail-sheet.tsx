@@ -144,14 +144,14 @@ export function LeadDetailSheet({
   }, [leadId, currentLeadFromList?.id])
 
   useEffect(() => {
-    if (!open) return
+    if (!open || installateurs.length > 0) return
     fetch("/api/admin/installateurs", {
       headers: { "x-admin-request": "true" }
     })
       .then((res) => res.ok ? res.json() : [])
       .then((data: Installateur[]) => setInstallateurs(data))
       .catch(() => setInstallateurs([]))
-  }, [open])
+  }, [open, installateurs.length])
 
   useEffect(() => {
     if (!lead || notes === (lead.admin_notes ?? "")) return
