@@ -172,23 +172,24 @@ function OrderPackSection({
           <FileText className="h-4 w-4 text-slate-400" />
           <span>Facture pro officielle INIT42 émise sous 24h ouvrées</span>
         </div>
-        <Button
+        <button
+          type="button"
           onClick={handleOrder}
           disabled={submitting}
-          className="h-12 rounded-xl bg-[#001D3D] px-6 text-sm font-bold text-white shadow-md hover:bg-[#00152e] hover:shadow-lg transition-all"
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-[#001D3D] to-[#00152e] px-7 text-sm font-extrabold text-white shadow-[0_4px_0_#000c1a,0_10px_20px_rgba(0,29,61,0.25)] hover:from-[#002855] hover:to-[#001D3D] active:translate-y-1 active:shadow-none transition-all disabled:opacity-50"
         >
           {submitting ? (
             <span className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
               Génération du bon de commande…
             </span>
           ) : (
             <span className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4" />
+              <CreditCard className="h-4 w-4 text-amber-400" />
               Commander ce pack sur facture
             </span>
           )}
-        </Button>
+        </button>
       </div>
     </div>
   )

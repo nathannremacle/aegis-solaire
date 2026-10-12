@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { InstallerRegistrationForm } from "@/components/installer-registration-form"
+import { MarketplaceLivePreview } from "@/components/marketplace-preview"
 import { Button } from "@/components/ui/button"
 import {
   ShieldCheck,
@@ -185,8 +186,18 @@ export default function PartenairesPage() {
           </div>
         </section>
 
+        {/* ─── Aperçu Interactif du Live Feed ─── */}
+        <section
+          id="apercu"
+          className="scroll-mt-24 border-t border-slate-200 bg-slate-50/70 py-16 sm:py-24 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
+        >
+          <div className="mx-auto max-w-7xl min-w-0 px-4 sm:px-6 lg:px-8">
+            <MarketplaceLivePreview />
+          </div>
+        </section>
+
         {/* ─── Comment ça fonctionne (Timeline) ─── */}
-        <section className="border-t border-slate-200 bg-slate-50 py-16 sm:py-20 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
+        <section className="border-t border-slate-200 bg-white py-16 sm:py-20 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
           <div className="mx-auto max-w-5xl min-w-0 px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Parcours simple</span>
