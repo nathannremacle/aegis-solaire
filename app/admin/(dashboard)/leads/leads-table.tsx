@@ -317,7 +317,7 @@ export function LeadsTable({
               <SelectItem value="all">Tous</SelectItem>
               <SelectItem value="new">Nouveau</SelectItem>
               <SelectItem value="contacted">En attente client</SelectItem>
-              <SelectItem value="qualified">Validé (Marketplace)</SelectItem>
+              <SelectItem value="qualified">Qualifié (Audité)</SelectItem>
               <SelectItem value="converted">Assigné (Direct)</SelectItem>
               <SelectItem value="lost">Rejeté / Spam</SelectItem>
               <SelectItem value="HOT_LEAD">Urgent</SelectItem>
