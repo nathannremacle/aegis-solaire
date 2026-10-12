@@ -80,14 +80,14 @@ export function AdminCommandMenu() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 rounded-md border border-input bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring w-full justify-between"
+        className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-slate-300 shadow-xs transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400 w-full justify-between"
       >
         <div className="flex items-center gap-2">
-          <Search className="h-4 w-4" />
-          <span>Rechercher...</span>
+          <Search className="h-3.5 w-3.5 text-amber-400/80" />
+          <span className="font-medium text-xs">Rechercher...</span>
         </div>
-        <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex mr-1">
-          <span className="text-xs">⌘</span>K
+        <kbd className="pointer-events-none hidden h-4 select-none items-center gap-1 rounded border border-white/15 bg-white/10 px-1 font-mono text-[9px] font-semibold text-slate-300 opacity-90 sm:flex mr-0.5">
+          <span className="text-[10px]">⌘</span>K
         </kbd>
       </button>
 

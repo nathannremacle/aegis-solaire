@@ -19,11 +19,13 @@ export function AdminLogoutButton() {
     <Button
       type="button"
       variant="ghost"
-      className="w-full justify-start gap-2 text-muted-foreground"
+      size="sm"
+      className="h-8 px-2.5 text-[11px] font-medium text-slate-300 hover:text-rose-300 hover:bg-rose-500/15 rounded-lg transition-colors gap-1.5"
       onClick={handleLogout}
+      title="Se déconnecter de l'administration"
     >
-      <LogOut className="h-4 w-4" />
-      Déconnexion
+      <LogOut className="h-3.5 w-3.5" />
+      <span>Déconnexion</span>
     </Button>
   )
 }

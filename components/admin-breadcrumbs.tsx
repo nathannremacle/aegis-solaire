@@ -23,12 +23,12 @@ export function AdminBreadcrumbs() {
   const paths = pathname.split("/").filter(Boolean)
 
   return (
-    <nav className="flex items-center space-x-1 text-sm text-muted-foreground mb-4">
+    <nav className="flex items-center space-x-1 text-xs text-slate-500">
       <Link
         href="/admin/dashboard"
-        className="flex items-center hover:text-foreground transition-colors"
+        className="flex items-center hover:text-slate-900 transition-colors"
       >
-        <Home className="h-4 w-4" />
+        <Home className="h-3.5 w-3.5" />
       </Link>
       
       {paths.map((path, index) => {

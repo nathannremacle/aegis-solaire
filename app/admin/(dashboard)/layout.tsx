@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 import { getAdminUser } from "@/lib/admin-auth"
 import { AdminNav } from "@/components/admin-nav"
-import { AdminBreadcrumbs } from "@/components/admin-breadcrumbs"
+import { AdminHeader } from "@/components/admin-header"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 
 export default async function AdminDashboardLayout({
@@ -37,8 +37,9 @@ export default async function AdminDashboardLayout({
   const pendingOrdersCount = creditOrdersRes?.count ?? 0
 
   return (
-    <div className="flex min-h-screen flex-col bg-background md:flex-row">
-      <aside className="flex w-full flex-col border-b border-border bg-card md:w-56 md:border-b-0 md:border-r">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 antialiased">
+      {/* Desktop Fixed Sidebar */}
+      <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-30 shadow-xl shadow-slate-900/10">
         <AdminNav 
           pendingApplications={installAppsCount ?? 0} 
           pendingMedia={mediaAppsCount ?? 0}
@@ -46,10 +47,22 @@ export default async function AdminDashboardLayout({
           pendingCreditOrders={pendingOrdersCount}
         />
       </aside>
-      <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
-        <AdminBreadcrumbs />
-        {children}
-      </main>
+
+      {/* Main Content Area */}
+      <div className="flex flex-col min-w-0 md:pl-64 min-h-screen">
+        {/* Sticky Header with Breadcrumbs & Mobile Nav */}
+        <AdminHeader
+          pendingApplications={installAppsCount ?? 0}
+          pendingMedia={mediaAppsCount ?? 0}
+          needsReview={needsReviewCount ?? 0}
+          pendingCreditOrders={pendingOrdersCount}
+        />
+
+        {/* Page Content */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+          {children}
+        </main>
+      </div>
     </div>
   )
 }
