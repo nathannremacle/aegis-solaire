@@ -157,6 +157,14 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error("Database error:", error)
+      if (process.env.NODE_ENV === "development" && (error.message?.includes("fetch failed") || error.details?.includes("ENOTFOUND"))) {
+        console.warn("[API leads] Supabase hors-ligne ou projet en pause en dev. Réponse simulée pour test local.")
+        return NextResponse.json({
+          success: true,
+          message: "Lead simulé avec succès (mode dev)",
+          leadId: "dev-" + crypto.randomUUID(),
+        })
+      }
       return NextResponse.json(
         { error: "Erreur lors de l'enregistrement. Veuillez réessayer." },
         { status: 500 }
