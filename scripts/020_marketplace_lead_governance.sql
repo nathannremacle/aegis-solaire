@@ -5,7 +5,14 @@
 -- 2. Isole définitivement les leads issus du webinaire ('rejected') pour qu'ils ne soient jamais vendables.
 -- 3. Ajoute une documentation claire sur le cycle de vie d'un lead.
 
--- Met à jour la valeur par défaut pour toute nouvelle insertion de lead
+-- 1. Met à jour la contrainte CHECK pour accepter tous les statuts valides
+ALTER TABLE public.leads DROP CONSTRAINT IF EXISTS leads_marketplace_status_check;
+ALTER TABLE public.leads
+  ADD CONSTRAINT leads_marketplace_status_check CHECK (
+    marketplace_status IN ('pending_review', 'available', 'sold_out', 'rejected')
+  );
+
+-- 2. Met à jour la valeur par défaut pour toute nouvelle insertion de lead
 ALTER TABLE public.leads 
   ALTER COLUMN marketplace_status SET DEFAULT 'pending_review';
 
