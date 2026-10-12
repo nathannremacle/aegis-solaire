@@ -24,12 +24,14 @@ import {
   ArrowUpRight,
   Layers,
   Activity,
-  BadgeCheck
+  BadgeCheck,
+  Scale
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { LeadStatusBadge } from "@/components/admin-lead-status-badge"
+import { PublishLeadQuickButton } from "@/components/admin-publish-quick-button"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { redirect } from "next/navigation"
@@ -43,60 +45,102 @@ const getStatsCached = unstable_cache(
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
     const [
-      leadsRes,
+      leadsCountRes,
+      leadsMonthRes,
+      leadsTodayRes,
+      leadsB2BRes,
+      leadsB2CRes,
+      leadsAvailableRes,
+      leadsSoldRes,
+      leadsNeedsReviewRes,
+      leadsNewStatusRes,
+      leadsQualifiedRes,
+      recentLeadsRes,
       installerAppsRes,
       partnersRes,
       purchasesRes,
       mediaPartnersRes,
+      attributedLeadsRes,
       auditLogsRes,
-      creditOrdersRes
+      creditOrdersRes,
+      disputesRes
     ] = await Promise.all([
-      // 1 requête consolidée pour tous les leads récents et calculs statistiques (au lieu de 11 requêtes séparées !)
+      // Totaux exacts des leads via count
+      supabase.from("leads").select("*", { count: "exact", head: true }),
+      supabase.from("leads").select("*", { count: "exact", head: true }).gte("created_at", startOfMonth.toISOString()),
+      supabase.from("leads").select("*", { count: "exact", head: true }).gte("created_at", startOfDay.toISOString()),
+      supabase.from("leads").select("*", { count: "exact", head: true }).eq("segment", "B2B"),
+      supabase.from("leads").select("*", { count: "exact", head: true }).eq("segment", "B2C"),
+      supabase.from("leads").select("*", { count: "exact", head: true }).eq("marketplace_status", "available"),
+      supabase.from("leads").select("*", { count: "exact", head: true }).eq("marketplace_status", "sold_out"),
+      supabase.from("leads").select("id, first_name, last_name, email, segment, province, created_at").eq("status", "NEEDS_HUMAN_REVIEW").limit(10),
+      supabase.from("leads").select("*", { count: "exact", head: true }).eq("status", "new"),
+      supabase.from("leads").select("*", { count: "exact", head: true }).eq("status", "qualified"),
+      // 15 derniers leads pour la table
       supabase
         .from("leads")
         .select("id, first_name, last_name, email, surface_type, surface_area, estimated_roi_years, status, marketplace_status, segment, province, media_partner_code, created_at")
         .order("created_at", { ascending: false })
-        .limit(300),
+        .limit(15),
       // Candidatures installateurs en attente
       supabase.from("installer_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
-      // Partenaires et soldes de crédits en 1 seule requête
-      supabase.from("partners").select("id, credits_balance"),
-      // Achats de leads totaux
-      supabase.from("lead_purchases").select("*", { count: "exact", head: true }),
+      // Partenaires et leurs soldes de crédits réels (colonne 'credits')
+      supabase.from("partners").select("id, company_name, credits, created_at"),
+      // Achats de leads et acheteurs uniques
+      supabase.from("lead_purchases").select("id, lead_id, partner_id, created_at"),
       // Apporteurs d'affaires
       supabase.from("media_partners").select("id, tracking_code, commission_b2b, commission_b2c"),
+      // Leads apportés par des partenaires pour calcul commission
+      supabase.from("leads").select("id, media_partner_code, segment, status").not("media_partner_code", "is", null),
       // Journal d'audit récent
       supabase.from("audit_log").select("id, admin_email, action, entity_type, created_at").order("created_at", { ascending: false }).limit(10),
       // Commandes de crédits en attente
       Promise.resolve(
         supabase.from("credit_orders").select("id, credits, price_ttc, price_htva, transfer_reference, created_at, status, partners(company_name)").eq("status", "pending").order("created_at", { ascending: false }).limit(5)
       ).catch(() => ({ data: [] as any[], error: null })),
+      // Réclamations installateurs en attente (Garantie 48h)
+      Promise.resolve(
+        supabase
+          .from("lead_disputes")
+          .select("id, reason, details, created_at, status, partners(company_name), leads(first_name, last_name, segment, province)")
+          .eq("status", "pending")
+          .order("created_at", { ascending: false })
+          .limit(5)
+      ).catch(() => ({ data: [] as any[], error: null })),
     ])
 
-    const allLeads: any[] = (leadsRes.data ?? []) as any[]
-    const total = allLeads.length
-    const thisMonth = allLeads.filter(l => new Date(l.created_at) >= startOfMonth).length
-    const today = allLeads.filter(l => new Date(l.created_at) >= startOfDay).length
-    const b2bCount = allLeads.filter(l => l.segment === "B2B").length
-    const b2cCount = allLeads.filter(l => l.segment === "B2C").length
-    const newStatusCount = allLeads.filter(l => l.status === "new").length
-    const qualifiedCount = allLeads.filter(l => ["qualified", "converted", "HOT_LEAD"].includes(l.status)).length
-    const availableCount = allLeads.filter(l => l.marketplace_status === "available").length
-    const soldCount = allLeads.filter(l => l.marketplace_status === "sold_out").length
-    const needsReviewLeads = allLeads.filter(l => l.status === "NEEDS_HUMAN_REVIEW")
-    const recent = allLeads.slice(0, 10)
-    const attrLeads = allLeads.filter(l => Boolean(l.media_partner_code))
+    const total = leadsCountRes.count ?? 0
+    const thisMonth = leadsMonthRes.count ?? 0
+    const today = leadsTodayRes.count ?? 0
+    const b2bCount = leadsB2BRes.count ?? 0
+    const b2cCount = leadsB2CRes.count ?? 0
+    const newStatusCount = leadsNewStatusRes.count ?? 0
+    const qualifiedCount = leadsQualifiedRes.count ?? 0
+    const availableCount = leadsAvailableRes.count ?? 0
+    const soldCount = leadsSoldRes.count ?? 0
+    const needsReviewLeads = (leadsNeedsReviewRes.data ?? []) as any[]
+    const recent = (recentLeadsRes.data ?? []) as any[]
 
-    // Partenaires & crédits
+    // Partenaires & crédits en circulation (colonne réelle: credits)
     const partnersList: any[] = (partnersRes.data ?? []) as any[]
     const activePartners = partnersList.length
-    const totalCreditsInCirculation = partnersList.reduce((acc, p) => acc + (p.credits_balance || 0), 0)
+    const totalCreditsInCirculation = partnersList.reduce(
+      (acc, p) => acc + (Number(p.credits) || 0),
+      0
+    )
 
-    // Commissions apporteurs
+    // Acheteurs uniques réels
+    const purchasesList: any[] = (purchasesRes.data ?? []) as any[]
+    const totalPurchases = purchasesList.length
+    const uniqueBuyersSet = new Set(purchasesList.map((p) => p.partner_id).filter(Boolean))
+    const buyingPartnersCount = uniqueBuyersSet.size
+
+    // Commissions apporteurs d'affaires
     let commissionsDue = 0
     const mpList: any[] = (mediaPartnersRes.data ?? []) as any[]
+    const attrLeads: any[] = (attributedLeadsRes.data ?? []) as any[]
     const qualifiedStatuses = ["qualified", "converted", "HOT_LEAD"]
-    
+
     for (const mp of mpList) {
       const myLeads = attrLeads.filter((l) => l.media_partner_code === mp.tracking_code)
       const qualified = myLeads.filter((l) => qualifiedStatuses.includes(l.status))
@@ -118,18 +162,20 @@ const getStatsCached = unstable_cache(
       recent,
       pendingApps: installerAppsRes.count ?? 0,
       activePartners,
+      buyingPartnersCount,
       totalCreditsInCirculation,
-      totalPurchases: purchasesRes.count ?? 0,
+      totalPurchases,
       mediaPartners: mpList.length,
       attributedLeads: attrLeads.length,
       commissionsDue,
       needsReviewLeads,
       auditLogs: auditLogsRes.data ?? [],
       pendingCreditOrders: creditOrdersRes?.data ?? [],
+      pendingDisputes: (disputesRes?.data ?? []) as any[],
     }
   },
-  ["admin-dashboard-stats-v3"],
-  { revalidate: 30, tags: ["admin-dashboard-stats-v3"] }
+  ["admin-dashboard-stats-v4"],
+  { revalidate: 20, tags: ["admin-dashboard-stats-v4"] }
 )
 
 export default async function AdminDashboardPage() {
@@ -190,79 +236,154 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* 2. Alerte Prioritaire : Virements de crédits en attente */}
-      {Array.isArray(stats.pendingCreditOrders) && stats.pendingCreditOrders.length > 0 && (
-        <div className="relative overflow-hidden rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-amber-50 via-amber-100/70 to-amber-50 p-5 shadow-md shadow-amber-500/5">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-400 text-[#001D3D] shadow-sm">
-                <CreditCard className="h-5 w-5 animate-pulse" />
+      {/* 2. Inbox Opérationnelle du Jour (Centralisation des flux d'action) */}
+      {(() => {
+        const pendingOrdersCount = stats.pendingCreditOrders?.length || 0
+        const needsReviewCount = stats.needsReviewLeads?.length || 0
+        const pendingAppsCount = stats.pendingApps || 0
+        const pendingDisputesCount = stats.pendingDisputes?.length || 0
+        const totalPending = pendingOrdersCount + needsReviewCount + pendingAppsCount + pendingDisputesCount
+
+        return (
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-2xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-black ${
+                  totalPending > 0 ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
+                }`}>
+                  {totalPending > 0 ? <AlertTriangle className="h-5 w-5" /> : <CheckCircle2 className="h-5 w-5" />}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-extrabold text-slate-900">Inbox Opérationnelle du Jour</h2>
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-black ${
+                      totalPending > 0 ? "bg-amber-100 text-amber-900 border border-amber-200" : "bg-emerald-100 text-emerald-900"
+                    }`}>
+                      {totalPending > 0 ? `${totalPending} action${totalPending > 1 ? "s" : ""} requise${totalPending > 1 ? "s" : ""}` : "À jour"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {totalPending > 0
+                      ? "Traitement prioritaire des virements bancaires, contrôles leads, candidatures et réclamations 48h."
+                      : "Toutes les files d'attente sont à jour · 0 urgence opérationnelle en attente."}
+                  </p>
+                </div>
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="font-extrabold text-amber-950 text-base">
-                    {stats.pendingCreditOrders.length} commande{stats.pendingCreditOrders.length > 1 ? "s" : ""} de crédits en attente de validation bancaire
-                  </h2>
-                  <span className="rounded-full bg-amber-200/80 px-2 py-0.5 text-xs font-black text-[#001D3D]">
-                    {pendingOrdersTotalTTC.toFixed(2)} € TTC
+            </div>
+
+            {/* Grille des 4 Files Opérationnelles */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* File 1 : Virements de crédits */}
+              <Link href="/admin/partners" className="group">
+                <div className={`rounded-2xl border p-4 transition-all h-full flex flex-col justify-between ${
+                  pendingOrdersCount > 0
+                    ? "border-amber-300 bg-amber-50/50 hover:bg-amber-50 hover:border-amber-400 shadow-2xs"
+                    : "border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200"
+                }`}>
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <CreditCard className={`h-4 w-4 ${pendingOrdersCount > 0 ? "text-amber-600" : "text-slate-400"}`} />
+                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                        pendingOrdersCount > 0 ? "bg-amber-200 text-amber-950" : "bg-slate-200 text-slate-600"
+                      }`}>
+                        {pendingOrdersCount} en attente
+                      </span>
+                    </div>
+                    <p className="text-xs font-bold text-slate-900 mt-3">Virements de crédits</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {pendingOrdersCount > 0 ? `${pendingOrdersTotalTTC.toFixed(2)} € TTC à valider` : "Aucune commande en attente"}
+                    </p>
+                  </div>
+                  <span className="text-xs font-extrabold text-[#001D3D] mt-3 inline-flex items-center gap-1 group-hover:underline">
+                    Gérer les virements →
                   </span>
                 </div>
-                <p className="text-xs text-amber-800/90 mt-0.5">
-                  Les installateurs attendent l'approbation de leur virement pour débloquer leurs crédits sur la marketplace.
-                </p>
-              </div>
-            </div>
+              </Link>
 
-            <Link href="/admin/partners">
-              <Button size="sm" className="bg-[#001D3D] hover:bg-[#002D5A] text-white font-extrabold text-xs gap-2 rounded-xl shadow-xs shrink-0">
-                <span>Examiner les virements</span>
-                <ArrowRight className="h-3.5 w-3.5 text-amber-400" />
-              </Button>
-            </Link>
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-2 pt-1 border-t border-amber-200/60">
-            {stats.pendingCreditOrders.map((o: any) => (
-              <Link key={o.id} href="/admin/partners">
-                <div className="inline-flex items-center gap-2 rounded-xl bg-white border border-amber-200/80 px-3 py-2 text-xs shadow-2xs hover:border-amber-400 hover:shadow-xs transition-all">
-                  <span className="font-bold text-slate-800">{o.partners?.company_name || "Installateur"}</span>
-                  <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[11px] font-black text-[#001D3D]">+{o.credits} cr</span>
-                  <span className="font-mono text-slate-600 font-bold">{Number(o.price_ttc).toFixed(2)} €</span>
-                  <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[10px] text-slate-600">Réf: {o.transfer_reference}</span>
-                  <span className="text-amber-600 font-extrabold text-[11px] ml-1">Valider →</span>
+              {/* File 2 : Leads à auditer */}
+              <Link href="/admin/leads?status=NEEDS_HUMAN_REVIEW" className="group">
+                <div className={`rounded-2xl border p-4 transition-all h-full flex flex-col justify-between ${
+                  needsReviewCount > 0
+                    ? "border-rose-300 bg-rose-50/50 hover:bg-rose-50 hover:border-rose-400 shadow-2xs"
+                    : "border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200"
+                }`}>
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <AlertTriangle className={`h-4 w-4 ${needsReviewCount > 0 ? "text-rose-600" : "text-slate-400"}`} />
+                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                        needsReviewCount > 0 ? "bg-rose-200 text-rose-950" : "bg-slate-200 text-slate-600"
+                      }`}>
+                        {needsReviewCount} à revoir
+                      </span>
+                    </div>
+                    <p className="text-xs font-bold text-slate-900 mt-3">Contrôle qualité leads</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {needsReviewCount > 0 ? "Vérification manuelle requise" : "Aucun lead bloqué"}
+                    </p>
+                  </div>
+                  <span className="text-xs font-extrabold text-[#001D3D] mt-3 inline-flex items-center gap-1 group-hover:underline">
+                    Auditer les leads →
+                  </span>
                 </div>
               </Link>
-            ))}
-          </div>
-        </div>
-      )}
 
-      {/* 3. Alerte Leads à contrôler d'urgence */}
-      {stats.needsReviewLeads.length > 0 && (
-        <div className="flex flex-col gap-3 rounded-2xl border-2 border-rose-200 bg-rose-50/70 p-5 shadow-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-500 text-white shadow-xs">
-                <AlertTriangle className="h-4 w-4" />
-              </div>
-              <div>
-                <h2 className="font-extrabold text-rose-950 text-base">
-                  {stats.needsReviewLeads.length} lead{stats.needsReviewLeads.length > 1 ? "s" : ""} requièrent un contrôle humain
-                </h2>
-                <p className="text-xs text-rose-800">
-                  Vérifiez les données de contact et d'éligibilité avant mise à disposition des installateurs.
-                </p>
-              </div>
+              {/* File 3 : Candidatures Installateurs */}
+              <Link href="/admin/installateurs?status=pending" className="group">
+                <div className={`rounded-2xl border p-4 transition-all h-full flex flex-col justify-between ${
+                  pendingAppsCount > 0
+                    ? "border-blue-300 bg-blue-50/50 hover:bg-blue-50 hover:border-blue-400 shadow-2xs"
+                    : "border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200"
+                }`}>
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <UserPlus className={`h-4 w-4 ${pendingAppsCount > 0 ? "text-blue-600" : "text-slate-400"}`} />
+                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                        pendingAppsCount > 0 ? "bg-blue-200 text-blue-950" : "bg-slate-200 text-slate-600"
+                      }`}>
+                        {pendingAppsCount} nouvelle{pendingAppsCount > 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <p className="text-xs font-bold text-slate-900 mt-3">Candidatures partenaires</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {pendingAppsCount > 0 ? "Dossiers d'agrément à valider" : "Toutes traitées"}
+                    </p>
+                  </div>
+                  <span className="text-xs font-extrabold text-[#001D3D] mt-3 inline-flex items-center gap-1 group-hover:underline">
+                    Examiner les dossiers →
+                  </span>
+                </div>
+              </Link>
+
+              {/* File 4 : Réclamations Garantie 48h */}
+              <Link href="/admin/partners" className="group">
+                <div className={`rounded-2xl border p-4 transition-all h-full flex flex-col justify-between ${
+                  pendingDisputesCount > 0
+                    ? "border-purple-300 bg-purple-50/50 hover:bg-purple-50 hover:border-purple-400 shadow-2xs"
+                    : "border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200"
+                }`}>
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <ShieldCheck className={`h-4 w-4 ${pendingDisputesCount > 0 ? "text-purple-600" : "text-slate-400"}`} />
+                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                        pendingDisputesCount > 0 ? "bg-purple-200 text-purple-950" : "bg-slate-200 text-slate-600"
+                      }`}>
+                        {pendingDisputesCount} litige{pendingDisputesCount > 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <p className="text-xs font-bold text-slate-900 mt-3">Garantie 48h · Litiges</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {pendingDisputesCount > 0 ? "Demandes de recrédit à trancher" : "Zéro litige en cours"}
+                    </p>
+                  </div>
+                  <span className="text-xs font-extrabold text-[#001D3D] mt-3 inline-flex items-center gap-1 group-hover:underline">
+                    Gérer les réclamations →
+                  </span>
+                </div>
+              </Link>
             </div>
-            <Link href="/admin/leads?status=NEEDS_HUMAN_REVIEW">
-              <Button size="sm" variant="outline" className="border-rose-300 text-rose-900 bg-white hover:bg-rose-100 font-bold text-xs gap-1.5 rounded-xl">
-                <span>Traiter les leads urgents</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
-            </Link>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* 4. Cockpit Quick Actions Hub (4 Piliers) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -429,7 +550,7 @@ export default async function AdminDashboardPage() {
             </div>
             <div className="mt-4 flex items-center justify-between text-xs text-slate-600 border-t border-slate-100 pt-3">
               <span>Installateurs acheteurs :</span>
-              <span className="font-extrabold text-indigo-600">{stats.activePartners} partenaires</span>
+              <span className="font-extrabold text-indigo-600">{stats.buyingPartnersCount} partenaires</span>
             </div>
           </CardContent>
         </Card>
@@ -493,6 +614,44 @@ export default async function AdminDashboardPage() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* 5bis. Santé & Équilibre du Marché (Marketplace Equilibrium - Supply vs Demand) */}
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-gradient-to-r from-blue-50/70 via-white to-emerald-50/50 p-6 shadow-2xs">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="space-y-1.5 max-w-xl">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-white border border-slate-200 px-3 py-1 text-xs font-bold text-slate-700 shadow-2xs">
+              <Scale className="h-3.5 w-3.5 text-blue-600" />
+              <span>Indicateur Marché · Offre &amp; Demande Installateurs</span>
+            </div>
+            <h3 className="text-lg font-black text-slate-900">
+              Tension de la Marketplace &amp; Réserve d'Achat
+            </h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Surveillance de la balance entre les leads prêts à la vente et la capacité de tirage en crédits détenue par les installateurs certifiés actifs.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 shrink-0">
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-3.5 text-center shadow-2xs">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Offre en ligne</span>
+              <p className="text-xl font-black text-[#001D3D] mt-0.5">{stats.availableCount}</p>
+              <p className="text-[10px] text-slate-500 font-medium">lead(s) disponibles</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-3.5 text-center shadow-2xs">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Demande active</span>
+              <p className="text-xl font-black text-amber-600 mt-0.5">{stats.totalCreditsInCirculation}</p>
+              <p className="text-[10px] text-slate-500 font-medium">crédits en réserve</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-3.5 text-center shadow-2xs">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Santé Marché</span>
+              <p className="text-xs font-black text-emerald-700 mt-1.5">
+                {stats.totalCreditsInCirculation > stats.availableCount * 5 ? "Forte Demande" : "Équilibré"}
+              </p>
+              <p className="text-[10px] text-emerald-600 font-medium">Absorption fluide</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* 6. Tunnel de Conversion des Leads (Visual Funnel) */}
@@ -663,12 +822,20 @@ export default async function AdminDashboardPage() {
 
                         {/* Action */}
                         <td className="px-4 py-3.5 text-right whitespace-nowrap">
-                          <Link href={`/admin/leads?leadId=${lead.id}`}>
-                            <Button size="sm" variant="ghost" className="h-7 px-2.5 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg">
-                              <span>Examiner</span>
-                              <ArrowRight className="h-3 w-3 ml-1" />
-                            </Button>
-                          </Link>
+                          <div className="flex items-center justify-end gap-2">
+                            <PublishLeadQuickButton
+                              leadId={lead.id}
+                              currentMarketplaceStatus={lead.marketplace_status}
+                              isComplete={Boolean(lead.province && (lead.surface_area || 0) > 0)}
+                              missingReason={!lead.province ? "Province manquante" : !lead.surface_area ? "Surface toiture manquante" : undefined}
+                            />
+                            <Link href={`/admin/leads?leadId=${lead.id}`}>
+                              <Button size="sm" variant="ghost" className="h-7 px-2.5 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg">
+                                <span>Examiner</span>
+                                <ArrowRight className="h-3 w-3 ml-1" />
+                              </Button>
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     )

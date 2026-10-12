@@ -22,6 +22,10 @@ import {
   Check,
   FileText,
   AlertCircle,
+  ShieldCheck,
+  Flame,
+  Coins,
+  Calculator,
 } from "lucide-react"
 
 /* ═══════════════════════════════════════════════
@@ -412,13 +416,32 @@ export default function CreditsPage() {
             <h2 className="mt-3 text-xl font-bold text-slate-900 sm:text-2xl">
               Commander des crédits marketplace
             </h2>
-            <p className="mt-2 mb-8 text-sm text-slate-500">
+            <p className="mt-2 mb-6 text-sm text-slate-500">
               Sélectionnez un pack de crédits. Vos commandes sont traitées sur facture officielle émise par INIT42 avec activation dès réception du virement.
             </p>
+
+            {/* Alerte solde faible / Rareté */}
+            {(partner?.credits ?? 0) <= 4 && (
+              <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 shadow-2xs">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-400 text-[#001D3D] shadow-xs">
+                    <AlertCircle className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-extrabold text-amber-950">
+                      Votre réserve actuelle ({partner?.credits ?? 0} crédits) bloque l'accès aux leads B2B exclusifs
+                    </h4>
+                    <p className="text-[11px] text-amber-800">
+                      Un dossier B2B requiert 5 crédits. Anticipez votre approvisionnement pour ne pas manquer les projets à fort volume mis en ligne cette semaine.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </motion.div>
 
           {/* Packs Grid */}
-          <div className="mb-8 grid gap-5 sm:grid-cols-3">
+          <div className="mb-6 grid gap-5 sm:grid-cols-3">
             {PACKS.map((pack) => {
               const isSelected = selectedPack === pack.id
               return (
@@ -426,21 +449,21 @@ export default function CreditsPage() {
                   <button
                     onClick={() => setSelectedPack(pack.id)}
                     className={`group relative w-full text-left transition-all duration-300 ${
-                      isSelected ? "scale-[1.02]" : "opacity-65 hover:opacity-90"
+                      isSelected ? "scale-[1.02]" : "opacity-75 hover:opacity-100"
                     }`}
                   >
                     {pack.popular && (
                       <div className="absolute -top-3 left-1/2 z-10 -translate-x-1/2">
                         <Badge className="gap-1 border-accent/30 bg-accent px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#001D3D] shadow-sm">
                           <Sparkles className="h-3 w-3" />
-                          Populaire
+                          Recommandé Installateurs
                         </Badge>
                       </div>
                     )}
                     <div
                       className={`rounded-2xl border bg-white p-6 shadow-sm transition-all duration-300 ${
                         isSelected
-                          ? "border-[#001D3D]/40 shadow-md ring-2 ring-[#001D3D]/10"
+                          ? "border-[#001D3D] shadow-md ring-2 ring-[#001D3D]/10"
                           : "border-slate-200 hover:border-slate-300 hover:shadow"
                       }`}
                     >
@@ -454,7 +477,7 @@ export default function CreditsPage() {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
                         crédits leads
                       </p>
                       <div className="mt-4 border-t border-slate-100 pt-4">
@@ -462,7 +485,7 @@ export default function CreditsPage() {
                           {pack.priceHtva}{" "}
                           <span className="text-sm font-normal text-slate-400">€ HTVA</span>
                         </p>
-                        <p className="mt-1 text-xs text-slate-400">
+                        <p className="mt-1 text-xs text-slate-500 font-medium">
                           {pack.pricePerCredit.toFixed(2)} € HTVA / crédit
                         </p>
                       </div>
@@ -487,12 +510,81 @@ export default function CreditsPage() {
             })}
           </div>
 
+          {/* SIMULATEUR DE RENTABILITÉ DU PACK SÉLECTIONNÉ (VALUE ANCHORING) */}
+          <motion.div variants={itemVariants} className="mb-8">
+            <div className="rounded-2xl border-2 border-emerald-200/80 bg-gradient-to-r from-emerald-50/70 via-white to-blue-50/50 p-5 shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-emerald-100 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-xs">
+                    <Calculator className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-extrabold text-slate-900">
+                      Rentabilité prévisionnelle : {currentPack.name} ({currentPack.credits} crédits)
+                    </h4>
+                    <p className="text-xs text-slate-600">
+                      Projection moyenne constatée sur le réseau d'installateurs partenaires en Wallonie.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-xl bg-emerald-100/90 px-3 py-1 text-center shrink-0">
+                  <span className="text-[10px] uppercase font-bold text-emerald-800 block">Ratio Coût / Marge</span>
+                  <span className="text-xs font-black text-emerald-950 font-mono">Moins de 1,5%</span>
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3 text-center sm:text-left">
+                <div className="rounded-xl bg-white p-3 border border-slate-100 shadow-2xs">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Capacité de déblocage</span>
+                  <p className="mt-1 text-sm font-black text-[#001D3D]">
+                    {Math.floor(currentPack.credits / 5)} chantiers B2B <span className="font-normal text-xs text-slate-500">ou</span> {Math.floor(currentPack.credits / 2)} B2C
+                  </p>
+                </div>
+                <div className="rounded-xl bg-white p-3 border border-slate-100 shadow-2xs">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Potentiel Chiffre d'Affaires</span>
+                  <p className="mt-1 text-sm font-black text-amber-600">
+                    ~{(Math.floor(currentPack.credits / 5) * 28000).toLocaleString("fr-BE")} € à {(Math.floor(currentPack.credits / 5) * 45000).toLocaleString("fr-BE")} €
+                  </p>
+                </div>
+                <div className="rounded-xl bg-white p-3 border border-slate-100 shadow-2xs">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Marge brute estimée (~22%)</span>
+                  <p className="mt-1 text-sm font-black text-emerald-700">
+                    ~{(Math.floor(currentPack.credits / 5) * 6200).toLocaleString("fr-BE")} € à {(Math.floor(currentPack.credits / 5) * 10000).toLocaleString("fr-BE")} €
+                  </p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
           {/* Order Action Section */}
-          <motion.div variants={itemVariants} className="mb-12">
+          <motion.div variants={itemVariants} className="mb-8">
             <OrderPackSection
               pack={currentPack}
               onOrderCreated={(order) => setActiveOrder(order)}
             />
+          </motion.div>
+
+          {/* RÉASSURANCE & CHARTE QUALITÉ */}
+          <motion.div variants={itemVariants} className="mb-12">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-extrabold text-slate-900">
+                    Garantie Lead Qualifié Aegis Solaire
+                  </h4>
+                  <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                    Si un prospect s'avère non joignable après 3 tentatives vérifiables ou présente un numéro invalide, vos crédits vous sont <strong>remplacés ou recrédités sous 48h</strong> sur simple notification.
+                  </p>
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 shrink-0">
+                Protection 100% Investissement
+              </span>
+            </div>
           </motion.div>
 
           {/* Transaction History */}

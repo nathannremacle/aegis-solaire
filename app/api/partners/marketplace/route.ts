@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { getPartner } from "@/lib/partner-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
+import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
+import { evaluateLeadPublishability } from "@/lib/lead-quality"
 
 export const dynamic = "force-dynamic"
 
@@ -15,7 +17,7 @@ export async function GET() {
   const { data: leads, error } = await admin
     .from("leads")
     .select(
-      "id, province, segment, surface_type, surface_area, annual_electricity_bill, credit_cost, marketplace_status, created_at, grd"
+      "id, province, segment, surface_type, surface_area, annual_electricity_bill, credit_cost, marketplace_status, created_at, grd, estimated_roi_years, project_timeline, wants_irve, lead_score, first_name, last_name, company"
     )
     .eq("marketplace_status", "available")
     .order("created_at", { ascending: false })
@@ -61,14 +63,38 @@ export async function GET() {
     .eq("partner_id", partner.id)
 
   const myPurchasedIds = new Set((myPurchases ?? []).map((p) => p.lead_id))
+  const myPurchasesCount = (myPurchases ?? []).length
 
-  const enrichedLeads = (leads ?? []).map((lead) => {
+  // Déterminer le palier partenaire
+  const partnerTier = myPurchasesCount >= 15 ? "gold" : myPurchasesCount >= 5 ? "silver" : "certified"
+
+  // Ne retenir que les leads viables et complets pour la marketplace
+  const validLeads = (leads ?? []).filter((lead) => {
+    // Si déjà acheté par ce partenaire, on l'affiche pour qu'il puisse le consulter
+    if (myPurchasedIds.has(lead.id)) return true
+    // Sinon, on s'assure qu'il est propre et qualifié
+    return evaluateLeadPublishability(lead).isPublishable
+  })
+
+  const enrichedLeads = validLeads.map((lead) => {
     const lp = purchases.filter((p) => p.lead_id === lead.id)
     const isB2C = lead.segment === "B2C"
     const maxSlots = isB2C ? 3 : 1
     const cost = lead.credit_cost ?? (isB2C ? 2 : 5)
-    const powerKwc = Math.round((lead.surface_area ?? 0) * 0.17)
-    const revenueEstimate = Math.round((lead.annual_electricity_bill ?? 0) * 0.3)
+
+    // Calculs de valorisation financière rigoureux et crédibles
+    const financials = calculateMarketplaceFinancials({
+      segment: lead.segment,
+      surfaceArea: lead.surface_area,
+      annualBill: lead.annual_electricity_bill,
+      creditCost: cost,
+    })
+
+    // Badges d'opportunité calculés sur données réelles
+    const isUrgent = lead.project_timeline === "immediate" || lead.project_timeline === "within_3_months"
+    const isFastRoi = lead.estimated_roi_years && Number(lead.estimated_roi_years) <= 4.5
+    const isHighVolume = (lead.surface_area ?? 0) >= 400 || financials.estimatedPowerKwc >= 65
+    const hasIrve = Boolean(lead.wants_irve)
 
     return {
       id: lead.id,
@@ -77,15 +103,30 @@ export async function GET() {
       surfaceType: lead.surface_type,
       surfaceArea: lead.surface_area,
       annualBill: lead.annual_electricity_bill,
-      estimatedPowerKwc: powerKwc,
-      estimatedRevenue: revenueEstimate,
+      estimatedPowerKwc: financials.estimatedPowerKwc,
+      estimatedRevenue: financials.revenueEstimatePerYear,
+      estimatedContractValue: financials.estimatedContractValue,
+      estimatedContractValueRange: financials.estimatedContractValueRange,
+      estimatedInstallerMargin: financials.estimatedInstallerMargin,
+      roiMultiplier: financials.roiMultiplier,
+      roiDescription: financials.roiDescription,
+      dataQuality: financials.dataQuality,
       creditCost: cost,
+      creditCostEur: financials.creditCostEur,
       createdAt: lead.created_at,
       grd: lead.grd,
+      projectTimeline: lead.project_timeline,
+      estimatedRoiYears: lead.estimated_roi_years,
+      wantsIrve: hasIrve,
+      badges: {
+        isTopDeal: isFastRoi || (isHighVolume && !isB2C),
+        isUrgent,
+        isHighVolume,
+        hasIrve,
+      },
       slots: {
         max: maxSlots,
         taken: lp.length,
-        // Préservation de l'anonymat concurrentiel : on ne montre que "Vous" ou "Installateur certifié"
         buyers: lp.map((p) => ({
           name: p.partner_id === partner.id ? (partner.company_name || "Votre entreprise") : "Installateur certifié",
           isMe: p.partner_id === partner.id,
@@ -101,6 +142,8 @@ export async function GET() {
       id: partner.id,
       credits: partner.credits,
       companyName: partner.company_name,
+      tier: partnerTier,
+      purchasesCount: myPurchasesCount,
     },
   })
 }
