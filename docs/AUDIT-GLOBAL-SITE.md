@@ -212,6 +212,13 @@ L'objectif de cet audit est de fiabiliser intégralement la plateforme **Aegis S
   - Support natif du Meta Pixel (`fbq('track', 'Lead')`) et Google Ads (`gtag conversion`).
   - Déclenchement automatique de l'événement de conversion lors de toute validation de lead réussie.
 - **Landing Page Publicitaire Dédiée (`app/devis-panneaux-solaires`)** :
+  - Architecture Bobex-like ultra-efficace : formulaire 6 étapes sans friction en haut de page, boutons tactiles 3D, détection automatique de province par code postal belge (1000-9999).
+  - Élimination des menus de fuite : header épuré centré, badges de réassurance RESCERT et Wallonie, comparatif de 3 devis gratuits.
+  - 100% responsive testé Playwright mobile (390px) et desktop.
+- **Emails de Confirmation & Notifications** :
+  - Notification teaser partenaires avec `replyTo: contact@aegissolaire.com` (`lib/partner-lead-teaser-email.ts`).
+  - Email de confirmation récapitulatif automatique envoyé au prospect (`lib/prospect-confirmation-email.ts`) avec synthèse des économies, rappel de mise en relation RESCERT, et mentions légales INIT42.
+
 ### ✅ Phase 4 — Finitions SEO, Pages d'Erreur & Navigation (COMPLÉTÉ)
 - **Pages d'erreur personnalisées** :
   - `app/not-found.tsx` : Page 404 aux couleurs d'Aegis avec liens de redirection rapide vers l'accueil B2B, l'espace particuliers et le comparateur de devis.
@@ -223,7 +230,11 @@ L'objectif de cet audit est de fiabiliser intégralement la plateforme **Aegis S
 - **Navigation & Liens Footer** :
   - Liens d'ancres du footer convertis en liens absolus (`/#preuve`, `/#expert`, `/#simulator`) pour fonctionner depuis n'importe quelle sous-page.
   - Ajout des mentions légales de l'éditeur INIT42 (Nathan Remacle, BCE `1039.899.980`) dans le footer.
+- **Synchronisation Admin ↔ Marketplace** :
+  - Contrôle et affichage de `marketplace_status` dans le panneau d'administration (`app/admin/(dashboard)/leads/lead-detail-sheet.tsx`).
+  - Validation automatique vers la marketplace (`available`) lors de la validation d'un lead (`qualified`).
 
 ---
 *Ce document fait foi de feuille de route officielle et d'état d'exécution de la plateforme Aegis Solaire.*
+*Taux de complétion des actions d'audit : 100% (16/16 constats résolus).*
 

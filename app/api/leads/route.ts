@@ -4,6 +4,7 @@ import { leadSubmitSchema } from "@/lib/leads-schema"
 import { calculateLeadScore } from "@/lib/lead-score"
 import { checkRateLimit } from "@/lib/rate-limit"
 import { sendPartnerLeadTeaserEmails } from "@/lib/partner-lead-teaser-email"
+import { sendProspectConfirmationEmail } from "@/lib/prospect-confirmation-email"
 import { createHmac } from "crypto"
 
 function sanitizeString(input: string, maxLength = 255): string {
@@ -190,6 +191,19 @@ export async function POST(request: NextRequest) {
       /** Texte « projet » seul (sans doublon avec la ligne Province). */
       projectDetails: projectDetailsOnly,
     }).catch((err) => console.error("[Partner teaser] envoi non bloquant échoué:", err))
+
+    void sendProspectConfirmationEmail({
+      email: data.email,
+      firstName: first_name,
+      lastName: last_name,
+      segment: data.segment,
+      surfaceType: data.surfaceType,
+      surfaceArea: data.surfaceArea,
+      annualElectricityBill: data.annualElectricityBill,
+      estimatedSavings: data.estimatedSavings ?? null,
+      estimatedROIYears: data.estimatedROIYears ?? null,
+      province: data.province,
+    }).catch((err) => console.error("[Prospect confirmation] envoi non bloquant échoué:", err))
 
     const webhookUrl = process.env.LEAD_WEBHOOK_URL
     const webhookSecret = process.env.LEAD_WEBHOOK_SECRET

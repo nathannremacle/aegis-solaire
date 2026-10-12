@@ -80,6 +80,11 @@ export async function PATCH(
 
   if (typeof status === "string" && VALID_STATUSES.includes(status as (typeof VALID_STATUSES)[number])) {
     updates.status = status
+    if (status === "qualified" && !marketplace_status) {
+      updates.marketplace_status = "available"
+    } else if (status === "lost" && !marketplace_status) {
+      updates.marketplace_status = "rejected"
+    }
   }
 
   if (

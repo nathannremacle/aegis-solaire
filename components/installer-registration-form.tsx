@@ -352,7 +352,7 @@ export function InstallerRegistrationForm() {
             <Button
               type="button"
               variant="outline"
-              className="h-11 min-h-[44px] w-full rounded-xl sm:h-12 sm:w-auto sm:min-w-[120px]"
+              className="h-12 min-h-[44px] w-full rounded-xl border-slate-300 font-semibold text-slate-700 hover:bg-slate-100 sm:w-auto sm:min-w-[120px]"
               onClick={goPrev}
             >
               Retour
@@ -361,23 +361,21 @@ export function InstallerRegistrationForm() {
             <span className="hidden sm:block sm:w-[120px]" aria-hidden />
           )}
           {!isLastStep ? (
-            <Button
+            <button
               type="button"
-              size="lg"
-              className="h-11 min-h-[44px] w-full rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 sm:ml-auto sm:h-12 sm:w-auto sm:min-w-[200px]"
+              className="inline-flex h-12 min-h-[44px] w-full items-center justify-center rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 px-6 font-sans text-sm font-extrabold text-slate-950 shadow-[0_4px_0_#b45309,0_8px_16px_rgba(245,158,11,0.25)] transition-all hover:from-amber-300 hover:to-amber-400 active:translate-y-1 active:shadow-[0_1px_0_#b45309] sm:ml-auto sm:w-auto sm:min-w-[200px]"
               onClick={goNext}
             >
               Continuer
-            </Button>
+            </button>
           ) : (
-            <Button
+            <button
               type="submit"
-              size="lg"
-              className="h-11 min-h-[44px] w-full rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 sm:ml-auto sm:h-12 sm:w-auto sm:min-w-[220px]"
               disabled={loading}
+              className="inline-flex h-12 min-h-[44px] w-full items-center justify-center rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 px-6 font-sans text-sm font-extrabold text-slate-950 shadow-[0_4px_0_#b45309,0_8px_16px_rgba(245,158,11,0.25)] transition-all hover:from-amber-300 hover:to-amber-400 active:translate-y-1 active:shadow-[0_1px_0_#b45309] disabled:opacity-60 sm:ml-auto sm:w-auto sm:min-w-[220px]"
             >
               {loading ? "Envoi en cours…" : "Envoyer la candidature"}
-            </Button>
+            </button>
           )}
         </div>
       </form>

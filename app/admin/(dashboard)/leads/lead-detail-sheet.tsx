@@ -82,6 +82,7 @@ type Lead = {
   autoconsumption_rate: number | null
   estimated_savings: number | null
   status: string
+  marketplace_status?: string | null
   lead_score?: number | null
   installateur_id?: string | null
   wants_irve?: boolean
@@ -186,13 +187,17 @@ export function LeadDetailSheet({
     if (!lead || value === lead.status) return
     setSaving(true)
     try {
+      const payload: { status: string; marketplace_status?: string } = { status: value }
+      if (value === "qualified" && (!lead.marketplace_status || lead.marketplace_status === "pending_review")) {
+        payload.marketplace_status = "available"
+      }
       const res = await fetch(`/api/admin/leads/${lead.id}`, {
         method: "PATCH",
         headers: { 
           "Content-Type": "application/json",
           "x-admin-request": "true"
         },
-        body: JSON.stringify({ status: value }),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) throw new Error("Erreur")
       const data = await res.json()
@@ -200,6 +205,29 @@ export function LeadDetailSheet({
       toast.success("Statut mis à jour")
     } catch {
       toast.error("Erreur lors de la mise à jour du statut")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleMarketplaceStatusChange(value: string) {
+    if (!lead || value === lead.marketplace_status) return
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/admin/leads/${lead.id}`, {
+        method: "PATCH",
+        headers: { 
+          "Content-Type": "application/json",
+          "x-admin-request": "true"
+        },
+        body: JSON.stringify({ marketplace_status: value }),
+      })
+      if (!res.ok) throw new Error("Erreur")
+      const data = await res.json()
+      setLead((prev) => (prev ? { ...prev, ...data } : null))
+      toast.success("Visibilité marketplace mise à jour")
+    } catch {
+      toast.error("Erreur lors de la mise à jour marketplace")
     } finally {
       setSaving(false)
     }
@@ -253,30 +281,71 @@ export function LeadDetailSheet({
               <div className="flex items-center gap-2">
                 <LeadScoreBadge score={lead.lead_score} />
                 <LeadStatusBadge status={lead.status} />
+                {lead.marketplace_status && (
+                  <span
+                    className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                      lead.marketplace_status === "available"
+                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300"
+                        : lead.marketplace_status === "pending_review"
+                        ? "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300"
+                        : lead.marketplace_status === "sold_out"
+                        ? "bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300"
+                        : "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400"
+                    }`}
+                  >
+                    {lead.marketplace_status === "available"
+                      ? "Marketplace : Actif"
+                      : lead.marketplace_status === "pending_review"
+                      ? "Marketplace : En revue"
+                      : lead.marketplace_status === "sold_out"
+                      ? "Marketplace : Vendu"
+                      : "Marketplace : Rejeté"}
+                  </span>
+                )}
               </div>
             </div>
 
             {/* Assignation et statut en premier pour être visibles sans scroller */}
             <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-4">
-              <div>
-                <Label className="text-muted-foreground mb-2 block">Changer le statut</Label>
-                <Select value={lead.status} onValueChange={handleStatusChange} disabled={saving}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="new">Nouveau</SelectItem>
-                    <SelectItem value="contacted">En attente client</SelectItem>
-                    <SelectItem value="qualified">Validé (Marketplace)</SelectItem>
-                    <SelectItem value="converted">Assigné (Direct)</SelectItem>
-                    <SelectItem value="lost">Rejeté / Spam</SelectItem>
-                    <SelectItem value="HOT_LEAD">Urgent</SelectItem>
-                    <SelectItem value="NEEDS_HUMAN_REVIEW">À contrôler</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label className="text-muted-foreground mb-2 block">Statut interne</Label>
+                  <Select value={lead.status} onValueChange={handleStatusChange} disabled={saving}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new">Nouveau</SelectItem>
+                      <SelectItem value="contacted">En attente client</SelectItem>
+                      <SelectItem value="qualified">Validé (Marketplace)</SelectItem>
+                      <SelectItem value="converted">Assigné (Direct)</SelectItem>
+                      <SelectItem value="lost">Rejeté / Spam</SelectItem>
+                      <SelectItem value="HOT_LEAD">Urgent</SelectItem>
+                      <SelectItem value="NEEDS_HUMAN_REVIEW">À contrôler</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground mb-2 block">Vivier Marketplace</Label>
+                  <Select
+                    value={lead.marketplace_status ?? "pending_review"}
+                    onValueChange={handleMarketplaceStatusChange}
+                    disabled={saving}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending_review">⏳ En attente de revue</SelectItem>
+                      <SelectItem value="available">🟢 Publié (Achetable)</SelectItem>
+                      <SelectItem value="sold_out">🔒 Vendu / Complet</SelectItem>
+                      <SelectItem value="rejected">🚫 Exclu / Non vendable</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div>
-                <Label className="text-muted-foreground mb-2 block">Assigner à un installateur</Label>
+                <Label className="text-muted-foreground mb-2 block">Assigner à un installateur (Direct)</Label>
                 <Select
                   value={lead.installateur_id ?? "none"}
                   onValueChange={handleInstallateurChange}

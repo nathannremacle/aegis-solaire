@@ -387,8 +387,8 @@ export function LeadsTable({
                         <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover/row:opacity-100"><MoreHorizontal className="h-4 w-4" /></Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleBulkAction({ status: "qualified" })}>Valider</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleBulkAction({ status: "lost" })}>Rejeter</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleBulkAction({ status: "qualified", marketplace_status: "available" })}>Valider (Marketplace)</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleBulkAction({ status: "lost", marketplace_status: "rejected" })}>Rejeter</DropdownMenuItem>
                         <DropdownMenuItem className="text-red-600" onClick={() => { setSelectedIds(new Set([lead.id])); handleBulkDelete(); }}>Supprimer</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -420,7 +420,7 @@ export function LeadsTable({
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-background border border-primary/20 shadow-2xl rounded-full px-6 py-3 flex items-center gap-6 backdrop-blur-md animate-in slide-in-from-bottom-4">
           <span className="text-sm font-medium pr-4 border-r">{selectedIds.size} sélectionnés</span>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="h-9 gap-2 text-emerald-700" onClick={() => handleBulkAction({ status: "qualified" })} disabled={bulkLoading}>Valider</Button>
+            <Button size="sm" variant="outline" className="h-9 gap-2 text-emerald-700" onClick={() => handleBulkAction({ status: "qualified", marketplace_status: "available" })} disabled={bulkLoading}>Valider (Marketplace)</Button>
             <Button size="sm" variant="ghost" className="h-9 text-red-600" onClick={handleBulkDelete} disabled={bulkLoading}>Supprimer</Button>
           </div>
           <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>Annuler</Button>
