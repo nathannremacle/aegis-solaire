@@ -32,15 +32,31 @@ export function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link
-                  href="#preuve"
+                  href="/#preuve"
                   className="text-sm text-neutral-500 hover:text-[#001D3D]"
                 >
-                  Études de cas
+                  Études de cas B2B
                 </Link>
               </li>
               <li>
                 <Link
-                  href="#expert"
+                  href="/particuliers"
+                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
+                >
+                  Espace Particuliers
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/devis-panneaux-solaires"
+                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
+                >
+                  Devis comparatifs gratuits
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/#expert"
                   className="text-sm text-neutral-500 hover:text-[#001D3D]"
                 >
                   Notre expertise
@@ -48,18 +64,10 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="#benefits"
+                  href="/#simulator"
                   className="text-sm text-neutral-500 hover:text-[#001D3D]"
                 >
-                  Avantages
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#simulator"
-                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
-                >
-                  Simulateur ROI
+                  Simulateur ROI B2B
                 </Link>
               </li>
               <li>
@@ -174,10 +182,12 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 border-t border-neutral-200 pt-6 sm:mt-12 sm:pt-8">
-          <p className="text-center text-xs text-neutral-400 sm:text-sm">
-            &copy; {new Date().getFullYear()} Aegis Solaire. Tous droits
-            réservés.
+        <div className="mt-10 border-t border-neutral-200 pt-6 sm:mt-12 sm:pt-8 text-center text-xs text-neutral-400 sm:text-sm space-y-1">
+          <p>
+            &copy; {new Date().getFullYear()} Aegis Solaire — Tous droits réservés.
+          </p>
+          <p className="text-[11px] text-neutral-400">
+            Plateforme éditée par <strong className="text-neutral-500 font-medium">INIT42</strong> (Nathan Remacle, Personne physique) · BCE n° 1039.899.980 · TVA BE 1039.899.980
           </p>
         </div>
       </div>

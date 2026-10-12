@@ -5,10 +5,15 @@ import { Button } from "@/components/ui/button"
 import { Shield, FileCheck, ArrowDown, Building2, Home } from "lucide-react"
 import { HeroBg } from "@/components/hero-bg"
 
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.aegissolaire.com'
+
 export const metadata = {
   title: "Devenir Partenaire | Aegis Solaire",
   description:
     "Installateurs RESCERT en Wallonie : marketplace B2B (lead vendu à un seul partenaire) et B2C (jusqu'à 3 acheteurs par lead). Tri équipe Aegis + algorithmes. Crédits indicatifs 5 (B2B) / 2 (B2C).",
+  alternates: {
+    canonical: `${baseUrl}/partenaires`,
+  },
 }
 
 export default function PartenairesPage() {
