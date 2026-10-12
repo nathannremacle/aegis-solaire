@@ -6,9 +6,6 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   images: {
     formats: ["image/webp"],
     remotePatterns: [
@@ -19,6 +16,10 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "img.youtube.com",
+      },
+      {
+        protocol: "https",
+        hostname: "i.ytimg.com",
       },
     ],
   },

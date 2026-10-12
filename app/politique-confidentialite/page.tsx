@@ -4,9 +4,9 @@ import { LegalPageShell } from "@/components/legal-page-shell"
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.aegissolaire.com"
 
 export const metadata: Metadata = {
-  title: "Politique de confidentialité",
+  title: "Politique de confidentialité | Aegis Solaire",
   description:
-    "Politique de confidentialité Aegis Solaire (Belgique). RGPD, APD, durée de conservation, droits d'accès et réclamation.",
+    "Politique de confidentialité et traitement des données personnelles d'Aegis Solaire (INIT42). Conforme RGPD et APD Belgique.",
   alternates: { canonical: `${baseUrl}/politique-confidentialite` },
 }
 
@@ -15,139 +15,113 @@ export default function PolitiqueConfidentialite() {
     <LegalPageShell
       title="Politique de confidentialité"
       badge="RGPD & protection des données"
-      description="Traitement des données personnelles, droits des personnes concernées et contact DPO."
+      description="Traitement transparent de vos données personnelles, finalités de mise en relation et exercice de vos droits (RGPD / APD)."
     >
-      <div className="prose prose-gray max-w-none">
-        <p className="mb-8 text-sm text-muted-foreground">Dernière mise à jour : Mars 2026</p>
+      <div className="prose prose-gray max-w-none space-y-8">
+        <p className="text-sm text-muted-foreground">Dernière mise à jour : Octobre 2026</p>
 
-        <section className="mb-8">
+        <section>
           <h2 className="text-xl font-semibold text-foreground">1. Responsable du traitement</h2>
-          <p className="mt-4 text-muted-foreground">
-            Aegis Solaire est responsable du traitement de vos données personnelles collectées sur ce site.
-          </p>
-        </section>
-
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold text-foreground">2. Données collectées</h2>
-          <p className="mt-4 text-muted-foreground">
-            Dans le cadre du simulateur ROI, nous collectons les données suivantes :
-          </p>
-          <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
-            <li>Nom et prénom</li>
-            <li>Adresse e-mail</li>
-            <li>Numéro de téléphone</li>
-            <li>Fonction dans l&apos;entreprise</li>
-            <li>Nom de l&apos;entreprise (optionnel)</li>
-            <li>Caractéristiques du site (type de surface, superficie)</li>
-            <li>Données de consommation énergétique</li>
-          </ul>
-        </section>
-
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold text-foreground">3. Finalités du traitement</h2>
-          <p className="mt-4 text-muted-foreground">Vos données sont collectées pour :</p>
-          <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
-            <li>Calculer votre estimation de retour sur investissement</li>
-            <li>Vous recontacter pour une étude personnalisée et un audit de faisabilité</li>
-            <li>
-              Vous envoyer des informations commerciales et du <strong>lead nurturing</strong> (témoignages
-              d&apos;entreprises, actualités réglementaires Wallonie / PEB, invitations webinaires) si vous avez
-              consenti
-            </li>
-            <li>Transmission aux installateurs partenaires pour une proposition commerciale</li>
-            <li>Améliorer nos services</li>
-          </ul>
-          <p className="mt-4 text-sm text-muted-foreground">
-            <strong>Qualité des données :</strong> les leads non qualifiés (fausses coordonnées, particuliers
-            hors cible, projets trop petits) sont filtrés et rejetés. Seuls des prospects B2B qualifiés sont
-            transmis à nos partenaires, ce qui garantit une base exploitable.
-          </p>
-        </section>
-
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold text-foreground">4. Base légale</h2>
-          <p className="mt-4 text-muted-foreground">Le traitement de vos données repose sur :</p>
-          <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
-            <li>Votre consentement (formulaire de contact, newsletter)</li>
-            <li>L&apos;exécution de mesures précontractuelles (simulation ROI)</li>
-            <li>Notre intérêt légitime (amélioration des services)</li>
-          </ul>
-        </section>
-
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold text-foreground">5. Durée de conservation</h2>
-          <p className="mt-4 text-muted-foreground">
-            Vos données sont conservées pendant une durée maximale de <strong>3 ans</strong> à compter de votre
-            dernière interaction avec nos services, dans le respect des bonnes pratiques RGPD et des lignes
-            directrices de l&apos;APD (Belgique).
-          </p>
-        </section>
-
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold text-foreground">6. Destinataires des données</h2>
-          <p className="mt-4 text-muted-foreground">Vos données peuvent être transmises à :</p>
-          <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
-            <li>Nos équipes commerciales internes</li>
-            <li>Nos partenaires installateurs certifiés (après qualification)</li>
-            <li>Nos sous-traitants techniques (hébergement, CRM)</li>
-          </ul>
-          <p className="mt-2 text-muted-foreground">Nous ne vendons jamais vos données à des tiers.</p>
-        </section>
-
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold text-foreground">7. Vos droits</h2>
-          <p className="mt-4 text-muted-foreground">Conformément au RGPD, vous disposez des droits suivants :</p>
-          <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
-            <li>Droit d&apos;accès à vos données</li>
-            <li>Droit de rectification</li>
-            <li>Droit à l&apos;effacement (&quot;droit à l&apos;oubli&quot;)</li>
-            <li>Droit à la limitation du traitement</li>
-            <li>Droit à la portabilité</li>
-            <li>Droit d&apos;opposition</li>
-            <li>Droit de retirer votre consentement</li>
-          </ul>
-          <p className="mt-4 text-muted-foreground">
-            Pour exercer ces droits, contactez notre DPO à l&apos;adresse :{" "}
-            <a href="mailto:dpo@aegissolaire.com" className="text-[#001D3D] font-medium hover:underline">
-              dpo@aegissolaire.com
-            </a>
-          </p>
-        </section>
-
-        <section id="desinscription" className="mb-8 scroll-mt-24">
-          <h2 className="text-xl font-semibold text-foreground">7.1. Droit d&apos;opposition et désinscription</h2>
-          <p className="mt-4 text-muted-foreground">
-            Vous pouvez à tout moment vous opposer à la prospection commerciale ou demander la suppression de
-            vos données. Un processus automatisé permet de traiter les demandes de désinscription sous{" "}
-            <strong>24 à 48 heures</strong>. Envoyez votre demande à{" "}
-            <a href="mailto:dpo@aegissolaire.com" className="text-[#001D3D] font-medium hover:underline">
-              dpo@aegissolaire.com
-            </a>{" "}
-            en précisant « Opposition » ou « Désinscription » et votre adresse e-mail.
-          </p>
-        </section>
-
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold text-foreground">8. Sécurité</h2>
-          <p className="mt-4 text-muted-foreground">
-            Nous mettons en œuvre des mesures techniques et organisationnelles appropriées pour protéger vos
-            données contre tout accès non autorisé, modification, divulgation ou destruction.
+          <p className="mt-4 text-muted-foreground leading-relaxed">
+            Le responsable du traitement des données à caractère personnel collectées sur la plateforme <strong>Aegis Solaire</strong> est l&apos;entreprise individuelle <strong>INIT42</strong>, exploitée par <strong>Nathan Remacle</strong>, inscrite à la Banque-Carrefour des Entreprises sous le numéro <strong>1039.899.980</strong> (TVA BE 1039.899.980), dont le siège d&apos;exploitation est situé en Belgique.
+            <br />
+            Contact DPO / Référent vie privée : <a href="mailto:dpo@aegissolaire.com" className="text-primary underline">dpo@aegissolaire.com</a> ou <a href="mailto:contact@aegissolaire.com" className="text-primary underline">contact@aegissolaire.com</a>.
           </p>
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-foreground">9. Réclamation</h2>
+          <h2 className="text-xl font-semibold text-foreground">2. Données collectées</h2>
           <p className="mt-4 text-muted-foreground">
-            Si vous estimez que vos droits ne sont pas respectés, vous pouvez introduire une réclamation
-            auprès de l&apos;APD (Autorité de protection des données) :{" "}
+            Dans le cadre de l&apos;utilisation de nos simulateurs photovoltaïques et de nos formulaires, nous collectons :
+          </p>
+          <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
+            <li><strong>Identité & contact :</strong> Nom, prénom, adresse e-mail professionnelle ou personnelle, numéro de téléphone.</li>
+            <li><strong>Données professionnelles (B2B) :</strong> Dénomination sociale, fonction du déclarant, numéro d&apos;entreprise / TVA.</li>
+            <li><strong>Caractéristiques du site & de l&apos;infrastructure :</strong> Type de surface (toiture, parking, sol, friche), superficie estimée, localisation (province wallonne ou commune), gestionnaire de réseau (GRD).</li>
+            <li><strong>Données de consommation :</strong> Montant de la facture d&apos;électricité annuelle, puissance de raccordement ou intérêt pour bornes IRVE / batterie.</li>
+            <li><strong>Données techniques de navigation :</strong> Adresse IP, horodatage de soumission, paramètres de campagne publicitaire (UTM), balises de conversion.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold text-foreground">3. Finalités du traitement & Modèle de mise en relation</h2>
+          <p className="mt-4 text-muted-foreground leading-relaxed">
+            Vos données personnelles sont traitées pour les finalités suivantes :
+          </p>
+          <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
+            <li><strong>Calcul et délivrance de votre estimation :</strong> Génération de la modélisation indicative de rentabilité, du TRI estimé et des économies annuelles projetées.</li>
+            <li><strong>Mise en relation avec des installateurs certifiés :</strong> Transmission de votre dossier technique et de vos coordonnées à des professionnels photovoltaïques rigoureusement sélectionnés détenteurs de la certification RESCERT ou équivalente. Dans le segment <strong>B2B</strong>, votre demande est transmise à un installateur unique en exclusivité. Dans le segment <strong>B2C</strong>, votre demande peut être transmise à un maximum de 3 installateurs pour vous permettre de comparer les offres.</li>
+            <li><strong>Envoi du récapitulatif par e-mail :</strong> Transmission instantanée de votre dossier complet d&apos;estimation via notre infrastructure d&apos;e-mails.</li>
+            <li><strong>Information et suivi (si consentement spécifique) :</strong> Envoi d&apos;actualités sur les réglementations énergétiques (CWaPE, PEB Wallonie, certificats verts).</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold text-foreground">4. Base légale des traitements</h2>
+          <p className="mt-4 text-muted-foreground">Nos traitements reposent sur :</p>
+          <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
+            <li><strong>L&apos;exécution de mesures précontractuelles :</strong> Réalisation de la simulation de rentabilité et transmission de votre demande de devis aux installateurs sélectionnés.</li>
+            <li><strong>Votre consentement explicite :</strong> Recueilli au moyen de cases à cocher libres et distinctes pour la transmission des coordonnées et la réception d&apos;informations ultérieures.</li>
+            <li><strong>Notre intérêt légitime :</strong> Prévention de la fraude, détection des soumissions automatisées par robots et sécurité de nos serveurs.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold text-foreground">5. Destinataires et sous-traitants</h2>
+          <p className="mt-4 text-muted-foreground">Vos données sont strictement réservées aux destinataires suivants :</p>
+          <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
+            <li><strong>Les installateurs partenaires agréés :</strong> Destinataires directs habilités à vous recontacter pour finaliser l&apos;étude de faisabilité sur site.</li>
+            <li><strong>Supabase Inc. :</strong> Hébergement de la base de données sécurisée (serveurs chiffrés situés dans l&apos;UE, AWS Francfort).</li>
+            <li><strong>Vercel Inc. :</strong> Hébergement technique de l&apos;application web.</li>
+            <li><strong>Resend Inc. :</strong> Solution de routage de nos e-mails transactionnels de confirmation.</li>
+          </ul>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Aucune donnée n&apos;est cédée à des fins de prospection publicitaire sauvage à des tiers sans rapport avec votre projet photovoltaïque.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold text-foreground">6. Durée de conservation</h2>
+          <p className="mt-4 text-muted-foreground leading-relaxed">
+            Vos données de simulation et de contact sont conservées pour une durée maximale de <strong>3 ans</strong> à compter de votre dernière démarche active sur le site, délai préconisé par l&apos;Autorité de Protection des Données (APD) pour les démarches précontractuelles. À l&apos;issue de ce délai, vos données sont automatiquement purgées ou anonymisées.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold text-foreground">7. Vos droits et modalités d&apos;exercice</h2>
+          <p className="mt-4 text-muted-foreground">
+            Conformément au RGPD (Règlement UE 2016/679), vous bénéficiez des droits suivants :
+          </p>
+          <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
+            <li><strong>Droit d&apos;accès et de copie :</strong> Connaître les données que nous détenons à votre sujet.</li>
+            <li><strong>Droit de rectification :</strong> Mettre à jour des coordonnées erronées.</li>
+            <li><strong>Droit à l&apos;effacement (&quot;droit à l&apos;oubli&quot;) :</strong> Demander la suppression immédiate de votre fiche prospect.</li>
+            <li><strong>Droit d&apos;opposition :</strong> Vous opposer à tout moment au recontact commercial.</li>
+            <li><strong>Droit de retirer votre consentement :</strong> Sans affecter la licéité des traitements préalables.</li>
+          </ul>
+          <p className="mt-4 text-muted-foreground">
+            Pour exercer l&apos;un de ces droits, écrivez simplement à :{" "}
+            <a href="mailto:dpo@aegissolaire.com" className="font-semibold text-primary underline">
+              dpo@aegissolaire.com
+            </a>{" "}
+            en précisant votre demande. Un accusé de réception vous est adressé sous 48h ouvrées.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold text-foreground">8. Réclamation auprès de l&apos;autorité de contrôle</h2>
+          <p className="mt-4 text-muted-foreground leading-relaxed">
+            Si vous estimez que vos données ne sont pas traitées conformément à la législation applicable, vous pouvez introduire une réclamation auprès de l&apos;<strong>Autorité de Protection des Données (APD) belge</strong> :
+            <br />
+            Rue de la Presse 35, 1000 Bruxelles — Téléphone : +32 (0)2 274 48 00 — Site officiel :{" "}
             <a
               href="https://www.autoriteprotectiondonnees.be"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#001D3D] font-medium hover:underline"
+              className="text-primary underline"
             >
               www.autoriteprotectiondonnees.be
-            </a>
+            </a>.
           </p>
         </section>
       </div>

@@ -1,6 +1,7 @@
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { B2CSimulator } from "@/components/b2c-simulator"
+import { B2CTestimonials } from "@/components/b2c-testimonials"
 import { HeroBg } from "@/components/hero-bg"
 import {
   Shield,
@@ -162,8 +163,9 @@ export default function ParticuliersPage() {
         {/* ── AVANTAGES ── light section for contrast */}
         <section
           id="arguments"
-          className="bg-secondary py-16 sm:py-24 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
+          className="scroll-mt-24 bg-secondary py-16 sm:py-24 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
         >
+          <div id="avantages" className="-top-24 relative" />
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <header className="mx-auto mb-12 max-w-2xl text-center">
               <span className="mb-3 inline-block text-xs font-semibold uppercase tracking-widest text-accent sm:text-sm">
@@ -200,12 +202,16 @@ export default function ParticuliersPage() {
           </div>
         </section>
 
-        {/* ── CHECKLIST WALLONNE ── */}
-        <section className="bg-background py-16 sm:py-24 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
+        {/* ── CHECKLIST WALLONNE (EXPERTISE & CONFORMITÉ) ── */}
+        <section
+          id="expertise"
+          className="scroll-mt-24 bg-background py-16 sm:py-24 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
+        >
+          <div id="conformite" className="-top-24 relative" />
           <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
             <header className="mx-auto mb-10 max-w-2xl text-center">
               <span className="mb-3 inline-block text-xs font-semibold uppercase tracking-widest text-accent sm:text-sm">
-                Conformité
+                Conformité &amp; Expertise
               </span>
               <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                 Votre installation, conforme à 100 %
@@ -227,6 +233,9 @@ export default function ParticuliersPage() {
             </div>
           </div>
         </section>
+
+        {/* ── PREUVE & TÉMOIGNAGES RÉSIDENTIELS ── */}
+        <B2CTestimonials />
 
         {/* ── CTA FINAL ── */}
         <section className="relative overflow-hidden bg-[#001D3D] py-20 sm:py-28 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">

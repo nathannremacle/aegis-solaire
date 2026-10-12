@@ -57,7 +57,8 @@ export async function POST(request: NextRequest) {
         typeof body.annualElectricityBill === "number"
           ? body.annualElectricityBill
           : parseInt(body.annualElectricityBill, 10),
-      marketingConsent: body.marketingConsent === true,
+      marketingConsent: body.marketingConsent === true || body.partnerContactConsent === true,
+      newsletterConsent: body.newsletterConsent === true,
     })
 
     if (!parseResult.success) {
@@ -91,8 +92,13 @@ export async function POST(request: NextRequest) {
     const company_vat = data.companyVat ? sanitizeString(data.companyVat, 32) : null
     const projectDetailsOnly = data.projectDetails ? sanitizeString(data.projectDetails, 2000) : null
     const provinceFreeSanitized = data.provinceFreeText ? sanitizeString(data.provinceFreeText, 400) : null
+    const newsletterNote = data.newsletterConsent ? "Newsletter Aegis Solaire : Opt-in consenti" : null
     const projectDetailsText =
-      [provinceFreeSanitized ? `Précision localisation : ${provinceFreeSanitized}` : null, projectDetailsOnly]
+      [
+        provinceFreeSanitized ? `Précision localisation : ${provinceFreeSanitized}` : null,
+        projectDetailsOnly,
+        newsletterNote,
+      ]
         .filter(Boolean)
         .join("\n\n") || null
 
@@ -117,6 +123,7 @@ export async function POST(request: NextRequest) {
 
     const insertPayload: Record<string, unknown> = {
       segment: data.segment,
+      marketplace_status: "pending_review",
       media_partner_code: mediaPartnerCode,
       first_name,
       last_name,

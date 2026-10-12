@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation"
 import { getAdminUser } from "@/lib/admin-auth"
 import { AdminNav } from "@/components/admin-nav"
+import { AdminBreadcrumbs } from "@/components/admin-breadcrumbs"
+import { createServiceRoleClient } from "@/lib/supabase/admin"
 
 export default async function AdminDashboardLayout({
   children,
@@ -17,12 +19,28 @@ export default async function AdminDashboardLayout({
     redirect("/admin/login")
   }
 
+  const supabase = createServiceRoleClient()
+  const [
+    { count: installAppsCount },
+    { count: mediaAppsCount },
+    { count: needsReviewCount }
+  ] = await Promise.all([
+    supabase.from("installer_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
+    supabase.from("media_partner_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
+    supabase.from("leads").select("*", { count: "exact", head: true }).eq("status", "NEEDS_HUMAN_REVIEW")
+  ])
+
   return (
     <div className="flex min-h-screen flex-col bg-background md:flex-row">
       <aside className="flex w-full flex-col border-b border-border bg-card md:w-56 md:border-b-0 md:border-r">
-        <AdminNav />
+        <AdminNav 
+          pendingApplications={installAppsCount ?? 0} 
+          pendingMedia={mediaAppsCount ?? 0}
+          needsReview={needsReviewCount ?? 0}
+        />
       </aside>
       <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
+        <AdminBreadcrumbs />
         {children}
       </main>
     </div>

@@ -26,8 +26,10 @@ export default function CGV() {
           <p className="mt-4 text-muted-foreground">
             Les présentes conditions générales de vente (ci-après « CGV ») définissent les droits et
             obligations des parties dans le cadre de l&apos;utilisation de la plateforme{" "}
-            <strong>Aegis Solaire</strong> (ci-après « la Plateforme »), exploitée par Nathan Remacle
-            (ci-après « l&apos;Exploitant »).
+            <strong>Aegis Solaire</strong> (ci-après « la Plateforme »), éditée et exploitée par l&apos;entreprise{" "}
+            <strong>INIT42</strong> (Personne physique Nathan Remacle), immatriculée à la Banque-Carrefour des
+            Entreprises sous le numéro <strong>1039.899.980</strong>, TVA intracommunautaire{" "}
+            <strong>BE 1039.899.980</strong> (ci-après « l&apos;Exploitant »).
           </p>
           <p className="mt-3 text-muted-foreground">
             La Plateforme met en relation des entreprises et particuliers à la recherche de solutions
@@ -119,8 +121,17 @@ export default function CGV() {
           </p>
           <ul className="mt-3 list-disc space-y-2 pl-6 text-muted-foreground">
             <li>
-              Les crédits sont achetés par packs via le portail partenaire. Les prix des packs sont
-              affichés sur la page « Crédits » du Dashboard.
+              Les crédits sont achetés par packs via le portail partenaire. Les tarifs des packs sont
+              libellés en Euros Hors Taxe (HTVA). La TVA belge au taux légal de 21 % s&apos;applique
+              à toute commande passée par un partenaire assujetti en Belgique.
+            </li>
+            <li>
+              <strong>Modalités de paiement :</strong> toute commande génère un bon de commande / facture
+              proforma avec référence de virement structurée. Le règlement s&apos;effectue par virement
+              bancaire direct sur le compte professionnel de l&apos;Exploitant (IBAN :{" "}
+              <strong>BE84 0020 3534 7259</strong>, BIC : <strong>GEBABEBB</strong>, titulaire :{" "}
+              <strong>INIT42</strong>). Les crédits sont crédités sur le compte du Partenaire Installateur
+              dès réception et rapprochement comptable du virement.
             </li>
             <li>
               Le coût en crédits de chaque lead est indiqué sur sa fiche avant achat (à titre indicatif :
@@ -333,9 +344,10 @@ export default function CGV() {
         <section className="mb-8">
           <h2 className="text-xl font-semibold text-foreground">12. Droit applicable et litiges</h2>
           <p className="mt-4 text-muted-foreground">
-            Les présentes CGV sont soumises au <strong>droit belge</strong>. En cas de litige, les parties
-            s&apos;engagent à rechercher une solution amiable dans un délai de trente (30) jours. À défaut,
-            les tribunaux de l&apos;arrondissement judiciaire compétent en Belgique seront seuls compétents.
+            Les présentes CGV sont soumises au <strong>droit belge</strong>. En cas de contestation ou de litige,
+            les parties s&apos;engagent à rechercher prioritairement un règlement amiable dans un délai de
+            trente (30) jours. À défaut d&apos;accord amiable, les tribunaux francophones de l&apos;arrondissement
+            judiciaire de <strong>Liège</strong> (Belgique) seront seuls compétents.
           </p>
         </section>
 
@@ -352,19 +364,29 @@ export default function CGV() {
 
         {/* 14. Contact */}
         <section>
-          <h2 className="text-xl font-semibold text-foreground">14. Contact</h2>
+          <h2 className="text-xl font-semibold text-foreground">14. Contact & Éditeur</h2>
           <p className="mt-4 text-muted-foreground">
-            Pour toute question relative aux présentes CGV :
+            Pour toute question relative aux présentes CGV ou aux commandes de crédits :
           </p>
-          <ul className="mt-3 list-none space-y-1 pl-0 text-muted-foreground">
+          <ul className="mt-3 list-none space-y-1.5 pl-0 text-muted-foreground">
+            <li>
+              <strong>Éditeur :</strong> INIT42 (Nathan Remacle, Personne physique)
+            </li>
+            <li>
+              <strong>BCE :</strong> 1039.899.980 | <strong>TVA :</strong> BE 1039.899.980
+            </li>
             <li>
               <strong>E-mail :</strong>{" "}
               <a href="mailto:cgv@aegissolaire.com" className="text-[#001D3D] font-medium hover:underline">
                 cgv@aegissolaire.com
+              </a>{" "}
+              ou{" "}
+              <a href="mailto:contact@aegissolaire.com" className="text-[#001D3D] font-medium hover:underline">
+                contact@aegissolaire.com
               </a>
             </li>
             <li>
-              <strong>Site :</strong>{" "}
+              <strong>Site web :</strong>{" "}
               <a href="https://www.aegissolaire.com" className="text-[#001D3D] font-medium hover:underline">
                 www.aegissolaire.com
               </a>

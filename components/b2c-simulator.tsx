@@ -53,6 +53,7 @@ type B2CFormData = {
   email: string
   phone: string
   marketingConsent: boolean
+  newsletterConsent: boolean
 }
 
 type B2CResults = {
@@ -84,6 +85,7 @@ const INITIAL: B2CFormData = {
   email: "",
   phone: "",
   marketingConsent: false,
+  newsletterConsent: false,
 }
 
 const ROOF_TYPES = [
@@ -311,6 +313,7 @@ export function B2CSimulator() {
           .filter(Boolean)
           .join(" | "),
         marketingConsent: fd.marketingConsent,
+        newsletterConsent: fd.newsletterConsent,
         estimatedROIYears: results.roiYears,
         autoconsumptionRate: results.autoconsumptionRate,
         estimatedSavings: results.annualSavings,
@@ -821,17 +824,32 @@ export function B2CSimulator() {
                     />
                   </div>
 
-                  <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-4 transition-colors hover:bg-muted/40 has-[[data-state=checked]]:border-accent/40 has-[[data-state=checked]]:bg-accent/5">
-                    <Checkbox
-                      checked={fd.marketingConsent}
-                      onCheckedChange={(c) => up("marketingConsent", c === true)}
-                      className="mt-0.5"
-                    />
-                    <span className="text-sm leading-relaxed text-foreground">
-                      J&apos;accepte d&apos;être recontacté par Aegis Solaire et un installateur
-                      RESCERT pour affiner mon étude personnalisée.
-                    </span>
-                  </label>
+                  <div className="space-y-3">
+                    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-4 transition-colors hover:bg-muted/40 has-[[data-state=checked]]:border-accent/40 has-[[data-state=checked]]:bg-accent/5">
+                      <Checkbox
+                        checked={fd.marketingConsent}
+                        onCheckedChange={(c) => up("marketingConsent", c === true)}
+                        className="mt-0.5"
+                      />
+                      <span className="text-sm leading-relaxed text-foreground">
+                        <strong className="font-semibold text-foreground">Devis comparatifs (obligatoire) :</strong>{" "}
+                        J&apos;accepte d&apos;être recontacté par un maximum de trois (3) installateurs partenaires
+                        certifiés RESCERT en Wallonie sélectionnés par Aegis Solaire pour recevoir des offres sans engagement.
+                      </span>
+                    </label>
+
+                    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-4 transition-colors hover:bg-muted/40 has-[[data-state=checked]]:border-accent/40 has-[[data-state=checked]]:bg-accent/5">
+                      <Checkbox
+                        checked={fd.newsletterConsent}
+                        onCheckedChange={(c) => up("newsletterConsent", c === true)}
+                        className="mt-0.5"
+                      />
+                      <span className="text-sm leading-relaxed text-muted-foreground">
+                        <strong className="font-medium text-foreground">Guides & conseils solaires (optionnel) :</strong>{" "}
+                        J&apos;accepte de recevoir par e-mail les actualités sur les primes régionales, les tarifs injection et les guides photovoltaïques d&apos;Aegis Solaire.
+                      </span>
+                    </label>
+                  </div>
 
                   <div className="rounded-lg border border-border bg-muted/50 p-4 text-xs text-muted-foreground">
                     <p className="font-medium text-foreground">Conformité RGPD</p>

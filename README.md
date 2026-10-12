@@ -1,47 +1,71 @@
 # Aegis Solaire
 
-Plateforme de mise en relation (lead generation) dédiée au photovoltaïque B2B en Wallonie : obligations PEB, Certificats Verts, rentabilité entreprises et mise en relation avec des installateurs RESCERT Photovoltaïque.
+Plateforme de **génération et mise en relation de leads photovoltaïques** en Wallonie. Cible les décideurs B2B (DAF, RSE, dirigeants) soumis aux obligations PEB, Plan PACE 2030 et Directive UE 2024/1275, ainsi que les particuliers wallons. Les leads qualifiés sont distribués à un réseau d'installateurs RESCERT Photovoltaïque via une **marketplace avec système de crédits**.
 
-**→ Fonctionnement détaillé, déploiement (Vercel / Digital Ocean) et architecture : voir [DOCUMENTATION.md](./DOCUMENTATION.md).** Ce fichier est tenu à jour à chaque modification ou ajout sur le site.
+---
+
+## Documentation
+
+| Fichier | Contenu |
+|---------|---------|
+| **[docs/FONCTIONNEMENT-SITE.md](./docs/FONCTIONNEMENT-SITE.md)** | **Référence principale** — parcours B2B, B2C, webinaire, marketplace partenaires, marketeurs, panel admin, base de données, sécurité, variables d'environnement |
+| [docs/DIRECTION-ARTISTIQUE.md](./docs/DIRECTION-ARTISTIQUE.md) | Palette, typographie, composants, règles d'or UI |
+| [docs/GUIDE-CONFIGURATION.md](./docs/GUIDE-CONFIGURATION.md) | Mise en production pas à pas : Supabase, .env, Vercel, compte admin |
+| [docs/GUIDE-EMAILS-GRATUITS.md](./docs/GUIDE-EMAILS-GRATUITS.md) | Intégration Resend / Brevo pour les e-mails transactionnels |
+| [docs/CALCULATEUR-ROI.md](./docs/CALCULATEUR-ROI.md) | Formules et messages du simulateur ROI (simulateur B2B) |
+| [docs/PLAN-ADMIN.md](./docs/PLAN-ADMIN.md) | Architecture et phases du panel admin |
+| [docs/PLAN-FACTURATION-INSTALLATEURS.md](./docs/PLAN-FACTURATION-INSTALLATEURS.md) | Options de facturation des leads aux installateurs |
+| [DOCUMENTATION.md](./DOCUMENTATION.md) | Stack technique, déploiement, variables d'environnement (complément) |
+| [emails/GUIDE-CAMPAGNE.md](./emails/GUIDE-CAMPAGNE.md) | Guide de campagne outreach installateurs & media buyers |
+
+---
 
 ## Stack technique
 
-- **Framework** : Next.js 16 (App Router), React 19, TypeScript
-- **UI** : Tailwind CSS 4, composants Shadcn/UI
-- **Backend** : Supabase (PostgreSQL) pour les leads
-- **Analytics** : Vercel Analytics
+| Couche | Technologie |
+|--------|-------------|
+| Framework | Next.js 16 (App Router), React 19, TypeScript |
+| Styles | Tailwind CSS 4, Shadcn/UI (Radix), `tw-animate-css` |
+| Animations | Framer Motion |
+| Base de données / Auth | Supabase (PostgreSQL, RLS, Auth JWT) |
+| E-mails transactionnels | Resend (via `RESEND_API_KEY`) |
+| Rate limiting | Upstash Redis (`@upstash/ratelimit`) |
+| Analytics | Vercel Analytics |
+| Hébergement | Vercel |
 
-## Démarrage
+---
+
+## Démarrage local
 
 ```bash
 pnpm install
+# Copier .env.local (voir docs/GUIDE-CONFIGURATION.md pour les variables obligatoires)
 pnpm dev
 ```
 
 Ouvrir [http://localhost:3000](http://localhost:3000).
 
-## Structure
+---
 
-- `app/` — Pages et routes (landing, mentions légales, politique de confidentialité, CGV, API leads)
-- `components/` — Header, Footer, Hero, Simulateur ROI multi-étapes, Expert, Témoignages
-- `lib/` — Utilitaires, client/serveur Supabase
-- `scripts/` — SQL création table `leads`
+## Structure du projet
 
-## Fonctionnalités
+```
+app/              Pages, layouts, routes API (App Router)
+components/       Composants marketing, simulateurs, admin-nav, UI
+lib/              Auth, schémas Zod, scoring, rate-limit, Supabase
+scripts/          Scripts SQL à exécuter manuellement dans Supabase
+docs/             Documentation et guides
+emails/           Templates HTML outreach + guide de campagne
+public/           Assets statiques (logo, images, robots.txt, llms.txt)
+styles/           globals.css
+```
 
-- **Landing** : Hero, avantages, expertise, témoignages, CTA vers simulateur
-- **Simulateur ROI** : Formulaire multi-étapes (type de surface, surface, facture annuelle, calcul ROI, capture lead avec consentement RGPD)
-- **API** : `POST /api/leads` — enregistrement lead + préparation webhook CRM
-- **SEO** : métadonnées, sitemap, robots, JSON-LD (Organization, WebSite)
-- **RGPD** : consentement explicite, mentions sous formulaire, politique de confidentialité, droit d’opposition/suppression
+---
 
-## Variables d'environnement
+## Commandes
 
-- `NEXT_PUBLIC_SITE_URL` — URL canonique du site (ex. `https://www.aegissolaire.com`) pour SEO et liens absolus
-- Variables Supabase : voir `lib/supabase/client.ts` et `lib/supabase/server.ts`
-
-## Ressources
-
-- [Documentation Next.js](https://nextjs.org/docs)
-- [Shadcn/UI](https://ui.shadcn.com)
-- [Supabase](https://supabase.com/docs)
+```bash
+pnpm dev      # Serveur de développement
+pnpm build    # Build de production
+pnpm lint     # ESLint
+```

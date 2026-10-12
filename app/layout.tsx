@@ -81,8 +81,34 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="fr-BE">
-      <body className={`${inter.variable} ${dmSans.variable} font-sans antialiased overflow-x-hidden min-w-0`}>
+    <html lang="fr-BE" suppressHydrationWarning>
+      <head>
+        {/* Ignore browser extension errors (e.g. Bitdefender Anti-Tracker eppiocemhmnlbhjplcgkofciiegomcon) from triggering the Next.js dev overlay */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                if (typeof window === 'undefined') return;
+                window.addEventListener('error', function(e) {
+                  if (e.filename && e.filename.startsWith('chrome-extension://')) {
+                    e.stopImmediatePropagation();
+                  }
+                }, true);
+                window.addEventListener('unhandledrejection', function(e) {
+                  var reason = e.reason;
+                  if (reason && ((reason.stack && reason.stack.indexOf('chrome-extension://') !== -1) || (reason.message && reason.message.indexOf('chrome-extension://') !== -1))) {
+                    e.stopImmediatePropagation();
+                  }
+                }, true);
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body
+        suppressHydrationWarning
+        className={`${inter.variable} ${dmSans.variable} font-sans antialiased overflow-x-hidden min-w-0`}
+      >
         <StructuredData />
         <Suspense fallback={null}>
           <MediaPartnerRefTracker />

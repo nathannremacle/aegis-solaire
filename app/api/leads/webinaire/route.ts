@@ -15,7 +15,15 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    if (!checkRateLimit(request)) {
+    // Honeypot anti-spam : si rempli, simuler le succès sans insérer
+    if (body.fax_number != null && String(body.fax_number).trim() !== "") {
+      return NextResponse.json({
+        success: true,
+        message: "Merci. Accédez au replay ci-dessous.",
+      })
+    }
+
+    if (!(await checkRateLimit(request))) {
       return NextResponse.json(
         { error: "Trop de demandes. Veuillez réessayer dans une heure." },
         { status: 429 }
@@ -39,6 +47,7 @@ export async function POST(request: NextRequest) {
     const job_title = sanitizeString(data.jobTitle)
     const email = data.email.toLowerCase().trim()
     const company = data.companyName ? sanitizeString(data.companyName, 255) : null
+    const marketingConsent = body.marketingConsent === true
 
     const supabase = createServiceRoleClient()
     const consentDate = new Date()
@@ -63,11 +72,14 @@ export async function POST(request: NextRequest) {
         estimated_roi_years: null,
         autoconsumption_rate: null,
         estimated_savings: null,
-        marketing_consent: true,
-        consent_date: consentDate.toISOString(),
+        // Consentement réel et strict
+        marketing_consent: marketingConsent,
+        consent_date: marketingConsent ? consentDate.toISOString() : null,
         data_retention_until: dataRetentionUntil.toISOString(),
         source: WEBINAIRE_SOURCE,
         status: "new",
+        // CRITIQUE : lead webinaire strictement non commercialisable
+        marketplace_status: "rejected",
         lead_score: null,
         wants_irve: false,
       })

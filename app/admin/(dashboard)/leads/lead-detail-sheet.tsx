@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sheet"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -89,6 +90,7 @@ type Lead = {
   media_partner_code?: string | null
   company_vat?: string | null
   grd?: string | null
+  admin_notes?: string | null
   created_at: string
   updated_at?: string
 }
@@ -107,6 +109,9 @@ export function LeadDetailSheet({
   const [installateurs, setInstallateurs] = useState<Installateur[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [noteSaving, setNoteSaving] = useState(false)
+  const [notesUpdated, setNotesUpdated] = useState(false)
+  const [notes, setNotes] = useState("")
   const open = !!leadId
 
   useEffect(() => {
@@ -125,7 +130,10 @@ export function LeadDetailSheet({
           if (!res.ok) throw new Error("Lead introuvable")
           return res.json()
         })
-        .then((data: Lead) => setLead(data))
+        .then((data: Lead) => {
+          setLead(data)
+          setNotes(data.admin_notes ?? "")
+        })
         .catch(() => {
           toast.error("Impossible de charger le lead")
           onClose()
@@ -143,6 +151,36 @@ export function LeadDetailSheet({
       .then((data: Installateur[]) => setInstallateurs(data))
       .catch(() => setInstallateurs([]))
   }, [open])
+
+  useEffect(() => {
+    if (!lead || notes === (lead.admin_notes ?? "")) return
+    
+    setNoteSaving(true)
+    const timeout = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/admin/leads/${lead.id}`, {
+          method: "PATCH",
+          headers: { 
+            "Content-Type": "application/json",
+            "x-admin-request": "true"
+          },
+          body: JSON.stringify({ admin_notes: notes }),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setLead((prev) => (prev ? { ...prev, admin_notes: data.admin_notes } : null))
+          setNotesUpdated(true)
+          setTimeout(() => setNotesUpdated(false), 2000)
+        }
+      } catch {
+        // fail silently for auto-save, could add a toast on error
+      } finally {
+        setNoteSaving(false)
+      }
+    }, 1000)
+
+    return () => clearTimeout(timeout)
+  }, [notes, lead?.id])
 
   async function handleStatusChange(value: string) {
     if (!lead || value === lead.status) return
@@ -228,11 +266,11 @@ export function LeadDetailSheet({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="new">Nouveau</SelectItem>
-                    <SelectItem value="contacted">Contacté</SelectItem>
-                    <SelectItem value="qualified">Qualifié</SelectItem>
-                    <SelectItem value="converted">Converti</SelectItem>
-                    <SelectItem value="lost">Perdu</SelectItem>
-                    <SelectItem value="HOT_LEAD">Lead chaud</SelectItem>
+                    <SelectItem value="contacted">En attente client</SelectItem>
+                    <SelectItem value="qualified">Validé (Marketplace)</SelectItem>
+                    <SelectItem value="converted">Assigné (Direct)</SelectItem>
+                    <SelectItem value="lost">Rejeté / Spam</SelectItem>
+                    <SelectItem value="HOT_LEAD">Urgent</SelectItem>
                     <SelectItem value="NEEDS_HUMAN_REVIEW">À contrôler</SelectItem>
                   </SelectContent>
                 </Select>
@@ -265,21 +303,36 @@ export function LeadDetailSheet({
                   <NotifyInstallateurButton leadId={lead.id} className="mt-2" />
                 )}
               </div>
+              <div className="pt-2">
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-muted-foreground block text-xs uppercase tracking-wider font-semibold">Notes internes</Label>
+                  <div className="flex items-center gap-1.5 h-4">
+                    {noteSaving && <span className="text-[10px] text-muted-foreground animate-pulse font-medium">Enregistrement...</span>}
+                    {notesUpdated && !noteSaving && <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-0.5">✓ Sauvegardé</span>}
+                  </div>
+                </div>
+                <Textarea
+                  placeholder="Appel du 04/05 : prospect très intéressé..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className="min-h-[100px] text-sm resize-y"
+                />
+              </div>
             </div>
 
             {/* Segment & Attribution */}
             <div className="flex flex-wrap gap-2">
               {lead.segment && (
-                <span className={`rounded px-2 py-0.5 text-xs font-bold ${lead.segment === "B2C" ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"}`}>
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${lead.segment === "B2C" ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"}`}>
                   {lead.segment}
                 </span>
               )}
               {lead.province && (
-                <span className="rounded bg-muted px-2 py-0.5 text-xs capitalize text-muted-foreground">{lead.province.replace("_", " ")}</span>
+                <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:bg-slate-800 dark:text-slate-400">{lead.province.replace("_", " ")}</span>
               )}
               {lead.media_partner_code && (
-                <span className="rounded bg-purple-100 px-2 py-0.5 font-mono text-xs text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
-                  Marketeur: {lead.media_partner_code}
+                <span className="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                  Ref: {lead.media_partner_code}
                 </span>
               )}
             </div>

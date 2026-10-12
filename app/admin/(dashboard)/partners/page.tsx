@@ -13,7 +13,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { Zap, CreditCard, ShoppingCart, Plus } from "lucide-react"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Zap, CreditCard, ShoppingCart, Plus, Eye } from "lucide-react"
 
 type Partner = {
   id: string
@@ -37,6 +38,9 @@ export default function AdminPartnersPage() {
   const [creditModal, setCreditModal] = useState<Partner | null>(null)
   const [creditAmount, setCreditAmount] = useState(10)
   const [saving, setSaving] = useState(false)
+  const [purchasesModal, setPurchasesModal] = useState<Partner | null>(null)
+  const [purchasesData, setPurchasesData] = useState<any[]>([])
+  const [loadingPurchases, setLoadingPurchases] = useState(false)
 
   useEffect(() => {
     fetch("/api/admin/partners", { headers: { "x-admin-request": "true" } })
@@ -68,6 +72,22 @@ export default function AdminPartnersPage() {
       toast.error(err instanceof Error ? err.message : "Erreur")
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function openPurchases(partner: Partner) {
+    if (partner.stats.leadsPurchased === 0) return
+    setPurchasesModal(partner)
+    setLoadingPurchases(true)
+    setPurchasesData([])
+    try {
+      const res = await fetch(`/api/admin/partners/${partner.id}/purchases`, { headers: { "x-admin-request": "true" } })
+      const data = await res.json()
+      setPurchasesData(data)
+    } catch {
+      toast.error("Impossible de charger les achats")
+    } finally {
+      setLoadingPurchases(false)
     }
   }
 
@@ -123,7 +143,16 @@ export default function AdminPartnersPage() {
                   <td className="px-4 py-3 text-right">
                     <span className="font-bold tabular-nums">{p.credits}</span>
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">{p.stats.leadsPurchased}</td>
+                  <td className="px-4 py-3 text-right">
+                    {p.stats.leadsPurchased > 0 ? (
+                      <Button variant="ghost" className="h-8 gap-2 px-2 hover:bg-muted" onClick={() => openPurchases(p)}>
+                        <span className="tabular-nums font-semibold">{p.stats.leadsPurchased}</span>
+                        <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                      </Button>
+                    ) : (
+                      <span className="tabular-nums text-muted-foreground mr-6">{p.stats.leadsPurchased}</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-right tabular-nums">{p.stats.creditsSpent}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{p.stats.creditsTopupped}</td>
                   <td className="px-4 py-3 text-right">
@@ -170,6 +199,60 @@ export default function AdminPartnersPage() {
                 {saving ? "Ajout…" : `Ajouter ${creditAmount} crédits`}
               </Button>
             </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
+
+      <Dialog open={!!purchasesModal} onOpenChange={(o) => !o && setPurchasesModal(null)}>
+        {purchasesModal && (
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Leads achetés par {purchasesModal.company_name}</DialogTitle>
+            </DialogHeader>
+            <ScrollArea className="max-h-[60vh]">
+              {loadingPurchases ? (
+                <p className="p-4 text-center text-muted-foreground">Chargement des achats...</p>
+              ) : purchasesData.length === 0 ? (
+                <p className="p-4 text-center text-muted-foreground">Aucun achat ou une erreur est survenue.</p>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/50">
+                      <th className="px-4 py-2 text-left font-medium sticky top-0 bg-muted/95 backdrop-blur z-10">Date d'achat</th>
+                      <th className="px-4 py-2 text-left font-medium sticky top-0 bg-muted/95 backdrop-blur z-10">Lead</th>
+                      <th className="px-4 py-2 text-left font-medium sticky top-0 bg-muted/95 backdrop-blur z-10">Segment</th>
+                      <th className="px-4 py-2 text-left font-medium sticky top-0 bg-muted/95 backdrop-blur z-10">Détails</th>
+                      <th className="px-4 py-2 text-right font-medium sticky top-0 bg-muted/95 backdrop-blur z-10">Crédits</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {purchasesData.map((p, i) => {
+                      const l = p.lead
+                      return (
+                        <tr key={i} className="border-b border-border hover:bg-muted/50">
+                          <td className="px-4 py-2 text-muted-foreground">
+                            {new Date(p.purchased_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          </td>
+                          <td className="px-4 py-2">
+                            <div className="font-medium">{l?.first_name} {l?.last_name || l?.email?.split('@')[0]}</div>
+                            <div className="text-xs text-muted-foreground">{l?.email}</div>
+                          </td>
+                          <td className="px-4 py-2">
+                            <Badge variant="outline" className="text-[10px]">{l?.segment ?? "B2B"}</Badge>
+                          </td>
+                          <td className="px-4 py-2 text-muted-foreground">
+                            {l?.province?.replace("_", " ") ?? "—"} · {l?.surface_area}m²
+                          </td>
+                          <td className="px-4 py-2 text-right font-bold text-amber-600">
+                            -{p.credits_spent}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </ScrollArea>
           </DialogContent>
         )}
       </Dialog>

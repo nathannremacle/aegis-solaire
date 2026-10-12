@@ -50,6 +50,7 @@ export const leadSubmitSchema = z.object({
   marketingConsent: z
     .boolean()
     .refine((v) => v === true, { message: "Le consentement est requis pour transmettre votre demande." }),
+  newsletterConsent: z.boolean().optional(),
 
   projectDetails: z
     .string()

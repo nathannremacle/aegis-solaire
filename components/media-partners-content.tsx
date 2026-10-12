@@ -22,21 +22,23 @@ import { MediaPartnerApplicationForm } from "@/components/media-partner-applicat
 import { ProgressiveHeroBackground } from "@/components/progressive-image"
 import { heroImages } from "@/lib/optimized-images"
 
-const fadeUp = {
+import type { Variants } from "framer-motion"
+
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 30 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.12, duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] },
+    transition: { delay: i * 0.12, duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] as const },
   }),
 }
 
-const scaleIn = {
+const scaleIn: Variants = {
   hidden: { opacity: 0, scale: 0.96 },
   visible: (i: number) => ({
     opacity: 1,
     scale: 1,
-    transition: { delay: i * 0.1, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] },
+    transition: { delay: i * 0.1, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const },
   }),
 }
 

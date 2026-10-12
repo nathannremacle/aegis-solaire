@@ -1,11 +1,20 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback, useEffect, useTransition } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
+import { cn } from "@/lib/utils"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Search, MoreHorizontal, Trash2, UserPlus, CheckCircle2, XCircle } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -28,6 +37,7 @@ type LeadFilters = {
   surfaceMin: string
   surfaceType: string
   region: string
+  segment: string
 }
 
 type Lead = {
@@ -93,6 +103,7 @@ function buildLeadsUrl(params: {
   surface_min?: string
   surface_type?: string
   region?: string
+  segment?: string
 }) {
   const q = new URLSearchParams()
   if (params.page && params.page > 1) q.set("page", String(params.page))
@@ -105,6 +116,7 @@ function buildLeadsUrl(params: {
   if (params.surface_min) q.set("surface_min", params.surface_min)
   if (params.surface_type) q.set("surface_type", params.surface_type)
   if (params.region) q.set("region", params.region)
+  if (params.segment && params.segment !== "all") q.set("segment", params.segment)
   const s = q.toString()
   return s ? `/admin/leads?${s}` : "/admin/leads"
 }
@@ -119,6 +131,7 @@ function filtersToParams(f: LeadFilters) {
     surface_min: f.surfaceMin || undefined,
     surface_type: f.surfaceType || undefined,
     region: f.region || undefined,
+    segment: f.segment && f.segment !== "all" ? f.segment : undefined,
   }
 }
 
@@ -144,16 +157,83 @@ export function LeadsTable({
   currentLeadFromList?: Lead | null
 }) {
   const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [exporting, setExporting] = useState(false)
+  const [bulkLoading, setBulkLoading] = useState(false)
+  const [searchTerm, setSearchTerm] = useState(filters.search)
+
   const totalPages = Math.ceil(total / limit) || 1
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm !== filters.search) {
+        applyParams({ search: searchTerm, page: 1 })
+      }
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  function toggleAll() {
+    if (selectedIds.size === leads.length && leads.length > 0) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(leads.map(l => l.id)))
+    }
+  }
+
+  function toggleOne(id: string) {
+    const next = new Set(selectedIds)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    setSelectedIds(next)
+  }
+
+  async function handleBulkAction(updates: any) {
+    if (selectedIds.size === 0) return
+    setBulkLoading(true)
+    try {
+      const res = await fetch("/api/admin/leads/bulk", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
+        body: JSON.stringify({ ids: Array.from(selectedIds), updates })
+      })
+      if (!res.ok) throw new Error("Erreur bulk update")
+      toast.success(`${selectedIds.size} leads mis à jour`)
+      setSelectedIds(new Set())
+      router.refresh()
+    } catch (e) {
+      toast.error("Échec de l'action groupée")
+    } finally {
+      setBulkLoading(false)
+    }
+  }
+
+  async function handleBulkDelete() {
+    if (selectedIds.size === 0) return
+    if (!confirm(`Supprimer ces ${selectedIds.size} leads ? Action irréversible.`)) return
+    setBulkLoading(true)
+    try {
+      const res = await fetch("/api/admin/leads/bulk", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
+        body: JSON.stringify({ ids: Array.from(selectedIds) })
+      })
+      if (!res.ok) throw new Error("Erreur bulk delete")
+      toast.success(`${selectedIds.size} leads supprimés`)
+      setSelectedIds(new Set())
+      router.refresh()
+    } catch (e) {
+      toast.error("Échec de la suppression")
+    } finally {
+      setBulkLoading(false)
+    }
+  }
+
   const baseUrlParams = () => ({
     ...filtersToParams(filters),
     page,
   })
-
-  function getInstallateurName(id: string | null | undefined): string {
-    if (!id) return "–"
-    return installateurs.find((i) => i.id === id)?.name ?? "–"
-  }
 
   function openLeadDetail(id: string) {
     router.push(buildLeadsUrl({ ...baseUrlParams(), leadId: id }))
@@ -175,226 +255,143 @@ export function LeadsTable({
     if (p.surfaceMin) q.set("surface_min", p.surfaceMin)
     if (p.surfaceType) q.set("surface_type", p.surfaceType)
     if (p.region) q.set("region", p.region)
-    router.push(`/admin/leads?${q.toString()}`)
+    if (p.segment && p.segment !== "all") q.set("segment", p.segment)
+    
+    startTransition(() => {
+      router.push(`/admin/leads?${q.toString()}`, { scroll: false })
+    })
   }
 
-  function onStatusChange(value: string) {
-    applyParams({ status: value, page: 1 })
-  }
-
-  function onInstallateurChange(value: string) {
-    applyParams({ installateurId: value, page: 1 })
-  }
-
-  function onSearch(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const form = e.currentTarget
-    const email = (form.elements.namedItem("search") as HTMLInputElement)?.value?.trim()
-    applyParams({ search: email ?? "", page: 1 })
-  }
-
-  function onAdvancedFilters(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const form = e.currentTarget
-    const dateFrom = (form.elements.namedItem("date_from") as HTMLInputElement)?.value ?? ""
-    const dateTo = (form.elements.namedItem("date_to") as HTMLInputElement)?.value ?? ""
-    const surfaceMin = (form.elements.namedItem("surface_min") as HTMLInputElement)?.value ?? ""
-    const surfaceType = (form.elements.namedItem("surface_type") as HTMLSelectElement)?.value ?? ""
-    const region = (form.elements.namedItem("region") as HTMLSelectElement)?.value ?? ""
-    applyParams({ dateFrom, dateTo, surfaceMin, surfaceType, region, page: 1 })
-  }
-
-  const exportCsvUrl = () => {
-    const params = new URLSearchParams()
-    if (filters.status && filters.status !== "all") params.set("status", filters.status)
-    if (filters.installateurId && filters.installateurId !== "all") params.set("installateur", filters.installateurId)
-    if (filters.search) params.set("search", filters.search)
-    if (filters.dateFrom) params.set("date_from", filters.dateFrom)
-    if (filters.dateTo) params.set("date_to", filters.dateTo)
-    if (filters.surfaceMin) params.set("surface_min", filters.surfaceMin)
-    if (filters.surfaceType) params.set("surface_type", filters.surfaceType)
-    if (filters.region) params.set("region", filters.region)
-    return `/api/admin/leads/export?${params.toString()}`
-  }
-
-  function paginationQueryForPage(pageNum: number) {
-    const q = new URLSearchParams()
-    q.set("page", String(pageNum))
-    if (filters.status && filters.status !== "all") q.set("status", filters.status)
-    if (filters.installateurId && filters.installateurId !== "all") q.set("installateur", filters.installateurId)
-    if (filters.search) q.set("search", filters.search)
-    if (filters.dateFrom) q.set("date_from", filters.dateFrom)
-    if (filters.dateTo) q.set("date_to", filters.dateTo)
-    if (filters.surfaceMin) q.set("surface_min", filters.surfaceMin)
-    if (filters.surfaceType) q.set("surface_type", filters.surfaceType)
-    if (filters.region) q.set("region", filters.region)
-    return q.toString()
+  async function handleExportCsv() {
+    setExporting(true)
+    try {
+      const q = new URLSearchParams()
+      if (filters.status && filters.status !== "all") q.set("status", filters.status)
+      if (filters.installateurId && filters.installateurId !== "all") q.set("installateur", filters.installateurId)
+      if (filters.search) q.set("search", filters.search)
+      if (filters.dateFrom) q.set("date_from", filters.dateFrom)
+      if (filters.dateTo) q.set("date_to", filters.dateTo)
+      if (filters.surfaceMin) q.set("surface_min", filters.surfaceMin)
+      if (filters.surfaceType) q.set("surface_type", filters.surfaceType)
+      if (filters.region) q.set("region", filters.region)
+      if (filters.segment && filters.segment !== "all") q.set("segment", filters.segment)
+      
+      const res = await fetch(`/api/admin/leads/export?${q.toString()}`, { headers: { "x-admin-request": "true" } })
+      if (!res.ok) throw new Error("Erreur export")
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `leads_export_${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      toast.success("Export terminé")
+    } catch {
+      toast.error("Échec de l'export")
+    } finally {
+      setExporting(false)
+    }
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-4">
-        <form onSubmit={onSearch} className="flex gap-2">
+    <div className="space-y-4 relative">
+      <div className="flex flex-wrap items-center gap-4 transition-all duration-300">
+        <div className="relative group flex-1 min-w-[300px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input
-            name="search"
-            placeholder="Rechercher par email..."
-            className="w-48"
-            defaultValue={filters.search}
+            placeholder="Recherche instantanée..."
+            className="pl-9 bg-muted/30 focus:bg-background transition-colors h-10 border-border/60"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <Button type="submit" variant="secondary">Rechercher</Button>
-        </form>
-        <Select value={filters.status || "all"} onValueChange={onStatusChange}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Statut" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tous</SelectItem>
-            <SelectItem value="new">Nouveau</SelectItem>
-            <SelectItem value="contacted">Contacté</SelectItem>
-            <SelectItem value="qualified">Qualifié</SelectItem>
-            <SelectItem value="converted">Converti</SelectItem>
-            <SelectItem value="lost">Perdu</SelectItem>
-            <SelectItem value="HOT_LEAD">Lead chaud</SelectItem>
-            <SelectItem value="NEEDS_HUMAN_REVIEW">À contrôler</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={filters.installateurId || "all"} onValueChange={onInstallateurChange}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Installateur" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tous les installateurs</SelectItem>
-            {installateurs.map((i) => (
-              <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <a href={exportCsvUrl()} target="_blank" rel="noopener noreferrer">
-          <Button variant="outline" size="sm">Exporter CSV</Button>
-        </a>
-        <CleanupLeadsButton />
-      </div>
+        </div>
 
-      {/* Filtres avancés : date, surface, région */}
-      <form onSubmit={onAdvancedFilters} className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-muted/30 p-3">
-        <span className="text-sm font-medium text-foreground w-full sm:w-auto">Filtres avancés</span>
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="text-muted-foreground">Du</span>
-          <Input
-            type="date"
-            name="date_from"
-            className="h-8 w-36"
-            defaultValue={filters.dateFrom}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="text-muted-foreground">Au</span>
-          <Input
-            type="date"
-            name="date_to"
-            className="h-8 w-36"
-            defaultValue={filters.dateTo}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="text-muted-foreground">Surface min (m²)</span>
-          <Input
-            type="number"
-            name="surface_min"
-            min={0}
-            placeholder="500"
-            className="h-8 w-24"
-            defaultValue={filters.surfaceMin}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="text-muted-foreground">Type surface</span>
-          <select
-            name="surface_type"
-            className="h-8 w-32 rounded-md border border-input bg-transparent px-2 text-sm"
-            defaultValue={filters.surfaceType}
-          >
-            <option value="">Tous</option>
-            <option value="toiture">Toiture</option>
-            <option value="parking">Parking</option>
-            <option value="friche">Friche</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="text-muted-foreground">Région installateur</span>
-          <select
-            name="region"
-            className="h-8 w-40 rounded-md border border-input bg-transparent px-2 text-sm"
-            defaultValue={filters.region}
-          >
-            <option value="">Toutes</option>
-            {regions.map((r) => (
-              <option key={r} value={r}>{r}</option>
-            ))}
-          </select>
-        </label>
-        <Button type="submit" variant="secondary" size="sm">Appliquer</Button>
-      </form>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={filters.status || "all"} onValueChange={(v) => applyParams({ status: v, page: 1 })}>
+            <SelectTrigger className="w-40 h-10">
+              <SelectValue placeholder="Statut" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous</SelectItem>
+              <SelectItem value="new">Nouveau</SelectItem>
+              <SelectItem value="contacted">En attente client</SelectItem>
+              <SelectItem value="qualified">Validé (Marketplace)</SelectItem>
+              <SelectItem value="converted">Assigné (Direct)</SelectItem>
+              <SelectItem value="lost">Rejeté / Spam</SelectItem>
+              <SelectItem value="HOT_LEAD">Urgent</SelectItem>
+              <SelectItem value="NEEDS_HUMAN_REVIEW">À contrôler</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="ml-auto flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={exporting}>
+              {exporting ? "Export..." : "Exporter CSV"}
+            </Button>
+            <CleanupLeadsButton />
+          </div>
+        </div>
+      </div>
 
       <div className="overflow-x-auto rounded-xl border border-border">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/50">
+              <th className="w-10 px-4 py-3">
+                <Checkbox 
+                  checked={selectedIds.size === leads.length && leads.length > 0} 
+                  onCheckedChange={toggleAll}
+                />
+              </th>
               <th className="px-4 py-3 text-left font-medium">Date</th>
-              <th className="px-4 py-3 text-left font-medium">Nom</th>
-              <th className="px-4 py-3 text-left font-medium">Email</th>
-              <th className="px-4 py-3 text-left font-medium">Seg.</th>
-              <th className="px-4 py-3 text-left font-medium">Province</th>
-              <th className="px-4 py-3 text-left font-medium">Entreprise</th>
-              <th className="px-4 py-3 text-left font-medium">Surface</th>
-              <th className="px-4 py-3 text-left font-medium">Facture</th>
-              <th className="px-4 py-3 text-left font-medium">Source</th>
-              <th className="px-4 py-3 text-left font-medium">Score</th>
+              <th className="px-4 py-3 text-left font-medium">Lead</th>
+              <th className="px-4 py-3 text-left font-medium text-center">Infos</th>
+              <th className="px-4 py-3 text-left font-medium">Réactivité</th>
               <th className="px-4 py-3 text-left font-medium">Statut</th>
+              <th className="w-10"></th>
             </tr>
           </thead>
           <tbody>
             {leads.length === 0 ? (
-              <tr>
-                <td colSpan={11} className="px-4 py-8 text-center text-muted-foreground">
-                  Aucun lead.
-                </td>
-              </tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground italic">Aucun résultat.</td></tr>
             ) : (
               leads.map((lead) => (
                 <tr
                   key={lead.id}
-                  className="cursor-pointer border-b border-border transition-colors hover:bg-muted/50"
+                  className={cn(
+                    "cursor-pointer border-b border-border transition-all group/row",
+                    selectedIds.has(lead.id) ? "bg-primary/[0.03]" : "hover:bg-muted/40"
+                  )}
                   onClick={() => openLeadDetail(lead.id)}
                 >
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {new Date(lead.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox checked={selectedIds.has(lead.id)} onCheckedChange={() => toggleOne(lead.id)} />
                   </td>
-                  <td className="px-4 py-3 font-medium">{lead.first_name}{lead.last_name ? ` ${lead.last_name}` : ""}</td>
-                  <td className="px-4 py-3">{lead.email}</td>
+                  <td className="px-4 py-3 text-[11px] text-muted-foreground">
+                    {new Date(lead.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="font-semibold">{lead.first_name} {lead.last_name}</div>
+                    <div className="text-[10px] text-muted-foreground">{lead.email}</div>
+                  </td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold ${lead.segment === "B2C" ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"}`}>
-                      {lead.segment ?? "B2B"}
-                    </span>
+                    <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded uppercase font-bold">{lead.segment ?? "B2B"}</span>
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground capitalize text-xs">{lead.province?.replace("_", " ") ?? "–"}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{lead.company ?? "–"}</td>
-                  <td className="px-4 py-3">
-                    {lead.surface_area != null && lead.surface_type ? `${lead.surface_area} m² (${lead.surface_type})` : "–"}
+                  <td className="px-4 py-3 font-mono text-[10px]">
+                    {lead.status === "new" ? `${Math.floor((new Date().getTime() - new Date(lead.created_at).getTime()) / (1000 * 60 * 60))}h` : "-"}
                   </td>
-                  <td className="px-4 py-3">
-                    {lead.annual_electricity_bill != null ? `${lead.annual_electricity_bill.toLocaleString("fr-FR")} €` : "–"}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">
-                    {lead.media_partner_code ? (
-                      <span className="rounded bg-purple-100 px-1.5 py-0.5 font-mono text-[10px] text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">ref:{lead.media_partner_code}</span>
-                    ) : "Direct"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <LeadScoreBadge score={lead.lead_score} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <LeadStatusBadge status={lead.status} />
+                  <td className="px-4 py-3"><LeadStatusBadge status={lead.status} /></td>
+                  <td className="px-2" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover/row:opacity-100"><MoreHorizontal className="h-4 w-4" /></Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleBulkAction({ status: "qualified" })}>Valider</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleBulkAction({ status: "lost" })}>Rejeter</DropdownMenuItem>
+                        <DropdownMenuItem className="text-red-600" onClick={() => { setSelectedIds(new Set([lead.id])); handleBulkDelete(); }}>Supprimer</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               ))
@@ -404,21 +401,11 @@ export function LeadsTable({
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            {total} lead{total !== 1 ? "s" : ""} · page {page} / {totalPages}
-          </p>
+        <div className="flex items-center justify-between py-4">
+          <p className="text-xs text-muted-foreground">{total} leads · page {page}/{totalPages}</p>
           <div className="flex gap-2">
-            <Link
-              href={page > 1 ? `/admin/leads?${paginationQueryForPage(page - 1)}` : "#"}
-            >
-              <Button variant="outline" size="sm" disabled={page <= 1}>Précédent</Button>
-            </Link>
-            <Link
-              href={page < totalPages ? `/admin/leads?${paginationQueryForPage(page + 1)}` : "#"}
-            >
-              <Button variant="outline" size="sm" disabled={page >= totalPages}>Suivant</Button>
-            </Link>
+            <Button variant="outline" size="sm" onClick={() => applyParams({ page: page - 1 })} disabled={page <= 1}>Précédent</Button>
+            <Button variant="outline" size="sm" onClick={() => applyParams({ page: page + 1 })} disabled={page >= totalPages}>Suivant</Button>
           </div>
         </div>
       )}
@@ -428,6 +415,17 @@ export function LeadsTable({
         onClose={closeLeadDetail}
         currentLeadFromList={currentLeadFromList}
       />
+
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-background border border-primary/20 shadow-2xl rounded-full px-6 py-3 flex items-center gap-6 backdrop-blur-md animate-in slide-in-from-bottom-4">
+          <span className="text-sm font-medium pr-4 border-r">{selectedIds.size} sélectionnés</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" className="h-9 gap-2 text-emerald-700" onClick={() => handleBulkAction({ status: "qualified" })} disabled={bulkLoading}>Valider</Button>
+            <Button size="sm" variant="ghost" className="h-9 text-red-600" onClick={handleBulkDelete} disabled={bulkLoading}>Supprimer</Button>
+          </div>
+          <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>Annuler</Button>
+        </div>
+      )}
     </div>
   )
 }

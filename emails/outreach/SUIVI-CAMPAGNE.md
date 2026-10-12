@@ -1,107 +1,60 @@
 # 📊 Suivi Campagne Outreach — Batch 1
 
-> Dernière mise à jour : 9 avril 2026, 21h30
+> Dernière mise à jour : 14 avril 2026, 11h45 (J+5)
 
 ---
 
-## Résultats du Batch 1 (9 avril 2026)
+## État des Lieux au 14 Avril
 
-### ✅ Emails livrés avec succès (10)
+### 📉 Statistiques Globales
+- **Total tentatives** : 17
+- **Livrés avec succès** : 9 (53%)
+- **Échecs critiques (Bounce)** : 8 (47%)
+- **Réponses reçues** : 0 (hors auto-réponses)
 
-| # | Destinataire | Entreprise | Type | Statut |
-|---|-------------|-----------|------|--------|
-| 1 | François Fontaine | Coretec Energy | Installateur | ⚠️ Auto-réponse : **ne travaille plus chez Coretec** depuis 09/2024 |
-| 2 | Christopher Stunz | Coretec Energy | Installateur | ⚠️ Auto-réponse : **ne fait plus partie de Coretec** |
-| 3 | Bastien Bosseloir | Coretec Energy | Installateur | ⚠️ Auto-réponse : **absent** · Renvoi vers exploitation@coretec.be |
-| 4 | exploitation@coretec.be | Coretec Energy | Installateur | ✉️ Livré (adresse alternative) — **à surveiller** |
-| 5 | Esther Kuiper | Energreen | Installateur | ✉️ Livré — en attente de réponse |
-| 6 | André Jacquinet | Enersol | Installateur | ✉️ Livré — en attente de réponse |
-| 7 | Grégory Pryen | IRISOLARIS | Installateur | ✉️ Livré — en attente de réponse |
-| 8 | Danny Dewit | Green Energy Park | Installateur | ✉️ Livré — en attente de réponse |
-| 9 | Lucas Baudry | Freelance | Media Buyer | ✉️ Livré — en attente de réponse |
-| 10 | Noëlla Giardina | SODIGIX | Media Buyer | ✉️ Livré — en attente de réponse |
-| 11 | Félix Meyrant | Connexion. | Media Buyer | ✉️ Livré — en attente de réponse |
-| 12 | Victorien Hanuise | Connexion. | Media Buyer | ✉️ Livré — en attente de réponse |
+### 👥 Statut des Destinataires (Cibles Réelles)
 
-### ❌ Emails échoués (7)
+| # | Destinataire | Entreprise | Statut J+5 | Action |
+|---|-------------|-----------|------------|--------|
+| 1 | exploitation@coretec.be | Coretec Energy | ✉️ Livré | **Relance #2 demain** |
+| 2 | Esther Kuiper | Energreen | ✉️ Livré | **Relance #2 demain** |
+| 3 | André Jacquinet | Enersol | ✉️ Livré | **Relance #2 demain** |
+| 4 | Grégory Pryen | IRISOLARIS | ✉️ Livré | **Relance #2 demain** |
+| 5 | Danny Dewit | Green Energy Park | ✉️ Livré | **Relance #2 demain** |
+| 6 | Lucas Baudry | Freelance | ✉️ Livré | **Relance #2 demain** |
+| 7 | Noëlla Giardina | SODIGIX | ✉️ Livré | **Relance #2 demain** |
+| 8 | Félix Meyrant | Connexion. | ✉️ Livré | **Relance #2 demain** |
+| 9 | Victorien Hanuise | Connexion. | ✉️ Livré | **Relance #2 demain** |
 
-| Destinataire | Entreprise | Erreur | Action |
-|-------------|-----------|--------|--------|
-| bastien.bosseloir@coretec-energy.be | Coretec Energy | Relay access denied | ❌ Mauvais domaine (c'est coretec.be, pas coretec-energy.be) |
-| s.ryhon@coretec.be | Coretec Energy | User unknown | ❌ Personne n'existe plus |
-| florian@leadstudio.fr | Lead Studio | Account does not exist | ❌ Adresse invalide |
-| e.rigo@hightechsolar.be | High Tech Solar | Relay access denied | ❌ Serveur mail bloque les externes |
-| info@hightechsolar.be | High Tech Solar | Relay access denied | ❌ Serveur mail bloque les externes |
-| contact@hightechsolar.be | High Tech Solar | Relay access denied | ❌ Serveur mail bloque les externes |
-| l.august@perpetumenergy.com | Perpetum Energy | Access denied | ❌ Adresse invalide |
+### ❌ Analyse des "Bounces" (Échecs)
+- **Coretec** : Les adresses individuelles (Fontaine, Stunz, Bosseloir) sont mortes ou renvoient vers `exploitation@`. 
+- **High Tech Solar** : Leurs serveurs sont mal configurés (`Relay access denied`). Ils ne recevront RIEN par email pour l'instant.
+- **Perpetum / Lead Studio** : Adresses inexistantes.
 
 ---
 
-## Analyse
+## 🚀 Le Plan d'Action : La Relance J+5
 
-### Taux de livraison
-- **Envoyés** : 17 (batch 1 + anciens)
-- **Livrés** : 10 (~59%)
-- **Échoués** : 7 (~41%)
-- **Réponses humaines** : 0 (trop tôt pour évaluer — envoyés ce soir)
+Il est **tout à fait normal** de n'avoir aucune réponse après un seul email. Statistiquement, **70% des deals se font sur les relances**.
 
-### Diagnostic des échecs
-1. **Coretec Energy** : gros turnover en interne. François, Christopher et Bastien ont tous quitté. Seul `exploitation@coretec.be` est valide → besoin de trouver le nouveau responsable.
-2. **High Tech Solar** : serveur mail configuré pour bloquer les emails externes (relay denied sur 3 adresses). Probablement un petit serveur local mal configuré. → Les contacter par téléphone ou formulaire.
-3. **Perpetum Energy** & **Lead Studio** : adresses simplement invalides → rechercher les bonnes adresses.
+### Demain (Mercredi 15 Avril) à 9h00
+Nous allons envoyer l'**Email #2**. Cet email est plus court et joue sur un angle différent (l'urgence de la PEB 2026 pour les installateurs, la comparaison des gains pour les media buyers).
 
-### Ce qui est positif
-- Les **nouveaux templates HTML** sont bien passés (aucun rejet spam !)
-- Le domaine `aegissolaire.com` est bien configuré (les serveurs acceptent les emails)
-- Le test personnel (`natyuremixi@gmail.com`) confirme le bon rendu
+### Pourquoi demain ?
+- Le lundi est la pire journée (inbox saturée).
+- Le mardi (aujourd'hui) est souvent très chargé.
+- Le mercredi est idéal pour "remonter" en haut de la pile.
 
 ---
 
-## Planning Relances
+## 🛠️ Ce que je vais faire maintenant
 
-### Email #2 — Relance PACE 2030 (installateurs) / Comparaison CPL (media buyers)
-**Date d'envoi : Mardi 15 avril 2026, 9h00-10h30**
-
-Envoyer UNIQUEMENT aux contacts qui :
-- ✅ Ont reçu l'email #1 avec succès
-- ❌ N'ont PAS répondu
-- ❌ N'ont PAS une auto-réponse "ne travaille plus ici"
-
-| # | Destinataire | Entreprise | Template relance |
-|---|-------------|-----------|-----------------|
-| 1 | exploitation@coretec.be | Coretec Energy | email-installateurs-2.html |
-| 2 | Esther Kuiper | Energreen | email-installateurs-2.html |
-| 3 | André Jacquinet | Enersol | email-installateurs-2.html |
-| 4 | Grégory Pryen | IRISOLARIS | email-installateurs-2.html |
-| 5 | Danny Dewit | Green Energy Park | email-installateurs-2.html |
-| 6 | Lucas Baudry | Freelance | email-mediabuyers-2.html |
-| 7 | Noëlla Giardina | SODIGIX | email-mediabuyers-2.html |
-| 8 | Félix Meyrant | Connexion. | email-mediabuyers-2.html |
-| 9 | Victorien Hanuise | Connexion. | email-mediabuyers-2.html |
-
-> ⚠️ **Retirer de la liste** quiconque a répondu d'ici là (positivement OU négativement).
-
-### Email #3 — Dernier rappel
-**Date d'envoi : Vendredi 18 avril 2026, 9h00**
-
-Que pour les non-répondants après l'email #2.
+1. Je vais générer le **Batch de Relance #2** personnalisé pour les 9 contacts qui ont bien reçu le premier mail.
+2. Je vais te donner les **Objets d'emails irrésistibles** pour ces relances.
 
 ---
 
-## Prochaines actions
-
-### Immédiat (ce soir)
-- [x] ~~Envoyer batch 1~~ ✅ FAIT
-
-### D'ici lundi 14 avril
-- [ ] Surveiller les réponses (vérifier Gmail matin et soir)
-- [ ] Chercher le **nouveau responsable commercial** chez Coretec Energy (LinkedIn : "Coretec Energy" → Personnes actuelles)
-- [ ] Trouver les **bonnes adresses** pour Perpetum Energy (site web / LinkedIn)
-- [ ] Contacter **High Tech Solar** par téléphone ou formulaire de contact (leur serveur mail bloque les emails)
-
-### Mardi 15 avril, 9h
-- [ ] Me donner la liste des non-répondants → je génère les relances personnalisées (email #2)
-- [ ] Envoyer les relances
-
-### Vendredi 18 avril, 9h
-- [ ] Dernier rappel (email #3) pour les ultimes non-répondants
+## 💡 Conseil stratégique : Levier LinkedIn
+Puisque tu as une adresse Gmail perso validée (`natyuremixi@gmail.com`), si tu n'as toujours rien vendredi, nous passerons à l'**approche multi-canal** :
+- Ajouter ces 9 personnes sur LinkedIn avec une note personnalisée.
+- Utiliser ton dashboard Aegis Solaire pour leur montrer un "lead fantôme" (une simulation de demande réelle dans leur ville).

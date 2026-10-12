@@ -4,9 +4,25 @@ import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { sendLeadAssignedEmail } from "@/lib/notify-installateur"
 import { logAudit } from "@/lib/audit-log"
 
-const LEAD_SELECT = "id, first_name, last_name, email, phone, job_title, company, company_vat, message, surface_type, surface_area, project_timeline, annual_electricity_bill, estimated_roi_years, autoconsumption_rate, estimated_savings, status, lead_score, installateur_id, wants_irve, segment, province, grd, media_partner_code, created_at, updated_at"
+const LEAD_SELECT =
+  "id, first_name, last_name, email, phone, job_title, company, message, surface_type, surface_area, annual_electricity_bill, project_timeline, estimated_roi_years, autoconsumption_rate, estimated_savings, status, marketplace_status, lead_score, installateur_id, segment, province, admin_notes, created_at"
 
-const VALID_STATUSES = ["new", "contacted", "qualified", "converted", "lost", "HOT_LEAD", "NEEDS_HUMAN_REVIEW"] as const
+const VALID_STATUSES = [
+  "new",
+  "contacted",
+  "qualified",
+  "converted",
+  "lost",
+  "HOT_LEAD",
+  "NEEDS_HUMAN_REVIEW",
+] as const
+
+const VALID_MARKETPLACE_STATUSES = [
+  "pending_review",
+  "available",
+  "sold",
+  "rejected",
+] as const
 
 export async function GET(
   _request: NextRequest,
@@ -48,9 +64,15 @@ export async function PATCH(
 
   const { id } = await params
   const body = await request.json()
-  const { status, installateur_id: installateurId } = body
+  const { status, marketplace_status, installateur_id: installateurId, admin_notes } = body
 
-  const updates: { status?: string; installateur_id?: string | null; updated_at: string } = {
+  const updates: {
+    status?: string
+    marketplace_status?: string
+    installateur_id?: string | null
+    admin_notes?: string
+    updated_at: string
+  } = {
     updated_at: new Date().toISOString(),
   }
 
@@ -58,6 +80,15 @@ export async function PATCH(
 
   if (typeof status === "string" && VALID_STATUSES.includes(status as (typeof VALID_STATUSES)[number])) {
     updates.status = status
+  }
+
+  if (
+    typeof marketplace_status === "string" &&
+    VALID_MARKETPLACE_STATUSES.includes(
+      marketplace_status as (typeof VALID_MARKETPLACE_STATUSES)[number]
+    )
+  ) {
+    updates.marketplace_status = marketplace_status
   }
 
   if (installateurId !== undefined) {
@@ -76,8 +107,10 @@ export async function PATCH(
     }
   }
 
-  if (Object.keys(updates).length <= 1) {
-    return NextResponse.json({ error: "Aucune modification valide (status ou installateur_id)." }, { status: 400 })
+  if (admin_notes !== undefined) {
+    if (typeof admin_notes === "string" || admin_notes === null) {
+      updates.admin_notes = admin_notes ?? ""
+    }
   }
 
   const supabase = createServiceRoleClient()
@@ -88,16 +121,13 @@ export async function PATCH(
     .select(LEAD_SELECT)
     .single()
 
-  if (error) {
-    if (error.code === "PGRST116") {
-      return NextResponse.json({ error: "Lead introuvable" }, { status: 404 })
-    }
+  if (error || !data) {
     console.error("Admin lead patch error:", error)
-    return NextResponse.json({ error: "Erreur lors de la mise à jour du statut" }, { status: 500 })
+    return NextResponse.json({ error: "Erreur lors de la mise à jour du lead" }, { status: 500 })
   }
 
   let installateur_notified = false
-  if (installateurEmailForNotify && data) {
+  if (installateurEmailForNotify && data.installateur_id) {
     try {
       await sendLeadAssignedEmail(installateurEmailForNotify, {
         first_name: data.first_name,
@@ -128,12 +158,14 @@ export async function PATCH(
       entityId: id,
       details: {
         status: updates.status,
+        marketplace_status: updates.marketplace_status,
         installateur_id: updates.installateur_id,
+        admin_notes: updates.admin_notes !== undefined ? true : undefined,
         installateur_notified,
       },
     })
-  } catch (e) {
-    console.error("Audit log failed:", e)
+  } catch (auditErr) {
+    console.error("Audit log failed:", auditErr)
   }
 
   return NextResponse.json({ ...data, installateur_notified })

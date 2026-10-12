@@ -39,7 +39,20 @@ export async function GET() {
       .from("lead_purchases")
       .select("lead_id, partner_id, partners(company_name)")
       .in("lead_id", leadIds)
-    purchases = (purchaseData as typeof purchases) ?? []
+
+    if (purchaseData) {
+      purchases = (purchaseData as unknown as Array<{
+        lead_id: string
+        partner_id: string
+        partners: { company_name: string } | Array<{ company_name: string }> | null
+      }>).map((p) => ({
+        lead_id: p.lead_id,
+        partner_id: p.partner_id,
+        partners: Array.isArray(p.partners)
+          ? p.partners[0] ?? null
+          : p.partners ?? null,
+      }))
+    }
   }
 
   const { data: myPurchases } = await admin
@@ -72,8 +85,9 @@ export async function GET() {
       slots: {
         max: maxSlots,
         taken: lp.length,
+        // Préservation de l'anonymat concurrentiel : on ne montre que "Vous" ou "Installateur certifié"
         buyers: lp.map((p) => ({
-          name: p.partners?.company_name ?? "Partenaire",
+          name: p.partner_id === partner.id ? (partner.company_name || "Votre entreprise") : "Installateur certifié",
           isMe: p.partner_id === partner.id,
         })),
       },

@@ -53,6 +53,7 @@ type FormData = {
   companyVat: string
   projectDetails: string
   marketingConsent: boolean
+  newsletterConsent: boolean
   fax_number?: string
 }
 
@@ -81,6 +82,7 @@ const initialFormData: FormData = {
   companyVat: "",
   projectDetails: "",
   marketingConsent: false,
+  newsletterConsent: false,
 }
 
 const surfaceRangeOptions = [
@@ -187,6 +189,13 @@ export function ROISimulator() {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({})
+
+  const markTouched = (field: string) => {
+    setTouchedFields((prev) => ({ ...prev, [field]: true }))
+  }
+
   const emailError = getEmailError(formData.email)
   const phoneError = getPhoneError(formData.phone)
   const vatError = getVatError(formData.companyVat)
@@ -209,6 +218,15 @@ export function ROISimulator() {
   const jobTitleError = step === 5 && formData.jobTitle === "" ? "Veuillez sélectionner votre fonction." : null
   const companyError =
     step === 5 && formData.company.trim().length === 0 ? "Le nom de l'entreprise est requis." : null
+
+  const showFirstNameError = (hasAttemptedSubmit || touchedFields.firstName) ? firstNameError : null
+  const showLastNameError = (hasAttemptedSubmit || touchedFields.lastName) ? lastNameError : null
+  const showJobTitleError = (hasAttemptedSubmit || touchedFields.jobTitle) ? jobTitleError : null
+  const showCompanyError = (hasAttemptedSubmit || touchedFields.company) ? companyError : null
+  const showVatError = (hasAttemptedSubmit || touchedFields.companyVat) ? vatError : null
+  const showEmailError = (hasAttemptedSubmit || touchedFields.email) ? emailError : null
+  const showPhoneError = (hasAttemptedSubmit || touchedFields.phone) ? phoneError : null
+  const showConsentError = (hasAttemptedSubmit || touchedFields.marketingConsent) && !formData.marketingConsent
 
   const validateStep = (currentStep: number): boolean => {
     switch (currentStep) {
@@ -266,12 +284,17 @@ export function ROISimulator() {
   const handleBack = () => {
     if (isCalculating) return
     if (step > 1) {
-      if (step === 5) setStep(3)
-      else setStep(step - 1)
+      if (step === 5) {
+        setHasAttemptedSubmit(false)
+        setStep(3)
+      } else {
+        setStep(step - 1)
+      }
     }
   }
 
   const handleSubmit = async () => {
+    setHasAttemptedSubmit(true)
     if (!validateStep(5)) return
 
     setIsSubmitting(true)
@@ -303,6 +326,7 @@ export function ROISimulator() {
         grd: grdValue,
         annualElectricityBill,
         marketingConsent: formData.marketingConsent,
+        newsletterConsent: formData.newsletterConsent,
         estimatedROIYears: roiResults.estimatedROIYears,
         autoconsumptionRate: roiResults.autoconsumptionRate,
         estimatedSavings: roiResults.estimatedSavings,
@@ -719,13 +743,14 @@ export function ROISimulator() {
                           placeholder="Prénom"
                           value={formData.firstName ?? ""}
                           onChange={(e) => updateFormData("firstName", e.target.value)}
-                          className={`mt-1.5 ${firstNameError ? "border-destructive" : ""}`}
-                          aria-invalid={!!firstNameError}
-                          aria-describedby={firstNameError ? "firstName-error" : undefined}
+                          onBlur={() => markTouched("firstName")}
+                          className={`mt-1.5 ${showFirstNameError ? "border-destructive" : ""}`}
+                          aria-invalid={!!showFirstNameError}
+                          aria-describedby={showFirstNameError ? "firstName-error" : undefined}
                         />
-                        {firstNameError && (
+                        {showFirstNameError && (
                           <p id="firstName-error" className="mt-1.5 text-xs text-destructive" role="alert">
-                            {firstNameError}
+                            {showFirstNameError}
                           </p>
                         )}
                       </div>
@@ -736,13 +761,14 @@ export function ROISimulator() {
                           placeholder="Nom"
                           value={formData.lastName ?? ""}
                           onChange={(e) => updateFormData("lastName", e.target.value)}
-                          className={`mt-1.5 ${lastNameError ? "border-destructive" : ""}`}
-                          aria-invalid={!!lastNameError}
-                          aria-describedby={lastNameError ? "lastName-error" : undefined}
+                          onBlur={() => markTouched("lastName")}
+                          className={`mt-1.5 ${showLastNameError ? "border-destructive" : ""}`}
+                          aria-invalid={!!showLastNameError}
+                          aria-describedby={showLastNameError ? "lastName-error" : undefined}
                         />
-                        {lastNameError && (
+                        {showLastNameError && (
                           <p id="lastName-error" className="mt-1.5 text-xs text-destructive" role="alert">
-                            {lastNameError}
+                            {showLastNameError}
                           </p>
                         )}
                       </div>
@@ -750,12 +776,18 @@ export function ROISimulator() {
 
                     <div>
                       <Label htmlFor="jobTitle">Fonction</Label>
-                      <Select value={formData.jobTitle ?? ""} onValueChange={(value) => updateFormData("jobTitle", value)}>
+                      <Select
+                        value={formData.jobTitle ?? ""}
+                        onValueChange={(value) => {
+                          markTouched("jobTitle")
+                          updateFormData("jobTitle", value)
+                        }}
+                      >
                         <SelectTrigger
                           id="jobTitle"
-                          className={`mt-1.5 ${jobTitleError ? "border-destructive" : ""}`}
-                          aria-invalid={!!jobTitleError}
-                          aria-describedby={jobTitleError ? "jobTitle-error" : undefined}
+                          className={`mt-1.5 ${showJobTitleError ? "border-destructive" : ""}`}
+                          aria-invalid={!!showJobTitleError}
+                          aria-describedby={showJobTitleError ? "jobTitle-error" : undefined}
                         >
                           <SelectValue placeholder="Sélectionnez votre fonction" />
                         </SelectTrigger>
@@ -767,9 +799,9 @@ export function ROISimulator() {
                           ))}
                         </SelectContent>
                       </Select>
-                      {jobTitleError && (
+                      {showJobTitleError && (
                         <p id="jobTitle-error" className="mt-1.5 text-xs text-destructive" role="alert">
-                          {jobTitleError}
+                          {showJobTitleError}
                         </p>
                       )}
                     </div>
@@ -781,13 +813,14 @@ export function ROISimulator() {
                         placeholder="Dénomination sociale"
                         value={formData.company ?? ""}
                         onChange={(e) => updateFormData("company", e.target.value)}
-                        className={`mt-1.5 ${companyError ? "border-destructive" : ""}`}
-                        aria-invalid={!!companyError}
-                        aria-describedby={companyError ? "company-error" : undefined}
+                        onBlur={() => markTouched("company")}
+                        className={`mt-1.5 ${showCompanyError ? "border-destructive" : ""}`}
+                        aria-invalid={!!showCompanyError}
+                        aria-describedby={showCompanyError ? "company-error" : undefined}
                       />
-                      {companyError && (
+                      {showCompanyError && (
                         <p id="company-error" className="mt-1.5 text-xs text-destructive" role="alert">
-                          {companyError}
+                          {showCompanyError}
                         </p>
                       )}
                     </div>
@@ -801,32 +834,34 @@ export function ROISimulator() {
                         autoComplete="off"
                         value={formData.companyVat ?? ""}
                         onChange={(e) => updateFormData("companyVat", e.target.value)}
-                        className={`mt-1.5 ${vatError ? "border-destructive" : ""}`}
-                        aria-invalid={!!vatError}
-                        aria-describedby={vatError ? "companyVat-error" : undefined}
+                        onBlur={() => markTouched("companyVat")}
+                        className={`mt-1.5 ${showVatError ? "border-destructive" : ""}`}
+                        aria-invalid={!!showVatError}
+                        aria-describedby={showVatError ? "companyVat-error" : undefined}
                       />
-                      {vatError && (
+                      {showVatError && (
                         <p id="companyVat-error" className="mt-1.5 text-xs text-destructive" role="alert">
-                          {vatError}
+                          {showVatError}
                         </p>
                       )}
                     </div>
 
                     <div>
-                      <Label htmlFor="email">E-mail</Label>
+                      <Label htmlFor="email">E-mail professionnel</Label>
                       <Input
                         id="email"
                         type="email"
                         placeholder="prenom.nom@entreprise.be"
                         value={formData.email ?? ""}
                         onChange={(e) => updateFormData("email", e.target.value)}
-                        className={`mt-1.5 ${emailError ? "border-destructive" : ""}`}
-                        aria-invalid={!!emailError}
-                        aria-describedby={emailError ? "email-error" : undefined}
+                        onBlur={() => markTouched("email")}
+                        className={`mt-1.5 ${showEmailError ? "border-destructive" : ""}`}
+                        aria-invalid={!!showEmailError}
+                        aria-describedby={showEmailError ? "email-error" : undefined}
                       />
-                      {emailError && (
+                      {showEmailError && (
                         <p id="email-error" className="mt-1.5 text-xs text-destructive" role="alert">
-                          {emailError}
+                          {showEmailError}
                         </p>
                       )}
                     </div>
@@ -839,13 +874,14 @@ export function ROISimulator() {
                         placeholder="+32 475 12 34 56"
                         value={formData.phone ?? ""}
                         onChange={(e) => updateFormData("phone", e.target.value)}
-                        className={`mt-1.5 ${phoneError ? "border-destructive" : ""}`}
-                        aria-invalid={!!phoneError}
-                        aria-describedby={phoneError ? "phone-error" : undefined}
+                        onBlur={() => markTouched("phone")}
+                        className={`mt-1.5 ${showPhoneError ? "border-destructive" : ""}`}
+                        aria-invalid={!!showPhoneError}
+                        aria-describedby={showPhoneError ? "phone-error" : undefined}
                       />
-                      {phoneError && (
+                      {showPhoneError && (
                         <p id="phone-error" className="mt-1.5 text-xs text-destructive" role="alert">
-                          {phoneError}
+                          {showPhoneError}
                         </p>
                       )}
                     </div>
@@ -868,28 +904,47 @@ export function ROISimulator() {
                       </p>
                     </div>
 
-                    {step === 5 && !formData.marketingConsent && (
+                    {showConsentError && (
                       <p className="text-xs text-destructive" role="alert">
-                        Pour recevoir votre étude, veuillez accepter d&apos;être recontacté en cochant la case ci-dessous.
+                        Pour recevoir votre étude, veuillez accepter d&apos;être recontacté pour votre projet en cochant la case ci-dessous.
                       </p>
                     )}
 
-                    <label
-                      className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 ${
-                        step === 5 && !formData.marketingConsent ? "border-destructive" : "border-border"
-                      }`}
-                    >
-                      <Checkbox
-                        id="marketingConsent"
-                        checked={formData.marketingConsent}
-                        onCheckedChange={(checked) => updateFormData("marketingConsent", checked === true)}
-                        className="mt-0.5"
-                      />
-                      <span className="text-sm font-normal leading-relaxed text-foreground">
-                        J&apos;accepte d&apos;être recontacté par Aegis Solaire et par un installateur partenaire RESCERT
-                        Photovoltaïque en Wallonie pour affiner mon étude de faisabilité et mon projet photovoltaïque.
-                      </span>
-                    </label>
+                    <div className="space-y-3">
+                      <label
+                        className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${
+                          showConsentError ? "border-destructive bg-destructive/5" : "border-border hover:bg-muted/30"
+                        }`}
+                      >
+                        <Checkbox
+                          id="marketingConsent"
+                          checked={formData.marketingConsent}
+                          onCheckedChange={(checked) => {
+                            markTouched("marketingConsent")
+                            updateFormData("marketingConsent", checked === true)
+                          }}
+                          className="mt-0.5"
+                        />
+                        <span className="text-sm font-normal leading-relaxed text-foreground">
+                          <strong className="font-semibold text-foreground">Mise en relation (obligatoire) :</strong>{" "}
+                          J&apos;accepte d&apos;être recontacté par Aegis Solaire et par un installateur partenaire certifié RESCERT
+                          Photovoltaïque en Wallonie sélectionné pour réaliser mon audit technique et mon devis gratuit.
+                        </span>
+                      </label>
+
+                      <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-4 transition-colors hover:bg-muted/30">
+                        <Checkbox
+                          id="newsletterConsent"
+                          checked={formData.newsletterConsent}
+                          onCheckedChange={(checked) => updateFormData("newsletterConsent", checked === true)}
+                          className="mt-0.5"
+                        />
+                        <span className="text-sm font-normal leading-relaxed text-muted-foreground">
+                          <strong className="font-medium text-foreground">Actualités solaires (optionnel) :</strong>{" "}
+                          J&apos;accepte de recevoir les veilles réglementaires (CWaPE, tarifs réseau, Certificats Verts) et guides solaires d&apos;Aegis Solaire par e-mail.
+                        </span>
+                      </label>
+                    </div>
 
                     <div className="rounded-lg border border-border bg-muted/50 p-4 text-xs text-muted-foreground">
                       <p className="font-medium text-foreground">Conformité RGPD</p>

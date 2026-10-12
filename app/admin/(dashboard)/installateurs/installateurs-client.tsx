@@ -36,6 +36,9 @@ type Installateur = {
   notes: string | null
   created_at: string
   updated_at: string
+  leads_count?: number
+  converted_count?: number
+  last_activity?: string | null
 }
 
 export function InstallateursClient({ initialData }: { initialData: Installateur[] }) {
@@ -164,6 +167,8 @@ export function InstallateursClient({ initialData }: { initialData: Installateur
               <th className="px-4 py-3 text-left font-medium">Téléphone</th>
               <th className="px-4 py-3 text-left font-medium">Région</th>
               <th className="px-4 py-3 text-left font-medium">Actif</th>
+              <th className="px-4 py-3 text-center font-medium">Performances</th>
+              <th className="px-4 py-3 text-left font-medium">Dernière activité</th>
               <th className="px-4 py-3 text-right font-medium">Actions</th>
             </tr>
           </thead>
@@ -185,6 +190,15 @@ export function InstallateursClient({ initialData }: { initialData: Installateur
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${inst.actif ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-muted text-muted-foreground"}`}>
                       {inst.actif ? "Oui" : "Non"}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <div className="flex flex-col items-center">
+                      <span className="font-semibold">{inst.leads_count ?? 0}</span>
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Leads</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">
+                    {inst.last_activity ? new Date(inst.last_activity).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }) : "Jamais"}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Button variant="ghost" size="icon" onClick={() => openEdit(inst)} aria-label="Modifier">

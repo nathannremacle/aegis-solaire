@@ -15,6 +15,7 @@ async function getLeads(
     surfaceMin: string
     surfaceType: string
     region: string
+    segment: string
   }
 ) {
   const user = await getAdminUser()
@@ -32,8 +33,12 @@ async function getLeads(
   if (filters.status && filters.status !== "all") {
     query = query.eq("status", filters.status)
   }
+  if (filters.segment && filters.segment !== "all") {
+    query = query.eq("segment", filters.segment)
+  }
   if (filters.search.trim()) {
-    query = query.ilike("email", `%${filters.search.trim()}%`)
+    const q = `%${filters.search.trim()}%`
+    query = query.or(`email.ilike.${q},first_name.ilike.${q},last_name.ilike.${q},company.ilike.${q},company_vat.ilike.${q}`)
   }
   if (filters.installateurId && filters.installateurId !== "all") {
     query = query.eq("installateur_id", filters.installateurId)
@@ -102,6 +107,7 @@ export default async function AdminLeadsPage({
     surface_min?: string
     surface_type?: string
     region?: string
+    segment?: string
   }>
 }) {
   const params = await searchParams
@@ -118,6 +124,7 @@ export default async function AdminLeadsPage({
     surfaceMin: surfaceMinParam ?? "",
     surfaceType: surfaceTypeParam ?? "",
     region: regionParam ?? "",
+    segment: params.segment ?? "",
   }
 
   const [leadsResult, installateurs, regions] = await Promise.all([
