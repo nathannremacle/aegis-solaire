@@ -3,6 +3,7 @@ import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 
 const resendApiKey = process.env.RESEND_API_KEY
 const fromEmail = process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev"
+const replyToEmail = process.env.RESEND_REPLY_TO ?? "contact@aegissolaire.com"
 
 /** Liste d’e-mails installateurs (virgule). Ex. : "a@x.be,b@y.be" */
 function getEnvPartnerAlertRecipients(): string[] {
@@ -145,6 +146,7 @@ export async function sendPartnerLeadTeaserEmails(payload: PartnerLeadTeaserPayl
   const { error } = await resend.emails.send({
     from: fromEmail,
     to: recipients,
+    replyTo: replyToEmail,
     subject,
     text,
     html,

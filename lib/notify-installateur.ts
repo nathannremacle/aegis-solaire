@@ -18,6 +18,7 @@ export type LeadDetailsForEmail = {
 
 const resendApiKey = process.env.RESEND_API_KEY
 const fromEmail = process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev"
+const replyToEmail = process.env.RESEND_REPLY_TO ?? "contact@aegissolaire.com"
 
 function buildLeadAssignedHtml(lead: LeadDetailsForEmail): string {
   const contactName = `${lead.first_name}${lead.last_name ? ` ${lead.last_name}` : ""}`
@@ -71,6 +72,7 @@ export async function sendLeadAssignedEmail(
   const { error } = await resend.emails.send({
     from: fromEmail,
     to: installateurEmail,
+    replyTo: replyToEmail,
     subject,
     html: buildLeadAssignedHtml(lead),
   })
