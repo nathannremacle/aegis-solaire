@@ -172,25 +172,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { data: partners } = await supabase
-      .from("partners")
-      .select("email")
-      .in("segment", [data.segment, "BOTH"])
-
-    const targetEmails = partners ? partners.map((p) => p.email).filter(Boolean) : []
-
-    void sendPartnerLeadTeaserEmails({
-      targetEmails,
-      segment: data.segment,
-      province: data.province,
-      provinceFreeText: data.provinceFreeText ?? null,
-      surfaceType: data.surfaceType,
-      surfaceArea: data.surfaceArea,
-      annualElectricityBill: data.annualElectricityBill,
-      grd: data.grd ?? null,
-      /** Texte « projet » seul (sans doublon avec la ligne Province). */
-      projectDetails: projectDetailsOnly,
-    }).catch((err) => console.error("[Partner teaser] envoi non bloquant échoué:", err))
+    // Le lead est créé en 'pending_review' : aucune alerte partenaire n'est émise tant qu'un administrateur n'a pas audité et publié le dossier vers la marketplace.
 
     void sendProspectConfirmationEmail({
       email: data.email,

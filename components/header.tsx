@@ -32,10 +32,11 @@ export function Header() {
   const pathname = usePathname()
   const [optimisticSegment, setOptimisticSegment] = useState<"b2b" | "b2c" | null>(null)
 
-  // Clear optimistic segment once pathname reflects the route change
-  useEffect(() => {
+  const [prevPathname, setPrevPathname] = useState(pathname)
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname)
     setOptimisticSegment(null)
-  }, [pathname])
+  }
 
   const currentSegment = optimisticSegment ?? (pathname === "/particuliers" ? "b2c" : "b2b")
   const isB2C = currentSegment === "b2c"

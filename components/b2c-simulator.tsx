@@ -187,10 +187,14 @@ export function B2CSimulator() {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [msgIdx, setMsgIdx] = useState(0)
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
   const openedAt = useRef(new Date().toISOString())
 
   const up = (k: keyof B2CFormData, v: string | boolean) =>
     setFd((p) => ({ ...p, [k]: v }))
+
+  const markTouched = (f: string) => setTouched((p) => ({ ...p, [f]: true }))
 
   /* ── Validation per step ── */
   const valid = (s: number) => {
@@ -213,13 +217,26 @@ export function B2CSimulator() {
           fd.firstName.trim().length >= 2 &&
           fd.lastName.trim().length >= 2 &&
           /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fd.email) &&
-          fd.phone.trim().length >= 8 &&
+          fd.phone.trim().replace(/[\s.-]/g, "").length >= 8 &&
           fd.marketingConsent
         )
       default:
         return false
     }
   }
+
+  // Error helpers for Step 6
+  const firstNameError = fd.firstName.trim().length < 2 ? "Prénom requis (2 caractères minimum)" : null
+  const lastNameError = fd.lastName.trim().length < 2 ? "Nom requis (2 caractères minimum)" : null
+  const emailError = !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fd.email) ? "Format d'adresse e-mail invalide" : null
+  const phoneError = fd.phone.trim().replace(/[\s.-]/g, "").length < 8 ? "Numéro de téléphone requis (au moins 8 chiffres)" : null
+  const consentError = !fd.marketingConsent ? "Vous devez accepter d'être recontacté pour recevoir votre étude" : null
+
+  const showFirstNameError = (hasAttemptedSubmit || touched.firstName) ? firstNameError : null
+  const showLastNameError = (hasAttemptedSubmit || touched.lastName) ? lastNameError : null
+  const showEmailError = (hasAttemptedSubmit || touched.email) ? emailError : null
+  const showPhoneError = (hasAttemptedSubmit || touched.phone) ? phoneError : null
+  const showConsentError = (hasAttemptedSubmit || touched.marketingConsent) ? consentError : null
 
   /* ── Loading messages cycle ── */
   useEffect(() => {
@@ -255,6 +272,7 @@ export function B2CSimulator() {
 
   /* ── Submit ── */
   const submit = async () => {
+    setHasAttemptedSubmit(true)
     if (!valid(6) || !results) return
     setIsSubmitting(true)
     setError(null)
@@ -761,9 +779,13 @@ export function B2CSimulator() {
                         id="b2c-fn"
                         placeholder="Jean"
                         value={fd.firstName}
+                        onBlur={() => markTouched("firstName")}
                         onChange={(e) => up("firstName", e.target.value)}
-                        className="h-12"
+                        className={`h-12 ${showFirstNameError ? "border-destructive focus-visible:ring-destructive" : ""}`}
                       />
+                      {showFirstNameError && (
+                        <p className="text-xs text-destructive">{showFirstNameError}</p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="b2c-ln">Nom</Label>
@@ -771,9 +793,13 @@ export function B2CSimulator() {
                         id="b2c-ln"
                         placeholder="Dupont"
                         value={fd.lastName}
+                        onBlur={() => markTouched("lastName")}
                         onChange={(e) => up("lastName", e.target.value)}
-                        className="h-12"
+                        className={`h-12 ${showLastNameError ? "border-destructive focus-visible:ring-destructive" : ""}`}
                       />
+                      {showLastNameError && (
+                        <p className="text-xs text-destructive">{showLastNameError}</p>
+                      )}
                     </div>
                   </div>
 
@@ -784,9 +810,13 @@ export function B2CSimulator() {
                       type="email"
                       placeholder="jean.dupont@email.be"
                       value={fd.email}
+                      onBlur={() => markTouched("email")}
                       onChange={(e) => up("email", e.target.value)}
-                      className="h-12"
+                      className={`h-12 ${showEmailError ? "border-destructive focus-visible:ring-destructive" : ""}`}
                     />
+                    {showEmailError && (
+                      <p className="text-xs text-destructive">{showEmailError}</p>
+                    )}
                   </div>
 
                   <div className="space-y-1.5">
@@ -796,16 +826,23 @@ export function B2CSimulator() {
                       type="tel"
                       placeholder="+32 475 12 34 56"
                       value={fd.phone}
+                      onBlur={() => markTouched("phone")}
                       onChange={(e) => up("phone", e.target.value)}
-                      className="h-12"
+                      className={`h-12 ${showPhoneError ? "border-destructive focus-visible:ring-destructive" : ""}`}
                     />
+                    {showPhoneError && (
+                      <p className="text-xs text-destructive">{showPhoneError}</p>
+                    )}
                   </div>
 
                   <div className="space-y-3">
-                    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-4 transition-colors hover:bg-muted/40 has-[[data-state=checked]]:border-accent/40 has-[[data-state=checked]]:bg-accent/5">
+                    <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors hover:bg-muted/40 has-[[data-state=checked]]:border-accent/40 has-[[data-state=checked]]:bg-accent/5 ${showConsentError ? "border-destructive bg-destructive/5" : "border-border"}`}>
                       <Checkbox
                         checked={fd.marketingConsent}
-                        onCheckedChange={(c) => up("marketingConsent", c === true)}
+                        onCheckedChange={(c) => {
+                          markTouched("marketingConsent")
+                          up("marketingConsent", c === true)
+                        }}
                         className="mt-0.5"
                       />
                       <span className="text-sm leading-relaxed text-foreground">
@@ -814,6 +851,9 @@ export function B2CSimulator() {
                         certifiés RESCERT en Wallonie sélectionnés par Aegis Solaire pour recevoir des offres sans engagement.
                       </span>
                     </label>
+                    {showConsentError && (
+                      <p className="text-xs text-destructive">{showConsentError}</p>
+                    )}
 
                     <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-4 transition-colors hover:bg-muted/40 has-[[data-state=checked]]:border-accent/40 has-[[data-state=checked]]:bg-accent/5">
                       <Checkbox
@@ -893,7 +933,7 @@ export function B2CSimulator() {
                     <button
                       type="button"
                       onClick={submit}
-                      disabled={!valid(6) || isSubmitting}
+                      disabled={isSubmitting}
                       className="inline-flex min-h-[50px] w-full items-center justify-center rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 px-8 font-sans text-sm font-extrabold text-slate-950 shadow-[0_4px_0_#b45309,0_8px_16px_rgba(245,158,11,0.25)] transition-all hover:from-amber-300 hover:to-amber-400 active:translate-y-1 active:shadow-[0_1px_0_#b45309] disabled:opacity-50 sm:ml-auto sm:w-auto"
                     >
                       {isSubmitting ? (

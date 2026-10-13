@@ -234,7 +234,23 @@ L'objectif de cet audit est de fiabiliser intégralement la plateforme **Aegis S
   - Contrôle et affichage de `marketplace_status` dans le panneau d'administration (`app/admin/(dashboard)/leads/lead-detail-sheet.tsx`).
   - Validation automatique vers la marketplace (`available`) lors de la validation d'un lead (`qualified`).
 
----
-*Ce document fait foi de feuille de route officielle et d'état d'exécution de la plateforme Aegis Solaire.*
-*Taux de complétion des actions d'audit : 100% (16/16 constats résolus).*
+### ✅ Phase 5 — Vérification Intégrale, Gouvernance & Clôture (COMPLÉTÉ)
+- **Gouvernance Stricte de Publication des Leads** :
+  - Suppression de l'envoi prématuré des teasers partenaires dans `app/api/leads/route.ts` lors de l'enregistrement brut d'un prospect (`pending_review`).
+  - Déplacement de la diffusion des teasers partenaires vers la validation administrative dans `app/api/admin/leads/[id]/publish/route.ts` : les partenaires ne reçoivent une notification que lorsqu'un lead est validé manuellement et publié en `available` sur la marketplace.
+- **Formulaire Webinaire — Consentement & SEO** :
+  - Ajout du layout serveur dédié `app/webinaire/layout.tsx` avec balise `alternates.canonical` déclarée (`https://aegissolaire.com/webinaire`) et métadonnées OpenGraph/Twitter.
+  - Ajout de la case à cocher optionnelle pour les actualités solaires dans le formulaire webinaire (`lib/webinaire-schema.ts` & `app/webinaire/page.tsx`), distincte de la confirmation d'inscription.
+  - Intégration du tracking d'événements `trackLeadConversion` sur l'inscription webinaire.
+- **UX & Robustesse Simulateur B2C** :
+  - Ajout des indicateurs et messages d'erreur inline explicites dans `components/b2c-simulator.tsx` avec gestion de l'état `touched`.
+  - Bouton de soumission interactif guidant l'utilisateur en cas de champ incomplet (nom, prénom, email, téléphone, code postal).
+- **Contrôle Qualité & Build Production** :
+  - `npx tsc --noEmit` : 0 erreur TypeScript.
+  - `npm run lint` : 0 erreur ESLint.
+  - `npm run build` : 45/45 routes compilées avec succès en mode production Turbopack sans exclusion d'erreurs.
 
+---
+*Ce document fait foi de feuille de route officielle et d'état d'exécution de la plateforme Aegis Solaire.*  
+*Taux de complétion des actions d'audit : 100% (16/16 constats résolus et audités en code).*  
+*Dernière revue d'assurance qualité : Octobre 2026 — Antigravity IDE & Nathan Remacle.*

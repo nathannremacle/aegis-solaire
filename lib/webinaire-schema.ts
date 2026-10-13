@@ -20,6 +20,7 @@ export const webinaireLeadSchema = z.object({
       const t = s.trim()
       return t === "" ? undefined : t
     }),
+  newsletterConsent: z.boolean().optional(),
 })
 
 export type WebinaireLeadInput = z.infer<typeof webinaireLeadSchema>

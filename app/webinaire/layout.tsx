@@ -1,9 +1,11 @@
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.aegissolaire.com'
+import type { Metadata } from "next"
 
-export const metadata = {
-  title: "Masterclass Zéro CAPEX | Replay Webinaire",
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.aegissolaire.com"
+
+export const metadata: Metadata = {
+  title: "Webinaire Solaire Zéro CAPEX Wallonie | Modèles PPA & Tiers-Investissement | Aegis Solaire",
   description:
-    "Replay : rentabilité et rénovation énergétique sans investissement initial (Zéro CAPEX), tiers-investissement et PPA. Décryptage vidéo Aegis Solaire — B2B Wallonie.",
+    "Accédez au replay du webinaire d'ingénierie financière pour entreprises wallonnes : décret PACE 2030, obligations PEB, Certificats Verts CWaPE et modèle Zéro CAPEX.",
   alternates: {
     canonical: `${baseUrl}/webinaire`,
   },
@@ -14,5 +16,5 @@ export default function WebinaireLayout({
 }: {
   children: React.ReactNode
 }) {
-  return <>{children}</>
+  return children
 }

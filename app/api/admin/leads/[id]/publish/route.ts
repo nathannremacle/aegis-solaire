@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { evaluateLeadPublishability } from "@/lib/lead-quality"
+import { sendPartnerLeadTeaserEmails } from "@/lib/partner-lead-teaser-email"
 
 export async function POST(
   request: Request,
@@ -74,6 +75,30 @@ export async function POST(
     })
   } catch (err) {
     console.warn("[admin publish] audit log insertion failed:", err)
+  }
+
+  // 4. Notification teaser vers les installateurs partenaires certifiés
+  try {
+    const { data: partners } = await admin
+      .from("partners")
+      .select("email")
+      .in("segment", [leadToPublish.segment || "B2B", "BOTH"])
+
+    const targetEmails = partners ? partners.map((p) => p.email).filter(Boolean) : []
+    if (targetEmails.length > 0) {
+      void sendPartnerLeadTeaserEmails({
+        targetEmails,
+        segment: leadToPublish.segment || "B2B",
+        province: leadToPublish.province || "Wallonie",
+        surfaceType: leadToPublish.surface_type || "toiture",
+        surfaceArea: leadToPublish.surface_area || 0,
+        annualElectricityBill: leadToPublish.annual_electricity_bill || 0,
+        grd: null,
+        projectDetails: null,
+      }).catch((err) => console.error("[publish teaser notification failed]", err))
+    }
+  } catch (err) {
+    console.warn("[admin publish] teaser notification failed:", err)
   }
 
   return NextResponse.json({

@@ -9,6 +9,8 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { trackLeadConversion } from "@/components/analytics/ad-tracking"
 import {
   Card,
   CardContent,
@@ -42,7 +44,7 @@ export default function WebinairePage() {
 
   const form = useForm<WebinaireLeadInput>({
     resolver: zodResolver(webinaireLeadSchema),
-    defaultValues: { firstName: "", jobTitle: undefined, email: "", companyName: "" },
+    defaultValues: { firstName: "", jobTitle: undefined, email: "", companyName: "", newsletterConsent: false },
   })
 
   async function onSubmit(data: WebinaireLeadInput) {
@@ -58,6 +60,9 @@ export default function WebinairePage() {
         return
       }
       toast.success(json.message ?? "Accès au replay débloqué.")
+      if (json.leadId) {
+        trackLeadConversion({ segment: "B2B", leadId: json.leadId, value: 50 })
+      }
       setIsUnlocked(true)
     } catch {
       toast.error("Une erreur est survenue. Veuillez réessayer.")
@@ -212,6 +217,18 @@ export default function WebinairePage() {
                       </div>
 
                       <div className="pt-2 flex flex-col gap-4">
+                        <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-border/80 p-3 text-xs text-muted-foreground transition-colors hover:bg-muted/40 has-[[data-state=checked]]:border-accent/40 has-[[data-state=checked]]:bg-accent/5">
+                          <Checkbox
+                            id="webinaire-newsletter"
+                            checked={form.watch("newsletterConsent") ?? false}
+                            onCheckedChange={(checked) => form.setValue("newsletterConsent", checked === true)}
+                            className="mt-0.5"
+                          />
+                          <span>
+                            J&apos;accepte de recevoir les invitations aux prochains webinaires et analyses CWaPE / PACE 2030 d&apos;Aegis Solaire (optionnel).
+                          </span>
+                        </label>
+
                         <Button
                           type="submit"
                           size="lg"
