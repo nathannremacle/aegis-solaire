@@ -32,9 +32,6 @@ import {
   Car,
   Compass,
   Home,
-  Layers,
-  Building2,
-  Warehouse,
   Users,
   Zap,
   Leaf,
@@ -95,11 +92,115 @@ const INITIAL: B2CFormData = {
   newsletterConsent: false,
 }
 
+function RoofTilesIcon({ className = "h-6 w-6" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      {/* Pignon toiture en pente */}
+      <path d="M2 12L12 3l10 9" />
+      <path d="M4 11v8.5a.5.5 0 0 0 .5.5h15a.5.5 0 0 0 .5-.5V11" />
+      {/* Ondulations de tuiles galbées caractéristiques */}
+      <path d="M6.5 13.5c1.4-1.3 3-1.3 4.5 0 1.4-1.3 3-1.3 4.5 0 1-1 2-1 2.5 0" />
+      <path d="M8.5 9.5c1.1-1.1 2.4-1.1 3.5 0 1.1-1.1 2.4-1.1 3.5 0" />
+      <line x1="12" y1="3" x2="12" y2="5.5" />
+    </svg>
+  )
+}
+
+function RoofSlatesIcon({ className = "h-6 w-6" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      {/* Pignon toiture en pente */}
+      <path d="M2 12L12 3l10 9" />
+      <path d="M4 11v8.5a.5.5 0 0 0 .5.5h15a.5.5 0 0 0 .5-.5V11" />
+      {/* Rangs d'ardoises plates avec joints décalés en quinconce */}
+      <line x1="6" y1="13.5" x2="18" y2="13.5" />
+      <line x1="8.5" y1="9.5" x2="15.5" y2="9.5" />
+      <line x1="12" y1="3" x2="12" y2="9.5" />
+      <line x1="9.5" y1="9.5" x2="9.5" y2="13.5" />
+      <line x1="14.5" y1="9.5" x2="14.5" y2="13.5" />
+      <line x1="7" y1="13.5" x2="7" y2="17" />
+      <line x1="12" y1="13.5" x2="12" y2="17" />
+      <line x1="17" y1="13.5" x2="17" y2="17" />
+    </svg>
+  )
+}
+
+function RoofFlatIcon({ className = "h-6 w-6" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      {/* Acrotère / parapet horizontal supérieur d'une toiture terrasse */}
+      <line x1="3" y1="4.5" x2="21" y2="4.5" />
+      <line x1="5" y1="4.5" x2="5" y2="8" />
+      <line x1="12" y1="4.5" x2="12" y2="8" />
+      <line x1="19" y1="4.5" x2="19" y2="8" />
+      {/* Dalle / toiture plate horizontale proéminente */}
+      <line x1="2" y1="8" x2="22" y2="8" />
+      <line x1="2" y1="10.5" x2="22" y2="10.5" />
+      {/* Corps de la maison cubique contemporaine */}
+      <rect x="4" y="10.5" width="16" height="9.5" rx="0.5" />
+      <line x1="12" y1="14" x2="12" y2="20" />
+      <rect x="8" y="14" width="8" height="6" />
+    </svg>
+  )
+}
+
+function RoofZincIcon({ className = "h-6 w-6" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      {/* Pignon toiture en pente */}
+      <path d="M2 12L12 3l10 9" />
+      <path d="M4 11v8.5a.5.5 0 0 0 .5.5h15a.5.5 0 0 0 .5-.5V11" />
+      {/* Joints debout métalliques continus verticaux du faîtage à l'égout */}
+      <line x1="6.5" y1="9.5" x2="6.5" y2="19.5" />
+      <line x1="9.5" y1="6.5" x2="9.5" y2="19.5" />
+      <line x1="12" y1="3" x2="12" y2="19.5" />
+      <line x1="14.5" y1="6.5" x2="14.5" y2="19.5" />
+      <line x1="17.5" y1="9.5" x2="17.5" y2="19.5" />
+    </svg>
+  )
+}
+
 const ROOF_TYPES = [
-  { id: "tuiles", label: "Tuiles", icon: Home },
-  { id: "ardoises", label: "Ardoises", icon: Layers },
-  { id: "plat", label: "Toit plat", icon: Building2 },
-  { id: "zinc", label: "Zinc / Autre", icon: Warehouse },
+  { id: "tuiles", label: "Tuiles", icon: RoofTilesIcon },
+  { id: "ardoises", label: "Ardoises", icon: RoofSlatesIcon },
+  { id: "plat", label: "Toit plat", icon: RoofFlatIcon },
+  { id: "zinc", label: "Zinc / Autre", icon: RoofZincIcon },
 ]
 
 const ORIENTATIONS = [
@@ -488,7 +589,7 @@ export function B2CSimulator() {
                                   : "bg-muted text-foreground/70"
                               }`}
                             >
-                              <Icon className="h-5 w-5" aria-hidden="true" />
+                              <Icon className="h-6 w-6" aria-hidden="true" />
                             </div>
                             <span className="text-sm font-semibold">{r.label}</span>
                           </button>
