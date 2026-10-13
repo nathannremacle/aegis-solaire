@@ -32,6 +32,9 @@ import {
   Car,
   Compass,
   Home,
+  Layers,
+  Building2,
+  Warehouse,
   Users,
   Zap,
   Leaf,
@@ -93,10 +96,10 @@ const INITIAL: B2CFormData = {
 }
 
 const ROOF_TYPES = [
-  { id: "tuiles", label: "Tuiles", emoji: "🏠" },
-  { id: "ardoises", label: "Ardoises", emoji: "🏡" },
-  { id: "plat", label: "Toit plat", emoji: "🏢" },
-  { id: "zinc", label: "Zinc / Autre", emoji: "🏗️" },
+  { id: "tuiles", label: "Tuiles", icon: Home },
+  { id: "ardoises", label: "Ardoises", icon: Layers },
+  { id: "plat", label: "Toit plat", icon: Building2 },
+  { id: "zinc", label: "Zinc / Autre", icon: Warehouse },
 ]
 
 const ORIENTATIONS = [
@@ -465,21 +468,32 @@ export function B2CSimulator() {
                       Type de toiture
                     </Label>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                      {ROOF_TYPES.map((r) => (
-                        <button
-                          key={r.id}
-                          type="button"
-                          onClick={() => up("roofType", r.id)}
-                          className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 p-4 transition-all ${
-                            fd.roofType === r.id
-                              ? "border-accent bg-accent/10 text-accent"
-                              : "border-border bg-muted/40 text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground"
-                          }`}
-                        >
-                          <span className="text-2xl">{r.emoji}</span>
-                          <span className="text-sm font-semibold">{r.label}</span>
-                        </button>
-                      ))}
+                      {ROOF_TYPES.map((r) => {
+                        const Icon = r.icon
+                        return (
+                          <button
+                            key={r.id}
+                            type="button"
+                            onClick={() => up("roofType", r.id)}
+                            className={`flex flex-col items-center justify-center gap-2.5 rounded-xl border-2 p-4 transition-all ${
+                              fd.roofType === r.id
+                                ? "border-accent bg-accent/10 text-accent shadow-sm"
+                                : "border-border bg-muted/40 text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground"
+                            }`}
+                          >
+                            <div
+                              className={`flex h-11 w-11 items-center justify-center rounded-lg transition-colors ${
+                                fd.roofType === r.id
+                                  ? "bg-accent/20 text-accent"
+                                  : "bg-muted text-foreground/70"
+                              }`}
+                            >
+                              <Icon className="h-5 w-5" aria-hidden="true" />
+                            </div>
+                            <span className="text-sm font-semibold">{r.label}</span>
+                          </button>
+                        )
+                      })}
                     </div>
                   </div>
 
