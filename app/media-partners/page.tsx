@@ -1,4 +1,3 @@
-import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { MediaPartnersContent } from "@/components/media-partners-content"
 
@@ -17,7 +16,6 @@ export const metadata = {
 export default function MediaPartnersPage() {
   return (
     <div className="flex min-h-screen min-w-0 flex-col overflow-x-hidden">
-      <Header />
       <main className="min-w-0 flex-1">
         <MediaPartnersContent />
       </main>

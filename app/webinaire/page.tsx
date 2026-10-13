@@ -5,7 +5,6 @@ import Link from "next/link"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Lock, Calculator, CheckCircle2 } from "lucide-react"
-import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -67,7 +66,6 @@ export default function WebinairePage() {
 
   return (
     <div className="flex min-h-screen min-w-0 flex-col overflow-x-hidden">
-      <Header />
       <main className="min-w-0 flex-1">
         {/* Hero institutionnel (DA : #001D3D, image + masque, or sur badge uniquement) */}
         <section className="relative overflow-hidden bg-[#001D3D] py-14 sm:py-16 lg:py-24 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">

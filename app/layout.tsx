@@ -5,6 +5,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { StructuredData } from '@/components/StructuredData'
 import { Toaster } from '@/components/ui/sonner'
 import { MediaPartnerRefTracker } from '@/components/media-partner-ref-tracker'
+import { SiteHeader } from '@/components/site-header'
 import { AdTrackingScripts } from '@/components/analytics/ad-tracking'
 import './globals.css'
 
@@ -114,6 +115,7 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <MediaPartnerRefTracker />
         </Suspense>
+        <SiteHeader />
         {children}
         <Toaster richColors position="top-right" />
         <Analytics />

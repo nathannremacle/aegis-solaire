@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Menu, X } from "lucide-react"
+import { Menu, X, Building2, Home } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { usePathname } from "next/navigation"
 
@@ -30,7 +30,15 @@ const B2C_NAV_ITEMS: NavItem[] = [
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const pathname = usePathname()
-  const isB2C = pathname === "/particuliers"
+  const [optimisticSegment, setOptimisticSegment] = useState<"b2b" | "b2c" | null>(null)
+
+  // Clear optimistic segment once pathname reflects the route change
+  useEffect(() => {
+    setOptimisticSegment(null)
+  }, [pathname])
+
+  const currentSegment = optimisticSegment ?? (pathname === "/particuliers" ? "b2c" : "b2b")
+  const isB2C = currentSegment === "b2c"
 
   const navItems = isB2C ? B2C_NAV_ITEMS : B2B_NAV_ITEMS
 
@@ -67,11 +75,9 @@ export function Header() {
   }
 
   return (
-    <motion.header
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+    <header
       className="sticky top-0 z-[100] w-full border-b border-neutral-200 bg-white/95 shadow-sm backdrop-blur-xl"
+      style={{ viewTransitionName: "site-header" }}
     >
       <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:min-h-20 sm:py-4 sm:px-6 lg:px-8 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
         {/* Left Zone: Logo + Segment Toggle */}
@@ -91,7 +97,7 @@ export function Header() {
 
           {/* Segment Toggle – Desktop */}
           <div
-            className="hidden md:flex h-11 items-center rounded-full border border-neutral-200/90 bg-neutral-100 p-1 shadow-inner"
+            className="hidden md:flex h-11 items-center rounded-full border border-neutral-200/90 bg-neutral-100/90 p-1 shadow-inner backdrop-blur-sm"
             role="tablist"
             aria-label="Sélection univers"
             style={{ viewTransitionName: "segment-toggle" }}
@@ -100,35 +106,59 @@ export function Header() {
               href="/"
               role="tab"
               aria-selected={!isB2C}
-              className={`relative flex h-full min-w-[130px] lg:min-w-[140px] items-center justify-center rounded-full px-4 lg:px-5 text-sm font-semibold transition-colors duration-200 ${
-                !isB2C ? "text-white" : "text-neutral-500 hover:text-neutral-800"
+              onClick={() => {
+                if (!isB2C) return
+                setOptimisticSegment("b2b")
+              }}
+              className={`group relative flex h-full min-w-[138px] lg:min-w-[148px] items-center justify-center rounded-full px-3.5 lg:px-4 text-sm font-semibold transition-colors duration-200 ${
+                !isB2C ? "text-white" : "text-neutral-500 hover:text-neutral-900"
               }`}
             >
               {!isB2C && (
                 <motion.div
                   layoutId="segment-pill-desktop"
-                  className="absolute inset-0 rounded-full bg-[#001D3D] shadow-md"
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  className="absolute inset-0 rounded-full bg-[#001D3D] shadow-[0_2px_8px_rgba(0,29,61,0.28),0_1px_2px_rgba(0,29,61,0.18)] border border-white/10"
+                  transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                  style={{ viewTransitionName: "segment-pill" }}
                 />
               )}
-              <span className="relative z-10 text-center select-none">Industrie &amp; Pro</span>
+              <span className="relative z-10 flex items-center justify-center gap-1.5 select-none">
+                <Building2
+                  className={`h-4 w-4 shrink-0 transition-all duration-200 ${
+                    !isB2C ? "text-[#FFB800] scale-105" : "text-neutral-400 group-hover:text-neutral-600"
+                  }`}
+                />
+                <span>Industrie &amp; Pro</span>
+              </span>
             </Link>
             <Link
               href="/particuliers"
               role="tab"
               aria-selected={isB2C}
-              className={`relative flex h-full min-w-[130px] lg:min-w-[140px] items-center justify-center rounded-full px-4 lg:px-5 text-sm font-semibold transition-colors duration-200 ${
-                isB2C ? "text-white" : "text-neutral-500 hover:text-neutral-800"
+              onClick={() => {
+                if (isB2C) return
+                setOptimisticSegment("b2c")
+              }}
+              className={`group relative flex h-full min-w-[138px] lg:min-w-[148px] items-center justify-center rounded-full px-3.5 lg:px-4 text-sm font-semibold transition-colors duration-200 ${
+                isB2C ? "text-white" : "text-neutral-500 hover:text-neutral-900"
               }`}
             >
               {isB2C && (
                 <motion.div
                   layoutId="segment-pill-desktop"
-                  className="absolute inset-0 rounded-full bg-[#001D3D] shadow-md"
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  className="absolute inset-0 rounded-full bg-[#001D3D] shadow-[0_2px_8px_rgba(0,29,61,0.28),0_1px_2px_rgba(0,29,61,0.18)] border border-white/10"
+                  transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                  style={{ viewTransitionName: "segment-pill" }}
                 />
               )}
-              <span className="relative z-10 text-center select-none">Particuliers</span>
+              <span className="relative z-10 flex items-center justify-center gap-1.5 select-none">
+                <Home
+                  className={`h-4 w-4 shrink-0 transition-all duration-200 ${
+                    isB2C ? "text-[#FFB800] scale-105" : "text-neutral-400 group-hover:text-neutral-600"
+                  }`}
+                />
+                <span>Particuliers</span>
+              </span>
             </Link>
           </div>
         </div>
@@ -192,38 +222,50 @@ export function Header() {
           >
             {/* Mobile Segment Toggle */}
             <div className="flex justify-center px-4 pt-4 pb-3">
-              <div className="flex h-11 w-full max-w-[320px] items-center rounded-full border border-neutral-200 bg-neutral-100 p-1">
+              <div className="flex h-11 w-full max-w-[320px] items-center rounded-full border border-neutral-200 bg-neutral-100 p-1 shadow-inner">
                 <Link
                   href="/"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`relative flex h-full flex-1 items-center justify-center rounded-full text-sm font-bold transition-all ${
+                  onClick={() => {
+                    setOptimisticSegment("b2b")
+                    setMobileMenuOpen(false)
+                  }}
+                  className={`group relative flex h-full flex-1 items-center justify-center rounded-full text-sm font-bold transition-all ${
                     !isB2C ? "text-white" : "text-neutral-500"
                   }`}
                 >
                   {!isB2C && (
                     <motion.div
                       layoutId="segment-pill-mobile"
-                      className="absolute inset-0 rounded-full bg-[#001D3D]"
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                      className="absolute inset-0 rounded-full bg-[#001D3D] shadow-md border border-white/10"
+                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
                     />
                   )}
-                  <span className="relative z-10">Industrie &amp; Pro</span>
+                  <span className="relative z-10 flex items-center justify-center gap-1.5">
+                    <Building2 className={`h-4 w-4 ${!isB2C ? "text-[#FFB800]" : "text-neutral-400"}`} />
+                    <span>Industrie &amp; Pro</span>
+                  </span>
                 </Link>
                 <Link
                   href="/particuliers"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`relative flex h-full flex-1 items-center justify-center rounded-full text-sm font-bold transition-all ${
+                  onClick={() => {
+                    setOptimisticSegment("b2c")
+                    setMobileMenuOpen(false)
+                  }}
+                  className={`group relative flex h-full flex-1 items-center justify-center rounded-full text-sm font-bold transition-all ${
                     isB2C ? "text-white" : "text-neutral-500"
                   }`}
                 >
                   {isB2C && (
                     <motion.div
                       layoutId="segment-pill-mobile"
-                      className="absolute inset-0 rounded-full bg-[#001D3D]"
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                      className="absolute inset-0 rounded-full bg-[#001D3D] shadow-md border border-white/10"
+                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
                     />
                   )}
-                  <span className="relative z-10">Particuliers</span>
+                  <span className="relative z-10 flex items-center justify-center gap-1.5">
+                    <Home className={`h-4 w-4 ${isB2C ? "text-[#FFB800]" : "text-neutral-400"}`} />
+                    <span>Particuliers</span>
+                  </span>
                 </Link>
               </div>
             </div>
@@ -253,6 +295,6 @@ export function Header() {
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.header>
+    </header>
   )
 }

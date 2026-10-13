@@ -1,5 +1,4 @@
 import Link from "next/link"
-import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { InstallerRegistrationForm } from "@/components/installer-registration-form"
 import { MarketplaceLivePreview } from "@/components/marketplace-preview"
@@ -34,7 +33,6 @@ export const metadata = {
 export default function PartenairesPage() {
   return (
     <div className="flex min-h-screen min-w-0 flex-col overflow-x-hidden font-sans">
-      <Header />
       <main className="min-w-0 flex-1">
         {/* ─── Hero Section ─── */}
         <section
