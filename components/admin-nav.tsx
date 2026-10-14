@@ -62,20 +62,19 @@ export function AdminNav({
     {
       title: "Réseau Installateurs",
       items: [
-        { href: "/admin/installateurs", label: "Installateurs", icon: Users },
+        { 
+          href: "/admin/partners", 
+          label: "Installateurs & Crédits", 
+          icon: Users,
+          badgeCount: pendingCreditOrders,
+          badgeVariant: "amber"
+        },
         { 
           href: "/admin/applications", 
           label: "Candidatures", 
           icon: ClipboardCheck, 
           badgeCount: pendingApplications,
           badgeVariant: "blue"
-        },
-        { 
-          href: "/admin/partners", 
-          label: "Marketplace & Crédits", 
-          icon: Coins, 
-          badgeCount: pendingCreditOrders,
-          badgeVariant: "amber"
         },
       ]
     },
@@ -153,7 +152,7 @@ export function AdminNav({
             )}
             <div className="space-y-0.5">
               {group.items.map(({ href, label, icon: Icon, badgeCount, badgeVariant }) => {
-                const isActive = pathname === href || (href !== "/admin/dashboard" && pathname.startsWith(href))
+                const isActive = pathname === href || (href !== "/admin/dashboard" && pathname.startsWith(href)) || (href === "/admin/partners" && pathname.startsWith("/admin/installateurs"))
                 
                 return (
                   <Link key={href} href={href} onClick={onNavigate} className="block w-full">

@@ -210,31 +210,31 @@ Ce document recense l'intégralité des formulaires existants au sein de la plat
 * **Page d'affichage :** `/devis-panneaux-solaires`
 * **Composant source :** [`app/devis-panneaux-solaires/devis-landing-client.tsx`](file:///c:/Users/mrnat/Documents/SaaS/Aegis%20Solaire/aegis-solaire-main/app/devis-panneaux-solaires/devis-landing-client.tsx)
 * **Contexte & Objectif :** 
-  Landing page optimisée conversion (inspiration Bobex / Trustpilot) dédiée aux campagnes publicitaires (Google Ads, Meta Ads). Propose de comparer gratuitement jusqu'à 4 devis d'installateurs photovoltaïques locaux agréés RESCERT en Wallonie. Qualification automatique du segment B2C ou B2B selon le type de bâtiment.
-* **Architecture :** Parcours en 6 étapes pas-à-pas avec auto-avancement automatique au clic sur les options.
-* **API de soumission :** `POST /api/leads` (segment `B2B` si bâtiment PME, sinon `B2C`).
+  Landing page optimisée conversion (inspiration Bobex / Trustpilot) dédiée aux campagnes publicitaires (Google Ads, Meta Ads). Propose de comparer gratuitement jusqu'à 3 devis d'installateurs photovoltaïques locaux agréés RESCERT en Wallonie.
+* **Architecture :** Parcours en 6 étapes pas-à-pas compactes avec bouton "Continuer →" et auto-avancement fluide.
+* **API de soumission :** `POST /api/leads` (segment `B2C`).
 
-### Étape 1 : Consommation annuelle
+### Étape 1 : Consommation annuelle & Facture mensuelle
 * **Question :** *"Quelle est votre consommation d'électricité annuelle (estimée) ?"*
   * **Champ :** `consumption`
-  * **Type :** Cartes cliquables à sélection unique avec case cochée
+  * **Type :** Cartes cliquables compactes à sélection unique avec case cochée
   * **Options :**
-    * `lt_3000` : Moins de 3.000 kWh (1 à 2 personnes — petit foyer)
-    * `3000_4000` : 3.000 à 4.000 kWh (2 à 3 personnes)
-    * `4000_5000` : 4.000 à 5.000 kWh (3 à 4 personnes — standard belge)
-    * `5000_6000` : 5.000 à 6.000 kWh (4 à 5 personnes)
-    * `gt_6000` : Plus de 6.000 kWh (Grand foyer, pompe à chaleur ou borne VE)
-  * **Obligatoire :** Oui (pré-sélectionné par défaut sur `4000_5000`).
+    * `lt_3000` : Moins de 3.000 kWh (1 à 2 personnes — Facture < 85 € / mois)
+    * `3000_4000` : 3.000 à 4.000 kWh (2 à 3 personnes — Facture ~85 à 115 € / mois)
+    * `4000_5000` : 4.000 à 5.000 kWh (3 à 4 personnes — Facture ~115 à 145 € / mois)
+    * `5000_6000` : 5.000 à 6.000 kWh (4 à 5 personnes — Facture ~145 à 175 € / mois)
+    * `gt_6000` : Plus de 6.000 kWh (Grand foyer, PAC ou borne VE — > 175 € / mois)
+  * **Obligatoire :** Oui (aucune option pré-cochée au chargement, bouton "Continuer →" actif après sélection).
 
-### Étape 2 : Type de bâtiment
+### Étape 2 : Type de bâtiment résidentiel
 * **Question :** *"De quel type de bâtiment s'agit-il ?"*
   * **Champ :** `propertyType`
   * **Type :** Cartes cliquables avec icônes
   * **Options :**
     * `maison_4f` : Maison individuelle (4 façades)
     * `maison_mitoyenne` : Maison mitoyenne (2 ou 3 façades)
-    * `pme` : Bâtiment d'activité / PME (Atelier, commerce ou bureaux) -> *Bascule le lead en segment B2B*
-  * **Obligatoire :** Oui (pré-sélectionné sur `maison_4f`).
+  * **Orientation PME / B2B :** Encart dédié redirigeant vers le simulateur B2B (`/#simulateur`) pour éviter toute bascule silencieuse sans SIRET/TVA.
+  * **Obligatoire :** Oui.
 
 ### Étape 3 : Statut d'occupation
 * **Question :** *"Êtes-vous propriétaire du bâtiment ?"*
@@ -244,29 +244,33 @@ Ce document recense l'intégralité des formulaires existants au sein de la plat
     * `proprietaire` : Oui, je suis propriétaire (Décision directe d'installation)
     * `locataire` : Non, je suis locataire (Accord préalable du propriétaire requis)
     * `copropriete` : Copropriété (Décision soumise au syndic / ACP)
-  * **Obligatoire :** Oui (pré-sélectionné sur `proprietaire`).
+  * **Obligatoire :** Oui.
 
-### Étape 4 : Type de toiture
-* **Question :** *"Quel est le type de votre toiture ?"*
+### Étape 4 : Toiture, Surface & Équipements
+* **Question 1 :** *"Revêtement de toiture"*
   * **Champ :** `roofType`
-  * **Type :** Cartes cliquables
-  * **Options :**
-    * `tuiles` : Toit incliné en tuiles (Revêtement le plus fréquent en Wallonie)
-    * `ardoises` : Toit incliné en ardoises (Fixations et crochets spécifiques)
-    * `plat` : Toit plat (Roofing / EPDM) (Pose sur structures lestées)
-    * `autre` : Autre / Pose au sol (Étudié sur mesure avec l'installateur)
-  * **Obligatoire :** Oui (pré-sélectionné sur `tuiles`).
+  * **Type :** Boutons-cartes de sélection
+  * **Options :** `tuiles` (Tuiles), `ardoises` (Ardoises), `plat` (Toit plat EPDM), `autre` (Autre / Sol)
+* **Question 2 :** *"Surface exploitable estimée"*
+  * **Champ :** `roofSurface`
+  * **Type :** Grille 3 colonnes
+  * **Options :** `< 30 m²` (≈ 3-4 kWc), `30–60 m²` (≈ 5-8 kWc), `> 60 m²` (> 8 kWc)
+* **Question 3 :** *"Batterie domestique ?"*
+  * **Champ :** `batteryInterest`
+  * **Options :** `oui` (Indispensable), `hesite` (À évaluer), `non` (Panneaux seuls)
+* **Question 4 :** *"Borne de recharge VE ?"*
+  * **Champ :** `evChargerInterest`
+  * **Options :** `oui` (Déjà équipé), `prevu` (Prochainement), `non` (Pas de VE)
+* **Obligatoire :** Oui.
 
-### Étape 5 : Localisation Wallonne
-* **Question 1 :** *"Province wallonne"*
-  * **Champ :** `province`
-  * **Type :** Grille de boutons radio
-  * **Options :** `liege` (Liège), `hainaut` (Hainaut), `namur` (Namur), `brabant_wallon` (Brabant wallon), `luxembourg` (Luxembourg)
-  * **Obligatoire :** Oui (auto-sélectionnée lors de la frappe du code postal).
-* **Question 2 :** *"Code postal (4 chiffres)"*
+### Étape 5 : Localisation Wallonne (Code postal en premier)
+* **Question 1 :** *"Code postal (4 chiffres)"*
   * **Champ :** `postalCode`
-  * **Type :** Champ numérique 4 chiffres (`maxLength={4}`)
-  * **Validation :** Requis, exactement 4 chiffres belges (ex: 4000, 5000, 7000).
+  * **Type :** Champ numérique 4 chiffres avec autofocus
+  * **Validation :** Requis, exactement 4 chiffres belges (ex: 4000, 5000, 7000) déclenchant l'auto-détection de la province.
+* **Question 2 :** *"Province wallonne"*
+  * **Champ :** `province`
+  * **Type :** Grille de boutons radio auto-sélectionnée lors de la frappe du code postal (Liège, Hainaut, Namur, Brabant wallon, Luxembourg).
 * **Question 3 :** *"Commune (facultatif)"*
   * **Champ :** `city`
   * **Type :** Champ texte libre (max 60 car, optionnel).
@@ -277,11 +281,11 @@ Ce document recense l'intégralité des formulaires existants au sein de la plat
   * **Prénom (`firstName`) :** Champ texte, requis (min. 2 caractères).
   * **Nom (`lastName`) :** Champ texte, requis (min. 2 caractères).
   * **E-mail (`email`) :** Champ e-mail, requis, validation regex e-mail stricte.
-  * **Téléphone (`phone`) :** Champ téléphone, requis, validation de format de téléphone belge/français.
-  * **Adresse (Rue et numéro) (`address`) :** Champ texte, optionnel.
+  * **Téléphone (`phone`) :** Champ téléphone, requis, validation format BE/FR.
+  * **Adresse (Rue et numéro) (`address`) :** Champ texte, **obligatoire** (min. 4 caractères, requis pour le contrôle Google Maps).
   * **Précisions sur votre projet (`remarks`) :** Zone de texte (`textarea`, max 500 caractères, optionnel).
-  * **Consentement Mise en concurrence (`partnerConsent`) :** Case à cocher (`Checkbox`), **obligatoire** (accord pour transmission à un maximum de 4 installateurs agréés RESCERT).
-  * **Consentement Conseils solaires (`newsletterConsent`) :** Case à cocher (`Checkbox`), optionnelle.
+  * **Consentement Devis comparatifs (`partnerConsent`) :** Case à cocher (`Checkbox`), **obligatoire** (accord pour transmission à un maximum de 3 installateurs agréés RESCERT).
+  * **Consentement Guides & conseils (`newsletterConsent`) :** Case à cocher (`Checkbox`), optionnelle.
 
 ---
 

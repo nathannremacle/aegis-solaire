@@ -84,6 +84,9 @@ type MarketplaceLead = {
   projectTimeline?: string | null
   estimatedRoiYears?: number | string | null
   wantsIrve?: boolean
+  postalCode?: string | null
+  roofMaterial?: string | null
+  ownershipStatus?: string | null
   badges?: {
     isTopDeal: boolean
     isUrgent: boolean
@@ -168,6 +171,16 @@ const SURFACE_LABELS: Record<string, string> = {
   terrain: "Terrain au sol",
 }
 
+const ROOF_LABELS: Record<string, string> = {
+  tuiles: "Tuiles",
+  ardoises: "Ardoises",
+  zinc: "Zinc / Métal",
+  toit_plat: "Toiture Plate",
+  toit_incline: "Toiture Inclinée",
+  bac_acier: "Bac Acier",
+  epdm: "EPDM / Bitume",
+}
+
 function label(map: Record<string, string>, key: string | null) {
   if (!key) return "—"
   return map[key.toLowerCase()] ?? key
@@ -220,14 +233,14 @@ function SegmentedSlotBar({ taken, max }: { taken: number; max: number }) {
       <div className="flex items-center justify-between text-[11px]">
         <span className="font-medium text-slate-500">
           {isFull ? (
-            <span className="text-rose-600 font-bold">Complet (3/3)</span>
+            <span className="text-rose-600 font-bold">Complet ({max}/{max})</span>
           ) : (
             <span>
-              <strong className="text-emerald-700">{remaining}</strong> {remaining > 1 ? "places libres" : "place libre"}
+              <strong className="text-emerald-700">{remaining} place{remaining > 1 ? "s" : ""} disponible{remaining > 1 ? "s" : ""} sur {max}</strong>
             </span>
           )}
         </span>
-        <span className="font-mono text-[10px] text-slate-400">max {max}</span>
+        <span className="font-mono text-[10px] text-slate-400">max {max} installateurs</span>
       </div>
     </div>
   )
@@ -600,12 +613,12 @@ Détails : ${lead.project_details || lead.message || "Aucun commentaire supplém
               </span>
             </div>
 
-            {/* Bouton ou Badge Garantie 48h */}
+            {/* Bouton ou Badge Garantie 24h ouvrées */}
             {dispute ? (
               <div className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-900">
                 <ShieldCheck className="h-3.5 w-3.5 text-amber-600" />
                 <span>
-                  Garantie 48h : {dispute.status === "approved" ? "Validée (Crédits remboursés)" : dispute.status === "rejected" ? "Refusée" : "En cours d'examen"}
+                  Garantie 24h ouvrées : {dispute.status === "approved" ? "Validée (Crédits remboursés)" : dispute.status === "rejected" ? "Refusée" : "En cours d'examen"}
                 </span>
               </div>
             ) : onOpenDispute ? (
@@ -613,10 +626,10 @@ Détails : ${lead.project_details || lead.message || "Aucun commentaire supplém
                 type="button"
                 onClick={() => onOpenDispute(lead, purchaseId)}
                 className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-rose-600 transition-colors"
-                title="Numéro faux, injoignable après 3 tentatives ou hors cible ? Déposez un signalement garanti 48h."
+                title="Numéro faux, injoignable après 3 tentatives ou hors cible ? Déposez un signalement garanti 24h ouvrées."
               >
                 <AlertCircle className="h-3.5 w-3.5 text-slate-400 hover:text-rose-500" />
-                <span>Garantie 48h · Signaler un problème</span>
+                <span>Garantie 24h ouvrées · Signaler un problème</span>
               </button>
             ) : null}
           </div>
@@ -698,7 +711,10 @@ function LeadProjectCard({
   const hasReveal = isMine && Boolean(revealedLead)
 
   // Calculs financiers pour l'ancrage de valeur
-  const powerKwc = lead.estimatedPowerKwc ?? 0
+  // Plafonnement d'affichage résidentiel en cohérence avec le cap 10 kVA wallon
+  const displaySurfaceArea = isB2C && (lead.surfaceArea ?? 0) > 150 ? Math.min(lead.surfaceArea, 80) : (lead.surfaceArea ?? 0)
+  const powerKwc = isB2C && (lead.estimatedPowerKwc ?? 0) > 10 ? 10 : (lead.estimatedPowerKwc ?? 0)
+
   const contractValue =
     lead.estimatedContractValue ||
     Math.max(isB2C ? 7500 : 24000, Math.round(powerKwc * (isB2C ? 1450 : 1150)))
@@ -706,8 +722,17 @@ function LeadProjectCard({
     lead.estimatedInstallerMargin || Math.round(contractValue * 0.22)
   const creditCost = lead.creditCost ?? (isB2C ? 2 : 5)
   const leadEuroCost = lead.creditCostEur ?? Math.round(creditCost * 11.98)
-  const roiMultiplier =
-    lead.roiMultiplier || Math.round(installerMargin / (leadEuroCost || 1))
+  const acqCostPercent = contractValue > 0 ? ((leadEuroCost / contractValue) * 100).toFixed(1) : "0.3"
+
+  // Titre & Sous-titre dynamiques réalistes
+  const roofMat = lead.roofMaterial ? label(ROOF_LABELS, lead.roofMaterial) : label(SURFACE_LABELS, lead.surfaceType) || "Tuiles"
+  const postal = lead.postalCode ? `${lead.postalCode} ` : ""
+  const provLabel = label(PROVINCE_LABELS, lead.province)
+  const provName = provLabel !== "—" ? provLabel : "Wallonie"
+  const cardTitle = `Toiture ${roofMat} — ${postal}${provName}`
+  const grdLabel = label(GRD_LABELS, lead.grd)
+  const grdName = grdLabel !== "—" ? grdLabel : "ORES"
+  const cardSubtitle = `GRD : ${grdName} · Propriétaire vérifié · Il y a ${timeAgo(lead.createdAt)}`
 
   // Rareté B2C
   const isLastSlot = isB2C && slotsTaken === slotsMax - 1
@@ -751,9 +776,9 @@ function LeadProjectCard({
       )}
 
       {/* Header carte */}
-      <div className="p-5 pb-3">
+      <div className="p-4 pb-2">
         {/* Badges d'opportunité dynamique */}
-        <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
+        <div className="flex flex-wrap items-center gap-1.5 mb-2">
           {isB2C ? (
             <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800">
               <Users className="h-3 w-3 text-emerald-600" />
@@ -785,47 +810,49 @@ function LeadProjectCard({
             </span>
           )}
 
-          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">
-            {label(PROVINCE_LABELS, lead.province)}
-          </span>
+          {provLabel !== "—" && (
+            <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">
+              {provLabel}
+            </span>
+          )}
         </div>
 
         {/* Titre & type de toiture */}
         <h3 className="text-base font-extrabold text-slate-900 group-hover:text-[#001D3D] transition-colors leading-snug">
-          Projet {label(SURFACE_LABELS, lead.surfaceType)}
+          {cardTitle}
         </h3>
         <p className="text-xs text-slate-500 mt-0.5">
-          GRD : <strong className="text-slate-800">{label(GRD_LABELS, lead.grd)}</strong> · Wallonie
+          {cardSubtitle}
         </p>
       </div>
 
       {/* Métriques techniques clés */}
-      <div className="mx-5 my-1 grid grid-cols-3 divide-x divide-slate-100 rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-center">
+      <div className="mx-4 my-1 grid grid-cols-3 divide-x divide-slate-100 rounded-xl border border-slate-100 bg-slate-50/70 p-2.5 text-center">
         <div>
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Surface</span>
           <p className="mt-0.5 font-sans text-sm font-extrabold tabular-nums text-slate-900">
-            {(lead.surfaceArea ?? 0).toLocaleString("fr-BE")}{" "}
+            {displaySurfaceArea.toLocaleString("fr-BE")}{" "}
             <span className="text-[10px] font-normal text-slate-500">m²</span>
           </p>
         </div>
         <div>
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Puissance</span>
           <p className="mt-0.5 font-sans text-sm font-black tabular-nums text-amber-600">
-            {(lead.estimatedPowerKwc ?? 0).toLocaleString("fr-BE")}{" "}
+            {powerKwc.toLocaleString("fr-BE")}{" "}
             <span className="text-[10px] font-normal text-slate-500">kWc</span>
           </p>
         </div>
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Économies</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">FACTURE ÉLEC.</span>
           <p className="mt-0.5 font-sans text-sm font-extrabold tabular-nums text-[#001D3D]">
-            {(lead.estimatedRevenue ?? 0).toLocaleString("fr-BE")}{" "}
+            {(lead.annualBill || lead.estimatedRevenue || 1850).toLocaleString("fr-BE")}{" "}
             <span className="text-[10px] font-normal text-slate-500">€/an</span>
           </p>
         </div>
       </div>
 
       {/* BLOC D'ANCRAGE DE RENTABILITÉ FINANCIÈRE (POUSSE À L'ACHAT) */}
-      <div className="mx-5 mt-2 rounded-xl border border-emerald-100 bg-gradient-to-r from-emerald-50/60 via-blue-50/40 to-white p-3">
+      <div className="mx-4 mt-1.5 rounded-xl border border-emerald-100 bg-gradient-to-r from-emerald-50/60 via-blue-50/40 to-white p-2.5">
         <div className="flex items-center justify-between text-[11px]">
           <span className="font-semibold text-slate-600">CA prévisionnel chantier :</span>
           <span className="font-black text-slate-900 font-sans">
@@ -836,14 +863,14 @@ function LeadProjectCard({
           <span className="text-slate-500 text-[10px]">
             Marge indicative (~22%) : <strong className="text-slate-700">~{(installerMargin ?? 0).toLocaleString("fr-BE")} €</strong>
           </span>
-          <span className="rounded bg-emerald-100/90 px-1.5 py-0.2 text-[10px] font-black text-emerald-800">
-            ROI x{roiMultiplier || 1}
+          <span className="rounded bg-emerald-100/90 px-1.5 py-0.5 text-[10px] font-black text-emerald-800">
+            Coût d'acquisition : ~{acqCostPercent} % du chantier
           </span>
         </div>
       </div>
 
       {/* Concurrence & Places restantes */}
-      <div className="px-5 py-3">
+      <div className="px-4 py-2.5">
         {isB2C ? (
           <SegmentedSlotBar taken={slotsTaken} max={slotsMax} />
         ) : (
@@ -863,7 +890,7 @@ function LeadProjectCard({
       </div>
 
       {/* Action footer */}
-      <div className="mt-auto border-t border-slate-100 p-4 pt-3">
+      <div className="mt-auto border-t border-slate-100 p-3 pt-2.5">
         {isMine ? (
           <button
             onClick={() => setExpanded(!expanded)}
@@ -884,7 +911,7 @@ function LeadProjectCard({
             onClick={() => onPurchase(lead.id)}
             disabled={!!purchasing}
             type="button"
-            className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-black text-white shadow-md transition-all active:translate-y-0.5 disabled:opacity-50 ${
+            className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-black text-white shadow-md transition-all active:translate-y-0.5 disabled:opacity-50 ${
               isLastSlot
                 ? "bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-500 shadow-amber-500/20"
                 : "bg-gradient-to-b from-[#001D3D] to-[#00152e] hover:bg-[#002855] shadow-slate-900/10"
@@ -898,7 +925,7 @@ function LeadProjectCard({
             <span>
               {isPurchasing
                 ? "Déblocage en cours…"
-                : `Débloquer ce dossier · ${creditCost} crédits (~${leadEuroCost} €)`}
+                : `Débloquer les coordonnées (${creditCost} crédits)`}
             </span>
           </button>
         )}
@@ -1003,7 +1030,7 @@ function LeadTableRow({
             <span className="text-[11px] font-normal text-slate-400">€ CA</span>
           </p>
           <p className="text-[10px] text-emerald-700 font-bold">
-            ROI x{lead.roiMultiplier || 350}
+            Coût d'acq. : ~{contractValue > 0 ? ((leadEuroCost / contractValue) * 100).toFixed(1) : "0.3"} %
           </p>
         </div>
 
@@ -1312,6 +1339,16 @@ export default function PartnerDashboardPage() {
   // Métriques globales
   const totalPower = filteredLeads.reduce((s, l) => s + l.estimatedPowerKwc, 0)
   const totalRevenue = filteredLeads.reduce((s, l) => s + l.estimatedRevenue, 0)
+  const totalContractPotential = useMemo(() => {
+    return filteredLeads.reduce((acc, l) => {
+      const kwc = l.estimatedPowerKwc || 0
+      const val = l.estimatedContractValue || (kwc > 0 ? Math.round(kwc * (l.segment === "B2C" ? 1450 : 1150)) : (l.segment === "B2C" ? 11875 : 35625))
+      return acc + val
+    }, 0)
+  }, [filteredLeads])
+  const leadsInMyZoneCount = useMemo(() => {
+    return leads.filter((l) => alertProvinces.some((p) => p.toLowerCase() === (l.province ?? "").toLowerCase())).length
+  }, [leads, alertProvinces])
   const b2bCount = filteredLeads.filter((l) => l.segment === "B2B").length
   const b2cCount = filteredLeads.filter((l) => l.segment === "B2C").length
 
@@ -1809,15 +1846,10 @@ export default function PartnerDashboardPage() {
                       <Crown className="h-3 w-3 text-amber-500 fill-amber-500" />
                       Partenaire Gold (Prioritaire)
                     </span>
-                  ) : partner?.tier === "silver" ? (
-                    <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-800 border border-slate-300 shadow-2xs">
-                      <Award className="h-3 w-3 text-slate-600" />
-                      Partenaire Silver (-5%)
-                    </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200/60">
-                      <ShieldCheck className="h-3 w-3" />
-                      RESCERT Agréé
+                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-300 shadow-2xs">
+                      <ShieldCheck className="h-3 w-3 text-emerald-600" />
+                      ✓ Certifié RESCERT
                     </span>
                   )}
                 </button>
@@ -1880,64 +1912,64 @@ export default function PartnerDashboardPage() {
         </div>
       </header>
 
-      {/* ─── Executive KPI Metrics Deck ─── */}
+      {/* ─── Executive KPI Metrics Deck (Compact -35% height) ─── */}
       <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+        <div className="mx-auto max-w-7xl px-4 py-2.5 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
             {/* Card 1: Opportunités */}
-            <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-3.5 sm:p-4">
+            <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-2.5 sm:p-3">
               <div className="flex items-center justify-between text-slate-500">
                 <span className="text-xs font-semibold">Opportunités</span>
                 <Layers className="h-4 w-4 text-blue-600" />
               </div>
-              <p className="mt-2 text-xl sm:text-2xl font-extrabold tabular-nums text-slate-900">
+              <p className="mt-1 text-lg sm:text-xl font-extrabold tabular-nums text-slate-900">
                 {filteredLeads.length}
               </p>
-              <p className="mt-1 text-[11px] text-slate-500 truncate">
+              <p className="mt-0.5 text-[10px] sm:text-[11px] text-slate-500 truncate">
                 <strong className="text-blue-700">{b2bCount} B2B</strong> · <strong className="text-emerald-700">{b2cCount} B2C</strong>
               </p>
             </div>
 
             {/* Card 2: Puissance totale */}
-            <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-3.5 sm:p-4">
+            <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-2.5 sm:p-3">
               <div className="flex items-center justify-between text-slate-500">
                 <span className="text-xs font-semibold">Puissance estimée</span>
                 <Sun className="h-4 w-4 text-amber-500" />
               </div>
-              <p className="mt-2 text-xl sm:text-2xl font-extrabold tabular-nums text-amber-600">
-                {totalPower.toLocaleString("fr-BE")} <span className="text-sm font-normal text-slate-500">kWc</span>
+              <p className="mt-1 text-lg sm:text-xl font-extrabold tabular-nums text-amber-600">
+                {totalPower.toLocaleString("fr-BE")} <span className="text-xs font-normal text-slate-500">kWc</span>
               </p>
-              <p className="mt-1 text-[11px] text-slate-500 truncate">
+              <p className="mt-0.5 text-[10px] sm:text-[11px] text-slate-500 truncate">
                 Capacité photovoltaïque totale
               </p>
             </div>
 
-            {/* Card 3: Économies factures */}
-            <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-3.5 sm:p-4">
+            {/* Card 3: Potentiel Chantiers */}
+            <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-2.5 sm:p-3">
               <div className="flex items-center justify-between text-slate-500">
-                <span className="text-xs font-semibold">Économies réseau</span>
+                <span className="text-xs font-semibold">Potentiel Chantiers</span>
                 <TrendingUp className="h-4 w-4 text-emerald-600" />
               </div>
-              <p className="mt-2 text-xl sm:text-2xl font-extrabold tabular-nums text-[#001D3D]">
-                {totalRevenue.toLocaleString("fr-BE")} <span className="text-sm font-normal text-slate-500">€/an</span>
+              <p className="mt-1 text-lg sm:text-xl font-extrabold tabular-nums text-[#001D3D]">
+                ~{(totalContractPotential || 35625).toLocaleString("fr-BE")} <span className="text-xs font-normal text-slate-500">€ HTVA</span>
               </p>
-              <p className="mt-1 text-[11px] text-slate-500 truncate">
-                Factures annuelles auditées
+              <p className="mt-0.5 text-[10px] sm:text-[11px] text-slate-500 truncate">
+                Chiffre d'affaires estimé sur le vivier disponible
               </p>
             </div>
 
             {/* Card 4: Vos dossiers acquis */}
-            <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-3.5 sm:p-4">
+            <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-2.5 sm:p-3">
               <div className="flex items-center justify-between text-slate-500">
                 <span className="text-xs font-semibold">Mon Portefeuille</span>
                 <FileText className="h-4 w-4 text-[#001D3D]" />
               </div>
-              <p className="mt-2 text-xl sm:text-2xl font-extrabold tabular-nums text-slate-900">
-                {myLeads.length} <span className="text-sm font-normal text-slate-500">acquis</span>
+              <p className="mt-1 text-lg sm:text-xl font-extrabold tabular-nums text-slate-900">
+                {myLeads.length} <span className="text-xs font-normal text-slate-500">acquis</span>
               </p>
               <button
                 onClick={() => setTab("portfolio")}
-                className="mt-1 text-[11px] font-semibold text-blue-600 hover:underline inline-flex items-center gap-1"
+                className="mt-0.5 text-[10px] sm:text-[11px] font-semibold text-blue-600 hover:underline inline-flex items-center gap-1"
               >
                 Consulter mes dossiers →
               </button>
@@ -1987,15 +2019,15 @@ export default function PartnerDashboardPage() {
 
             {/* Barre de Recherche, Filtres & Vue Switcher */}
             {tab === "feed" && (
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap lg:flex-nowrap items-center gap-2 w-full lg:w-auto">
                 {/* Search input */}
-                <div className="relative flex-1 sm:w-64 sm:flex-initial">
+                <div className="relative flex-1 sm:w-56 sm:flex-initial">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Filtrer (Liège, ORES, toiture…)"
+                    placeholder="Filtrer (Liège, ORES…)"
                     className="h-9 w-full rounded-xl border border-slate-200 bg-slate-50 pl-8 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#001D3D] focus:bg-white focus:outline-none transition-colors"
                   />
                   {searchQuery && (
@@ -2009,7 +2041,7 @@ export default function PartnerDashboardPage() {
                 </div>
 
                 {/* Filtre Segment */}
-                <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 p-1">
+                <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 p-1 shrink-0">
                   {(["ALL", "B2B", "B2C"] as SegmentFilter[]).map((seg) => (
                     <button
                       key={seg}
@@ -2028,7 +2060,7 @@ export default function PartnerDashboardPage() {
                 {/* Filtre Rapide : Ma Zone */}
                 <button
                   onClick={() => setFilterMyZone(!filterMyZone)}
-                  className={`rounded-xl border px-3 h-9 text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  className={`rounded-xl border px-3 h-9 text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
                     filterMyZone
                       ? "bg-amber-400 border-amber-500 text-[#001D3D] shadow-xs"
                       : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
@@ -2036,14 +2068,14 @@ export default function PartnerDashboardPage() {
                   title={filterMyZone ? "Afficher toutes les zones" : "Filtrer uniquement sur mes provinces d'alerte"}
                 >
                   <MapPin className={`h-3.5 w-3.5 ${filterMyZone ? "text-[#001D3D]" : "text-amber-500"}`} />
-                  <span>Ma Zone ({alertProvinces.length})</span>
+                  <span>Ma Zone ({leadsInMyZoneCount})</span>
                 </button>
 
                 {/* Filtre Province Dropdown */}
                 <select
                   value={provinceFilter ?? ""}
                   onChange={(e) => setProvinceFilter(e.target.value || null)}
-                  className="h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 focus:border-[#001D3D] focus:outline-none"
+                  className="h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 focus:border-[#001D3D] focus:outline-none shrink-0"
                 >
                   <option value="">Toute la Wallonie</option>
                   {provinces.map((p) => (
@@ -2057,7 +2089,7 @@ export default function PartnerDashboardPage() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortOption)}
-                  className="h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 focus:border-[#001D3D] focus:outline-none"
+                  className="h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 focus:border-[#001D3D] focus:outline-none shrink-0"
                 >
                   <option value="recent">Plus récents</option>
                   <option value="power_desc">Puissance (kWc ↓)</option>
@@ -2065,40 +2097,41 @@ export default function PartnerDashboardPage() {
                   <option value="surface_desc">Surface (m² ↓)</option>
                 </select>
 
-                {/* View switcher (Cartes / Tableau) */}
-                <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 p-1">
+                {/* View switcher (Cartes / Tableau) & Actualiser regroupés sur la même ligne */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 p-1">
+                    <button
+                      onClick={() => setViewMode("grid")}
+                      className={`rounded-lg p-1 text-slate-600 transition-colors ${
+                        viewMode === "grid" ? "bg-white text-[#001D3D] shadow-xs" : "hover:text-slate-900"
+                      }`}
+                      title="Vue Grille de Projets"
+                    >
+                      <LayoutGrid className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setViewMode("table")}
+                      className={`rounded-lg p-1 text-slate-600 transition-colors ${
+                        viewMode === "table" ? "bg-white text-[#001D3D] shadow-xs" : "hover:text-slate-900"
+                      }`}
+                      title="Vue Tableau Compact"
+                    >
+                      <List className="h-4 w-4" />
+                    </button>
+                  </div>
+
                   <button
-                    onClick={() => setViewMode("grid")}
-                    className={`rounded-lg p-1 text-slate-600 transition-colors ${
-                      viewMode === "grid" ? "bg-white text-[#001D3D] shadow-xs" : "hover:text-slate-900"
-                    }`}
-                    title="Vue Grille de Projets"
+                    onClick={() => {
+                      setLoading(true)
+                      fetchMarketplace()
+                      toast.info("Actualisation du flux…")
+                    }}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors shrink-0"
+                    title="Actualiser la liste"
                   >
-                    <LayoutGrid className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode("table")}
-                    className={`rounded-lg p-1 text-slate-600 transition-colors ${
-                      viewMode === "table" ? "bg-white text-[#001D3D] shadow-xs" : "hover:text-slate-900"
-                    }`}
-                    title="Vue Tableau Compact"
-                  >
-                    <List className="h-4 w-4" />
+                    <RefreshCw className="h-3.5 w-3.5" />
                   </button>
                 </div>
-
-                {/* Actualiser */}
-                <button
-                  onClick={() => {
-                    setLoading(true)
-                    fetchMarketplace()
-                    toast.info("Actualisation du flux…")
-                  }}
-                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
-                  title="Actualiser la liste"
-                >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                </button>
               </div>
             )}
           </div>
@@ -2120,10 +2153,6 @@ export default function PartnerDashboardPage() {
         {/* ─── VUE 1 : LIVE FEED ─── */}
         {tab === "feed" && (
           <div>
-            {/* Live Social Proof Ticker */}
-            <div className="mb-4">
-              <MarketplaceLiveTicker />
-            </div>
 
             {/* Alerte solde faible / Incitation au réapprovisionnement */}
             {(partner?.credits ?? 0) <= 4 && (

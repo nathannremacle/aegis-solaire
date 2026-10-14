@@ -60,12 +60,17 @@ export function calculateMarketplaceFinancials(lead: {
   const isB2C = lead.segment === "B2C"
   const rawArea = Math.max(0, Number(lead.surfaceArea) || 0)
   
-  // Rendement standard : ~170 Wc / m² (soit ~0.17 kWc par m²)
-  let powerKwc = Math.round(rawArea * 0.17)
+  // Plafonnement de cohérence B2C :
+  // En Wallonie, le résidentiel standard est capé à 10 kVA pour les démarches simplifiées.
+  // Une toiture résidentielle typique varie entre 30 et 120 m² (jamais 2 650 m² qui est une toiture industrielle).
+  const effectiveArea = isB2C && rawArea > 150 ? Math.min(rawArea, 80) : rawArea
 
-  // Plafonnement de cohérence B2C (une maison unifamiliale dépasse rarement 25 kWc sans statut pro/agricole)
-  if (isB2C && powerKwc > 25) {
-    powerKwc = Math.min(powerKwc, 25)
+  // Rendement standard : ~170 Wc / m² (soit ~0.17 kWc par m²)
+  let powerKwc = Math.round(effectiveArea * 0.17)
+
+  // Plafonnement de cohérence B2C (en Wallonie résidentiel capé à 10 kVA / 10 kWc)
+  if (isB2C && powerKwc > 10) {
+    powerKwc = 10
   }
 
   // Fourchette de prix moyen du marché wallon par kWc installé (clé en main) :
@@ -89,15 +94,20 @@ export function calculateMarketplaceFinancials(lead: {
   // Coût d'acquisition du dossier en crédits et en euros
   const credits = lead.creditCost ?? calculateLeadCreditCost({
     segment: lead.segment,
-    surfaceArea: lead.surfaceArea,
+    surfaceArea: effectiveArea,
     surfaceType: lead.surfaceType,
     annualBill: lead.annualBill,
   })
   const leadCostEuros = Math.round(credits * REFERENCE_CREDIT_PRICE_EUR)
 
-  // Économie annuelle brute estimée sur la facture d'électricité (~30 % d'autoconsommation/effacement)
+  // Économie annuelle brute estimée sur la facture d'électricité (~35 % d'autoconsommation/effacement)
   const annualBill = Math.max(0, Number(lead.annualBill) || 0)
-  const revenueEstimatePerYear = annualBill > 0 ? Math.round(annualBill * 0.30) : Math.round(powerKwc * 90)
+  // Wallonie : 930 kWh/kWc/an. L'économie réelle correspond à l'autoconsommation + revente surplus,
+  // et ne peut en aucun cas dépasser la facture ou excéder la production physique.
+  const maxPossibleSolarSavings = Math.round(powerKwc * 930 * 0.32)
+  const revenueEstimatePerYear = annualBill > 0 
+    ? Math.min(Math.round(annualBill * 0.35), maxPossibleSolarSavings) 
+    : Math.min(Math.round(powerKwc * 95), maxPossibleSolarSavings)
 
   // Multiplicateur ROI crédible
   const roiMultiplier = Math.max(1, Math.round(estimatedInstallerMargin / (leadCostEuros || 1)))

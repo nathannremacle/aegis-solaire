@@ -16,7 +16,7 @@ const getNavBadgeCountsCached = unstable_cache(
     ] = await Promise.all([
       supabase.from("installer_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
       supabase.from("media_partner_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
-      supabase.from("leads").select("*", { count: "exact", head: true }).eq("status", "NEEDS_HUMAN_REVIEW"),
+      supabase.from("leads").select("*", { count: "exact", head: true }).eq("marketplace_status", "pending_review"),
       Promise.resolve(
         supabase.from("credit_orders").select("*", { count: "exact", head: true }).eq("status", "pending")
       ).catch(() => ({ count: 0, data: null, error: null })),
