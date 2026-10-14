@@ -404,18 +404,20 @@ export function B2CSimulator() {
         : BILL_BRACKETS.find((b) => b.id === fd.annualBillBracket)?.value ?? 1800
 
       const mappedRoofMaterial =
-        fd.roofType === "tuiles" || fd.roofType === "ardoises"
-          ? "tuiles_ardoises"
+        fd.roofType === "tuiles"
+          ? "tuiles"
+          : fd.roofType === "ardoises"
+          ? "ardoises"
           : fd.roofType === "plat"
           ? "plat_epdm"
-          : "autre"
+          : "zinc_autre"
 
       const mappedOwnership =
         fd.ownershipStatus === "copropriete"
-          ? "autre"
+          ? "co_ownership"
           : fd.ownershipStatus === "locataire_sans_accord"
-          ? "locataire_sans_accord"
-          : "proprietaire_occupant"
+          ? "tenant_unauthorized"
+          : "owner"
 
       const payload = {
         sourceForm: "b2c_simulator",
@@ -435,13 +437,8 @@ export function B2CSimulator() {
         annualElectricityBill: annualBill,
         annualBillEur: annualBill,
         estimatedPowerKwc: roofKwc,
-        projectDriver:
-          fd.batteryInterest === "oui"
-            ? "autonomie_batterie"
-            : fd.evInterest === "oui" || fd.evInterest === "prevu"
-            ? "borne_recharge"
-            : "reduction_facture",
-        timeframe: "1_3_mois",
+        projectDriver: "reduire_facture",
+        timeframe: "immediat_3mois",
         qualificationMetadata: {
           b2c_ownership_status: fd.ownershipStatus,
           b2c_roof_type: fd.roofType,

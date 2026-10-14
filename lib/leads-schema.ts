@@ -89,9 +89,10 @@ export const leadSubmitSchema = z
         return t === "" ? undefined : t
       }),
     postalCode: z
-      .string()
-      .regex(/^[0-9]{4}$/, "Le code postal belge doit comporter exactement 4 chiffres.")
-      .optional(),
+      .preprocess(
+        (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+        z.string().regex(/^[0-9]{4}$/, "Le code postal belge doit comporter exactement 4 chiffres.").optional()
+      ),
     city: z.string().max(100).optional(),
     siteAddress: z.string().max(255).optional(),
 
@@ -100,8 +101,22 @@ export const leadSubmitSchema = z
       errorMap: () => ({ message: "Type de surface invalide" }),
     }),
     surfaceArea: z.number().int().positive("Surface requise"),
-    roofMaterial: z.enum(ROOF_MATERIAL_OPTIONS).optional(),
-    ownershipStatus: z.enum(OWNERSHIP_STATUS_OPTIONS).optional(),
+    roofMaterial: z
+      .preprocess((val) => {
+        if (typeof val !== "string") return val
+        if (val === "tuiles_ardoises") return "tuiles"
+        if (val === "autre" || val === "zinc") return "zinc_autre"
+        if (val === "plat") return "plat_epdm"
+        return val
+      }, z.enum(ROOF_MATERIAL_OPTIONS).optional()),
+    ownershipStatus: z
+      .preprocess((val) => {
+        if (typeof val !== "string") return val
+        if (val === "proprietaire_occupant" || val === "proprietaire") return "owner"
+        if (val === "locataire_sans_accord" || val === "locataire") return "tenant_unauthorized"
+        if (val === "copropriete" || val === "autre") return "co_ownership"
+        return val
+      }, z.enum(OWNERSHIP_STATUS_OPTIONS).optional()),
 
     // Énergie & Réseau
     annualElectricityBill: z.number().int().positive("Facture annuelle requise"),
@@ -115,10 +130,22 @@ export const leadSubmitSchema = z
       .refine((s) => !s || isValidBelgianVat(s), { message: "Numéro TVA belge invalide (format BE + 10 chiffres)." })
       .optional(),
     jobTitle: z.enum(JOB_TITLE_OPTIONS).optional(),
-    projectDriver: z.enum(PROJECT_DRIVER_OPTIONS).optional(),
+    projectDriver: z
+      .preprocess((val) => {
+        if (typeof val !== "string") return val
+        if (val === "reduction_facture") return "reduire_facture"
+        return val
+      }, z.enum(PROJECT_DRIVER_OPTIONS).optional()),
 
     // B2C & Timing
-    timeframe: z.enum(TIMEFRAME_OPTIONS).optional(),
+    timeframe: z
+      .preprocess((val) => {
+        if (typeof val !== "string") return val
+        if (val === "1_3_mois") return "immediat_3mois"
+        if (val === "3_6_mois") return "3_6mois"
+        if (val === "plus_6_mois") return "plus_6mois"
+        return val
+      }, z.enum(TIMEFRAME_OPTIONS).optional()),
 
     // Métadonnées secondaires extensibles (JSONB)
     qualificationMetadata: z.record(z.unknown()).optional(),

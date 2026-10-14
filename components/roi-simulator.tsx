@@ -350,8 +350,8 @@ export function ROISimulator() {
         annualElectricityBill,
         annualBillEur: annualElectricityBill,
         estimatedPowerKwc: roiResults.installedPower,
-        projectDriver: "reduction_facture",
-        timeframe: "3_6_mois",
+        projectDriver: "reduire_facture",
+        timeframe: "3_6mois",
         qualificationMetadata: {
           b2b_surface_type: formData.surfaceType,
           b2b_surface_range: formData.surfaceRange,

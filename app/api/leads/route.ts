@@ -90,7 +90,11 @@ export async function POST(request: NextRequest) {
     const last_name = sanitizeString(data.lastName)
     const email = data.email.toLowerCase().trim()
     const phone = data.phone.replace(/[\s.-]/g, "")
-    const job_title = data.jobTitle ? sanitizeString(data.jobTitle) : null
+    const job_title = data.jobTitle
+      ? sanitizeString(data.jobTitle)
+      : data.segment === "B2C"
+        ? "Particulier"
+        : "Non renseigné"
     const company = data.company ? sanitizeString(data.company) : null
     const company_vat = data.companyVat ? sanitizeString(data.companyVat, 32) : null
     const projectDetailsOnly = data.projectDetails ? sanitizeString(data.projectDetails, 2000) : null
@@ -114,6 +118,9 @@ export async function POST(request: NextRequest) {
       segment: data.segment,
       grd: data.grd ?? null,
     })
+
+    const validLeadStatuses = ["new", "contacted", "qualified", "converted", "lost", "NEEDS_HUMAN_REVIEW", "HOT_LEAD"]
+    const safeStatus = validLeadStatuses.includes(status) ? status : "new"
 
     const credit_cost = calculateLeadCreditCost({
       segment: data.segment,
@@ -141,6 +148,31 @@ export async function POST(request: NextRequest) {
       data.postalCode ??
       data.provinceFreeText?.match(/\b[1-9][0-9]{3}\b/)?.[0] ??
       null
+
+    const safePostalCode =
+      extractedPostalCode && /^[0-9]{4}$/.test(extractedPostalCode)
+        ? extractedPostalCode
+        : null
+
+    const validSourceForms = [
+      "b2b_simulator",
+      "b2c_simulator",
+      "b2c_devis_landing",
+      "webinar_upsell",
+      "manual_admin",
+      "api_partner",
+    ]
+    const defaultSourceForm = data.segment === "B2B" ? "b2b_simulator" : "b2c_simulator"
+    const safeSourceForm =
+      data.sourceForm && validSourceForms.includes(data.sourceForm)
+        ? data.sourceForm
+        : defaultSourceForm
+
+    const validRoofMaterials = ["tuiles", "ardoises", "plat_epdm", "bac_acier", "zinc_autre", "fibrociment_amiante"]
+    const safeRoofMaterial = data.roofMaterial && validRoofMaterials.includes(data.roofMaterial) ? data.roofMaterial : null
+
+    const validOwnership = ["owner", "tenant_authorized", "tenant_unauthorized", "co_ownership"]
+    const safeOwnership = data.ownershipStatus && validOwnership.includes(data.ownershipStatus) ? data.ownershipStatus : null
 
     const insertPayload: Record<string, unknown> = {
       segment: data.segment,
@@ -170,17 +202,17 @@ export async function POST(request: NextRequest) {
       consent_date: data.marketingConsent ? consentDate.toISOString() : null,
       data_retention_until: dataRetentionUntil.toISOString(),
       source: "simulator",
-      status,
+      status: safeStatus,
       lead_score: score,
       wants_irve: false,
 
       // --- Colonnes Canoniques Unifiées (Migration 024) ---
-      source_form: data.sourceForm ?? (data.segment === "B2B" ? "b2b_simulator" : "b2c_simulator"),
-      ownership_status: data.ownershipStatus ?? null,
-      postal_code: extractedPostalCode,
+      source_form: safeSourceForm,
+      ownership_status: safeOwnership,
+      postal_code: safePostalCode,
       city: data.city ? sanitizeString(data.city, 100) : null,
       site_address: data.siteAddress ? sanitizeString(data.siteAddress, 255) : null,
-      roof_material: data.roofMaterial ?? null,
+      roof_material: safeRoofMaterial,
       surface_area_m2: data.surfaceArea,
       annual_bill_eur: data.annualElectricityBill,
       estimated_power_kwc: estimatedPowerKwc,
@@ -213,7 +245,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (error) {
-      console.error("Database error:", error)
+      console.error("[API leads] Database error:", {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      })
       if (process.env.NODE_ENV === "development" && (error.message?.includes("fetch failed") || error.details?.includes("ENOTFOUND"))) {
         console.warn("[API leads] Supabase hors-ligne ou projet en pause en dev. Réponse simulée pour test local.")
         return NextResponse.json({

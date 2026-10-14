@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       estimated_roi_years: null,
       autoconsumption_rate: null,
       estimated_savings: null,
-      source_form: "webinaire_replay",
+      source_form: "webinar_upsell",
       qualification_metadata: {
         webinaire_surface_range: data.surfaceRange ?? null,
       },
