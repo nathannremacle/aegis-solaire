@@ -40,6 +40,7 @@ import {
 /* ═══════════════════════════ Types ═══════════════════════════ */
 
 type B2CFormData = {
+  ownershipStatus: string
   roofType: string
   orientation: string
   roofSize: string
@@ -49,6 +50,8 @@ type B2CFormData = {
   evInterest: string
   batteryInterest: string
   province: string
+  postalCode: string
+  siteAddress: string
   projectDetails: string
   firstName: string
   lastName: string
@@ -73,6 +76,7 @@ type B2CResults = {
 /* ═══════════════════════════ Constants ═══════════════════════ */
 
 const INITIAL: B2CFormData = {
+  ownershipStatus: "proprietaire_occupant",
   roofType: "",
   orientation: "",
   roofSize: "",
@@ -82,6 +86,8 @@ const INITIAL: B2CFormData = {
   evInterest: "",
   batteryInterest: "",
   province: "",
+  postalCode: "",
+  siteAddress: "",
   projectDetails: "",
   firstName: "",
   lastName: "",
@@ -91,6 +97,12 @@ const INITIAL: B2CFormData = {
   marketingConsent: false,
   newsletterConsent: false,
 }
+
+const OWNERSHIP_OPTIONS = [
+  { id: "proprietaire_occupant", label: "Propriétaire occupant" },
+  { id: "copropriete", label: "Copropriétaire" },
+  { id: "locataire_sans_accord", label: "Locataire" },
+]
 
 function RoofTilesIcon({ className = "h-6 w-6" }: { className?: string }) {
   return (
@@ -218,10 +230,10 @@ const ROOF_SIZES = [
 ]
 
 const BILL_BRACKETS = [
-  { id: "lt_1200", label: "Moins de 1 200 € / an", value: 1000 },
-  { id: "1200_2400", label: "1 200 € – 2 400 € / an", value: 1800 },
-  { id: "2400_4000", label: "2 400 € – 4 000 € / an", value: 3200 },
-  { id: "gt_4000", label: "Plus de 4 000 € / an", value: 5000 },
+  { id: "lt_1200", label: "Moins de 1 200 € / an", sublabel: "≈ 2 500 à 3 500 kWh", value: 1000 },
+  { id: "1200_2400", label: "1 200 € – 2 400 € / an", sublabel: "≈ 3 500 à 6 000 kWh", value: 1800 },
+  { id: "2400_4000", label: "2 400 € – 4 000 € / an", sublabel: "≈ 6 000 à 10 000 kWh", value: 3200 },
+  { id: "gt_4000", label: "Plus de 4 000 € / an", sublabel: "> 10 000 kWh", value: 5000 },
 ]
 
 const HOUSEHOLD_SIZES = [
@@ -304,7 +316,7 @@ export function B2CSimulator() {
   const valid = (s: number) => {
     switch (s) {
       case 1:
-        return fd.roofType !== "" && fd.orientation !== "" && fd.roofSize !== ""
+        return fd.ownershipStatus !== "" && fd.roofType !== "" && fd.orientation !== "" && fd.roofSize !== ""
       case 2:
         return (
           (fd.annualBillBracket !== "" || (fd.annualBillCustom !== "" && parseInt(fd.annualBillCustom.replace(/\s/g, ""), 10) >= 500)) &&
@@ -322,6 +334,7 @@ export function B2CSimulator() {
           fd.lastName.trim().length >= 2 &&
           /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fd.email) &&
           fd.phone.trim().replace(/[\s.-]/g, "").length >= 8 &&
+          /^[1-9][0-9]{3}$/.test(fd.postalCode.trim()) &&
           fd.marketingConsent
         )
       default:
@@ -334,12 +347,14 @@ export function B2CSimulator() {
   const lastNameError = fd.lastName.trim().length < 2 ? "Nom requis (2 caractères minimum)" : null
   const emailError = !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fd.email) ? "Format d'adresse e-mail invalide" : null
   const phoneError = fd.phone.trim().replace(/[\s.-]/g, "").length < 8 ? "Numéro de téléphone requis (au moins 8 chiffres)" : null
+  const postalCodeError = !/^[1-9][0-9]{3}$/.test(fd.postalCode.trim()) ? "Code postal belge à 4 chiffres requis (ex: 4000)" : null
   const consentError = !fd.marketingConsent ? "Vous devez accepter d'être recontacté pour recevoir votre étude" : null
 
   const showFirstNameError = (hasAttemptedSubmit || touched.firstName) ? firstNameError : null
   const showLastNameError = (hasAttemptedSubmit || touched.lastName) ? lastNameError : null
   const showEmailError = (hasAttemptedSubmit || touched.email) ? emailError : null
   const showPhoneError = (hasAttemptedSubmit || touched.phone) ? phoneError : null
+  const showPostalCodeError = (hasAttemptedSubmit || touched.postalCode) ? postalCodeError : null
   const showConsentError = (hasAttemptedSubmit || touched.marketingConsent) ? consentError : null
 
   /* ── Loading messages cycle ── */
@@ -388,7 +403,22 @@ export function B2CSimulator() {
         ? Math.max(parseInt(fd.annualBillCustom.replace(/\s/g, ""), 10) || 500, 500)
         : BILL_BRACKETS.find((b) => b.id === fd.annualBillBracket)?.value ?? 1800
 
+      const mappedRoofMaterial =
+        fd.roofType === "tuiles" || fd.roofType === "ardoises"
+          ? "tuiles_ardoises"
+          : fd.roofType === "plat"
+          ? "plat_epdm"
+          : "autre"
+
+      const mappedOwnership =
+        fd.ownershipStatus === "copropriete"
+          ? "autre"
+          : fd.ownershipStatus === "locataire_sans_accord"
+          ? "locataire_sans_accord"
+          : "proprietaire_occupant"
+
       const payload = {
+        sourceForm: "b2c_simulator",
         segment: "B2C",
         firstName: fd.firstName,
         lastName: fd.lastName,
@@ -396,9 +426,35 @@ export function B2CSimulator() {
         phone: fd.phone,
         surfaceType: "toiture" as const,
         surfaceArea,
+        surfaceAreaM2: surfaceArea,
+        roofMaterial: mappedRoofMaterial,
+        ownershipStatus: mappedOwnership,
+        postalCode: fd.postalCode.trim(),
+        siteAddress: fd.siteAddress.trim() || undefined,
         province: fd.province,
         annualElectricityBill: annualBill,
+        annualBillEur: annualBill,
+        estimatedPowerKwc: roofKwc,
+        projectDriver:
+          fd.batteryInterest === "oui"
+            ? "autonomie_batterie"
+            : fd.evInterest === "oui" || fd.evInterest === "prevu"
+            ? "borne_recharge"
+            : "reduction_facture",
+        timeframe: "1_3_mois",
+        qualificationMetadata: {
+          b2c_ownership_status: fd.ownershipStatus,
+          b2c_roof_type: fd.roofType,
+          b2c_roof_size: fd.roofSize,
+          b2c_orientation: fd.orientation,
+          b2c_household_size: fd.householdSize,
+          b2c_ev_interest: fd.evInterest,
+          b2c_battery_interest: fd.batteryInterest,
+          b2c_postal_code: fd.postalCode.trim(),
+          b2c_site_address: fd.siteAddress.trim() || undefined,
+        },
         projectDetails: [
+          `Statut: ${fd.ownershipStatus}`,
           `Toiture: ${fd.roofType}`,
           `Orientation: ${fd.orientation}`,
           `Taille toiture: ${fd.roofSize} (~${roofKwc} kWc)`,
@@ -566,6 +622,28 @@ export function B2CSimulator() {
 
                   <div className="space-y-3">
                     <Label className="text-base font-semibold text-foreground">
+                      Statut d&apos;occupation du logement
+                    </Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {OWNERSHIP_OPTIONS.map((o) => (
+                        <button
+                          key={o.id}
+                          type="button"
+                          onClick={() => up("ownershipStatus", o.id)}
+                          className={`rounded-xl border-2 p-3 text-center text-sm font-semibold transition-all ${
+                            fd.ownershipStatus === o.id
+                              ? "border-accent bg-accent/10 text-foreground"
+                              : "border-border text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground"
+                          }`}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-base font-semibold text-foreground">
                       Type de toiture
                     </Label>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -671,13 +749,14 @@ export function B2CSimulator() {
                             up("annualBillBracket", b.id)
                             up("annualBillCustom", "")
                           }}
-                          className={`rounded-xl border-2 p-3.5 text-left text-sm font-medium transition-all ${
+                          className={`rounded-xl border-2 p-3.5 text-left text-sm font-medium transition-all flex items-center justify-between ${
                             fd.annualBillBracket === b.id && !fd.annualBillCustom
                               ? "border-accent bg-accent/10 text-foreground"
                               : "border-border text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground"
                           }`}
                         >
-                          {b.label}
+                          <span className="font-semibold">{b.label}</span>
+                          <span className="text-xs text-muted-foreground font-normal">{b.sublabel}</span>
                         </button>
                       ))}
                     </div>
@@ -948,6 +1027,39 @@ export function B2CSimulator() {
                     {showPhoneError && (
                       <p className="text-xs text-destructive">{showPhoneError}</p>
                     )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="b2c-postal">Code postal (4 chiffres) <span className="text-accent">*</span></Label>
+                      <Input
+                        id="b2c-postal"
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={4}
+                        placeholder="ex. 4000"
+                        value={fd.postalCode}
+                        onBlur={() => markTouched("postalCode")}
+                        onChange={(e) => up("postalCode", e.target.value.replace(/\D/g, "").slice(0, 4))}
+                        className={`h-12 ${showPostalCodeError ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                      />
+                      {showPostalCodeError && (
+                        <p className="text-xs text-destructive">{showPostalCodeError}</p>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="b2c-address">
+                        Adresse / Rue et n° <span className="text-xs font-normal text-muted-foreground">(recommandé pour étude satellite)</span>
+                      </Label>
+                      <Input
+                        id="b2c-address"
+                        type="text"
+                        placeholder="Rue des Saules 14"
+                        value={fd.siteAddress}
+                        onChange={(e) => up("siteAddress", e.target.value)}
+                        className="h-12"
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-3">

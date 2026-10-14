@@ -44,9 +44,8 @@ const CONSUMPTION_OPTIONS = [
 ]
 
 const PROPERTY_TYPES = [
-  { id: "maison_4f", label: "Maison individuelle", sublabel: "4 façades", icon: Home },
-  { id: "maison_mitoyenne", label: "Maison mitoyenne", sublabel: "2 ou 3 façades", icon: Building },
-  { id: "pme", label: "Bâtiment d'activité / PME", sublabel: "Atelier, commerce ou bureaux", icon: Zap },
+  { id: "maison_4f", label: "Maison individuelle", sublabel: "4 façades (villa, pavillon)", icon: Home },
+  { id: "maison_mitoyenne", label: "Maison mitoyenne", sublabel: "2 ou 3 façades (ville, rangée)", icon: Building },
 ]
 
 const OWNERSHIP_OPTIONS = [
@@ -73,7 +72,7 @@ const WALLONIA_PROVINCES = [
 const FAQ_ITEMS = [
   {
     q: "Combien de devis vais-je recevoir ?",
-    a: "Vous recevrez jusqu'à 4 devis chiffrés et comparables d'installateurs photovoltaïques certifiés RESCERT actifs directement dans votre province ou commune.",
+    a: "Vous recevrez jusqu'à 3 devis chiffrés et comparables d'installateurs photovoltaïques certifiés RESCERT actifs directement dans votre province ou commune.",
   },
   {
     q: "Ce service est-il réellement 100 % gratuit et sans engagement ?",
@@ -209,23 +208,41 @@ export function DevisLandingClient() {
     setErrorMessage(null)
 
     const selectedBill = CONSUMPTION_OPTIONS.find((c) => c.id === consumption)?.billValue ?? 2400
-    const isPro = propertyType === "pme"
+
+    const roofMaterialMap: Record<string, "tuiles" | "ardoises" | "plat_epdm" | "zinc_autre"> = {
+      tuiles: "tuiles",
+      ardoises: "ardoises",
+      plat: "plat_epdm",
+      autre: "zinc_autre",
+    }
+
+    const ownershipMap: Record<string, "owner" | "tenant_unauthorized" | "co_ownership"> = {
+      proprietaire: "owner",
+      locataire: "tenant_unauthorized",
+      copropriete: "co_ownership",
+    }
 
     const payload = {
-      segment: isPro ? "B2B" : "B2C",
+      segment: "B2C",
+      sourceForm: "b2c_devis_landing",
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: email.trim().toLowerCase(),
       phone: phone.trim(),
       surfaceType: "toiture",
-      surfaceArea: isPro ? 400 : 45,
+      surfaceArea: selectedBill >= 3100 ? 55 : selectedBill >= 2400 ? 45 : 35,
       province,
       provinceFreeText: `${postalCode.trim()}${city.trim() ? ` ${city.trim()}` : ""}`,
+      postalCode: postalCode.trim(),
+      city: city.trim() || undefined,
+      siteAddress: address.trim() || undefined,
+      roofMaterial: roofMaterialMap[roofType] ?? "tuiles",
+      ownershipStatus: ownershipMap[ownership] ?? "owner",
       annualElectricityBill: selectedBill,
       marketingConsent: partnerConsent,
       newsletterConsent,
       projectDetails: [
-        `Source: Landing Bobex-Style`,
+        `Source: Landing Bobex-Style (B2C)`,
         `Consommation annuelle: ${consumption}`,
         `Type de bien: ${propertyType}`,
         `Statut: ${ownership}`,
@@ -235,6 +252,13 @@ export function DevisLandingClient() {
       ]
         .filter(Boolean)
         .join(" | "),
+      qualificationMetadata: {
+        consumptionKwh: consumption,
+        propertyType,
+        ownershipChoice: ownership,
+        roofType,
+        remarks: remarks.trim() || null,
+      },
       fax_number,
       form_opened_at: formOpenedAt.current,
       mediaPartnerCode: getStoredMediaPartnerRef() ?? undefined,
@@ -254,9 +278,9 @@ export function DevisLandingClient() {
 
       const resData = await res.json().catch(() => ({}))
       trackLeadConversion({
-        segment: isPro ? "B2B" : "B2C",
+        segment: "B2C",
         leadId: resData?.leadId,
-        value: isPro ? 120 : 40,
+        value: 40,
       })
       setSubmitted(true)
       window.scrollTo({ top: 80, behavior: "smooth" })
@@ -336,7 +360,7 @@ export function DevisLandingClient() {
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#002A45] leading-[1.18]">
               La meilleure offre solaire&nbsp;?{" "}
               <span className="block mt-1">
-                Comparez <span className="underline decoration-[#F8C630] decoration-4 underline-offset-4">jusqu&apos;à 4 devis</span>.
+                Comparez <span className="underline decoration-[#F8C630] decoration-4 underline-offset-4">jusqu&apos;à 3 devis</span>.
               </span>
             </h1>
             <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
@@ -365,7 +389,7 @@ export function DevisLandingClient() {
               <h1 className="hidden lg:block text-3xl sm:text-4xl lg:text-[44px] font-black tracking-tight text-[#002A45] leading-[1.12]">
                 <span className="block">La meilleure offre solaire&nbsp;?</span>
                 <span className="block mt-2">
-                  Comparez <span className="relative inline-block px-1 text-[#002A45]"><span className="relative z-10">jusqu&apos;à 4 devis</span><span className="absolute bottom-1 left-0 right-0 h-3 bg-[#F8C630]/70 -rotate-1 rounded-sm -z-0"></span></span>.
+                  Comparez <span className="relative inline-block px-1 text-[#002A45]"><span className="relative z-10">jusqu&apos;à 3 devis</span><span className="absolute bottom-1 left-0 right-0 h-3 bg-[#F8C630]/70 -rotate-1 rounded-sm -z-0"></span></span>.
                 </span>
               </h1>
 
@@ -479,7 +503,7 @@ export function DevisLandingClient() {
                         Remplissez et économisez
                       </h2>
                       <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-                        En 45 secondes, trouvez jusqu&apos;à 4 installateurs agréés près de chez vous.
+                        En 45 secondes, trouvez jusqu&apos;à 3 installateurs agréés près de chez vous.
                       </p>
 
                       {/* Micro-badges de réassurance */}
@@ -663,6 +687,26 @@ export function DevisLandingClient() {
                                   </label>
                                 )
                               })}
+                            </div>
+
+                            {/* Encart orientation PME / Tertiaire vers B2B */}
+                            <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-3.5 text-xs text-blue-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-3">
+                              <div>
+                                <p className="font-extrabold text-[#001D3D] flex items-center gap-1.5">
+                                  <Zap className="h-4 w-4 text-amber-500 shrink-0" />
+                                  <span>Bâtiment d&apos;activité, commerce ou PME ?</span>
+                                </p>
+                                <p className="text-slate-600 mt-0.5 text-[11px] leading-relaxed">
+                                  Accédez à notre simulateur de rentabilité B2B dédié (PPA, tiers-investissement zéro CAPEX &amp; ombrières).
+                                </p>
+                              </div>
+                              <Link
+                                href="/#simulateur"
+                                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[#001D3D] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#002D5A] transition-colors"
+                              >
+                                <span>Simulateur B2B</span>
+                                <ArrowRight className="h-3.5 w-3.5" />
+                              </Link>
                             </div>
 
                             <div className="pt-3 flex items-center justify-between gap-3">
@@ -1071,7 +1115,7 @@ export function DevisLandingClient() {
                                   className="mt-0.5"
                                 />
                                 <span className="text-xs text-slate-600 leading-tight">
-                                  J&apos;accepte que mes coordonnées soient transmises à un maximum de 4 installateurs agréés RESCERT pour recevoir mes devis comparatifs gratuits conformément à la{" "}
+                                  J&apos;accepte que mes coordonnées soient transmises à un maximum de 3 installateurs agréés RESCERT pour recevoir mes devis comparatifs gratuits conformément à la{" "}
                                   <Link href="/politique-confidentialite" target="_blank" className="underline text-[#002A45] font-semibold">
                                     politique de confidentialité
                                   </Link>.
@@ -1157,7 +1201,7 @@ export function DevisLandingClient() {
                         Prochaines étapes (sous 48 h) :
                       </p>
                       <ul className="list-disc pl-5 space-y-1 text-slate-600">
-                        <li>Sélection de jusqu&apos;à 4 installateurs certifiés RESCERT de votre province.</li>
+                        <li>Sélection de jusqu&apos;à 3 installateurs certifiés RESCERT de votre province.</li>
                         <li>Brève prise de contact pour affiner les contraintes de votre toiture.</li>
                         <li>Envoi de vos devis comparables sans engagement.</li>
                       </ul>
@@ -1267,7 +1311,7 @@ export function DevisLandingClient() {
               <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-amber-50 text-amber-700 mb-1">
                 <FileText className="h-5 w-5" />
               </div>
-              <p className="text-2xl sm:text-3xl font-black text-[#002A45]">Jusqu&apos;à 4</p>
+              <p className="text-2xl sm:text-3xl font-black text-[#002A45]">Jusqu&apos;à 3</p>
               <p className="text-xs sm:text-sm font-bold text-slate-600">Devis comparatifs détaillés</p>
             </div>
 

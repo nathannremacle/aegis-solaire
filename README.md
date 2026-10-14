@@ -8,6 +8,8 @@ Plateforme de **génération et mise en relation de leads photovoltaïques** en 
 
 | Fichier | Contenu |
 |---------|---------|
+| **[BUSINESS-PLAN.md](./BUSINESS-PLAN.md)** | **Dossier d'évaluation stratégique & financière (Business Plan)** — P&L prévisionnel à 3 ans, unit economics, cadre réglementaire 2026, viabilité et rentabilité |
+| **[PROMPT-ET-CONTEXTE-AUDIT-EXPERT.md](./PROMPT-ET-CONTEXTE-AUDIT-EXPERT.md)** | **Dossier d'audit & Prompt Maître pour Expert IA** — Contexte intégral, code source critique et prompt d'audit haute intensité pour modèle de pointe |
 | **[docs/FONCTIONNEMENT-SITE.md](./docs/FONCTIONNEMENT-SITE.md)** | **Référence principale** — parcours B2B, B2C, webinaire, marketplace partenaires, marketeurs, panel admin, base de données, sécurité, variables d'environnement |
 | [docs/DIRECTION-ARTISTIQUE.md](./docs/DIRECTION-ARTISTIQUE.md) | Palette, typographie, composants, règles d'or UI |
 | [docs/GUIDE-CONFIGURATION.md](./docs/GUIDE-CONFIGURATION.md) | Mise en production pas à pas : Supabase, .env, Vercel, compte admin |

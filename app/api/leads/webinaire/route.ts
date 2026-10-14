@@ -49,45 +49,68 @@ export async function POST(request: NextRequest) {
     const company = data.companyName ? sanitizeString(data.companyName, 255) : null
     const marketingConsent = body.marketingConsent === true
 
+    let surface_area: number | null = null
+    if (data.surfaceRange === "lt_500") surface_area = 400
+    else if (data.surfaceRange === "m500_1500") surface_area = 1000
+    else if (data.surfaceRange === "gt_1500") surface_area = 2000
+
     const supabase = createServiceRoleClient()
     const consentDate = new Date()
     const dataRetentionUntil = new Date()
     dataRetentionUntil.setFullYear(dataRetentionUntil.getFullYear() + 3)
 
-    const { data: inserted, error } = await supabase
+    const insertPayload: Record<string, unknown> = {
+      first_name,
+      last_name: null,
+      email,
+      phone: null,
+      job_title,
+      company,
+      message: null,
+      objective: null,
+      surface_type: surface_area ? "toiture" : null,
+      surface_area,
+      surface_area_m2: surface_area,
+      project_timeline: null,
+      annual_electricity_bill: null,
+      estimated_roi_years: null,
+      autoconsumption_rate: null,
+      estimated_savings: null,
+      source_form: "webinaire_replay",
+      qualification_metadata: {
+        webinaire_surface_range: data.surfaceRange ?? null,
+      },
+      marketing_consent: marketingConsent,
+      consent_date: marketingConsent ? consentDate.toISOString() : null,
+      data_retention_until: dataRetentionUntil.toISOString(),
+      source: WEBINAIRE_SOURCE,
+      status: "new",
+      marketplace_status: "rejected",
+      lead_score: null,
+      wants_irve: false,
+    }
+
+    let insertRes = await supabase
       .from("leads")
-      .insert({
-        first_name,
-        last_name: null,
-        email,
-        phone: null,
-        job_title,
-        company,
-        message: null,
-        objective: null,
-        surface_type: null,
-        surface_area: null,
-        project_timeline: null,
-        annual_electricity_bill: null,
-        estimated_roi_years: null,
-        autoconsumption_rate: null,
-        estimated_savings: null,
-        // Consentement réel et strict
-        marketing_consent: marketingConsent,
-        consent_date: marketingConsent ? consentDate.toISOString() : null,
-        data_retention_until: dataRetentionUntil.toISOString(),
-        source: WEBINAIRE_SOURCE,
-        status: "new",
-        // CRITIQUE : lead webinaire strictement non commercialisable
-        marketplace_status: "rejected",
-        lead_score: null,
-        wants_irve: false,
-      })
+      .insert(insertPayload)
       .select("id")
       .single()
 
-    if (error) {
-      console.error("Webinaire lead insert error:", error)
+    // Fallback de résilience si la migration 024 n'est pas encore appliquée
+    if (insertRes.error && insertRes.error.message && (insertRes.error.message.includes("column") || insertRes.error.code === "42703")) {
+      const legacyPayload = { ...insertPayload }
+      delete legacyPayload.source_form
+      delete legacyPayload.surface_area_m2
+      delete legacyPayload.qualification_metadata
+      insertRes = await supabase
+        .from("leads")
+        .insert(legacyPayload)
+        .select("id")
+        .single()
+    }
+
+    if (insertRes.error) {
+      console.error("Webinaire lead insert error:", insertRes.error)
       return NextResponse.json(
         { error: "Erreur lors de l'enregistrement. Veuillez réessayer." },
         { status: 500 }
@@ -97,7 +120,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "Merci. Accédez au replay ci-dessous.",
-      leadId: inserted?.id,
+      leadId: insertRes.data?.id,
     })
   } catch (err) {
     console.error("Webinaire API error:", err)

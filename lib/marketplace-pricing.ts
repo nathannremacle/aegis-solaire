@@ -21,11 +21,39 @@ export interface FinancialEstimates {
 }
 
 /**
+ * Calcule dynamiquement le coût en crédits d'un dossier selon sa valeur économique :
+ * - B2C (partagé max 3 installateurs) : 2 crédits / acheteur
+ * - B2B PME standard (< 500 m² et facture < 20 000 €) : 8 crédits en exclusivité
+ * - B2B Tertiaire / Industriel (500 à 1 500 m² ou facture 20k-50k €) : 12 crédits en exclusivité
+ * - B2B Grand Compte (> 1 500 m², facture > 50k € ou ombrière parking) : 18 crédits en exclusivité
+ */
+export function calculateLeadCreditCost(lead: {
+  segment: "B2B" | "B2C" | string
+  surfaceArea?: number | null
+  surfaceType?: string | null
+  annualBill?: number | null
+}): number {
+  if (lead.segment === "B2C") return 2
+  const area = Number(lead.surfaceArea) || 0
+  const bill = Number(lead.annualBill) || 0
+  const isParking = lead.surfaceType === "parking"
+
+  if (area >= 1500 || bill >= 50000 || isParking) {
+    return 18
+  }
+  if (area >= 500 || bill >= 20000) {
+    return 12
+  }
+  return 8
+}
+
+/**
  * Calcule des estimations de marché crédibles et défendables pour un installateur photovoltaïque agréé en Wallonie.
  */
 export function calculateMarketplaceFinancials(lead: {
   segment: "B2B" | "B2C" | string
   surfaceArea: number | null | undefined
+  surfaceType?: string | null | undefined
   annualBill?: number | null | undefined
   creditCost?: number | null | undefined
 }): FinancialEstimates {
@@ -58,8 +86,13 @@ export function calculateMarketplaceFinancials(lead: {
   // Marge brute indicative installateur (~22 % selon structure de coûts)
   const estimatedInstallerMargin = Math.round(avgContract * 0.22)
 
-  // Coût d'acquisition du dossier en euros
-  const credits = lead.creditCost ?? (isB2C ? 2 : 5)
+  // Coût d'acquisition du dossier en crédits et en euros
+  const credits = lead.creditCost ?? calculateLeadCreditCost({
+    segment: lead.segment,
+    surfaceArea: lead.surfaceArea,
+    surfaceType: lead.surfaceType,
+    annualBill: lead.annualBill,
+  })
   const leadCostEuros = Math.round(credits * REFERENCE_CREDIT_PRICE_EUR)
 
   // Économie annuelle brute estimée sur la facture d'électricité (~30 % d'autoconsommation/effacement)

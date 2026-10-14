@@ -40,9 +40,12 @@ import { trackLeadConversion } from "@/components/analytics/ad-tracking"
 type FormData = {
   surfaceType: string
   surfaceRange: string
+  roofMaterial: string
   province: string
-  /** Commune, site, précision si « Autre », ou détail optionnel pour toute région */
   provinceFreeText: string
+  postalCode: string
+  siteAddress: string
+  ownershipStatus: string
   grd: string
   electricityBillBracket: string
   annualElectricityBillCustom: string
@@ -70,8 +73,12 @@ type ROIResults = {
 const initialFormData: FormData = {
   surfaceType: "",
   surfaceRange: "",
+  roofMaterial: "",
   province: "",
   provinceFreeText: "",
+  postalCode: "",
+  siteAddress: "",
+  ownershipStatus: "",
   grd: "",
   electricityBillBracket: "",
   annualElectricityBillCustom: "",
@@ -93,6 +100,20 @@ const surfaceRangeOptions = [
   { value: "gt_1500", label: "Plus de 1 500 m²" },
 ] as const
 
+const roofMaterialOptions = [
+  { value: "bac_acier", label: "Bac acier / profilé métallique" },
+  { value: "plat_epdm", label: "Toiture plate (EPDM / Bitume)" },
+  { value: "tuiles_ardoises", label: "Tuiles ou ardoises" },
+  { value: "fibrociment_amiante", label: "Fibrociment / Éternit" },
+  { value: "autre", label: "Autre / Ombrière de parking / Sol" },
+] as const
+
+const ownershipStatusOptions = [
+  { value: "proprietaire_occupant", label: "Propriétaire occupant du site" },
+  { value: "bail_emphyt_accord", label: "Bail emphytéotique ou accord propriétaire" },
+  { value: "locataire_sans_accord", label: "Locataire (sans accord préalable)" },
+] as const
+
 const grdOptions = [
   { value: "ores", label: "Ores (Wallonie)" },
   { value: "resa", label: "Resa (Wallonie)" },
@@ -103,9 +124,10 @@ const grdOptions = [
 ] as const
 
 const factureBrackets = [
-  { value: "lt_50k", label: "Moins de 50 000 € / an", representative: 35_000 },
-  { value: "50_100k", label: "De 50 000 € à 100 000 € / an", representative: 75_000 },
-  { value: "gt_100k", label: "Plus de 100 000 € / an", representative: 120_000 },
+  { value: "6_15k", label: "De 6 000 € à 15 000 € HT / an", representative: 10_000 },
+  { value: "15_40k", label: "De 15 000 € à 40 000 € HT / an", representative: 25_000 },
+  { value: "40_100k", label: "De 40 000 € à 100 000 € HT / an", representative: 65_000 },
+  { value: "gt_100k", label: "Plus de 100 000 € HT / an", representative: 130_000 },
 ] as const
 
 const jobTitles = ["Dirigeant", "DAF", "Resp. RSE ou Technique", "Autre"] as const
@@ -117,7 +139,7 @@ const TRANSITION_MESSAGES = [
   "Modélisation du TRI indicatif et des flux PPA / Tiers-investissement…",
 ]
 
-const MIN_ANNUAL_BILL = 5000
+const MIN_ANNUAL_BILL = 3500
 
 function getSurfaceAreaFromChoices(surfaceType: string, surfaceRange: string): number {
   if (surfaceRange === "lt_500") return 400
@@ -137,7 +159,7 @@ function getAnnualBillFromBracket(bracket: string, custom?: string): number {
     return parseInt(custom.replace(/\s/g, ""), 10)
   }
   const b = factureBrackets.find((x) => x.value === bracket)
-  return b ? b.representative : 50_000
+  return b ? b.representative : 25_000
 }
 
 function calculateROI(formData: FormData): ROIResults {
@@ -227,7 +249,8 @@ export function ROISimulator() {
         return formData.surfaceType !== "" && formData.surfaceRange !== ""
       case 2:
         if (formData.province === "") return false
-        if (formData.province === "autre") return formData.provinceFreeText.trim().length >= 2
+        if (formData.province === "autre" && formData.provinceFreeText.trim().length < 2) return false
+        if (formData.postalCode.trim().length > 0 && !/^[1-9][0-9]{3}$/.test(formData.postalCode.trim())) return false
         return true
       case 3:
         return formData.electricityBillBracket !== "" || isCustomBillValid(formData.annualElectricityBillCustom)
@@ -305,6 +328,8 @@ export function ROISimulator() {
 
     try {
       const payload = {
+        sourceForm: "b2b_simulator",
+        segment: "B2B",
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
@@ -314,10 +339,30 @@ export function ROISimulator() {
         companyVat: formData.companyVat,
         surfaceType: formData.surfaceType,
         surfaceArea,
+        surfaceAreaM2: surfaceArea,
+        roofMaterial: formData.roofMaterial || undefined,
+        ownershipStatus: formData.ownershipStatus || undefined,
+        postalCode: formData.postalCode.trim() || undefined,
+        siteAddress: formData.siteAddress.trim() || undefined,
         province: formData.province,
         provinceFreeText: formData.provinceFreeText.trim() || undefined,
         grd: grdValue,
         annualElectricityBill,
+        annualBillEur: annualElectricityBill,
+        estimatedPowerKwc: roiResults.installedPower,
+        projectDriver: "reduction_facture",
+        timeframe: "3_6_mois",
+        qualificationMetadata: {
+          b2b_surface_type: formData.surfaceType,
+          b2b_surface_range: formData.surfaceRange,
+          b2b_roof_material: formData.roofMaterial || undefined,
+          b2b_ownership_status: formData.ownershipStatus || undefined,
+          b2b_postal_code: formData.postalCode.trim() || undefined,
+          b2b_site_address: formData.siteAddress.trim() || undefined,
+          b2b_grd: grdValue,
+          b2b_bill_bracket: formData.electricityBillBracket,
+          b2b_custom_bill: formData.annualElectricityBillCustom || undefined,
+        },
         marketingConsent: formData.marketingConsent,
         newsletterConsent: formData.newsletterConsent,
         estimatedROIYears: roiResults.estimatedROIYears,
@@ -552,6 +597,27 @@ export function ROISimulator() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  <div>
+                    <Label htmlFor="roof-material" className="text-base font-semibold text-foreground">
+                      Type de toiture ou de support <span className="text-xs font-normal text-muted-foreground">(optionnel)</span>
+                    </Label>
+                    <Select
+                      value={formData.roofMaterial || undefined}
+                      onValueChange={(v) => updateFormData("roofMaterial", v)}
+                    >
+                      <SelectTrigger id="roof-material" className="mt-2 h-11">
+                        <SelectValue placeholder="Sélectionnez le type de toiture" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roofMaterialOptions.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               )}
 
@@ -587,6 +653,63 @@ export function ROISimulator() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="postalCode" className="text-sm font-semibold text-foreground">
+                        Code postal du site (4 chiffres) <span className="text-accent">*</span>
+                      </Label>
+                      <Input
+                        id="postalCode"
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={4}
+                        placeholder="ex: 4000, 5000, 6000..."
+                        value={formData.postalCode}
+                        onChange={(e) => updateFormData("postalCode", e.target.value.replace(/\D/g, "").slice(0, 4))}
+                        className="mt-1.5 h-11"
+                      />
+                      {formData.postalCode.length > 0 && !/^[1-9][0-9]{3}$/.test(formData.postalCode) && (
+                        <p className="mt-1 text-xs text-destructive">Code postal belge à 4 chiffres requis (ex : 4000).</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="siteAddress" className="text-sm font-semibold text-foreground">
+                        Adresse ou zoning <span className="text-xs font-normal text-muted-foreground">(recommandé étude satellite)</span>
+                      </Label>
+                      <Input
+                        id="siteAddress"
+                        type="text"
+                        placeholder="Rue, n° ou nom du zoning"
+                        value={formData.siteAddress}
+                        onChange={(e) => updateFormData("siteAddress", e.target.value)}
+                        className="mt-1.5 h-11"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="ownershipStatus" className="text-sm font-semibold text-foreground">
+                      Statut d&apos;occupation du bâtiment <span className="text-xs font-normal text-muted-foreground">(optionnel)</span>
+                    </Label>
+                    <Select
+                      value={formData.ownershipStatus || undefined}
+                      onValueChange={(v) => updateFormData("ownershipStatus", v)}
+                    >
+                      <SelectTrigger id="ownershipStatus" className="mt-1.5 h-11 w-full min-w-0">
+                        <SelectValue placeholder="Sélectionnez votre statut" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ownershipStatusOptions.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div>
                     <Label htmlFor="provinceFreeText">
                       Précision{" "}
@@ -921,9 +1044,15 @@ export function ROISimulator() {
                           className="mt-0.5"
                         />
                         <span className="text-sm font-normal leading-relaxed text-foreground">
-                          <strong className="font-semibold text-foreground">Mise en relation (obligatoire) :</strong>{" "}
-                          J&apos;accepte d&apos;être recontacté par Aegis Solaire et par un installateur partenaire certifié RESCERT
-                          Photovoltaïque en Wallonie sélectionné pour réaliser mon audit technique et mon devis gratuit.
+                          <strong className="font-semibold text-foreground">Mise en relation & Étude (obligatoire) :</strong>{" "}
+                          Je demande à être contacté par 1 installateur certifié RESCERT maximum membre du{" "}
+                          <a href="/partenaires" className="underline font-medium hover:text-accent" target="_blank">
+                            réseau de partenaires Aegis Solaire
+                          </a>{" "}
+                          afin d&apos;obtenir une étude de faisabilité chiffrée pour mon projet. Je suis informé(e) qu&apos;Aegis Solaire (exploitée par Nathan Remacle / INIT42) agit en qualité d&apos;intermédiaire rémunéré par les installateurs partenaires et je consens à la transmission de mes données à cette fin conformément à la{" "}
+                          <a href="/politique-confidentialite" className="underline font-medium hover:text-accent" target="_blank">
+                            Politique de Confidentialité
+                          </a>.
                         </span>
                       </label>
 
@@ -936,31 +1065,22 @@ export function ROISimulator() {
                         />
                         <span className="text-sm font-normal leading-relaxed text-muted-foreground">
                           <strong className="font-medium text-foreground">Actualités solaires (optionnel) :</strong>{" "}
-                          J&apos;accepte de recevoir les veilles réglementaires (CWaPE, tarifs réseau, Certificats Verts) et guides solaires d&apos;Aegis Solaire par e-mail.
+                          J&apos;accepte de recevoir les veilles réglementaires (CWaPE, tarifs réseau, PEB 2026) et guides solaires d&apos;Aegis Solaire par e-mail.
                         </span>
                       </label>
                     </div>
 
-                    <div className="rounded-lg border border-border bg-muted/50 p-4 text-xs text-muted-foreground">
-                      <p className="font-medium text-foreground">Conformité RGPD</p>
-                      <p className="mt-2">
-                        Conformément au RGPD, vos données sont traitées sur la base de votre consentement. Vous pouvez exercer vos
-                        droits (accès, rectification, effacement, limitation, opposition) et introduire une réclamation auprès
-                        de l&apos;APD (Autorité de Protection des Données,{" "}
-                        <a href="https://www.autoriteprotectiondonnees.be" className="underline" target="_blank" rel="noopener noreferrer">
-                          www.autoriteprotectiondonnees.be
-                        </a>
-                        ). Conservation maximale 3 ans après dernier contact.
+                    <div className="rounded-lg border border-border bg-muted/50 p-4 text-xs text-muted-foreground space-y-2">
+                      <p className="font-medium text-foreground">Avertissement technique, réglementaire et fiscal</p>
+                      <p>
+                        Les résultats générés par ce simulateur reposent sur les données d&apos;irradiation moyennes PVGIS (930 kWh/kWc/an en Wallonie) et sur des hypothèses statistiques de profil de charge. Ils constituent une estimation préliminaire strictement indicative et non contractuelle. Ils ne remplacent ni une étude de stabilité de toiture, ni une étude de raccordement auprès de votre Gestionnaire de Réseau de Distribution (ORES, RESA, AIEG, REW, Fluvius), ni l&apos;avis d&apos;un expert-comptable concernant votre éligibilité effective à la Déduction pour Investissement (DPI).
                       </p>
-                      <p className="mt-2">
-                        <a href="/politique-confidentialite" className="underline">
-                          Politique de confidentialité
-                        </a>{" "}
-                        et{" "}
-                        <a href="/politique-confidentialite#desinscription" className="underline">
-                          désinscription
-                        </a>
-                        .
+                      <p className="pt-1 border-t border-border/60">
+                        Conformément au RGPD, vos données sont traitées pour l&apos;exécution de votre demande de mise en relation. Vous pouvez exercer vos droits d&apos;accès, rectification ou suppression à tout moment auprès de{" "}
+                        <a href="mailto:contact@aegissolaire.com" className="underline">contact@aegissolaire.com</a> ou auprès de l&apos;APD (
+                        <a href="https://www.autoriteprotectiondonnees.be" className="underline" target="_blank" rel="noopener noreferrer">
+                          Autorité de Protection des Données
+                        </a>).
                       </p>
                     </div>
                   </div>

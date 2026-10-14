@@ -55,21 +55,28 @@ export function getSurfaceError(surfaceType: string, surfaceArea: string): strin
 
 /** Message facture minimale. */
 export const FACTURE_MIN_MESSAGE =
-  "Facture annuelle minimum de 5 000 € requise pour une étude B2B."
+  "Facture annuelle minimum de 3 500 € requise pour une étude B2B."
 
 /** Normalise un numéro TVA belge (espaces, points). */
 export function normalizeBelgianVat(input: string): string {
   return input.replace(/[\s.]/g, "").toUpperCase()
 }
 
-/** Valide le format BE + 10 chiffres (TVA entreprise belge). */
+/** Valide le format BE + 10 chiffres avec clé de contrôle Modulo 97 (BCE/TVA belge). */
 export function isValidBelgianVat(input: string): boolean {
   const n = normalizeBelgianVat(input)
-  return /^BE\d{10}$/.test(n)
+  if (!/^BE\d{9,10}$/.test(n)) return false
+  const digits = n.replace(/^BE/, "")
+  const padded = digits.length === 9 ? "0" + digits : digits
+  if (!/^[01]\d{9}$/.test(padded)) return false
+  const first8 = parseInt(padded.slice(0, 8), 10)
+  const checkDigits = parseInt(padded.slice(8, 10), 10)
+  const expectedCheck = 97 - (first8 % 97)
+  return checkDigits === expectedCheck
 }
 
 export const VAT_BE_MESSAGE =
-  "Indiquez un numéro TVA belge valide (ex. BE0123456789)."
+  "Indiquez un numéro TVA belge valide avec clé de contrôle conforme (ex. BE 1039.899.980)."
 
 /** Erreur affichée sous le champ TVA (null si valide). */
 export function getVatError(vat: string): string | null {
@@ -82,6 +89,11 @@ export function getVatError(vat: string): string | null {
 /** Retourne le message d'erreur pour la facture (null si valide). */
 export function getFactureError(annualElectricityBill: string): string | null {
   const value = parseInt(annualElectricityBill, 10) || 0
-  if (value < 5000) return FACTURE_MIN_MESSAGE
+  if (value < 3500) return FACTURE_MIN_MESSAGE
   return null
+}
+
+/** Valide un code postal belge (4 chiffres, ex: 1000 à 9990). */
+export function isValidBelgianPostalCode(postalCode: string): boolean {
+  return /^[1-9][0-9]{3}$/.test(postalCode.trim())
 }

@@ -14,18 +14,37 @@ export async function GET() {
 
   const admin = createServiceRoleClient()
 
-  const { data: leads, error } = await admin
+  let leads: Array<Record<string, any>> | null = null
+  const canonicalSelect =
+    "id, province, segment, surface_type, surface_area, annual_electricity_bill, credit_cost, marketplace_status, created_at, grd, estimated_roi_years, project_timeline, wants_irve, lead_score, first_name, last_name, company, postal_code, roof_material, ownership_status, project_driver, timeframe, qualification_metadata"
+  const legacySelect =
+    "id, province, segment, surface_type, surface_area, annual_electricity_bill, credit_cost, marketplace_status, created_at, grd, estimated_roi_years, project_timeline, wants_irve, lead_score, first_name, last_name, company"
+
+  const q1 = await admin
     .from("leads")
-    .select(
-      "id, province, segment, surface_type, surface_area, annual_electricity_bill, credit_cost, marketplace_status, created_at, grd, estimated_roi_years, project_timeline, wants_irve, lead_score, first_name, last_name, company"
-    )
+    .select(canonicalSelect)
     .eq("marketplace_status", "available")
     .order("created_at", { ascending: false })
     .limit(60)
 
-  if (error) {
-    console.error("[marketplace] leads query error:", error)
+  if (q1.error && (q1.error.message?.includes("column") || q1.error.code === "42703")) {
+    const q2 = await admin
+      .from("leads")
+      .select(legacySelect)
+      .eq("marketplace_status", "available")
+      .order("created_at", { ascending: false })
+      .limit(60)
+
+    if (q2.error) {
+      console.error("[marketplace] leads query error (fallback):", q2.error)
+      return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
+    }
+    leads = q2.data
+  } else if (q1.error) {
+    console.error("[marketplace] leads query error:", q1.error)
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
+  } else {
+    leads = q1.data
   }
 
   const leadIds = (leads ?? []).map((l) => l.id)
@@ -117,6 +136,12 @@ export async function GET() {
       grd: lead.grd,
       projectTimeline: lead.project_timeline,
       estimatedRoiYears: lead.estimated_roi_years,
+      postalCode: lead.postal_code ?? null,
+      roofMaterial: lead.roof_material ?? null,
+      ownershipStatus: lead.ownership_status ?? null,
+      projectDriver: lead.project_driver ?? null,
+      timeframe: lead.timeframe ?? null,
+      qualificationMetadata: lead.qualification_metadata ?? null,
       wantsIrve: hasIrve,
       badges: {
         isTopDeal: isFastRoi || (isHighVolume && !isB2C),

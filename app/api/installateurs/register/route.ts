@@ -27,6 +27,13 @@ export async function POST(request: NextRequest) {
     const data = parseResult.data
     const supabase = createServiceRoleClient()
 
+    const adminNotes = [
+      data.targetSegment ? `Segments cibles: ${data.targetSegment}` : null,
+      data.powerCapacity ? `Capacité: ${data.powerCapacity}` : null,
+    ]
+      .filter(Boolean)
+      .join(" | ") || null
+
     const { error } = await supabase.from("installer_applications").insert({
       company_name: data.companyName.trim(),
       siret: data.siret.trim(),
@@ -37,6 +44,7 @@ export async function POST(request: NextRequest) {
       phone: data.phone.trim(),
       rescert_ref: data.rescertPhotovoltaicRef.trim(),
       regions: data.regions,
+      admin_notes: adminNotes,
       status: "pending",
     })
 

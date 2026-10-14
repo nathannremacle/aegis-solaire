@@ -44,7 +44,7 @@ export default function WebinairePage() {
 
   const form = useForm<WebinaireLeadInput>({
     resolver: zodResolver(webinaireLeadSchema),
-    defaultValues: { firstName: "", jobTitle: undefined, email: "", companyName: "", newsletterConsent: false },
+    defaultValues: { firstName: "", jobTitle: undefined, email: "", companyName: "", surfaceRange: undefined, newsletterConsent: false },
   })
 
   async function onSubmit(data: WebinaireLeadInput) {
@@ -202,17 +202,36 @@ export default function WebinairePage() {
 
                         <div className="space-y-1.5">
                           <Label htmlFor="companyName" className="font-medium text-foreground">
-                            Secteur ou entreprise
+                            Nom de l&apos;entreprise <span className="text-accent">*</span>
                           </Label>
                           <Input
                             id="companyName"
-                            placeholder="Ex. PME industrielle, retail..."
+                            placeholder="Ex. ACME Industries SA, Groupe Liégeois..."
                             {...form.register("companyName")}
                             className={`h-11 ${form.formState.errors.companyName ? "border-destructive" : "border-input"}`}
                           />
                           {form.formState.errors.companyName && (
                             <p className="text-xs text-destructive">{form.formState.errors.companyName.message}</p>
                           )}
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label htmlFor="surfaceRange" className="font-medium text-foreground">
+                            Surface estimée (toiture ou parking) <span className="text-xs font-normal text-muted-foreground">(optionnel)</span>
+                          </Label>
+                          <Select
+                            onValueChange={(v) => form.setValue("surfaceRange", v as WebinaireLeadInput["surfaceRange"])}
+                            value={form.watch("surfaceRange") ?? ""}
+                          >
+                            <SelectTrigger id="surfaceRange" className="h-11 border-input">
+                              <SelectValue placeholder="Sélectionnez une fourchette de surface" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="lt_500">Moins de 500 m²</SelectItem>
+                              <SelectItem value="m500_1500">De 500 à 1 500 m²</SelectItem>
+                              <SelectItem value="gt_1500">Plus de 1 500 m²</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
 
@@ -349,16 +368,16 @@ export default function WebinairePage() {
                 <Card className="overflow-hidden border-2 border-accent/20 bg-gradient-to-br from-card to-accent/5">
                   <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
                     <div className="space-y-1 min-w-0">
-                      <CardTitle className="flex items-center gap-2 text-xl">
+                      <CardTitle className="flex items-center gap-2 text-xl font-bold">
                         <Calculator className="h-6 w-6 shrink-0 text-accent" />
-                        Prêt à appliquer ce modèle à votre entreprise ?
+                        Vérifier l&apos;éligibilité de mon bâtiment au Tiers-Investissement Zéro CAPEX
                       </CardTitle>
-                      <CardDescription className="text-base">
-                        Calculez la rentabilité de vos toitures et parkings en 2 minutes.
+                      <CardDescription className="text-base text-muted-foreground">
+                        Calculez gratuitement la faisabilité solaire et le TRI de vos toitures industrielles ou parkings en 2 minutes.
                       </CardDescription>
                     </div>
                     <Button asChild size="lg" className="w-full shrink-0 rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 font-bold text-[#001D3D] shadow-[0_4px_0_0_#b47e00,0_10px_20px_rgba(245,158,11,0.25)] transition-all duration-150 hover:from-amber-300 hover:to-amber-400 active:translate-y-1 active:shadow-[0_0_0_0_#b47e00] sm:w-auto">
-                      <Link href="/#simulator">Lancer ma simulation</Link>
+                      <Link href="/#simulator">Lancer mon étude d&apos;éligibilité</Link>
                     </Button>
                   </CardHeader>
                 </Card>

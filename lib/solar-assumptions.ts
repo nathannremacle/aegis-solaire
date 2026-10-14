@@ -64,57 +64,68 @@ export function calculateB2BSolarROI(input: B2BCalculationInput): B2BCalculation
   }
 
   // 2. Puissance crête (kWc)
-  // ~7 m² par kWc pour toiture industrielle moderne (panneaux 430-450 Wc)
-  // Ombrières parking : ~8 m² par kWc (espaces de manœuvre inclus)
-  const m2PerKwc = input.surfaceType === "parking" ? 8.0 : 7.2
-  const installedPowerKwc = Math.round((surfaceM2 / m2PerKwc) * 10) / 10
+  // Ratio réaliste incluant coupoles de désenfumage, acrotères, zones coupe-feu et espacement ombrage :
+  // ~8.5 m² par kWc pour toiture industrielle plate lestée
+  // Ombrières parking : ~8.0 m² par kWc
+  const m2PerKwc = input.surfaceType === "parking" ? 8.0 : 8.5
+  const maxRoofPowerKwc = Math.round((surfaceM2 / m2PerKwc) * 10) / 10
 
-  // 3. Production annuelle (kWh)
-  const annualProductionKwh = Math.round(installedPowerKwc * SOLAR_CONSTANTS.BELGIUM_YIELD_KWH_PER_KWC)
-
-  // 4. Estimation de la consommation du site
-  const annualBill = Math.max(input.annualElectricityBill, 5000)
+  // 3. Estimation de la consommation du site
+  const annualBill = Math.max(input.annualElectricityBill, 2000)
   const estimatedConsumptionKwh = annualBill / SOLAR_CONSTANTS.B2B_ELECTRICITY_PRICE_HT
 
-  // 5. Taux d'autoconsommation réaliste
-  // Entreprises actives en journée ont un taux naturellement élevé (60% à 85%)
+  // 4. Dimensionnement économique : on ne dimensionne pas au-delà de 115% de la consommation annuelle
+  // (sauf plancher minimal de 10 kWc), dans la limite physique de la toiture disponible
+  const optimalPowerForConsoKwc = (estimatedConsumptionKwh * 1.15) / SOLAR_CONSTANTS.BELGIUM_YIELD_KWH_PER_KWC
+  const installedPowerKwc = Math.round(
+    Math.min(maxRoofPowerKwc, Math.max(10, optimalPowerForConsoKwc)) * 10
+  ) / 10
+
+  // 5. Production annuelle (kWh)
+  const annualProductionKwh = Math.round(installedPowerKwc * SOLAR_CONSTANTS.BELGIUM_YIELD_KWH_PER_KWC)
+
+  // 6. Calcul du taux d'autoconsommation borné par la physique réelle
   const ratioProdConso = annualProductionKwh / Math.max(estimatedConsumptionKwh, 1)
-  let autoconsumptionRate = 75
+  let rawAutoconsumptionRate = 75
   if (ratioProdConso < 0.6) {
-    autoconsumptionRate = 88 // Toute la production est quasi absorbée
+    rawAutoconsumptionRate = 88
   } else if (ratioProdConso > 1.4) {
-    autoconsumptionRate = Math.max(45, Math.round((1 / ratioProdConso) * 85))
+    rawAutoconsumptionRate = Math.round((1 / ratioProdConso) * 80)
   } else {
-    autoconsumptionRate = Math.round(75 - (ratioProdConso - 0.8) * 20)
+    rawAutoconsumptionRate = Math.round(78 - (ratioProdConso - 0.6) * 25)
   }
-  autoconsumptionRate = Math.min(90, Math.max(40, autoconsumptionRate))
 
-  // 6. Économies annuelles (€ HT)
-  const selfConsumedKwh = annualProductionKwh * (autoconsumptionRate / 100)
-  const injectedKwh = annualProductionKwh * ((100 - autoconsumptionRate) / 100)
+  // PLAFOND PHYSIQUE ABSOLU : une PME tertiaire sans batterie industrielle
+  // ne peut jamais couvrir plus de 70% de sa consommation annuelle totale uniquement avec du solaire diurne
+  const maxPossibleAutoconsumedKwh = estimatedConsumptionKwh * 0.70
+  const unCappedAutoconsumedKwh = annualProductionKwh * (Math.min(90, Math.max(15, rawAutoconsumptionRate)) / 100)
+  const autoconsumedKwh = Math.round(Math.min(unCappedAutoconsumedKwh, maxPossibleAutoconsumedKwh))
+  const injectedKwh = Math.max(0, annualProductionKwh - autoconsumedKwh)
+  const autoconsumptionRate = Math.round((autoconsumedKwh / Math.max(annualProductionKwh, 1)) * 100)
 
-  const savingsSelfConsumed = selfConsumedKwh * SOLAR_CONSTANTS.B2B_ELECTRICITY_PRICE_HT
+  // 7. Économies annuelles (€ HT)
+  const savingsSelfConsumed = autoconsumedKwh * SOLAR_CONSTANTS.B2B_ELECTRICITY_PRICE_HT
   const revenueInjection = injectedKwh * SOLAR_CONSTANTS.INJECTION_PRICE_PER_KWH
   const grossSavings = savingsSelfConsumed + revenueInjection
 
-  // 7. CAPEX estimatif (€ HT / kWc dégressif selon volume)
-  let costPerKwc = 1100
-  if (installedPowerKwc > 300) costPerKwc = 880
-  else if (installedPowerKwc > 150) costPerKwc = 950
-  else if (installedPowerKwc > 60) costPerKwc = 1020
+  // 8. CAPEX estimatif (€ HT / kWc dégressif selon volume)
+  let costPerKwc = 1050
+  if (installedPowerKwc >= 250) costPerKwc = 860
+  else if (installedPowerKwc >= 100) costPerKwc = 920
+  else if (installedPowerKwc >= 30) costPerKwc = 980
 
   // Ombrières de parking ont un surcoût structurel acier/fondations
   if (input.surfaceType === "parking") {
-    costPerKwc *= 1.25
+    costPerKwc *= 1.28
   }
 
   const totalCapex = Math.round(installedPowerKwc * costPerKwc)
 
-  // Maintenance & monitoring annuel (~1% CAPEX)
+  // Maintenance & monitoring annuel (~1.2% CAPEX)
   const annualOpex = totalCapex * 0.012
   const netAnnualSavings = Math.max(Math.round(grossSavings - annualOpex), 1000)
 
-  // 8. ROI réaliste non tronqué
+  // 9. ROI réaliste non tronqué
   const rawRoi = totalCapex / netAnnualSavings
   const estimatedRoiYears = Math.round(rawRoi * 10) / 10
 

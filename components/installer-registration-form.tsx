@@ -16,13 +16,22 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   installerRegistrationSchema,
   type InstallerRegistrationInput,
   INSTALLER_REGIONS,
+  TARGET_SEGMENT_OPTIONS,
+  POWER_CAPACITY_OPTIONS,
 } from "@/lib/installer-registration-schema"
 
 const STEP_FIELDS: (keyof InstallerRegistrationInput)[][] = [
-  ["companyName", "siret"],
+  ["companyName", "siret", "targetSegment", "powerCapacity"],
   ["firstName", "lastName", "jobTitle", "email", "phone"],
   ["rescertPhotovoltaicRef", "rescertPhotovoltaicConfirmed"],
   ["regions"],
@@ -47,6 +56,8 @@ export function InstallerRegistrationForm() {
     defaultValues: {
       companyName: "",
       siret: "",
+      targetSegment: "BOTH",
+      powerCapacity: "mixte",
       firstName: "",
       lastName: "",
       jobTitle: "",
@@ -137,9 +148,9 @@ export function InstallerRegistrationForm() {
                   name="companyName"
                   render={({ field }) => (
                     <FormItem className="sm:col-span-2">
-                      <FormLabel>Nom de l&apos;entreprise</FormLabel>
+                      <FormLabel>Nom de l&apos;entreprise (dénomination sociale)</FormLabel>
                       <FormControl>
-                        <Input placeholder="Ex. Solar Pro SAS" className={inputClass} {...field} />
+                        <Input placeholder="Ex. Solar Wallonie SRL, Toitures & Solaires SA..." className={inputClass} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -150,10 +161,10 @@ export function InstallerRegistrationForm() {
                   name="siret"
                   render={({ field }) => (
                     <FormItem className="sm:col-span-2">
-                      <FormLabel>BCE / KBO</FormLabel>
+                      <FormLabel>Numéro d&apos;entreprise BCE / KBO (10 chiffres)</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="10 chiffres (Belgique)"
+                          placeholder="0123.456.789 ou BE0123456789"
                           inputMode="numeric"
                           maxLength={20}
                           className={inputClass}
@@ -161,8 +172,62 @@ export function InstallerRegistrationForm() {
                         />
                       </FormControl>
                       <p className="text-xs text-muted-foreground">
-                        Numéro d&apos;entreprise — souvent 10 chiffres en Belgique.
+                        Numéro d&apos;entreprise belge à 10 chiffres (la clé Modulo 97 sera vérifiée automatiquement).
                       </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="targetSegment"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-1">
+                      <FormLabel>Segments d&apos;intervention</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className={inputClass}>
+                            <SelectValue placeholder="Sélectionnez vos segments" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {TARGET_SEGMENT_OPTIONS.map((o) => (
+                            <SelectItem key={o.value} value={o.value}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="powerCapacity"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-1">
+                      <FormLabel>Puissance habituelle</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className={inputClass}>
+                            <SelectValue placeholder="Sélectionnez la puissance" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {POWER_CAPACITY_OPTIONS.map((o) => (
+                            <SelectItem key={o.value} value={o.value}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

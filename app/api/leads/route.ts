@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { leadSubmitSchema } from "@/lib/leads-schema"
 import { calculateLeadScore } from "@/lib/lead-score"
+import { calculateLeadCreditCost } from "@/lib/marketplace-pricing"
 import { checkRateLimit } from "@/lib/rate-limit"
 import { sendPartnerLeadTeaserEmails } from "@/lib/partner-lead-teaser-email"
 import { sendProspectConfirmationEmail } from "@/lib/prospect-confirmation-email"
+import { sendMetaConversionApiLead } from "@/lib/meta-capi"
 import { createHmac } from "crypto"
 
 function sanitizeString(input: string, maxLength = 255): string {
@@ -109,7 +111,15 @@ export async function POST(request: NextRequest) {
       jobTitle: job_title ?? "",
       surfaceArea: data.surfaceArea,
       annualElectricityBill: data.annualElectricityBill,
+      segment: data.segment,
       grd: data.grd ?? null,
+    })
+
+    const credit_cost = calculateLeadCreditCost({
+      segment: data.segment,
+      surfaceArea: data.surfaceArea,
+      surfaceType: data.surfaceType,
+      annualBill: data.annualElectricityBill,
     })
 
     const supabase = createServiceRoleClient()
@@ -122,9 +132,20 @@ export async function POST(request: NextRequest) {
       ? data.mediaPartnerCode.trim().slice(0, 50)
       : null
 
+    const estimatedPowerKwc =
+      data.segment === "B2B"
+        ? Math.round(data.surfaceArea * 0.17 * 10) / 10
+        : Math.round(data.surfaceArea * 0.16 * 10) / 10
+
+    const extractedPostalCode =
+      data.postalCode ??
+      data.provinceFreeText?.match(/\b[1-9][0-9]{3}\b/)?.[0] ??
+      null
+
     const insertPayload: Record<string, unknown> = {
       segment: data.segment,
       marketplace_status: "pending_review",
+      credit_cost,
       media_partner_code: mediaPartnerCode,
       first_name,
       last_name,
@@ -140,7 +161,7 @@ export async function POST(request: NextRequest) {
       province: data.province,
       grd: data.grd ?? null,
       company_vat,
-      project_timeline: null,
+      project_timeline: data.timeframe ?? null,
       annual_electricity_bill: data.annualElectricityBill,
       estimated_roi_years: data.estimatedROIYears ?? null,
       autoconsumption_rate: data.autoconsumptionRate ?? null,
@@ -152,9 +173,44 @@ export async function POST(request: NextRequest) {
       status,
       lead_score: score,
       wants_irve: false,
+
+      // --- Colonnes Canoniques Unifiées (Migration 024) ---
+      source_form: data.sourceForm ?? (data.segment === "B2B" ? "b2b_simulator" : "b2c_simulator"),
+      ownership_status: data.ownershipStatus ?? null,
+      postal_code: extractedPostalCode,
+      city: data.city ? sanitizeString(data.city, 100) : null,
+      site_address: data.siteAddress ? sanitizeString(data.siteAddress, 255) : null,
+      roof_material: data.roofMaterial ?? null,
+      surface_area_m2: data.surfaceArea,
+      annual_bill_eur: data.annualElectricityBill,
+      estimated_power_kwc: estimatedPowerKwc,
+      project_driver: data.projectDriver ?? null,
+      timeframe: data.timeframe ?? null,
+      qualification_metadata: data.qualificationMetadata ?? {},
     }
 
-    const { data: inserted, error } = await supabase.from("leads").insert(insertPayload).select().single()
+    let { data: inserted, error } = await supabase.from("leads").insert(insertPayload).select().single()
+
+    // Mécanisme de tolérance si la base de données n'a pas encore exécuté la migration 024
+    if (error && (error.message?.includes("column") || error.code === "42703")) {
+      const fallbackPayload = { ...insertPayload }
+      delete fallbackPayload.source_form
+      delete fallbackPayload.ownership_status
+      delete fallbackPayload.postal_code
+      delete fallbackPayload.city
+      delete fallbackPayload.site_address
+      delete fallbackPayload.roof_material
+      delete fallbackPayload.surface_area_m2
+      delete fallbackPayload.annual_bill_eur
+      delete fallbackPayload.estimated_power_kwc
+      delete fallbackPayload.project_driver
+      delete fallbackPayload.timeframe
+      delete fallbackPayload.qualification_metadata
+
+      const fallbackResult = await supabase.from("leads").insert(fallbackPayload).select().single()
+      inserted = fallbackResult.data
+      error = fallbackResult.error
+    }
 
     if (error) {
       console.error("Database error:", error)
@@ -240,6 +296,18 @@ export async function POST(request: NextRequest) {
         signal: AbortSignal.timeout(5000),
       }).catch((err) => console.error("Webhook delivery failed:", err))
     }
+
+    // Déclenchement serveur Meta Conversions API (CAPI) pour tracking sans perte
+    sendMetaConversionApiLead({
+      eventId: inserted.id,
+      email,
+      phone,
+      segment: data.segment,
+      clientIp: getClientIp(request),
+      userAgent: request.headers.get("user-agent") || undefined,
+      fbp: request.cookies.get("_fbp")?.value,
+      fbc: request.cookies.get("_fbc")?.value,
+    }).catch((e) => console.warn("[Meta CAPI trigger error]", e))
 
     return NextResponse.json({
       success: true,
