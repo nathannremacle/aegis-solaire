@@ -1,10 +1,86 @@
 -- ==============================================================================
 -- SCRIPT DE MIGRATION GLOBAL SUPABASE - OPTIMISATIONS PERF & DASHBOARDS
+-- AUTO-RÉPARATEUR & CLÉ EN MAIN
 -- À COPIER / COLLER DIRECTEMENT DANS LE SQL EDITOR DE SUPABASE ET CLIQUER SUR "RUN"
 -- ==============================================================================
 
 -- ==============================================================================
--- SECTION 1 : EXTENSIONS, COLONNES RECHERCHE & INDEXATION HAUTE PERFORMANCE
+-- SECTION 0 : PRÉ-REQUIS & COLONNES MANQUANTES (AUTO-RÉPARATION DU SCHÉMA)
+-- ==============================================================================
+
+-- 1. Table partners : ajout sécurisé de la colonne is_test et métadonnées
+ALTER TABLE public.partners 
+ADD COLUMN IF NOT EXISTS is_test BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE public.partners 
+ADD COLUMN IF NOT EXISTS target_provinces TEXT[] DEFAULT ARRAY['liege', 'namur', 'hainaut', 'brabant_wallon', 'luxembourg'];
+
+ALTER TABLE public.partners 
+ADD COLUMN IF NOT EXISTS segment TEXT DEFAULT 'both';
+
+-- Flag automatique des comptes de test existants
+UPDATE public.partners 
+SET is_test = true 
+WHERE LOWER(company_name) LIKE '%test%' 
+   OR LOWER(company_name) LIKE '%dev%'
+   OR email LIKE '%test%'
+   OR email LIKE '%example%';
+
+-- 2. Table lead_purchases : suivi commercial CRM Pipeline
+ALTER TABLE public.lead_purchases
+ADD COLUMN IF NOT EXISTS pipeline_status TEXT NOT NULL DEFAULT 'to_contact',
+ADD COLUMN IF NOT EXISTS notes TEXT,
+ADD COLUMN IF NOT EXISTS next_action_at TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+-- 3. Table credit_orders (commandes de packs par virement SEPA)
+CREATE TABLE IF NOT EXISTS public.credit_orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  partner_id UUID NOT NULL REFERENCES public.partners(id) ON DELETE CASCADE,
+  pack_id TEXT NOT NULL,
+  pack_name TEXT NOT NULL,
+  credits INTEGER NOT NULL,
+  price_htva NUMERIC(10,2) NOT NULL,
+  vat_amount NUMERIC(10,2) NOT NULL,
+  price_ttc NUMERIC(10,2) NOT NULL,
+  transfer_reference TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'cancelled')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  validated_at TIMESTAMPTZ,
+  notes TEXT
+);
+
+-- 4. Table lead_disputes (réclamations sous garantie 24h ouvrées)
+CREATE TABLE IF NOT EXISTS public.lead_disputes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  purchase_id UUID NOT NULL REFERENCES public.lead_purchases(id) ON DELETE CASCADE,
+  lead_id UUID NOT NULL REFERENCES public.leads(id) ON DELETE CASCADE,
+  partner_id UUID NOT NULL REFERENCES public.partners(id) ON DELETE CASCADE,
+  reason TEXT NOT NULL,
+  details TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  admin_notes TEXT,
+  credits_refunded INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  resolved_at TIMESTAMPTZ
+);
+
+-- 5. Table media_partner_applications (candidatures d'apporteurs d'affaires)
+CREATE TABLE IF NOT EXISTS public.media_partner_applications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  company_name TEXT NOT NULL,
+  website_url TEXT,
+  experience_description TEXT NOT NULL,
+  expected_leads_per_month INTEGER NOT NULL CHECK (expected_leads_per_month >= 0),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+
+-- ==============================================================================
+-- SECTION 1 : EXTENSIONS, RECHERCHE PLEIN TEXTE & INDEXATION HAUTE PERFORMANCE
 -- ==============================================================================
 
 -- 1. Extension Trigramme pour recherche textuelle instantanée
@@ -87,7 +163,7 @@ CREATE INDEX IF NOT EXISTS idx_partners_real_only
 
 
 -- ==============================================================================
--- SECTION 2 : PROCÉDURE STOCKÉE ADMIN DASHBOARD (RÉDUICTION 23 REQUÊTES -> 1 RPC)
+-- SECTION 2 : PROCÉDURE STOCKÉE ADMIN DASHBOARD (RÉDUCTION 23 REQUÊTES -> 1 RPC)
 -- ==============================================================================
 
 CREATE OR REPLACE FUNCTION public.get_admin_dashboard_kpis()
