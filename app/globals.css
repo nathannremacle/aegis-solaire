@@ -18,10 +18,10 @@
   --secondary: oklch(0.96 0.01 243);
   --secondary-foreground: oklch(0.28 0.04 254);
   --muted: oklch(0.96 0.01 243);
-  --muted-foreground: oklch(0.54 0.05 243);
+  --muted-foreground: oklch(0.45 0.04 248);
   /* Accent: #FFB800 (Or Solaire) */
   --accent: #FFB800;
-  --accent-foreground: #000000;
+  --accent-foreground: #001D3D;
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.88 0.02 243);
@@ -138,6 +138,21 @@
     max-width: 100%;
     height: auto;
   }
+  h1, h2, h3, h4 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.025em;
+  }
+}
+
+/* Transitions douces entre sections sombres (#001D3D) et fonds clairs */
+.section-dark-to-light {
+  background: linear-gradient(180deg, #001D3D 0%, #062649 88%, oklch(0.985 0.003 247) 100%);
+}
+
+.card-institutional {
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0, 29, 61, 0.04), 0 8px 24px -4px rgba(0, 29, 61, 0.06);
 }
 
 /* Bandeau défilant certifications – infinite marquee */

@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { ArrowRight, TrendingUp, Shield, Zap, Building2, Home } from "lucide-react"
+import { ArrowRight, TrendingUp, Shield, Zap, Building2, Home, Calculator, ShieldCheck, CheckCircle2 } from "lucide-react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { ProgressiveHeroBackground } from "@/components/progressive-image"
@@ -63,10 +63,10 @@ export function Hero() {
         >
           {/* Badge */}
           <motion.div variants={itemVariants} className="mb-4 flex flex-wrap justify-center gap-2 sm:mb-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-white/5 px-4 py-1.5 shadow-[0_0_15px_rgba(255,184,0,0.15)] backdrop-blur-md">
-              <Shield className="h-4 w-4 shrink-0 text-accent drop-shadow-[0_0_8px_rgba(255,184,0,0.8)]" />
-              <span className="text-xs font-medium tracking-wide text-white sm:text-sm">
-                Réseau d&apos;installateurs certifiés RESCERT en Wallonie
+            <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-1.5 shadow-[0_0_15px_rgba(255,184,0,0.15)] backdrop-blur-md">
+              <ShieldCheck className="h-4 w-4 shrink-0 text-accent drop-shadow-[0_0_8px_rgba(255,184,0,0.8)]" />
+              <span className="text-xs font-semibold tracking-wide text-white sm:text-sm">
+                Tiers de confiance photovoltaïque industriel en Wallonie • Certifié RESCERT
               </span>
             </div>
           </motion.div>
@@ -79,33 +79,51 @@ export function Hero() {
 
           {/* Subheadline */}
           <motion.p variants={itemVariants} className="mx-auto mt-5 max-w-2xl text-pretty text-base font-light leading-relaxed text-neutral-200 sm:mt-6 sm:text-lg md:text-xl">
-            Anticipez le <strong className="font-semibold text-white">Plan PACE 2030</strong> et rentabilisez votre surface. Estimez votre modèle financier (Prêt Easy&apos;Green, Tiers-investissement) avec les <strong className="font-semibold text-white">Certificats Verts CWaPE</strong>.
+            Anticipez le <strong className="font-semibold text-white">Plan PACE 2030</strong> et rentabilisez vos toitures ou parkings (&gt; 500 m²). Chiffrez votre modèle financier (<strong className="font-semibold text-white">Prêt Easy&apos;Green, Déduction fiscale à 40%, Tiers-investissement</strong>) et vos <strong className="font-semibold text-white">Certificats Verts CWaPE</strong>.
           </motion.p>
 
           {/* Dual CTAs */}
           <motion.div variants={itemVariants} className="mt-8 flex flex-col items-stretch gap-4 sm:mt-10 sm:flex-row sm:items-center sm:justify-center sm:gap-5">
             {/* B2B CTA — primary gold */}
             <Button
-              size="lg"
+              variant="accent"
+              size="xl"
               onClick={scrollToSimulator}
-              className="group h-14 w-full gap-3 bg-accent text-base font-bold text-[#001D3D] shadow-[0_0_25px_rgba(255,184,0,0.3)] transition-all hover:scale-[1.02] hover:bg-[#e6a600] hover:shadow-[0_0_35px_rgba(255,184,0,0.45)] sm:w-auto sm:min-w-[270px]"
+              className="group w-full sm:w-auto"
             >
-              <Building2 className="h-5 w-5 shrink-0" />
-              <span>Entreprises & Industrie</span>
+              <Calculator className="h-5 w-5 shrink-0" />
+              <span>Calculer la rentabilité de mon site</span>
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>
 
-            {/* B2C CTA — secondary solid white on dark */}
-            <Link href="/particuliers" className="w-full sm:w-auto">
-              <Button
-                size="lg"
-                className="group h-14 w-full gap-3 border-2 border-white/30 bg-white/10 text-base font-bold text-white shadow-[0_4px_20px_rgba(0,0,0,0.3)] backdrop-blur-lg transition-all hover:scale-[1.02] hover:border-accent/50 hover:bg-white/15 hover:shadow-[0_0_25px_rgba(255,184,0,0.2)] sm:min-w-[270px]"
-              >
-                <Home className="h-5 w-5 shrink-0 text-accent" />
-                <span>Propriétaires Particuliers</span>
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Button>
-            </Link>
+            {/* B2C CTA — secondary glass button on dark */}
+            <Button
+              asChild
+              variant="glass"
+              size="xl"
+              className="w-full sm:w-auto font-medium text-neutral-100"
+            >
+              <Link href="/particuliers">
+                <Home className="h-4 w-4 text-accent" />
+                <span>Projet résidentiel ? Espace Particuliers</span>
+              </Link>
+            </Button>
+          </motion.div>
+
+          {/* Micro-réassurance sous le CTA pour lever l'hésitation au clic */}
+          <motion.div variants={itemVariants} className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-neutral-300">
+            <span className="inline-flex items-center gap-1.5">
+              <CheckCircle2 className="h-3.5 w-3.5 text-accent" />
+              Estimation financière en 2 minutes
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <CheckCircle2 className="h-3.5 w-3.5 text-accent" />
+              Données CWaPE &amp; GRD wallons (Ores, Resa, AIEG)
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <CheckCircle2 className="h-3.5 w-3.5 text-accent" />
+              Audit confidentiel sans engagement
+            </span>
           </motion.div>
 
           {/* Trust indicators */}

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Menu, X, Building2, Home } from "lucide-react"
+import { Menu, X, Building2, Home, Calculator, ArrowUpRight } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { usePathname } from "next/navigation"
 
@@ -80,6 +80,47 @@ export function Header() {
       className="sticky top-0 z-[100] w-full border-b border-neutral-200 bg-white/95 shadow-sm backdrop-blur-xl"
       style={{ viewTransitionName: "site-header" }}
     >
+      {/* Barre de switch mobile & tablette toujours visible */}
+      <div className="flex md:hidden items-center justify-between bg-[#001D3D] px-3.5 py-1.5 text-xs text-white">
+        <span className="text-[11px] font-medium text-neutral-300">
+          Espace : <strong className="text-[#FFB800]">{isB2C ? "Particuliers" : "Industrie & Pro"}</strong>
+        </span>
+        <div className="flex items-center rounded-full bg-white/10 p-0.5 border border-white/15">
+          <Link
+            href="/"
+            onClick={() => {
+              if (!isB2C) return
+              setOptimisticSegment("b2b")
+            }}
+            aria-current={!isB2C ? "page" : undefined}
+            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all ${
+              !isB2C
+                ? "bg-[#FFB800] text-[#001D3D] shadow-xs"
+                : "text-white/80 hover:text-white"
+            }`}
+          >
+            <Building2 className="h-3 w-3" />
+            Pro / B2B
+          </Link>
+          <Link
+            href="/particuliers"
+            onClick={() => {
+              if (isB2C) return
+              setOptimisticSegment("b2c")
+            }}
+            aria-current={isB2C ? "page" : undefined}
+            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all ${
+              isB2C
+                ? "bg-[#FFB800] text-[#001D3D] shadow-xs"
+                : "text-white/80 hover:text-white"
+            }`}
+          >
+            <Home className="h-3 w-3" />
+            Particuliers
+          </Link>
+        </div>
+      </div>
+
       <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:min-h-20 sm:py-4 sm:px-6 lg:px-8 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
         {/* Left Zone: Logo + Segment Toggle */}
         <div className="flex items-center gap-4 lg:gap-8 shrink-0">
@@ -188,10 +229,13 @@ export function Header() {
           <div className="hidden md:block shrink-0">
             <Button
               onClick={scrollToSimulator}
+              variant="accent"
               size="sm"
-              className="h-10 min-w-[175px] bg-[#001D3D] font-bold text-sm text-white shadow-md hover:bg-[#00152e] hover:shadow-lg transition-all active:scale-[0.98]"
+              className="h-10 min-w-[175px] gap-2 text-xs font-bold sm:text-sm"
             >
-              Lancer ma simulation
+              <Calculator className="h-4 w-4" />
+              <span>{isB2C ? "Simuler mes économies" : "Audit ROI gratuit"}</span>
+              <ArrowUpRight className="hidden sm:inline h-3.5 w-3.5" />
             </Button>
           </div>
 
@@ -286,10 +330,12 @@ export function Header() {
               <div className="px-4 py-3 border-t border-neutral-100">
                 <Button
                   onClick={scrollToSimulator}
+                  variant="accent"
                   size="default"
-                  className="w-full h-11 bg-[#001D3D] font-bold text-white hover:bg-[#00152e] shadow-md"
+                  className="w-full h-11 gap-2 font-bold"
                 >
-                  Lancer ma simulation
+                  <Calculator className="h-4 w-4" />
+                  <span>{isB2C ? "Simuler mes économies" : "Audit ROI gratuit"}</span>
                 </Button>
               </div>
             </nav>

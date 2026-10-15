@@ -29,12 +29,15 @@ import {
   Loader2,
   Sun,
   BatteryFull,
+  BatteryCharging,
   Car,
   Compass,
   Home,
   Users,
   Zap,
   Leaf,
+  MapPin,
+  ShieldCheck,
 } from "lucide-react"
 
 /* ═══════════════════════════ Types ═══════════════════════════ */
@@ -248,10 +251,37 @@ const EV_OPTIONS = [
   { id: "non", label: "Non" },
 ]
 
+// Détection automatique de la Province wallonne via le code postal belge (4 chiffres)
+export function detectWalloonProvince(postalCode: string): { label: string; key: string } | null {
+  const code = parseInt(postalCode.trim(), 10)
+  if (isNaN(code) || postalCode.trim().length !== 4) return null
+  if (code >= 1300 && code <= 1499) return { label: "Brabant wallon", key: "brabant-wallon" }
+  if (code >= 4000 && code <= 4999) return { label: "Liège", key: "liege" }
+  if (code >= 5000 && code <= 5999) return { label: "Namur", key: "namur" }
+  if ((code >= 6000 && code <= 6599) || (code >= 7000 && code <= 7999)) return { label: "Hainaut", key: "hainaut" }
+  if (code >= 6600 && code <= 6999) return { label: "Luxembourg", key: "luxembourg" }
+  return null
+}
+
 const BATTERY_OPTIONS = [
-  { id: "oui", label: "Oui, c'est indispensable" },
-  { id: "hesite", label: "Peut-être, à évaluer" },
-  { id: "non", label: "Non, uniquement panneaux" },
+  {
+    id: "oui",
+    label: "Oui, avec batterie",
+    badge: "Jusqu'à 70% d'autonomie",
+    desc: "Maximise l'autoconsommation soir/nuit face à la fin du compteur qui tourne à l'envers.",
+  },
+  {
+    id: "hesite",
+    label: "Comparer les 2 options",
+    badge: "Recommandé",
+    desc: "Simuler la rentabilité avec et sans batterie selon votre profil de consommation.",
+  },
+  {
+    id: "non",
+    label: "Panneaux seuls",
+    badge: "Investissement minimal",
+    desc: "Idéal si votre foyer consomme principalement en journée (télétravail, PAC).",
+  },
 ]
 
 const TRANSITION_MESSAGES = [
@@ -542,6 +572,16 @@ export function B2CSimulator() {
                 </span>
               </motion.div>
             ))}
+          </div>
+
+          {/* Note de transparence méthodologique */}
+          <div className="mt-8 rounded-xl border border-border bg-muted/40 p-4 text-xs leading-relaxed text-muted-foreground">
+            <div className="flex items-start gap-2.5">
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+              <p>
+                <strong className="text-foreground">Méthodologie certifiée :</strong> Estimation basée sur l&apos;irradiation moyenne wallonne (930 kWh/kWc/an) et les tarifs réseau Ores/Resa. Vos devis définitifs seront vérifiés par des installateurs certifiés <strong className="text-foreground">RESCERT</strong> et conformes <strong className="text-foreground">RGIE</strong>.
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -835,28 +875,42 @@ export function B2CSimulator() {
                   </div>
 
                   <div className="space-y-3">
-                    <Label className="text-base font-semibold text-foreground">
-                      <BatteryFull className="mr-1.5 inline h-4 w-4 text-accent" />
-                      Batterie domestique ?
+                    <Label className="text-base font-semibold text-foreground flex items-center gap-2">
+                      <BatteryCharging className="h-4 w-4 text-accent" />
+                      Souhaitez-vous intégrer une batterie domestique ?
                     </Label>
                     <p className="text-sm text-muted-foreground">
-                      Maximise votre autonomie et protège des tarifs dynamiques.
+                      Face à la fin du compteur qui tourne à l&apos;envers, la batterie fait passer l&apos;autoconsommation de ~35% à jusqu&apos;à 70%.
                     </p>
-                    <RadioGroup
-                      value={fd.batteryInterest}
-                      onValueChange={(v) => up("batteryInterest", v)}
-                      className="gap-3"
-                    >
-                      {BATTERY_OPTIONS.map((o) => (
-                        <label
-                          key={o.id}
-                          className="flex min-h-[48px] cursor-pointer items-center gap-3 rounded-xl border-2 p-3.5 transition-colors hover:bg-muted/40 has-[[data-state=checked]]:border-accent has-[[data-state=checked]]:bg-accent/5"
-                        >
-                          <RadioGroupItem value={o.id} />
-                          <span className="text-sm font-medium text-foreground">{o.label}</span>
-                        </label>
-                      ))}
-                    </RadioGroup>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      {BATTERY_OPTIONS.map((opt) => {
+                        const active = fd.batteryInterest === opt.id
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => up("batteryInterest", opt.id)}
+                            className={`flex flex-col justify-between rounded-xl border-2 p-4 text-left transition-all ${
+                              active
+                                ? "border-accent bg-accent/10 text-foreground ring-2 ring-accent/30"
+                                : "border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            <div>
+                              <span
+                                className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                                  active ? "bg-accent text-[#001D3D]" : "bg-muted text-foreground/70"
+                                }`}
+                              >
+                                {opt.badge}
+                              </span>
+                              <p className="mt-2 text-sm font-bold text-foreground">{opt.label}</p>
+                              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{opt.desc}</p>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -1028,7 +1082,19 @@ export function B2CSimulator() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="b2c-postal">Code postal (4 chiffres) <span className="text-accent">*</span></Label>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="b2c-postal">Code postal (4 chiffres) <span className="text-accent">*</span></Label>
+                        {(() => {
+                          const det = detectWalloonProvince(fd.postalCode)
+                          if (!det) return null
+                          return (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200">
+                              <MapPin className="h-3 w-3" />
+                              {det.label}
+                            </span>
+                          )
+                        })()}
+                      </div>
                       <Input
                         id="b2c-postal"
                         type="text"
@@ -1037,12 +1103,23 @@ export function B2CSimulator() {
                         placeholder="ex. 4000"
                         value={fd.postalCode}
                         onBlur={() => markTouched("postalCode")}
-                        onChange={(e) => up("postalCode", e.target.value.replace(/\D/g, "").slice(0, 4))}
+                        onChange={(e) => {
+                          const clean = e.target.value.replace(/\D/g, "").slice(0, 4)
+                          up("postalCode", clean)
+                          const det = detectWalloonProvince(clean)
+                          if (det) {
+                            up("province", det.key)
+                          }
+                        }}
                         className={`h-12 ${showPostalCodeError ? "border-destructive focus-visible:ring-destructive" : ""}`}
                       />
                       {showPostalCodeError && (
                         <p className="text-xs text-destructive">{showPostalCodeError}</p>
                       )}
+                      <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                        Vérification automatique du réseau (Ores / Resa) et installateurs RESCERT.
+                      </p>
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="b2c-address">
@@ -1154,24 +1231,26 @@ export function B2CSimulator() {
                   )}
 
                   {step === 6 && (
-                    <button
+                    <Button
                       type="button"
+                      variant="accent"
+                      size="xl"
                       onClick={submit}
                       disabled={isSubmitting}
-                      className="inline-flex min-h-[50px] w-full items-center justify-center rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 px-8 font-sans text-sm font-extrabold text-slate-950 shadow-[0_4px_0_#b45309,0_8px_16px_rgba(245,158,11,0.25)] transition-all hover:from-amber-300 hover:to-amber-400 active:translate-y-1 active:shadow-[0_1px_0_#b45309] disabled:opacity-50 sm:ml-auto sm:w-auto"
+                      className="w-full sm:ml-auto sm:w-auto font-bold shadow-lg"
                     >
                       {isSubmitting ? (
                         <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Envoi…
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Envoi en cours…
                         </>
                       ) : (
                         <>
-                          Recevoir mon dossier gratuit
-                          <ArrowRight className="ml-2 h-4 w-4" />
+                          Recevoir mon dossier complet gratuit
+                          <ArrowRight className="ml-2 h-5 w-5" />
                         </>
                       )}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </>

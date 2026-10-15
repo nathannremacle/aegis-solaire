@@ -27,11 +27,16 @@ import {
   Car,
   Factory,
   Sprout,
+  Lock,
+  AlertCircle,
+  ShieldCheck,
+  Zap,
 } from "lucide-react"
 import {
   getEmailError,
   getPhoneError,
   getVatError,
+  isValidBelgianVat,
 } from "@/lib/leads-validation"
 import { getStoredMediaPartnerRef } from "@/components/media-partner-ref-tracker"
 import { calculateB2BSolarROI } from "@/lib/solar-assumptions"
@@ -463,13 +468,23 @@ export function ROISimulator() {
               </motion.div>
             </div>
 
+            {/* Note de transparence méthodologique */}
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }} className="mt-8 rounded-xl border border-white/10 bg-white/5 p-4 text-xs leading-relaxed text-neutral-300">
+              <div className="flex items-start gap-2.5">
+                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#FFB800]" />
+                <p>
+                  <strong className="text-white">Méthodologie Aegis Solaire :</strong> Cette estimation repose sur une approche prudente intégrant les tarifs des gestionnaires de réseau wallons (Ores, Resa, AIEG) et une dégradation linéaire constructeur garantie sur 25 ans. Un audit technique sur site par un ingénieur certifié <strong className="text-white">RESCERT</strong> permettra de figer votre offre financière définitive.
+                </p>
+              </div>
+            </motion.div>
+
             {calendlyUrl !== "#" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} className="mt-8 text-center">
                 <a
                   href={calendlyUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex min-h-[56px] w-full min-w-0 items-center justify-center rounded-xl bg-accent px-6 py-4 text-center font-bold text-black shadow-[0_0_20px_rgba(255,184,0,0.4)] transition-all hover:scale-105 hover:bg-accent/90 hover:shadow-[0_0_30px_rgba(255,184,0,0.6)] sm:w-auto sm:px-10"
+                  className="inline-flex min-h-[56px] w-full min-w-0 items-center justify-center rounded-xl bg-accent px-6 py-4 text-center font-bold text-[#001D3D] shadow-[0_0_20px_rgba(255,184,0,0.4)] transition-all hover:scale-105 hover:bg-accent/90 hover:shadow-[0_0_30px_rgba(255,184,0,0.6)] sm:w-auto sm:px-10"
                 >
                   <span className="break-words">Bloquer mon appel stratégique de 10 min. (Prioritaire)</span>
                 </a>
@@ -838,31 +853,167 @@ export function ROISimulator() {
                       />
                     </div>
 
-                    <div className="relative min-w-0 rounded-lg border border-accent/30 bg-accent/5 p-4 sm:p-6">
-                      <div className="absolute inset-0 rounded-lg bg-card/80 backdrop-blur-sm" aria-hidden />
-                      <div className="relative min-w-0">
-                        <h4 className="text-base font-semibold text-foreground sm:text-lg">
-                          Votre étude de faisabilité wallonne est prête.
-                        </h4>
-                        <p className="mt-2 break-words text-sm text-muted-foreground">
-                          TRI indicatif {previewResults.estimatedROIYears} ans, environ {previewResults.estimatedSavings.toLocaleString("fr-BE")}{" "}
-                          € d&apos;économies annuelles (ordre de grandeur), province : {provinceLabel}. Indiquez vos coordonnées pour recevoir le dossier complet.
-                        </p>
+                    {/* BANDEAU DE PRÉ-CALCUL TECHNIQUE DÉBLOQUÉ (Teaser Before Gate) */}
+                    <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-[#001D3D] to-[#082d56] p-5 text-white shadow-md">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/15 pb-3">
+                        <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#FFB800]">
+                          <Zap className="h-4 w-4" />
+                          Pré-dimensionnement technique calculé ({provinceLabel} • Réseau {formData.grd || "Wallonie"})
+                        </span>
+                        <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300 border border-emerald-400/30">
+                          Étape 5 sur 5 • Synthèse financière prête
+                        </span>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <div className="rounded-lg bg-white/10 p-3.5 backdrop-blur-xs">
+                          <p className="text-xs text-neutral-300">Puissance installable estimée</p>
+                          <p className="mt-1 text-2xl font-bold text-white">{previewResults.installedPower.toLocaleString("fr-BE")} kWc</p>
+                        </div>
+                        <div className="rounded-lg bg-white/10 p-3.5 backdrop-blur-xs">
+                          <p className="text-xs text-neutral-300">Production annuelle cible</p>
+                          <p className="mt-1 text-2xl font-bold text-[#FFB800]">{previewResults.annualProduction.toLocaleString("fr-BE")} kWh/an</p>
+                        </div>
+                        <div className="relative overflow-hidden rounded-lg border border-[#FFB800]/40 bg-white/5 p-3.5">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs text-neutral-300">Gain net &amp; Certificats CWaPE</p>
+                            <Lock className="h-3.5 w-3.5 text-[#FFB800]" />
+                          </div>
+                          <p className="mt-1 select-none text-lg font-bold text-white/40 blur-[4px]">
+                            {previewResults.estimatedSavings.toLocaleString("fr-BE")} € / an • ROI {previewResults.estimatedROIYears} ans
+                          </p>
+                          <span className="mt-1 inline-block text-[11px] font-medium text-[#FFB800]">
+                            Débloqué dès validation
+                          </span>
+                        </div>
                       </div>
                     </div>
 
-                    <p className="font-medium text-foreground">Où devons-nous envoyer votre étude ?</p>
+                    <div>
+                      <h4 className="text-lg font-bold text-[#001D3D] sm:text-xl">
+                        Où devons-nous afficher et envoyer votre étude de rentabilité B2B ?
+                      </h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Accès immédiat à votre simulation d&apos;autoconsommation, aides Easy&apos;Green et déduction fiscale à 40%.
+                      </p>
+                    </div>
 
+                    {/* Sélecteur rapide de fonction en 1 tap */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
+                        Votre fonction au sein de l&apos;entreprise
+                      </Label>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        {jobTitles.map((role) => (
+                          <button
+                            key={role}
+                            type="button"
+                            onClick={() => {
+                              markTouched("jobTitle")
+                              updateFormData("jobTitle", role)
+                            }}
+                            className={`h-11 rounded-lg border px-3 text-xs font-semibold transition-all ${
+                              formData.jobTitle === role
+                                ? "border-[#001D3D] bg-[#001D3D] text-white shadow-xs"
+                                : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300"
+                            }`}
+                          >
+                            {role}
+                          </button>
+                        ))}
+                      </div>
+                      {showJobTitleError && (
+                        <p id="jobTitle-error" className="mt-1.5 text-xs text-destructive" role="alert">
+                          {showJobTitleError}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Société & Numéro de TVA Belge */}
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div>
-                        <Label htmlFor="firstName">Prénom</Label>
+                        <Label htmlFor="company" className="block text-xs font-semibold text-neutral-700 mb-1.5">
+                          Raison sociale (Société) *
+                        </Label>
+                        <Input
+                          id="company"
+                          placeholder="Dénomination sociale"
+                          value={formData.company ?? ""}
+                          onChange={(e) => updateFormData("company", e.target.value)}
+                          onBlur={() => markTouched("company")}
+                          className={`h-12 w-full ${showCompanyError ? "border-destructive" : ""}`}
+                          aria-invalid={!!showCompanyError}
+                          aria-describedby={showCompanyError ? "company-error" : undefined}
+                        />
+                        {showCompanyError && (
+                          <p id="company-error" className="mt-1.5 text-xs text-destructive" role="alert">
+                            {showCompanyError}
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <Label htmlFor="companyVat" className="block text-xs font-semibold text-neutral-700">
+                            Numéro de TVA belge *
+                          </Label>
+                          {formData.companyVat && formData.companyVat.length > 3 && (
+                            <span
+                              className={`inline-flex items-center gap-1 text-[11px] font-semibold ${
+                                isValidBelgianVat(formData.companyVat) ? "text-emerald-600" : "text-amber-600"
+                              }`}
+                            >
+                              {isValidBelgianVat(formData.companyVat) ? (
+                                <>
+                                  <CheckCircle2 className="h-3.5 w-3.5" /> TVA valide
+                                </>
+                              ) : (
+                                <>
+                                  <AlertCircle className="h-3.5 w-3.5" /> Format : BE 0XXX.XXX.XXX
+                                </>
+                              )}
+                            </span>
+                          )}
+                        </div>
+                        <Input
+                          id="companyVat"
+                          type="text"
+                          placeholder="BE 0123.456.789"
+                          autoComplete="off"
+                          value={formData.companyVat ?? ""}
+                          onChange={(e) => updateFormData("companyVat", e.target.value)}
+                          onBlur={() => markTouched("companyVat")}
+                          className={`h-12 w-full ${
+                            showVatError
+                              ? "border-destructive"
+                              : formData.companyVat && isValidBelgianVat(formData.companyVat)
+                              ? "border-emerald-500 focus-visible:ring-emerald-400"
+                              : ""
+                          }`}
+                          aria-invalid={!!showVatError}
+                          aria-describedby={showVatError ? "companyVat-error" : undefined}
+                        />
+                        {showVatError && (
+                          <p id="companyVat-error" className="mt-1.5 text-xs text-destructive" role="alert">
+                            {showVatError}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Prénom & Nom */}
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div>
+                        <Label htmlFor="firstName" className="block text-xs font-semibold text-neutral-700 mb-1.5">
+                          Prénom *
+                        </Label>
                         <Input
                           id="firstName"
                           placeholder="Prénom"
                           value={formData.firstName ?? ""}
                           onChange={(e) => updateFormData("firstName", e.target.value)}
                           onBlur={() => markTouched("firstName")}
-                          className={`mt-1.5 ${showFirstNameError ? "border-destructive" : ""}`}
+                          className={`h-12 w-full ${showFirstNameError ? "border-destructive" : ""}`}
                           aria-invalid={!!showFirstNameError}
                           aria-describedby={showFirstNameError ? "firstName-error" : undefined}
                         />
@@ -873,14 +1024,16 @@ export function ROISimulator() {
                         )}
                       </div>
                       <div>
-                        <Label htmlFor="lastName">Nom</Label>
+                        <Label htmlFor="lastName" className="block text-xs font-semibold text-neutral-700 mb-1.5">
+                          Nom *
+                        </Label>
                         <Input
                           id="lastName"
                           placeholder="Nom"
                           value={formData.lastName ?? ""}
                           onChange={(e) => updateFormData("lastName", e.target.value)}
                           onBlur={() => markTouched("lastName")}
-                          className={`mt-1.5 ${showLastNameError ? "border-destructive" : ""}`}
+                          className={`h-12 w-full ${showLastNameError ? "border-destructive" : ""}`}
                           aria-invalid={!!showLastNameError}
                           aria-describedby={showLastNameError ? "lastName-error" : undefined}
                         />
@@ -892,116 +1045,55 @@ export function ROISimulator() {
                       </div>
                     </div>
 
-                    <div>
-                      <Label htmlFor="jobTitle">Fonction</Label>
-                      <Select
-                        value={formData.jobTitle ?? ""}
-                        onValueChange={(value) => {
-                          markTouched("jobTitle")
-                          updateFormData("jobTitle", value)
-                        }}
-                      >
-                        <SelectTrigger
-                          id="jobTitle"
-                          className={`mt-1.5 ${showJobTitleError ? "border-destructive" : ""}`}
-                          aria-invalid={!!showJobTitleError}
-                          aria-describedby={showJobTitleError ? "jobTitle-error" : undefined}
-                        >
-                          <SelectValue placeholder="Sélectionnez votre fonction" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {jobTitles.map((title) => (
-                            <SelectItem key={title} value={title}>
-                              {title}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {showJobTitleError && (
-                        <p id="jobTitle-error" className="mt-1.5 text-xs text-destructive" role="alert">
-                          {showJobTitleError}
-                        </p>
-                      )}
-                    </div>
+                    {/* Email & Téléphone */}
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div>
+                        <Label htmlFor="email" className="block text-xs font-semibold text-neutral-700 mb-1.5">
+                          E-mail professionnel *
+                        </Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          inputMode="email"
+                          autoComplete="email"
+                          placeholder="prenom.nom@entreprise.be"
+                          value={formData.email ?? ""}
+                          onChange={(e) => updateFormData("email", e.target.value)}
+                          onBlur={() => markTouched("email")}
+                          className={`h-12 w-full ${showEmailError ? "border-destructive" : ""}`}
+                          aria-invalid={!!showEmailError}
+                          aria-describedby={showEmailError ? "email-error" : undefined}
+                        />
+                        {showEmailError && (
+                          <p id="email-error" className="mt-1.5 text-xs text-destructive" role="alert">
+                            {showEmailError}
+                          </p>
+                        )}
+                      </div>
 
-                    <div>
-                      <Label htmlFor="company">Nom de l&apos;entreprise</Label>
-                      <Input
-                        id="company"
-                        placeholder="Dénomination sociale"
-                        value={formData.company ?? ""}
-                        onChange={(e) => updateFormData("company", e.target.value)}
-                        onBlur={() => markTouched("company")}
-                        className={`mt-1.5 ${showCompanyError ? "border-destructive" : ""}`}
-                        aria-invalid={!!showCompanyError}
-                        aria-describedby={showCompanyError ? "company-error" : undefined}
-                      />
-                      {showCompanyError && (
-                        <p id="company-error" className="mt-1.5 text-xs text-destructive" role="alert">
-                          {showCompanyError}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <Label htmlFor="companyVat">Numéro d&apos;entreprise (TVA BE)</Label>
-                      <Input
-                        id="companyVat"
-                        type="text"
-                        placeholder="BE0123456789"
-                        autoComplete="off"
-                        value={formData.companyVat ?? ""}
-                        onChange={(e) => updateFormData("companyVat", e.target.value)}
-                        onBlur={() => markTouched("companyVat")}
-                        className={`mt-1.5 ${showVatError ? "border-destructive" : ""}`}
-                        aria-invalid={!!showVatError}
-                        aria-describedby={showVatError ? "companyVat-error" : undefined}
-                      />
-                      {showVatError && (
-                        <p id="companyVat-error" className="mt-1.5 text-xs text-destructive" role="alert">
-                          {showVatError}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <Label htmlFor="email">E-mail professionnel</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="prenom.nom@entreprise.be"
-                        value={formData.email ?? ""}
-                        onChange={(e) => updateFormData("email", e.target.value)}
-                        onBlur={() => markTouched("email")}
-                        className={`mt-1.5 ${showEmailError ? "border-destructive" : ""}`}
-                        aria-invalid={!!showEmailError}
-                        aria-describedby={showEmailError ? "email-error" : undefined}
-                      />
-                      {showEmailError && (
-                        <p id="email-error" className="mt-1.5 text-xs text-destructive" role="alert">
-                          {showEmailError}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <Label htmlFor="phone">Téléphone direct</Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="+32 475 12 34 56"
-                        value={formData.phone ?? ""}
-                        onChange={(e) => updateFormData("phone", e.target.value)}
-                        onBlur={() => markTouched("phone")}
-                        className={`mt-1.5 ${showPhoneError ? "border-destructive" : ""}`}
-                        aria-invalid={!!showPhoneError}
-                        aria-describedby={showPhoneError ? "phone-error" : undefined}
-                      />
-                      {showPhoneError && (
-                        <p id="phone-error" className="mt-1.5 text-xs text-destructive" role="alert">
-                          {showPhoneError}
-                        </p>
-                      )}
+                      <div>
+                        <Label htmlFor="phone" className="block text-xs font-semibold text-neutral-700 mb-1.5">
+                          Téléphone direct (+32 / +33) *
+                        </Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          inputMode="tel"
+                          autoComplete="tel"
+                          placeholder="+32 475 12 34 56"
+                          value={formData.phone ?? ""}
+                          onChange={(e) => updateFormData("phone", e.target.value)}
+                          onBlur={() => markTouched("phone")}
+                          className={`h-12 w-full ${showPhoneError ? "border-destructive" : ""}`}
+                          aria-invalid={!!showPhoneError}
+                          aria-describedby={showPhoneError ? "phone-error" : undefined}
+                        />
+                        {showPhoneError && (
+                          <p id="phone-error" className="mt-1.5 text-xs text-destructive" role="alert">
+                            {showPhoneError}
+                          </p>
+                        )}
+                      </div>
                     </div>
 
                     <div>
@@ -1115,18 +1207,20 @@ export function ROISimulator() {
                 {step === 5 && (
                   <Button
                     onClick={handleSubmit}
+                    variant="accent"
+                    size="xl"
                     disabled={!validateStep(5) || isSubmitting}
-                    className="min-h-[44px] w-full bg-accent text-accent-foreground hover:bg-accent/90 sm:ml-auto sm:w-auto"
+                    className="w-full sm:ml-auto sm:w-auto font-bold shadow-lg"
                   >
                     {isSubmitting ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                         Envoi en cours...
                       </>
                     ) : (
                       <>
-                        Recevoir mon étude de faisabilité wallonne
-                        <ArrowRight className="ml-2 h-4 w-4" />
+                        Afficher mes résultats financiers complets
+                        <ArrowRight className="ml-2 h-5 w-5" />
                       </>
                     )}
                   </Button>

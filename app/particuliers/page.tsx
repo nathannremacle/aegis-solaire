@@ -2,6 +2,7 @@ import { ParticuliersHero } from "@/components/particuliers-hero"
 import { Footer } from "@/components/footer"
 import { B2CSimulator } from "@/components/b2c-simulator"
 import { B2CTestimonials } from "@/components/b2c-testimonials"
+import { MobileStickyCta } from "@/components/mobile-sticky-cta"
 import {
   Shield,
   BatteryFull,
@@ -178,6 +179,11 @@ export default function ParticuliersPage() {
         </section>
       </main>
       <Footer />
+      <MobileStickyCta
+        targetId="b2c-simulator"
+        label="Simuler mes économies"
+        sublabel="Résidentiel Wallonie • Gratuit en 2 min"
+      />
     </>
   )
 }
