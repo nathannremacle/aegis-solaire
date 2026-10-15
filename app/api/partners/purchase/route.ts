@@ -21,17 +21,35 @@ export async function POST(request: Request) {
 
   const admin = createServiceRoleClient()
 
-  const { data, error } = await admin.rpc("purchase_lead", {
+  let purchaseResult: any = null
+  let purchaseErr: any = null
+
+  // 1. Tenter la nouvelle RPC atomique avec verrouillage pessimiste
+  const { data: rpcData, error: rpcError } = await admin.rpc("purchase_marketplace_lead", {
     p_lead_id: body.leadId,
     p_partner_id: partner.id,
   })
 
-  if (error) {
-    console.error("[purchase] rpc error:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  if (!rpcError && rpcData) {
+    purchaseResult = rpcData
+  } else if (rpcError && (rpcError.code === "42883" || rpcError.message?.includes("does not exist"))) {
+    // 2. Fallback sur l'ancienne RPC purchase_lead
+    const { data: oldData, error: oldErr } = await admin.rpc("purchase_lead", {
+      p_lead_id: body.leadId,
+      p_partner_id: partner.id,
+    })
+    purchaseResult = oldData
+    purchaseErr = oldErr
+  } else {
+    purchaseErr = rpcError
   }
 
-  const result = data as Record<string, unknown> | null
+  if (purchaseErr) {
+    console.error("[purchase] rpc error:", purchaseErr)
+    return NextResponse.json({ error: purchaseErr.message }, { status: 400 })
+  }
+
+  const result = purchaseResult as Record<string, unknown> | null
   if (result?.error) {
     return NextResponse.json(result, { status: 400 })
   }

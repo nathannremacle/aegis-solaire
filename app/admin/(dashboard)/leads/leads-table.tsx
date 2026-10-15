@@ -235,9 +235,12 @@ export function LeadsTable({
     page,
   })
 
-  function openLeadDetail(id: string) {
-    router.push(buildLeadsUrl({ ...baseUrlParams(), leadId: id }))
-  }
+  const openLeadDetail = useCallback(
+    (id: string) => {
+      router.push(buildLeadsUrl({ ...baseUrlParams(), leadId: id }))
+    },
+    [router, page, filters]
+  )
 
   function closeLeadDetail() {
     router.push(buildLeadsUrl(baseUrlParams()))
@@ -295,8 +298,96 @@ export function LeadsTable({
     }
   }
 
+  const [focusedIndex, setFocusedIndex] = useState<number>(0)
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return
+
+      if (e.key === "j" || e.key === "J" || e.key === "ArrowDown") {
+        e.preventDefault()
+        setFocusedIndex((prev) => Math.min(prev + 1, Math.max(0, leads.length - 1)))
+      } else if (e.key === "k" || e.key === "K" || e.key === "ArrowUp") {
+        e.preventDefault()
+        setFocusedIndex((prev) => Math.max(prev - 1, 0))
+      } else if (e.key === "Enter" && leads[focusedIndex]) {
+        e.preventDefault()
+        openLeadDetail(leads[focusedIndex].id)
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [leads, focusedIndex, openLeadDetail])
+
   return (
     <div className="space-y-4 relative">
+      {/* Barre de Filtres Rapides 1-Clic + Raccourcis Clavier */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-2xs">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold text-slate-500 mr-1">Vues rapides :</span>
+          <button
+            type="button"
+            onClick={() => applyParams({ status: "all", segment: "all", surfaceMin: "", page: 1 })}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+              !filters.status || filters.status === "all"
+                ? "bg-[#001D3D] text-white"
+                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+            )}
+          >
+            Tous les leads
+          </button>
+          <button
+            type="button"
+            onClick={() => applyParams({ status: "NEEDS_HUMAN_REVIEW", page: 1 })}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+              filters.status === "NEEDS_HUMAN_REVIEW"
+                ? "bg-[#001D3D] text-white"
+                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+            )}
+          >
+            À qualifier
+          </button>
+          <button
+            type="button"
+            onClick={() => applyParams({ segment: "B2B", surfaceMin: "200", status: "all", page: 1 })}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+              filters.segment === "B2B" && filters.surfaceMin === "200"
+                ? "bg-[#001D3D] text-white"
+                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+            )}
+          >
+            B2B Haute Valeur (200m²+)
+          </button>
+          <button
+            type="button"
+            onClick={() => applyParams({ status: "qualified", page: 1 })}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+              filters.status === "qualified"
+                ? "bg-[#001D3D] text-white"
+                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+            )}
+          >
+            Qualifiés
+          </button>
+        </div>
+
+        <div className="hidden lg:flex items-center gap-3 text-[11px] text-slate-500">
+          <span>
+            Naviguer : <kbd className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono">J</kbd> /{" "}
+            <kbd className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono">K</kbd>
+          </span>
+          <span>
+            Ouvrir détail : <kbd className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono">Entrée</kbd>
+          </span>
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-center gap-4 transition-all duration-300">
         <div className="relative group flex-1 min-w-[300px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
@@ -355,14 +446,18 @@ export function LeadsTable({
             {leads.length === 0 ? (
               <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground italic">Aucun résultat.</td></tr>
             ) : (
-              leads.map((lead) => (
+              leads.map((lead, idx) => (
                 <tr
                   key={lead.id}
                   className={cn(
                     "cursor-pointer border-b border-border transition-all group/row",
+                    idx === focusedIndex && "bg-[#FFB800]/10 ring-1 ring-inset ring-[#FFB800]/50",
                     selectedIds.has(lead.id) ? "bg-primary/[0.03]" : "hover:bg-muted/40"
                   )}
-                  onClick={() => openLeadDetail(lead.id)}
+                  onClick={() => {
+                    setFocusedIndex(idx)
+                    openLeadDetail(lead.id)
+                  }}
                 >
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <Checkbox checked={selectedIds.has(lead.id)} onCheckedChange={() => toggleOne(lead.id)} />

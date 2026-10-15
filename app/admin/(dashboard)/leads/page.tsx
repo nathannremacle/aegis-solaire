@@ -23,50 +23,68 @@ async function getLeads(
 
   const supabase = createServiceRoleClient()
   const from = (page - 1) * limit
+  const hasActiveFilters = Boolean(
+    filters.search.trim() || filters.status || filters.segment || filters.region || filters.installateurId || filters.surfaceMin || filters.surfaceType
+  )
 
-  let query = supabase
-    .from("leads")
-    .select("id, first_name, last_name, email, phone, job_title, company, message, surface_type, surface_area, project_timeline, annual_electricity_bill, estimated_roi_years, autoconsumption_rate, estimated_savings, status, lead_score, installateur_id, wants_irve, segment, province, media_partner_code, created_at", { count: "exact" })
-    .order("created_at", { ascending: false })
-    .range(from, from + limit - 1)
+  const buildQuery = (useSearchText: boolean) => {
+    let q = supabase
+      .from("leads")
+      .select(
+        "id, first_name, last_name, email, phone, job_title, company, message, surface_type, surface_area, project_timeline, annual_electricity_bill, estimated_roi_years, autoconsumption_rate, estimated_savings, status, lead_score, installateur_id, wants_irve, segment, province, media_partner_code, marketplace_status, credit_cost, created_at",
+        { count: hasActiveFilters ? "exact" : "planned" }
+      )
+      .order("created_at", { ascending: false })
+      .range(from, from + limit - 1)
 
-  if (filters.status && filters.status !== "all") {
-    query = query.eq("status", filters.status)
-  }
-  if (filters.segment && filters.segment !== "all") {
-    query = query.eq("segment", filters.segment)
-  }
-  if (filters.search.trim()) {
-    const q = `%${filters.search.trim()}%`
-    query = query.or(`email.ilike.${q},first_name.ilike.${q},last_name.ilike.${q},company.ilike.${q},company_vat.ilike.${q}`)
-  }
-  if (filters.installateurId && filters.installateurId !== "all") {
-    query = query.eq("installateur_id", filters.installateurId)
-  }
-  if (filters.dateFrom) {
-    query = query.gte("created_at", filters.dateFrom)
-  }
-  if (filters.dateTo) {
-    query = query.lte("created_at", filters.dateTo + "T23:59:59.999Z")
-  }
-  const surfaceMinNum = parseInt(filters.surfaceMin, 10)
-  if (!Number.isNaN(surfaceMinNum) && surfaceMinNum > 0) {
-    query = query.gte("surface_area", surfaceMinNum)
-  }
-  if (filters.surfaceType && ["toiture", "parking", "friche"].includes(filters.surfaceType)) {
-    query = query.eq("surface_type", filters.surfaceType)
-  }
-  if (filters.region) {
-    const { data: instIds } = await supabase.from("installateurs").select("id").eq("region", filters.region)
-    const ids = (instIds ?? []).map((i) => i.id)
-    if (ids.length > 0) {
-      query = query.in("installateur_id", ids)
-    } else {
-      query = query.eq("installateur_id", "never-match")
+    if (filters.status && filters.status !== "all") {
+      q = q.eq("status", filters.status)
     }
+    if (filters.segment && filters.segment !== "all") {
+      q = q.eq("segment", filters.segment)
+    }
+    if (filters.search.trim()) {
+      const term = filters.search.trim().toLowerCase()
+      if (useSearchText) {
+        // Cible l'index GIN unique idx_leads_search_text_trgm
+        q = q.ilike("search_text", `%${term}%`)
+      } else {
+        const pattern = `%${filters.search.trim()}%`
+        q = q.or(`email.ilike.${pattern},first_name.ilike.${pattern},last_name.ilike.${pattern},company.ilike.${pattern},company_vat.ilike.${pattern}`)
+      }
+    }
+    if (filters.installateurId && filters.installateurId !== "all") {
+      q = q.eq("installateur_id", filters.installateurId)
+    }
+    if (filters.dateFrom) {
+      q = q.gte("created_at", filters.dateFrom)
+    }
+    if (filters.dateTo) {
+      q = q.lte("created_at", filters.dateTo + "T23:59:59.999Z")
+    }
+    const surfaceMinNum = parseInt(filters.surfaceMin, 10)
+    if (!Number.isNaN(surfaceMinNum) && surfaceMinNum > 0) {
+      q = q.gte("surface_area", surfaceMinNum)
+    }
+    if (filters.surfaceType && ["toiture", "parking", "friche"].includes(filters.surfaceType)) {
+      q = q.eq("surface_type", filters.surfaceType)
+    }
+    if (filters.region) {
+      q = q.or(`province.eq.${filters.region},province.ilike.%${filters.region}%`)
+    }
+
+    return q
   }
 
-  const { data, error, count } = await query
+  // Tenter avec search_text indexé, fallback résilient si colonne non présente
+  let { data, error, count } = await buildQuery(true)
+
+  if (error && (error.code === "42703" || error.message?.includes("search_text"))) {
+    const fallbackRes = await buildQuery(false)
+    data = fallbackRes.data
+    error = fallbackRes.error
+    count = fallbackRes.count
+  }
 
   if (error) {
     console.error("Admin leads error:", error)

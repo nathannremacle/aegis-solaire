@@ -2,36 +2,7 @@ import { redirect } from "next/navigation"
 import { getAdminUser } from "@/lib/admin-auth"
 import { AdminNav } from "@/components/admin-nav"
 import { AdminHeader } from "@/components/admin-header"
-import { createServiceRoleClient } from "@/lib/supabase/admin"
-import { unstable_cache } from "next/cache"
-
-const getNavBadgeCountsCached = unstable_cache(
-  async () => {
-    const supabase = createServiceRoleClient()
-    const [
-      { count: installAppsCount },
-      { count: mediaAppsCount },
-      { count: needsReviewCount },
-      creditOrdersRes,
-    ] = await Promise.all([
-      supabase.from("installer_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
-      supabase.from("media_partner_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
-      supabase.from("leads").select("*", { count: "exact", head: true }).eq("marketplace_status", "pending_review"),
-      Promise.resolve(
-        supabase.from("credit_orders").select("*", { count: "exact", head: true }).eq("status", "pending")
-      ).catch(() => ({ count: 0, data: null, error: null })),
-    ])
-
-    return {
-      installAppsCount: installAppsCount ?? 0,
-      mediaAppsCount: mediaAppsCount ?? 0,
-      needsReviewCount: needsReviewCount ?? 0,
-      pendingOrdersCount: creditOrdersRes?.count ?? 0,
-    }
-  },
-  ["admin-nav-badge-counts"],
-  { revalidate: 30, tags: ["admin-nav-badge-counts"] }
-)
+import { getAdminDashboardData } from "@/lib/admin/queries"
 
 export default async function AdminDashboardLayout({
   children,
@@ -48,12 +19,33 @@ export default async function AdminDashboardLayout({
     redirect("/admin/login")
   }
 
+  let badges = {
+    pending_installer_apps: 0,
+    pending_media_apps: 0,
+    pending_review_leads: 0,
+    pending_credit_orders: 0,
+  }
+
+  try {
+    const data = await getAdminDashboardData()
+    if (data?.badges) {
+      badges = {
+        pending_installer_apps: data.badges.pending_installer_apps ?? 0,
+        pending_media_apps: data.badges.pending_media_apps ?? 0,
+        pending_review_leads: data.badges.pending_review_leads ?? 0,
+        pending_credit_orders: data.badges.pending_credit_orders ?? 0,
+      }
+    }
+  } catch (err) {
+    console.error("[admin-layout] Error getting dashboard badges:", err)
+  }
+
   const {
-    installAppsCount,
-    mediaAppsCount,
-    needsReviewCount,
-    pendingOrdersCount,
-  } = await getNavBadgeCountsCached()
+    pending_installer_apps: installAppsCount,
+    pending_media_apps: mediaAppsCount,
+    pending_review_leads: needsReviewCount,
+    pending_credit_orders: pendingOrdersCount,
+  } = badges
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 antialiased">
