@@ -93,9 +93,9 @@ function PartnerLoginForm() {
         className="w-full max-w-sm flex flex-col gap-6"
       >
         {/* Branding & Logo */}
-        <motion.div variants={itemVariants} className="text-center">
-          <Link href="/" className="mx-auto mb-5 inline-block" title="Aegis Solaire">
-            <div className="relative mx-auto h-11 w-44">
+        <motion.div variants={itemVariants} className="text-center flex flex-col items-center">
+          <Link href="/" className="mb-4 block" title="Aegis Solaire">
+            <div className="relative h-11 w-44">
               <Image
                 src="/logo.png"
                 alt="Aegis Solaire"
@@ -111,7 +111,7 @@ function PartnerLoginForm() {
             <span>Portail Partenaire Agréé</span>
           </div>
 
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+          <h1 className="font-heading text-xl sm:text-2xl font-bold tracking-tight text-foreground">
             Accédez à vos leads
           </h1>
           <p className="mt-1 text-xs text-muted-foreground">
