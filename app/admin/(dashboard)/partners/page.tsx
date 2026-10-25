@@ -40,8 +40,10 @@ import {
   Clock,
   Layers,
   ArrowRight,
+  UserPlus,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { AdminNetworkInviteHub } from "@/components/admin/admin-network-invite-hub"
 
 /* ═══════════════════════════════════════════════════════
    Types
@@ -77,6 +79,7 @@ export default function AdminPartnersPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState<"all" | "at_risk" | "coverage">("all")
+  const [showInviteHub, setShowInviteHub] = useState(false)
 
   // Modale d'ajout de crédits
   const [creditModalPartner, setCreditModalPartner] = useState<Partner | null>(null)
@@ -232,6 +235,16 @@ export default function AdminPartnersPage() {
 
         <div className="flex items-center gap-2">
           <Button
+            variant="default"
+            size="sm"
+            onClick={() => setShowInviteHub((prev) => !prev)}
+            className="h-8 text-xs gap-1.5 font-bold bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <UserPlus className="h-3.5 w-3.5" />
+            <span>{showInviteHub ? "Masquer Invites" : "Inviter Réseau Fabrice"}</span>
+          </Button>
+
+          <Button
             variant="outline"
             size="sm"
             onClick={loadPartners}
@@ -258,6 +271,13 @@ export default function AdminPartnersPage() {
           </Button>
         </div>
       </div>
+
+      {/* Module Dépliable : Hub d'Invitations Réseau Grossiste */}
+      {showInviteHub && (
+        <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+          <AdminNetworkInviteHub />
+        </div>
+      )}
 
       {/* 2. Cartes de Métriques Réseau (Tokens sémantiques, zéro couleur interdite) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

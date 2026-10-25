@@ -1,8 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { useState } from "react"
-import { AlertCircle, ShieldAlert, CheckCircle2, Loader2, X } from "lucide-react"
+import { useState, useEffect } from "react"
+import { AlertCircle, ShieldAlert, Loader2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 
@@ -31,6 +31,19 @@ export default function DisputeClaimModal({ purchase, onClose }: DisputeClaimMod
   const [reason, setReason] = useState<string>("invalid_contact")
   const [details, setDetails] = useState<string>("")
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose()
+    }
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    window.addEventListener("keydown", handleKeyDown)
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [onClose])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -64,47 +77,58 @@ export default function DisputeClaimModal({ purchase, onClose }: DisputeClaimMod
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-      <div className="relative w-full max-w-lg rounded-2xl border border-neutral-200 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200 overscroll-contain"
+      >
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
+          className="absolute right-4 top-4 rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+          aria-label="Fermer la boîte de dialogue"
         >
           <X className="h-5 w-5" />
         </button>
 
         <div className="flex items-center gap-3">
-          <div className="rounded-xl bg-red-100 p-2 text-red-600">
+          <div className="rounded-xl bg-destructive/10 p-2 text-destructive border border-destructive/20">
             <ShieldAlert className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-[#001D3D]">Signaler un Litige (Garantie 24h)</h3>
-            <p className="text-xs text-neutral-500">
+            <h3 className="text-lg font-bold text-foreground">Signaler un Litige (Garantie 24h)</h3>
+            <p className="text-xs text-muted-foreground">
               Lead : {purchase.first_name} {purchase.last_name} ({purchase.company || purchase.segment})
             </p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-          <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-900 flex items-start gap-2">
-            <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+          <div className="rounded-xl border border-accent/30 bg-accent/10 p-3 text-xs text-foreground flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-accent shrink-0 mt-0.5" />
             <span>
               Les réclamations sont examinées sous 24h ouvrées. En cas de validation, les{" "}
-              <strong>{purchase.credits_spent || 2} crédits</strong> vous seront automatiquement recrédités.
+              <strong className="font-mono tabular-nums">{purchase.credits_spent || 2} crédits</strong> vous seront automatiquement recrédités.
             </span>
           </div>
 
           <div>
-            <label className="text-xs font-bold text-neutral-700">Motif de la réclamation</label>
+            <label className="text-xs font-bold text-foreground">Motif de la réclamation</label>
             <div className="mt-2 space-y-2">
               {DISPUTE_REASONS.map((r) => (
                 <label
                   key={r.id}
                   className={`flex items-center gap-2.5 rounded-lg border p-2.5 text-xs font-medium cursor-pointer transition-colors ${
                     reason === r.id
-                      ? "border-red-500 bg-red-50/40 text-red-950 font-bold"
-                      : "border-neutral-200 hover:bg-neutral-50 text-neutral-700"
+                      ? "border-destructive bg-destructive/5 text-foreground font-bold"
+                      : "border-border hover:bg-secondary/50 text-muted-foreground"
                   }`}
                 >
                   <input
@@ -113,7 +137,7 @@ export default function DisputeClaimModal({ purchase, onClose }: DisputeClaimMod
                     value={r.id}
                     checked={reason === r.id}
                     onChange={(e) => setReason(e.target.value)}
-                    className="accent-red-600"
+                    className="accent-destructive"
                   />
                   <span>{r.label}</span>
                 </label>
@@ -122,7 +146,7 @@ export default function DisputeClaimModal({ purchase, onClose }: DisputeClaimMod
           </div>
 
           <div>
-            <label className="text-xs font-bold text-neutral-700">
+            <label className="text-xs font-bold text-foreground">
               Précisions &amp; Tentatives de contact (obligatoire)
             </label>
             <textarea
@@ -131,7 +155,7 @@ export default function DisputeClaimModal({ purchase, onClose }: DisputeClaimMod
               value={details}
               onChange={(e) => setDetails(e.target.value)}
               placeholder="Ex: J'ai appelé à 3 reprises le 14/10 à 10h et 16h, le numéro n'est pas attribué..."
-              className="mt-1.5 w-full rounded-lg border border-neutral-200 p-2.5 text-xs focus:border-[#001D3D] focus:ring-1 focus:ring-[#001D3D] outline-hidden"
+              className="mt-1.5 w-full rounded-lg border border-border bg-background p-2.5 text-xs text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-hidden"
             />
           </div>
 
@@ -139,10 +163,10 @@ export default function DisputeClaimModal({ purchase, onClose }: DisputeClaimMod
             <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={submitting}>
               Annuler
             </Button>
-            <Button type="submit" variant="default" size="sm" className="bg-red-600 hover:bg-red-700 text-white" disabled={submitting}>
+            <Button type="submit" variant="destructive" size="sm" disabled={submitting}>
               {submitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
                   <span>Envoi en cours...</span>
                 </>
               ) : (

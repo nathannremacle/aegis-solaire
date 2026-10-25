@@ -2,10 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import {
   Zap,
   CreditCard,
@@ -17,15 +15,14 @@ import {
   ArrowDownRight,
   Clock,
   Sparkles,
-  Building,
   Copy,
   Check,
   FileText,
   AlertCircle,
   ShieldCheck,
-  Flame,
   Coins,
   Calculator,
+  X,
 } from "lucide-react"
 
 /* ═══════════════════════════════════════════════
@@ -85,20 +82,16 @@ const PACKS: CreditPack[] = [
   { id: "pack_100", name: "Pack Entreprise", credits: 100, priceHtva: 999, pricePerCredit: 9.99, saving: "-33%" },
 ]
 
-/* ═══════════════════════════════════════════════
-   Animations
-   ═══════════════════════════════════════════════ */
-
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.1, delayChildren: 0.05 },
+    transition: { staggerChildren: 0.08, delayChildren: 0.05 },
   },
 }
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 16 },
   visible: {
     opacity: 1,
     y: 0,
@@ -107,7 +100,7 @@ const itemVariants = {
 }
 
 /* ═══════════════════════════════════════════════
-   Order on Invoice & Bank Transfer
+   Section Commande sur Facture
    ═══════════════════════════════════════════════ */
 
 function OrderPackSection({
@@ -145,59 +138,68 @@ function OrderPackSection({
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-5">
+    <div className="rounded-2xl border border-border bg-card p-4 sm:p-6 shadow-xs">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-4">
         <div>
-          <span className="text-xs font-semibold uppercase tracking-wider text-accent">
+          <span className="text-xs font-bold uppercase tracking-wider text-accent">
             Pack sélectionné
           </span>
-          <h3 className="text-lg font-bold text-slate-900">
-            {pack.name} — {pack.credits} crédits
+          <h3 className="text-base sm:text-lg font-bold text-foreground">
+            {pack.name} — <span className="font-mono tabular-nums">{pack.credits}</span> crédits
           </h3>
-          <p className="text-sm text-slate-500">
-            Équivalent : {pack.pricePerCredit.toFixed(2)} € HTVA par crédit
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Équivalent : <span className="font-mono tabular-nums">{pack.pricePerCredit.toFixed(2)} € HTVA</span> par crédit
           </p>
         </div>
         <div className="text-left sm:text-right">
-          <p className="text-2xl font-bold text-[#001D3D]">{pack.priceHtva} € <span className="text-xs font-normal text-slate-400">HTVA</span></p>
-          <p className="text-xs text-slate-500">{priceTtc.toFixed(2)} € TTC (TVA 21% comprise)</p>
+          <p className="text-xl sm:text-2xl font-bold font-mono text-foreground tabular-nums">
+            {pack.priceHtva} € <span className="text-xs font-normal text-muted-foreground">HTVA</span>
+          </p>
+          <p className="text-xs text-muted-foreground font-mono tabular-nums">
+            {priceTtc.toFixed(2)} € TTC (TVA 21% comprise)
+          </p>
         </div>
       </div>
 
       {error && (
-        <div className="mt-4 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+        <div className="mt-4 flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <FileText className="h-4 w-4 text-slate-400" />
-          <span>Facture pro officielle INIT42 émise sous 24h ouvrées</span>
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span>Facture pro officielle conforme émise sous 24h ouvrées</span>
         </div>
-        <button
+
+        <Button
           type="button"
           onClick={handleOrder}
           disabled={submitting}
-          className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-[#001D3D] to-[#00152e] px-7 text-sm font-extrabold text-white shadow-[0_4px_0_#000c1a,0_10px_20px_rgba(0,29,61,0.25)] hover:from-[#002855] hover:to-[#001D3D] active:translate-y-1 active:shadow-none transition-all disabled:opacity-50"
+          className="h-12 w-full sm:w-auto px-6 font-bold text-xs sm:text-sm bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs justify-center"
         >
           {submitting ? (
             <span className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
+              <Loader2 className="h-4 w-4 animate-spin text-accent" />
               Génération du bon de commande…
             </span>
           ) : (
             <span className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4 text-amber-400" />
+              <CreditCard className="h-4 w-4 text-accent" />
               Commander ce pack sur facture
             </span>
           )}
-        </button>
+        </Button>
       </div>
     </div>
   )
 }
+
+/* ═══════════════════════════════════════════════
+   Modale Confirmation Commande (Mobile Sheet)
+   ═══════════════════════════════════════════════ */
 
 function OrderConfirmationModal({
   order,
@@ -208,6 +210,19 @@ function OrderConfirmationModal({
 }) {
   const [copiedIban, setCopiedIban] = useState(false)
   const [copiedRef, setCopiedRef] = useState(false)
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose()
+    }
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    window.addEventListener("keydown", handleKeyDown)
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [onClose])
 
   function copy(text: string, type: "iban" | "ref") {
     navigator.clipboard.writeText(text)
@@ -221,74 +236,95 @@ function OrderConfirmationModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+      role="dialog"
+      aria-modal="true"
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-2xl border border-border bg-card p-5 sm:p-7 shadow-2xl overscroll-contain"
       >
-        <div className="flex items-center gap-3 text-emerald-600 mb-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-4 rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+          aria-label="Fermer"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
             <CheckCircle2 className="h-6 w-6" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-900">Commande de pack enregistrée</h3>
-            <p className="text-xs text-slate-500">Référence de bon : {order.transferReference}</p>
+            <h3 className="text-base sm:text-lg font-bold text-foreground">Commande de pack enregistrée</h3>
+            <p className="text-xs text-muted-foreground font-mono tabular-nums">Référence : {order.transferReference}</p>
           </div>
         </div>
 
-        <p className="text-sm text-slate-600 leading-relaxed mb-6">
-          Votre demande de <strong>{order.credits} crédits</strong> a bien été transmise. Veuillez effectuer votre virement bancaire sur le compte professionnel de l'exploitant :
+        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed mb-4">
+          Votre demande de <strong className="font-mono text-foreground tabular-nums">{order.credits} crédits</strong> a bien été enregistrée. Effectuez votre virement bancaire sur le compte de l&apos;exploitant :
         </p>
 
-        <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs">
-          <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
-            <span className="text-slate-500">Bénéficiaire</span>
-            <span className="font-semibold text-slate-900">{order.bankDetails.beneficiary}</span>
+        <div className="space-y-2.5 rounded-xl border border-border bg-secondary/40 p-3.5 sm:p-4 text-xs">
+          <div className="flex items-center justify-between py-1 border-b border-border/60">
+            <span className="text-muted-foreground">Bénéficiaire</span>
+            <span className="font-semibold text-foreground text-right">{order.bankDetails.beneficiary}</span>
           </div>
-          <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
-            <span className="text-slate-500">N° d'entreprise / TVA</span>
-            <span className="font-semibold text-slate-900">{order.bankDetails.vatNumber}</span>
+          <div className="flex items-center justify-between py-1 border-b border-border/60">
+            <span className="text-muted-foreground">TVA Entreprise</span>
+            <span className="font-mono font-semibold text-foreground">{order.bankDetails.vatNumber}</span>
           </div>
-          <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
-            <span className="text-slate-500">Montant total</span>
-            <span className="font-bold text-slate-900 text-sm">{order.priceTtc.toFixed(2)} € TTC <span className="font-normal text-slate-500 text-xs">({order.priceHtva} € HTVA)</span></span>
+          <div className="flex items-center justify-between py-1 border-b border-border/60">
+            <span className="text-muted-foreground">Montant total</span>
+            <span className="font-mono font-bold text-foreground text-sm tabular-nums">
+              {order.priceTtc.toFixed(2)} € TTC <span className="font-normal text-muted-foreground text-xs">({order.priceHtva} € HTVA)</span>
+            </span>
           </div>
-          <div className="flex items-center justify-between py-1.5 border-b border-slate-200/60">
-            <span className="text-slate-500">IBAN</span>
-            <div className="flex items-center gap-2 font-mono font-semibold text-slate-900">
-              <span>{order.bankDetails.iban}</span>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 py-1 border-b border-border/60">
+            <span className="text-muted-foreground">IBAN</span>
+            <div className="flex items-center justify-between sm:justify-end gap-2 font-mono font-semibold text-foreground">
+              <span className="text-xs truncate">{order.bankDetails.iban}</span>
               <button
+                type="button"
                 onClick={() => copy(order.bankDetails.iban, "iban")}
-                className="rounded p-1 text-slate-400 hover:text-slate-700"
+                className="rounded p-1 text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
                 title="Copier l'IBAN"
               >
-                {copiedIban ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                {copiedIban ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
               </button>
             </div>
           </div>
-          <div className="flex items-center justify-between py-1.5">
-            <span className="text-slate-500">Communication obligatoire</span>
-            <div className="flex items-center gap-2 font-mono font-bold text-accent">
-              <span>{order.transferReference}</span>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 py-1">
+            <span className="text-muted-foreground">Communication obligatoire</span>
+            <div className="flex items-center justify-between sm:justify-end gap-2 font-mono font-bold text-accent">
+              <span className="text-xs">{order.transferReference}</span>
               <button
+                type="button"
                 onClick={() => copy(order.transferReference, "ref")}
-                className="rounded p-1 text-slate-400 hover:text-slate-700"
+                className="rounded p-1 text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
                 title="Copier la référence"
               >
-                {copiedRef ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                {copiedRef ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
               </button>
             </div>
           </div>
         </div>
 
-        <p className="mt-4 text-xs text-slate-500 leading-normal">
-          💡 Vos crédits seront crédités sur votre compte dès réception des fonds par notre administration. Votre facture avec mention de TVA vous sera adressée par email.
+        <p className="mt-4 text-[11px] text-muted-foreground leading-normal">
+          Vos crédits seront alloués sur votre compte dès confirmation de réception des fonds. La facture avec TVA 21% déductible vous parviendra automatiquement par e-mail.
         </p>
 
-        <div className="mt-6 flex justify-end">
-          <Button onClick={onClose} className="rounded-xl bg-[#001D3D] px-6 text-sm font-semibold text-white">
+        <div className="mt-5 flex justify-end">
+          <Button onClick={onClose} className="w-full sm:w-auto h-11 px-6 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer">
             Compris, fermer
           </Button>
         </div>
@@ -298,7 +334,7 @@ function OrderConfirmationModal({
 }
 
 /* ═══════════════════════════════════════════════
-   Main Page
+   Page Principale des Crédits Installateur
    ═══════════════════════════════════════════════ */
 
 export default function CreditsPage() {
@@ -328,8 +364,8 @@ export default function CreditsPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <Loader2 className="h-8 w-8 animate-spin text-[#001D3D]" />
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
   }
@@ -337,7 +373,7 @@ export default function CreditsPage() {
   const currentPack = PACKS.find((p) => p.id === selectedPack) || PACKS[1]
 
   return (
-    <div className="relative min-h-screen bg-slate-50">
+    <div className="relative min-h-screen bg-background text-foreground pb-12">
       <AnimatePresence>
         {activeOrder && (
           <OrderConfirmationModal
@@ -350,158 +386,128 @@ export default function CreditsPage() {
         )}
       </AnimatePresence>
 
-      {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white/95 shadow-sm backdrop-blur-xl">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
+      {/* Header Sticky Mobile-First */}
+      <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur-md">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-3 py-3 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2.5">
             <Link
               href="/partenaires/dashboard"
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-secondary text-foreground transition-colors hover:bg-secondary/80"
+              title="Retour au Dashboard"
             >
               <ArrowLeft className="h-4 w-4" />
             </Link>
-            <div className="hidden sm:block">
-              <div className="relative h-8 w-32">
-                <Image
-                  src="/logo.png"
-                  alt="Aegis Solaire"
-                  fill
-                  className="object-contain object-left"
-                />
-              </div>
-            </div>
-            <div className="hidden sm:block h-5 w-px bg-slate-200" />
             <div>
-              <p className="text-sm font-semibold text-slate-900">Crédits & Recharge</p>
-              <p className="text-[11px] text-slate-400">
-                {partner?.companyName ?? "—"}
+              <h1 className="text-xs sm:text-sm font-bold text-foreground">Crédits Marketplace</h1>
+              <p className="text-[11px] text-muted-foreground truncate max-w-[180px] sm:max-w-xs">
+                {partner?.companyName ?? "Espace Installateur"}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 shadow-sm sm:px-4 sm:py-2">
-            <Zap className="h-4 w-4 text-accent" />
-            <div>
-              <p className="hidden sm:block text-[10px] font-medium uppercase tracking-wider text-slate-400">
-                Solde
-              </p>
-              <motion.span
-                key={partner?.credits}
-                initial={{ y: -8, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                className="text-2xl font-bold tabular-nums text-[#001D3D]"
-              >
-                {partner?.credits ?? 0}
-              </motion.span>
-            </div>
+          <div className="flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/10 px-3 py-1.5 shadow-2xs">
+            <Coins className="h-4 w-4 text-accent shrink-0" />
+            <span className="font-mono text-sm font-bold tabular-nums text-foreground">
+              {partner?.credits ?? 0}
+            </span>
+            <span className="text-[11px] text-muted-foreground hidden sm:inline">crédits</span>
           </div>
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+      <main className="relative z-10 mx-auto max-w-5xl px-3 py-6 sm:px-6 sm:py-8 lg:px-8">
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
+          className="space-y-6"
         >
-          {/* Section Title */}
+          {/* Section Titre */}
           <motion.div variants={itemVariants}>
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 shadow-sm">
-              <CreditCard className="h-3 w-3 text-accent" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-accent">
-                Packs de crédits
+            <div className="mb-2 inline-flex items-center gap-1.5 rounded-md bg-secondary px-2.5 py-1 border border-border">
+              <CreditCard className="h-3.5 w-3.5 text-accent" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                Recharge &amp; Packs
               </span>
             </div>
-            <h2 className="mt-3 text-xl font-bold text-slate-900 sm:text-2xl">
-              Commander des crédits marketplace
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground">
+              Approvisionner mon compte installateur
             </h2>
-            <p className="mt-2 mb-6 text-sm text-slate-500">
-              Sélectionnez un pack de crédits. Vos commandes sont traitées sur facture officielle émise par INIT42 avec activation dès réception du virement.
+            <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
+              Sélectionnez un pack de crédits. Traitement transparent sur facture officielle avec TVA 21% déductible.
             </p>
 
-            {/* Alerte solde faible / Rareté */}
+            {/* Alerte solde faible si applicable */}
             {(partner?.credits ?? 0) <= 4 && (
-              <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 shadow-2xs">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-400 text-[#001D3D] shadow-xs">
-                    <AlertCircle className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs sm:text-sm font-extrabold text-amber-950">
-                      Votre réserve actuelle ({partner?.credits ?? 0} crédits) bloque l'accès aux leads B2B exclusifs
-                    </h4>
-                    <p className="text-[11px] text-amber-800">
-                      Un dossier B2B requiert 5 crédits. Anticipez votre approvisionnement pour ne pas manquer les projets à fort volume mis en ligne cette semaine.
-                    </p>
-                  </div>
+              <div className="mt-4 flex items-start gap-3 rounded-xl border border-accent/40 bg-accent/10 p-3.5 text-xs text-foreground">
+                <AlertCircle className="h-4 w-4 text-accent shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-bold text-foreground">
+                    Solde actuel : <span className="font-mono tabular-nums">{partner?.credits ?? 0} crédits</span>
+                  </h4>
+                  <p className="text-muted-foreground mt-0.5">
+                    Un dossier B2B exclusif requiert de 8 à 18 crédits selon la puissance. Réapprovisionnez pour débloquer les opportunités en direct.
+                  </p>
                 </div>
               </div>
             )}
           </motion.div>
 
-          {/* Packs Grid */}
-          <div className="mb-6 grid gap-5 sm:grid-cols-3">
+          {/* Grille des Packs (Responsive 1 col mobile, 3 col desktop) */}
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
             {PACKS.map((pack) => {
               const isSelected = selectedPack === pack.id
               return (
                 <motion.div key={pack.id} variants={itemVariants}>
                   <button
+                    type="button"
                     onClick={() => setSelectedPack(pack.id)}
-                    className={`group relative w-full text-left transition-all duration-300 ${
-                      isSelected ? "scale-[1.02]" : "opacity-75 hover:opacity-100"
+                    className={`group relative w-full text-left rounded-2xl border p-4 sm:p-5 transition-all cursor-pointer ${
+                      isSelected
+                        ? "border-accent bg-accent/[0.04] ring-2 ring-accent/30 shadow-xs"
+                        : "border-border bg-card hover:border-border/80"
                     }`}
                   >
                     {pack.popular && (
-                      <div className="absolute -top-3 left-1/2 z-10 -translate-x-1/2">
-                        <Badge className="gap-1 border-accent/30 bg-accent px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#001D3D] shadow-sm">
-                          <Sparkles className="h-3 w-3" />
-                          Recommandé Installateurs
-                        </Badge>
-                      </div>
+                      <span className="absolute -top-2.5 right-3 rounded-md bg-accent px-2 py-0.5 text-[10px] font-bold uppercase text-accent-foreground tracking-wide">
+                        Recommandé
+                      </span>
                     )}
-                    <div
-                      className={`rounded-2xl border bg-white p-6 shadow-sm transition-all duration-300 ${
-                        isSelected
-                          ? "border-[#001D3D] shadow-md ring-2 ring-[#001D3D]/10"
-                          : "border-slate-200 hover:border-slate-300 hover:shadow"
-                      }`}
-                    >
-                      <div className="mb-4 flex items-center justify-between">
-                        <span className="text-4xl font-extrabold tabular-nums text-[#001D3D]">
-                          {pack.credits}
-                        </span>
-                        {pack.saving && (
-                          <Badge className="border-emerald-200 bg-emerald-50 text-xs font-bold text-emerald-700">
-                            {pack.saving}
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                        crédits leads
-                      </p>
-                      <div className="mt-4 border-t border-slate-100 pt-4">
-                        <p className="text-2xl font-bold text-slate-900">
-                          {pack.priceHtva}{" "}
-                          <span className="text-sm font-normal text-slate-400">€ HTVA</span>
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500 font-medium">
-                          {pack.pricePerCredit.toFixed(2)} € HTVA / crédit
-                        </p>
-                      </div>
 
-                      <div className="mt-4 flex items-center justify-center">
-                        <div
-                          className={`flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all ${
-                            isSelected
-                              ? "border-[#001D3D] bg-[#001D3D]"
-                              : "border-slate-300"
-                          }`}
-                        >
-                          {isSelected && (
-                            <CheckCircle2 className="h-full w-full text-white" />
-                          )}
-                        </div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-3xl font-black text-foreground tabular-nums">
+                        {pack.credits}
+                      </span>
+                      {pack.saving && (
+                        <span className="rounded-md bg-secondary px-2 py-0.5 font-mono text-xs font-bold text-primary border border-border">
+                          {pack.saving}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mt-1">
+                      crédits leads
+                    </p>
+
+                    <div className="mt-4 border-t border-border pt-3">
+                      <p className="text-xl font-bold font-mono text-foreground tabular-nums">
+                        {pack.priceHtva} €{" "}
+                        <span className="text-xs font-normal text-muted-foreground">HTVA</span>
+                      </p>
+                      <p className="mt-0.5 text-[11px] font-mono text-muted-foreground tabular-nums">
+                        ({pack.pricePerCredit.toFixed(2)} € / crédit)
+                      </p>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between pt-2">
+                      <span className="text-xs font-medium text-foreground">
+                        {isSelected ? "Sélectionné" : "Choisir ce pack"}
+                      </span>
+                      <div
+                        className={`flex h-5 w-5 items-center justify-center rounded-full border transition-all ${
+                          isSelected ? "border-accent bg-accent text-accent-foreground" : "border-border"
+                        }`}
+                      >
+                        {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
                       </div>
                     </div>
                   </button>
@@ -510,130 +516,121 @@ export default function CreditsPage() {
             })}
           </div>
 
-          {/* SIMULATEUR DE RENTABILITÉ DU PACK SÉLECTIONNÉ (VALUE ANCHORING) */}
-          <motion.div variants={itemVariants} className="mb-8">
-            <div className="rounded-2xl border-2 border-emerald-200/80 bg-gradient-to-r from-emerald-50/70 via-white to-blue-50/50 p-5 shadow-2xs">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-emerald-100 pb-4">
+          {/* Simulateur de rentabilité économique */}
+          <motion.div variants={itemVariants}>
+            <div className="rounded-2xl border border-border bg-secondary/40 p-4 sm:p-5 shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border pb-3.5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-xs">
-                    <Calculator className="h-5 w-5" />
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                    <Calculator className="h-4 w-4" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-extrabold text-slate-900">
-                      Rentabilité prévisionnelle : {currentPack.name} ({currentPack.credits} crédits)
+                    <h4 className="text-sm font-bold text-foreground">
+                      Potentiel économique du pack ({currentPack.credits} crédits)
                     </h4>
-                    <p className="text-xs text-slate-600">
-                      Projection moyenne constatée sur le réseau d'installateurs partenaires en Wallonie.
+                    <p className="text-xs text-muted-foreground">
+                      Projections indicatives basées sur les chantiers wallons constatés.
                     </p>
                   </div>
                 </div>
 
-                <div className="rounded-xl bg-emerald-100/90 px-3 py-1 text-center shrink-0">
-                  <span className="text-[10px] uppercase font-bold text-emerald-800 block">Ratio Coût / Marge</span>
-                  <span className="text-xs font-black text-emerald-950 font-mono">Moins de 1,5%</span>
+                <div className="rounded-lg bg-card px-2.5 py-1 text-center border border-border shrink-0 self-start sm:self-auto">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground block">Ratio Coût / Marge</span>
+                  <span className="text-xs font-mono font-bold text-foreground">&lt; 1,5%</span>
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3 text-center sm:text-left">
-                <div className="rounded-xl bg-white p-3 border border-slate-100 shadow-2xs">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Capacité de déblocage</span>
-                  <p className="mt-1 text-sm font-black text-[#001D3D]">
-                    {Math.floor(currentPack.credits / 5)} chantiers B2B <span className="font-normal text-xs text-slate-500">ou</span> {Math.floor(currentPack.credits / 2)} B2C
+              <div className="mt-3.5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                <div className="rounded-xl bg-card p-3 border border-border">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Volume de chantiers</span>
+                  <p className="mt-1 text-sm font-bold font-mono text-foreground tabular-nums">
+                    {Math.floor(currentPack.credits / 8)} B2B <span className="font-normal text-xs text-muted-foreground">ou</span> {Math.floor(currentPack.credits / 2)} B2C
                   </p>
                 </div>
-                <div className="rounded-xl bg-white p-3 border border-slate-100 shadow-2xs">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Potentiel Chiffre d'Affaires</span>
-                  <p className="mt-1 text-sm font-black text-amber-600">
-                    ~{(Math.floor(currentPack.credits / 5) * 28000).toLocaleString("fr-BE")} € à {(Math.floor(currentPack.credits / 5) * 45000).toLocaleString("fr-BE")} €
+                <div className="rounded-xl bg-card p-3 border border-border">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Chiffre d&apos;Affaires Estimé</span>
+                  <p className="mt-1 text-sm font-bold font-mono text-foreground tabular-nums">
+                    ~{(Math.floor(currentPack.credits / 8) * 35000).toLocaleString("fr-BE")} € à {(Math.floor(currentPack.credits / 8) * 60000).toLocaleString("fr-BE")} €
                   </p>
                 </div>
-                <div className="rounded-xl bg-white p-3 border border-slate-100 shadow-2xs">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Marge brute estimée (~22%)</span>
-                  <p className="mt-1 text-sm font-black text-emerald-700">
-                    ~{(Math.floor(currentPack.credits / 5) * 6200).toLocaleString("fr-BE")} € à {(Math.floor(currentPack.credits / 5) * 10000).toLocaleString("fr-BE")} €
+                <div className="rounded-xl bg-card p-3 border border-border">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Marge brute estimée (~22%)</span>
+                  <p className="mt-1 text-sm font-bold font-mono text-accent tabular-nums">
+                    ~{(Math.floor(currentPack.credits / 8) * 7700).toLocaleString("fr-BE")} € à {(Math.floor(currentPack.credits / 8) * 13200).toLocaleString("fr-BE")} €
                   </p>
                 </div>
               </div>
             </div>
           </motion.div>
 
-          {/* Order Action Section */}
-          <motion.div variants={itemVariants} className="mb-8">
+          {/* Formulaire de commande */}
+          <motion.div variants={itemVariants}>
             <OrderPackSection
               pack={currentPack}
               onOrderCreated={(order) => setActiveOrder(order)}
             />
           </motion.div>
 
-          {/* RÉASSURANCE & CHARTE QUALITÉ */}
-          <motion.div variants={itemVariants} className="mb-12">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-center gap-3.5">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
-                  <ShieldCheck className="h-5 w-5" />
-                </div>
+          {/* Réassurance & Charte Qualité */}
+          <motion.div variants={itemVariants}>
+            <div className="rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-2xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5">
+              <div className="flex items-center gap-3">
+                <ShieldCheck className="h-6 w-6 text-primary shrink-0" />
                 <div>
-                  <h4 className="text-sm font-extrabold text-slate-900">
-                    Garantie Lead Qualifié Aegis Solaire
+                  <h4 className="text-sm font-bold text-foreground">
+                    Garantie Lead Conforme &amp; Remplacement 24h
                   </h4>
-                  <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
-                    Si un prospect s'avère non joignable après 3 tentatives vérifiables ou présente un numéro invalide, vos crédits vous sont <strong>remplacés ou recrédités sous 48h</strong> sur simple notification.
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                    Si un prospect s&apos;avère injoignable ou hors critères, vos crédits sont réintégrés sur votre compte sans délai sur simple signalement dans votre portail.
                   </p>
                 </div>
               </div>
-              <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 shrink-0">
-                Protection 100% Investissement
-              </span>
             </div>
           </motion.div>
 
-          {/* Transaction History */}
-          <motion.div variants={itemVariants} className="mt-12">
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 shadow-sm">
-              <Clock className="h-3 w-3 text-slate-400" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+          {/* Historique des Transactions */}
+          <motion.div variants={itemVariants} className="pt-2">
+            <div className="mb-2 inline-flex items-center gap-1.5 rounded-md bg-secondary px-2.5 py-1 border border-border">
+              <Clock className="h-3 w-3 text-muted-foreground" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 Historique
               </span>
             </div>
-            <h3 className="mt-3 mb-6 text-lg font-bold text-slate-900">Transactions & Activité</h3>
+            <h3 className="text-base sm:text-lg font-bold text-foreground mb-3">
+              Activité &amp; Déblocages récents
+            </h3>
 
             {transactions.length === 0 ? (
-              <div className="rounded-2xl border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
-                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50">
-                  <TrendingUp className="h-5 w-5 text-slate-400" />
-                </div>
-                <p className="text-sm text-slate-400">Aucune transaction pour le moment.</p>
+              <div className="rounded-2xl border border-border bg-card px-6 py-10 text-center shadow-xs">
+                <TrendingUp className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
+                <p className="text-xs text-muted-foreground">Aucune transaction enregistrée pour le moment.</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
                 {transactions.map((tx) => {
                   const isCredit = tx.amount > 0
                   return (
                     <div
                       key={tx.id}
-                      className="flex items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-slate-50/60"
+                      className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5 sm:py-3.5 transition-colors hover:bg-secondary/30"
                     >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                            isCredit ? "bg-emerald-50" : "bg-red-50"
-                          }`}
-                        >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isCredit ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
                           {isCredit ? (
-                            <ArrowUpRight className="h-4 w-4 text-emerald-600" />
+                            <ArrowUpRight className="h-4 w-4" />
                           ) : (
-                            <ArrowDownRight className="h-4 w-4 text-red-600" />
+                            <ArrowDownRight className="h-4 w-4" />
                           )}
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-slate-900">
+                        <div className="min-w-0">
+                          <p className="text-xs sm:text-sm font-semibold text-foreground truncate">
                             {tx.type === "topup"
-                              ? "Recharge (Virement)"
+                              ? "Recharge crédits"
                               : tx.type === "purchase"
-                                ? "Achat lead"
-                                : "Ajustement"}
+                                ? "Déblocage lead"
+                                : "Ajustement de solde"}
                           </p>
-                          <p className="text-[11px] text-slate-400">
+                          <p className="text-[11px] font-mono text-muted-foreground tabular-nums">
                             {new Date(tx.created_at).toLocaleDateString("fr-BE", {
                               day: "numeric",
                               month: "short",
@@ -644,13 +641,14 @@ export default function CreditsPage() {
                           </p>
                         </div>
                       </div>
+
                       <span
-                        className={`font-sans text-sm font-bold tabular-nums ${
-                          isCredit ? "text-emerald-600" : "text-red-600"
+                        className={`font-mono text-xs sm:text-sm font-bold tabular-nums shrink-0 ${
+                          isCredit ? "text-primary" : "text-destructive"
                         }`}
                       >
                         {isCredit ? "+" : ""}
-                        {tx.amount}
+                        {tx.amount} cr
                       </span>
                     </div>
                   )

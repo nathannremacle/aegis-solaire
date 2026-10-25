@@ -31,7 +31,7 @@ export async function GET() {
   })
 }
 
-export async function PATCH(request: Request) {
+async function handleUpdate(request: Request) {
   const partner = await getPartner()
   if (!partner) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
@@ -50,7 +50,9 @@ export async function PATCH(request: Request) {
   }
 
   const admin = createServiceRoleClient()
-  const updateData: Record<string, unknown> = {}
+  const updateData: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  }
 
   if (Array.isArray(body.provinces)) {
     updateData.target_provinces = body.provinces
@@ -68,12 +70,25 @@ export async function PATCH(request: Request) {
     .eq("id", partner.id)
 
   if (error) {
-    console.error("[preferences] PATCH error:", error)
+    console.error("[preferences] update error:", error)
     return NextResponse.json({ error: "Erreur enregistrement préférences" }, { status: 500 })
   }
 
   return NextResponse.json({
     success: true,
+    preferences: {
+      provinces: body.provinces ?? partner.target_provinces,
+      surfaces: body.surfaces ?? partner.target_surfaces,
+      minFacture: body.minFacture ?? partner.min_facture,
+    },
     message: "Préférences d'alerte enregistrées avec succès.",
   })
+}
+
+export async function POST(request: Request) {
+  return handleUpdate(request)
+}
+
+export async function PATCH(request: Request) {
+  return handleUpdate(request)
 }

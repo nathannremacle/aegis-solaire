@@ -8,19 +8,19 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ArrowLeft, Loader2, Zap } from "lucide-react"
+import { ArrowLeft, Loader2, ShieldCheck, Zap } from "lucide-react"
 import { motion } from "framer-motion"
 
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.12, delayChildren: 0.1 },
+    transition: { staggerChildren: 0.1, delayChildren: 0.05 },
   },
 }
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 24 },
+  hidden: { opacity: 0, y: 16 },
   visible: {
     opacity: 1,
     y: 0,
@@ -30,7 +30,13 @@ const itemVariants = {
 
 export default function PartnerLoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }
+    >
       <PartnerLoginForm />
     </Suspense>
   )
@@ -39,7 +45,11 @@ export default function PartnerLoginPage() {
 function PartnerLoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const returnUrl = searchParams.get("returnUrl") || (searchParams.get("lead") ? `/partenaires/dashboard?lead=${encodeURIComponent(searchParams.get("lead")!)}` : "/partenaires/dashboard")
+  const returnUrl =
+    searchParams.get("returnUrl") ||
+    (searchParams.get("lead")
+      ? `/partenaires/dashboard?lead=${encodeURIComponent(searchParams.get("lead")!)}`
+      : "/partenaires/dashboard")
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -53,7 +63,7 @@ function PartnerLoginForm() {
     try {
       const supabase = createClient()
       const { error: authError } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim().toLowerCase(),
         password,
       })
       if (authError) {
@@ -68,23 +78,23 @@ function PartnerLoginForm() {
       router.push(returnUrl)
       router.refresh()
     } catch {
-      setError("Une erreur est survenue.")
+      setError("Une erreur est survenue lors de la connexion.")
       setLoading(false)
     }
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-8 text-foreground">
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="w-full max-w-sm space-y-8"
+        className="w-full max-w-sm space-y-6"
       >
-        {/* Branding */}
+        {/* Branding & Logo */}
         <motion.div variants={itemVariants} className="text-center">
-          <Link href="/" className="mx-auto mb-6 block">
-            <div className="relative mx-auto h-12 w-48">
+          <Link href="/" className="mx-auto mb-5 inline-block" title="Aegis Solaire">
+            <div className="relative mx-auto h-11 w-44">
               <Image
                 src="/logo.png"
                 alt="Aegis Solaire"
@@ -94,17 +104,17 @@ function PartnerLoginForm() {
               />
             </div>
           </Link>
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-1.5 shadow-sm">
-            <Zap className="h-3.5 w-3.5 text-accent" />
-            <span className="text-xs font-bold uppercase tracking-widest text-[#001D3D]">
-              Portail Installateur
-            </span>
+
+          <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-semibold text-foreground">
+            <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+            <span>Portail Partenaire Agréé</span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
             Accédez à vos leads
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Marketplace solaire qualifié · Wallonie
+          <p className="mt-1 text-xs text-muted-foreground">
+            Marketplace photovoltaïque qualifiée · Wallonie
           </p>
         </motion.div>
 
@@ -112,27 +122,30 @@ function PartnerLoginForm() {
         <motion.form
           variants={itemVariants}
           onSubmit={handleSubmit}
-          className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+          className="space-y-4 rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs"
         >
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium text-slate-700">
-              Email
+          <div className="space-y-1.5">
+            <Label htmlFor="email" className="text-xs font-bold text-foreground">
+              Adresse e-mail professionnelle
             </Label>
             <Input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="partenaire@entreprise.be"
+              placeholder="artisan@entreprise.be"
               required
               autoComplete="email"
-              className="h-11"
+              className="h-12 text-sm sm:text-xs bg-background border-border"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-sm font-medium text-slate-700">
-              Mot de passe
-            </Label>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password" className="text-xs font-bold text-foreground">
+                Mot de passe
+              </Label>
+            </div>
             <Input
               id="password"
               type="password"
@@ -140,43 +153,45 @@ function PartnerLoginForm() {
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
-              className="h-11"
+              className="h-12 text-sm sm:text-xs bg-background border-border"
             />
           </div>
+
           {error && (
             <motion.p
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+              className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
               role="alert"
             >
               {error}
             </motion.p>
           )}
+
           <Button
             type="submit"
-            className="h-12 w-full bg-[#001D3D] text-base font-bold text-white shadow-md transition-all hover:bg-[#00152e] hover:shadow-lg"
+            className="h-12 w-full bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-bold shadow-xs transition-colors cursor-pointer justify-center"
             disabled={loading}
           >
             {loading ? (
               <span className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin text-accent" />
                 Connexion…
               </span>
             ) : (
-              "Se connecter"
+              "Se connecter à l'espace"
             )}
           </Button>
         </motion.form>
 
-        {/* Footer link */}
+        {/* Lien retour */}
         <motion.p variants={itemVariants} className="text-center">
           <Link
             href="/partenaires"
-            className="inline-flex items-center gap-1.5 text-sm text-slate-500 underline-offset-4 transition-colors hover:text-slate-900 hover:underline"
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Retour au programme partenaires
+            <span>Retour au programme partenaires</span>
           </Link>
         </motion.p>
       </motion.div>

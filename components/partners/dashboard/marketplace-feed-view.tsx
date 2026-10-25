@@ -141,32 +141,32 @@ export function MarketplaceFeedView({
 
   return (
     <div className="space-y-4">
-      {/* Barre de Filtres & Affichage */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 shadow-2xs">
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Segments */}
-          <div className="inline-flex rounded-lg bg-secondary p-0.5 border border-border">
+      {/* Barre de Filtres & Affichage Mobile-First */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 rounded-xl border border-border bg-card p-2.5 sm:p-3 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+          {/* Segments (Pleine largeur sur mobile) */}
+          <div className="grid grid-cols-3 sm:inline-flex rounded-lg bg-secondary p-0.5 border border-border w-full sm:w-auto">
             {(["ALL", "B2B", "B2C"] as const).map((seg) => (
               <button
                 key={seg}
                 type="button"
                 onClick={() => setSegmentFilter(seg)}
-                className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${
+                className={`rounded-md py-1.5 sm:py-1 px-2.5 text-xs font-semibold text-center transition-all cursor-pointer ${
                   segmentFilter === seg
-                    ? "bg-primary text-primary-foreground shadow-2xs"
+                    ? "bg-primary text-primary-foreground shadow-2xs font-bold"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {seg === "ALL" ? "Tous les dossiers" : seg}
+                {seg === "ALL" ? "Tous" : seg}
               </button>
             ))}
           </div>
 
-          {/* Provinces */}
+          {/* Provinces (Sélecteur tactile confortable) */}
           <select
             value={selectedProvince}
             onChange={(e) => setSelectedProvince(e.target.value)}
-            className="rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-semibold text-foreground outline-hidden"
+            className="w-full sm:w-auto rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground outline-hidden cursor-pointer h-9"
           >
             <option value="ALL">Toute la Wallonie</option>
             <option value="liege">Liège</option>
@@ -177,15 +177,15 @@ export function MarketplaceFeedView({
           </select>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between sm:justify-end gap-3 pt-1 sm:pt-0 border-t sm:border-t-0 border-border/50">
           <span className="text-xs text-muted-foreground font-medium">
             <strong className="font-mono text-foreground tabular-nums">{filteredLeads.length}</strong> opportunité{filteredLeads.length > 1 ? "s" : ""}
           </span>
-          <div className="flex items-center rounded-lg border border-border p-0.5 bg-card">
+          <div className="flex items-center rounded-lg border border-border p-0.5 bg-card shrink-0">
             <button
               type="button"
               onClick={() => setViewMode("grid")}
-              className={`rounded p-1 transition-colors ${viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              className={`rounded p-1.5 transition-colors cursor-pointer ${viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
               title="Vue grille"
             >
               <LayoutGrid className="h-3.5 w-3.5" />
@@ -193,7 +193,7 @@ export function MarketplaceFeedView({
             <button
               type="button"
               onClick={() => setViewMode("table")}
-              className={`rounded p-1 transition-colors ${viewMode === "table" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              className={`rounded p-1.5 transition-colors cursor-pointer ${viewMode === "table" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
               title="Vue tableau"
             >
               <List className="h-3.5 w-3.5" />
@@ -235,7 +235,10 @@ export function MarketplaceFeedView({
 
             const provinceLabel = getProvinceDisplayLabel(lead.province, lead.province_free_text)
             const city = lead.city?.trim() || provinceLabel
-            const postalCode = lead.postal_code?.trim() || lead.masked_postal_code || "—"
+            const maskedPostalCode =
+              lead.masked_postal_code ||
+              (lead.postal_code ? `${String(lead.postal_code).slice(0, 2)}XX` : "—")
+            const postalCode = maskedPostalCode
             const powerKwc = lead.estimated_power_kwc ?? financials.estimatedPowerKwc
 
             return (
@@ -273,10 +276,14 @@ export function MarketplaceFeedView({
                     </span>
                   </div>
 
-                  {/* Titre Projet & Puissance estimée */}
-                  <div className="mt-3.5 flex items-baseline justify-between border-b border-border pb-3">
+                  {/* Titre Projet & Puissance estimée (Clic pour ouvrir la fiche) */}
+                  <div
+                    onClick={() => setSelectedLeadForModal(lead)}
+                    className="mt-3.5 flex items-baseline justify-between border-b border-border pb-3 cursor-pointer group"
+                    title="Cliquer pour afficher la fiche détaillée"
+                  >
                     <div>
-                      <h3 className="font-bold text-base text-foreground">
+                      <h3 className="font-bold text-base text-foreground group-hover:text-primary transition-colors">
                         Installation Solaire à {city}
                       </h3>
                       <p className="text-xs text-muted-foreground">
@@ -293,13 +300,13 @@ export function MarketplaceFeedView({
                   {/* Badges de réassurance technique */}
                   <div className="mt-3 flex flex-wrap items-center gap-1.5">
                     <span className="inline-flex items-center gap-1 rounded bg-secondary px-2 py-0.5 font-mono text-[11px] text-foreground border border-border">
-                      <ShieldCheck className="h-3 w-3 text-primary" /> Téléphone OK
+                      <ShieldCheck className="h-3 w-3 text-primary shrink-0" /> Téléphone OK
                     </span>
                     <span className="inline-flex items-center gap-1 rounded bg-secondary px-2 py-0.5 font-mono text-[11px] text-foreground border border-border">
-                      <ShieldCheck className="h-3 w-3 text-primary" /> Propriétaire
+                      <ShieldCheck className="h-3 w-3 text-primary shrink-0" /> Propriétaire
                     </span>
                     <span className="inline-flex items-center gap-1 rounded bg-secondary px-2 py-0.5 font-mono text-[11px] text-foreground border border-border">
-                      <ShieldCheck className="h-3 w-3 text-primary" /> Toiture OK
+                      <ShieldCheck className="h-3 w-3 text-primary shrink-0" /> Toiture OK
                     </span>
                   </div>
 
@@ -325,7 +332,11 @@ export function MarketplaceFeedView({
                   )}
 
                   {/* Grille des caractéristiques techniques complètes */}
-                  <div className="mt-4 space-y-2 text-xs">
+                  <div
+                    onClick={() => setSelectedLeadForModal(lead)}
+                    className="mt-4 space-y-2 text-xs cursor-pointer group"
+                    title="Cliquer pour afficher la fiche détaillée"
+                  >
                     <div className="flex items-baseline justify-between">
                       <span className="text-muted-foreground">Surface & Toiture</span>
                       <span className="font-semibold text-foreground text-right">
@@ -388,22 +399,27 @@ export function MarketplaceFeedView({
                   </div>
                 </div>
 
-                {/* Footer Carte : Coût en crédits & Déblocage / Fiche */}
-                <div className="mt-5 border-t border-border pt-4 flex items-center justify-between gap-2">
-                  <div>
-                    <span className="text-[11px] text-muted-foreground">Tarif acquisition</span>
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-mono text-xl font-black text-foreground tabular-nums">{cost}</span>
-                      <span className="text-xs font-semibold text-muted-foreground">crédits</span>
+                {/* Footer Carte : Coût en crédits & Déblocage / Fiche (Touch-friendly mobile) */}
+                <div className="mt-5 border-t border-border pt-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex items-baseline justify-between sm:justify-start gap-2">
+                    <div>
+                      <span className="text-[11px] text-muted-foreground block">Tarif acquisition</span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="font-mono text-xl font-black text-foreground tabular-nums">{cost}</span>
+                        <span className="text-xs font-semibold text-muted-foreground">crédits</span>
+                        <span className="font-mono text-[11px] text-muted-foreground tabular-nums ml-1">
+                          (~{financials.leadCostEuros.toFixed(2)} € HT)
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => setSelectedLeadForModal(lead)}
-                      className="h-9 px-2.5 text-xs font-medium"
+                      className="h-10 sm:h-9 px-3 text-xs font-medium cursor-pointer justify-center"
                       title="Voir tous les détails du projet"
                     >
                       <Info className="h-3.5 w-3.5 mr-1" />
@@ -415,7 +431,7 @@ export function MarketplaceFeedView({
                       variant="default"
                       disabled={isBuying}
                       onClick={() => handlePurchase(lead)}
-                      className="h-9 px-3.5 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90"
+                      className="h-10 sm:h-9 px-4 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer justify-center"
                     >
                       {isBuying ? (
                         <>
@@ -436,9 +452,13 @@ export function MarketplaceFeedView({
           })}
         </div>
       ) : (
-        /* Vue Table enrichie */
-        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-xs">
-          <table className="w-full text-left text-xs">
+        /* Vue Table enrichie avec défilement tactile fluide */
+        <div className="space-y-1.5">
+          <div className="block sm:hidden text-center text-[11px] font-mono text-muted-foreground py-0.5">
+            ↔ Glisser horizontalement pour voir toutes les colonnes
+          </div>
+          <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-xs overscroll-x-contain">
+            <table className="w-full min-w-[680px] text-left text-xs">
             <thead className="border-b border-border bg-secondary/50 text-[11px] font-bold uppercase text-muted-foreground">
               <tr>
                 <th className="px-4 py-3">Segment</th>
@@ -529,7 +549,8 @@ export function MarketplaceFeedView({
             </tbody>
           </table>
         </div>
-      )}
+      </div>
+    )}
 
       {/* Modale Fiche Technique Complète */}
       {selectedLeadForModal && (

@@ -5,7 +5,7 @@ import { Sparkles, ArrowRight, Flame, Coins } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getAdminUser } from "@/lib/admin-auth"
 import { getAdminDashboardData } from "@/lib/admin/queries"
-import { AdminInviteGenerator } from "@/components/admin/admin-invite-generator"
+import { AdminNetworkInviteHub } from "@/components/admin/admin-network-invite-hub"
 import { ActionRequiredTray } from "@/components/admin/action-required-tray"
 import { AdminKpiGrid } from "@/components/admin/admin-kpi-grid"
 import { AdminRecentActivity } from "@/components/admin/admin-recent-activity"
@@ -61,8 +61,8 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* 2. Outil Rapide : Générateur d'Invitation Installateur */}
-      <AdminInviteGenerator />
+      {/* 2. Hub d'Invitation Réseau Grossiste — Fabrice Remacle */}
+      <AdminNetworkInviteHub />
 
       {/* 3. Données Dashboard en Suspense Streaming */}
       <Suspense fallback={<DashboardSkeleton />}>

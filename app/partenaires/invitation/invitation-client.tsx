@@ -56,6 +56,8 @@ export function InvitationClient({
   const rawNom = searchParams.get("nom") || searchParams.get("name") || initialNom
   const rawCie = searchParams.get("cie") || searchParams.get("company") || initialCie
   const inviter = searchParams.get("par") || initialInviter
+  const rawCredits = searchParams.get("credits")
+  const freeCredits = rawCredits ? Number(rawCredits) : 0
 
   // Nettoyage et capitalisation
   const nom = rawNom ? rawNom.charAt(0).toUpperCase() + rawNom.slice(1).trim() : ""
@@ -438,12 +440,22 @@ export function InvitationClient({
               <p className="mt-2 text-sm text-muted-foreground font-sans max-w-lg mx-auto">
                 Complétez votre fiche professionnelle en moins de <span className="font-mono tabular-nums">2</span> minutes. Notre équipe technique validera vos accès sous <span className="font-mono tabular-nums">24 h</span> ouvrées.
               </p>
+
+              {freeCredits > 0 && (
+                <div className="mt-5 mx-auto max-w-xl rounded-lg border border-accent/30 bg-accent/10 p-3.5 text-center text-xs font-semibold text-accent flex items-center justify-center gap-2">
+                  <Sparkles className="h-4 w-4 shrink-0 text-accent" />
+                  <span>
+                    <strong>Avantage Réseau Fabrice Remacle :</strong>{" "}
+                    <span className="font-mono font-bold tabular-nums">{freeCredits} crédits d&apos;accueil</span> offerts sur votre compte pour tester et débloquer votre premier chantier sans engagement.
+                  </span>
+                </div>
+              )}
             </div>
 
             <InstallerVipInvitationForm
               initialFirstName={nom}
               initialCompanyName={cie}
-              inviterName={inviter}
+              inviterName={`${inviter}${freeCredits > 0 ? ` (${freeCredits} crédits offerts)` : ""}`}
             />
 
             <div className="mt-8 text-center font-mono text-xs text-muted-foreground flex flex-col gap-1.5">
