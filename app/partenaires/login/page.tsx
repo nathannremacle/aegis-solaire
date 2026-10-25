@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ArrowLeft, Loader2, ShieldCheck, Zap } from "lucide-react"
+import { ArrowLeft, Eye, EyeOff, Loader2, ShieldCheck, Zap } from "lucide-react"
 import { motion } from "framer-motion"
 
 const containerVariants = {
@@ -53,6 +53,7 @@ function PartnerLoginForm() {
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -89,7 +90,7 @@ function PartnerLoginForm() {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="w-full max-w-sm space-y-6"
+        className="w-full max-w-sm flex flex-col gap-6"
       >
         {/* Branding & Logo */}
         <motion.div variants={itemVariants} className="text-center">
@@ -122,9 +123,9 @@ function PartnerLoginForm() {
         <motion.form
           variants={itemVariants}
           onSubmit={handleSubmit}
-          className="space-y-4 rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs"
+          className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs"
         >
-          <div className="space-y-1.5">
+          <div className="flex flex-col gap-1.5">
             <Label htmlFor="email" className="text-xs font-bold text-foreground">
               Adresse e-mail professionnelle
             </Label>
@@ -140,21 +141,36 @@ function PartnerLoginForm() {
             />
           </div>
 
-          <div className="space-y-1.5">
+          <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <Label htmlFor="password" className="text-xs font-bold text-foreground">
                 Mot de passe
               </Label>
             </div>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              className="h-12 text-sm sm:text-xs bg-background border-border"
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                className="h-12 pr-11 text-sm sm:text-xs bg-background border-border"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-0 top-0 flex h-12 w-11 items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-r-md cursor-pointer"
+                aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                title={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <Eye className="h-4 w-4" aria-hidden="true" />
+                )}
+              </button>
+            </div>
           </div>
 
           {error && (

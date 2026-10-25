@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ArrowLeft, LayoutDashboard, Loader2 } from "lucide-react"
+import { ArrowLeft, Eye, EyeOff, LayoutDashboard, Loader2 } from "lucide-react"
 import { motion } from "framer-motion"
 
 const containerVariants = {
@@ -32,6 +32,7 @@ export default function AdminLoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -40,9 +41,10 @@ export default function AdminLoginPage() {
     setError(null)
     setLoading(true)
     try {
+      const cleanEmail = email.trim().toLowerCase()
       const supabase = createClient()
       const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
+        email: cleanEmail,
         password,
       })
       if (authError) {
@@ -55,8 +57,7 @@ export default function AdminLoginPage() {
         return
       }
       if (data.user?.email) {
-        router.push("/admin/dashboard")
-        router.refresh()
+        window.location.href = "/admin/dashboard"
       }
     } catch {
       setError("Une erreur est survenue.")
@@ -116,15 +117,30 @@ export default function AdminLoginPage() {
             <Label htmlFor="password" className="text-xs font-medium text-foreground">
               Mot de passe
             </Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              className="h-9 text-xs"
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                className="h-9 pr-9 text-xs"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-0 top-0 flex h-9 w-9 items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-r-md cursor-pointer"
+                aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                title={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <Eye className="h-4 w-4" aria-hidden="true" />
+                )}
+              </button>
+            </div>
           </div>
           {error && (
             <motion.p

@@ -1,9 +1,9 @@
 import { createClient } from "@/lib/supabase/server"
-import { isAdminEmail } from "@/lib/supabase/admin"
+import { isAdminEmail, createServiceRoleClient } from "@/lib/supabase/admin"
 
 /**
  * Vérifie que la requête actuelle a une session Supabase
- * et que l'email de l'utilisateur est dans ADMIN_EMAILS.
+ * et que l'utilisateur est soit listé dans ADMIN_EMAILS, soit dans public.admin_users.
  * À utiliser dans les layouts et API routes admin.
  */
 export async function getAdminUser() {
@@ -14,7 +14,26 @@ export async function getAdminUser() {
   
   const supabase = await createClient()
   const { data: { user }, error } = await supabase.auth.getUser()
-  if (error || !user) return null
-  if (!isAdminEmail(user.email ?? "")) return null
-  return user
+  if (error || !user || !user.email) return null
+
+  // 1. Contrôle direct via la variable d'environnement ADMIN_EMAILS
+  if (isAdminEmail(user.email)) return user
+
+  // 2. Contrôle de secours en base de données (public.admin_users)
+  // Permet d'éviter d'être bloqué si une variable Vercel n'est pas encore rechargée
+  try {
+    const adminDb = createServiceRoleClient()
+    const { data: adminRecord } = await adminDb
+      .from("admin_users")
+      .select("id")
+      .ilike("email", user.email.trim())
+      .maybeSingle()
+
+    if (adminRecord) return user
+  } catch (err) {
+    console.error("[getAdminUser] Fallback DB error:", err)
+  }
+
+  return null
 }
+

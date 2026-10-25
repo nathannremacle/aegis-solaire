@@ -100,11 +100,14 @@ export function AdminNetworkInviteHub() {
   const [isSendingEmail, setIsSendingEmail] = useState(false)
   const [history, setHistory] = useState<SavedInviteHistory[]>([])
 
-  // Origine du site
-  const origin =
-    typeof window !== "undefined" && window.location.origin
-      ? window.location.origin
-      : "https://www.aegissolaire.com"
+  // Origine du site (initialisé avec le domaine de référence pour garantir l'identité exacte entre SSR et premier rendu client)
+  const [origin, setOrigin] = useState("https://www.aegissolaire.com")
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.origin) {
+      setOrigin(window.location.origin)
+    }
+  }, [])
 
   // Construction de l'URL dynamique
   const generatedUrl = useMemo(() => {
@@ -359,8 +362,8 @@ export function AdminNetworkInviteHub() {
     }
     
     // Sinon, on s'assure que le lien dans le texte est synchronisé avec l'URL générée actuelle
-    if (raw.includes("https://www.aegissolaire.com/partenaires/invitation")) {
-      raw = raw.replace(/https:\/\/www\.aegissolaire\.com\/partenaires\/invitation[^\s\n]*/g, generatedUrl)
+    if (raw.includes("/partenaires/invitation")) {
+      raw = raw.replace(/https?:\/\/[^\s\n]+\/partenaires\/invitation[^\s\n]*/g, generatedUrl)
     }
 
     return raw

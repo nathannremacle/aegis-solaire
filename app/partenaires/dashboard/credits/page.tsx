@@ -23,6 +23,7 @@ import {
   Coins,
   Calculator,
   X,
+  QrCode,
 } from "lucide-react"
 
 /* ═══════════════════════════════════════════════
@@ -110,14 +111,41 @@ function OrderPackSection({
   pack: CreditPack
   onOrderCreated: (order: OrderDetails) => void
 }) {
-  const [submitting, setSubmitting] = useState(false)
+  const [submittingMollie, setSubmittingMollie] = useState(false)
+  const [submittingInvoice, setSubmittingInvoice] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const vatAmount = Math.round(pack.priceHtva * 0.21 * 100) / 100
   const priceTtc = Math.round((pack.priceHtva + vatAmount) * 100) / 100
 
-  async function handleOrder() {
-    setSubmitting(true)
+  // 1. Paiement instantané Bancontact / Payconiq (Mollie)
+  async function handleInstantPayment() {
+    setSubmittingMollie(true)
+    setError(null)
+    try {
+      const res = await fetch("/api/partners/credits/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ packId: pack.id }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Impossible d'initier le paiement en ligne.")
+      }
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl
+      } else {
+        throw new Error("Lien de paiement sécurisé non reçu.")
+      }
+    } catch (err: any) {
+      setError(err.message || "Erreur de connexion au service bancaire.")
+      setSubmittingMollie(false)
+    }
+  }
+
+  // 2. Virement bancaire classique sur facture
+  async function handleInvoiceOrder() {
+    setSubmittingInvoice(true)
     setError(null)
     try {
       const res = await fetch("/api/partners/credits/order", {
@@ -133,7 +161,7 @@ function OrderPackSection({
     } catch (err: any) {
       setError(err.message || "Erreur de connexion.")
     } finally {
-      setSubmitting(false)
+      setSubmittingInvoice(false)
     }
   }
 
@@ -168,30 +196,72 @@ function OrderPackSection({
         </div>
       )}
 
+      {/* Boutons d'action : Instantané prioritaire + Virement différé */}
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-          <span>Facture pro officielle conforme émise sous 24h ouvrées</span>
+        <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Zap className="h-4 w-4 text-accent shrink-0 fill-accent" />
+            <span className="font-medium text-foreground">
+              Activation immédiate 24/7 sur votre compte
+            </span>
+          </div>
+          <span className="text-[11px] text-muted-foreground">
+            Facture pro officielle conforme (TVA 21% déductible) émise automatiquement.
+          </span>
         </div>
 
-        <Button
-          type="button"
-          onClick={handleOrder}
-          disabled={submitting}
-          className="h-12 w-full sm:w-auto px-6 font-bold text-xs sm:text-sm bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs justify-center"
-        >
-          {submitting ? (
-            <span className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin text-accent" />
-              Génération du bon de commande…
-            </span>
-          ) : (
-            <span className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4 text-accent" />
-              Commander ce pack sur facture
-            </span>
-          )}
-        </Button>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleInvoiceOrder}
+            disabled={submittingInvoice || submittingMollie}
+            className="h-11 px-4 text-xs font-medium border-border bg-transparent text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer justify-center"
+            title="Pour paiement comptable par virement manuel différé"
+          >
+            {submittingInvoice ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Génération bon…
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <FileText className="h-3.5 w-3.5" />
+                Virement bancaire classique
+              </span>
+            )}
+          </Button>
+
+          <Button
+            type="button"
+            onClick={handleInstantPayment}
+            disabled={submittingInvoice || submittingMollie}
+            className="h-12 px-6 font-bold text-xs sm:text-sm bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs justify-center"
+          >
+            {submittingMollie ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin text-accent" />
+                Ouverture session bancaire…
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <QrCode className="h-4 w-4 text-accent" />
+                Payer par Bancontact / Payconiq
+              </span>
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* Bandeau d'information bancaire belgique */}
+      <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+          Paiement sécurisé Mollie (QR code via Belfius, BNP Fortis, KBC/CBC, ING, Payconiq)
+        </span>
+        <span className="hidden sm:inline font-mono tabular-nums">
+          Frais bancaires fixes ~0,25 € HT · 0 % de commission variable
+        </span>
       </div>
     </div>
   )
@@ -343,6 +413,12 @@ export default function CreditsPage() {
   const [loading, setLoading] = useState(true)
   const [selectedPack, setSelectedPack] = useState<string>("pack_50")
   const [activeOrder, setActiveOrder] = useState<OrderDetails | null>(null)
+  const [verifyingPayment, setVerifyingPayment] = useState(false)
+  const [paymentFeedback, setPaymentFeedback] = useState<{
+    type: "success" | "pending" | "cancelled" | null
+    message: string
+    credits?: number
+  } | null>(null)
 
   const fetchCredits = useCallback(async () => {
     try {
@@ -360,6 +436,66 @@ export default function CreditsPage() {
 
   useEffect(() => {
     fetchCredits()
+  }, [fetchCredits])
+
+  // Vérification automatique au retour d'une session de paiement Mollie
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const url = new URL(window.location.href)
+    const payment = url.searchParams.get("payment")
+    const orderId = url.searchParams.get("order_id")
+
+    if (payment === "return" && orderId) {
+      setVerifyingPayment(true)
+      fetch(`/api/partners/credits/check-status?order_id=${encodeURIComponent(orderId)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.status === "paid") {
+            setPaymentFeedback({
+              type: "success",
+              message: `Paiement Bancontact validé avec succès ! Vos ${data.credits} crédits ont été alloués instantanément sur votre compte.`,
+              credits: data.credits,
+            })
+            fetchCredits()
+          } else if (data.status === "cancelled") {
+            setPaymentFeedback({
+              type: "cancelled",
+              message: "La transaction en ligne a été annulée ou n'a pas pu aboutir.",
+            })
+          } else {
+            setPaymentFeedback({
+              type: "pending",
+              message: "Paiement en cours de confirmation par le réseau bancaire. Votre solde s'actualisera sous peu.",
+            })
+            // Deuxième tentative après 2,5s si la banque met quelques secondes
+            setTimeout(() => {
+              fetch(`/api/partners/credits/check-status?order_id=${encodeURIComponent(orderId)}`)
+                .then((r) => r.json())
+                .then((d) => {
+                  if (d.status === "paid") {
+                    setPaymentFeedback({
+                      type: "success",
+                      message: `Paiement Bancontact validé avec succès ! Vos ${d.credits} crédits ont été ajoutés à votre compte.`,
+                      credits: d.credits,
+                    })
+                    fetchCredits()
+                  }
+                })
+                .catch(() => {})
+            }, 2500)
+          }
+        })
+        .catch(() => {
+          setPaymentFeedback({
+            type: "pending",
+            message: "Votre session de paiement a été transmise au réseau bancaire.",
+          })
+        })
+        .finally(() => {
+          setVerifyingPayment(false)
+          window.history.replaceState({}, document.title, window.location.pathname)
+        })
+    }
   }, [fetchCredits])
 
   if (loading) {
@@ -422,6 +558,57 @@ export default function CreditsPage() {
           animate="visible"
           className="space-y-6"
         >
+          {/* Bannière de chargement / vérification de paiement */}
+          {verifyingPayment && (
+            <div className="flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/10 p-4 text-xs text-foreground animate-pulse">
+              <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+              <span>Vérification de la validation bancaire en cours…</span>
+            </div>
+          )}
+
+          {/* Bannière de résultat du paiement Mollie */}
+          {paymentFeedback && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`flex items-start justify-between gap-3 rounded-2xl border p-4 text-xs ${
+                paymentFeedback.type === "success"
+                  ? "border-primary/40 bg-primary/10 text-foreground"
+                  : paymentFeedback.type === "pending"
+                    ? "border-accent/40 bg-accent/10 text-foreground"
+                    : "border-destructive/30 bg-destructive/10 text-destructive"
+              }`}
+            >
+              <div className="flex items-start gap-2.5">
+                {paymentFeedback.type === "success" ? (
+                  <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                ) : paymentFeedback.type === "pending" ? (
+                  <Clock className="h-5 w-5 text-accent shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                )}
+                <div>
+                  <h4 className="font-bold text-foreground">
+                    {paymentFeedback.type === "success"
+                      ? "Recharge effectuée avec succès"
+                      : paymentFeedback.type === "pending"
+                        ? "Confirmation bancaire en cours"
+                        : "Session interrompue"}
+                  </h4>
+                  <p className="mt-0.5 text-muted-foreground">{paymentFeedback.message}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPaymentFeedback(null)}
+                className="text-muted-foreground hover:text-foreground cursor-pointer p-1 rounded"
+                title="Fermer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </motion.div>
+          )}
+
           {/* Section Titre */}
           <motion.div variants={itemVariants}>
             <div className="mb-2 inline-flex items-center gap-1.5 rounded-md bg-secondary px-2.5 py-1 border border-border">

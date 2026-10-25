@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Link2,
   Copy,
@@ -21,12 +21,13 @@ export function AdminInviteGenerator() {
   const [companyName, setCompanyName] = useState("")
   const [copiedLink, setCopiedLink] = useState(false)
   const [copiedMsg, setCopiedMsg] = useState(false)
+  const [origin, setOrigin] = useState("https://www.aegissolaire.com")
 
-  // Construction de l'URL
-  const origin =
-    typeof window !== "undefined" && window.location.origin
-      ? window.location.origin
-      : "https://www.aegissolaire.com"
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.origin) {
+      setOrigin(window.location.origin)
+    }
+  }, [])
 
   const params = new URLSearchParams()
   if (firstName.trim()) params.set("nom", firstName.trim())
