@@ -298,55 +298,179 @@ export function InvitationClient({
             </div>
 
             {/* Tableau Financier Comparatif */}
-            <div className="overflow-x-auto rounded-md border border-border bg-card shadow-2xs">
-              <table className="w-full text-left border-collapse text-xs sm:text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-secondary/50 font-mono text-xs uppercase tracking-wider text-muted-foreground">
-                    <th className="p-4 sm:p-5 font-semibold text-foreground">Critère opérationnel</th>
-                    <th className="p-4 sm:p-5 font-semibold text-muted-foreground">Pratiques courantes du marché</th>
-                    <th className="p-4 sm:p-5 font-semibold text-primary bg-primary/[0.04]">Charte Partenaire Aegis Solaire</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border font-sans">
-                  <tr>
-                    <td className="p-4 sm:p-5 font-medium text-foreground">Attribution par dossier</td>
-                    <td className="p-4 sm:p-5 text-muted-foreground">
-                      Mise en concurrence élargie (<span className="font-mono tabular-nums">5</span> à <span className="font-mono tabular-nums">6</span> entreprises sur le même contact)
-                    </td>
-                    <td className="p-4 sm:p-5 font-medium text-foreground bg-primary/[0.02]">
-                      <strong className="text-primary font-mono tabular-nums font-semibold">1 seul installateur en B2B</strong> (100% exclusif) · Max <span className="font-mono tabular-nums font-semibold">3</span> en B2C
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="p-4 sm:p-5 font-medium text-foreground">Qualification préalable</td>
-                    <td className="p-4 sm:p-5 text-muted-foreground">Transmission de formulaires web sans contrôle téléphonique préalable</td>
-                    <td className="p-4 sm:p-5 font-medium text-foreground bg-primary/[0.02]">
-                      <strong className="text-primary">Audit téléphonique systématique</strong> : cadastre toiture, type de compteur et puissance estimée
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="p-4 sm:p-5 font-medium text-foreground">Modalités contractuelles</td>
-                    <td className="p-4 sm:p-5 text-muted-foreground">Abonnements récurrents obligatoires ou forfaits mensuels fixes</td>
-                    <td className="p-4 sm:p-5 font-medium text-foreground bg-primary/[0.02]">
-                      <strong className="text-primary font-mono tabular-nums font-semibold">0 €</strong> d'abonnement · Achat à l'acte aux crédits, sans date d'expiration
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="p-4 sm:p-5 font-medium text-foreground">Garantie contact non joignable</td>
-                    <td className="p-4 sm:p-5 text-muted-foreground">Conditions de réclamation restrictives et délais de traitement longs</td>
-                    <td className="p-4 sm:p-5 font-medium text-foreground bg-primary/[0.02]">
-                      Recrédit automatique sous <span className="font-mono tabular-nums font-semibold text-primary">24 h</span> sur simple notification
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="p-4 sm:p-5 font-medium text-foreground">Assistance technique tertiaire</td>
-                    <td className="p-4 sm:p-5 text-muted-foreground">Aucun accompagnement d'ingénierie terrain</td>
-                    <td className="p-4 sm:p-5 font-medium text-foreground bg-primary/[0.02]">
-                      Appui d'ingénierie et expertise sur dossiers &gt; <span className="font-mono tabular-nums">50 kWc</span> disponibles <strong className="text-primary font-medium">à la demande</strong>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-[0_2px_12px_-4px_rgba(17,24,21,0.06)]">
+              {/* Légende rapide / Synthèse visuelle mobile & desktop */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-secondary/30 px-4 py-3 sm:px-6">
+                <span className="font-mono text-xs text-muted-foreground uppercase tracking-wider">
+                  Synthèse comparative des modèles
+                </span>
+                <div className="flex items-center gap-4 text-xs font-mono">
+                  <span className="inline-flex items-center gap-1.5 text-destructive font-medium">
+                    <span className="h-2 w-2 rounded-full bg-destructive" />
+                    Marché classique
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-primary font-bold">
+                    <span className="h-2 w-2 rounded-full bg-accent" />
+                    Charte Aegis Solaire
+                  </span>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs sm:text-sm min-w-[680px]">
+                  <thead>
+                    <tr className="border-b border-border font-mono text-xs uppercase tracking-wider">
+                      <th className="p-4 sm:p-5 font-bold text-foreground bg-secondary/60 w-[24%]">
+                        Critère opérationnel
+                      </th>
+                      <th className="p-4 sm:p-5 text-destructive bg-destructive/[0.04] border-x border-border/80 w-[38%]">
+                        <div className="flex items-center gap-2">
+                          <XCircle className="h-4 w-4 text-destructive shrink-0" />
+                          <span className="font-bold text-destructive">Pratiques courantes du marché</span>
+                        </div>
+                        <span className="mt-1 block font-sans text-[11px] font-normal normal-case text-muted-foreground">
+                          Courtage massif & mise en concurrence élargie
+                        </span>
+                      </th>
+                      <th className="p-4 sm:p-5 text-primary bg-primary/[0.08] border-l-2 border-primary w-[38%]">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-accent shrink-0" />
+                            <span className="font-bold text-primary">Charte Partenaire Aegis Solaire</span>
+                          </div>
+                          <span className="inline-flex items-center rounded-sm bg-primary text-primary-foreground px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide">
+                            Garantie RESCERT
+                          </span>
+                        </div>
+                        <span className="mt-1 block font-sans text-[11px] font-normal normal-case text-muted-foreground">
+                          Exclusivité B2B, audit téléphonique & 0 € d'abonnement
+                        </span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border font-sans">
+                    {/* Ligne 1 */}
+                    <tr className="transition-colors hover:bg-secondary/20">
+                      <td className="p-4 sm:p-5 bg-secondary/20">
+                        <span className="font-semibold text-foreground block">Attribution par dossier</span>
+                        <span className="text-[11px] text-muted-foreground block mt-0.5">Niveau de concurrence par prospect</span>
+                      </td>
+                      <td className="p-4 sm:p-5 bg-destructive/[0.02] border-x border-border/60 text-muted-foreground">
+                        <div className="flex items-start gap-2.5">
+                          <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                          <span>
+                            Mise en concurrence élargie (<strong className="font-mono tabular-nums text-destructive font-semibold">5 à 6 entreprises</strong> sur le même contact) · Guerre des prix destructrice de marges
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-4 sm:p-5 bg-primary/[0.04] border-l-2 border-primary/40 text-foreground">
+                        <div className="flex items-start gap-2.5">
+                          <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                          <span>
+                            <strong className="text-primary font-bold">1 seul installateur en B2B</strong> (<span className="font-mono tabular-nums font-semibold text-primary">100%</span> exclusif) · Max <strong className="font-mono tabular-nums font-bold text-primary">3</strong> en B2C pour préserver un taux de signature élevé
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+
+                    {/* Ligne 2 */}
+                    <tr className="transition-colors hover:bg-secondary/20">
+                      <td className="p-4 sm:p-5 bg-secondary/20">
+                        <span className="font-semibold text-foreground block">Qualification préalable</span>
+                        <span className="text-[11px] text-muted-foreground block mt-0.5">Fiabilité des données et du contact</span>
+                      </td>
+                      <td className="p-4 sm:p-5 bg-destructive/[0.02] border-x border-border/60 text-muted-foreground">
+                        <div className="flex items-start gap-2.5">
+                          <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                          <span>
+                            Transmission brute de formulaires web <strong className="text-destructive font-semibold">sans aucun contrôle téléphonique</strong> préalable · Nombreux faux numéros ou projets irréalistes
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-4 sm:p-5 bg-primary/[0.04] border-l-2 border-primary/40 text-foreground">
+                        <div className="flex items-start gap-2.5">
+                          <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                          <span>
+                            <strong className="text-primary font-bold">Audit téléphonique systématique</strong> : cadastre toiture vérifié, puissance estimée, type de compteur et propriétaire validé avant mise en ligne
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+
+                    {/* Ligne 3 */}
+                    <tr className="transition-colors hover:bg-secondary/20">
+                      <td className="p-4 sm:p-5 bg-secondary/20">
+                        <span className="font-semibold text-foreground block">Modalités contractuelles</span>
+                        <span className="text-[11px] text-muted-foreground block mt-0.5">Engagement et flexibilité financière</span>
+                      </td>
+                      <td className="p-4 sm:p-5 bg-destructive/[0.02] border-x border-border/60 text-muted-foreground">
+                        <div className="flex items-start gap-2.5">
+                          <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                          <span>
+                            <strong className="text-destructive font-semibold">Abonnements récurrents obligatoires</strong> ou forfaits mensuels fixes imposés · Coût fixe continu même quand vos plannings sont pleins
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-4 sm:p-5 bg-primary/[0.04] border-l-2 border-primary/40 text-foreground">
+                        <div className="flex items-start gap-2.5">
+                          <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                          <span>
+                            <strong className="text-primary font-mono tabular-nums font-bold">0 €</strong> d'abonnement, <strong className="text-primary font-bold">0 commission</strong> sur devis · Achat à l'acte aux crédits, <strong className="text-primary font-semibold">sans aucune date d'expiration</strong>
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+
+                    {/* Ligne 4 */}
+                    <tr className="transition-colors hover:bg-secondary/20">
+                      <td className="p-4 sm:p-5 bg-secondary/20">
+                        <span className="font-semibold text-foreground block">Garantie contact non joignable</span>
+                        <span className="text-[11px] text-muted-foreground block mt-0.5">Protection contre les faux numéros</span>
+                      </td>
+                      <td className="p-4 sm:p-5 bg-destructive/[0.02] border-x border-border/60 text-muted-foreground">
+                        <div className="flex items-start gap-2.5">
+                          <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                          <span>
+                            Conditions de réclamation restrictives, formulaires complexes et <strong className="text-destructive font-semibold">délais de traitement de plusieurs semaines</strong>
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-4 sm:p-5 bg-primary/[0.04] border-l-2 border-primary/40 text-foreground">
+                        <div className="flex items-start gap-2.5">
+                          <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                          <span>
+                            <strong className="text-primary font-bold">Recrédit automatique sous <span className="font-mono tabular-nums">24 h</span></strong> sur simple notification en 1 clic dans votre tableau de bord
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+
+                    {/* Ligne 5 */}
+                    <tr className="transition-colors hover:bg-secondary/20">
+                      <td className="p-4 sm:p-5 bg-secondary/20">
+                        <span className="font-semibold text-foreground block">Assistance technique tertiaire</span>
+                        <span className="text-[11px] text-muted-foreground block mt-0.5">Support ingénierie grandes puissances</span>
+                      </td>
+                      <td className="p-4 sm:p-5 bg-destructive/[0.02] border-x border-border/60 text-muted-foreground">
+                        <div className="flex items-start gap-2.5">
+                          <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                          <span>
+                            <strong className="text-destructive font-semibold">Aucun accompagnement terrain</strong> ni appui de dimensionnement technique sur les projets tertiaires complexes
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-4 sm:p-5 bg-primary/[0.04] border-l-2 border-primary/40 text-foreground">
+                        <div className="flex items-start gap-2.5">
+                          <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                          <span>
+                            <strong className="text-primary font-bold">Appui d'ingénierie et expertise terrain</strong> sur dossiers &gt; <span className="font-mono tabular-nums font-semibold">50 kWc</span> mobilisables <strong className="text-primary font-medium">à la demande</strong>
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {/* 4 Piliers en grille fine */}
