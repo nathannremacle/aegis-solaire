@@ -235,7 +235,7 @@ BEGIN
   media_commissions_agg AS (
     SELECT
       mp.id,
-      mp.company_name,
+      mp.name AS company_name,
       mp.tracking_code,
       count(l.id)::int AS attributed_leads_count,
       count(l.id) FILTER (WHERE l.marketplace_status IN ('available', 'sold_out'))::int AS validated_leads_count,
@@ -250,8 +250,8 @@ BEGIN
       )::numeric(12,2) AS total_commission_due
     FROM public.media_partners mp
     LEFT JOIN public.leads l ON l.media_partner_code = mp.tracking_code
-    WHERE mp.active = true
-    GROUP BY mp.id, mp.company_name, mp.tracking_code
+    WHERE mp.status = 'active'
+    GROUP BY mp.id, mp.name, mp.tracking_code
   ),
   -- 6. Compteurs pour la Sidebar Admin & Action Required Tray
   pending_counts AS (
@@ -313,7 +313,7 @@ BEGIN
   recent_audit_logs AS (
     SELECT coalesce(jsonb_agg(row_to_json(t)), '[]'::jsonb) AS items
     FROM (
-      SELECT id, admin_email, action, entity_type, entity_id, payload, created_at
+      SELECT id, admin_email, action, entity_type, entity_id, details AS payload, created_at
       FROM public.audit_log
       ORDER BY created_at DESC
       LIMIT 10

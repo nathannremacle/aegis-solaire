@@ -37,7 +37,7 @@ function buildLeadAssignedHtml(lead: LeadDetailsForEmail): string {
 <html>
 <head><meta charset="utf-8"><title>Nouveau lead Aegis Solaire</title></head>
 <body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <h2 style="color: #112f4b;">Nouveau lead assigné – Aegis Solaire</h2>
+  <h2 style="color: #0B2B22;">Nouveau lead assigné – Aegis Solaire</h2>
   <p>Un lead vous a été assigné. Coordonnées et résumé ci-dessous.</p>
   <table style="border-collapse: collapse; width: 100%;">
     <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Contact</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${contactName}</td></tr>

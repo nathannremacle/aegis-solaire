@@ -7,6 +7,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { MediaPartnerRefTracker } from '@/components/media-partner-ref-tracker'
 import { SiteHeader } from '@/components/site-header'
 import { AdTrackingScripts } from '@/components/analytics/ad-tracking'
+import { CookieConsentBanner } from '@/components/analytics/cookie-consent-banner'
 import './globals.css'
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -85,12 +86,83 @@ export default function RootLayout({
   return (
     <html lang="fr-BE" suppressHydrationWarning>
       <head>
-        {/* Ignore browser extension errors (e.g. Bitdefender Anti-Tracker eppiocemhmnlbhjplcgkofciiegomcon) from triggering the Next.js dev overlay */}
+        {/* Ignore browser extension errors & hydration warnings (e.g. Bitdefender Anti-Tracker/TrafficLight injecting bis_skin_checked="1") from triggering the Next.js dev overlay */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
                 if (typeof window === 'undefined') return;
+
+                // 1. Intercept console.error to filter out extension-injected hydration mismatches (bis_skin_checked)
+                try {
+                  var origError = console.error;
+                  var filterExtHydration = function(fn) {
+                    return function() {
+                      for (var i = 0; i < arguments.length; i++) {
+                        var arg = arguments[i];
+                        var str = typeof arg === 'string' ? arg : (arg && arg.message ? arg.message : '');
+                        if (str && str.indexOf('bis_skin_checked') !== -1) {
+                          return;
+                        }
+                        if (typeof arg === 'object' && arg !== null) {
+                          try {
+                            if (JSON.stringify(arg).indexOf('bis_skin_checked') !== -1) return;
+                          } catch(err) {}
+                        }
+                      }
+                      return fn.apply(console, arguments);
+                    };
+                  };
+
+                  var customError = filterExtHydration(origError);
+
+                  Object.defineProperty(console, 'error', {
+                    configurable: true,
+                    enumerable: true,
+                    get: function() { return customError; },
+                    set: function(newHandler) {
+                      origError = newHandler;
+                      customError = filterExtHydration(newHandler);
+                    }
+                  });
+                } catch(e) {}
+
+                // 2. Strip bis_skin_checked attributes injected by Bitdefender or VPN extensions before hydration
+                try {
+                  var cleanBis = function() {
+                    var elms = document.querySelectorAll('[bis_skin_checked]');
+                    for (var i = 0; i < elms.length; i++) {
+                      elms[i].removeAttribute('bis_skin_checked');
+                    }
+                  };
+
+                  var observer = new MutationObserver(function(mutations) {
+                    for (var i = 0; i < mutations.length; i++) {
+                      var m = mutations[i];
+                      if (m.type === 'attributes' && m.attributeName === 'bis_skin_checked') {
+                        if (m.target && m.target.removeAttribute) {
+                          m.target.removeAttribute('bis_skin_checked');
+                        }
+                      }
+                    }
+                  });
+
+                  if (document.documentElement) {
+                    observer.observe(document.documentElement, {
+                      attributes: true,
+                      subtree: true,
+                      attributeFilter: ['bis_skin_checked']
+                    });
+                  }
+
+                  if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', cleanBis, { once: true });
+                  } else {
+                    cleanBis();
+                  }
+                } catch(e) {}
+
+                // 3. Catch uncaught extension exceptions
                 window.addEventListener('error', function(e) {
                   if (e.filename && e.filename.startsWith('chrome-extension://')) {
                     e.stopImmediatePropagation();
@@ -120,6 +192,7 @@ export default function RootLayout({
         <Toaster richColors position="top-right" />
         <Analytics />
         <AdTrackingScripts />
+        <CookieConsentBanner />
       </body>
     </html>
   )

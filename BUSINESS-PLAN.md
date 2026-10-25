@@ -74,12 +74,40 @@ Le projet résout une anomalie critique de marché :
 | **Coordonnées Bancaires Professionnelles** | IBAN : `BE84 0020 3534 7259` · BIC : `GEBABEBB` |
 | **Codes NACEBEL Déclarés** | `62100` (Programmation), `62200` (Conseil informatique), `63100` (Traitement de données & portails), `73110` (Agences de communication/publicité), `82400` (Centres d'appels / intermédiation) |
 
-### 2.2 Stratégie de Transformation Juridique
+### 2.2 Fondateurs & Gouvernance Métier
 
-Actuellement opérée sous l'entité individuelle INIT42 pour maximiser l'agilité et minimiser les frais de structure durant la phase d'amorçage, il est prévu la **constitution d'une Société à Responsabilité Limitée (SRL)** de droit belge dès l'atteinte d'un rythme de croisière de **15 000 € HTVA de chiffre d'affaires mensuel récurrent** (estimé au Q2 2027).
+Aegis Solaire est née de la synergie étroite entre deux profils complémentaires de la même famille, alliant l'ingénierie logicielle avancée et plus de 25 ans d'expertise technique terrain dans le photovoltaïque wallon.
+
+```
+                                  GOUVERNANCE AEGIS SOLAIRE
+                                              │
+                     ┌────────────────────────┴────────────────────────┐
+                     ▼                                                 ▼
+             NATHAN REMACLE                                    FABRICE REMACLE
+     Fondateur & Directeur Général (INIT42)            Chief Technical Advisor & Référent Solaire
+   • 20 ans (né en 2006 à Verviers, Wallonie)        • La cinquantaine, diplômé électricien
+   • Étudiant 3e bachelier Ingénieur Civil (Liège)   • Expert reconnu en Wallonie (PV, onduleurs, batteries)
+   • Spécialisation Informatique & Génie Civil        • Formateur et consultant d'installateurs solaires
+   • Architecture tech, Next.js 16, Supabase, IA     • En poste chez PhotonSolar (grossiste à Fléron)
+   • Pilote l'exploitation sous statut étudiant-indép.• Mentor métier, réseau installateurs & consultance B2B
+```
+
+#### Nathan Remacle — Fondateur & Directeur Général
+- **Profil & Formation :** 20 ans (né le 5 janvier 2006 à Verviers, Belgique), étudiant en 3e année de bachelier d'ingénieur civil (orientation informatique et génie civil) à Liège. Passionné d'informatique, de code et d'algorithmique depuis le plus jeune âge.
+- **Rôle opérationnel :** Concepteur de la plateforme, architecte technique et fullstack developer. Il a développé l'intégralité du produit en exploitant les outils d'ingénierie IA les plus avancés (Google Antigravity, modèles Gemini). Il pilote la stratégie produit, le marketing digital, le tracking publicitaire et l'exploitation légale sous son entreprise individuelle **INIT42** (statut étudiant-indépendant créé en juin 2026).
+
+#### Fabrice Remacle — Chief Technical Advisor & Référent Sectoriel
+- **Profil & Expérience :** Père de Nathan, la cinquantaine, diplômé électricien et expert hautement reconnu en Wallonie dans l'ingénierie des panneaux solaires photovoltaïques, le dimensionnement des onduleurs et les systèmes de stockage par batteries.
+- **Ancrage sectoriel :** Consultant et formateur d'installateurs photovoltaïques, il exerce actuellement chez **PhotonSolar**, grossiste photovoltaïque de référence basé à Fléron.
+- **Rôle stratégique :** Il est l'initiateur de la réflexion sectorielle et apporte une compréhension intime des besoins concrets des installateurs et des failles des plateformes concurrentes (Bobex, TrustUp, HomeDeal). Il valide les formules mathématiques du moteur solaire (`lib/solar-assumptions.ts`), assure la caution technique auprès des professionnels du secteur, et pilote l'offre exclusive de consultance et d'assistance technique de chantier B2B.
+
+### 2.3 Stratégie de Transformation Juridique
+
+Actuellement opérée sous l'entité individuelle INIT42 (statut étudiant-indépendant de Nathan Remacle, zéro dette, frais fixes minimaux) pour maximiser l'agilité durant la phase d'amorçage lean, il est prévu la **constitution d'une Société à Responsabilité Limitée (SRL)** de droit belge dès l'atteinte d'un rythme de croisière de **15 000 € HTVA de chiffre d'affaires mensuel récurrent** (estimé au Q2 2027).
 
 **Objectifs de la transition SRL :**
 - Cantonnement étanche du patrimoine et limitation de la responsabilité financière.
+- Intégration capitalistique formelle des fondateurs et associés clés.
 - Optimisation fiscale de l'Impôt des Sociétés (taux réduit ISoc de 20 % sur la première tranche de 100 000 € de bénéfice, puis 25 %).
 - Possibilité d'ouverture du capital à des partenaires stratégiques ou investisseurs sectoriels (fonds transition énergétique, family offices belges).
 
@@ -133,28 +161,41 @@ L'activité d'Aegis Solaire s'appuie sur quatre moteurs législatifs obligatoire
 
 ### 4.1 Proposition de Valeur pour les Prospects (Entreprises & Particuliers)
 
-- **Simulateur de précision basé sur la physique réelle :** Contrairement aux simulateurs « gadgets » du marché qui affichent des rentabilités fantaisistes (TRI bloqué à 3 ans, primes obsolètes), Aegis Solaire intègre les données certifiées (gisement wallon PVGIS de **930 kWh/kWc/an**, tarifs réels réseau de 0,20 €/kWh HT en B2B et 0,32 €/kWh TTC en B2C, dégradation linéaire 0,5 %/an).
-- **Conseil neutre et sans engagement commercial préalable :** Le prospect obtient un rapport d'évaluation clair (puissance indicative en kWc, taux d'autoconsommation, investissement estimé) avant toute mise en relation.
-- **Sécurité et protection des données (RGPD) :** Mise en relation strictement limitée : **1 seul installateur qualifié en B2B** (exclusivité garantissant une prise en charge sur-mesure) et **maximum 3 installateurs certifiés en B2C** (comparatif équitable conforme aux attentes des particuliers).
+- **Tri manuel et rigoureux des installateurs partenaires :** Contrairement aux plateformes généralistes (Bobex, TrustUp) qui agrègent n'importe quel poseur sur simple déclaration, chaque installateur candidat sur Aegis Solaire est vérifié à la main (certification RESCERT Photovoltaïque valide, conformité BCE/TVA, historique de solvabilité, respect de la charte de qualité interne « Aegis Conform »).
+- **Zéro harcèlement & nombre de devis strictement maîtrisé :** Le prospect ne subit pas le mitraillage commercial habituel (10 appels en 24h). La mise en relation est strictement plafonnée : **1 seul installateur de référence en B2B** (exclusivité garantissant une prise en charge sur-mesure) et **maximum 3 à 4 installateurs certifiés en B2C**.
+- **Simulateur de précision basé sur la physique réelle :** Contrairement aux simulateurs « gadgets » du marché qui affichent des rentabilités fantaisistes (TRI bloqué à 3 ans, primes résidentielles supprimées en Wallonie encore promises), Aegis Solaire intègre les données certifiées (gisement wallon PVGIS de **930 kWh/kWc/an**, tarifs réels réseau de 0,20 €/kWh HT en B2B et 0,32 €/kWh TTC en B2C, dégradation linéaire 0,5 %/an).
+- **Conseil neutre et intégrité des données :** Le prospect obtient un rapport d'évaluation technique transparent. Ses données personnelles ne sont jamais revendues à des courtiers tiers ni à des régies publicitaires.
 
-### 4.2 Proposition de Valeur pour les Installateurs Partenaires
+### 4.2 Proposition de Valeur & Avantages Injustes pour les Installateurs
 
-- **Vérification rigoureuse des projets :** Fin des appels dans le vide. Chaque lead B2B comporte l'identité du décideur (PDG, DAF, Directeur Technique), le numéro de TVA belge actif, la surface réelle, la tranche de facture annuelle et le gestionnaire de réseau (GRD : Ores, Resa, etc.).
-- **Économie unitaire ultra-rentable pour l'artisan :**  
-  - Pour un dossier B2B acheté 5 crédits (~60 € HTVA), la valeur moyenne d'un chantier signé oscille entre 40 000 € et 180 000 € HTVA, dégageant **8 000 € à 35 000 € de marge brute** pour l'installateur.
-  - Le ratio Marge générée / Coût d'acquisition du lead dépasse couramment **40:1**.
-- **Gestionnaire de litiges transparent (`lead_disputes`) :** En cas d'injoignabilité avérée ou de numéro erroné, les crédits sont restitués sous 24h ouvrées.
+1. **La Promesse Maîtresse : « Chaque lead est vérifié à la main avant mise en vente » :**  
+   Le point de douleur n°1 des installateurs sur les plateformes concurrentes est le taux élevé de déchets (faux numéros, curieux sans budget, locataires sans droit de décision). Sur Aegis Solaire, chaque demande transite par un sas obligatoire (`pending_review`) où l'équipe procède à un contrôle manuel (cohérence du projet, validité BCE/TVA, contrôle satellitaire de toiture, pré-qualification).
+2. **Personnalisation et Ciblage Sur-Mesure :**  
+   Les opportunités ne sont pas jetées en pâture dans un catalogue anonyme : un e-mail ciblé est transmis aux installateurs dont la zone d'intervention, la capacité technique et les disponibilités d'approvisionnement correspondent exactement aux exigences du chantier (« Aegis Solaire a sélectionné ce dossier spécialement pour vous »).
+3. **Pression Concurrentielle Drastiquement Réduite :**  
+   En B2B, l'installateur achète une **exclusivité absolue (1 seul acheteur unique)**. En B2C, le lead est limité à **3 acheteurs maximum** (contre jusqu'à 5 sur d'autres plateformes). L'installateur n'est pas contraint de casser ses prix pour signer, préservant ainsi une marge commerciale confortable.
+4. **L'Atout Stratégique Unique : L'Assistance Technique de Chantier B2B par Fabrice Remacle :**  
+   De nombreux installateurs indépendants ou PME résidentielles aimeraient se positionner sur de rentables chantiers tertiaires et industriels (toitures d'usines, ombrières de supermarché), mais craignent de ne pas être à la hauteur ou de manquer de crédibilité technique face à un DAF ou un bureau d'études.  
+   Aegis Solaire propose une offre d'ingénierie hybride inédite : **l'assistance d'un spécialiste senior (Fabrice Remacle)** directement mobilisable pour le projet :
+   - Réalisation de l'étude de faisabilité poussée et dimensionnement onduleurs / batteries.
+   - Présence physique en clientèle aux côtés de l'installateur lors des rendez-vous clés pour apporter la caution technique.
+   - Suivi et conseil en gestion de projet.  
+   *Rémunération du service : Forfait d'ingénierie ou commission au pourcentage du montant du chantier (2 à 4 %), créant une source de revenus additionnelle hautement rentable pour Aegis Solaire tout en fidélisant les installateurs.*
+5. **Garantie d'injoignabilité avec remboursement sous 24h (`lead_disputes`) :**  
+   En cas de numéro erroné ou d'anomalie manifeste, les crédits sont restitués sous 24 heures ouvrées, sans litige interminable.
 
 ### 4.3 Matrice Concurrentielle Comparative
 
 | Caractéristique | Bobex / TrustUp | Plateformes Nationales (Otovo) | Courtiers B2B Traditionnels | **Aegis Solaire** |
 |---|---|---|---|---|
 | **Cœur de cible** | B2C multi-travaux | Résidentiel standardisé | Grands comptes industriels | **PME/PMI, Tertiaire B2B & Résidentiel qualifié** |
-| **Exclusivité B2B** | Non (vendu à 5+ acteurs) | Intégré (leurs installateurs) | Oui (honoraires élevés) | **Oui (1 seul acheteur unique)** |
-| **Modèle tarifaire** | Abonnement mensuel + lead | Marge sur matériel | 3 à 5 % commission chantier | **À l'usage prépayé (Crédits transparents)** |
-| **Certification vérifiée** | Déclarative | Salariés / Sous-traitants | Variable | **Certification RESCERT obligatoire & auditée** |
-| **Transparence algorithmique** | Boîte noire | Devis automatique fermé | Audit physique payant | **Algorithme basé sur PVGIS & CWaPE public** |
-| **Garantie d'injoignabilité** | Difficile / Avoir partiel | Non applicable | Négociée au contrat | **Remboursement de crédits sous 24h ouvrées** |
+| **Vérification humaine des leads** | Non (100 % automatisé / déchet élevé) | Non | Manuelle | **Oui (Vérification manuelle systématique)** |
+| **Nombre d'installateurs par lead** | Jusqu'à 5 installateurs (guerre des prix) | Intégré (leurs sous-traitants) | 1 | **1 seul en B2B (Exclusif) / Max 3 en B2C** |
+| **Assistance technique de chantier** | Aucune (purement logiciel) | Support standard | Payant au forfait | **Oui (Accompagnement expert Fabrice Remacle)** |
+| **Modèle tarifaire** | Abonnement mensuel + lead | Marge sur matériel | 3 à 5 % commission | **Packs de crédits prépayés sur facture pro** |
+| **Sélection installateurs** | Déclarative (très peu de tri) | Réseau interne | Variable | **Certification RESCERT auditée + Charte Aegis** |
+| **Transparence algorithmique** | Boîte noire | Devis automatique fermé | Audit physique | **Physique réelle PVGIS & CWaPE publique** |
+| **Garantie d'injoignabilité** | Avoir partiel complexe | Non applicable | Négociée | **Recrédit transparent sous 24h ouvrées** |
 
 ---
 
@@ -413,6 +454,9 @@ L'expert financier exige de mesurer la résilience du modèle face à des condit
 | **Refus de paiement des installateurs** | Moyen | Faible | - Modèle 100 % prépayé : déblocage des données conditionné au solde positif en base de données PostgreSQL.<br>- Paiement sur facture préalable via virement direct sur le compte professionnel INIT42. |
 | **Évolution réglementaire défavorable** | Élevé | Faible | - Le durcissement réglementaire 2026-2027 va dans le sens d'une obligation (PEB 35 %, directive ZEB) et non d'une interdiction.<br>- Même sans prime, la rentabilité intrinsèque repose sur l'évitement du prix de réseau (0,20 €/kWh en entreprise), amorti en 5 à 7 ans. |
 | **Conformité RGPD et sanctions APD** | Critique | Faible | - Politique de confidentialité explicite sur la transmission à titre onéreux.<br>- Double consentement à cocher séparé (pas de case pré-cochée).<br>- Scripts de purge automatique des PII après 3 ans (`POST /api/admin/cleanup-leads`). |
+| **Trésorerie initiale d'amorçage limitée (Bootstrapped)** | Moyen | Élevée | - Structure de coûts fixes quasi-nulle (< 100 €/mois en phase test).<br>- Modèle de packs prépayés encaissés avant livraison.<br>- Aucun recrutement salarié prématuré ; exploitation portée par Nathan & Fabrice. |
+| **Courbe d'apprentissage sur l'achat média (Meta & Google Ads)** | Moyen | Moyenne | - Pas de "brûlage" de cash : phase de calibration avec micro-budgets (10-20 €/jour) sur la Wallonie.<br>- Optimisation algorithmique du Pixel Meta (`Lead`) et Google Ads avant montée en charge.<br>- Priorité aux requêtes intentionnistes Google Search B2B à fort taux de conversion. |
+| **Disponibilité temporelle (Nathan étudiant + Fabrice salarié)** | Faible | Moyenne | - Automatisation logicielle maximale des flux (Next.js serverless, emails transactionnels Resend).<br>- Seule la tâche d'arbitrage à haute valeur (vérification manuelle `pending_review` et consultance B2B) requiert une intervention humaine, facilement gérable en flux tendu. |
 
 ---
 

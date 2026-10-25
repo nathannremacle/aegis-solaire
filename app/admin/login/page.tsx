@@ -20,7 +20,7 @@ const containerVariants = {
 }
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 24 },
+  hidden: { opacity: 0, y: 16 },
   visible: {
     opacity: 1,
     y: 0,
@@ -65,51 +65,55 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 [padding-bottom:env(safe-area-inset-bottom)]">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 [padding-bottom:env(safe-area-inset-bottom)]">
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="w-full max-w-sm space-y-8"
+        className="w-full max-w-sm flex flex-col gap-6"
       >
-        <motion.div variants={itemVariants} className="text-center">
-          <Link href="/" className="mx-auto mb-6 block">
-            <div className="relative mx-auto h-12 w-48">
+        <motion.div variants={itemVariants} className="text-center flex flex-col items-center">
+          <Link href="/" className="mb-4 block">
+            <div className="relative h-10 w-40">
               <Image src="/logo.png" alt="Aegis Solaire" fill className="object-contain" priority />
             </div>
           </Link>
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-1.5 shadow-sm">
+          <div className="mb-3 inline-flex items-center gap-1.5 rounded-sm border border-border bg-secondary px-2.5 py-1 text-xs">
             <LayoutDashboard className="h-3.5 w-3.5 text-accent" />
-            <span className="text-xs font-bold uppercase tracking-widest text-[#001D3D]">
-              Administration
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-foreground">
+              Console d'Administration
             </span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Connexion admin</h1>
-          <p className="mt-2 text-sm text-slate-500">Aegis Solaire · Accès réservé</p>
+          <h1 className="font-heading text-xl font-semibold tracking-tight text-foreground">
+            Authentification Admin
+          </h1>
+          <p className="mt-1 font-mono text-xs text-muted-foreground">
+            Aegis Solaire Wallonie · Accès réservé
+          </p>
         </motion.div>
 
         <motion.form
           variants={itemVariants}
           onSubmit={handleSubmit}
-          className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+          className="flex flex-col gap-4 rounded-lg border border-border bg-card p-6 shadow-xs"
         >
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium text-slate-700">
-              E-mail
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="email" className="text-xs font-medium text-foreground">
+              Adresse e-mail
             </Label>
             <Input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@exemple.be"
+              placeholder="admin@aegis-solaire.be"
               required
               autoComplete="email"
-              className="h-11 rounded-xl"
+              className="h-9 text-xs"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-sm font-medium text-slate-700">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="password" className="text-xs font-medium text-foreground">
               Mot de passe
             </Label>
             <Input
@@ -119,14 +123,14 @@ export default function AdminLoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
-              className="h-11 rounded-xl"
+              className="h-9 text-xs"
             />
           </div>
           {error && (
             <motion.p
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+              className="rounded-sm border border-destructive/25 bg-destructive/10 px-3 py-2 text-xs text-destructive font-mono"
               role="alert"
             >
               {error}
@@ -134,12 +138,12 @@ export default function AdminLoginPage() {
           )}
           <Button
             type="submit"
-            className="h-12 w-full bg-[#001D3D] text-base font-bold text-white shadow-md transition-all hover:bg-[#00152e] hover:shadow-lg"
+            className="h-9 w-full text-xs font-medium shadow-xs mt-1"
             disabled={loading}
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 Connexion…
               </span>
             ) : (
@@ -151,10 +155,10 @@ export default function AdminLoginPage() {
         <motion.p variants={itemVariants} className="text-center">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-sm text-slate-500 underline-offset-4 transition-colors hover:text-slate-900 hover:underline"
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
           >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Retour au site
+            <ArrowLeft className="h-3 w-3" />
+            Retourner au site public
           </Link>
         </motion.p>
       </motion.div>

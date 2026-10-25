@@ -6,14 +6,19 @@ Ce document est la **seule source à jour** pour comprendre le site : **parcours
 
 ---
 
-## 1. Vue d’ensemble métier
+## 1. Vue d’ensemble métier & Gouvernance
 
-**Aegis Solaire** est une plateforme autour du **photovoltaïque** (focus marché pro / Wallonie–Belgique) qui :
+**Aegis Solaire** est une plateforme d'intermédiation et de qualification photovoltaïque en Wallonie (Belgique), exploitée sous l'entité individuelle **INIT42** (BCE `1039.899.980` · TVA `BE 1039.899.980` · Liège).
 
-- **Attire** décideurs et particuliers (accueil, `/particuliers`, simulateurs, webinaire, FAQ, pages légales).
-- **Qualifie** les demandes (localisation, GRD, consommation, identité pro B2B) : les leads sont **triés et arbitrés manuellement** par l’équipe Aegis, en complément de **modèles et algorithmes poussés** (scoring, anti-abus, règles métier), puis enregistrés dans **Supabase**.
-- **Distribue** les opportunités aux **partenaires marketplace** (e-mails teaser, fil d’annonces, **achat au crédit**) tout en gardant l’**assignation admin → installateur** classique (e-mail, export CSV, webhook optionnel).
-- **Gère** les **candidatures installateurs**, les **marketeurs** (code de tracking, commissions) et la **conformité** (audit, nettoyage RGPD).
+Le projet repose sur la complémentarité entre :
+- **Nathan Remacle** : Fondateur & Architecte Logiciel (étudiant ingénieur civil à Liège, concepteur de la plateforme avec l'IA Antigravity / Gemini).
+- **Fabrice Remacle** : Chief Technical Advisor (expert photovoltaïque, onduleurs et batteries en Wallonie, formateur et consultant d'installateurs, en poste chez PhotonSolar à Fléron).
+
+### Missions clés :
+- **Attirer** décideurs B2B et particuliers via l'accueil (`/`), le segment résidentiel (`/particuliers`), le comparateur devis (`/devis-panneaux-solaires`), les simulateurs, le webinaire et la FAQ.
+- **Qualifier & Contrôler à la main** : Chaque demande fait l'objet d'un filtrage algorithmique (Zod, scoring, anti-bot) suivi obligatoirement d'une **vérification manuelle humaine par l'équipe (`pending_review`)** avant toute mise en vente (contrôle BCE/TVA, toiture Maps, cohérence du besoin).
+- **Distribuer avec friction concurrentielle réduite** : Distribution sélective sur la marketplace partenaire (**1 seul acheteur exclusif en B2B**, **maximum 3 installateurs en B2C**) via des packs de crédits prépayés sur facture INIT42.
+- **Accompagnement de chantier B2B** : Offre exclusive d'ingénierie et d'accompagnement client assurée par Fabrice Remacle pour épauler les installateurs partenaires sur les projets tertiaires et industriels d'envergure.
 
 ---
 
@@ -21,13 +26,15 @@ Ce document est la **seule source à jour** pour comprendre le site : **parcours
 
 | Route | Rôle |
 |-------|------|
-| `/` | Accueil B2B : hero, témoignages, expertise, promo webinaire, avantages, **simulateur ROI B2B**, teaser FAQ |
+| `/` | Accueil B2B : hero, modélisations types, expertise, promo webinaire, avantages, **simulateur ROI B2B**, teaser FAQ |
 | `/particuliers` | Segment résidentiel : arguments + **simulateur B2C** |
+| `/devis-panneaux-solaires` | Formulaire comparatif rapide (style Bobex) optimisé pour mobile et campagnes Meta/Google Ads |
 | `/partenaires` | Programme installateurs : présentation + **candidature** ; liens vers **connexion** et **dashboard marketplace** |
+| `/partenaires/invitation` | Landing page VIP d'invitation personnalisée pour les installateurs invités par Fabrice Remacle (`?nom=Christophe&cie=Coretec`) |
 | `/media-partners` | Programme marketeurs (affiliation) |
 | `/webinaire` | Inscription webinaire |
 | `/faq-technique` | Contenu technique (FAQ) |
-| `/mentions-legales`, `/politique-confidentialite`, `/cgv` | Légal |
+| `/mentions-legales`, `/politique-confidentialite`, `/cgv` | Légal (INIT42, Nathan Remacle, tribunal de Liège) |
 
 Le **sitemap** (`app/sitemap.ts`) liste les URL **indexables**. Les zones **`/admin`**, **`/partenaires/dashboard`**, **`/media-partners/dashboard`** ne sont en général **pas** destinées au référencement (metadata `robots` sur certaines layouts). Le footer renvoie notamment vers **Devenir Partenaire** et **Media Partners**.
 
@@ -83,6 +90,15 @@ Le composant **`MediaPartnerRefTracker`** est monté dans **`app/layout.tsx`** (
 
 **`POST /api/installateurs/register`** → table **`installer_applications`** (migration `016`). L’accès **marketplace** (`partners` + Auth) suit en général une **approbation** admin (`/admin/applications`).
 
+### 7.2 Inscription VIP par Invitation Personnalisée (`/partenaires/invitation`)
+
+Pour les démarches directes menées par **Fabrice Remacle** auprès de son réseau d'installateurs (notamment via PhotonSolar), une landing page sur-mesure est disponible :
+- URL paramétrable : `https://aegissolaire.com/partenaires/invitation?nom=Christophe&cie=Coretec`.
+- Message d'accueil personnalisé avec photo/badge de Fabrice et promesses d'Aegis Solaire (vérifié à la main, assistance chantier B2B, concurrence ultra-limitée).
+- Aucun crédit gratuit offert : modèle strict basé sur la qualité et la certification RESCERT.
+- Pré-remplissage du prénom et de l'entreprise.
+- À la soumission : tag automatique `⭐ INVITATION VIP PAR: [Nom]` stocké dans `installer_applications.admin_notes`.
+
 ---
 
 ## 8. Installateurs : trois niveaux
@@ -96,7 +112,7 @@ Le composant **`MediaPartnerRefTracker`** est monté dans **`app/layout.tsx`** (
 
 - **`/partenaires/login`** (Supabase). **`getPartner()`** (`lib/partner-auth.ts`) exige une ligne **`partners`** (email ou `auth_user_id`).
 - **`/partenaires/dashboard`** : leads disponibles, déblocage contre **crédits** (RPC **`purchase_lead`**). Les opportunités affichées sont **triées et validées** par l’**équipe Aegis** avant mise en vente, **en complément d’algorithmes avancés** (voir aussi section **4** et **10.3**).
-- **`/partenaires/dashboard/credits`** : packs ; **`POST /api/payments/revolut`** — voir **section 17.3** *Crédits et paiement Revolut Pay* (stub démo / prod).
+- **`/partenaires/dashboard/credits`** : boutique de packs (10, 50, 100 crédits) avec commande par virement bancaire sur facture pro INIT42 (`/api/partners/credits/order`) — voir **section 17.3**.
 
 ### 8.3 E-mails teaser
 
@@ -189,11 +205,11 @@ Partenaires : feed marketplace, crédits, purchase_lead
 | Teaser partenaires | `lib/partner-lead-teaser-email.ts` |
 | Candidature installateur | `app/api/installateurs/register`, `lib/installer-registration-schema.ts` |
 | Auth partenaire | `lib/partner-auth.ts` |
-| API partenaires / paiement | `app/api/partners/*`, `app/api/payments/revolut/route.ts` |
+| API partenaires / paiement | `app/api/partners/*`, `app/api/partners/credits/order` |
 | Panel admin | `app/admin/(dashboard)/`, `components/admin-nav.tsx` |
 | API admin | `app/api/admin/` |
 | Audit | `lib/audit-log.ts` |
-| **Stack / déploiement général** | `DOCUMENTATION.md` (si présent) |
+| **Stack technique & configuration** | `README.md` |
 
 Variables courantes : voir **section 14** (y compris **`RESEND_API_KEY`**, **`RESEND_FROM_EMAIL`**, **`PARTNER_LEAD_ALERT_EMAILS`** pour les e-mails).
 
@@ -247,16 +263,21 @@ Sans **`RESEND_API_KEY`**, **`notify-installateur`** et **`partner-lead-teaser-e
 
 ### 16.1 Ordre des scripts (`scripts/`)
 
-1. `001` → `011` : schéma `leads`, installateurs, champs métier.
-2. **`009_audit_log.sql`** (si utilisé sur le projet) : table **`audit_log`** pour l’admin.
-3. **`012_admin_and_partners_schema.sql`** : `admin_users`, `partners`, `lead_distributions`, RLS, `is_admin()`, `current_partner_id()`, etc.
-4. **`013_add_segments.sql`** : segments leads / partenaires.
-5. **`014_media_partners.sql`** : `media_partners`, `leads.media_partner_code`.
-6. **`015_marketplace_purchases.sql`** : `lead_purchases`, `credit_transactions`, RPC **`purchase_lead`**, **`add_credits`**, RLS.
-7. **`016_installer_applications.sql`** : candidatures.
-8. **`017_fix_lead_purchases_credits_spent.sql`** : si `lead_purchases` sans **`credits_spent`**, ajout + re-déploiement de **`purchase_lead()`**.
-
-L’ordre exact peut varier selon l’historique du projet Supabase : en cas de doute, comparer les dépendances entre scripts et l’état réel des tables.
+1. `001` → `011` : schéma de base `leads`, table `installateurs`, champs Wallonie (GRD, toitures, facture HT), table `audit_log` (`009`).
+2. **`012_admin_and_partners_schema.sql`** : `admin_users`, `partners`, `lead_distributions`, RLS, `is_admin()`, `current_partner_id()`.
+3. **`013_add_segments.sql`** : segments `b2b` et `b2c` sur leads et partenaires.
+4. **`014_media_partners.sql`** : `media_partners`, tracking d'affiliation `leads.media_partner_code`.
+5. **`015_marketplace_purchases.sql`** : `lead_purchases`, `credit_transactions`, RPCs atomiques **`purchase_lead`**, **`add_credits`**, RLS.
+6. **`016_installer_applications.sql`** : table de candidatures installateurs RESCERT.
+7. **`017_fix_lead_purchases_credits_spent.sql`** : colonne `credits_spent` et RPC durcie.
+8. **`018_media_partner_applications.sql`** : candidatures affiliés/médias.
+9. **`019_add_lead_admin_notes.sql`** : notes internes admin sur les fiches leads.
+10. **`020_marketplace_lead_governance.sql`** : statut par défaut `pending_review` (revue humaine obligatoire) et rejet automatique des inscrits webinaire.
+11. **`021_add_newsletter_consent.sql`** : consentement newsletter séparé du consentement de mise en relation.
+12. **`022_credit_orders.sql`** & **`022_secure_marketplace_purchases.sql`** : bons de commande packs de crédits par virement bancaire INIT42 et verrouillage atomique (`SELECT FOR UPDATE`).
+13. **`023_pipeline_and_disputes.sql`** : gestionnaire de litiges (`lead_disputes`) avec recrédit 24h et statuts de closing installateurs.
+14. **`024_canonical_leads_schema.sql`** : schéma canonique consolidé des colonnes `leads`.
+15. **`025` → `029` & `RUN_IN_SUPABASE_DASHBOARD_PERF.sql`** : flags de tests partenaires, RPCs de dashboard admin accélérées (`get_admin_dashboard_kpis`), index de performance B-Tree/GIN, atomicité live feed installateur, et sécurisation RLS critique (`service_role` exclusif sur `leads`, `audit_log`, `installateurs`).
 
 ### 16.2 Tables clés
 
@@ -290,38 +311,44 @@ Les routes critiques utilisent **`createServiceRoleClient()`** tout en vérifian
 
 ---
 
-## 17. Portail installateur — marketplace (API + Revolut)
+## 17. Portail installateur — marketplace (API & Facturation INIT42)
 
 ### 17.1 Pages
 
 | Route | Rôle |
 |-------|------|
 | `/partenaires/dashboard` | Feed `marketplace_status = available`, teaser, FOMO B2C (3 places), déblocage |
-| `/partenaires/dashboard/credits` | Packs + paiement (démo ou prod) |
+| `/partenaires/dashboard/credits` | Boutique de packs de crédits (10, 50, 100 crédits) avec commande par virement bancaire |
 
 ### 17.2 API partenaire
 
 | Méthode | Route | Rôle |
 |---------|-------|------|
-| GET | `/api/partners/marketplace` | Liste, slots, « déjà acheté » |
-| POST | `/api/partners/purchase` | `{ leadId }` → **`purchase_lead`** |
-| GET | `/api/partners/credits` | Solde, transactions, achats |
+| GET | `/api/partners/marketplace` | Liste des leads disponibles, slots restants, statut « déjà acheté » |
+| POST | `/api/partners/purchase` | `{ leadId }` → RPC PostgreSQL **`purchase_lead`** (débit atomique) |
+| GET | `/api/partners/credits` | Solde de crédits, historique des transactions et achats |
+| POST | `/api/partners/credits/order` | Génération de bon de commande officiel INIT42 avec référence de virement normalisée |
 
-Les **POST** `/api/partners/*` : header **`x-admin-request`** (convention CSRF, nom historique).
+Les **POST** `/api/partners/*` exigent le header **`x-admin-request`** (convention CSRF du middleware).
 
-### 17.3 Crédits et paiement Revolut Pay
+### 17.3 Système de Crédits et Paiement Sécurisé (INIT42)
 
-**Démo** : solde initial **0** ; **`POST /api/payments/revolut`** accepte un JSON minimal (`event`, `partnerId`, `packId`, `transactionId`) et crédite via **`add_credits`** — **pas** un vrai paiement.
+Pour éliminer les risques de fraude et de rétro-facturation, les packs de crédits sont réglés sur facture professionnelle :
 
-**Production (Revolut Merchant)** — à implémenter dans la même route ou webhook dédié :
-
-1. Compte **Revolut Business** + **Merchant API** ([guide](https://developer.revolut.com/docs/guides/accept-payments/get-started/make-your-first-payment)).
-2. Clés **sandbox** puis **prod** en variables serveur (ex. `REVOLUT_MERCHANT_API_KEY`, jamais exposées au navigateur).
-3. **Order** côté backend avec montant du pack (`app/api/payments/revolut/route.ts`, `app/partenaires/dashboard/credits/page.tsx`) ; **metadata** : au minimum **`partnerId`** (UUID `partners.id`) et **`packId`** (`pack_10`, `pack_50`, `pack_100`).
-4. Webhook Revolut vers URL publique (ex. `/api/payments/revolut`) ; [création webhook](https://developer.revolut.com/docs/merchant/2024-05-01/create-webhook).
-5. **Vérifier** signature HMAC `Revolut-Signature` / `Revolut-Request-Timestamp` ; anti-replay ([verify payload](https://developer.revolut.com/docs/guides/accept-payments/tutorials/work-with-webhooks/verify-the-payload-signature)).
-6. **Idempotence** avant **`add_credits`** (transaction / `order_id` déjà traité).
-7. Frontend : widget ou checkout Revolut documenté, avec `order_id` serveur.
+1. **Grille tarifaire officielle (HTVA) :**
+   - **Pack Découverte** : 10 crédits = **149 € HTVA** (14,90 €/crédit)
+   - **Pack Croissance** : 50 crédits = **599 € HTVA** (11,98 €/crédit — Pack de référence)
+   - **Pack Entreprise** : 100 crédits = **999 € HTVA** (9,99 €/crédit)
+2. **Flux de commande (`/api/partners/credits/order`) :**
+   - L'installateur choisit son pack sur `/partenaires/dashboard/credits`.
+   - L'API génère un bon de commande officiel INIT42 avec référence unique normalisée (`AEGIS-[NOM]-XXCR-[ID]`).
+   - L'installateur effectue le virement bancaire vers le compte professionnel INIT42 :
+     - **IBAN** : `BE84 0020 3534 7259`
+     - **BIC** : `GEBABEBB`
+     - **Bénéficiaire** : INIT42 / Nathan Remacle
+3. **Crédit sur le compte partenaire :**
+   - L'administration crédite le solde via `/api/admin/partners/[id]/credits` (RPC `add_credits`) dès réception du virement ou justificatif.
+   - L'ancien endpoint de paiement Revolut a été neutralisé (HTTP 503 Service Unavailable) suite à l'audit de sécurité d'octobre 2026.
 
 ---
 
@@ -372,8 +399,7 @@ Les **POST** `/api/partners/*` : header **`x-admin-request`** (convention CSRF, 
 
 - Le **code source** : comportement exact, conditions d’erreur, champs `select` Supabase, textes UI.
 - L’état **réel** de la base Supabase (migrations partiellement appliquées, données de prod).
-- Les **secrets** (jamais dans le dépôt) : `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, clés Revolut, etc.
-- **`DOCUMENTATION.md`** : complément possible sur déploiement, stack versions, branding (vérifier la cohérence avec le code si une phrase semble ancienne).
+- Les **secrets** (jamais dans le dépôt) : `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, etc.
 
 **Règle pour une IA** : si la question est « que fait l’utilisateur / le métier ? », priorité à ce fichier ; si « pourquoi cette erreur 403 / ce champ null ? », ouvrir **`middleware.ts`**, la route **`app/api/.../route.ts`** et **`lib/*`** cités.
 
@@ -383,8 +409,8 @@ Les **POST** `/api/partners/*` : header **`x-admin-request`** (convention CSRF, 
 |-------|-----------|
 | **`installateurs` vs `partners`** | **`installateurs`** = référentiel **assignation manuelle** par l’admin + e-mail Speed-to-Lead. **`partners`** = comptes **marketplace** (crédits, Auth, feed, `purchase_lead`). Un même acteur métier peut exister dans les deux tables après **approbation** d’une candidature. |
 | **`x-admin-request`** | Nom **historique** ; requis pour les **mutations** sur admin, `/api/partners`, `/api/media-partners`, **pas** pour `POST /api/leads`. |
-| **Teasers vs assignation** | Teasers = e-mails **anonymisés** aux **`partners`** (segment) + option **`PARTNER_LEAD_ALERT_EMAILS`**. Assignation = lien lead → ligne **`installateurs`** + e-mail **avec PII** via **`notify-installateur`**. |
-| **Revolut** | La route **`/api/payments/revolut`** est un **stub** tant que la prod n’est pas câblée (section 17.3). |
+| **Teasers vs assignation** | Teasers = e-mails **anonymisés** aux **`partners`** (segment) + option **`PARTNER_LEAD_ALERT_EMAILS`**. Assignation = lien lead → ligne **`installateurs`** + e-mail **avec PII**. |
+| **Paiement crédits** | Les commandes de crédits passent par un bon de commande officiel INIT42 et virement bancaire (`/api/partners/credits/order`). L'ancien endpoint direct Revolut est désactivé (HTTP 503). |
 | **Lead « message »** | Côté API leads, le champ **`message`** / **`project_details`** en base peut agréger **précision de localisation** + texte projet (voir `app/api/leads/route.ts`). |
 
 ### 22.4 Routes applicatives (hors API) utiles

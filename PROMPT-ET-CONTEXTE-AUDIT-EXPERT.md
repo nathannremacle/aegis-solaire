@@ -96,17 +96,23 @@ Ton rapport d'audit doit être exhaustif, percutant et articulé selon la struct
 
 ---
 
-## 1. Fiche d'Identité du Projet & Cadre Légal
+## 1. Fiche d'Identité du Projet, Équipe & Cadre Légal
 
 - **Nom du projet :** Aegis Solaire
 - **Exploitant & Forme Juridique :** INIT42 (Nathan Remacle, personne physique en phase de transition SRL), immatriculé à Liège, Belgique.
 - **Identifiants officiels :** BCE / KBO : `1039.899.980` · TVA : `BE 1039.899.980`.
-- **Compte bancaire pro :** IBAN `BE84 0020 3534 7259` · BIC `GEBABEBB`.
+- **Compte bancaire pro :** IBAN `BE84 0020 3534 7259` · BIC `GEBABEBB` (INIT42 / Nathan Remacle).
 - **Codes NACEBEL :** `62100` (Programmation), `62200` (Conseil), `63100` (Traitement de données & portails), `73110` (Publicité), `82400` (Centres d'appels / intermédiation).
-- **Positionnement métier :** Plateforme d'intermédiation et marketplace de leads solaires qualifiés. Cible prioritaire : B2B (PME, tertiaire, toitures industrielles > 500 m², parkings éligibles à des ombrières) en Wallonie et Belgique. Volet secondaire : B2C (résidentiel qualifié).
-- **Modèle de distribution :**
-  - **B2B :** Vendu à **1 seul installateur unique (exclusivité totale)** contre **5 crédits** (~60 € HTVA).
-  - **B2C :** Vendu à **maximum 3 installateurs distincts (non-exclusif)** contre **2 crédits par slot** (~24 € HTVA / acheteur, soit jusqu'à 71,88 € HTVA par lead pour Aegis).
+- **Équipe fondatrice & gouvernance :**
+  - **Nathan Remacle** : 20 ans (né en janvier 2006 à Verviers), étudiant en 3e année de bachelier d'ingénieur civil (orientation informatique et génie civil) à Liège. Concepteur de la plateforme, architecte logiciel fullstack et développeur du produit en synergie avec l'IA avancée (Antigravity / Gemini).
+  - **Fabrice Remacle** : Père de Nathan, la cinquantaine, diplômé électricien, expert reconnu en Wallonie dans le photovoltaïque, les onduleurs et les batteries. Formateur et consultant d'installateurs solaires, employé chez PhotonSolar (grossiste à Fléron). Conseiller métier stratégique.
+- **Positionnement métier & Différenciation concurrentielle (vs Bobex, TrustUp, HomeDeal) :**
+  1. **« Qualité contrôlée à la main »** : Chaque lead fait l'objet d'une vérification humaine (`pending_review`) avant mise en vente (zéro faux numéro, validation TVA/toiture).
+  2. **Moins d'installateurs par lead** : Exclusivité totale en B2B (1 seul acheteur unique à 5 crédits / ~60 €) et max 3 installateurs en B2C (2 crédits / slot), évitant la guerre des prix destructrice des plateformes traditionnelles.
+  3. **Personnalisation et ciblage** : Matching fin et notification par e-mail aux installateurs adaptés aux spécificités techniques du chantier.
+  4. **Atout unique : L'assistance technique de chantier B2B par Fabrice Remacle** : Possibilité pour les installateurs partenaires de solliciter l'accompagnement de Fabrice (étude de faisabilité, dimensionnement complexe, présence aux rdv clients tertiaires) moyennant commission/pourcentage de chantier.
+  5. **Sélection stricte des installateurs pour les clients** : Agrément manuel des installateurs (RESCERT obligatoire + charte de qualité Aegis Conform), garantissant au prospect l'absence de harcèlement commercial.
+- **Contraintes de démarrage :** Structure bootstrapped (trésorerie lean, pas de levée de fonds dilutive), optimisation de la dépense média (tests publicitaires prudents à petit budget sur la Wallonie), et exploitation hyper-automatisée pour convenir au temps partagé des fondateurs.
 
 ---
 

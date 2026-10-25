@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { evaluateLeadPublishability } from "@/lib/lead-quality"
-import { sendPartnerLeadTeaserEmails } from "@/lib/partner-lead-teaser-email"
+import { dispatchLeadWave } from "@/lib/lead-relance-engine"
 
 export async function POST(
   request: Request,
@@ -77,28 +77,13 @@ export async function POST(
     console.warn("[admin publish] audit log insertion failed:", err)
   }
 
-  // 4. Notification teaser vers les installateurs partenaires certifiés
+  // 4. Déclenchement de la Vague 1 de relance intelligente via le moteur d'attribution
   try {
-    const { data: partners } = await admin
-      .from("partners")
-      .select("email")
-      .in("segment", [leadToPublish.segment || "B2B", "BOTH"])
-
-    const targetEmails = partners ? partners.map((p) => p.email).filter(Boolean) : []
-    if (targetEmails.length > 0) {
-      void sendPartnerLeadTeaserEmails({
-        targetEmails,
-        segment: leadToPublish.segment || "B2B",
-        province: leadToPublish.province || "Wallonie",
-        surfaceType: leadToPublish.surface_type || "toiture",
-        surfaceArea: leadToPublish.surface_area || 0,
-        annualElectricityBill: leadToPublish.annual_electricity_bill || 0,
-        grd: null,
-        projectDetails: null,
-      }).catch((err) => console.error("[publish teaser notification failed]", err))
-    }
+    void dispatchLeadWave(id, 1).catch((err) =>
+      console.error("[admin publish] Échec dispatchLeadWave Vague 1:", err)
+    )
   } catch (err) {
-    console.warn("[admin publish] teaser notification failed:", err)
+    console.warn("[admin publish] dispatchLeadWave exception:", err)
   }
 
   return NextResponse.json({

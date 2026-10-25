@@ -1,7 +1,11 @@
-import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
-/** Affiche le score lead : Rouge/Feu > 70, Orange 40–70, Gris < 40 */
+/**
+ * Affiche le score lead de manière sobre et architecturale (Swiss Design) :
+ * - >= 70 : Haute valeur (Primary / Forest Green)
+ * - 40–69 : Moyen (Muted)
+ * - < 40 : À contrôler (Destructive)
+ */
 export function LeadScoreBadge({
   score,
   className,
@@ -11,26 +15,29 @@ export function LeadScoreBadge({
 }) {
   if (score == null) {
     return (
-      <Badge variant="outline" className={cn("font-mono bg-muted text-muted-foreground", className)}>
+      <span className={cn("inline-flex items-center justify-center h-5 px-1.5 rounded-sm font-mono text-[11px] text-muted-foreground bg-secondary border border-border tabular-nums", className)}>
         –
-      </Badge>
+      </span>
     )
   }
-  const s = Number(score)
-  const isHot = s > 70
-  const isMedium = s >= 40 && s <= 70
+
+  const s = Math.round(Number(score))
+  const isHigh = s >= 70
+  const isMedium = s >= 40 && s < 70
+  const isLow = s < 40
+
   return (
-    <Badge
-      variant="outline"
+    <span
       className={cn(
-        "font-mono font-medium",
-        isHot && "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/40",
-        isMedium && "bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/40",
-        !isHot && !isMedium && "bg-muted text-muted-foreground border-border",
+        "inline-flex items-center justify-center gap-1 h-5 px-1.5 rounded-sm font-mono text-[11px] font-medium tabular-nums border",
+        isHigh && "bg-primary/10 text-primary border-primary/25",
+        isMedium && "bg-secondary text-secondary-foreground border-border",
+        isLow && "bg-destructive/10 text-destructive border-destructive/25",
         className
       )}
     >
-      {s}
-    </Badge>
+      <span>{s}</span>
+      <span className="text-[9px] text-muted-foreground font-mono">/100</span>
+    </span>
   )
 }

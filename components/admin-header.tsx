@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Menu, Search, Shield, Bell, CheckCircle2, UserCheck } from "lucide-react"
+import { Menu, AlertTriangle } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { AdminBreadcrumbs } from "@/components/admin-breadcrumbs"
@@ -12,42 +12,45 @@ export function AdminHeader({
   pendingMedia,
   needsReview,
   pendingCreditOrders,
+  pendingDisputes = 0,
 }: {
   pendingApplications: number
   pendingMedia: number
   needsReview: number
   pendingCreditOrders: number
+  pendingDisputes?: number
 }) {
   const [mobileOpen, setMobileOpen] = React.useState(false)
-  const totalAlerts = (pendingCreditOrders > 0 ? 1 : 0) + (needsReview > 0 ? 1 : 0) + (pendingApplications > 0 ? 1 : 0)
+  const totalSlaAlerts = (pendingCreditOrders > 0 ? 1 : 0) + (needsReview > 0 ? 1 : 0) + (pendingDisputes > 0 ? 1 : 0)
 
-  // Current formatted date in French
+  // Current formatted date in French (Wallonie/Belgique)
   const todayStr = new Intl.DateTimeFormat("fr-BE", {
-    weekday: "long",
+    weekday: "short",
     day: "numeric",
-    month: "long",
+    month: "short",
     year: "numeric",
   }).format(new Date())
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-slate-200/80 bg-white/85 px-4 backdrop-blur-md sm:px-6 lg:px-8 shadow-2xs">
+    <header className="sticky top-0 z-20 flex h-12 w-full items-center justify-between border-b border-border bg-card/95 px-4 sm:px-6 backdrop-blur-xs">
       <div className="flex items-center gap-3">
         {/* Mobile menu sheet */}
         <div className="md:hidden">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-700 hover:bg-slate-100">
-                <Menu className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-foreground hover:bg-secondary">
+                <Menu className="h-4 w-4" />
                 <span className="sr-only">Ouvrir le menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-72 border-r-0 bg-white">
+            <SheetContent side="left" className="p-0 w-64 border-r-0 bg-card">
               <SheetTitle className="sr-only">Menu de navigation administrateur</SheetTitle>
               <AdminNav
                 pendingApplications={pendingApplications}
                 pendingMedia={pendingMedia}
                 needsReview={needsReview}
                 pendingCreditOrders={pendingCreditOrders}
+                pendingDisputes={pendingDisputes}
                 onNavigate={() => setMobileOpen(false)}
               />
             </SheetContent>
@@ -60,31 +63,37 @@ export function AdminHeader({
         </div>
       </div>
 
-      {/* Right controls */}
-      <div className="flex items-center gap-3 sm:gap-4">
+      {/* Right operational controls */}
+      <div className="flex items-center gap-3">
+        {/* SLA Alert Chip if pending urgent items */}
+        {totalSlaAlerts > 0 && (
+          <a
+            href="/admin/dashboard"
+            title={`${needsReview + pendingCreditOrders + pendingDisputes} actions soumises au SLA 24h : ${needsReview} lead(s) à trier, ${pendingCreditOrders} virement(s) SEPA, ${pendingDisputes} litige(s)`}
+            className="inline-flex items-center gap-1.5 rounded-sm bg-destructive/10 border border-destructive/25 px-2 py-0.5 text-xs font-mono font-medium text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"
+          >
+            <AlertTriangle className="h-3 w-3 shrink-0" />
+            <span className="font-mono tabular-nums">{needsReview + pendingCreditOrders + pendingDisputes} urgences SLA</span>
+          </a>
+        )}
+
         {/* Date pill (desktop) */}
-        <div className="hidden lg:flex items-center gap-1.5 rounded-full bg-slate-100/80 border border-slate-200 px-3 py-1 text-xs text-slate-600 font-medium capitalize">
+        <div className="hidden lg:flex items-center rounded-sm bg-secondary px-2 py-0.5 font-mono text-[11px] text-muted-foreground capitalize">
           <span>{todayStr}</span>
         </div>
 
         {/* Live system status */}
-        <div className="hidden sm:flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 text-[11px] text-emerald-800 font-semibold shadow-2xs">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
-          </span>
-          <span>Système Live</span>
+        <div className="hidden sm:flex items-center gap-1.5 rounded-sm bg-secondary border border-border px-2 py-0.5 text-[11px]">
+          <span className="h-1.5 w-1.5 rounded-full bg-chart-3" />
+          <span className="font-mono text-muted-foreground">Live</span>
         </div>
 
         {/* Admin profile chip */}
-        <div className="flex items-center gap-2.5 rounded-full border border-slate-200/80 bg-slate-50/80 p-1 pr-3 shadow-2xs">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#001D3D] text-[11px] font-black text-amber-400 ring-2 ring-amber-400/30">
+        <div className="flex items-center gap-2 rounded-md border border-border bg-card px-2 py-1">
+          <div className="flex h-5 w-5 items-center justify-center rounded-sm bg-primary text-[10px] font-mono font-semibold text-primary-foreground">
             NR
           </div>
-          <div className="hidden sm:block text-left">
-            <p className="text-xs font-bold text-slate-800 leading-tight">Nathan R.</p>
-            <p className="text-[10px] text-slate-500 leading-none">Super Admin</p>
-          </div>
+          <span className="hidden sm:inline font-mono text-xs font-medium text-foreground">Admin</span>
         </div>
       </div>
     </header>

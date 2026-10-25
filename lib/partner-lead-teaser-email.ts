@@ -91,26 +91,27 @@ Débloquer ce lead complet (Se connecter au Dashboard) -> ${ctaUrl}`
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><title>${escapeHtml(subject)}</title></head>
-<body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1a1a1a;">
-  <p>Un nouveau projet est disponible sur <strong>Aegis Solaire</strong>.</p>
-  <p><strong>Caractéristiques :</strong></p>
-  <ul style="line-height: 1.6;">
-    <li>Type : ${escapeHtml(typeLabel)}</li>
-    <li>Surface : ${escapeHtml(surface)}</li>
-    <li>Province : ${escapeHtml(provinceLabel)}</li>
-    <li>Facture électrique estimée : ${escapeHtml(facture)}</li>
-    <li>GRD : ${escapeHtml(grdLabel)}</li>
-    <li>Précisions : ${escapeHtml(precisions).replace(/\n/g, "<br/>")}</li>
-  </ul>
-  <p style="margin-top: 24px;">
-    <a href="${escapeHtml(ctaUrl)}" style="display: inline-block; background: #112f4b; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: 600;">
-      Débloquer ce lead complet (Se connecter au Dashboard)
-    </a>
-  </p>
-  <p style="margin-top: 16px; font-size: 13px; color: #666;">
-    <a href="${escapeHtml(ctaUrl)}">${escapeHtml(ctaUrl)}</a>
-  </p>
-  <p style="margin-top: 24px; color: #666; font-size: 12px;">E-mail automatique — aucune donnée nominative du prospect n’est incluse.</p>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #111815; background-color: #FAF8F5;">
+  <div style="background-color: #FFFFFF; border: 1px solid #E2DDD3; border-radius: 6px; padding: 24px;">
+    <h2 style="color: #0B2B22; margin-top: 0; font-size: 18px;">Nouveau projet certifié — Aegis Solaire</h2>
+    <p style="color: #525E59; font-size: 14px;">Un nouveau projet est disponible pour déblocage sur la marketplace :</p>
+    <ul style="line-height: 1.8; font-size: 14px; color: #111815;">
+      <li><strong>Type :</strong> ${escapeHtml(typeLabel)}</li>
+      <li><strong>Surface :</strong> <span style="font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums;">${escapeHtml(surface)}</span></li>
+      <li><strong>Province :</strong> ${escapeHtml(provinceLabel)}</li>
+      <li><strong>Facture estimée :</strong> <span style="font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums;">${escapeHtml(facture)}</span></li>
+      <li><strong>GRD :</strong> ${escapeHtml(grdLabel)}</li>
+      <li><strong>Précisions :</strong> ${escapeHtml(precisions).replace(/\n/g, "<br/>")}</li>
+    </ul>
+    <div style="margin-top: 24px; text-align: center;">
+      <a href="${escapeHtml(ctaUrl)}" style="display: inline-block; background-color: #0B2B22; color: #FAF8F5; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 14px;">
+        Débloquer ce dossier sur le Dashboard &rarr;
+      </a>
+    </div>
+    <p style="margin-top: 20px; color: #525E59; font-size: 11px; text-align: center;">
+      Tiers de Confiance Photovoltaïque Wallon · Agrément RESCERT
+    </p>
+  </div>
 </body>
 </html>
 `.trim()

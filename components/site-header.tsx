@@ -7,6 +7,7 @@ const HIDDEN_PREFIXES = [
   "/admin",
   "/devis-panneaux-solaires",
   "/partenaires/dashboard",
+  "/partenaires/invitation",
 ]
 
 export function SiteHeader() {

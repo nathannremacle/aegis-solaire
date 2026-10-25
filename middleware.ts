@@ -28,7 +28,7 @@ export function middleware(request: NextRequest) {
   // 2. Content Security Policy (CSP)
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googletagmanager.com https://*.google-analytics.com https://connect.facebook.net;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googletagmanager.com https://*.google-analytics.com https://connect.facebook.net https://va.vercel-scripts.com;
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https://*.supabase.co https://images.unsplash.com https://img.youtube.com https://i.ytimg.com https://*.googletagmanager.com https://*.google-analytics.com https://www.facebook.com;
     font-src 'self' data:;

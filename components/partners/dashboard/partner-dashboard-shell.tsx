@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import dynamic from "next/dynamic"
-import { Coins, Store, Briefcase, Bell, Award, Sparkles } from "lucide-react"
+import { Coins, Store, Briefcase, Bell, Award } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MarketplaceFeedView } from "./marketplace-feed-view"
 import { CrmPortfolioView } from "./crm-portfolio-view"
@@ -17,14 +17,26 @@ export interface PartnerDashboardShellProps {
   initialPartner: any
   initialMarketplace: any[]
   initialPortfolio: any[]
+  targetLeadId?: string
 }
 
 export function PartnerDashboardShell({
   initialPartner,
   initialMarketplace,
   initialPortfolio,
+  targetLeadId,
 }: PartnerDashboardShellProps) {
-  const [activeTab, setActiveTab] = React.useState<"marketplace" | "portfolio">("marketplace")
+  // Détection si le lead ciblé a déjà été acheté
+  const isAlreadyPurchased = Boolean(
+    targetLeadId &&
+      (initialPortfolio ?? []).some(
+        (p: any) => p.id === targetLeadId || p.lead_id === targetLeadId || p.purchase_id === targetLeadId
+      )
+  )
+
+  const [activeTab, setActiveTab] = React.useState<"marketplace" | "portfolio">(
+    isAlreadyPurchased ? "portfolio" : "marketplace"
+  )
   const [credits, setCredits] = React.useState<number>(initialPartner?.credits ?? 0)
   const [marketplace, setMarketplace] = React.useState(initialMarketplace ?? [])
   const [portfolio, setPortfolio] = React.useState(initialPortfolio ?? [])
@@ -38,20 +50,20 @@ export function PartnerDashboardShell({
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
       {/* Barre supérieure : Navigation Marketplace / CRM & Accès Modales */}
-      <div className="flex flex-col gap-4 rounded-2xl border border-neutral-200 bg-white p-4 shadow-xs sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2 rounded-xl bg-neutral-100 p-1">
+      <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 shadow-xs sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 rounded-xl bg-secondary p-1 border border-border">
           <button
             type="button"
             onClick={() => setActiveTab("marketplace")}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
               activeTab === "marketplace"
-                ? "bg-[#001D3D] text-white shadow-xs"
-                : "text-neutral-600 hover:text-[#001D3D]"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Store className="h-4 w-4 text-[#FFB800]" />
+            <Store className="h-4 w-4 text-accent" />
             <span>Marketplace</span>
-            <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
+            <span className="rounded-full bg-card/20 px-2 py-0.5 text-xs font-mono font-bold tabular-nums">
               {marketplace.length}
             </span>
           </button>
@@ -61,13 +73,13 @@ export function PartnerDashboardShell({
             onClick={() => setActiveTab("portfolio")}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
               activeTab === "portfolio"
-                ? "bg-[#001D3D] text-white shadow-xs"
-                : "text-neutral-600 hover:text-[#001D3D]"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Briefcase className="h-4 w-4 text-[#FFB800]" />
+            <Briefcase className="h-4 w-4 text-accent" />
             <span>Mon Pipeline CRM</span>
-            <span className="rounded-full bg-neutral-200/80 px-2 py-0.5 text-xs font-bold text-neutral-800">
+            <span className="rounded-full bg-card/20 px-2 py-0.5 text-xs font-mono font-bold tabular-nums">
               {portfolio.length}
             </span>
           </button>
@@ -79,12 +91,13 @@ export function PartnerDashboardShell({
             <span className="hidden sm:inline">Alertes provinces</span>
           </Button>
           <Button variant="outline" size="sm" onClick={() => setIsTierOpen(true)}>
-            <Award className="h-4 w-4 text-amber-600" />
+            <Award className="h-4 w-4 text-accent" />
             <span className="hidden sm:inline">Palier</span>
           </Button>
           <Button variant="accent" size="sm" onClick={() => setIsCreditsOpen(true)} className="font-bold">
             <Coins className="h-4 w-4" />
-            <span>{credits} crédits • Recharger</span>
+            <span className="font-mono tabular-nums">{credits} crédits</span>
+            <span>• Recharger</span>
           </Button>
         </div>
       </div>
@@ -94,6 +107,7 @@ export function PartnerDashboardShell({
         <MarketplaceFeedView
           leads={marketplace}
           partnerCredits={credits}
+          targetLeadId={targetLeadId}
           onPurchaseSuccess={(purchasedLead, newCredits, newPurchaseRecord) => {
             setCredits(newCredits)
             setMarketplace((prev) => prev.filter((item) => item.id !== purchasedLead.id))

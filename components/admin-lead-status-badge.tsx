@@ -1,21 +1,41 @@
-import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { deriveOpsStatus, OPS_STATUS_CONFIG, type LeadOpsInput } from "@/lib/admin/ops-status"
 
-const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  new: { label: "Nouveau", className: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30" },
-  contacted: { label: "En attente client", className: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30" },
-  qualified: { label: "Qualifié (Audité)", className: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30" },
-  converted: { label: "Assigné (Direct)", className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30" },
-  lost: { label: "Rejeté / Spam", className: "bg-muted text-muted-foreground border-border" },
-  HOT_LEAD: { label: "Urgent", className: "bg-purple-600/20 text-purple-800 dark:text-purple-200 border-purple-600/40" },
-  NEEDS_HUMAN_REVIEW: { label: "À contrôler", className: "bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/30" },
-}
+export function LeadStatusBadge({
+  status,
+  marketplaceStatus,
+  archivedAt,
+  hasDispute,
+  purchasesCount,
+  className,
+}: {
+  status?: string | null
+  marketplaceStatus?: string | null
+  archivedAt?: string | null
+  hasDispute?: boolean
+  purchasesCount?: number
+  className?: string
+}) {
+  const opsInput: LeadOpsInput = {
+    status,
+    marketplace_status: marketplaceStatus,
+    archived_at: archivedAt,
+    has_dispute: hasDispute,
+    purchases_count: purchasesCount,
+  }
+  const opsStatus = deriveOpsStatus(opsInput)
+  const config = OPS_STATUS_CONFIG[opsStatus]
 
-export function LeadStatusBadge({ status, className }: { status: string; className?: string }) {
-  const config = STATUS_CONFIG[status] ?? { label: status, className: "bg-muted text-muted-foreground" }
   return (
-    <Badge variant="outline" className={cn("font-medium", config.className, className)}>
-      {config.label}
-    </Badge>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 h-5 px-2 rounded-sm border font-mono text-[11px] font-medium tracking-tight whitespace-nowrap",
+        config.badgeClass,
+        className
+      )}
+    >
+      <span className={cn("size-1.5 rounded-full shrink-0", config.dotClass)} />
+      <span>{config.label}</span>
+    </span>
   )
 }

@@ -30,7 +30,7 @@ export async function sendMetaConversionApiLead(params: MetaCapiLeadParams): Pro
   }
 
   try {
-    const response = await fetch(`https://graph.facebook.com/v20.0/${pixelId}/events?access_token=${accessToken}`, {
+    const response = await fetch(`https://graph.facebook.com/v22.0/${pixelId}/events?access_token=${accessToken}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -40,6 +40,7 @@ export async function sendMetaConversionApiLead(params: MetaCapiLeadParams): Pro
             event_time: Math.floor(Date.now() / 1000),
             event_id: params.eventId,
             action_source: "website",
+            event_source_url: "https://www.aegissolaire.com/devis-panneaux-solaires",
             user_data: {
               em: [sha256(params.email)],
               ph: [sha256(params.phone.replace(/\D/g, ""))],

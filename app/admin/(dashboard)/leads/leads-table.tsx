@@ -1,20 +1,18 @@
 "use client"
 
-import { useState, useCallback, useEffect, useTransition } from "react"
-import Link from "next/link"
+import { useState, useEffect, useCallback, useTransition, useRef, useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
-import { cn } from "@/lib/utils"
+import { Badge } from "@/components/ui/badge"
+import { Kbd } from "@/components/ui/kbd"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Search, MoreHorizontal, Trash2, UserPlus, CheckCircle2, XCircle } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -22,11 +20,41 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table"
+import {
+  Search,
+  Check,
+  X,
+  Phone,
+  Copy,
+  Download,
+  AlertTriangle,
+  Flame,
+  ArrowUpDown,
+  MoreHorizontal,
+} from "lucide-react"
+import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 import { LeadStatusBadge } from "@/components/admin-lead-status-badge"
 import { LeadScoreBadge } from "@/components/admin-lead-score-badge"
-import { LeadDetailSheet } from "./lead-detail-sheet"
-
-type Installateur = { id: string; name: string; actif: boolean; region?: string | null }
+import { LeadDrawer, type LeadDetail } from "@/components/admin/leads/lead-drawer"
+import { BulkActionBar } from "@/components/admin/leads/bulk-action-bar"
+import { type CompatiblePartner } from "@/components/admin/leads/dispatch-panel"
+import { isWalloonPostalCode } from "@/lib/admin/lead-risk"
+import {
+  publishLeadAction,
+  rejectLeadAction,
+  bulkQualifyAndPublishAction,
+  bulkRejectAction,
+} from "@/app/admin/actions"
+import { useAdminHotkeys } from "@/hooks/use-admin-hotkeys"
 
 type LeadFilters = {
   status: string
@@ -38,100 +66,29 @@ type LeadFilters = {
   surfaceType: string
   region: string
   segment: string
+  view?: string
 }
 
-type Lead = {
-  id: string
-  first_name: string
-  last_name: string | null
-  email: string
-  phone: string | null
-  job_title: string
-  company: string | null
-  message?: string | null
-  surface_type: string | null
-  surface_area: number | null
-  project_timeline?: string | null
-  annual_electricity_bill: number | null
-  estimated_roi_years: number | null
-  autoconsumption_rate: number | null
-  estimated_savings: number | null
-  status: string
-  lead_score?: number | null
-  installateur_id?: string | null
-  segment?: string | null
-  province?: string | null
-  media_partner_code?: string | null
-  created_at: string
-}
+function formatRelativeAge(dateStr: string): { label: string; isWarning: boolean; isCritical: boolean } {
+  const ms = Date.now() - new Date(dateStr).getTime()
+  const hours = Math.floor(ms / (1000 * 60 * 60))
+  const days = Math.floor(hours / 24)
 
-function CleanupLeadsButton() {
-  const [loading, setLoading] = useState(false)
-  async function handleCleanup() {
-    if (!confirm("Anonymiser les leads de plus de 3 ans (conformité RGPD) ? Cette action est irréversible.")) return
-    setLoading(true)
-    try {
-      const res = await fetch("/api/admin/cleanup-leads", { 
-        method: "POST",
-        headers: { "x-admin-request": "true" }
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? "Erreur")
-      toast.success(data.message ?? `${data.anonymized_count} lead(s) anonymisés.`)
-      if (data.anonymized_count > 0) window.location.reload()
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erreur lors du nettoyage RGPD")
-    } finally {
-      setLoading(false)
+  if (hours < 1) {
+    const mins = Math.max(1, Math.floor(ms / (1000 * 60)))
+    return { label: `${mins} min`, isWarning: false, isCritical: false }
+  }
+  if (hours < 24) {
+    return {
+      label: `${hours} h`,
+      isWarning: hours >= 4,
+      isCritical: false,
     }
   }
-  return (
-    <Button variant="outline" size="sm" onClick={handleCleanup} disabled={loading}>
-      {loading ? "Nettoyage…" : "Nettoyage RGPD (3 ans)"}
-    </Button>
-  )
-}
-
-function buildLeadsUrl(params: {
-  page?: number
-  status?: string
-  search?: string
-  installateur?: string
-  leadId?: string
-  date_from?: string
-  date_to?: string
-  surface_min?: string
-  surface_type?: string
-  region?: string
-  segment?: string
-}) {
-  const q = new URLSearchParams()
-  if (params.page && params.page > 1) q.set("page", String(params.page))
-  if (params.status && params.status !== "all") q.set("status", params.status)
-  if (params.installateur && params.installateur !== "all") q.set("installateur", params.installateur)
-  if (params.search) q.set("search", params.search)
-  if (params.leadId) q.set("leadId", params.leadId)
-  if (params.date_from) q.set("date_from", params.date_from)
-  if (params.date_to) q.set("date_to", params.date_to)
-  if (params.surface_min) q.set("surface_min", params.surface_min)
-  if (params.surface_type) q.set("surface_type", params.surface_type)
-  if (params.region) q.set("region", params.region)
-  if (params.segment && params.segment !== "all") q.set("segment", params.segment)
-  const s = q.toString()
-  return s ? `/admin/leads?${s}` : "/admin/leads"
-}
-
-function filtersToParams(f: LeadFilters) {
   return {
-    status: f.status || undefined,
-    installateur: f.installateurId !== "all" ? f.installateurId : undefined,
-    search: f.search || undefined,
-    date_from: f.dateFrom || undefined,
-    date_to: f.dateTo || undefined,
-    surface_min: f.surfaceMin || undefined,
-    surface_type: f.surfaceType || undefined,
-    region: f.region || undefined,
-    segment: f.segment && f.segment !== "all" ? f.segment : undefined,
+    label: `${days} j`,
+    isWarning: true,
+    isCritical: days >= 2,
   }
 }
 
@@ -140,45 +97,107 @@ export function LeadsTable({
   total,
   page,
   limit,
-  installateurs = [],
-  regions = [],
+  partners = [],
   filters,
   leadId = null,
   currentLeadFromList = null,
 }: {
-  leads: Lead[]
+  leads: LeadDetail[]
   total: number
   page: number
   limit: number
-  installateurs?: Installateur[]
-  regions?: string[]
+  partners?: CompatiblePartner[]
   filters: LeadFilters
   leadId?: string | null
-  currentLeadFromList?: Lead | null
+  currentLeadFromList?: LeadDetail | null
 }) {
   const router = useRouter()
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const [isPending, startTransition] = useTransition()
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [searchTerm, setSearchTerm] = useState(filters.search)
+  const [focusedIndex, setFocusedIndex] = useState<number>(0)
   const [exporting, setExporting] = useState(false)
   const [bulkLoading, setBulkLoading] = useState(false)
-  const [searchTerm, setSearchTerm] = useState(filters.search)
+  const [removedLeadIds, setRemovedLeadIds] = useState<Set<string>>(new Set())
+  const [dismissedTriage, setDismissedTriage] = useState(false)
+  const initialTriageOpenedRef = useRef(false)
 
+  const activeLeads = useMemo(
+    () => leads.filter((l) => !removedLeadIds.has(l.id)),
+    [leads, removedLeadIds]
+  )
+
+  const isTriageMode = filters.view === "triage"
+  const activeLead = leadId ? activeLeads.find((l) => l.id === leadId) ?? currentLeadFromList : null
   const totalPages = Math.ceil(total / limit) || 1
 
+  const buildUrl = useCallback(
+    (updates: Partial<LeadFilters> & { page?: number; leadId?: string | null }) => {
+      const p = { ...filters, ...updates }
+      const q = new URLSearchParams()
+      if (updates.page && updates.page > 1) q.set("page", String(updates.page))
+      if (p.view) q.set("view", p.view)
+      if (p.status && p.status !== "all") q.set("status", p.status)
+      if (p.segment && p.segment !== "all") q.set("segment", p.segment)
+      if (p.region && p.region !== "all") q.set("region", p.region)
+      if (p.search) q.set("search", p.search)
+      if (updates.leadId) q.set("leadId", updates.leadId)
+      const str = q.toString()
+      return str ? `/admin/leads?${str}` : "/admin/leads"
+    },
+    [filters]
+  )
+
+  const applyFilters = useCallback(
+    (updates: Partial<LeadFilters> & { page?: number }) => {
+      startTransition(() => {
+        router.push(buildUrl(updates), { scroll: false })
+      })
+    },
+    [router, buildUrl]
+  )
+
+  const openLeadDetail = useCallback(
+    (id: string) => {
+      setDismissedTriage(false)
+      startTransition(() => {
+        router.push(buildUrl({ leadId: id }), { scroll: false })
+      })
+    },
+    [router, buildUrl]
+  )
+
+  const closeLeadDetail = useCallback(() => {
+    setDismissedTriage(true)
+    startTransition(() => {
+      router.push(buildUrl({ leadId: null }), { scroll: false })
+    })
+  }, [router, buildUrl])
+
+  // Auto-ouvrir le premier lead en mode Triage UNIQUEMENT au premier montage si aucun lead n'est sélectionné et pas fermé manuellement
+  useEffect(() => {
+    if (isTriageMode && activeLeads.length > 0 && !leadId && !initialTriageOpenedRef.current && !dismissedTriage) {
+      initialTriageOpenedRef.current = true
+      openLeadDetail(activeLeads[0].id)
+    }
+  }, [isTriageMode, activeLeads, leadId, openLeadDetail, dismissedTriage])
+
+  // Recherche avec debounce
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchTerm !== filters.search) {
-        applyParams({ search: searchTerm, page: 1 })
+        applyFilters({ search: searchTerm, page: 1 })
       }
-    }, 400)
+    }, 350)
     return () => clearTimeout(timer)
-  }, [searchTerm])
+  }, [searchTerm, filters.search, applyFilters])
 
   function toggleAll() {
-    if (selectedIds.size === leads.length && leads.length > 0) {
+    if (selectedIds.size === activeLeads.length && activeLeads.length > 0) {
       setSelectedIds(new Set())
     } else {
-      setSelectedIds(new Set(leads.map(l => l.id)))
+      setSelectedIds(new Set(activeLeads.map((l) => l.id)))
     }
   }
 
@@ -189,338 +208,542 @@ export function LeadsTable({
     setSelectedIds(next)
   }
 
-  async function handleBulkAction(updates: any) {
+  // Navigation dans le Drawer
+  const activeIndex = activeLeads.findIndex((l) => l.id === activeLead?.id)
+  const hasPrevious = activeIndex > 0
+  const hasNext = activeIndex >= 0 && activeIndex < activeLeads.length - 1
+
+  function goToPrevious() {
+    if (hasPrevious) {
+      setFocusedIndex(activeIndex - 1)
+      openLeadDetail(activeLeads[activeIndex - 1].id)
+    }
+  }
+
+  function goToNext() {
+    if (hasNext) {
+      setFocusedIndex(activeIndex + 1)
+      openLeadDetail(activeLeads[activeIndex + 1].id)
+    }
+  }
+
+  function handleLeadActionDone(id: string, _action: "qualified" | "rejected" | "archived") {
+    setRemovedLeadIds((prev) => new Set([...prev, id]))
+    const currentIdx = activeLeads.findIndex((l) => l.id === id)
+    if (currentIdx !== -1 && currentIdx < activeLeads.length - 1) {
+      openLeadDetail(activeLeads[currentIdx + 1].id)
+    } else if (currentIdx > 0) {
+      openLeadDetail(activeLeads[currentIdx - 1].id)
+    } else {
+      closeLeadDetail()
+    }
+  }
+
+  // Actions groupées
+  async function handleBulkQualify() {
     if (selectedIds.size === 0) return
     setBulkLoading(true)
     try {
-      const res = await fetch("/api/admin/leads/bulk", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
-        body: JSON.stringify({ ids: Array.from(selectedIds), updates })
-      })
-      if (!res.ok) throw new Error("Erreur bulk update")
-      toast.success(`${selectedIds.size} leads mis à jour`)
+      await bulkQualifyAndPublishAction(Array.from(selectedIds))
+      toast.success(`${selectedIds.size} leads qualifiés et publiés`)
       setSelectedIds(new Set())
       router.refresh()
-    } catch (e) {
-      toast.error("Échec de l'action groupée")
+    } catch {
+      toast.error("Échec de la validation groupée")
     } finally {
       setBulkLoading(false)
     }
   }
 
-  async function handleBulkDelete() {
+  async function handleBulkReject(reason: string) {
     if (selectedIds.size === 0) return
-    if (!confirm(`Supprimer ces ${selectedIds.size} leads ? Action irréversible.`)) return
     setBulkLoading(true)
     try {
-      const res = await fetch("/api/admin/leads/bulk", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
-        body: JSON.stringify({ ids: Array.from(selectedIds) })
-      })
-      if (!res.ok) throw new Error("Erreur bulk delete")
-      toast.success(`${selectedIds.size} leads supprimés`)
+      await bulkRejectAction(Array.from(selectedIds), reason)
+      toast.success(`${selectedIds.size} leads rejetés (${reason})`)
       setSelectedIds(new Set())
       router.refresh()
-    } catch (e) {
-      toast.error("Échec de la suppression")
+    } catch {
+      toast.error("Échec du rejet groupé")
     } finally {
       setBulkLoading(false)
     }
   }
 
-  const baseUrlParams = () => ({
-    ...filtersToParams(filters),
-    page,
-  })
-
-  const openLeadDetail = useCallback(
-    (id: string) => {
-      router.push(buildLeadsUrl({ ...baseUrlParams(), leadId: id }))
-    },
-    [router, page, filters]
-  )
-
-  function closeLeadDetail() {
-    router.push(buildLeadsUrl(baseUrlParams()))
-  }
-
-  function applyParams(updates: Partial<LeadFilters> & { page?: number }) {
-    const p = { ...filters, ...updates }
-    const q = new URLSearchParams()
-    q.set("page", String(updates.page ?? 1))
-    if (p.status && p.status !== "all") q.set("status", p.status)
-    if (p.installateurId && p.installateurId !== "all") q.set("installateur", p.installateurId)
-    if (p.search) q.set("search", p.search)
-    if (p.dateFrom) q.set("date_from", p.dateFrom)
-    if (p.dateTo) q.set("date_to", p.dateTo)
-    if (p.surfaceMin) q.set("surface_min", p.surfaceMin)
-    if (p.surfaceType) q.set("surface_type", p.surfaceType)
-    if (p.region) q.set("region", p.region)
-    if (p.segment && p.segment !== "all") q.set("segment", p.segment)
-    
-    startTransition(() => {
-      router.push(`/admin/leads?${q.toString()}`, { scroll: false })
-    })
-  }
-
+  // Export CSV
   async function handleExportCsv() {
     setExporting(true)
     try {
       const q = new URLSearchParams()
       if (filters.status && filters.status !== "all") q.set("status", filters.status)
-      if (filters.installateurId && filters.installateurId !== "all") q.set("installateur", filters.installateurId)
-      if (filters.search) q.set("search", filters.search)
-      if (filters.dateFrom) q.set("date_from", filters.dateFrom)
-      if (filters.dateTo) q.set("date_to", filters.dateTo)
-      if (filters.surfaceMin) q.set("surface_min", filters.surfaceMin)
-      if (filters.surfaceType) q.set("surface_type", filters.surfaceType)
-      if (filters.region) q.set("region", filters.region)
       if (filters.segment && filters.segment !== "all") q.set("segment", filters.segment)
-      
-      const res = await fetch(`/api/admin/leads/export?${q.toString()}`, { headers: { "x-admin-request": "true" } })
+      if (filters.search) q.set("search", filters.search)
+      if (filters.region) q.set("region", filters.region)
+
+      const res = await fetch(`/api/admin/leads/export?${q.toString()}`, {
+        headers: { "x-admin-request": "true" },
+      })
       if (!res.ok) throw new Error("Erreur export")
       const blob = await res.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `leads_export_${new Date().toISOString().slice(0, 10)}.csv`
+      a.download = `leads_aegis_${new Date().toISOString().slice(0, 10)}.csv`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
-      toast.success("Export terminé")
+      toast.success("Export CSV téléchargé")
     } catch {
-      toast.error("Échec de l'export")
+      toast.error("Échec de l'export CSV")
     } finally {
       setExporting(false)
     }
   }
 
-  const [focusedIndex, setFocusedIndex] = useState<number>(0)
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return
-
-      if (e.key === "j" || e.key === "J" || e.key === "ArrowDown") {
-        e.preventDefault()
-        setFocusedIndex((prev) => Math.min(prev + 1, Math.max(0, leads.length - 1)))
-      } else if (e.key === "k" || e.key === "K" || e.key === "ArrowUp") {
-        e.preventDefault()
-        setFocusedIndex((prev) => Math.max(prev - 1, 0))
-      } else if (e.key === "Enter" && leads[focusedIndex]) {
-        e.preventDefault()
-        openLeadDetail(leads[focusedIndex].id)
+  // Raccourcis Clavier Opérationnels (Linear-style)
+  useAdminHotkeys({
+    j: () => {
+      setFocusedIndex((prev) => {
+        const next = Math.min(prev + 1, Math.max(0, activeLeads.length - 1))
+        if (activeLead && activeLeads[next]) openLeadDetail(activeLeads[next].id)
+        return next
+      })
+    },
+    arrowdown: () => {
+      setFocusedIndex((prev) => {
+        const next = Math.min(prev + 1, Math.max(0, activeLeads.length - 1))
+        if (activeLead && activeLeads[next]) openLeadDetail(activeLeads[next].id)
+        return next
+      })
+    },
+    k: () => {
+      setFocusedIndex((prev) => {
+        const next = Math.max(prev - 1, 0)
+        if (activeLead && activeLeads[next]) openLeadDetail(activeLeads[next].id)
+        return next
+      })
+    },
+    arrowup: () => {
+      setFocusedIndex((prev) => {
+        const next = Math.max(prev - 1, 0)
+        if (activeLead && activeLeads[next]) openLeadDetail(activeLeads[next].id)
+        return next
+      })
+    },
+    enter: () => {
+      if (activeLeads[focusedIndex]) {
+        openLeadDetail(activeLeads[focusedIndex].id)
       }
-    }
-
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [leads, focusedIndex, openLeadDetail])
+    },
+    x: () => {
+      if (activeLeads[focusedIndex]) {
+        toggleOne(activeLeads[focusedIndex].id)
+      }
+    },
+    q: () => {
+      const target = activeLead || activeLeads[focusedIndex]
+      if (target) {
+        publishLeadAction(target.id)
+        toast.success(`Lead #${target.id.slice(0, 8)} publié`)
+        handleLeadActionDone(target.id, "qualified")
+      }
+    },
+    c: () => {
+      const target = activeLead || activeLeads[focusedIndex]
+      if (target?.phone) {
+        navigator.clipboard.writeText(target.phone)
+        toast.success("Téléphone copié")
+      }
+    },
+    "/": (e) => {
+      e.preventDefault()
+      searchInputRef.current?.focus()
+    },
+    escape: () => {
+      closeLeadDetail()
+    },
+  })
 
   return (
-    <div className="space-y-4 relative">
-      {/* Barre de Filtres Rapides 1-Clic + Raccourcis Clavier */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-2xs">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold text-slate-500 mr-1">Vues rapides :</span>
-          <button
-            type="button"
-            onClick={() => applyParams({ status: "all", segment: "all", surfaceMin: "", page: 1 })}
-            className={cn(
-              "rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
-              !filters.status || filters.status === "all"
-                ? "bg-[#001D3D] text-white"
-                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-            )}
-          >
-            Tous les leads
-          </button>
-          <button
-            type="button"
-            onClick={() => applyParams({ status: "NEEDS_HUMAN_REVIEW", page: 1 })}
-            className={cn(
-              "rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
-              filters.status === "NEEDS_HUMAN_REVIEW"
-                ? "bg-[#001D3D] text-white"
-                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-            )}
-          >
-            À qualifier
-          </button>
-          <button
-            type="button"
-            onClick={() => applyParams({ segment: "B2B", surfaceMin: "200", status: "all", page: 1 })}
-            className={cn(
-              "rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
-              filters.segment === "B2B" && filters.surfaceMin === "200"
-                ? "bg-[#001D3D] text-white"
-                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-            )}
-          >
-            B2B Haute Valeur (200m²+)
-          </button>
-          <button
-            type="button"
-            onClick={() => applyParams({ status: "qualified", page: 1 })}
-            className={cn(
-              "rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
-              filters.status === "qualified"
-                ? "bg-[#001D3D] text-white"
-                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-            )}
-          >
-            Qualifiés
-          </button>
+    <div className="flex flex-col gap-4 relative">
+      {/* Page Header Opérationnel */}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
+        <div className="flex items-center gap-3">
+          <h1 className="font-heading text-xl font-semibold tracking-tight text-foreground">
+            {isTriageMode ? "File de Triage des Leads" : "Contrôle des Leads"}
+          </h1>
+          <span className="font-mono text-xs tabular-nums text-muted-foreground bg-secondary px-2 py-0.5 rounded-sm border border-border">
+            {total} leads
+          </span>
         </div>
 
-        <div className="hidden lg:flex items-center gap-3 text-[11px] text-slate-500">
-          <span>
-            Naviguer : <kbd className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono">J</kbd> /{" "}
-            <kbd className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono">K</kbd>
-          </span>
-          <span>
-            Ouvrir détail : <kbd className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono">Entrée</kbd>
-          </span>
+        {/* Tabs de Vue & CTA Primaire Unique */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center rounded-md border border-border bg-card p-0.5 text-xs">
+            <button
+              type="button"
+              onClick={() => applyFilters({ view: "triage", page: 1 })}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1 rounded-sm font-medium transition-colors",
+                isTriageMode
+                  ? "bg-primary text-primary-foreground font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Flame className="h-3.5 w-3.5" />
+              <span>Triage</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => applyFilters({ view: undefined, page: 1 })}
+              className={cn(
+                "px-3 py-1 rounded-sm font-medium transition-colors",
+                !isTriageMode
+                  ? "bg-primary text-primary-foreground font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Tous les leads
+            </button>
+          </div>
+
+          <Button
+            size="sm"
+            onClick={() => {
+              if (leads.length > 0) openLeadDetail(leads[0].id)
+            }}
+            className="h-8 gap-1.5 text-xs font-medium"
+          >
+            <span>{isTriageMode ? "Traiter la file" : "Démarrer le triage"}</span>
+            <Kbd className="font-mono text-[10px] opacity-70">⏎</Kbd>
+          </Button>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 transition-all duration-300">
-        <div className="relative group flex-1 min-w-[300px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-          <Input
-            placeholder="Recherche instantanée..."
-            className="pl-9 bg-muted/30 focus:bg-background transition-colors h-10 border-border/60"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
+      {/* Toolbar & Faceted Filters */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2 flex-1 max-w-2xl">
+          {/* Recherche rapide */}
+          <div className="relative flex-1 min-w-[220px]">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              ref={searchInputRef}
+              placeholder="Filtrer par nom, e-mail, téléphone, TVA..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8 h-8 text-xs bg-card border-border"
+            />
+            <kbd className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none hidden sm:inline-block font-mono text-[10px] text-muted-foreground">
+              /
+            </kbd>
+          </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={filters.status || "all"} onValueChange={(v) => applyParams({ status: v, page: 1 })}>
-            <SelectTrigger className="w-40 h-10">
-              <SelectValue placeholder="Statut" />
+          {/* Filtre Segment */}
+          <Select
+            value={filters.segment || "all"}
+            onValueChange={(val) => applyFilters({ segment: val, page: 1 })}
+          >
+            <SelectTrigger className="w-28 h-8 text-xs bg-card">
+              <SelectValue placeholder="Segment" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous</SelectItem>
-              <SelectItem value="new">Nouveau</SelectItem>
-              <SelectItem value="contacted">En attente client</SelectItem>
-              <SelectItem value="qualified">Qualifié (Audité)</SelectItem>
-              <SelectItem value="converted">Assigné (Direct)</SelectItem>
-              <SelectItem value="lost">Rejeté / Spam</SelectItem>
-              <SelectItem value="HOT_LEAD">Urgent</SelectItem>
-              <SelectItem value="NEEDS_HUMAN_REVIEW">À contrôler</SelectItem>
+            <SelectContent className="text-xs">
+              <SelectItem value="all">Tous segments</SelectItem>
+              <SelectItem value="B2B">B2B Tertiaire</SelectItem>
+              <SelectItem value="B2C">B2C Résidentiel</SelectItem>
             </SelectContent>
           </Select>
-          <div className="ml-auto flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={exporting}>
-              {exporting ? "Export..." : "Exporter CSV"}
-            </Button>
-            <CleanupLeadsButton />
-          </div>
+
+          {/* Filtre Statut */}
+          <Select
+            value={filters.status || "all"}
+            onValueChange={(val) => applyFilters({ status: val, page: 1 })}
+          >
+            <SelectTrigger className="w-32 h-8 text-xs bg-card">
+              <SelectValue placeholder="Statut" />
+            </SelectTrigger>
+            <SelectContent className="text-xs">
+              <SelectItem value="all">Tous statuts</SelectItem>
+              <SelectItem value="new">Nouveau</SelectItem>
+              <SelectItem value="NEEDS_HUMAN_REVIEW">À contrôler</SelectItem>
+              <SelectItem value="qualified">Qualifié</SelectItem>
+              <SelectItem value="converted">Converti</SelectItem>
+              <SelectItem value="lost">Rejeté / Spam</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Filtre Province Wallonne */}
+          <Select
+            value={filters.region || "all"}
+            onValueChange={(val) => applyFilters({ region: val, page: 1 })}
+          >
+            <SelectTrigger className="w-32 h-8 text-xs bg-card">
+              <SelectValue placeholder="Province" />
+            </SelectTrigger>
+            <SelectContent className="text-xs">
+              <SelectItem value="all">Toute Wallonie</SelectItem>
+              <SelectItem value="liege">Liège</SelectItem>
+              <SelectItem value="namur">Namur</SelectItem>
+              <SelectItem value="hainaut">Hainaut</SelectItem>
+              <SelectItem value="brabant_wallon">Brabant wallon</SelectItem>
+              <SelectItem value="luxembourg">Luxembourg</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Actions Secondaires */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCsv}
+            disabled={exporting}
+            className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <Download className="h-3 w-3" />
+            <span>{exporting ? "Export…" : "Exporter CSV"}</span>
+          </Button>
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/50">
-              <th className="w-10 px-4 py-3">
-                <Checkbox 
-                  checked={selectedIds.size === leads.length && leads.length > 0} 
+      {/* Table Haute Densité */}
+      <div className="rounded-md border border-border bg-card overflow-hidden">
+        <Table className="text-xs">
+          <TableHeader>
+            <TableRow className="bg-secondary/40 border-b border-border hover:bg-secondary/40">
+              <TableHead className="w-9 px-3">
+                <Checkbox
+                  checked={selectedIds.size === activeLeads.length && activeLeads.length > 0}
                   onCheckedChange={toggleAll}
                 />
-              </th>
-              <th className="px-4 py-3 text-left font-medium">Date</th>
-              <th className="px-4 py-3 text-left font-medium">Lead</th>
-              <th className="px-4 py-3 text-left font-medium text-center">Infos</th>
-              <th className="px-4 py-3 text-left font-medium">Réactivité</th>
-              <th className="px-4 py-3 text-left font-medium">Statut</th>
-              <th className="w-10"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {leads.length === 0 ? (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground italic">Aucun résultat.</td></tr>
+              </TableHead>
+              <TableHead className="w-16 font-mono text-[11px] text-muted-foreground">Âge</TableHead>
+              <TableHead className="min-w-[200px]">Prospect / Entreprise</TableHead>
+              <TableHead className="w-16 font-mono text-[11px] text-muted-foreground">Seg.</TableHead>
+              <TableHead className="min-w-[130px]">Localité</TableHead>
+              <TableHead className="min-w-[160px]">Projet technique</TableHead>
+              <TableHead className="w-24 text-center font-mono text-[11px] text-muted-foreground">Score</TableHead>
+              <TableHead className="w-28 text-center font-mono text-[11px] text-muted-foreground">Statut</TableHead>
+              <TableHead className="w-16 text-right font-mono text-[11px] text-muted-foreground">Prix</TableHead>
+              <TableHead className="w-20 text-right"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {activeLeads.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={10} className="py-12 text-center text-muted-foreground italic">
+                  Aucun lead ne correspond aux filtres actuels.
+                </TableCell>
+              </TableRow>
             ) : (
-              leads.map((lead, idx) => (
-                <tr
-                  key={lead.id}
-                  className={cn(
-                    "cursor-pointer border-b border-border transition-all group/row",
-                    idx === focusedIndex && "bg-[#FFB800]/10 ring-1 ring-inset ring-[#FFB800]/50",
-                    selectedIds.has(lead.id) ? "bg-primary/[0.03]" : "hover:bg-muted/40"
-                  )}
-                  onClick={() => {
-                    setFocusedIndex(idx)
-                    openLeadDetail(lead.id)
-                  }}
-                >
-                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                    <Checkbox checked={selectedIds.has(lead.id)} onCheckedChange={() => toggleOne(lead.id)} />
-                  </td>
-                  <td className="px-4 py-3 text-[11px] text-muted-foreground">
-                    {new Date(lead.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="font-semibold">{lead.first_name} {lead.last_name}</div>
-                    <div className="text-[10px] text-muted-foreground">{lead.email}</div>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded uppercase font-bold">{lead.segment ?? "B2B"}</span>
-                  </td>
-                  <td className="px-4 py-3 font-mono text-[10px]">
-                    {lead.status === "new" ? `${Math.floor((new Date().getTime() - new Date(lead.created_at).getTime()) / (1000 * 60 * 60))}h` : "-"}
-                  </td>
-                  <td className="px-4 py-3"><LeadStatusBadge status={lead.status} /></td>
-                  <td className="px-2" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover/row:opacity-100"><MoreHorizontal className="h-4 w-4" /></Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleBulkAction({ status: "qualified", marketplace_status: "available" })}>Valider (Marketplace)</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleBulkAction({ status: "lost", marketplace_status: "rejected" })}>Rejeter</DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600" onClick={() => { setSelectedIds(new Set([lead.id])); handleBulkDelete(); }}>Supprimer</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
-                </tr>
-              ))
+              activeLeads.map((lead, idx) => {
+                const isSelected = selectedIds.has(lead.id)
+                const isFocused = idx === focusedIndex
+                const isActive = activeLead?.id === lead.id
+                const age = formatRelativeAge(lead.created_at)
+                const isB2B = lead.segment === "B2B"
+                const title = isB2B && lead.company ? lead.company : `${lead.first_name} ${lead.last_name || ""}`
+                const isOutOfWallonia = lead.postal_code && !isWalloonPostalCode(lead.postal_code)
+
+                return (
+                  <TableRow
+                    key={lead.id}
+                    onClick={() => {
+                      setFocusedIndex(idx)
+                      openLeadDetail(lead.id)
+                    }}
+                    className={cn(
+                      "cursor-pointer border-b border-border transition-colors h-10 group",
+                      isActive && "bg-secondary/70 border-l-2 border-l-primary font-medium",
+                      !isActive && isFocused && "bg-secondary/40 ring-1 ring-inset ring-ring/30",
+                      isSelected && "bg-primary/[0.04]"
+                    )}
+                  >
+                    {/* Checkbox */}
+                    <TableCell className="px-3" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleOne(lead.id)}
+                      />
+                    </TableCell>
+
+                    {/* Âge relatif */}
+                    <TableCell className="font-mono text-[11px] tabular-nums whitespace-nowrap">
+                      <span
+                        className={cn(
+                          age.isCritical && "text-destructive font-semibold",
+                          age.isWarning && !age.isCritical && "text-accent font-medium",
+                          !age.isWarning && "text-muted-foreground"
+                        )}
+                        title={new Date(lead.created_at).toLocaleString("fr-BE")}
+                      >
+                        {age.label}
+                      </span>
+                    </TableCell>
+
+                    {/* Prospect / Entreprise */}
+                    <TableCell className="py-1.5">
+                      <div className="flex flex-col min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium text-foreground truncate">
+                            {title}
+                          </span>
+                          {isOutOfWallonia && (
+                            <span className="text-destructive shrink-0" title="Code postal hors Wallonie">
+                              <AlertTriangle className="h-3 w-3" />
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-muted-foreground font-mono truncate">
+                          {lead.email} {lead.phone ? `· ${lead.phone}` : ""}
+                        </span>
+                      </div>
+                    </TableCell>
+
+                    {/* Segment */}
+                    <TableCell>
+                      <span className="font-mono text-[10px] uppercase tracking-wider px-1 py-0.5 rounded-sm bg-secondary text-secondary-foreground border border-border">
+                        {lead.segment ?? "B2B"}
+                      </span>
+                    </TableCell>
+
+                    {/* Localité */}
+                    <TableCell>
+                      <div className="flex flex-col font-mono text-[11px] tabular-nums">
+                        <span className="text-foreground truncate">
+                          {lead.postal_code || "–"} {lead.city || ""}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground capitalize">
+                          {lead.province ? lead.province.replace("_", " ") : "Wallonie"}
+                        </span>
+                      </div>
+                    </TableCell>
+
+                    {/* Projet technique */}
+                    <TableCell>
+                      <div className="flex flex-col font-mono text-[11px] tabular-nums">
+                        <span className="text-foreground">
+                          {lead.surface_area != null ? `${lead.surface_area} m²` : "–"}{" "}
+                          <span className="text-muted-foreground font-sans text-[10px]">
+                            ({lead.surface_type || "toiture"})
+                          </span>
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {lead.annual_electricity_bill != null
+                            ? `${lead.annual_electricity_bill.toLocaleString("fr-BE")} €/an`
+                            : "–"}
+                        </span>
+                      </div>
+                    </TableCell>
+
+                    {/* Score */}
+                    <TableCell className="text-center">
+                      <LeadScoreBadge score={lead.lead_score} />
+                    </TableCell>
+
+                    {/* Statut */}
+                    <TableCell className="text-center">
+                      <LeadStatusBadge
+                        status={lead.status}
+                        marketplaceStatus={lead.marketplace_status}
+                      />
+                    </TableCell>
+
+                    {/* Prix */}
+                    <TableCell className="text-right font-mono text-[11px] tabular-nums text-muted-foreground">
+                      {lead.credit_cost ?? (lead.segment === "B2B" ? 5 : 2)} cr.
+                    </TableCell>
+
+                    {/* Quick Actions au survol */}
+                    <TableCell className="text-right px-2" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            publishLeadAction(lead.id)
+                            toast.success(`Lead #${lead.id.slice(0, 8)} publié`)
+                          }}
+                          className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-primary transition-colors"
+                          title="Qualifier & publier (Q)"
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </button>
+                        {lead.phone && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(lead.phone!)
+                              toast.success("Téléphone copié")
+                            }}
+                            className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                            title="Copier le téléphone (C)"
+                          >
+                            <Phone className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
+      {/* Pagination & Compteur */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between py-4">
-          <p className="text-xs text-muted-foreground">{total} leads · page {page}/{totalPages}</p>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => applyParams({ page: page - 1 })} disabled={page <= 1}>Précédent</Button>
-            <Button variant="outline" size="sm" onClick={() => applyParams({ page: page + 1 })} disabled={page >= totalPages}>Suivant</Button>
+        <div className="flex items-center justify-between py-2 text-xs text-muted-foreground">
+          <span className="font-mono tabular-nums">
+            Page {page} sur {totalPages} ({total} leads)
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => applyFilters({ page: page - 1 })}
+              className="h-7 text-xs"
+            >
+              Précédent
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages}
+              onClick={() => applyFilters({ page: page + 1 })}
+              className="h-7 text-xs"
+            >
+              Suivant
+            </Button>
           </div>
         </div>
       )}
 
-      <LeadDetailSheet
-        leadId={leadId ?? null}
+      {/* Lead Inspection & Dispatch Drawer */}
+      <LeadDrawer
+        lead={activeLead}
+        open={Boolean(activeLead)}
         onClose={closeLeadDetail}
-        currentLeadFromList={currentLeadFromList}
+        onPrevious={goToPrevious}
+        onNext={goToNext}
+        hasPrevious={hasPrevious}
+        hasNext={hasNext}
+        partners={partners}
+        onLeadActionDone={handleLeadActionDone}
       />
 
-      {selectedIds.size > 0 && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-background border border-primary/20 shadow-2xl rounded-full px-6 py-3 flex items-center gap-6 backdrop-blur-md animate-in slide-in-from-bottom-4">
-          <span className="text-sm font-medium pr-4 border-r">{selectedIds.size} sélectionnés</span>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="h-9 gap-2 text-emerald-700" onClick={() => handleBulkAction({ status: "qualified", marketplace_status: "available" })} disabled={bulkLoading}>Valider (Marketplace)</Button>
-            <Button size="sm" variant="ghost" className="h-9 text-red-600" onClick={handleBulkDelete} disabled={bulkLoading}>Supprimer</Button>
-          </div>
-          <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>Annuler</Button>
-        </div>
-      )}
+      {/* Floating Bulk Action Bar */}
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        onQualifyAll={handleBulkQualify}
+        onRejectAll={handleBulkReject}
+        onArchiveAll={() => {
+          handleBulkReject("Archivé par action groupée")
+        }}
+        onClearSelection={() => setSelectedIds(new Set())}
+        loading={bulkLoading}
+      />
     </div>
   )
 }

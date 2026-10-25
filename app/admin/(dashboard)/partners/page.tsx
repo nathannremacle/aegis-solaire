@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
+import Link from "next/link"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -12,31 +13,35 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
-  Zap,
-  CreditCard,
-  ShoppingCart,
-  Plus,
-  Eye,
-  CheckCircle2,
-  Clock,
-  XCircle,
-  Search,
-  Filter,
-  Copy,
-  Check,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table"
+import {
+  Coins,
   Building2,
   Phone,
   Mail,
-  Loader2,
   RefreshCw,
-  Coins,
+  Search,
+  Plus,
+  Eye,
+  AlertTriangle,
+  ShieldCheck,
+  CheckCircle2,
+  ExternalLink,
+  MapPin,
+  Clock,
+  Layers,
   ArrowRight,
-  TrendingUp,
-  FileCheck,
 } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 /* ═══════════════════════════════════════════════════════
    Types
@@ -48,9 +53,10 @@ type Partner = {
   email: string
   phone: string | null
   credits: number
-  segment: string | null
+  segment: "B2B" | "B2C" | "both" | string | null
   target_provinces: string[] | null
   created_at: string
+  is_test?: boolean
   stats: {
     leadsPurchased: number
     creditsSpent: number
@@ -58,171 +64,84 @@ type Partner = {
   }
 }
 
-type CreditOrder = {
-  id: string
-  partner_id: string
-  pack_id: string
-  pack_name: string
-  credits: number
-  price_htva: number
-  vat_amount: number
-  price_ttc: number
-  transfer_reference: string
-  status: "pending" | "paid" | "cancelled"
-  created_at: string
-  validated_at: string | null
-  notes: string | null
-  partners?: {
-    id: string
-    company_name: string
-    email: string
-    phone: string | null
-    credits: number
-  }
-}
-
-/* ═══════════════════════════════════════════════════════
-   Main Component
-   ═══════════════════════════════════════════════════════ */
+const WALLOON_PROVINCES = [
+  { code: "BW", name: "Brabant wallon", key: "brabant-wallon" },
+  { code: "HAI", name: "Hainaut", key: "hainaut" },
+  { code: "LGE", name: "Liège", key: "liege" },
+  { code: "LUX", name: "Luxembourg", key: "luxembourg" },
+  { code: "NAM", name: "Namur", key: "namur" },
+]
 
 export default function AdminPartnersPage() {
-  const [activeTab, setActiveTab] = useState<"orders" | "partners">("orders")
   const [partners, setPartners] = useState<Partner[]>([])
-  const [orders, setOrders] = useState<CreditOrder[]>([])
   const [loading, setLoading] = useState(true)
-  const [loadingOrders, setLoadingOrders] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [activeTab, setActiveTab] = useState<"all" | "at_risk" | "coverage">("all")
 
-  // Modals & Forms
-  const [creditModal, setCreditModal] = useState<Partner | null>(null)
+  // Modale d'ajout de crédits
+  const [creditModalPartner, setCreditModalPartner] = useState<Partner | null>(null)
   const [creditAmount, setCreditAmount] = useState<number>(10)
-  const [creditReason, setCreditReason] = useState<string>("Virement reçu")
+  const [creditReason, setCreditReason] = useState<string>("Attribution commerciale Aegis")
   const [savingCredits, setSavingCredits] = useState(false)
 
-  const [purchasesModal, setPurchasesModal] = useState<Partner | null>(null)
+  // Modale des achats de leads
+  const [purchasesModalPartner, setPurchasesModalPartner] = useState<Partner | null>(null)
   const [purchasesData, setPurchasesData] = useState<any[]>([])
   const [loadingPurchases, setLoadingPurchases] = useState(false)
 
-  // Filters
-  const [searchPartner, setSearchPartner] = useState("")
-  const [orderStatusFilter, setOrderStatusFilter] = useState<"ALL" | "pending" | "paid" | "cancelled">("ALL")
-  const [processingOrderId, setProcessingOrderId] = useState<string | null>(null)
-  const [copiedRef, setCopiedRef] = useState<string | null>(null)
-
   // Charger les partenaires
   const loadPartners = async () => {
+    setLoading(true)
     try {
-      const res = await fetch("/api/admin/partners", { headers: { "x-admin-request": "true" } })
-      if (!res.ok) throw new Error()
+      const res = await fetch("/api/admin/partners", {
+        headers: { "x-admin-request": "true" },
+      })
+      if (!res.ok) throw new Error("Échec du chargement")
       const data = await res.json()
-      setPartners(data)
+      setPartners(Array.isArray(data) ? data : [])
     } catch {
-      toast.error("Impossible de charger les partenaires")
+      toast.error("Impossible de charger les installateurs")
     } finally {
       setLoading(false)
     }
   }
 
-  // Charger les commandes de crédits
-  const loadOrders = async () => {
-    setLoadingOrders(true)
-    try {
-      const res = await fetch("/api/admin/credit-orders", { headers: { "x-admin-request": "true" } })
-      if (!res.ok) throw new Error()
-      const data = await res.json()
-      setOrders(Array.isArray(data) ? data : [])
-    } catch {
-      toast.error("Impossible de charger les commandes de crédits")
-    } finally {
-      setLoadingOrders(false)
-    }
-  }
-
   useEffect(() => {
     loadPartners()
-    loadOrders()
   }, [])
 
-  // Validation manuelle d'une commande de virement
-  async function handleValidateOrder(order: CreditOrder) {
-    if (!confirm(`Confirmer la réception du virement de ${order.price_ttc.toFixed(2)} € TTC et attribuer ${order.credits} crédits à ${order.partners?.company_name || "l'installateur"} ?`)) {
-      return
-    }
-
-    setProcessingOrderId(order.id)
-    try {
-      const res = await fetch(`/api/admin/credit-orders/${order.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
-        body: JSON.stringify({ action: "validate" }),
-      })
-      const data = await res.json()
-      if (!res.ok || data.error) throw new Error(data.error || "Échec validation")
-
-      toast.success(`Virement validé ! ${order.credits} crédits ajoutés à ${order.partners?.company_name || "l'installateur"}.`)
-      
-      // Mettre à jour localement les commandes et le solde du partenaire en direct
-      setOrders((prev) =>
-        prev.map((o) => (o.id === order.id ? { ...o, status: "paid", validated_at: new Date().toISOString() } : o))
-      )
-      setPartners((prev) =>
-        prev.map((p) => (p.id === order.partner_id ? { ...p, credits: (p.credits || 0) + order.credits } : p))
-      )
-    } catch (err: any) {
-      toast.error(err.message || "Erreur de validation")
-    } finally {
-      setProcessingOrderId(null)
-    }
-  }
-
-  // Annulation d'une commande
-  async function handleCancelOrder(order: CreditOrder) {
-    if (!confirm(`Annuler cette commande de ${order.credits} crédits pour ${order.partners?.company_name || "l'installateur"} ?`)) {
-      return
-    }
-
-    setProcessingOrderId(order.id)
-    try {
-      const res = await fetch(`/api/admin/credit-orders/${order.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
-        body: JSON.stringify({ action: "cancel" }),
-      })
-      const data = await res.json()
-      if (!res.ok || data.error) throw new Error(data.error || "Échec annulation")
-
-      toast.info("Commande marquée comme annulée.")
-      setOrders((prev) =>
-        prev.map((o) => (o.id === order.id ? { ...o, status: "cancelled" } : o))
-      )
-    } catch (err: any) {
-      toast.error(err.message || "Erreur")
-    } finally {
-      setProcessingOrderId(null)
-    }
-  }
-
   // Attribution manuelle de crédits
-  async function handleManualAddCredits() {
-    if (!creditModal || creditAmount === 0) return
+  async function handleAddCredits() {
+    if (!creditModalPartner || creditAmount === 0) return
     setSavingCredits(true)
+
     try {
-      const res = await fetch(`/api/admin/partners/${creditModal.id}`, {
+      const res = await fetch(`/api/admin/partners/${creditModalPartner.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-request": "true",
+        },
         body: JSON.stringify({
           addCredits: creditAmount,
-          reference: creditReason || "admin_manual",
+          reference: creditReason.trim() || "admin_manual_topup",
         }),
       })
+
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Erreur attribution")
+      if (!res.ok) throw new Error(data.error || "Erreur lors de l'attribution")
 
       setPartners((prev) =>
-        prev.map((p) => (p.id === creditModal.id ? { ...p, credits: data.newCredits } : p))
+        prev.map((p) =>
+          p.id === creditModalPartner.id ? { ...p, credits: data.newCredits } : p
+        )
       )
-      toast.success(`${creditAmount > 0 ? `+${creditAmount}` : creditAmount} crédits appliqués avec succès (${creditModal.company_name})`)
-      setCreditModal(null)
-      loadOrders()
+
+      toast.success(
+        `${creditAmount > 0 ? `+${creditAmount}` : creditAmount} crédits alloués à ${creditModalPartner.company_name}`
+      )
+      setCreditModalPartner(null)
+      setCreditAmount(10)
     } catch (err: any) {
       toast.error(err.message || "Erreur lors de l'attribution des crédits")
     } finally {
@@ -230,675 +149,666 @@ export default function AdminPartnersPage() {
     }
   }
 
-  // Consultation des achats d'un partenaire
+  // Consulter les achats d'un partenaire
   async function openPurchases(partner: Partner) {
-    if (partner.stats.leadsPurchased === 0) return
-    setPurchasesModal(partner)
+    setPurchasesModalPartner(partner)
     setLoadingPurchases(true)
     setPurchasesData([])
+
     try {
       const res = await fetch(`/api/admin/partners/${partner.id}/purchases`, {
         headers: { "x-admin-request": "true" },
       })
       const data = await res.json()
-      setPurchasesData(data)
+      setPurchasesData(Array.isArray(data) ? data : [])
     } catch {
-      toast.error("Impossible de charger les achats")
+      toast.error("Impossible de charger l'historique des achats")
     } finally {
       setLoadingPurchases(false)
     }
   }
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    setCopiedRef(text)
-    toast.success("Référence copiée dans le presse-papier")
-    setTimeout(() => setCopiedRef(null), 2000)
+  // Partenaires "À risque" (solde < 5 crédits ou zéro achat récent)
+  const isPartnerAtRisk = (p: Partner) => {
+    const isCreditCritical = p.credits < 5
+    return isCreditCritical
   }
 
-  // Calculs KPI
-  const pendingOrdersCount = orders.filter((o) => o.status === "pending").length
-  const pendingOrdersAmount = orders
-    .filter((o) => o.status === "pending")
-    .reduce((s, o) => s + (Number(o.price_ttc) || 0), 0)
+  const partnersAtRisk = useMemo(
+    () => partners.filter((p) => isPartnerAtRisk(p)),
+    [partners]
+  )
 
-  const totalCreditsCirculation = partners.reduce((s, p) => s + p.credits, 0)
-  const totalLeadsPurchased = partners.reduce((s, p) => s + p.stats.leadsPurchased, 0)
-  const totalCreditsTopupped = partners.reduce((s, p) => s + p.stats.creditsTopupped, 0)
-
-  // Filtrage
   const filteredPartners = useMemo(() => {
-    if (!searchPartner.trim()) return partners
-    const q = searchPartner.toLowerCase()
-    return partners.filter(
-      (p) => p.company_name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q)
+    let list = partners
+    if (activeTab === "at_risk") {
+      list = partnersAtRisk
+    }
+    if (!searchTerm.trim()) return list
+    const q = searchTerm.toLowerCase().trim()
+    return list.filter(
+      (p) =>
+        p.company_name.toLowerCase().includes(q) ||
+        p.email.toLowerCase().includes(q) ||
+        p.phone?.toLowerCase().includes(q)
     )
-  }, [partners, searchPartner])
+  }, [partners, activeTab, partnersAtRisk, searchTerm])
 
-  const filteredOrders = useMemo(() => {
-    if (orderStatusFilter === "ALL") return orders
-    return orders.filter((o) => o.status === orderStatusFilter)
-  }, [orders, orderStatusFilter])
+  // KPIs
+  const totalCreditsCirculation = useMemo(
+    () => partners.reduce((s, p) => s + (p.credits || 0), 0),
+    [partners]
+  )
+  const totalLeadsPurchased = useMemo(
+    () => partners.reduce((s, p) => s + (p.stats.leadsPurchased || 0), 0),
+    [partners]
+  )
+  const b2bPartnersCount = useMemo(
+    () => partners.filter((p) => p.segment?.toUpperCase() === "B2B" || p.segment?.toUpperCase() === "BOTH").length,
+    [partners]
+  )
+  const b2cPartnersCount = useMemo(
+    () => partners.filter((p) => p.segment?.toUpperCase() === "B2C" || p.segment?.toUpperCase() === "BOTH").length,
+    [partners]
+  )
 
   return (
-    <div className="space-y-6">
-      {/* ─── Header ─── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-5">
-        <div>
-          <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Marketplace &amp; Gestion des Crédits</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Validation des virements bancaires, attribution manuelle de crédits et suivi du vivier partenaires.
+    <div className="flex flex-col gap-6">
+      {/* 1. Header Opérationnel */}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <h1 className="font-heading text-xl font-semibold tracking-tight text-foreground">
+              Réseau Installateurs &amp; Capacité
+            </h1>
+            <span className="font-mono text-xs tabular-nums text-muted-foreground bg-secondary px-2 py-0.5 rounded-sm border border-border">
+              {partners.length} partenaires
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Supervision des installateurs agréés RESCERT, contrôle des soldes de crédits et surveillance de la couverture en Wallonie.
           </p>
         </div>
+
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              loadPartners()
-              loadOrders()
-              toast.info("Données actualisées")
-            }}
-            className="gap-2"
+            onClick={loadPartners}
+            disabled={loading}
+            className="h-8 text-xs gap-1.5"
           >
-            <RefreshCw className="h-3.5 w-3.5" />
-            Actualiser
+            <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+            <span>Actualiser</span>
+          </Button>
+
+          <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1.5">
+            <Link href="/admin/finance">
+              <Coins className="h-3.5 w-3.5" />
+              <span>Virements &amp; SEPA</span>
+              <ArrowRight className="h-3 w-3" />
+            </Link>
+          </Button>
+
+          <Button size="sm" asChild className="h-8 text-xs gap-1.5">
+            <Link href="/admin/applications">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              <span>Candidatures</span>
+            </Link>
           </Button>
         </div>
       </div>
 
-      {/* ─── Métriques KPI en grille ─── */}
-      <div className="grid gap-4 sm:grid-cols-4">
-        {/* Card 1 : Commandes en attente */}
+      {/* 2. Cartes de Métriques Réseau (Tokens sémantiques, zéro couleur interdite) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total installateurs */}
+        <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-2">
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span className="text-xs font-medium">Installateurs certifiés</span>
+            <div className="h-7 w-7 rounded-md bg-secondary flex items-center justify-center text-foreground">
+              <Building2 className="h-4 w-4" />
+            </div>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="font-mono text-2xl font-bold tabular-nums text-foreground">
+              {partners.length}
+            </span>
+            <span className="text-xs text-muted-foreground">partenaires actifs</span>
+          </div>
+          <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+            {b2bPartnersCount} B2B · {b2cPartnersCount} B2C
+          </span>
+        </div>
+
+        {/* Partenaires à risque */}
         <div
-          onClick={() => {
-            setActiveTab("orders")
-            setOrderStatusFilter("pending")
-          }}
-          className={`cursor-pointer rounded-2xl border p-4 shadow-xs transition-all ${
-            pendingOrdersCount > 0
-              ? "border-amber-300 bg-amber-50/60 hover:bg-amber-100/60"
-              : "border-border bg-card hover:bg-muted/30"
-          }`}
-        >
-          <div className="flex items-center justify-between text-xs font-semibold">
-            <span className={pendingOrdersCount > 0 ? "text-amber-800" : "text-muted-foreground"}>
-              Virements à vérifier
-            </span>
-            <Clock className={`h-4 w-4 ${pendingOrdersCount > 0 ? "text-amber-600 animate-pulse" : "text-muted-foreground"}`} />
-          </div>
-          <p className={`mt-2 text-2xl font-extrabold tabular-nums ${pendingOrdersCount > 0 ? "text-amber-900" : "text-foreground"}`}>
-            {pendingOrdersCount}
-          </p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            {pendingOrdersCount > 0 ? `${pendingOrdersAmount.toFixed(2)} € TTC à encaisser` : "Toutes les commandes sont à jour"}
-          </p>
-        </div>
-
-        {/* Card 2 : Crédits en circulation */}
-        <div className="rounded-2xl border border-border bg-card p-4 shadow-xs">
-          <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
-            <span>Crédits en circulation</span>
-            <Zap className="h-4 w-4 text-accent" />
-          </div>
-          <p className="mt-2 text-2xl font-extrabold tabular-nums text-foreground">{totalCreditsCirculation}</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">{partners.length} partenaires actifs</p>
-        </div>
-
-        {/* Card 3 : Leads achetés */}
-        <div className="rounded-2xl border border-border bg-card p-4 shadow-xs">
-          <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
-            <span>Leads débloqués (total)</span>
-            <ShoppingCart className="h-4 w-4 text-emerald-600" />
-          </div>
-          <p className="mt-2 text-2xl font-extrabold tabular-nums text-emerald-600">{totalLeadsPurchased}</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Sur la marketplace wallonne</p>
-        </div>
-
-        {/* Card 4 : Total rechargé */}
-        <div className="rounded-2xl border border-border bg-card p-4 shadow-xs">
-          <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
-            <span>Total crédits alloués</span>
-            <TrendingUp className="h-4 w-4 text-blue-600" />
-          </div>
-          <p className="mt-2 text-2xl font-extrabold tabular-nums text-foreground">{totalCreditsTopupped}</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Cumul des recharges validées</p>
-        </div>
-      </div>
-
-      {/* ─── Onglets Principaux ─── */}
-      <div className="flex items-center gap-2 border-b border-border pb-2">
-        <button
-          onClick={() => setActiveTab("orders")}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-            activeTab === "orders"
-              ? "bg-[#001D3D] text-white shadow-sm"
-              : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
-          }`}
-        >
-          <CreditCard className="h-4 w-4" />
-          Commandes de crédits &amp; Virements
-          {pendingOrdersCount > 0 && (
-            <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-extrabold text-[#001D3D] animate-pulse">
-              {pendingOrdersCount}
-            </span>
+          className={cn(
+            "rounded-lg border p-4 flex flex-col gap-2 transition-colors",
+            partnersAtRisk.length > 0
+              ? "border-destructive/40 bg-destructive/5"
+              : "border-border bg-card"
           )}
-        </button>
-
-        <button
-          onClick={() => setActiveTab("partners")}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-            activeTab === "partners"
-              ? "bg-[#001D3D] text-white shadow-sm"
-              : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
-          }`}
         >
-          <Building2 className="h-4 w-4" />
-          Installateurs &amp; Soldes ({partners.length})
-        </button>
-      </div>
-
-      {/* ═══════════════════════════════════════════════════
-          ONGLET 1 : COMMANDES DE CRÉDITS & VIREMENTS
-          ═══════════════════════════════════════════════════ */}
-      {activeTab === "orders" && (
-        <div className="space-y-4">
-          {/* Barre d'outils commandes */}
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3 shadow-xs">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-semibold text-muted-foreground mr-1">Filtrer par statut :</span>
-              {(["ALL", "pending", "paid", "cancelled"] as const).map((st) => (
-                <button
-                  key={st}
-                  onClick={() => setOrderStatusFilter(st)}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
-                    orderStatusFilter === st
-                      ? "bg-[#001D3D] text-white"
-                      : "bg-muted text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {st === "ALL"
-                    ? "Toutes"
-                    : st === "pending"
-                    ? `En attente (${pendingOrdersCount})`
-                    : st === "paid"
-                    ? "Validées"
-                    : "Annulées"}
-                </button>
-              ))}
-            </div>
-
-            <div className="text-xs text-muted-foreground">
-              Compte bénéficiaire : <strong>BE84 0020 3534 7259</strong> (INIT42)
-            </div>
-          </div>
-
-          {loadingOrders ? (
-            <div className="p-12 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Chargement des commandes…
-            </div>
-          ) : filteredOrders.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-card p-12 text-center shadow-xs">
-              <CreditCard className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
-              <h3 className="font-bold text-foreground">Aucune commande de crédits trouvée</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                {orderStatusFilter === "pending"
-                  ? "Tous les virements ont été traités !"
-                  : "Les demandes de recharges passées par les installateurs apparaîtront ici."}
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/50 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                      <th className="px-4 py-3">Date</th>
-                      <th className="px-4 py-3">Installateur</th>
-                      <th className="px-4 py-3">Pack &amp; Crédits</th>
-                      <th className="px-4 py-3">Montant</th>
-                      <th className="px-4 py-3">Communication virement</th>
-                      <th className="px-4 py-3">Statut</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {filteredOrders.map((order) => {
-                      const isPending = order.status === "pending"
-                      const isPaid = order.status === "paid"
-                      const isCancelled = order.status === "cancelled"
-                      const isProcessing = processingOrderId === order.id
-
-                      return (
-                        <tr
-                          key={order.id}
-                          className={`transition-colors ${
-                            isPending ? "bg-amber-50/40 hover:bg-amber-50/70" : "hover:bg-muted/40"
-                          }`}
-                        >
-                          {/* Date */}
-                          <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                            {new Date(order.created_at).toLocaleDateString("fr-BE", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </td>
-
-                          {/* Installateur */}
-                          <td className="px-4 py-3">
-                            <div className="font-bold text-foreground">
-                              {order.partners?.company_name || "Installateur"}
-                            </div>
-                            <div className="text-xs text-muted-foreground truncate max-w-[200px]">
-                              {order.partners?.email}
-                            </div>
-                          </td>
-
-                          {/* Pack */}
-                          <td className="px-4 py-3">
-                            <span className="font-semibold text-foreground">{order.pack_name}</span>
-                            <span className="ml-2 inline-flex items-center rounded bg-amber-100 px-2 py-0.5 text-xs font-extrabold text-[#001D3D]">
-                              +{order.credits} cr
-                            </span>
-                          </td>
-
-                          {/* Montant */}
-                          <td className="px-4 py-3">
-                            <div className="font-extrabold text-foreground tabular-nums">
-                              {Number(order.price_ttc).toFixed(2)} € <span className="text-[10px] text-muted-foreground font-normal">TTC</span>
-                            </div>
-                            <div className="text-[11px] text-muted-foreground tabular-nums">
-                              {Number(order.price_htva).toFixed(2)} € HTVA
-                            </div>
-                          </td>
-
-                          {/* Référence communication */}
-                          <td className="px-4 py-3">
-                            <div className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 font-mono text-xs font-bold text-slate-800">
-                              <span>{order.transfer_reference}</span>
-                              <button
-                                type="button"
-                                onClick={() => copyToClipboard(order.transfer_reference)}
-                                className="text-muted-foreground hover:text-foreground"
-                                title="Copier la référence de virement"
-                              >
-                                {copiedRef === order.transfer_reference ? (
-                                  <Check className="h-3.5 w-3.5 text-emerald-600" />
-                                ) : (
-                                  <Copy className="h-3.5 w-3.5" />
-                                )}
-                              </button>
-                            </div>
-                          </td>
-
-                          {/* Statut */}
-                          <td className="px-4 py-3">
-                            {isPending ? (
-                              <Badge className="border-amber-300 bg-amber-100 text-amber-900 gap-1 font-bold">
-                                <Clock className="h-3 w-3" />
-                                En attente virement
-                              </Badge>
-                            ) : isPaid ? (
-                              <Badge className="border-emerald-300 bg-emerald-100 text-emerald-900 gap-1 font-bold">
-                                <CheckCircle2 className="h-3 w-3" />
-                                Virement validé
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-muted-foreground gap-1">
-                                <XCircle className="h-3 w-3" />
-                                Annulée
-                              </Badge>
-                            )}
-                          </td>
-
-                          {/* Actions */}
-                          <td className="px-4 py-3 text-right">
-                            {isPending ? (
-                              <div className="flex items-center justify-end gap-2">
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleValidateOrder(order)}
-                                  disabled={isProcessing}
-                                  className="h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1.5 text-xs shadow-xs"
-                                >
-                                  {isProcessing ? (
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                  ) : (
-                                    <Check className="h-3.5 w-3.5" />
-                                  )}
-                                  Valider (+{order.credits} cr)
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleCancelOrder(order)}
-                                  disabled={isProcessing}
-                                  className="h-8 text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                                >
-                                  Annuler
-                                </Button>
-                              </div>
-                            ) : isPaid ? (
-                              <span className="text-xs text-muted-foreground font-mono">
-                                Traitée le {new Date(order.validated_at || order.created_at).toLocaleDateString("fr-BE")}
-                              </span>
-                            ) : (
-                              <span className="text-xs text-muted-foreground italic">Non encaissée</span>
-                            )}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════
-          ONGLET 2 : INSTALLATEURS & SOLDES CRÉDITS
-          ═══════════════════════════════════════════════════ */}
-      {activeTab === "partners" && (
-        <div className="space-y-4">
-          {/* Recherche & Filtres */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-border bg-card p-3 shadow-xs">
-            <div className="relative flex-1 sm:max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Rechercher une entreprise ou un email…"
-                value={searchPartner}
-                onChange={(e) => setSearchPartner(e.target.value)}
-                className="pl-9 h-9 text-xs rounded-xl"
-              />
-              {searchPartner && (
-                <button
-                  onClick={() => setSearchPartner("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
-                >
-                  ×
-                </button>
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span className="text-xs font-medium">Partenaires à risque de rupture</span>
+            <div
+              className={cn(
+                "h-7 w-7 rounded-md flex items-center justify-center",
+                partnersAtRisk.length > 0
+                  ? "bg-destructive/20 text-destructive"
+                  : "bg-secondary text-foreground"
               )}
-            </div>
-
-            <div className="text-xs text-muted-foreground font-medium">
-              {filteredPartners.length} partenaire{filteredPartners.length > 1 ? "s" : ""} référencé{filteredPartners.length > 1 ? "s" : ""}
+            >
+              <AlertTriangle className="h-4 w-4" />
             </div>
           </div>
+          <div className="flex items-baseline gap-2">
+            <span className="font-mono text-2xl font-bold tabular-nums text-foreground">
+              {partnersAtRisk.length}
+            </span>
+            <span className="text-xs text-muted-foreground">solde &lt; 5 crédits</span>
+          </div>
+          <span className="text-[11px] text-muted-foreground">
+            Incapables d&apos;acquérir un lead B2B sans recharge
+          </span>
+        </div>
 
-          {loading ? (
-            <div className="p-12 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Chargement des partenaires…
+        {/* Crédits en circulation */}
+        <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-2">
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span className="text-xs font-medium">Crédits détenus par le réseau</span>
+            <div className="h-7 w-7 rounded-md bg-secondary flex items-center justify-center text-foreground">
+              <Coins className="h-4 w-4" />
             </div>
-          ) : filteredPartners.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-card p-12 text-center shadow-xs">
-              <Building2 className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
-              <h3 className="font-bold text-foreground">Aucun partenaire trouvé</h3>
-              <p className="text-xs text-muted-foreground mt-1">Aucun installateur ne correspond à votre recherche.</p>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="font-mono text-2xl font-bold tabular-nums text-foreground">
+              {totalCreditsCirculation}
+            </span>
+            <span className="text-xs text-muted-foreground">crédits en réserve</span>
+          </div>
+          <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+            Moyenne : {partners.length > 0 ? Math.round(totalCreditsCirculation / partners.length) : 0} cr. / installateur
+          </span>
+        </div>
+
+        {/* Leads débloqués */}
+        <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-2">
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span className="text-xs font-medium">Leads acquis par le réseau</span>
+            <div className="h-7 w-7 rounded-md bg-secondary flex items-center justify-center text-foreground">
+              <CheckCircle2 className="h-4 w-4" />
             </div>
-          ) : (
-            <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/50 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                      <th className="px-4 py-3">Entreprise</th>
-                      <th className="px-4 py-3">Email &amp; Téléphone</th>
-                      <th className="px-4 py-3">Segment</th>
-                      <th className="px-4 py-3 text-right">Solde Crédits</th>
-                      <th className="px-4 py-3 text-right">Leads Achetés</th>
-                      <th className="px-4 py-3 text-right">Crédits Dépensés</th>
-                      <th className="px-4 py-3 text-right">Total Rechargé</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {filteredPartners.map((p) => (
-                      <tr key={p.id} className="hover:bg-muted/40 transition-colors">
-                        <td className="px-4 py-3">
-                          <div className="font-bold text-foreground">{p.company_name}</div>
-                          <div className="text-[11px] text-muted-foreground">
-                            Inscrit le {new Date(p.created_at).toLocaleDateString("fr-BE")}
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="font-mono text-2xl font-bold tabular-nums text-foreground">
+              {totalLeadsPurchased}
+            </span>
+            <span className="text-xs text-muted-foreground">leads débloqués</span>
+          </div>
+          <span className="text-[11px] text-muted-foreground">
+            Volume historique marketplace Aegis
+          </span>
+        </div>
+      </div>
+
+      {/* 3. Onglets & Barre d'outils */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="flex items-center rounded-md border border-border bg-card p-0.5 text-xs overflow-x-auto">
+          <button
+            type="button"
+            onClick={() => setActiveTab("all")}
+            className={cn(
+              "px-3 py-1.5 rounded-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5",
+              activeTab === "all"
+                ? "bg-secondary text-foreground shadow-2xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <span>Tous les installateurs</span>
+            <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+              ({partners.length})
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("at_risk")}
+            className={cn(
+              "px-3 py-1.5 rounded-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5",
+              activeTab === "at_risk"
+                ? "bg-secondary text-foreground shadow-2xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <span>À risque (&lt; 5 cr.)</span>
+            {partnersAtRisk.length > 0 && (
+              <span className="rounded-full bg-destructive/20 px-1.5 py-0.2 font-mono text-[10px] tabular-nums font-bold text-destructive">
+                {partnersAtRisk.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("coverage")}
+            className={cn(
+              "px-3 py-1.5 rounded-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5",
+              activeTab === "coverage"
+                ? "bg-secondary text-foreground shadow-2xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <MapPin className="h-3 w-3" />
+            <span>Matrice de Couverture Wallonie</span>
+          </button>
+        </div>
+
+        {activeTab !== "coverage" && (
+          <div className="relative min-w-[260px] max-w-sm">
+            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher installateur, e-mail, téléphone…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8 h-8 text-xs bg-card"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* 4. Affichage conditionnel : Matrice de Couverture OU Table Haute Densité */}
+      {activeTab === "coverage" ? (
+        <div className="rounded-md border border-border bg-card p-5 flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-sm font-semibold text-foreground">
+              Matrice de Couverture Géographique par Province
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Disponibilité des installateurs certifiés actifs pour absorber le flux de leads entrants.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-2">
+            {WALLOON_PROVINCES.map((prov) => {
+              const coveringPartners = partners.filter((p) => {
+                if (!p.target_provinces || p.target_provinces.length === 0) return true
+                return p.target_provinces.some((tp) =>
+                  tp.toLowerCase().includes(prov.key) || tp.toLowerCase().includes(prov.name.toLowerCase())
+                )
+              })
+
+              const b2bCount = coveringPartners.filter(
+                (p) => p.segment?.toUpperCase() === "B2B" || p.segment?.toUpperCase() === "BOTH"
+              ).length
+              const b2cCount = coveringPartners.filter(
+                (p) => p.segment?.toUpperCase() === "B2C" || p.segment?.toUpperCase() === "BOTH"
+              ).length
+              const hasCoverageTension = coveringPartners.length < 2
+
+              return (
+                <div
+                  key={prov.code}
+                  className={cn(
+                    "rounded-lg border p-3.5 flex flex-col gap-2",
+                    hasCoverageTension
+                      ? "border-destructive/30 bg-destructive/5"
+                      : "border-border bg-secondary/30"
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs font-bold text-foreground">
+                      {prov.code}
+                    </span>
+                    <Badge variant="outline" className="text-[10px] font-mono tabular-nums">
+                      {coveringPartners.length} installateurs
+                    </Badge>
+                  </div>
+                  <span className="text-xs font-medium text-foreground">{prov.name}</span>
+                  <div className="flex flex-col gap-1 pt-1 border-t border-border/50 text-[11px] font-mono tabular-nums text-muted-foreground">
+                    <div className="flex justify-between">
+                      <span>Couverture B2B :</span>
+                      <span className="font-semibold text-foreground">{b2bCount}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Couverture B2C :</span>
+                      <span className="font-semibold text-foreground">{b2cCount}</span>
+                    </div>
+                  </div>
+                  {hasCoverageTension && (
+                    <span className="text-[10px] text-destructive font-medium mt-1">
+                      ⚠ Tension de couverture
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-md border border-border bg-card overflow-hidden">
+          <Table className="text-xs">
+            <TableHeader>
+              <TableRow className="bg-secondary/40 border-b border-border hover:bg-secondary/40">
+                <TableHead className="min-w-[220px]">Installateur &amp; Contact</TableHead>
+                <TableHead className="w-24 text-center font-mono text-[11px] text-muted-foreground">Segment</TableHead>
+                <TableHead className="min-w-[160px]">Provinces Couvertes</TableHead>
+                <TableHead className="w-28 text-right font-mono text-[11px] text-muted-foreground">Solde Crédits</TableHead>
+                <TableHead className="w-28 text-right font-mono text-[11px] text-muted-foreground">Leads Achetés</TableHead>
+                <TableHead className="w-40 text-right">Actions Opérationnelles</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredPartners.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-12 text-center text-muted-foreground italic">
+                    Aucun installateur ne correspond aux critères sélectionnés.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredPartners.map((partner) => {
+                  const isLowCredits = partner.credits < 5
+                  const segmentLabel =
+                    partner.segment === "B2B"
+                      ? "B2B"
+                      : partner.segment === "B2C"
+                      ? "B2C"
+                      : "B2B & B2C"
+
+                  return (
+                    <TableRow
+                      key={partner.id}
+                      className="border-b border-border transition-colors hover:bg-secondary/20"
+                    >
+                      {/* Société */}
+                      <TableCell>
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-foreground">
+                              {partner.company_name}
+                            </span>
+                            {partner.is_test && (
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] font-mono py-0 h-4 bg-secondary text-muted-foreground"
+                              >
+                                TEST
+                              </Badge>
+                            )}
                           </div>
-                        </td>
-                        <td className="px-4 py-3 text-xs">
-                          <div className="text-foreground">{p.email}</div>
-                          {p.phone && <div className="text-muted-foreground font-mono">{p.phone}</div>}
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge variant="secondary" className="text-xs">
-                            {p.segment ?? "B2B & B2C"}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 font-mono text-sm font-extrabold tabular-nums ${
-                              p.credits > 10
-                                ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                                : p.credits > 0
-                                ? "bg-amber-50 text-amber-800 border border-amber-200"
-                                : "bg-rose-50 text-rose-800 border border-rose-200"
-                            }`}
-                          >
-                            <Zap className="h-3.5 w-3.5" />
-                            {p.credits} cr
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          {p.stats.leadsPurchased > 0 ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 gap-1.5 px-2 hover:bg-muted font-bold"
-                              onClick={() => openPurchases(p)}
-                              title="Voir les leads achetés"
-                            >
-                              <span className="tabular-nums">{p.stats.leadsPurchased}</span>
-                              <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-                            </Button>
+                          <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Mail className="h-3 w-3" />
+                              {partner.email}
+                            </span>
+                            {partner.phone && (
+                              <span className="flex items-center gap-1 font-mono tabular-nums">
+                                <Phone className="h-3 w-3" />
+                                {partner.phone}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      {/* Segment */}
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className="font-mono text-[10px]">
+                          {segmentLabel}
+                        </Badge>
+                      </TableCell>
+
+                      {/* Provinces */}
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {partner.target_provinces && partner.target_provinces.length > 0 ? (
+                            partner.target_provinces.slice(0, 3).map((prov) => (
+                              <span
+                                key={prov}
+                                className="rounded bg-secondary border border-border px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground capitalize"
+                              >
+                                {prov.replace(/-/g, " ")}
+                              </span>
+                            ))
                           ) : (
-                            <span className="tabular-nums text-muted-foreground mr-6">0</span>
+                            <span className="text-[11px] text-muted-foreground italic">
+                              Toute la Wallonie
+                            </span>
                           )}
-                        </td>
-                        <td className="px-4 py-3 text-right tabular-nums text-muted-foreground font-medium">
-                          {p.stats.creditsSpent}
-                        </td>
-                        <td className="px-4 py-3 text-right tabular-nums text-foreground font-bold">
-                          +{p.stats.creditsTopupped}
-                        </td>
-                        <td className="px-4 py-3 text-right">
+                          {partner.target_provinces && partner.target_provinces.length > 3 && (
+                            <span className="text-[10px] font-mono text-muted-foreground self-center">
+                              +{partner.target_provinces.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      {/* Solde Crédits */}
+                      <TableCell className="text-right font-mono tabular-nums">
+                        <span
+                          className={cn(
+                            "font-bold text-sm px-2 py-0.5 rounded border",
+                            isLowCredits
+                              ? "bg-destructive/10 text-destructive border-destructive/20"
+                              : "bg-secondary text-foreground border-border"
+                          )}
+                        >
+                          {partner.credits} cr.
+                        </span>
+                      </TableCell>
+
+                      {/* Leads Achetés */}
+                      <TableCell className="text-right font-mono tabular-nums">
+                        <span className="font-semibold text-foreground">
+                          {partner.stats.leadsPurchased}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground block">
+                          ({partner.stats.creditsSpent} cr. dépensés)
+                        </span>
+                      </TableCell>
+
+                      {/* Actions */}
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1.5">
                           <Button
-                            variant="outline"
                             size="sm"
+                            variant="default"
+                            className="h-7 text-xs font-medium gap-1"
                             onClick={() => {
-                              setCreditModal(p)
-                              setCreditAmount(25)
-                              setCreditReason("Virement reçu")
+                              setCreditModalPartner(partner)
+                              setCreditAmount(10)
+                              setCreditReason("Attribution manuelle Aegis")
                             }}
-                            className="h-8 gap-1.5 rounded-lg border-border font-semibold text-xs shadow-2xs hover:bg-[#001D3D] hover:text-white transition-all"
                           >
-                            <Coins className="h-3.5 w-3.5" />
-                            Gérer les crédits
+                            <Plus className="h-3 w-3" />
+                            <span>Crédits</span>
                           </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs gap-1"
+                            onClick={() => openPurchases(partner)}
+                          >
+                            <Eye className="h-3 w-3" />
+                            <span>Achats</span>
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
+            </TableBody>
+          </Table>
         </div>
       )}
 
-      {/* ─── Modal d'Attribution Manuelle de Crédits ─── */}
-      <Dialog open={!!creditModal} onOpenChange={(o) => !o && setCreditModal(null)}>
-        {creditModal && (
-          <DialogContent className="max-w-md rounded-2xl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-lg">
-                <Coins className="h-5 w-5 text-accent" />
-                Ajuster les crédits — {creditModal.company_name}
-              </DialogTitle>
-            </DialogHeader>
+      {/* Dialogue d'Attribution Manuelle de Crédits */}
+      <Dialog
+        open={Boolean(creditModalPartner)}
+        onOpenChange={(open) => !open && setCreditModalPartner(null)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Coins className="h-5 w-5 text-primary" />
+              <span>Allouer des crédits</span>
+            </DialogTitle>
+            <DialogDescription>
+              Attribution manuelle immédiate sur le compte de l&apos;installateur.
+            </DialogDescription>
+          </DialogHeader>
 
-            <div className="space-y-4 py-2">
-              <div className="flex items-center justify-between rounded-xl border border-border bg-muted/40 p-3 text-xs">
-                <span className="text-muted-foreground">Solde actuel :</span>
-                <span className="font-extrabold text-foreground text-sm font-mono">{creditModal.credits} crédits</span>
-              </div>
-
-              {/* Raccourcis rapides */}
-              <div>
-                <Label className="text-xs text-muted-foreground font-semibold">Montants rapides</Label>
-                <div className="grid grid-cols-4 gap-2 mt-1.5">
-                  {[10, 25, 50, 100].map((amt) => (
-                    <button
-                      key={amt}
-                      type="button"
-                      onClick={() => setCreditAmount(amt)}
-                      className={`rounded-xl border py-2 text-xs font-bold transition-all ${
-                        creditAmount === amt
-                          ? "border-[#001D3D] bg-[#001D3D] text-white shadow-xs"
-                          : "border-border bg-background text-foreground hover:bg-muted"
-                      }`}
-                    >
-                      +{amt} cr
-                    </button>
-                  ))}
+          {creditModalPartner && (
+            <div className="flex flex-col gap-4 py-2">
+              <div className="rounded-md border border-border bg-secondary/30 p-3 flex flex-col gap-1.5 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Installateur :</span>
+                  <span className="font-semibold text-foreground">
+                    {creditModalPartner.company_name}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Solde actuel :</span>
+                  <span className="font-mono font-bold tabular-nums text-foreground">
+                    {creditModalPartner.credits} crédits
+                  </span>
                 </div>
               </div>
 
-              {/* Champ personnalisé */}
-              <div className="space-y-1.5">
-                <Label htmlFor="creditAmount" className="text-xs">Nombre de crédits (positif ou négatif)</Label>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="creditAmount" className="text-xs">
+                  Nombre de crédits à ajouter
+                </Label>
                 <Input
                   id="creditAmount"
                   type="number"
+                  min="1"
+                  max="500"
                   value={creditAmount}
                   onChange={(e) => setCreditAmount(parseInt(e.target.value) || 0)}
-                  className="rounded-xl h-10 font-mono font-bold"
+                  className="font-mono text-sm"
                 />
               </div>
 
-              {/* Motif / Référence */}
-              <div className="space-y-1.5">
-                <Label htmlFor="creditReason" className="text-xs">Motif de l'opération (pour l'audit)</Label>
-                <select
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="creditReason" className="text-xs">
+                  Motif d&apos;attribution (journalisé dans l&apos;audit)
+                </Label>
+                <Input
                   id="creditReason"
+                  placeholder="Ex : Virement direct, geste commercial..."
                   value={creditReason}
                   onChange={(e) => setCreditReason(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-background px-3 h-10 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#001D3D]"
-                >
-                  <option value="Virement bancaire validé">Virement bancaire validé</option>
-                  <option value="Pack Découverte offert">Pack Découverte offert</option>
-                  <option value="Geste commercial / compensation">Geste commercial / compensation</option>
-                  <option value="Régularisation administrative">Régularisation administrative</option>
-                  <option value="Autre ajustement manuel">Autre ajustement manuel</option>
-                </select>
-              </div>
-
-              {/* Aperçu nouveau solde */}
-              <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 text-xs">
-                <span className="font-semibold text-emerald-800">Nouveau solde calculé :</span>
-                <span className="font-extrabold text-emerald-900 text-sm font-mono">
-                  {creditModal.credits + creditAmount} crédits
-                </span>
+                  className="text-xs"
+                />
               </div>
             </div>
+          )}
 
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button variant="outline" onClick={() => setCreditModal(null)} className="rounded-xl">
-                Annuler
-              </Button>
-              <Button
-                onClick={handleManualAddCredits}
-                disabled={savingCredits || creditAmount === 0}
-                className="rounded-xl bg-[#001D3D] font-bold text-white hover:bg-[#002855]"
-              >
-                {savingCredits ? "Enregistrement…" : `Appliquer (${creditAmount > 0 ? `+${creditAmount}` : creditAmount} cr)`}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCreditModalPartner(null)}
+              disabled={savingCredits}
+            >
+              Annuler
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleAddCredits}
+              disabled={savingCredits || creditAmount <= 0}
+            >
+              {savingCredits ? "Enregistrement…" : "Confirmer l'ajout"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
 
-      {/* ─── Modal Historique Achats Partenaire ─── */}
-      <Dialog open={!!purchasesModal} onOpenChange={(o) => !o && setPurchasesModal(null)}>
-        {purchasesModal && (
-          <DialogContent className="max-w-3xl rounded-2xl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5 text-emerald-600" />
-                Leads débloqués par {purchasesModal.company_name}
-              </DialogTitle>
-            </DialogHeader>
-            <ScrollArea className="max-h-[60vh]">
-              {loadingPurchases ? (
-                <p className="p-8 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Chargement des achats…
-                </p>
-              ) : purchasesData.length === 0 ? (
-                <p className="p-8 text-center text-sm text-muted-foreground">Aucun achat enregistré.</p>
-              ) : (
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/50 text-[11px] font-bold uppercase tracking-wider text-muted-foreground sticky top-0 bg-muted/95 backdrop-blur z-10">
-                      <th className="px-4 py-2.5 text-left">Date d'achat</th>
-                      <th className="px-4 py-2.5 text-left">Contact lead</th>
-                      <th className="px-4 py-2.5 text-left">Segment</th>
-                      <th className="px-4 py-2.5 text-left">Caractéristiques</th>
-                      <th className="px-4 py-2.5 text-right">Crédits déduits</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {purchasesData.map((p, i) => {
-                      const l = p.lead
-                      return (
-                        <tr key={i} className="hover:bg-muted/40 transition-colors">
-                          <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
-                            {new Date(p.purchased_at).toLocaleDateString("fr-BE", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </td>
-                          <td className="px-4 py-2.5">
-                            <div className="font-bold text-foreground">
-                              {l?.first_name} {l?.last_name || l?.email?.split("@")[0]}
-                            </div>
-                            <div className="text-xs text-muted-foreground">{l?.email}</div>
-                          </td>
-                          <td className="px-4 py-2.5">
-                            <Badge variant="outline" className="text-[10px]">
-                              {l?.segment ?? "B2B"}
-                            </Badge>
-                          </td>
-                          <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                            {l?.province?.replace("_", " ") ?? "—"} · {l?.surface_area} m²
-                          </td>
-                          <td className="px-4 py-2.5 text-right font-mono font-bold text-rose-600">
-                            -{p.credits_spent} cr
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </ScrollArea>
-          </DialogContent>
-        )}
+      {/* Dialogue d'Historique des Achats de Leads */}
+      <Dialog
+        open={Boolean(purchasesModalPartner)}
+        onOpenChange={(open) => !open && setPurchasesModalPartner(null)}
+      >
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5 text-primary" />
+              <span>Historique des leads débloqués</span>
+            </DialogTitle>
+            <DialogDescription>
+              Leads acquis par {purchasesModalPartner?.company_name} sur la marketplace.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="overflow-y-auto flex-1 my-2">
+            {loadingPurchases ? (
+              <div className="p-8 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
+                <RefreshCw className="h-4 w-4 animate-spin text-primary" />
+                <span>Chargement des achats…</span>
+              </div>
+            ) : purchasesData.length === 0 ? (
+              <div className="p-8 text-center text-xs text-muted-foreground italic">
+                Aucun lead n&apos;a encore été acheté par ce partenaire.
+              </div>
+            ) : (
+              <Table className="text-xs">
+                <TableHeader>
+                  <TableRow className="bg-secondary/40 border-b border-border">
+                    <TableHead className="w-28 font-mono text-[11px] text-muted-foreground">Date d&apos;achat</TableHead>
+                    <TableHead>Prospect / Contact</TableHead>
+                    <TableHead className="w-20 font-mono text-[11px] text-muted-foreground">Segment</TableHead>
+                    <TableHead className="w-28">Province</TableHead>
+                    <TableHead className="w-24 text-right font-mono text-[11px] text-muted-foreground">Crédits</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {purchasesData.map((item) => {
+                    const lead = item.leads || item
+                    return (
+                      <TableRow key={item.id} className="border-b border-border">
+                        <TableCell className="font-mono text-[11px] tabular-nums whitespace-nowrap text-muted-foreground">
+                          {new Date(item.purchased_at || item.created_at).toLocaleDateString("fr-BE")}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-foreground">
+                              {lead.first_name} {lead.last_name || lead.company || ""}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground font-mono">
+                              {lead.phone || lead.email || "—"}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-[10px]">
+                          {lead.segment || "B2C"}
+                        </TableCell>
+                        <TableCell className="capitalize">
+                          {lead.province || "Wallonie"}
+                        </TableCell>
+                        <TableCell className="text-right font-mono tabular-nums font-semibold text-foreground">
+                          {item.credits_spent || (lead.segment === "B2B" ? 5 : 2)} cr.
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPurchasesModalPartner(null)}
+            >
+              Fermer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </div>
   )

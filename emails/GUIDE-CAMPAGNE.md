@@ -4,6 +4,7 @@
 
 - ✅ Adresse mail `nathan@aegissolaire.com` opérationnelle
 - ✅ 5 templates HTML professionnels créés (dans `/emails/outreach/`)
+- ✅ Système de dispatch & relances automatiques de leads configuré : [`SYSTEME-RELANCES-LEADS.md`](file:///c:/Users/mrnat/Documents/SaaS/Aegis%20Solaire/aegis-solaire-main/SYSTEME-RELANCES-LEADS.md)
 - ✅ CGV refondues pour le modèle marketplace
 - ✅ Build du site validé
 

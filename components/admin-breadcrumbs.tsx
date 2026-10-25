@@ -7,15 +7,18 @@ import { cn } from "@/lib/utils"
 
 const routeMap: Record<string, string> = {
   admin: "Accueil",
-  dashboard: "Tableau de bord",
+  dashboard: "Cockpit",
   leads: "Leads",
   installateurs: "Installateurs",
   applications: "Candidatures",
-  partners: "Partenaires",
+  partners: "Installateurs",
   "media-partners": "Apporteurs d'affaires",
   marketplace: "Marketplace",
+  finance: "Finances & Virements",
+  disputes: "Litiges & Qualité",
+  audit: "Journal d'audit",
   logs: "Logs d'audit",
-  settings: "Paramètres"
+  settings: "Paramètres",
 }
 
 export function AdminBreadcrumbs() {
@@ -23,10 +26,10 @@ export function AdminBreadcrumbs() {
   const paths = pathname.split("/").filter(Boolean)
 
   return (
-    <nav className="flex items-center space-x-1 text-xs text-slate-500">
+    <nav className="flex items-center gap-1 text-xs text-muted-foreground">
       <Link
         href="/admin/dashboard"
-        className="flex items-center hover:text-slate-900 transition-colors"
+        className="flex items-center hover:text-foreground transition-colors"
       >
         <Home className="h-3.5 w-3.5" />
       </Link>

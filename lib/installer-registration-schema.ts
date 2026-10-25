@@ -88,6 +88,7 @@ export const installerRegistrationSchema = z.object({
       (arr) => arr.every((r) => (INSTALLER_REGIONS as readonly string[]).includes(r)),
       { message: "Une ou plusieurs zones sélectionnées sont invalides." }
     ),
+  invitedBy: z.string().max(255).optional(),
 })
 
 export type InstallerRegistrationInput = z.infer<typeof installerRegistrationSchema>

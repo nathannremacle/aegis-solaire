@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
     const supabase = createServiceRoleClient()
 
     const adminNotes = [
+      data.invitedBy ? `⭐ INVITATION VIP PAR: ${data.invitedBy}` : null,
       data.targetSegment ? `Segments cibles: ${data.targetSegment}` : null,
       data.powerCapacity ? `Capacité: ${data.powerCapacity}` : null,
     ]

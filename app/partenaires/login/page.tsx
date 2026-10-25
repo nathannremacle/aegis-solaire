@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { createClient } from "@/lib/supabase/client"
@@ -29,7 +29,18 @@ const itemVariants = {
 }
 
 export default function PartnerLoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+      <PartnerLoginForm />
+    </Suspense>
+  )
+}
+
+function PartnerLoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const returnUrl = searchParams.get("returnUrl") || (searchParams.get("lead") ? `/partenaires/dashboard?lead=${encodeURIComponent(searchParams.get("lead")!)}` : "/partenaires/dashboard")
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -54,7 +65,7 @@ export default function PartnerLoginPage() {
         setLoading(false)
         return
       }
-      router.push("/partenaires/dashboard")
+      router.push(returnUrl)
       router.refresh()
     } catch {
       setError("Une erreur est survenue.")

@@ -150,6 +150,40 @@ export function DevisLandingClient() {
   const [activeTooltip, setActiveTooltip] = useState<number | null>(null)
 
   const formOpenedAt = useRef(new Date().toISOString())
+
+  // Capture des UTM et du fbclid dès l'arrivée sur la landing page
+  const [utmData, setUtmData] = useState<{
+    utm_source?: string
+    utm_medium?: string
+    utm_campaign?: string
+    utm_content?: string
+    utm_term?: string
+    fbclid?: string
+  }>({})
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    try {
+      const searchParams = new URLSearchParams(window.location.search)
+      const utm = {
+        utm_source: searchParams.get("utm_source") || undefined,
+        utm_medium: searchParams.get("utm_medium") || undefined,
+        utm_campaign: searchParams.get("utm_campaign") || undefined,
+        utm_content: searchParams.get("utm_content") || undefined,
+        utm_term: searchParams.get("utm_term") || undefined,
+        fbclid: searchParams.get("fbclid") || undefined,
+      }
+      setUtmData(utm)
+
+      // Enregistrement du cookie standard _fbc pour Meta Conversions API si fbclid présent
+      if (utm.fbclid && !document.cookie.includes("_fbc=")) {
+        const creationTime = Date.now()
+        document.cookie = `_fbc=fb.1.${creationTime}.${utm.fbclid}; path=/; max-age=${90 * 24 * 3600}; SameSite=Lax`
+      }
+    } catch (e) {
+      console.warn("Erreur capture UTMs:", e)
+    }
+  }, [])
   const leadCardRef = useRef<HTMLDivElement>(null)
 
   // Validation
@@ -272,6 +306,9 @@ export function DevisLandingClient() {
       newsletterConsent,
       projectDetails: [
         `Source: Landing Bobex-Style (B2C)`,
+        utmData.utm_source ? `UTM Source: ${utmData.utm_source}` : "",
+        utmData.utm_campaign ? `Campagne: ${utmData.utm_campaign}` : "",
+        utmData.utm_content ? `Créatif: ${utmData.utm_content}` : "",
         `Consommation annuelle: ${consumption}`,
         `Type de bien: ${propertyType}`,
         `Statut: ${ownership}`,
@@ -293,6 +330,7 @@ export function DevisLandingClient() {
         batteryInterest,
         evChargerInterest,
         remarks: remarks.trim() || null,
+        ...utmData,
       },
       fax_number,
       form_opened_at: formOpenedAt.current,
@@ -340,6 +378,7 @@ export function DevisLandingClient() {
                 src="/logo.png"
                 alt="Aegis Solaire"
                 fill
+                sizes="(max-width: 640px) 144px, 176px"
                 className="object-contain object-left"
                 priority
               />
@@ -377,7 +416,7 @@ export function DevisLandingClient() {
           <div className="lg:hidden mb-6 text-center sm:text-left">
             <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-900 bg-amber-50 border border-amber-200/90 px-3 py-1 rounded-full shadow-2xs mb-3">
               <Zap className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-              <span>⚡ Service Indépendant · Wallonie &amp; Bruxelles</span>
+              <span>⚡ Service Indépendant · 100 % Wallonie</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#002A45] leading-[1.18]">
               La meilleure offre solaire&nbsp;?{" "}
@@ -398,7 +437,7 @@ export function DevisLandingClient() {
               {/* Badge Preuve Sociale / Indépendance (Desktop) */}
               <div className="hidden lg:inline-flex items-center gap-2 text-xs font-extrabold text-amber-950 mb-3 bg-amber-50/90 border border-amber-200/90 w-fit px-3.5 py-1.5 rounded-full shadow-2xs">
                 <Zap className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                <span>⚡ Service Indépendant · Wallonie &amp; Bruxelles</span>
+                <span>⚡ Service Indépendant · 100 % Wallonie</span>
               </div>
 
               {/* Titre Principal Desktop (Sans retour à la ligne orphelin) */}
@@ -1080,7 +1119,7 @@ export function DevisLandingClient() {
                                   placeholder="ex. Sophie"
                                   value={firstName}
                                   onChange={(e) => setFirstName(e.target.value)}
-                                  className={`h-11 mt-1 rounded-xl text-sm ${
+                                  className={`h-11 mt-1 rounded-xl text-base sm:text-sm ${
                                     showFirstNameError ? "border-red-500 ring-1 ring-red-500" : "border-slate-300"
                                   }`}
                                 />
@@ -1099,7 +1138,7 @@ export function DevisLandingClient() {
                                   placeholder="ex. Dupont"
                                   value={lastName}
                                   onChange={(e) => setLastName(e.target.value)}
-                                  className={`h-11 mt-1 rounded-xl text-sm ${
+                                  className={`h-11 mt-1 rounded-xl text-base sm:text-sm ${
                                     showLastNameError ? "border-red-500 ring-1 ring-red-500" : "border-slate-300"
                                   }`}
                                 />
@@ -1121,7 +1160,7 @@ export function DevisLandingClient() {
                                   placeholder="nom@exemple.be"
                                   value={email}
                                   onChange={(e) => setEmail(e.target.value)}
-                                  className={`h-11 mt-1 rounded-xl text-sm ${
+                                  className={`h-11 mt-1 rounded-xl text-base sm:text-sm ${
                                     showEmailError ? "border-red-500 ring-1 ring-red-500" : "border-slate-300"
                                   }`}
                                 />
@@ -1141,7 +1180,7 @@ export function DevisLandingClient() {
                                   placeholder="0470 12 34 56"
                                   value={phone}
                                   onChange={(e) => setPhone(e.target.value)}
-                                  className={`h-11 mt-1 rounded-xl text-sm ${
+                                  className={`h-11 mt-1 rounded-xl text-base sm:text-sm ${
                                     showPhoneError ? "border-red-500 ring-1 ring-red-500" : "border-slate-300"
                                   }`}
                                 />
@@ -1161,7 +1200,7 @@ export function DevisLandingClient() {
                                 placeholder="ex. Rue de la Station 12"
                                 value={address}
                                 onChange={(e) => setAddress(e.target.value)}
-                                className={`h-11 mt-1 rounded-xl text-sm ${
+                                className={`h-11 mt-1 rounded-xl text-base sm:text-sm ${
                                   showAddressError ? "border-red-500 ring-1 ring-red-500" : "border-slate-300"
                                 }`}
                               />
@@ -1445,7 +1484,7 @@ export function DevisLandingClient() {
               },
               {
                 num: "03",
-                title: "Comparez jusqu'à 4 devis",
+                title: "Comparez jusqu'à 3 devis",
                 desc: "Recevez les offres chiffrées chez vous. Comparez les garanties, les rendements, les prix et décidez en toute liberté avec qui signer.",
               },
             ].map((stepItem, idx) => (
@@ -1585,7 +1624,7 @@ export function DevisLandingClient() {
                     Sélection d&apos;artisans RESCERT locaux
                   </strong>
                   <p className="text-xs text-slate-600 mt-0.5">
-                    Nous sollicitons jusqu&apos;à 4 professionnels certifiés de votre province pour une prise de contact rapide.
+                    Nous sollicitons jusqu&apos;à 3 professionnels certifiés de votre province pour une prise de contact rapide.
                   </p>
                 </div>
               </li>

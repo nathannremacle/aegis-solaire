@@ -1,82 +1,64 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-@custom-variant dark (&:is(.dark *));
-
 :root {
-  /* Aegis Solaire – branding logo : #112f4b, #e6ad35, #7a8b98 */
-  --background: oklch(0.985 0 0);
-  --foreground: oklch(0.22 0.04 254);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.04 254);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.04 254);
-  /* Primary: #001D3D (Bleu Nuit Institutionnel) */
-  --primary: #001D3D;
-  --primary-foreground: #FFFFFF;
-  /* Secondary / muted: #7a8b98 (gris-bleu logo) – tons clairs pour fonds */
-  --secondary: oklch(0.96 0.01 243);
-  --secondary-foreground: oklch(0.28 0.04 254);
-  --muted: oklch(0.96 0.01 243);
-  --muted-foreground: oklch(0.45 0.04 248);
-  /* Accent: #FFB800 (Or Solaire) */
-  --accent: #FFB800;
-  --accent-foreground: #001D3D;
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.88 0.02 243);
-  --input: oklch(0.88 0.02 243);
-  --ring: oklch(0.31 0.08 254);
-  /* Charts – palette branding */
-  --chart-1: oklch(0.72 0.17 86);
-  --chart-2: oklch(0.31 0.08 254);
-  --chart-3: oklch(0.54 0.05 243);
-  --chart-4: oklch(0.72 0.12 86);
-  --chart-5: oklch(0.35 0.06 254);
-  --radius: 0.5rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.25 0.03 250);
-  --sidebar-primary: oklch(0.35 0.08 250);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.96 0.005 250);
-  --sidebar-accent-foreground: oklch(0.25 0.03 250);
-  --sidebar-border: oklch(0.9 0.01 250);
-  --sidebar-ring: oklch(0.35 0.08 250);
-}
+  /* Surfaces : Pierre chaude éditoriale & Blanc pur pour les cartes actives */
+  --background: #FAF8F5;
+  --foreground: #111815;
+  --card: #FFFFFF;
+  --card-foreground: #111815;
+  --popover: #FFFFFF;
+  --popover-foreground: #111815;
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.18 0.02 254);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.18 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: #001D3D;
-  --primary-foreground: #FFFFFF;
-  --secondary: oklch(0.25 0.04 243);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: #FFB800;
-  --accent-foreground: #000000;
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  /* Primary : Vert Forêt Institutionnel Profond (Autorité, Ingénierie, Durabilité) */
+  --primary: #0B2B22;
+  --primary-foreground: #FAF8F5;
+
+  /* Secondary & Muted : Grès chaud / Ardoise minérale */
+  --secondary: #F0ECE3;
+  --secondary-foreground: #182722;
+  --muted: #F2EFE9;
+  --muted-foreground: #525E59;
+
+  /* Accent : Ambre Solaire Éditorial (Chaleur, Énergie, Indicateurs clés) */
+  --accent: #D97706;
+  --accent-foreground: #FFFFFF;
+
+  /* États & Bordures architecturales */
+  --destructive: #B91C1C;
+  --destructive-foreground: #FAF8F5;
+  --border: #E2DDD3;
+  --input: #D5CFC4;
+  --ring: #0B2B22;
+
+  /* Graphiques & Data-viz (Recharts / Simulateur ROI) */
+  --chart-1: #0B2B22; /* Vert Forêt */
+  --chart-2: #D97706; /* Ambre Solaire */
+  --chart-3: #2A5C4D; /* Pin Moyen */
+  --chart-4: #78716C; /* Pierre Grise */
+  --chart-5: #B45309; /* Ocre Foncé */
+
+  /* Rayon de courbure : Sec et architectural (6px base) */
+  --radius: 0.375rem;
+
+  /* Statuts opérationnels (Pipeline & Litiges) */
+  --status-new: #3B5B7A;
+  --status-review: #B45309;
+  --status-qualified: #2A5C4D;
+  --status-distributed: #0B2B22;
+  --status-disputed: #B91C1C;
+  --status-converted: #4D7C0F;
+  --status-archived: #78716C;
+
+  /* Sidebar */
+  --sidebar: #FAF8F5;
+  --sidebar-foreground: #111815;
+  --sidebar-primary: #0B2B22;
+  --sidebar-primary-foreground: #FAF8F5;
+  --sidebar-accent: #F0ECE3;
+  --sidebar-accent-foreground: #182722;
+  --sidebar-border: #E2DDD3;
+  --sidebar-ring: #0B2B22;
 }
 
 @theme inline {
@@ -107,6 +89,13 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-status-new: var(--status-new);
+  --color-status-review: var(--status-review);
+  --color-status-qualified: var(--status-qualified);
+  --color-status-distributed: var(--status-distributed);
+  --color-status-disputed: var(--status-disputed);
+  --color-status-converted: var(--status-converted);
+  --color-status-archived: var(--status-archived);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -144,16 +133,7 @@
   }
 }
 
-/* Transitions douces entre sections sombres (#001D3D) et fonds clairs */
-.section-dark-to-light {
-  background: linear-gradient(180deg, #001D3D 0%, #062649 88%, oklch(0.985 0.003 247) 100%);
-}
 
-.card-institutional {
-  background: var(--card);
-  border: 1px solid var(--border);
-  box-shadow: 0 1px 3px rgba(0, 29, 61, 0.04), 0 8px 24px -4px rgba(0, 29, 61, 0.06);
-}
 
 /* Bandeau défilant certifications – infinite marquee */
 @keyframes certifications-marquee {

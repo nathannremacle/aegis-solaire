@@ -13,6 +13,7 @@ import {
   CommandSeparator,
 } from "@/components/ui/command"
 import { Badge } from "@/components/ui/badge"
+import { Kbd } from "@/components/ui/kbd"
 
 type SearchResult = {
   id: string
@@ -34,7 +35,7 @@ export function AdminCommandMenu() {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
-        setOpen((open) => !open)
+        setOpen((prev) => !prev)
       }
     }
     document.addEventListener("keydown", down)
@@ -51,7 +52,7 @@ export function AdminCommandMenu() {
       setLoading(true)
       try {
         const res = await fetch(`/api/admin/search?q=${encodeURIComponent(query)}`, {
-          headers: { "x-admin-request": "true" }
+          headers: { "x-admin-request": "true" },
         })
         if (res.ok) {
           const data = await res.json()
@@ -62,7 +63,7 @@ export function AdminCommandMenu() {
       } finally {
         setLoading(false)
       }
-    }, 300)
+    }, 250)
 
     return () => clearTimeout(timer)
   }, [query])
@@ -79,30 +80,29 @@ export function AdminCommandMenu() {
   return (
     <>
       <button
+        type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-100/80 px-2.5 py-1.5 text-xs text-slate-600 shadow-2xs transition-colors hover:bg-slate-200/70 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#001D3D] w-full justify-between"
+        className="flex items-center gap-2 rounded-md border border-border bg-secondary/60 px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring w-full justify-between"
       >
         <div className="flex items-center gap-2">
-          <Search className="h-3.5 w-3.5 text-slate-400" />
+          <Search className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="font-medium text-xs">Rechercher...</span>
         </div>
-        <kbd className="pointer-events-none hidden h-4 select-none items-center gap-1 rounded border border-slate-300 bg-white px-1 font-mono text-[9px] font-semibold text-slate-500 opacity-90 sm:flex mr-0.5">
-          <span className="text-[10px]">⌘</span>K
-        </kbd>
+        <Kbd className="font-mono text-[10px]">⌘K</Kbd>
       </button>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput 
-          placeholder="Rechercher un lead, partenaire, installateur..." 
+        <CommandInput
+          placeholder="Rechercher lead, installateur, TVA, code postal..."
           value={query}
           onValueChange={setQuery}
         />
-        <CommandList>
+        <CommandList className="custom-scrollbar">
           <CommandEmpty>
             {loading ? (
-              <div className="flex items-center justify-center p-6 gap-2 text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Recherche en cours...</span>
+              <div className="flex items-center justify-center p-6 gap-2 text-muted-foreground text-xs">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <span>Recherche dans la base de données...</span>
               </div>
             ) : (
               "Aucun résultat trouvé."
@@ -119,11 +119,11 @@ export function AdminCommandMenu() {
                   className="flex items-center justify-between"
                 >
                   <div className="flex flex-col">
-                    <span className="font-medium text-sm">{lead.title}</span>
+                    <span className="font-medium text-sm text-foreground">{lead.title}</span>
                     <span className="text-xs text-muted-foreground">{lead.subtitle}</span>
                   </div>
                   {lead.badge && (
-                    <Badge variant="outline" className="text-[10px] font-normal uppercase">
+                    <Badge variant="outline" className="font-mono text-[10px] uppercase">
                       {lead.badge}
                     </Badge>
                   )}
@@ -135,7 +135,7 @@ export function AdminCommandMenu() {
           {!loading && installateurs.length > 0 && (
             <>
               <CommandSeparator />
-              <CommandGroup heading="Installateurs Actifs">
+              <CommandGroup heading="Installateurs">
                 {installateurs.map((inst) => (
                   <CommandItem
                     key={inst.id}
@@ -143,7 +143,7 @@ export function AdminCommandMenu() {
                     onSelect={() => runCommand(() => router.push(inst.url))}
                   >
                     <div className="flex flex-col">
-                      <span className="font-medium text-sm">{inst.title}</span>
+                      <span className="font-medium text-sm text-foreground">{inst.title}</span>
                       <span className="text-xs text-muted-foreground">{inst.subtitle}</span>
                     </div>
                   </CommandItem>
@@ -155,7 +155,7 @@ export function AdminCommandMenu() {
           {!loading && partners.length > 0 && (
             <>
               <CommandSeparator />
-              <CommandGroup heading="Partenaires & Marketeurs">
+              <CommandGroup heading="Partenaires & Apporteurs">
                 {partners.map((partner) => (
                   <CommandItem
                     key={partner.id}
@@ -163,7 +163,7 @@ export function AdminCommandMenu() {
                     onSelect={() => runCommand(() => router.push(partner.url))}
                   >
                     <div className="flex flex-col">
-                      <span className="font-medium text-sm">{partner.title}</span>
+                      <span className="font-medium text-sm text-foreground">{partner.title}</span>
                       <span className="text-xs text-muted-foreground">{partner.subtitle}</span>
                     </div>
                   </CommandItem>
@@ -173,18 +173,30 @@ export function AdminCommandMenu() {
           )}
 
           <CommandSeparator />
-          <CommandGroup heading="Navigation rapide">
+          <CommandGroup heading="Navigation">
             <CommandItem onSelect={() => runCommand(() => router.push("/admin/dashboard"))}>
-              Tableau de bord
-              <ArrowRight className="ml-auto h-3 w-3 text-muted-foreground" />
+              <span>Cockpit</span>
+              <Kbd className="ml-auto font-mono text-[10px]">G H</Kbd>
+            </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => router.push("/admin/leads?view=triage"))}>
+              <span>Triage des Leads</span>
+              <Kbd className="ml-auto font-mono text-[10px]">G T</Kbd>
             </CommandItem>
             <CommandItem onSelect={() => runCommand(() => router.push("/admin/leads"))}>
-              Contrôle des Leads
-              <ArrowRight className="ml-auto h-3 w-3 text-muted-foreground" />
+              <span>Pipeline des Leads</span>
+              <Kbd className="ml-auto font-mono text-[10px]">G L</Kbd>
             </CommandItem>
-            <CommandItem onSelect={() => runCommand(() => router.push("/admin/installateurs"))}>
-              Installateurs
-              <ArrowRight className="ml-auto h-3 w-3 text-muted-foreground" />
+            <CommandItem onSelect={() => runCommand(() => router.push("/admin/disputes"))}>
+              <span>Litiges & Qualité</span>
+              <Kbd className="ml-auto font-mono text-[10px]">G D</Kbd>
+            </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => router.push("/admin/partners"))}>
+              <span>Installateurs & Capacité</span>
+              <Kbd className="ml-auto font-mono text-[10px]">G I</Kbd>
+            </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => router.push("/admin/finance"))}>
+              <span>Finances & Virements</span>
+              <Kbd className="ml-auto font-mono text-[10px]">G F</Kbd>
             </CommandItem>
           </CommandGroup>
         </CommandList>

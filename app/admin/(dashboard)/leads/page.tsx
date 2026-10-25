@@ -16,6 +16,7 @@ async function getLeads(
     surfaceType: string
     region: string
     segment: string
+    view?: string
   }
 ) {
   const user = await getAdminUser()
@@ -23,19 +24,36 @@ async function getLeads(
 
   const supabase = createServiceRoleClient()
   const from = (page - 1) * limit
+  const isTriage = filters.view === "triage"
+
   const hasActiveFilters = Boolean(
-    filters.search.trim() || filters.status || filters.segment || filters.region || filters.installateurId || filters.surfaceMin || filters.surfaceType
+    filters.search.trim() ||
+      filters.status ||
+      filters.segment ||
+      filters.region ||
+      filters.installateurId ||
+      filters.surfaceMin ||
+      filters.surfaceType ||
+      isTriage
   )
 
   const buildQuery = (useSearchText: boolean) => {
     let q = supabase
       .from("leads")
       .select(
-        "id, first_name, last_name, email, phone, job_title, company, message, surface_type, surface_area, project_timeline, annual_electricity_bill, estimated_roi_years, autoconsumption_rate, estimated_savings, status, lead_score, installateur_id, wants_irve, segment, province, media_partner_code, marketplace_status, credit_cost, created_at",
+        "id, first_name, last_name, email, phone, job_title, company, company_vat, message, surface_type, surface_area, roof_material, ownership_status, project_timeline, annual_electricity_bill, estimated_roi_years, autoconsumption_rate, estimated_savings, status, lead_score, installateur_id, wants_irve, segment, province, postal_code, city, site_address, grd, media_partner_code, marketplace_status, credit_cost, admin_notes, created_at",
         { count: hasActiveFilters ? "exact" : "planned" }
       )
-      .order("created_at", { ascending: false })
-      .range(from, from + limit - 1)
+
+    // En mode Triage, ordonnancement FIFO (du plus ancien au plus récent)
+    if (isTriage) {
+      q = q.or("status.eq.NEEDS_HUMAN_REVIEW,marketplace_status.eq.pending_review,status.eq.new")
+      q = q.order("created_at", { ascending: true })
+    } else {
+      q = q.order("created_at", { ascending: false })
+    }
+
+    q = q.range(from, from + limit - 1)
 
     if (filters.status && filters.status !== "all") {
       q = q.eq("status", filters.status)
@@ -46,7 +64,6 @@ async function getLeads(
     if (filters.search.trim()) {
       const term = filters.search.trim().toLowerCase()
       if (useSearchText) {
-        // Cible l'index GIN unique idx_leads_search_text_trgm
         q = q.ilike("search_text", `%${term}%`)
       } else {
         const pattern = `%${filters.search.trim()}%`
@@ -76,7 +93,6 @@ async function getLeads(
     return q
   }
 
-  // Tenter avec search_text indexé, fallback résilient si colonne non présente
   let { data, error, count } = await buildQuery(true)
 
   if (error && (error.code === "42703" || error.message?.includes("search_text"))) {
@@ -94,21 +110,15 @@ async function getLeads(
   return { leads: data ?? [], total: count ?? 0, page, limit }
 }
 
-async function getInstallateurs() {
+async function getPartners() {
   const user = await getAdminUser()
   if (!user) return []
   const supabase = createServiceRoleClient()
-  const { data } = await supabase.from("installateurs").select("id, name, actif, region").order("name")
+  const { data } = await supabase
+    .from("partners")
+    .select("id, company_name, email, credits, segment, target_provinces")
+    .order("company_name")
   return data ?? []
-}
-
-async function getRegions() {
-  const user = await getAdminUser()
-  if (!user) return []
-  const supabase = createServiceRoleClient()
-  const { data } = await supabase.from("installateurs").select("region").not("region", "is", null)
-  const regions = [...new Set((data ?? []).map((r) => r.region).filter(Boolean))] as string[]
-  return regions.sort()
 }
 
 export default async function AdminLeadsPage({
@@ -126,10 +136,24 @@ export default async function AdminLeadsPage({
     surface_type?: string
     region?: string
     segment?: string
+    view?: string
   }>
 }) {
   const params = await searchParams
-  const { page: pageParam, status, search: searchParam, installateur: installateurParam, leadId, date_from: dateFromParam, date_to: dateToParam, surface_min: surfaceMinParam, surface_type: surfaceTypeParam, region: regionParam } = params
+  const {
+    page: pageParam,
+    status,
+    search: searchParam,
+    installateur: installateurParam,
+    leadId,
+    date_from: dateFromParam,
+    date_to: dateToParam,
+    surface_min: surfaceMinParam,
+    surface_type: surfaceTypeParam,
+    region: regionParam,
+    view: viewParam,
+  } = params
+
   const page = Math.max(1, parseInt(pageParam ?? "1", 10))
   const limit = 20
 
@@ -143,26 +167,25 @@ export default async function AdminLeadsPage({
     surfaceType: surfaceTypeParam ?? "",
     region: regionParam ?? "",
     segment: params.segment ?? "",
+    view: viewParam ?? "",
   }
 
-  const [leadsResult, installateurs, regions] = await Promise.all([
+  const [leadsResult, partners] = await Promise.all([
     getLeads(page, limit, filters),
-    getInstallateurs(),
-    getRegions(),
+    getPartners(),
   ])
+
   const { leads, total, page: currentPage } = leadsResult
   const currentLeadFromList = leadId ? leads.find((l) => l.id === leadId) ?? null : null
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Leads</h1>
+    <div className="flex flex-col gap-6">
       <LeadsTable
         leads={leads}
         total={total}
         page={currentPage}
         limit={limit}
-        installateurs={installateurs}
-        regions={regions}
+        partners={partners}
         filters={filters}
         leadId={leadId ?? null}
         currentLeadFromList={currentLeadFromList}

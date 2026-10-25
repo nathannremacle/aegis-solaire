@@ -37,7 +37,11 @@ export function trackLeadConversion(params?: {
   // 1. Meta Pixel (Facebook Ads)
   if (typeof window.fbq === "function") {
     try {
-      window.fbq("track", "Lead", eventData)
+      if (params?.leadId) {
+        window.fbq("track", "Lead", eventData, { eventID: params.leadId })
+      } else {
+        window.fbq("track", "Lead", eventData)
+      }
     } catch (e) {
       console.warn("Meta Pixel track error:", e)
     }
@@ -94,6 +98,9 @@ export function AdTrackingScripts() {
                 t.src=v;s=b.getElementsByTagName(e)[0];
                 s.parentNode.insertBefore(t,s)}(window, document,'script',
                 'https://connect.facebook.net/en_US/fbevents.js');
+                if (!document.cookie.includes('aegis_cookie_consent=granted')) {
+                  fbq('consent', 'revoke');
+                }
                 fbq('init', '${META_PIXEL_ID}');
                 fbq('track', 'PageView');
               `,

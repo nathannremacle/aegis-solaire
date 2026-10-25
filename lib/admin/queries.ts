@@ -62,6 +62,9 @@ export type AdminDashboardData = {
     pending_orders: any[]
     pending_disputes: any[]
     audit_logs: any[]
+    paid_orders?: any[]
+    active_partners?: any[]
+    available_leads?: any[]
   }
 }
 
@@ -76,7 +79,37 @@ async function fetchAdminKpisRaw(): Promise<AdminDashboardData> {
   try {
     const { data, error } = await supabase.rpc("get_admin_dashboard_kpis")
     if (!error && data) {
-      return data as AdminDashboardData
+      // Enrichir avec les listes détaillées pour la transparence des KPIs (modales d'audit)
+      const [paidOrdersRes, partnersRes, availableLeadsRes] = await Promise.all([
+        supabase
+          .from("credit_orders")
+          .select("id, partner_id, pack_name, credits, price_htva, price_ttc, transfer_reference, status, created_at, validated_at, partners(company_name)")
+          .eq("status", "paid")
+          .order("validated_at", { ascending: false })
+          .limit(20),
+        supabase
+          .from("partners")
+          .select("id, company_name, email, phone, credits, segment, target_provinces, created_at, is_test")
+          .eq("is_test", false)
+          .order("credits", { ascending: false })
+          .limit(20),
+        supabase
+          .from("leads")
+          .select("id, first_name, last_name, company, postal_code, city, province, credit_cost, segment, surface_area, annual_electricity_bill, created_at")
+          .eq("marketplace_status", "available")
+          .order("created_at", { ascending: false })
+          .limit(20),
+      ])
+
+      const typedData = data as AdminDashboardData
+      typedData.lists.paid_orders = (paidOrdersRes.data ?? []).map((o: any) => ({
+        ...o,
+        partner_name: o.partners?.company_name || "Partenaire",
+      }))
+      typedData.lists.active_partners = partnersRes.data ?? []
+      typedData.lists.available_leads = availableLeadsRes.data ?? []
+
+      return typedData
     }
     if (error && error.code !== "42883" && !error.message?.includes("does not exist")) {
       console.warn("[admin-kpis] RPC error, falling back to query scan:", error.message)
@@ -126,10 +159,10 @@ async function fetchAdminKpisRaw(): Promise<AdminDashboardData> {
     supabase.from("media_partner_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("partners").select("id, company_name, email, phone, credits, segment, target_provinces, created_at, is_test"),
     supabase.from("lead_purchases").select("id, lead_id, partner_id, credits_spent, purchased_at"),
-    supabase.from("media_partners").select("id, company_name, tracking_code, commission_b2b, commission_b2c, active"),
+    supabase.from("media_partners").select("id, name, tracking_code, commission_b2b, commission_b2c, status"),
     supabase.from("credit_orders").select("id, partner_id, pack_name, credits, price_htva, price_ttc, transfer_reference, status, created_at, validated_at, partners(company_name)").order("created_at", { ascending: false }).limit(100),
     supabase.from("lead_disputes").select("id, purchase_id, lead_id, partner_id, reason, details, created_at, status, partners(company_name), leads(first_name, last_name, company, segment)").eq("status", "pending").order("created_at", { ascending: true }).limit(10),
-    supabase.from("audit_log").select("id, admin_email, action, entity_type, entity_id, payload, created_at").order("created_at", { ascending: false }).limit(10),
+    supabase.from("audit_log").select("id, admin_email, action, entity_type, entity_id, details, created_at").order("created_at", { ascending: false }).limit(10),
   ])
 
   const avail = leadsAvailableRes.data ?? []
@@ -167,8 +200,8 @@ async function fetchAdminKpisRaw(): Promise<AdminDashboardData> {
     partners: {
       active_partners_count: realPartners.length,
       total_partner_credits_balance: realPartners.reduce((acc, p) => acc + (Number(p.credits) || 0), 0),
-      b2b_partners_count: realPartners.filter((p) => p.segment === "B2B" || p.segment === "both").length,
-      b2c_partners_count: realPartners.filter((p) => p.segment === "B2C" || p.segment === "both").length,
+      b2b_partners_count: realPartners.filter((p) => p.segment?.toUpperCase() === "B2B" || p.segment?.toUpperCase() === "BOTH").length,
+      b2c_partners_count: realPartners.filter((p) => p.segment?.toUpperCase() === "B2C" || p.segment?.toUpperCase() === "BOTH").length,
     },
     purchases: {
       total_purchases: validPurchases.length,
@@ -186,9 +219,9 @@ async function fetchAdminKpisRaw(): Promise<AdminDashboardData> {
     },
     media_partners: {
       total_commissions_due: 0,
-      breakdown: (mediaPartnersRes.data ?? []).map((mp) => ({
+      breakdown: (mediaPartnersRes.data ?? []).map((mp: any) => ({
         id: mp.id,
-        company_name: mp.company_name,
+        company_name: mp.company_name || mp.name || "Partenaire Média",
         tracking_code: mp.tracking_code,
         attributed_leads_count: 0,
         validated_leads_count: 0,
@@ -216,7 +249,16 @@ async function fetchAdminKpisRaw(): Promise<AdminDashboardData> {
         lead_company: d.leads?.company,
         segment: d.leads?.segment,
       })),
-      audit_logs: auditLogsRes.data ?? [],
+      audit_logs: (auditLogsRes.data ?? []).map((l: any) => ({
+        ...l,
+        payload: l.details || l.payload || null,
+      })),
+      paid_orders: paidOrders.map((o: any) => ({
+        ...o,
+        partner_name: o.partners?.company_name || "Partenaire",
+      })),
+      active_partners: realPartners,
+      available_leads: avail,
     },
   }
 }
