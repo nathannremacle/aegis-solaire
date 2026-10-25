@@ -21,7 +21,6 @@ import {
 import dynamic from "next/dynamic"
 import { Button } from "@/components/ui/button"
 import { Footer } from "@/components/footer"
-import { MarketplaceLivePreview } from "@/components/marketplace-preview"
 
 const InstallerVipInvitationForm = dynamic(
   () =>
@@ -198,8 +197,8 @@ export function InvitationClient({
                   asChild
                   className="rounded-md border-border font-mono text-xs font-medium hover:bg-secondary"
                 >
-                  <a href="#marketplace-preview">
-                    Consulter la marketplace en direct
+                  <a href="#engagements">
+                    Consulter la charte d'attribution
                   </a>
                 </Button>
               </div>
@@ -284,7 +283,7 @@ export function InvitationClient({
         </section>
 
         {/* ─── Comparatif : Charte Aegis Solaire vs Marché ─── */}
-        <section className="py-16 md:py-24 border-b border-border bg-background">
+        <section id="engagements" className="py-16 md:py-24 border-b border-border bg-background">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl mb-12">
               <span className="font-mono text-xs uppercase tracking-widest text-primary font-medium block mb-2">
@@ -395,37 +394,6 @@ export function InvitationClient({
           </div>
         </section>
 
-        {/* ─── Aperçu Live de la Marketplace ─── */}
-        <section id="marketplace-preview" className="py-16 md:py-24 border-b border-border bg-secondary/30">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-            <div className="max-w-3xl mb-10">
-              <span className="font-mono text-xs uppercase tracking-widest text-primary font-medium block mb-2">
-                ESPACE INSTALLATEUR
-              </span>
-              <h2 className="font-heading text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
-                Aperçu interactif du flux de projets en Wallonie
-              </h2>
-              <p className="mt-2 text-sm text-muted-foreground font-sans">
-                Consultez le teaser des opportunités en temps réel, visualisez les métriques cadastrales et simulez le déblocage des coordonnées.
-              </p>
-            </div>
-
-            {/* Live Preview Component (Swiss Editorial) */}
-            <MarketplaceLivePreview />
-
-            <div className="mt-8 flex justify-center">
-              <Button
-                asChild
-                className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md font-mono text-xs font-semibold px-6 py-3 shadow-xs"
-              >
-                <a href="#activer">
-                  Activer mon compte pour débloquer ces opportunités
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </a>
-              </Button>
-            </div>
-          </div>
-        </section>
 
         {/* ─── Formulaire d'Inscription VIP ─── */}
         <section id="activer" className="py-16 md:py-24 bg-background">
