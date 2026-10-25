@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button"
 import { AdminLogoutButton } from "@/components/admin-logout-button"
 import { AdminCommandMenu } from "@/components/admin-command-menu"
 import { cn } from "@/lib/utils"
+import type { AdminProfile } from "@/lib/admin-auth"
 
 type NavItem = {
   href: string
@@ -34,6 +35,7 @@ type NavGroup = {
 }
 
 export function AdminNav({
+  adminProfile,
   pendingApplications = 0,
   pendingMedia = 0,
   needsReview = 0,
@@ -41,6 +43,7 @@ export function AdminNav({
   pendingDisputes = 0,
   onNavigate,
 }: {
+  adminProfile?: AdminProfile
   pendingApplications?: number
   pendingMedia?: number
   needsReview?: number
@@ -229,11 +232,15 @@ export function AdminNav({
       <div className="mt-auto border-t border-border p-3 flex flex-col gap-2 bg-secondary/30">
         <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-md bg-card border border-border">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground font-mono text-xs font-semibold">
-            NR
+            {adminProfile?.initials || "AD"}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-foreground truncate leading-tight">Nathan Remacle</p>
-            <p className="font-mono text-[10px] text-muted-foreground truncate">Super Admin</p>
+            <p className="text-xs font-semibold text-foreground truncate leading-tight">
+              {adminProfile?.name || "Administrateur"}
+            </p>
+            <p className="font-mono text-[10px] text-muted-foreground truncate">
+              {adminProfile?.role || "Admin"}
+            </p>
           </div>
         </div>
 

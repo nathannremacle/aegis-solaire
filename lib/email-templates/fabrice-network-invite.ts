@@ -11,6 +11,7 @@ export interface FabriceInviteData {
   installerPhone?: string
   tone: "tutoiement" | "vouvoiement" | "court_whatsapp"
   freeCredits: number
+  includeCreditsText?: boolean
   provinces?: string
   customNote?: string
   inviteUrl: string
@@ -45,7 +46,7 @@ export function substituteTemplateVariables(
   const company = variables.companyName?.trim() || ""
   const credits = String(variables.freeCredits ?? 2)
 
-  return text
+  let result = text
     .replace(/\{\{\s*prenom\s*\}\}/gi, name)
     .replace(/\{\{\s*nom\s*\}\}/gi, name)
     .replace(/\{\{\s*name\s*\}\}/gi, name)
@@ -57,6 +58,13 @@ export function substituteTemplateVariables(
     .replace(/\{\{\s*url\s*\}\}/gi, variables.inviteUrl)
     .replace(/\{\{\s*link\s*\}\}/gi, variables.inviteUrl)
     .replace(/\{\{\s*credits\s*\}\}/gi, credits)
+
+  // Si le texte contient l'URL d'invitation brute, s'assurer qu'elle pointe vers le lien dynamique
+  if (result.includes("/partenaires/invitation")) {
+    result = result.replace(/https?:\/\/[^\s\n]+\/partenaires\/invitation[^\s\n]*/g, variables.inviteUrl)
+  }
+
+  return result
 }
 
 /**
@@ -67,7 +75,7 @@ export function buildFabriceInviteSubject(data: FabriceInviteData): string {
   const name = data.installerName?.trim() || "partenaire"
 
   if (data.tone === "tutoiement") {
-    return `Un mot de Fabrice (matériel PV) : nouveaux chantiers qualifiés${company}`
+    return `Un mot de Fabrice : chantiers photovoltaïques qualifiés en Wallonie${company}`
   }
   if (data.tone === "court_whatsapp") {
     return `Fabrice Remacle — Chantiers solaires qualifiés Wallonie`
@@ -77,33 +85,34 @@ export function buildFabriceInviteSubject(data: FabriceInviteData): string {
 
 /**
  * Construit le texte brut par défaut selon l'angle et le ton choisi
+ * avec tournure de phrase professionnelle et gestion de l'option de crédits.
  */
 export function buildFabriceInvitePlainText(data: FabriceInviteData): string {
-  const name = data.installerName?.trim() || (data.tone === "tutoiement" ? "l'ami" : "Monsieur")
+  const name = data.installerName?.trim() || (data.tone === "tutoiement" ? "{{prenom}}" : "Monsieur")
   const company = data.companyName?.trim() ? ` chez ${data.companyName.trim()}` : ""
-  const creditsText = data.freeCredits > 0
-    ? `Comme on se connaît bien, je t'ai crédité ${data.freeCredits} crédits d'accueil sur ton espace pour que tu puisses tester et débloquer ton 1er dossier gratuitement sans rien payer.`
-    : `Je t'ai configuré un accès privilégié sur la plateforme pour que tu puisses consulter les chantiers en direct.`
-  const creditsTextVouvoiement = data.freeCredits > 0
-    ? `Dans le cadre de nos relations de confiance, je vous ai alloué ${data.freeCredits} crédits d'accueil afin que vous puissiez tester et débloquer votre premier dossier sans engagement financier.`
-    : `Je vous ai configuré un accès privilégié pour consulter l'ensemble des dossiers en direct.`
+  const showCredits = data.includeCreditsText !== false && data.freeCredits > 0
+  const creditsCount = data.freeCredits > 0 ? data.freeCredits : 2
+
+  const creditsBlockTutoiement = showCredits
+    ? `\nComme on se connaît bien, je t'ai fait créditer ${creditsCount} crédits d'accueil sur ton espace pour que tu puisses tester et débloquer ton 1er dossier B2C gratuitement sans rien payer.\n`
+    : `\n`
+
+  const creditsBlockVouvoiement = showCredits
+    ? `\nDans le cadre de nos relations, je vous ai fait allouer ${creditsCount} crédits d'accueil sur votre espace afin que vous puissiez tester et débloquer votre 1er dossier sans aucun engagement financier.\n`
+    : `\n`
 
   const noteBlock = data.customNote?.trim() ? `\nNote personnelle : ${data.customNote.trim()}\n` : ""
 
   if (data.tone === "tutoiement") {
     return `Salut ${name},
 
-Tu me connais pour le matériel photovoltaïque et la fourniture de tes chantiers (onduleurs, panneaux, batteries).
+Je t'écris pour te recommander une plateforme wallonne avec laquelle je collabore : Aegis Solaire. C'est un réseau de confiance qui sélectionne uniquement des installateurs sérieux pour des projets photovoltaïques concrets, en résidentiel et en tertiaire (B2C & B2B).
 
-Aujourd'hui, avec Nathan et notre équipe technique, on a lancé Aegis Solaire pour régler un problème qu'on voit tous les jours chez les installateurs sérieux : la perte de temps sur des devis fantômes et la guerre des prix idiote des plateformes classiques (Bobex, TrustUp...) qui revendent le même lead pourri à 5 ou 6 boîtes en même temps.
-
-Chez Aegis Solaire, on fait exactement le contraire :
-1. Maximum 3 artisans par projet en résidentiel (et exclusivité 100% à un seul installateur en B2B/tertiaire).
-2. Dossier technique complet avant diffusion : surface, pente, toiture, facture d'électricité réelle, photo satellite et propriétaire vérifié par nos auditeurs. Téléphone contrôlé avant publication.
+Leur fonctionnement tranche nettement avec les centrales d'appels habituelles :
+1. Maximum 3 artisans par projet en résidentiel (et exclusivité totale 100% à un seul installateur en B2B/tertiaire).
+2. Dossier technique complet avant diffusion : surface, pente, toiture, facture d'électricité réelle, photo satellite et coordonnées vérifiées par téléphone avant publication.
 3. Zéro abonnement, zéro commission sur ton chiffre d'affaires : tu choisis uniquement les dossiers qui t'intéressent dans ta zone via un système simple de crédits.
-${noteBlock}
-${creditsText}
-
+${noteBlock}${creditsBlockTutoiement}
 Tu peux activer ton accès réservé en 1 minute ici :
 ${data.inviteUrl}
 
@@ -112,40 +121,35 @@ Regarde les dossiers actuellement disponibles en Wallonie. Si tu as la moindre q
 À très bientôt,
 
 Fabrice Remacle
-Grossiste Photovoltaïque & Co-fondateur Aegis Solaire
-Liège, Wallonie · Tél : +32 (0)4 220 00 00
-`.trim()
+Tél : +32 495 57 07 73`.trim()
   }
 
   if (data.tone === "court_whatsapp") {
-    return `Salut ${name}, c'est Fabrice Remacle (matériel PV). Avec notre équipe technique, on a lancé Aegis Solaire pour vous envoyer des dossiers photovoltaïques pré-qualifiés en Wallonie (toiture, facture et propriétaire vérifiés, max 3 artisans, zéro guerre des prix). Je t'ai préparé un accès direct avec ${data.freeCredits} crédits offerts pour tester ton 1er dossier gratuit : ${data.inviteUrl} . Dis-moi ce que tu en penses !`.trim()
+    const bonus = showCredits
+      ? ` Je t'ai fait réserver ${creditsCount} crédits offerts pour tester ton 1er dossier gratuit : ${data.inviteUrl} .`
+      : ` Tu peux activer ton accès réservé ici : ${data.inviteUrl} .`
+    return `Salut ${name}, c'est Fabrice Remacle. Je te conseille de t'inscrire sur Aegis Solaire, une plateforme sérieuse avec qui je collabore pour des chantiers solaires qualifiés en Wallonie (toiture & facture vérifiées, max 3 artisans, zéro commission).${bonus} Donne-moi un coup de fil sur mon portable si tu as la moindre question !`.trim()
   }
 
   // Vouvoiement
   return `Bonjour ${name}${company},
 
-Vous me connaissez pour la fourniture et la distribution de matériel photovoltaïque auprès de votre entreprise.
+Je me permets de vous contacter pour vous recommander la plateforme wallonne Aegis Solaire, avec laquelle je collabore. Il s'agit d'un réseau de confiance qui sélectionne des installateurs de référence pour des projets photovoltaïques concrets et vérifiés, en résidentiel et en tertiaire (B2C & B2B).
 
-Aujourd'hui, avec Nathan et notre équipe technique, nous avons mis en place Aegis Solaire afin d'apporter aux installateurs agréés un flux régulier de chantiers solaires rigoureusement qualifiés en Wallonie, sans intermédiaire inutile ni concurrence destructrice.
-
-Notre approche repose sur trois engagements stricts :
-1. Attribution strictement limitée à 3 installateurs maximum en résidentiel, et exclusivité totale (100%) sur les chantiers B2B tertiaires.
-2. Fiche technique certifiée avant mise en ligne : puissance installable, type de toiture, facture d'électricité réelle, relevé cadastral et propriétaire vérifié.
-3. Modèle transparent : aucun abonnement obligatoire, aucune commission sur vos devis. Vous débloquez uniquement les dossiers pertinents pour votre planning.
-${noteBlock}
-${creditsTextVouvoiement}
-
-Vous pouvez découvrir la plateforme et activer votre profil partenaire via ce lien direct :
+Leur fonctionnement se distingue nettement des centrales d'appels habituelles :
+1. Maximum 3 installateurs par projet en résidentiel (et exclusivité totale 100% à un seul installateur en B2B/tertiaire).
+2. Dossier technique complet avant diffusion : surface, pente, toiture, facture d'électricité réelle, photo satellite et coordonnées vérifiées par téléphone avant publication.
+3. Zéro abonnement, zéro commission sur votre chiffre d'affaires : vous choisissez uniquement les dossiers qui vous intéressent dans votre zone via un système simple de crédits.
+${noteBlock}${creditsBlockVouvoiement}
+Vous pouvez activer votre accès réservé en 1 minute ici :
 ${data.inviteUrl}
 
-Je reste à votre entière disposition par téléphone ou lors de votre prochain passage pour échanger sur vos zones prioritaires.
+N'hésitez pas à consulter les dossiers actuellement disponibles en Wallonie. Si vous avez la moindre question ou si vous souhaitez que l'on étudie un projet ensemble, vous pouvez me joindre directement sur mon portable.
 
 Bien cordialement,
 
 Fabrice Remacle
-Pôle Partenariats & Distribution PV · Aegis Solaire
-Liège, Wallonie · Tél : +32 (0)4 220 00 00
-`.trim()
+Tél : +32 495 57 07 73`.trim()
 }
 
 /**
@@ -153,9 +157,10 @@ Liège, Wallonie · Tél : +32 (0)4 220 00 00
  */
 export function buildFabriceWhatsAppMessage(data: FabriceInviteData): string {
   const name = data.installerName?.trim() || "l'ami"
-  const bonus = data.freeCredits > 0 ? ` (${data.freeCredits} crédits offerts pour tester le 1er chantier)` : ""
+  const showCredits = data.includeCreditsText !== false && data.freeCredits > 0
+  const bonus = showCredits ? ` (je t'ai fait réserver ${data.freeCredits} crédits offerts pour tester)` : ""
 
-  return `Salut ${name}, c'est Fabrice Remacle (matériel PV). On a lancé Aegis Solaire pour vous amener des chantiers photovoltaïques qualifiés en Wallonie (max 3 installateurs, audit toiture & facture vérifiés, zéro commission). Voici ton lien d'accès privilégié${bonus} : ${data.inviteUrl}`
+  return `Salut ${name}, c'est Fabrice Remacle. Je te conseille de regarder Aegis Solaire, une plateforme sérieuse avec qui je collabore pour des chantiers photovoltaïques qualifiés en Wallonie (max 3 installateurs, audit toiture & facture vérifiés, zéro commission). Voici ton lien d'accès privilégié${bonus} : ${data.inviteUrl} . Donne-moi un coup de fil sur mon portable si tu as des questions !`
 }
 
 /**
@@ -284,10 +289,10 @@ export function renderFabriceInviteHtml(data: FabriceInviteData, customBodyText?
                       Fabrice Remacle
                     </p>
                     <p style="margin: 2px 0 0 0; font-size: 12px; color: #525E59;">
-                      Grossiste Photovoltaïque &amp; Co-fondateur Aegis Solaire
+                      Fournisseur &amp; Partenaire Matériel Photovoltaïque
                     </p>
                     <p style="margin: 2px 0 0 0; font-size: 12px; color: #525E59;" class="mono">
-                      Liège, Belgique · +32 (0)4 220 00 00
+                      Tél : +32 495 57 07 73 · Wallonie, Belgique
                     </p>
                   </td>
                 </tr>

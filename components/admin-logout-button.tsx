@@ -11,8 +11,7 @@ export function AdminLogoutButton() {
   async function handleLogout() {
     const supabase = createClient()
     await supabase.auth.signOut()
-    router.push("/admin/login")
-    router.refresh()
+    window.location.href = "/admin/login"
   }
 
   return (
@@ -20,7 +19,7 @@ export function AdminLogoutButton() {
       type="button"
       variant="ghost"
       size="sm"
-      className="h-8 px-2.5 text-[11px] font-medium text-slate-300 hover:text-rose-300 hover:bg-rose-500/15 rounded-lg transition-colors gap-1.5"
+      className="h-8 px-2.5 text-[11px] font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors gap-1.5 cursor-pointer"
       onClick={handleLogout}
       title="Se déconnecter de l'administration"
     >

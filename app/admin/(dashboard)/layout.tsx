@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
-import { getAdminUser } from "@/lib/admin-auth"
+import { getAdminUser, getAdminProfile } from "@/lib/admin-auth"
 import { AdminNav } from "@/components/admin-nav"
 import { AdminHeader } from "@/components/admin-header"
 import { getAdminDashboardData } from "@/lib/admin/queries"
@@ -18,6 +18,8 @@ export default async function AdminDashboardLayout({
   if (!user) {
     redirect("/admin/login")
   }
+
+  const adminProfile = getAdminProfile(user.email)
 
   let badges = {
     pending_installer_apps: 0,
@@ -55,6 +57,7 @@ export default async function AdminDashboardLayout({
       {/* Desktop Fixed Sidebar */}
       <aside className="hidden md:flex md:w-60 md:flex-col md:fixed md:inset-y-0 z-30 border-r border-border bg-card">
         <AdminNav
+          adminProfile={adminProfile}
           pendingApplications={installAppsCount}
           pendingMedia={mediaAppsCount}
           needsReview={needsReviewCount}
@@ -67,6 +70,7 @@ export default async function AdminDashboardLayout({
       <div className="flex flex-col min-w-0 md:pl-60 min-h-screen">
         {/* Sticky Header with Breadcrumbs & Mobile Nav */}
         <AdminHeader
+          adminProfile={adminProfile}
           pendingApplications={installAppsCount}
           pendingMedia={mediaAppsCount}
           needsReview={needsReviewCount}

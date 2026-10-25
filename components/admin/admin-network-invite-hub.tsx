@@ -79,6 +79,7 @@ export function AdminNetworkInviteHub() {
   const [installerPhone, setInstallerPhone] = useState("")
   const [tone, setTone] = useState<ToneKey>("tutoiement")
   const [freeCredits, setFreeCredits] = useState<number>(2)
+  const [includeCreditsText, setIncludeCreditsText] = useState<boolean>(true)
   const [provinces, setProvinces] = useState("ALL")
   const [customNote, setCustomNote] = useState("")
 
@@ -114,13 +115,13 @@ export function AdminNetworkInviteHub() {
     const params = new URLSearchParams()
     if (firstName.trim()) params.set("nom", firstName.trim())
     if (companyName.trim()) params.set("cie", companyName.trim())
-    if (freeCredits > 0) params.set("credits", String(freeCredits))
+    if (freeCredits > 0 && includeCreditsText) params.set("credits", String(freeCredits))
     if (provinces !== "ALL") params.set("provinces", provinces)
     params.set("par", "Fabrice Remacle")
 
     const query = params.toString()
     return `${origin}/partenaires/invitation${query ? `?${query}` : ""}`
-  }, [firstName, companyName, freeCredits, provinces, origin])
+  }, [firstName, companyName, freeCredits, includeCreditsText, provinces, origin])
 
   // Données de base pour la génération par défaut
   const baseInviteData = useMemo<FabriceInviteData>(() => {
@@ -131,11 +132,12 @@ export function AdminNetworkInviteHub() {
       installerPhone,
       tone,
       freeCredits,
+      includeCreditsText,
       provinces: provinces === "ALL" ? undefined : provinces,
       customNote,
       inviteUrl: generatedUrl,
     }
-  }, [firstName, companyName, installerEmail, installerPhone, tone, freeCredits, provinces, customNote, generatedUrl])
+  }, [firstName, companyName, installerEmail, installerPhone, tone, freeCredits, includeCreditsText, provinces, customNote, generatedUrl])
 
   // ─── 4. Initialisation & Chargement Persistant ───
   useEffect(() => {
@@ -165,11 +167,20 @@ export function AdminNetworkInviteHub() {
         if (local) {
           const parsed = JSON.parse(local)
           if (parsed && parsed.body) {
-            initialTemplates[t] = {
-              subject: parsed.subject || initialTemplates[t].subject,
-              body: parsed.body,
-              isCustom: true,
-              updatedAt: parsed.updatedAt,
+            // Nettoyage automatique des anciens modèles qui contenaient "Co-fondateur" ou l'ancienne tournure
+            const isLegacy =
+              parsed.body.includes("Co-fondateur") ||
+              parsed.body.includes("Tu me connais pour le matériel") ||
+              parsed.body.includes("leads de sorte à")
+            if (isLegacy) {
+              localStorage.removeItem(`aegis_fabrice_custom_template_${t}`)
+            } else {
+              initialTemplates[t] = {
+                subject: parsed.subject || initialTemplates[t].subject,
+                body: parsed.body,
+                isCustom: true,
+                updatedAt: parsed.updatedAt,
+              }
             }
           }
         }
@@ -189,20 +200,25 @@ export function AdminNetworkInviteHub() {
             const next = { ...prev }
             for (const t of tones) {
               if (data.templates[t] && data.templates[t].body) {
-                // Si la version serveur est plus récente ou si non présent en local
-                next[t] = {
-                  subject: data.templates[t].subject,
-                  body: data.templates[t].body,
-                  isCustom: true,
-                  updatedAt: data.templates[t].updatedAt,
-                }
-                try {
-                  localStorage.setItem(
-                    `aegis_fabrice_custom_template_${t}`,
-                    JSON.stringify(next[t])
-                  )
-                } catch {
-                  // Ignore
+                const isLegacy =
+                  data.templates[t].body.includes("Co-fondateur") ||
+                  data.templates[t].body.includes("Tu me connais pour le matériel") ||
+                  data.templates[t].body.includes("leads de sorte à")
+                if (!isLegacy) {
+                  next[t] = {
+                    subject: data.templates[t].subject,
+                    body: data.templates[t].body,
+                    isCustom: true,
+                    updatedAt: data.templates[t].updatedAt,
+                  }
+                  try {
+                    localStorage.setItem(
+                      `aegis_fabrice_custom_template_${t}`,
+                      JSON.stringify(next[t])
+                    )
+                  } catch {
+                    // Ignore
+                  }
                 }
               }
             }
@@ -279,6 +295,63 @@ export function AdminNetworkInviteHub() {
     }
 
     syncTemplateToServer(tone, updated.subject, newBody)
+  }
+
+  // ─── 6b. Gestionnaire d'activation/désactivation de la mention des crédits dans le message ───
+  const handleToggleCreditsText = (include: boolean) => {
+    setIncludeCreditsText(include)
+
+    // Récupérer le corps actuel ou celui par défaut
+    const currentBody = templatesByTone[tone].body || buildFabriceInvitePlainText({ ...baseInviteData, includeCreditsText: !include })
+
+    if (!include) {
+      // Retirer le paragraphe des crédits du texte
+      const cleaned = currentBody
+        .replace(/\n*Comme on se connaît bien, je t'ai fait créditer[^\n]*(sans rien payer|gratuitement)\.?\n*/gi, "\n\n")
+        .replace(/\n*Comme on se connaît bien, je t'ai crédité[^\n]*(sans rien payer|gratuitement)\.?\n*/gi, "\n\n")
+        .replace(/\n*Dans le cadre de nos relations[^\n]*(engagement financier)\.?\n*/gi, "\n\n")
+        .replace(/\n*Dans le cadre de nos relations de confiance[^\n]*(engagement financier)\.?\n*/gi, "\n\n")
+        .replace(/\s*Je t'ai fait réserver \d+ crédits offerts pour tester ton 1er dossier gratuit : /gi, " Tu peux activer ton accès réservé ici : ")
+        .replace(/\s*Je t'ai préparé un accès direct avec \d+ crédits offerts pour tester ton 1er dossier gratuit : /gi, " Tu peux activer ton accès réservé ici : ")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim()
+      handleBodyChange(cleaned)
+      toast.info("Paragraphe des crédits d'accueil retiré du message.")
+    } else {
+      // S'assurer que le nombre de crédits est supérieur à 0
+      if (freeCredits === 0) {
+        setFreeCredits(2)
+      }
+
+      const hasCreditMention = /crédit/i.test(currentBody)
+      if (!hasCreditMention) {
+        const sentence = tone === "tutoiement"
+          ? `Comme on se connaît bien, je t'ai fait créditer {{credits}} crédits d'accueil sur ton espace pour que tu puisses tester et débloquer ton 1er dossier B2C gratuitement, sans rien payer.`
+          : tone === "vouvoiement"
+          ? `Dans le cadre de nos relations, je vous ai fait allouer {{credits}} crédits d'accueil sur votre espace afin que vous puissiez tester et débloquer votre 1er dossier sans aucun engagement financier.`
+          : ""
+
+        if (sentence) {
+          let updated = currentBody
+          if (updated.includes("Tu peux activer ton accès")) {
+            updated = updated.replace("Tu peux activer ton accès", `${sentence}\n\nTu peux activer ton accès`)
+          } else if (updated.includes("Vous pouvez activer votre accès")) {
+            updated = updated.replace("Vous pouvez activer votre accès", `${sentence}\n\nVous pouvez activer votre accès`)
+          } else {
+            updated = `${updated}\n\n${sentence}`
+          }
+          handleBodyChange(updated.trim())
+        } else if (tone === "court_whatsapp") {
+          const updated = buildFabriceInvitePlainText({
+            ...baseInviteData,
+            tone: "court_whatsapp",
+            includeCreditsText: true,
+          })
+          handleBodyChange(updated)
+        }
+      }
+      toast.success("Paragraphe des crédits d'accueil inclus dans le message.")
+    }
   }
 
   // ─── 7. Réinitialisation spécifique au ton actif ───
@@ -598,7 +671,15 @@ export function AdminNetworkInviteHub() {
               <Label className="text-xs font-semibold text-muted-foreground">Crédits d&apos;accueil offerts</Label>
               <select
                 value={freeCredits}
-                onChange={(e) => setFreeCredits(Number(e.target.value))}
+                onChange={(e) => {
+                  const val = Number(e.target.value)
+                  setFreeCredits(val)
+                  if (val === 0) {
+                    handleToggleCreditsText(false)
+                  } else if (!includeCreditsText) {
+                    handleToggleCreditsText(true)
+                  }
+                }}
                 className="w-full h-9 rounded-md border border-border bg-card px-2.5 text-xs font-semibold text-foreground"
               >
                 <option value={2}>🎁 2 crédits (1er lead gratuit)</option>
@@ -622,6 +703,38 @@ export function AdminNetworkInviteHub() {
                 <option value="luxembourg">Luxembourg</option>
               </select>
             </div>
+          </div>
+
+          {/* Option : Inclure ou enlever la partie du texte où il offre les crédits */}
+          <div className="rounded-lg border border-border bg-card p-3 flex items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                <Sparkles className="h-3.5 w-3.5 text-accent" />
+                <span>Offre de crédits dans le message</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-tight">
+                {includeCreditsText
+                  ? `Mentionne l'accueil de ${freeCredits > 0 ? freeCredits : 2} crédits offerts pour tester gratuitement.`
+                  : "Le paragraphe offrant les crédits est retiré du message."}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              role="switch"
+              aria-checked={includeCreditsText}
+              onClick={() => handleToggleCreditsText(!includeCreditsText)}
+              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                includeCreditsText ? "bg-primary" : "bg-muted"
+              }`}
+              title={includeCreditsText ? "Désactiver l'offre de crédits dans le texte" : "Activer l'offre de crédits dans le texte"}
+            >
+              <span
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow-xs ring-0 transition duration-200 ease-in-out ${
+                  includeCreditsText ? "translate-x-4" : "translate-x-0"
+                }`}
+              />
+            </button>
           </div>
 
           {/* Note personnelle optionnelle */}
@@ -801,6 +914,20 @@ export function AdminNetworkInviteHub() {
                     >
                       + Crédits
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const phrase =
+                          tone === "tutoiement"
+                            ? "Comme on se connaît bien, je t'ai fait créditer {{credits}} crédits d'accueil sur ton espace pour que tu puisses tester et débloquer ton 1er dossier B2C gratuitement, sans rien payer."
+                            : "Dans le cadre de nos relations, je vous ai fait allouer {{credits}} crédits d'accueil sur votre espace afin que vous puissiez tester et débloquer votre 1er dossier sans aucun engagement financier."
+                        insertVariableTag(phrase)
+                      }}
+                      className="rounded bg-accent/10 text-accent border border-accent/20 px-1.5 py-0.5 font-mono text-[10px] hover:bg-accent/20 font-semibold"
+                      title="Insérer le paragraphe complet d'offre de crédits"
+                    >
+                      + Paragraphe Crédits
+                    </button>
                   </div>
                 </div>
 
@@ -836,7 +963,7 @@ export function AdminNetworkInviteHub() {
                     {resolvedBody}
                   </div>
                   <div className="border-t border-border pt-2 text-[11px] text-muted-foreground font-mono">
-                    Fabrice Remacle · Grossiste Photovoltaïque · +32 (0)4 220 00 00
+                    Fabrice Remacle · Fournisseur Matériel PV · Tél : +32 495 57 07 73
                   </div>
                 </div>
               </div>

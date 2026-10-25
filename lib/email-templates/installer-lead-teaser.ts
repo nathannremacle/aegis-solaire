@@ -212,7 +212,7 @@ ${dashboardLeadUrl}
 
 ${!hasEnoughCredits ? `Note : Votre solde actuel (${data.partner.credits} crédits) est insuffisant pour ce dossier (${data.creditCost} crédits). Vous pouvez recharger votre pack en quelques clics ici : ${creditsOrderUrl}\n` : ""}
 Une question technique ?
-Notre référent solaire Fabrice Remacle et notre équipe support se tiennent à votre disposition au +32 (0)4 220 00 00.
+Notre référent solaire Fabrice Remacle et notre équipe support se tiennent à votre disposition au +32 495 57 07 73.
 
 Aegis Solaire — Initiative exploitée par INIT42 (Liège, Belgique — BCE 1039.899.980)
 `.trim()
@@ -529,7 +529,7 @@ Aegis Solaire — Initiative exploitée par INIT42 (Liège, Belgique — BCE 103
                       Besoin d'un accompagnement technique ou d'un dimensionnement ?
                     </p>
                     <p style="margin: 0; font-size: 12px; color: #525E59; line-height: 1.5;">
-                      En tant que partenaire certifié Aegis Solaire, vous pouvez solliciter l'assistance de notre Chief Technical Advisor <strong>Fabrice Remacle</strong> pour vos études d'onduleurs, batteries et dossiers tertiaires complexes. Contact direct : <a href="mailto:support@aegissolaire.com" style="color: #0B2B22; font-weight: 600;">support@aegissolaire.com</a>.
+                      En tant que partenaire certifié Aegis Solaire, vous pouvez solliciter l'assistance de notre conseiller technique partenaire <strong>Fabrice Remacle</strong> pour vos études d'onduleurs, batteries et dossiers tertiaires complexes. Contact direct : <a href="mailto:support@aegissolaire.com" style="color: #0B2B22; font-weight: 600;">support@aegissolaire.com</a>.
                     </p>
                   </td>
                 </tr>

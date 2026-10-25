@@ -6,14 +6,17 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/s
 import { Button } from "@/components/ui/button"
 import { AdminBreadcrumbs } from "@/components/admin-breadcrumbs"
 import { AdminNav } from "@/components/admin-nav"
+import type { AdminProfile } from "@/lib/admin-auth"
 
 export function AdminHeader({
+  adminProfile,
   pendingApplications,
   pendingMedia,
   needsReview,
   pendingCreditOrders,
   pendingDisputes = 0,
 }: {
+  adminProfile?: AdminProfile
   pendingApplications: number
   pendingMedia: number
   needsReview: number
@@ -46,6 +49,7 @@ export function AdminHeader({
             <SheetContent side="left" className="p-0 w-64 border-r-0 bg-card">
               <SheetTitle className="sr-only">Menu de navigation administrateur</SheetTitle>
               <AdminNav
+                adminProfile={adminProfile}
                 pendingApplications={pendingApplications}
                 pendingMedia={pendingMedia}
                 needsReview={needsReview}
@@ -91,9 +95,11 @@ export function AdminHeader({
         {/* Admin profile chip */}
         <div className="flex items-center gap-2 rounded-md border border-border bg-card px-2 py-1">
           <div className="flex h-5 w-5 items-center justify-center rounded-sm bg-primary text-[10px] font-mono font-semibold text-primary-foreground">
-            NR
+            {adminProfile?.initials || "AD"}
           </div>
-          <span className="hidden sm:inline font-mono text-xs font-medium text-foreground">Admin</span>
+          <span className="hidden sm:inline font-mono text-xs font-medium text-foreground">
+            {adminProfile?.name || "Admin"}
+          </span>
         </div>
       </div>
     </header>

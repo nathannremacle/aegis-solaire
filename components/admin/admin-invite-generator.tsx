@@ -37,8 +37,8 @@ export function AdminInviteGenerator() {
   const generatedUrl = `${origin}/partenaires/invitation${queryString ? `?${queryString}` : ""}`
 
   const prefilledMessage = firstName.trim()
-    ? `Salut ${firstName.trim()}, c'est Fabrice Remacle. Je t'invite à découvrir la plateforme Aegis Solaire dont je t'ai parlé. Chaque projet est vérifié à la main avant d'être mis en ligne, sans guerre des prix. Voici ton lien d'accès privilégié : ${generatedUrl}`
-    : `Bonjour, c'est Fabrice Remacle. Je vous invite à découvrir la marketplace photovoltaïque Aegis Solaire en Wallonie (leads vérifiés à la main, exclusivité B2B) : ${generatedUrl}`
+    ? `Salut ${firstName.trim()}, c'est Fabrice Remacle. Je te conseille de regarder Aegis Solaire, une plateforme sérieuse avec qui je collabore pour des chantiers photovoltaïques qualifiés en Wallonie (max 3 installateurs, audit toiture & facture vérifiés, zéro commission). Voici ton lien d'accès privilégié : ${generatedUrl} . Donne-moi un coup de fil sur mon portable (+32 495 57 07 73) si tu as des questions !`
+    : `Bonjour, c'est Fabrice Remacle. Je vous invite à découvrir la marketplace photovoltaïque Aegis Solaire avec laquelle je collabore en Wallonie (dossiers vérifiés, exclusivité B2B) : ${generatedUrl}`
 
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(prefilledMessage)}`
 

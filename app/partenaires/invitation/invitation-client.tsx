@@ -249,7 +249,7 @@ export function InvitationClient({
                     )}
                   </p>
                   <p>
-                    Avec l'équipe d'<strong>Aegis Solaire</strong>, nous avons conçu une plateforme professionnelle répondant à des standards d'ingénierie stricts :
+                    En tant que professionnel de terrain, je soutiens pleinement la démarche d'<strong>Aegis Solaire</strong> et leur apporte mon appui technique, car leur plateforme répond aux exigences rigoureuses que nous attendions tous :
                   </p>
                   <ul className="flex flex-col gap-2.5 my-1 pl-4 border-l-2 border-primary/30">
                     <li className="flex items-start gap-2 text-sm">
