@@ -9,7 +9,7 @@ Ce document rassemble les modèles d'e-mails, la posture commerciale et le guide
 Les installateurs photovoltaïques de Wallonie connaissent **Fabrice Remacle** comme grossiste en matériel solaire (panneaux, onduleurs, batteries, fixations). 
 
 ### Pourquoi cet angle est 10x plus puissant qu'un démarchage classique :
-1. **Capital confiance déjà acquis** : Fabrice n'est pas une agence marketing inconnue ou une plateforme de téléprospection. Il est sur le terrain depuis 25 ans, ils commandent leur matériel chez lui.
+1. **Capital confiance déjà acquis** : Fabrice n'est pas une agence marketing inconnue ou une plateforme de téléprospection. Il est sur le terrain depuis 20 ans, ils commandent leur matériel chez lui.
 2. **Alignement d'intérêts total** : S'ils signent des chantiers solaires grâce à Aegis Solaire, ils achètent aussi leur matériel et développent leur activité.
 3. **Opposition frontale aux "usines à leads"** (Bobex, TrustUp, etc.) : Les installateurs en ont marre de payer des leads revendus à 5 concurrents en même temps et de perdre leur temps sur des devis non signés.
 4. **Offre irrésistible de bienvenue** : 2 crédits offerts pour débloquer leur premier chantier gratuitement et juger sur pièces de la qualité technique du dossier.

@@ -92,13 +92,26 @@ export async function POST(request: Request) {
       siteUrl,
     })
 
-    // 3. Mise à jour des notes avec l'identifiant de paiement Mollie
-    await admin
+    // 3. Mise à jour de la commande avec l'identifiant de paiement Mollie
+    const { error: fullUpdateErr } = await admin
       .from("credit_orders")
       .update({
+        payment_provider: "mollie",
+        payment_id: paymentId,
+        checkout_url: checkoutUrl,
         notes: `Mollie Payment ID: ${paymentId} | Méthode: Bancontact / Payconiq`,
       })
       .eq("id", order.id)
+
+    // Si les colonnes optionnelles n'ont pas encore été créées dans Supabase, repli sur notes
+    if (fullUpdateErr) {
+      await admin
+        .from("credit_orders")
+        .update({
+          notes: `Mollie Payment ID: ${paymentId} | Méthode: Bancontact / Payconiq`,
+        })
+        .eq("id", order.id)
+    }
 
     return NextResponse.json({
       success: true,

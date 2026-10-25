@@ -228,9 +228,9 @@ export function InvitationClient({
                   </div>
                   <div className="mt-3 text-center md:text-left">
                     <div className="font-heading font-semibold text-sm text-foreground">Fabrice Remacle</div>
-                    <div className="text-xs text-muted-foreground font-sans">Conseiller Technique &amp; Formateur RESCERT</div>
+                    <div className="text-xs text-muted-foreground font-sans">Conseiller Technique &amp; Formateur PV</div>
                     <div className="mt-2 inline-flex items-center gap-1 rounded-sm bg-primary/[0.06] border border-primary/20 px-2 py-0.5 font-mono text-[11px] text-primary">
-                      <span>25 ans d'expertise terrain en Wallonie</span>
+                      <span>20 ans d'expertise terrain en Wallonie</span>
                     </div>
                   </div>
                 </div>
@@ -240,11 +240,11 @@ export function InvitationClient({
                   <p>
                     {nom ? (
                       <>
-                        « Bonjour <strong className="text-foreground">{nom}</strong>. Après plus de <span className="font-mono tabular-nums font-semibold">25 ans</span> d'expérience dans le secteur photovoltaïque en Wallonie, je mesure l'importance pour une entreprise d'installation de travailler sur des dossiers fiables, techniquement préparés et sans dispersion commerciale excessive.
+                        « Bonjour <strong className="text-foreground">{nom}</strong>. Après plus de <span className="font-mono tabular-nums font-semibold">20 ans</span> d'expérience dans le secteur photovoltaïque en Wallonie, je mesure l'importance pour une entreprise d'installation de travailler sur des dossiers fiables, techniquement préparés et sans dispersion commerciale excessive.
                       </>
                     ) : (
                       <>
-                        « Chers confrères installateurs. Avec plus de <span className="font-mono tabular-nums font-semibold">25 ans</span> d'expérience sur le terrain photovoltaïque en Wallonie, nous savons à quel point la qualification préalable et le respect des marges sont essentiels à la pérennité de nos entreprises.
+                        « Chers confrères installateurs. Avec plus de <span className="font-mono tabular-nums font-semibold">20 ans</span> d'expérience sur le terrain photovoltaïque en Wallonie, nous savons à quel point la qualification préalable et le respect des marges sont essentiels à la pérennité de nos entreprises.
                       </>
                     )}
                   </p>
@@ -254,7 +254,7 @@ export function InvitationClient({
                   <ul className="flex flex-col gap-2.5 my-1 pl-4 border-l-2 border-primary/30">
                     <li className="flex items-start gap-2 text-sm">
                       <span className="font-mono text-primary font-semibold tabular-nums">01.</span>
-                      <span><strong>Qualification systématique préalable :</strong> chaque dossier fait l'objet d'une vérification humaine par téléphone (propriétaire confirmé, adéquation toiture, type de compteur, consommation réelle).</span>
+                      <span><strong>Qualification systématique préalable :</strong> chaque dossier fait l'objet d'une vérification manuelle (propriétaire confirmé, adéquation toiture, type de compteur, consommation réelle).</span>
                     </li>
                     <li className="flex items-start gap-2 text-sm">
                       <span className="font-mono text-primary font-semibold tabular-nums">02.</span>
