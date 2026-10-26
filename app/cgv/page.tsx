@@ -154,7 +154,7 @@ export default function CGV() {
             Si un lead acheté s&apos;avère manifestement non conforme (fausses coordonnées, doublon avéré,
             prospect hors zone géographique), le Partenaire Installateur peut signaler le lead via son
             Dashboard ou par e-mail à{" "}
-            <a href="mailto:cgv@aegissolaire.com" className="text-[#001D3D] font-medium hover:underline">
+            <a href="mailto:cgv@aegissolaire.com" className="text-primary font-medium hover:underline">
               cgv@aegissolaire.com
             </a>{" "}
             dans un délai de <strong>sept (7) jours ouvrés</strong> suivant l&apos;achat. Après vérification,
@@ -270,7 +270,7 @@ export default function CGV() {
           </ul>
           <p className="mt-3 text-muted-foreground">
             Pour plus de détails, consultez notre{" "}
-            <a href="/politique-confidentialite" className="text-[#001D3D] font-medium hover:underline">
+            <a href="/politique-confidentialite" className="text-primary font-medium hover:underline">
               Politique de confidentialité
             </a>.
           </p>
@@ -377,17 +377,17 @@ export default function CGV() {
             </li>
             <li>
               <strong>E-mail :</strong>{" "}
-              <a href="mailto:cgv@aegissolaire.com" className="text-[#001D3D] font-medium hover:underline">
+              <a href="mailto:cgv@aegissolaire.com" className="text-primary font-medium hover:underline">
                 cgv@aegissolaire.com
               </a>{" "}
               ou{" "}
-              <a href="mailto:contact@aegissolaire.com" className="text-[#001D3D] font-medium hover:underline">
+              <a href="mailto:contact@aegissolaire.com" className="text-primary font-medium hover:underline">
                 contact@aegissolaire.com
               </a>
             </li>
             <li>
               <strong>Site web :</strong>{" "}
-              <a href="https://www.aegissolaire.com" className="text-[#001D3D] font-medium hover:underline">
+              <a href="https://www.aegissolaire.com" className="text-primary font-medium hover:underline">
                 www.aegissolaire.com
               </a>
             </li>

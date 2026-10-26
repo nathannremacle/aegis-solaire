@@ -32,10 +32,10 @@ const MP_STEP_META = [
 ] as const
 
 const btnSolar =
-  "h-12 w-full rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 text-base font-bold text-[#001D3D] shadow-[0_4px_0_0_#b47e00,0_10px_20px_rgba(245,158,11,0.25)] transition-all duration-150 hover:from-amber-300 hover:to-amber-400 active:translate-y-1 active:shadow-[0_0_0_0_#b47e00] disabled:opacity-60 disabled:pointer-events-none sm:h-14 sm:text-lg"
+  "h-12 w-full rounded-xl bg-accent text-base font-bold text-accent-foreground shadow-xs transition-all hover:bg-accent/90 disabled:opacity-60 disabled:pointer-events-none sm:h-14 sm:text-lg"
 
 const fieldClass =
-  "h-12 rounded-xl border-slate-200 bg-white/90 shadow-sm transition-colors focus-visible:border-[#001D3D]/30 focus-visible:ring-[#001D3D]/20"
+  "h-12 rounded-xl border-input bg-card shadow-xs transition-colors focus-visible:border-ring focus-visible:ring-ring"
 
 export function MediaPartnerApplicationForm() {
   const [formOpenedAt] = useState(() => Date.now())
@@ -121,7 +121,7 @@ export function MediaPartnerApplicationForm() {
             >
               <CheckCircle2 className="h-9 w-9 text-emerald-600" strokeWidth={2.25} />
             </motion.div>
-            <p className="text-lg font-bold tracking-tight text-[#001D3D] sm:text-xl">
+            <p className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
               Candidature reçue.
             </p>
             <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">
@@ -165,7 +165,7 @@ export function MediaPartnerApplicationForm() {
 
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between gap-2 text-xs text-slate-500 sm:text-sm">
-                    <span className="font-semibold text-[#001D3D]">
+                    <span className="font-semibold text-foreground font-mono tabular-nums">
                       Étape {step + 1} / {mpTotalSteps}
                     </span>
                     <span className="hidden truncate text-right sm:inline">{MP_STEP_META[step].title}</span>
@@ -176,7 +176,7 @@ export function MediaPartnerApplicationForm() {
                         key={i}
                         role="listitem"
                         className={`h-1.5 flex-1 rounded-full transition-colors ${
-                          i <= step ? "bg-[#FFC300]" : "bg-slate-200"
+                          i <= step ? "bg-accent" : "bg-slate-200"
                         }`}
                         aria-current={i === step ? "step" : undefined}
                       />
@@ -188,7 +188,7 @@ export function MediaPartnerApplicationForm() {
                 <div className="min-h-[14rem] space-y-4 sm:min-h-[12rem]">
                   {step === 0 && (
                     <div className="animate-in fade-in-0 space-y-4 duration-200">
-                      <h3 className="text-sm font-semibold text-[#001D3D] sm:hidden">{MP_STEP_META[0].title}</h3>
+                      <h3 className="text-sm font-semibold text-foreground sm:hidden">{MP_STEP_META[0].title}</h3>
                       <div className="grid gap-4 sm:grid-cols-2">
                         <FormField
                           control={form.control}
@@ -267,7 +267,7 @@ export function MediaPartnerApplicationForm() {
 
                   {step === 1 && (
                     <div className="animate-in fade-in-0 space-y-4 duration-200">
-                      <h3 className="text-sm font-semibold text-[#001D3D] sm:hidden">{MP_STEP_META[1].title}</h3>
+                      <h3 className="text-sm font-semibold text-foreground sm:hidden">{MP_STEP_META[1].title}</h3>
                       <FormField
                         control={form.control}
                         name="experienceDescription"
@@ -277,7 +277,7 @@ export function MediaPartnerApplicationForm() {
                             <FormControl>
                               <Textarea
                                 placeholder="Canaux utilisés, niches, preuves de performance, conformité publicitaire…"
-                                className="min-h-[min(28vh,8rem)] max-h-[min(40vh,14rem)] resize-y rounded-xl border-slate-200 bg-white/90 text-base shadow-sm focus-visible:border-[#001D3D]/30 focus-visible:ring-[#001D3D]/20 sm:min-h-[140px] sm:max-h-none sm:text-sm"
+                                className="min-h-[min(28vh,8rem)] max-h-[min(40vh,14rem)] resize-y rounded-xl border-input bg-card text-base shadow-xs focus-visible:border-ring focus-visible:ring-ring sm:min-h-[140px] sm:max-h-none sm:text-sm"
                                 {...field}
                               />
                             </FormControl>

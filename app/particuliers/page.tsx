@@ -157,20 +157,20 @@ export default function ParticuliersPage() {
         <B2CTestimonials />
 
         {/* ── CTA FINAL ── */}
-        <section className="relative overflow-hidden bg-[#001D3D] py-20 sm:py-28 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,184,0,0.08)_0%,transparent_60%)]" />
+        <section className="relative overflow-hidden bg-primary py-20 sm:py-28 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(37,99,235,0.12)_0%,transparent_60%)]" />
           <div className="relative z-10 mx-auto max-w-2xl px-4 text-center">
-            <Zap className="mx-auto mb-5 h-10 w-10 text-accent drop-shadow-[0_0_15px_rgba(255,184,0,0.5)]" />
+            <Zap className="mx-auto mb-5 h-10 w-10 text-blue-400" />
             <h2 className="text-3xl font-bold text-white sm:text-4xl">
               Prêt à devenir indépendant ?
             </h2>
-            <p className="mt-4 text-neutral-400 sm:text-lg">
+            <p className="mt-4 text-neutral-300 sm:text-lg">
               Obtenez votre simulation personnalisée gratuite en moins de 2
               minutes.
             </p>
             <Link
               href="#b2c-simulator"
-              className="mt-8 inline-flex h-14 items-center gap-3 rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 px-8 text-base font-bold text-[#001D3D] shadow-[0_4px_0_0_#b47e00,0_10px_20px_rgba(245,158,11,0.25)] transition-all duration-150 hover:from-amber-300 hover:to-amber-400 active:translate-y-1 active:shadow-[0_0_0_0_#b47e00]"
+              className="mt-8 inline-flex h-14 items-center gap-3 rounded-xl bg-accent px-8 text-base font-bold text-accent-foreground shadow-xs transition-all hover:bg-accent/90"
             >
               Lancer ma simulation
               <ArrowRight className="h-5 w-5" />

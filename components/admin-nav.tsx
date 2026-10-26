@@ -14,6 +14,7 @@ import {
   Coins,
   ShieldAlert,
   Flame,
+  SendHorizonal,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AdminLogoutButton } from "@/components/admin-logout-button"
@@ -80,6 +81,11 @@ export function AdminNav({
           icon: ShieldAlert,
           badgeCount: pendingDisputes,
           badgeVariant: pendingDisputes > 0 ? "destructive" : "neutral",
+        },
+        {
+          href: "/admin/relances",
+          label: "Relances Mails",
+          icon: SendHorizonal,
         },
       ],
     },

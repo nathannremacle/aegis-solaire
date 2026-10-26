@@ -51,13 +51,13 @@ export function ParticuliersHero() {
 
   return (
     <section
-      className="relative flex min-h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[#001D3D] sm:min-h-[calc(100dvh-5rem)] [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
+      className="relative flex min-h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-primary sm:min-h-[calc(100dvh-5rem)] [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
       style={{ viewTransitionName: "hero-section" }}
     >
       {/* Background image with progressive blur-up */}
       <HeroBg heroKey="hero-particuliers" />
       <div
-        className="pointer-events-none select-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,29,61,0.15)_0%,rgba(0,29,61,0.75)_100%)]"
+        className="pointer-events-none select-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(15,23,42,0.15)_0%,rgba(15,23,42,0.85)_100%)]"
         aria-hidden
       />
 
@@ -71,9 +71,9 @@ export function ParticuliersHero() {
           {/* Badge */}
           <motion.div
             variants={itemVariants}
-            className="mb-5 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-white/5 px-4 py-2 shadow-[0_0_15px_rgba(255,184,0,0.15)] backdrop-blur-md sm:mb-6"
+            className="mb-5 inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-500/10 px-4 py-2 shadow-xs backdrop-blur-md sm:mb-6"
           >
-            <Sun className="h-4 w-4 shrink-0 text-accent drop-shadow-[0_0_8px_rgba(255,184,0,0.8)]" />
+            <Sun className="h-4 w-4 shrink-0 text-blue-400" />
             <span className="text-xs font-medium tracking-wide text-white sm:text-sm">
               La technologie industrielle au service de votre foyer
             </span>
@@ -85,7 +85,7 @@ export function ParticuliersHero() {
             className="text-balance text-3xl font-extrabold tracking-tight text-white sm:text-5xl md:text-6xl"
           >
             Devenez{" "}
-            <span className="text-accent drop-shadow-[0_0_15px_rgba(255,184,0,0.3)]">
+            <span className="text-blue-400">
               autonome
             </span>
             <br className="hidden sm:block" /> et bloquez l&apos;inflation.
@@ -110,7 +110,7 @@ export function ParticuliersHero() {
           >
             <button
               onClick={scrollToSimulator}
-              className="group inline-flex h-13 items-center justify-center gap-2.5 rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 px-7 text-base font-bold text-[#001D3D] shadow-[0_4px_0_0_#b47e00,0_10px_20px_rgba(245,158,11,0.25)] transition-all duration-150 hover:from-amber-300 hover:to-amber-400 active:translate-y-1 active:shadow-[0_0_0_0_#b47e00] sm:h-14 cursor-pointer"
+              className="group inline-flex h-13 items-center justify-center gap-2.5 rounded-xl bg-accent px-7 text-base font-bold text-accent-foreground shadow-xs transition-all hover:bg-accent/90 sm:h-14 cursor-pointer"
             >
               <Home className="h-5 w-5 shrink-0" />
               <span>Simuler mes économies</span>
@@ -121,7 +121,7 @@ export function ParticuliersHero() {
               prefetch={true}
               className="group inline-flex h-13 items-center justify-center gap-2.5 rounded-xl border border-white/25 bg-white/10 px-7 text-base font-bold text-white backdrop-blur-md transition-all duration-200 hover:border-white/40 hover:bg-white/15 hover:scale-[1.02] sm:h-14"
             >
-              <Building2 className="h-5 w-5 shrink-0 text-accent transition-transform group-hover:scale-110" />
+              <Building2 className="h-5 w-5 shrink-0 text-blue-400 transition-transform group-hover:scale-110" />
               <span>Entreprises &amp; Industrie</span>
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
@@ -135,10 +135,10 @@ export function ParticuliersHero() {
             {stats.map((s) => (
               <div
                 key={s.label}
-                className="group flex flex-col items-center gap-1.5 rounded-2xl border border-white/10 bg-white/5 px-3 py-4 backdrop-blur-md transition-all hover:border-accent/25 hover:bg-white/10 sm:px-4"
+                className="group flex flex-col items-center gap-1.5 rounded-2xl border border-white/10 bg-white/5 px-3 py-4 backdrop-blur-md transition-all hover:border-blue-400/30 hover:bg-white/10 sm:px-4"
               >
-                <s.icon className="h-5 w-5 text-accent opacity-80 transition-transform group-hover:scale-110 sm:h-6 sm:w-6" />
-                <p className="text-lg font-bold text-white sm:text-xl">{s.value}</p>
+                <s.icon className="h-5 w-5 text-blue-400 opacity-90 transition-transform group-hover:scale-110 sm:h-6 sm:w-6" />
+                <p className="font-mono tabular-nums text-lg font-bold text-white sm:text-xl">{s.value}</p>
                 <p className="text-[11px] leading-tight text-neutral-400 sm:text-xs">
                   {s.label}
                 </p>

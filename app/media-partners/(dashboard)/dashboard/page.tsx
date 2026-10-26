@@ -168,7 +168,7 @@ export default function MediaPartnerDashboardPage() {
           {stats && (
             <div className="hidden items-center gap-2 sm:flex">
               <Card className="flex items-center gap-2 px-3 py-2">
-                <code className="font-mono text-xs font-bold text-[#001D3D]">{stats.trackingCode}</code>
+                <code className="font-mono text-xs font-bold text-foreground">{stats.trackingCode}</code>
                 <button
                   type="button"
                   onClick={handleCopy}
@@ -210,7 +210,7 @@ export default function MediaPartnerDashboardPage() {
                 onClick={() => handlePeriodChange(p)}
                 className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
                   period === p
-                    ? "bg-[#001D3D] text-white shadow-sm"
+                    ? "bg-primary text-primary-foreground shadow-xs"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 }`}
               >
@@ -222,7 +222,7 @@ export default function MediaPartnerDashboardPage() {
 
         {loading && !stats ? (
           <div className="flex items-center justify-center py-32">
-            <Loader2 className="h-8 w-8 animate-spin text-[#001D3D]" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : stats ? (
           <>
@@ -264,19 +264,19 @@ export default function MediaPartnerDashboardPage() {
                 <p className="mt-1 text-sm text-slate-500">Taux de qualification</p>
               </Card>
 
-              <Card className="group relative overflow-hidden border-[#001D3D]/15 p-6 transition-all hover:shadow-md">
+              <Card className="group relative overflow-hidden border-border p-6 transition-all hover:shadow-md">
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/15 ring-1 ring-accent/30">
-                    <Euro className="h-5 w-5 text-amber-600" />
+                    <Euro className="h-5 w-5 text-accent" />
                   </div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Commissions</span>
                 </div>
-                <p className="font-sans text-3xl font-extrabold tabular-nums text-[#001D3D]">
+                <p className="font-mono text-3xl font-extrabold tabular-nums text-foreground">
                   {formatMoney(stats.totalCommission)}
                 </p>
                 <p className="mt-1 text-sm text-slate-500">
-                  <span className="font-sans tabular-nums">{formatMoney(stats.commissionB2B)}</span> B2B ·{" "}
-                  <span className="font-sans tabular-nums">{formatMoney(stats.commissionB2C)}</span> B2C
+                  <span className="font-mono tabular-nums">{formatMoney(stats.commissionB2B)}</span> B2B ·{" "}
+                  <span className="font-mono tabular-nums">{formatMoney(stats.commissionB2C)}</span> B2C
                 </p>
               </Card>
             </div>
@@ -285,7 +285,7 @@ export default function MediaPartnerDashboardPage() {
               <Card className="flex items-center justify-between px-4 py-3">
                 <div className="flex min-w-0 items-center gap-2">
                   <span className="text-xs text-slate-500">Tracking :</span>
-                  <code className="truncate font-mono text-sm font-bold text-[#001D3D]">{stats.trackingCode}</code>
+                  <code className="truncate font-mono text-sm font-bold text-foreground">{stats.trackingCode}</code>
                 </div>
                 <button
                   type="button"
@@ -381,9 +381,9 @@ export default function MediaPartnerDashboardPage() {
                               {st.label}
                             </span>
                           </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-right font-sans font-bold tabular-nums">
+                          <td className="whitespace-nowrap px-6 py-4 text-right font-mono font-bold tabular-nums">
                             {lead.commission > 0 ? (
-                              <span className="text-[#001D3D]">+{formatMoney(lead.commission)}</span>
+                              <span className="text-foreground">+{formatMoney(lead.commission)}</span>
                             ) : (
                               <span className="text-slate-400">—</span>
                             )}
@@ -431,7 +431,7 @@ export default function MediaPartnerDashboardPage() {
                         </p>
                       </div>
                       {lead.commission > 0 ? (
-                        <span className="font-sans text-sm font-bold tabular-nums text-[#001D3D]">
+                        <span className="font-mono text-sm font-bold tabular-nums text-foreground">
                           +{lead.commission} €
                         </span>
                       ) : (

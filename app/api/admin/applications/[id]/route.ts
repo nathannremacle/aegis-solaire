@@ -107,6 +107,15 @@ async function syncPartnerFromApplication(
   return { created: true, partnerId: inserted?.id }
 }
 
+import {
+  buildInstallerMarketplaceWelcomeEmail,
+  sendInstallerEmail,
+} from "@/lib/installer-welcome-emails"
+
+function getSiteBaseUrl(): string {
+  return (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.aegissolaire.com").replace(/\/$/, "")
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -147,6 +156,8 @@ export async function PATCH(
 
   let installateurSync: { created: boolean; installateurId?: string } | null = null
   let partnerSync: { created: boolean; partnerId?: string } | null = null
+  let marketplaceEmailSent = false
+
   if (data.status === "approved") {
     const app = data as ApplicationRow
     try {
@@ -168,7 +179,37 @@ export async function PATCH(
     } catch (e) {
       console.error("[admin/applications] sync partner:", e)
     }
+
+    // Envoi de l'e-mail de bienvenue sur la Marketplace (HomeDeal style Aegis)
+    try {
+      const baseUrl =
+        request.nextUrl.origin && !request.nextUrl.origin.includes("localhost:0")
+          ? request.nextUrl.origin
+          : getSiteBaseUrl()
+      const marketplaceUrl = `${baseUrl}/partenaires/dashboard`
+      const emailPayload = buildInstallerMarketplaceWelcomeEmail({
+        applicationId: app.id,
+        firstName: app.first_name,
+        lastName: app.last_name,
+        companyName: app.company_name,
+        email: app.email,
+        rescertRef: app.rescert_ref,
+        marketplaceUrl,
+      })
+
+      const sendRes = await sendInstallerEmail({
+        to: app.email,
+        subject: emailPayload.subject,
+        html: emailPayload.html,
+        text: emailPayload.text,
+        tag: "installer-marketplace-welcome",
+      })
+      marketplaceEmailSent = sendRes.success
+    } catch (mailErr) {
+      console.error("[admin/applications] Échec envoi email marketplace:", mailErr)
+    }
   }
 
-  return NextResponse.json({ ...data, installateurSync, partnerSync })
+  return NextResponse.json({ ...data, installateurSync, partnerSync, marketplaceEmailSent })
 }
+

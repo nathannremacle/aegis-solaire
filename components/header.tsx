@@ -81,9 +81,9 @@ export function Header() {
       style={{ viewTransitionName: "site-header" }}
     >
       {/* Barre de switch mobile & tablette toujours visible */}
-      <div className="flex md:hidden items-center justify-between bg-[#001D3D] px-3.5 py-1.5 text-xs text-white">
+      <div className="flex md:hidden items-center justify-between bg-primary px-3.5 py-1.5 text-xs text-white">
         <span className="text-[11px] font-medium text-neutral-300">
-          Espace : <strong className="text-[#FFB800]">{isB2C ? "Particuliers" : "Industrie & Pro"}</strong>
+          Espace : <strong className="text-blue-400">{isB2C ? "Particuliers" : "Industrie & Pro"}</strong>
         </span>
         <div className="flex items-center rounded-full bg-white/10 p-0.5 border border-white/15">
           <Link
@@ -95,7 +95,7 @@ export function Header() {
             aria-current={!isB2C ? "page" : undefined}
             className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all ${
               !isB2C
-                ? "bg-[#FFB800] text-[#001D3D] shadow-xs"
+                ? "bg-accent text-accent-foreground shadow-xs"
                 : "text-white/80 hover:text-white"
             }`}
           >
@@ -111,7 +111,7 @@ export function Header() {
             aria-current={isB2C ? "page" : undefined}
             className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all ${
               isB2C
-                ? "bg-[#FFB800] text-[#001D3D] shadow-xs"
+                ? "bg-accent text-accent-foreground shadow-xs"
                 : "text-white/80 hover:text-white"
             }`}
           >
@@ -159,7 +159,7 @@ export function Header() {
               {!isB2C && (
                 <motion.div
                   layoutId="segment-pill-desktop"
-                  className="absolute inset-0 rounded-full bg-[#001D3D] shadow-[0_2px_8px_rgba(0,29,61,0.28),0_1px_2px_rgba(0,29,61,0.18)] border border-white/10"
+                  className="absolute inset-0 rounded-full bg-primary shadow-xs border border-white/10"
                   transition={{ type: "spring", stiffness: 450, damping: 32 }}
                   style={{ viewTransitionName: "segment-pill" }}
                 />
@@ -167,7 +167,7 @@ export function Header() {
               <span className="relative z-10 flex items-center justify-center gap-1.5 select-none">
                 <Building2
                   className={`h-4 w-4 shrink-0 transition-all duration-200 ${
-                    !isB2C ? "text-[#FFB800] scale-105" : "text-neutral-400 group-hover:text-neutral-600"
+                    !isB2C ? "text-blue-400 scale-105" : "text-neutral-400 group-hover:text-neutral-600"
                   }`}
                 />
                 <span>Industrie &amp; Pro</span>
@@ -188,7 +188,7 @@ export function Header() {
               {isB2C && (
                 <motion.div
                   layoutId="segment-pill-desktop"
-                  className="absolute inset-0 rounded-full bg-[#001D3D] shadow-[0_2px_8px_rgba(0,29,61,0.28),0_1px_2px_rgba(0,29,61,0.18)] border border-white/10"
+                  className="absolute inset-0 rounded-full bg-primary shadow-xs border border-white/10"
                   transition={{ type: "spring", stiffness: 450, damping: 32 }}
                   style={{ viewTransitionName: "segment-pill" }}
                 />
@@ -196,7 +196,7 @@ export function Header() {
               <span className="relative z-10 flex items-center justify-center gap-1.5 select-none">
                 <Home
                   className={`h-4 w-4 shrink-0 transition-all duration-200 ${
-                    isB2C ? "text-[#FFB800] scale-105" : "text-neutral-400 group-hover:text-neutral-600"
+                    isB2C ? "text-blue-400 scale-105" : "text-neutral-400 group-hover:text-neutral-600"
                   }`}
                 />
                 <span>Particuliers</span>
@@ -215,7 +215,7 @@ export function Header() {
                   key={item.label}
                   href={item.href}
                   onClick={(e) => handleNavClick(e, item.href)}
-                  className={`px-3 py-2 text-sm font-medium text-neutral-600 transition-colors hover:text-[#001D3D] hover:bg-neutral-100/70 rounded-lg ${
+                  className={`px-3 py-2 text-sm font-medium text-neutral-600 transition-colors hover:text-primary hover:bg-neutral-100/70 rounded-lg ${
                     isFourth ? "min-w-[76px] text-center" : ""
                   }`}
                 >
@@ -281,12 +281,12 @@ export function Header() {
                   {!isB2C && (
                     <motion.div
                       layoutId="segment-pill-mobile"
-                      className="absolute inset-0 rounded-full bg-[#001D3D] shadow-md border border-white/10"
+                      className="absolute inset-0 rounded-full bg-primary shadow-xs border border-white/10"
                       transition={{ type: "spring", stiffness: 450, damping: 32 }}
                     />
                   )}
                   <span className="relative z-10 flex items-center justify-center gap-1.5">
-                    <Building2 className={`h-4 w-4 ${!isB2C ? "text-[#FFB800]" : "text-neutral-400"}`} />
+                    <Building2 className={`h-4 w-4 ${!isB2C ? "text-blue-400" : "text-neutral-400"}`} />
                     <span>Industrie &amp; Pro</span>
                   </span>
                 </Link>
@@ -303,12 +303,12 @@ export function Header() {
                   {isB2C && (
                     <motion.div
                       layoutId="segment-pill-mobile"
-                      className="absolute inset-0 rounded-full bg-[#001D3D] shadow-md border border-white/10"
+                      className="absolute inset-0 rounded-full bg-primary shadow-xs border border-white/10"
                       transition={{ type: "spring", stiffness: 450, damping: 32 }}
                     />
                   )}
                   <span className="relative z-10 flex items-center justify-center gap-1.5">
-                    <Home className={`h-4 w-4 ${isB2C ? "text-[#FFB800]" : "text-neutral-400"}`} />
+                    <Home className={`h-4 w-4 ${isB2C ? "text-blue-400" : "text-neutral-400"}`} />
                     <span>Particuliers</span>
                   </span>
                 </Link>

@@ -899,7 +899,7 @@ export function B2CSimulator() {
                             <div>
                               <span
                                 className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                                  active ? "bg-accent text-[#001D3D]" : "bg-muted text-foreground/70"
+                                  active ? "bg-accent text-accent-foreground" : "bg-muted text-foreground/70"
                                 }`}
                               >
                                 {opt.badge}
@@ -1223,7 +1223,7 @@ export function B2CSimulator() {
                       type="button"
                       onClick={next}
                       disabled={!valid(step)}
-                      className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-gradient-to-b from-[#001D3D] to-[#00152e] px-8 font-sans text-sm font-bold text-white shadow-md transition-all hover:bg-[#002855] active:scale-[0.99] disabled:opacity-50 sm:ml-auto sm:w-auto"
+                      className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-primary px-8 font-sans text-sm font-bold text-primary-foreground shadow-xs transition-all hover:bg-primary/90 active:scale-[0.99] disabled:opacity-50 sm:ml-auto sm:w-auto cursor-pointer"
                     >
                       {step === 4 ? "Calculer mon étude" : "Continuer"}
                       <ArrowRight className="ml-2 h-4 w-4" />

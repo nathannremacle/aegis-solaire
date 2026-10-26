@@ -25,7 +25,7 @@ export function AdminInviteGenerator() {
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.location.origin) {
-      setOrigin(window.location.origin)
+      queueMicrotask(() => setOrigin(window.location.origin))
     }
   }, [])
 
@@ -37,7 +37,7 @@ export function AdminInviteGenerator() {
   const generatedUrl = `${origin}/partenaires/invitation${queryString ? `?${queryString}` : ""}`
 
   const prefilledMessage = firstName.trim()
-    ? `Salut ${firstName.trim()}, c'est Fabrice Remacle. Je te conseille de regarder Aegis Solaire, une plateforme sérieuse avec qui je collabore pour des chantiers photovoltaïques qualifiés en Wallonie (max 3 installateurs, audit toiture & facture vérifiés, zéro commission). Voici ton lien d'accès privilégié : ${generatedUrl} . Donne-moi un coup de fil sur mon portable (+32 495 57 07 73) si tu as des questions !`
+    ? `Salut ${firstName.trim()}, c'est Fabrice Remacle. Je te conseille de regarder Aegis Solaire, une plateforme sérieuse avec qui je collabore pour des chantiers photovoltaïques qualifiés en Wallonie (max 3 installateurs, audit toiture & facture vérifiés, zéro commission). Voici ton lien d'accès privilégié : ${generatedUrl} . Écris-moi ou contacte l'équipe à contact@aegissolaire.com si tu as des questions !`
     : `Bonjour, c'est Fabrice Remacle. Je vous invite à découvrir la marketplace photovoltaïque Aegis Solaire avec laquelle je collabore en Wallonie (dossiers vérifiés, exclusivité B2B) : ${generatedUrl}`
 
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(prefilledMessage)}`

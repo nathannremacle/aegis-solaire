@@ -1,6 +1,7 @@
 import { Suspense } from "react"
 import { redirect } from "next/navigation"
 import { getPartner } from "@/lib/partner-auth"
+import { isPartnerEmailVerified } from "@/lib/installer-verification"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { PartnerDashboardShell } from "@/components/partners/dashboard/partner-dashboard-shell"
 import { PartnerDashboardSkeleton } from "@/components/partners/dashboard/partner-dashboard-skeleton"
@@ -8,20 +9,68 @@ import { PartnerDashboardSkeleton } from "@/components/partners/dashboard/partne
 export const dynamic = "force-dynamic"
 
 interface PartnerDashboardPageProps {
-  searchParams?: Promise<{ lead?: string }>
+  searchParams?: Promise<{ lead?: string; asPartner?: string }>
 }
 
 export default async function PartnerDashboardPage({ searchParams }: PartnerDashboardPageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {}
   const targetLeadId = resolvedSearchParams.lead?.trim() || null
 
-  const partner = await getPartner()
+  let partner = await getPartner()
+
+  // En environnement de développement, permet de simuler un partenaire/candidat spécifique via ?asPartner=email
+  if (process.env.NODE_ENV === "development" && resolvedSearchParams.asPartner) {
+    const admin = createServiceRoleClient()
+    const targetEmail = resolvedSearchParams.asPartner.toLowerCase().trim()
+    const { data: matchedPartner } = await admin
+      .from("partners")
+      .select("*")
+      .eq("email", targetEmail)
+      .maybeSingle()
+
+    if (matchedPartner) {
+      partner = matchedPartner as any
+    } else {
+      const { data: matchedApp } = await admin
+        .from("installer_applications")
+        .select("*")
+        .eq("email", targetEmail)
+        .maybeSingle()
+
+      if (matchedApp) {
+        partner = {
+          id: matchedApp.id,
+          company_name: matchedApp.company_name,
+          email: matchedApp.email,
+          phone: matchedApp.phone,
+          credits: 0,
+          segment: "BOTH",
+          target_provinces: matchedApp.regions,
+          target_surfaces: null,
+          min_facture: 0,
+          auth_user_id: null,
+          created_at: matchedApp.created_at,
+          updated_at: matchedApp.created_at,
+        } as any
+      }
+    }
+  }
 
   if (!partner) {
     const returnUrl = targetLeadId
       ? `/partenaires/dashboard?lead=${encodeURIComponent(targetLeadId)}`
       : "/partenaires/dashboard"
     redirect(`/partenaires/login?returnUrl=${encodeURIComponent(returnUrl)}`)
+  }
+
+  // Contrôle d'accès strict : accès marketplace bloqué tant que l'email n'est pas validé
+  const emailVerified = await isPartnerEmailVerified(partner.email)
+  if (!emailVerified) {
+    redirect(
+      `/partenaires/verification-requise?email=${encodeURIComponent(
+        partner.email
+      )}&company=${encodeURIComponent(partner.company_name)}`
+    )
   }
 
   return (

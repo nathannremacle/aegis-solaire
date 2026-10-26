@@ -26,14 +26,14 @@ export function Footer() {
 
           {/* Navigation */}
           <div>
-            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-[#001D3D]">
+            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">
               Navigation
             </h4>
             <ul className="space-y-2">
               <li>
                 <Link
                   href="/#preuve"
-                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   Études de cas B2B
                 </Link>
@@ -41,7 +41,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/particuliers"
-                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   Espace Particuliers
                 </Link>
@@ -49,7 +49,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/devis-panneaux-solaires"
-                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   Devis comparatifs gratuits
                 </Link>
@@ -57,7 +57,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/#expert"
-                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   Notre expertise
                 </Link>
@@ -65,7 +65,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/#simulator"
-                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   Simulateur ROI B2B
                 </Link>
@@ -73,7 +73,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/partenaires"
-                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   Devenir Partenaire
                 </Link>
@@ -81,7 +81,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/media-partners"
-                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   Media Partners
                 </Link>
@@ -91,14 +91,14 @@ export function Footer() {
 
           {/* Ressources (Content Marketing / SEO) */}
           <div>
-            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-[#001D3D]">
+            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">
               Ressources
             </h4>
             <ul className="space-y-2">
               <li>
                 <Link
                   href="/#preuve"
-                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   Études de cas chiffrées
                 </Link>
@@ -106,7 +106,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/#expert"
-                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   Subventions & financement
                 </Link>
@@ -114,7 +114,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/webinaire"
-                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   Webinaires & masterclass
                 </Link>
@@ -122,7 +122,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/faq-technique"
-                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   FAQ technique (PEB, CV, financement)
                 </Link>
@@ -132,14 +132,14 @@ export function Footer() {
 
           {/* Legal */}
           <div>
-            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-[#001D3D]">
+            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">
               Informations légales
             </h4>
             <ul className="space-y-2">
               <li>
                 <Link
                   href="/mentions-legales"
-                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   Mentions légales
                 </Link>
@@ -147,7 +147,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/politique-confidentialite"
-                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   Politique de confidentialité
                 </Link>
@@ -155,7 +155,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/politique-confidentialite#desinscription"
-                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   Désinscription / Opposition
                 </Link>
@@ -163,7 +163,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/cgv"
-                  className="text-sm text-neutral-500 hover:text-[#001D3D]"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   CGV
                 </Link>
@@ -173,10 +173,10 @@ export function Footer() {
 
           {/* Contact */}
           <div className="min-w-0">
-            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-[#001D3D]">
+            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">
               Contact
             </h4>
-            <ul className="space-y-2 text-sm text-neutral-500">
+            <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="break-all">contact@aegissolaire.com</li>
             </ul>
           </div>
@@ -187,7 +187,7 @@ export function Footer() {
             &copy; {new Date().getFullYear()} Aegis Solaire — Tous droits réservés.
           </p>
           <p className="text-[11px] text-neutral-400">
-            Plateforme éditée par <strong className="text-neutral-500 font-medium">INIT42</strong> (Nathan Remacle, Personne physique) · BCE n° 1039.899.980 · TVA BE 1039.899.980
+            Plateforme éditée par <strong className="text-neutral-500 font-medium">INIT42</strong> · BCE n° 1039.899.980 · TVA BE 1039.899.980
           </p>
         </div>
       </div>

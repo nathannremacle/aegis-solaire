@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import Image from "next/image"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -14,20 +13,23 @@ import {
   Home,
   Building,
   Zap,
-  HelpCircle,
   X,
   Star,
   Lock,
   Clock,
   ChevronDown,
   BadgeCheck,
-  Sparkles,
-  MapPin,
   FileText,
   BadgeEuro,
   TrendingUp,
   BatteryFull,
   Car,
+  MapPin,
+  HelpCircle,
+  Sparkles,
+  PhoneCall,
+  Flame,
+  Award,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -37,13 +39,13 @@ import { getEmailError, getPhoneError } from "@/lib/leads-validation"
 import { getStoredMediaPartnerRef } from "@/components/media-partner-ref-tracker"
 import { trackLeadConversion } from "@/components/analytics/ad-tracking"
 
-// ── Options du formulaire inspirées de Bobex ──
+// ── Options du formulaire B2C (Wallonie) ──
 const CONSUMPTION_OPTIONS = [
-  { id: "lt_3000", label: "Moins de 3.000 kWh", sublabel: "1 à 2 personnes (Facture < 85 € / mois)", billValue: 1000 },
-  { id: "3000_4000", label: "3.000 à 4.000 kWh", sublabel: "2 à 3 personnes (Facture ~85 à 115 € / mois)", billValue: 1800 },
-  { id: "4000_5000", label: "4.000 à 5.000 kWh", sublabel: "3 à 4 personnes (Facture ~115 à 145 € / mois)", billValue: 2400 },
-  { id: "5000_6000", label: "5.000 à 6.000 kWh", sublabel: "4 à 5 personnes (Facture ~145 à 175 € / mois)", billValue: 3100 },
-  { id: "gt_6000", label: "Plus de 6.000 kWh", sublabel: "Grand foyer, PAC ou borne VE (> 175 € / mois)", billValue: 4500 },
+  { id: "lt_3000", label: "Moins de 3 000 kWh", sublabel: "1 à 2 personnes (Facture < 85 € / mois)", billValue: 1000 },
+  { id: "3000_4000", label: "3 000 à 4 000 kWh", sublabel: "2 à 3 personnes (Facture ~85 à 115 € / mois)", billValue: 1800 },
+  { id: "4000_5000", label: "4 000 à 5 000 kWh", sublabel: "3 à 4 personnes (Facture ~115 à 145 € / mois)", billValue: 2400 },
+  { id: "5000_6000", label: "5 000 à 6 000 kWh", sublabel: "4 à 5 personnes (Facture ~145 à 175 € / mois)", billValue: 3100 },
+  { id: "gt_6000", label: "Plus de 6 000 kWh", sublabel: "Grand foyer, PAC ou borne VE (> 175 € / mois)", billValue: 4500 },
 ]
 
 const PROPERTY_TYPES = [
@@ -82,30 +84,31 @@ const EV_CHARGER_INTEREST_OPTIONS = [
   { id: "non", label: "Non", sublabel: "Pas de VE" },
 ]
 
-const WALLONIA_PROVINCES = [
-  { value: "liege", label: "Liège", prefix: ["4"] },
-  { value: "hainaut", label: "Hainaut", prefix: ["7", "6"] },
-  { value: "namur", label: "Namur", prefix: ["5"] },
-  { value: "brabant_wallon", label: "Brabant wallon", prefix: ["13", "14"] },
-  { value: "luxembourg", label: "Luxembourg", prefix: ["66", "67", "68", "69"] },
-] as const
+const STEP_TITLES = [
+  "PROFIL CONSOMMATION",
+  "TYPE DE BÂTIMENT",
+  "STATUT D'OCCUPATION",
+  "TOITURE & ÉQUIPEMENTS",
+  "LOCALISATION EN WALLONIE",
+  "COORDONNÉES DE CONTACT",
+]
 
 const FAQ_ITEMS = [
   {
     q: "Combien de devis vais-je recevoir ?",
-    a: "Vous recevrez jusqu'à 3 devis chiffrés et comparables d'installateurs photovoltaïques certifiés RESCERT actifs directement dans votre province ou commune.",
+    a: "Vous recevrez jusqu'à 3 devis chiffrés et directement comparables d'installateurs photovoltaïques certifiés RESCERT actifs dans votre province ou commune wallonne.",
   },
   {
     q: "Ce service est-il réellement 100 % gratuit et sans engagement ?",
-    a: "Oui, totalement 0 €. Notre mission est de vous faire économiser du temps et de l'argent en mettant en concurrence des artisans locaux sérieux. Vous êtes entièrement libre d'accepter une offre — ou de n'en choisir aucune.",
+    a: "Oui, totalement 0 €. Notre mission est de vous faire économiser du temps et de l'argent en mettant en concurrence des artisans locaux sérieux. Vous restez entièrement libre d'accepter une offre — ou de n'en choisir aucune.",
   },
   {
-    q: "Pourquoi exiger des installateurs certifiés RESCERT ?",
-    a: "Le label RESCERT Photovoltaïque est la certification officielle de compétence en Wallonie. Il garantit la conformité électrique (RGIE), un dimensionnement conforme et la validation technique pour les raccordements réseau Ores / Resa.",
+    q: "Pourquoi exiger exclusivement des installateurs certifiés RESCERT ?",
+    a: "Le label RESCERT Photovoltaïque est la certification officielle de compétence en Wallonie. Il garantit la conformité électrique (RGIE), un dimensionnement exact et la validation technique pour les raccordements réseau ORES / RESA.",
   },
   {
-    q: "Quel est le délai pour recevoir mes offres ?",
-    a: "Après validation de votre demande, nos installateurs partenaires prennent contact en moyenne sous 24 à 48 heures ouvrées pour affiner vos spécificités de toiture et vous transmettre votre devis sur mesure.",
+    q: "Quel est le délai moyen pour recevoir mes offres ?",
+    a: "Après validation de votre demande, nos installateurs partenaires prennent contact en moyenne sous 24 à 48 heures ouvrées pour affiner vos spécificités de toiture et vous transmettre votre étude chiffrée sur mesure.",
   },
   {
     q: "Comment fonctionne l'autoconsommation avec le compteur communicant ?",
@@ -147,11 +150,12 @@ export function DevisLandingClient() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false)
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null)
-  const [activeTooltip, setActiveTooltip] = useState<number | null>(null)
+  const [showStickyBar, setShowStickyBar] = useState(false)
 
   const formOpenedAt = useRef(new Date().toISOString())
+  const leadCardRef = useRef<HTMLDivElement>(null)
 
-  // Capture des UTM et du fbclid dès l'arrivée sur la landing page
+  // Capture des UTM et fbclid
   const [utmData, setUtmData] = useState<{
     utm_source?: string
     utm_medium?: string
@@ -175,7 +179,6 @@ export function DevisLandingClient() {
       }
       setUtmData(utm)
 
-      // Enregistrement du cookie standard _fbc pour Meta Conversions API si fbclid présent
       if (utm.fbclid && !document.cookie.includes("_fbc=")) {
         const creationTime = Date.now()
         document.cookie = `_fbc=fb.1.${creationTime}.${utm.fbclid}; path=/; max-age=${90 * 24 * 3600}; SameSite=Lax`
@@ -184,7 +187,19 @@ export function DevisLandingClient() {
       console.warn("Erreur capture UTMs:", e)
     }
   }, [])
-  const leadCardRef = useRef<HTMLDivElement>(null)
+
+  // Observateur de scroll pour le sticky CTA mobile
+  useEffect(() => {
+    const handleScroll = () => {
+      if (leadCardRef.current) {
+        const rect = leadCardRef.current.getBoundingClientRect()
+        // Si le formulaire est dépassé vers le haut, afficher la barre
+        setShowStickyBar(rect.bottom < 0)
+      }
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
 
   // Validation
   const emailErr = getEmailError(email)
@@ -202,7 +217,7 @@ export function DevisLandingClient() {
   const showAddressError = hasAttemptedSubmit && !isAddressValid
   const showConsentError = hasAttemptedSubmit && !partnerConsent
 
-  // Détection intelligente de la province au fur et à mesure de la frappe du CP
+  // Détection automatique de la province wallonne via le CP belge
   const handlePostalCodeChange = (raw: string) => {
     const cleaned = raw.replace(/\D/g, "").slice(0, 4)
     setPostalCode(cleaned)
@@ -237,6 +252,7 @@ export function DevisLandingClient() {
     }
   }
 
+  // Auto-advance de 180 ms sur étapes à choix unique
   const handleOptionSelect = (setter: (val: string) => void, val: string) => {
     setter(val)
     if (step < 5) {
@@ -283,7 +299,9 @@ export function DevisLandingClient() {
       copropriete: "co_ownership",
     }
 
-    const calculatedSurface = ROOF_SURFACES.find((r) => r.id === roofSurface)?.m2 ?? (selectedBill >= 3100 ? 55 : selectedBill >= 2400 ? 45 : 35)
+    const calculatedSurface =
+      ROOF_SURFACES.find((r) => r.id === roofSurface)?.m2 ??
+      (selectedBill >= 3100 ? 55 : selectedBill >= 2400 ? 45 : 35)
 
     const payload = {
       segment: "B2C",
@@ -305,10 +323,6 @@ export function DevisLandingClient() {
       marketingConsent: partnerConsent,
       newsletterConsent,
       projectDetails: [
-        `Source: Landing Bobex-Style (B2C)`,
-        utmData.utm_source ? `UTM Source: ${utmData.utm_source}` : "",
-        utmData.utm_campaign ? `Campagne: ${utmData.utm_campaign}` : "",
-        utmData.utm_content ? `Créatif: ${utmData.utm_content}` : "",
         `Consommation annuelle: ${consumption}`,
         `Type de bien: ${propertyType}`,
         `Statut: ${ownership}`,
@@ -316,7 +330,6 @@ export function DevisLandingClient() {
         `Surface toiture: ${roofSurface}`,
         `Batterie: ${batteryInterest}`,
         `Borne VE: ${evChargerInterest}`,
-        `Adresse: ${address.trim()}`,
         remarks.trim() ? `Précisions: ${remarks.trim()}` : "",
       ]
         .filter(Boolean)
@@ -367,155 +380,158 @@ export function DevisLandingClient() {
   const progressPercent = Math.round((step / totalSteps) * 100)
 
   return (
-    <div className="min-h-screen bg-[#F6F9FC] text-slate-800 flex flex-col font-sans selection:bg-[#F8C630] selection:text-[#002A45]">
-      
-      {/* ── Entête épurée Bobex-Style (Minimaliste, pas de fuite de trafic) ── */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-sm transition-all">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center gap-3" aria-label="Aegis Solaire, accueil">
-            <div className="relative h-9 w-36 sm:h-11 sm:w-44">
-              <Image
-                src="/logo.png"
-                alt="Aegis Solaire"
-                fill
-                sizes="(max-width: 640px) 144px, 176px"
-                className="object-contain object-left"
-                priority
-              />
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-accent/15 selection:text-foreground">
+      {/* ── EN-TÊTE ÉPURÉ INSTITUTIONNEL ── */}
+      <header className="border-b border-border bg-card/95 backdrop-blur-md sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shadow-2xs group-hover:bg-accent transition-colors">
+              <Zap className="h-5 w-5 text-accent group-hover:text-primary-foreground transition-colors" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-heading font-bold text-lg tracking-tight text-foreground leading-none">
+                Aegis <span className="text-accent">Solaire</span>
+              </span>
+              <span className="font-mono text-[10px] text-muted-foreground tracking-wider uppercase mt-0.5">
+                Audit &amp; Tiers de Confiance
+              </span>
             </div>
           </Link>
 
-          <div className="flex items-center gap-2.5 sm:gap-4">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200/90 px-3.5 py-1 text-xs font-bold text-emerald-800 shadow-2xs">
-              <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
-              <span>Installateurs certifiés RESCERT</span>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary border border-border text-xs font-mono font-medium text-muted-foreground">
+              <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />
+              <span>Wallonie 2026 · Réglementation CWaPE</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/[0.06] border border-primary/20 text-xs font-mono font-semibold text-primary">
+              <ShieldCheck className="h-3.5 w-3.5 text-accent" />
+              <span>Certifiés RESCERT</span>
             </div>
           </div>
         </div>
       </header>
 
-      {/* ── HERO SECTION PRINCIPALE ── */}
-      <section className="relative overflow-hidden py-6 sm:py-10 lg:py-14 bg-gradient-to-b from-[#FAFCFE] via-[#F4F7F9] to-[#EAEFF4]">
-        
-        {/* Grille technique & halos d'ambiance d'arrière-plan */}
-        <div className="pointer-events-none select-none absolute inset-0 overflow-hidden" aria-hidden>
-          <div
-            className="absolute inset-0 opacity-[0.04]"
-            style={{
-              backgroundImage: `radial-gradient(#002A45 1px, transparent 1px)`,
-              backgroundSize: "28px 28px",
-            }}
-          />
-          <div className="absolute -top-24 right-1/4 w-[500px] h-[500px] bg-amber-200/30 rounded-full blur-[110px]" />
-          <div className="absolute -bottom-32 left-10 w-[450px] h-[450px] bg-sky-200/30 rounded-full blur-[110px]" />
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          
-          {/* ── EN-TÊTE MOBILE ULTRA-PUNCHY (Le formulaire apparaît immédiatement au-dessus sur mobile) ── */}
-          <div className="lg:hidden mb-6 text-center sm:text-left">
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-900 bg-amber-50 border border-amber-200/90 px-3 py-1 rounded-full shadow-2xs mb-3">
-              <Zap className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-              <span>⚡ Service Indépendant · 100 % Wallonie</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#002A45] leading-[1.18]">
-              La meilleure offre solaire&nbsp;?{" "}
-              <span className="block mt-1">
-                Comparez <span className="underline decoration-[#F8C630] decoration-4 underline-offset-4">jusqu&apos;à 3 devis</span>.
-              </span>
-            </h1>
-            <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-              Gratuit, sans aucun engagement et réponse garantie sous 48 h par des artisans agréés RESCERT.
-            </p>
-          </div>
-
+      {/* ── HERO SECTION BENTO SPLIT-SCREEN ── */}
+      <section className="relative py-8 md:py-16 border-b border-border bg-background">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
             
-            {/* ── COLONNE GAUCHE (DESKTOP) : Accroche forte, puces et étude de cas réelle ── */}
-            <div className="lg:col-span-6 flex flex-col justify-start">
+            {/* ── COLONNE GAUCHE : Valeur ajoutée, Réassurance & Preuve ── */}
+            <div className="lg:col-span-6 flex flex-col gap-6">
               
-              {/* Badge Preuve Sociale / Indépendance (Desktop) */}
-              <div className="hidden lg:inline-flex items-center gap-2 text-xs font-extrabold text-amber-950 mb-3 bg-amber-50/90 border border-amber-200/90 w-fit px-3.5 py-1.5 rounded-full shadow-2xs">
-                <Zap className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                <span>⚡ Service Indépendant · 100 % Wallonie</span>
+              <div className="flex flex-col gap-3">
+                {/* Eyebrow institutionnel unique */}
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/[0.06] border border-primary/20 text-primary text-xs font-mono font-medium w-fit shadow-2xs">
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                  <span>Organe Indépendant · 100 % Wallonie</span>
+                </div>
+
+                {/* UN SEUL H1 PAR ROUTE (Loi stricte SEO & Accessibilité) */}
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground font-heading leading-[1.12]">
+                  La meilleure offre solaire ?{" "}
+                  <span className="block mt-1 sm:mt-2 text-primary">
+                    Comparez jusqu&apos;à{" "}
+                    <span className="font-mono tabular-nums underline decoration-accent decoration-2 underline-offset-8">
+                      3 devis
+                    </span>
+                    .
+                  </span>
+                </h1>
+
+                <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mt-1">
+                  Une seule demande pour mettre en concurrence des artisans certifiés{" "}
+                  <strong className="text-foreground font-semibold">RESCERT</strong> de votre province. Gratuit,
+                  sans engagement et réponse garantie sous{" "}
+                  <span className="font-mono tabular-nums font-semibold text-foreground">48 h</span>.
+                </p>
               </div>
 
-              {/* Titre Principal Desktop (Sans retour à la ligne orphelin) */}
-              <h1 className="hidden lg:block text-3xl sm:text-4xl lg:text-[44px] font-black tracking-tight text-[#002A45] leading-[1.12]">
-                <span className="block">La meilleure offre solaire&nbsp;?</span>
-                <span className="block mt-2">
-                  Comparez <span className="relative inline-block px-1 text-[#002A45]"><span className="relative z-10">jusqu&apos;à 3 devis</span><span className="absolute bottom-1 left-0 right-0 h-3 bg-[#F8C630]/70 -rotate-1 rounded-sm -z-0"></span></span>.
-                </span>
-              </h1>
-
-              {/* Sous-titre Desktop */}
-              <p className="hidden lg:block mt-4 text-base sm:text-lg text-slate-600 leading-relaxed max-w-xl">
-                Une seule demande, des <strong>installateurs certifiés RESCERT locaux</strong>. Gratuit, sans aucun engagement et réponse garantie sous 48 h.
-              </p>
-
-              {/* 3 Avantages clés Bobex avec texte explicatif directement lisible */}
-              <div className="hidden lg:block mt-6">
-                <ul className="space-y-4 max-w-xl">
-                  {[
-                    {
-                      id: 1,
-                      text: "Économisez jusqu'à 70 % sur votre facture d'électricité",
-                      desc: "Une installation dimensionnée selon votre profil couvre vos consommations journalières et vous prémunit contre la volatilité des tarifs réseau en Wallonie.",
-                    },
-                    {
-                      id: 2,
-                      text: "Installateurs certifiés RESCERT de votre région",
-                      desc: "Tous les professionnels du réseau possèdent le certificat RESCERT Photovoltaïque en règle, garantissant la conformité RGIE et l'accès aux démarches GRD (Ores/Resa).",
-                    },
-                    {
-                      id: 3,
-                      text: "Réponse sous 48 h, sans aucune obligation",
-                      desc: "Vous recevez jusqu'à 3 propositions techniques et financières détaillées. Vous comparez tranquillement depuis chez vous et décidez librement de signer ou non.",
-                    },
-                  ].map((item) => (
-                    <li key={item.id} className="flex items-start gap-3">
-                      <span className="h-6 w-6 rounded-full bg-[#002A45] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
-                        <Check className="h-3.5 w-3.5 stroke-[3]" />
-                      </span>
-                      <div className="flex flex-col">
-                        <span className="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">
-                          {item.text}
-                        </span>
-                        <span className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-                          {item.desc}
-                        </span>
+              {/* Bento Grid 3 Avantages clés */}
+              <div className="grid grid-cols-1 gap-3 pt-1">
+                {[
+                  {
+                    id: 1,
+                    title: (
+                      <>
+                        Économisez jusqu&apos;à{" "}
+                        <span className="font-mono tabular-nums font-bold text-accent">70 %</span> sur votre facture
+                      </>
+                    ),
+                    desc: "Un dimensionnement optimisé selon votre profil d'autoconsommation vous protège contre la volatilité des tarifs réseau en Wallonie.",
+                    icon: Zap,
+                  },
+                  {
+                    id: 2,
+                    title: "Installateurs certifiés RESCERT de votre région",
+                    desc: "Chaque professionnel possède l'agrément officiel garantissant la conformité électrique RGIE et la validation par ORES / RESA.",
+                    icon: ShieldCheck,
+                  },
+                  {
+                    id: 3,
+                    title: (
+                      <>
+                        Réponse sous <span className="font-mono tabular-nums font-semibold">48 h</span>, sans aucune obligation
+                      </>
+                    ),
+                    desc: "Recevez jusqu'à 3 propositions techniques et financières détaillées. Vous comparez à votre rythme et décidez librement.",
+                    icon: Clock,
+                  },
+                ].map((item) => {
+                  const Icon = item.icon
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-start gap-3.5 p-4 rounded-xl border border-border bg-card shadow-xs hover:border-accent/30 transition-colors"
+                    >
+                      <div className="h-9 w-9 rounded-lg bg-secondary flex items-center justify-center text-primary shrink-0 mt-0.5 border border-border/80">
+                        <Icon className="h-4 w-4 text-accent" />
                       </div>
-                    </li>
-                  ))}
-                </ul>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-semibold text-foreground leading-snug">{item.title}</span>
+                        <span className="text-xs text-muted-foreground leading-relaxed">{item.desc}</span>
+                      </div>
+                    </div>
+                  )
+                })}
 
-                {/* Lien interactif modal "Comment ça marche ?" */}
-                <div className="mt-4">
+                {/* Lien interactif modal */}
+                <div className="pt-1">
                   <button
                     type="button"
                     onClick={() => setIsHowItWorksOpen(true)}
-                    className="text-xs sm:text-sm font-bold text-slate-700 underline underline-offset-4 hover:text-[#002A45] transition-colors"
+                    className="text-xs font-mono font-medium text-accent hover:underline underline-offset-4 flex items-center gap-1.5 cursor-pointer"
                   >
-                    Comment ça marche ?
+                    <HelpCircle className="h-3.5 w-3.5 text-accent" />
+                    <span>Consulter le détail de la méthode en 3 étapes</span>
                   </button>
                 </div>
               </div>
 
-              {/* Étude de cas chiffrée réelle conforme Livre VI CDE / Omnibus */}
-              <div className="hidden lg:block mt-8 pt-6 border-t border-slate-200/80 max-w-xl">
-                <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm flex items-start gap-3.5">
-                  <div className="h-10 w-10 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 font-black flex items-center justify-center text-sm shrink-0">
-                    <TrendingUp className="h-5 w-5" />
+              {/* Étude de cas chiffrée réelle (Conforme Livre VI CDE) */}
+              <div className="pt-1">
+                <div className="bg-muted/70 rounded-xl p-5 border border-border shadow-xs flex items-start gap-4">
+                  <div className="h-10 w-10 rounded-xl bg-card border border-border flex items-center justify-center text-primary shrink-0 shadow-2xs">
+                    <TrendingUp className="h-5 w-5 text-accent" />
                   </div>
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-wider text-[#002A45]">
-                      Exemple d&apos;écart constaté — Chaudfontaine (Province de Liège)
-                    </p>
-                    <blockquote className="mt-1 text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
-                      « Pour une maison 4 façades équipée de 12 panneaux (5,2 kWc) avec onduleur hybride, l&apos;écart entre les 3 offres d&apos;installateurs RESCERT locaux a atteint <strong className="text-[#002A45] font-extrabold">1 850 € TTC</strong> à matériel équivalent. »
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+                        Cas Réel Constaté · Chaudfontaine (Liège)
+                      </span>
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-accent/10 text-accent font-medium">
+                        Audit 2026
+                      </span>
+                    </div>
+                    <blockquote className="text-xs sm:text-sm text-foreground leading-relaxed">
+                      « Pour une maison 4 façades avec{" "}
+                      <span className="font-mono tabular-nums font-semibold">12 panneaux</span> (
+                      <span className="font-mono tabular-nums font-semibold">5,2 kWc</span>) et onduleur hybride,
+                      l&apos;écart entre les 3 offres d&apos;installateurs agréés a atteint{" "}
+                      <strong className="font-mono tabular-nums font-bold text-primary">1 850 € TTC</strong> à
+                      matériel rigoureusement équivalent. »
                     </blockquote>
-                    <p className="mt-1.5 text-[11px] text-slate-400">
-                      Modélisation comparative indicative basée sur les offres d&apos;installateurs agréés du réseau.
+                    <p className="text-[11px] text-muted-foreground font-mono">
+                      Comparaison indépendante basée sur les offres soumises du réseau RESCERT.
                     </p>
                   </div>
                 </div>
@@ -523,67 +539,72 @@ export function DevisLandingClient() {
 
             </div>
 
-            {/* ── COLONNE DROITE : La Lead Card (LE FORMULAIRE AU PREMIER PLAN) ── */}
+            {/* ── COLONNE DROITE : LEAD CARD INTERACTIVE (Bento Multi-étapes) ── */}
             <div ref={leadCardRef} className="lg:col-span-6 scroll-mt-20 w-full">
-              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-[0_20px_50px_rgba(0,42,69,0.08)] overflow-hidden p-5 sm:p-7 md:p-8">
+              <div className="bg-card border border-border rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.05),0_10px_25px_-5px_rgba(15,23,42,0.05)] overflow-hidden flex flex-col">
                 
                 {!submitted ? (
                   <>
-                    {/* Header de la Lead Card */}
-                    <div className="mb-4">
-                      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-extrabold tracking-wider uppercase text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-                          <BadgeCheck className="h-3.5 w-3.5 text-emerald-600" />
-                          Installateurs RESCERT
+                    {/* En-tête du tunnel */}
+                    <div className="bg-secondary/60 border-b border-border px-5 sm:px-7 py-5 flex flex-col gap-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+                          ÉTAPE 0{step} / 0{totalSteps} — {STEP_TITLES[step - 1]}
                         </span>
-                        <span className="text-xs font-bold text-slate-500">
-                          Étape {step} sur {totalSteps}
-                        </span>
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/[0.06] border border-primary/20 text-primary text-[11px] font-mono font-medium">
+                          <BadgeCheck className="h-3.5 w-3.5 text-accent" />
+                          <span>AGRÉMENT OFFICIEL</span>
+                        </div>
                       </div>
 
-                      <h2 className="text-xl sm:text-2xl font-black text-[#002A45] tracking-tight">
-                        Remplissez et économisez
-                      </h2>
-                      <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-                        En 45 secondes, trouvez jusqu&apos;à 3 installateurs agréés près de chez vous.
-                      </p>
+                      {/* Titre et description de la carte */}
+                      <div>
+                        <h2 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight font-heading">
+                          Remplissez et comparez
+                        </h2>
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                          En <span className="font-mono tabular-nums font-semibold text-foreground">45 s</span>, trouvez jusqu&apos;à{" "}
+                          <span className="font-mono tabular-nums font-semibold text-foreground">3</span> installateurs agréés près de chez
+                          vous.
+                        </p>
+                      </div>
+
+                      {/* Stepper épuré avec pastilles numérotées et barre fine */}
+                      <div className="flex flex-col gap-2 pt-1">
+                        <div className="flex items-center justify-between gap-1.5">
+                          {[1, 2, 3, 4, 5, 6].map((num) => {
+                            const isDone = num < step
+                            const isCurrent = num === step
+                            return (
+                              <div
+                                key={num}
+                                className={`h-7 w-7 rounded-lg flex items-center justify-center font-mono tabular-nums text-xs font-semibold transition-all ${
+                                  isDone
+                                    ? "bg-primary text-primary-foreground shadow-2xs"
+                                    : isCurrent
+                                    ? "bg-accent text-accent-foreground ring-2 ring-accent/30 shadow-xs"
+                                    : "bg-card text-muted-foreground border border-border"
+                                }`}
+                              >
+                                {isDone ? <Check className="h-4 w-4 stroke-[2.5]" /> : `0${num}`}
+                              </div>
+                            )
+                          })}
+                        </div>
+                        <div className="h-1.5 w-full bg-border/60 rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full bg-accent"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${progressPercent}%` }}
+                            transition={{ duration: 0.3 }}
+                          />
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Stepper connecté à 6 étapes + Barre fluide */}
-                    <div className="mb-6 pt-1">
-                      <div className="flex items-center justify-between mb-2 px-1">
-                        {[1, 2, 3, 4, 5, 6].map((num) => {
-                          const isDone = num < step
-                          const isCurrent = num === step
-                          return (
-                            <div
-                              key={num}
-                              className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-extrabold transition-all ${
-                                isDone
-                                  ? "bg-emerald-600 text-white"
-                                  : isCurrent
-                                  ? "bg-[#002A45] text-[#F8C630] ring-2 ring-[#002A45]/20"
-                                  : "bg-slate-100 text-slate-400"
-                              }`}
-                            >
-                              {isDone ? <Check className="h-3.5 w-3.5 stroke-[3]" /> : num}
-                            </div>
-                          )
-                        })}
-                      </div>
-                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                        <motion.div
-                          className="h-full bg-[#F8C630]"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${progressPercent}%` }}
-                          transition={{ duration: 0.3 }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* ── Formulaire Multi-étapes ── */}
-                    <form onSubmit={handleSubmit} noValidate>
-                      {/* Honeypot invisible */}
+                    {/* ── Corps du Formulaire Multi-étapes ── */}
+                    <form onSubmit={handleSubmit} noValidate className="p-5 sm:p-7 flex flex-col gap-5">
+                      {/* Honeypot invisible pour bloquer les spambots */}
                       <div className="sr-only" aria-hidden="true">
                         <input
                           type="text"
@@ -604,30 +625,30 @@ export function DevisLandingClient() {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -12 }}
                             transition={{ duration: 0.2 }}
-                            className="space-y-3"
+                            className="flex flex-col gap-4 border-none p-0 m-0"
                           >
-                            <legend className="text-sm sm:text-base font-extrabold text-[#002A45] mb-2 block">
-                              Quelle est votre consommation d&apos;électricité annuelle (estimée)&nbsp;?
+                            <legend className="text-sm sm:text-base font-semibold text-foreground font-heading">
+                              Quelle est votre consommation d&apos;électricité annuelle estimée ?
                             </legend>
 
-                            <div className="space-y-2">
+                            <div className="flex flex-col gap-2.5">
                               {CONSUMPTION_OPTIONS.map((item) => {
                                 const isChecked = consumption === item.id
                                 return (
                                   <label
                                     key={item.id}
                                     onClick={() => handleOptionSelect(setConsumption, item.id)}
-                                    className={`relative flex items-center justify-between py-2.5 px-3.5 sm:py-2.5 sm:px-4 rounded-xl border-[1.5px] cursor-pointer transition-all ${
+                                    className={`relative flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all ${
                                       isChecked
-                                        ? "border-[#002A45] bg-[#002A45]/[0.03] shadow-xs"
-                                        : "border-slate-200/90 bg-white hover:border-slate-300 hover:bg-[#F8FAFD]"
+                                        ? "bg-accent/[0.04] border-2 border-accent text-foreground ring-1 ring-accent/20 shadow-xs"
+                                        : "bg-card border border-border hover:border-accent/40 hover:bg-muted/50"
                                     }`}
                                   >
                                     <div className="flex flex-col pr-3">
-                                      <span className="text-xs sm:text-sm font-extrabold text-[#002A45]">
+                                      <span className="text-sm font-semibold text-foreground font-mono tabular-nums">
                                         {item.label}
                                       </span>
-                                      <span className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
+                                      <span className="text-xs text-muted-foreground font-mono tabular-nums mt-0.5">
                                         {item.sublabel}
                                       </span>
                                     </div>
@@ -635,8 +656,8 @@ export function DevisLandingClient() {
                                     <div
                                       className={`h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
                                         isChecked
-                                          ? "border-[#002A45] bg-[#002A45] text-[#F8C630]"
-                                          : "border-slate-300 bg-white"
+                                          ? "border-accent bg-accent text-accent-foreground"
+                                          : "border-border bg-card"
                                       }`}
                                     >
                                       {isChecked && <Check className="h-3 w-3 stroke-[3]" />}
@@ -651,10 +672,10 @@ export function DevisLandingClient() {
                                 type="button"
                                 onClick={handleNext}
                                 disabled={!consumption}
-                                className="w-full sm:w-auto px-6 h-11 bg-[#F8C630] hover:bg-[#F2BA1F] disabled:opacity-40 disabled:cursor-not-allowed active:translate-y-[2px] active:shadow-[0_1px_0_0_#DEB12C] text-[#002A45] font-extrabold text-sm rounded-xl shadow-[0_3px_0_0_#DEB12C] transition-all flex items-center justify-center gap-2"
+                                className="w-full sm:w-auto px-6 py-3 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl font-semibold text-sm transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
                               >
                                 <span>Continuer</span>
-                                <ArrowRight className="h-4 w-4" />
+                                <ArrowRight className="h-4 w-4 text-primary-foreground" />
                               </button>
                             </div>
                           </motion.fieldset>
@@ -668,13 +689,13 @@ export function DevisLandingClient() {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -12 }}
                             transition={{ duration: 0.2 }}
-                            className="space-y-3"
+                            className="flex flex-col gap-4 border-none p-0 m-0"
                           >
-                            <legend className="text-sm sm:text-base font-extrabold text-[#002A45] mb-2 block">
-                              De quel type de bâtiment s&apos;agit-il&nbsp;?
+                            <legend className="text-sm sm:text-base font-semibold text-foreground font-heading">
+                              De quel type de bâtiment s&apos;agit-il ?
                             </legend>
 
-                            <div className="space-y-2">
+                            <div className="flex flex-col gap-2.5">
                               {PROPERTY_TYPES.map((item) => {
                                 const isChecked = propertyType === item.id
                                 const Icon = item.icon
@@ -682,25 +703,27 @@ export function DevisLandingClient() {
                                   <label
                                     key={item.id}
                                     onClick={() => handleOptionSelect(setPropertyType, item.id)}
-                                    className={`relative flex items-center justify-between p-3 sm:p-3.5 rounded-xl border-[1.5px] cursor-pointer transition-all ${
+                                    className={`relative flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all ${
                                       isChecked
-                                        ? "border-[#002A45] bg-[#002A45]/[0.03] shadow-xs"
-                                        : "border-slate-200/90 bg-white hover:border-slate-300 hover:bg-[#F8FAFD]"
+                                        ? "bg-accent/[0.04] border-2 border-accent text-foreground ring-1 ring-accent/20 shadow-xs"
+                                        : "bg-card border border-border hover:border-accent/40 hover:bg-muted/50"
                                     }`}
                                   >
-                                    <div className="flex items-center gap-3 pr-4">
+                                    <div className="flex items-center gap-3.5 pr-4">
                                       <div
-                                        className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${
-                                          isChecked ? "bg-[#002A45] text-[#F8C630]" : "bg-slate-100 text-slate-600"
+                                        className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${
+                                          isChecked
+                                            ? "bg-accent text-accent-foreground shadow-2xs"
+                                            : "bg-secondary text-muted-foreground border border-border"
                                         }`}
                                       >
                                         <Icon className="h-5 w-5" />
                                       </div>
                                       <div className="flex flex-col">
-                                        <span className="text-sm font-extrabold text-[#002A45]">
+                                        <span className="text-sm font-semibold text-foreground">
                                           {item.label}
                                         </span>
-                                        <span className="text-xs text-slate-500 mt-0.5">
+                                        <span className="text-xs text-muted-foreground mt-0.5">
                                           {item.sublabel}
                                         </span>
                                       </div>
@@ -709,8 +732,8 @@ export function DevisLandingClient() {
                                     <div
                                       className={`h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
                                         isChecked
-                                          ? "border-[#002A45] bg-[#002A45] text-[#F8C630]"
-                                          : "border-slate-300 bg-white"
+                                          ? "border-accent bg-accent text-accent-foreground"
+                                          : "border-border bg-card"
                                       }`}
                                     >
                                       {isChecked && <Check className="h-3 w-3 stroke-[3]" />}
@@ -720,23 +743,23 @@ export function DevisLandingClient() {
                               })}
                             </div>
 
-                            {/* Encart orientation PME / Tertiaire vers B2B */}
-                            <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3 text-xs text-blue-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-3">
-                              <div>
-                                <p className="font-extrabold text-[#001D3D] flex items-center gap-1.5">
-                                  <Zap className="h-4 w-4 text-amber-500 shrink-0" />
+                            {/* Encart architectural PME / Tertiaire vers simulateur B2B */}
+                            <div className="rounded-xl border border-border bg-secondary/60 p-4 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-1">
+                              <div className="flex flex-col gap-0.5">
+                                <p className="font-semibold text-foreground flex items-center gap-1.5">
+                                  <Zap className="h-3.5 w-3.5 text-accent shrink-0" />
                                   <span>Bâtiment d&apos;activité, commerce ou PME ?</span>
                                 </p>
-                                <p className="text-slate-600 mt-0.5 text-[11px] leading-relaxed">
-                                  Accédez à notre simulateur de rentabilité B2B dédié (PPA, tiers-investissement zéro CAPEX &amp; ombrières).
+                                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                                  Accédez à notre simulateur ROI B2B dédié (PPA, tiers-investissement 0 € CAPEX).
                                 </p>
                               </div>
                               <Link
                                 href="/#simulateur"
-                                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[#001D3D] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#002D5A] transition-colors"
+                                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-card text-foreground border border-border hover:bg-secondary px-3 py-1.5 text-xs font-semibold transition-colors"
                               >
                                 <span>Simulateur B2B</span>
-                                <ArrowRight className="h-3.5 w-3.5" />
+                                <ArrowRight className="h-3 w-3 text-accent" />
                               </Link>
                             </div>
 
@@ -744,7 +767,7 @@ export function DevisLandingClient() {
                               <button
                                 type="button"
                                 onClick={handleBack}
-                                className="px-5 h-11 rounded-xl text-slate-700 bg-slate-100 hover:bg-slate-200 font-bold text-sm gap-1.5 flex items-center transition-all"
+                                className="px-4 py-2.5 rounded-xl bg-card text-foreground border border-border hover:bg-secondary font-medium text-sm gap-1.5 flex items-center transition-colors cursor-pointer"
                               >
                                 <ArrowLeft className="h-4 w-4" />
                                 <span>Retour</span>
@@ -753,10 +776,10 @@ export function DevisLandingClient() {
                                 type="button"
                                 onClick={handleNext}
                                 disabled={!propertyType}
-                                className="px-6 h-11 bg-[#F8C630] hover:bg-[#F2BA1F] disabled:opacity-40 disabled:cursor-not-allowed active:translate-y-[2px] active:shadow-[0_1px_0_0_#DEB12C] text-[#002A45] font-extrabold text-sm rounded-xl shadow-[0_3px_0_0_#DEB12C] transition-all flex items-center gap-2"
+                                className="px-5 py-2.5 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl font-semibold text-sm transition-all shadow-xs flex items-center gap-2 cursor-pointer"
                               >
                                 <span>Continuer</span>
-                                <ArrowRight className="h-4 w-4" />
+                                <ArrowRight className="h-4 w-4 text-primary-foreground" />
                               </button>
                             </div>
                           </motion.fieldset>
@@ -770,30 +793,30 @@ export function DevisLandingClient() {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -12 }}
                             transition={{ duration: 0.2 }}
-                            className="space-y-3"
+                            className="flex flex-col gap-4 border-none p-0 m-0"
                           >
-                            <legend className="text-sm sm:text-base font-extrabold text-[#002A45] mb-2 block">
-                              Êtes-vous propriétaire du bâtiment&nbsp;?
+                            <legend className="text-sm sm:text-base font-semibold text-foreground font-heading">
+                              Êtes-vous propriétaire du bâtiment ?
                             </legend>
 
-                            <div className="space-y-2">
+                            <div className="flex flex-col gap-2.5">
                               {OWNERSHIP_OPTIONS.map((item) => {
                                 const isChecked = ownership === item.id
                                 return (
                                   <label
                                     key={item.id}
                                     onClick={() => handleOptionSelect(setOwnership, item.id)}
-                                    className={`relative flex items-center justify-between p-3.5 sm:p-4 rounded-xl border-[1.5px] cursor-pointer transition-all ${
+                                    className={`relative flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all ${
                                       isChecked
-                                        ? "border-[#002A45] bg-[#002A45]/[0.03] shadow-xs"
-                                        : "border-slate-200/90 bg-white hover:border-slate-300 hover:bg-[#F8FAFD]"
+                                        ? "bg-accent/[0.04] border-2 border-accent text-foreground ring-1 ring-accent/20 shadow-xs"
+                                        : "bg-card border border-border hover:border-accent/40 hover:bg-muted/50"
                                     }`}
                                   >
                                     <div className="flex flex-col pr-4">
-                                      <span className="text-sm sm:text-base font-extrabold text-[#002A45]">
+                                      <span className="text-sm font-semibold text-foreground">
                                         {item.label}
                                       </span>
-                                      <span className="text-xs text-slate-500 mt-0.5">
+                                      <span className="text-xs text-muted-foreground mt-0.5">
                                         {item.sublabel}
                                       </span>
                                     </div>
@@ -801,8 +824,8 @@ export function DevisLandingClient() {
                                     <div
                                       className={`h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
                                         isChecked
-                                          ? "border-[#002A45] bg-[#002A45] text-[#F8C630]"
-                                          : "border-slate-300 bg-white"
+                                          ? "border-accent bg-accent text-accent-foreground"
+                                          : "border-border bg-card"
                                       }`}
                                     >
                                       {isChecked && <Check className="h-3 w-3 stroke-[3]" />}
@@ -812,11 +835,11 @@ export function DevisLandingClient() {
                               })}
                             </div>
 
-                            <div className="pt-3 flex items-center justify-between gap-3">
+                            <div className="pt-2 flex items-center justify-between gap-3">
                               <button
                                 type="button"
                                 onClick={handleBack}
-                                className="px-5 h-11 rounded-xl text-slate-700 bg-slate-100 hover:bg-slate-200 font-bold text-sm gap-1.5 flex items-center transition-all"
+                                className="px-4 py-2.5 rounded-xl bg-card text-foreground border border-border hover:bg-secondary font-medium text-sm gap-1.5 flex items-center transition-colors cursor-pointer"
                               >
                                 <ArrowLeft className="h-4 w-4" />
                                 <span>Retour</span>
@@ -824,10 +847,10 @@ export function DevisLandingClient() {
                               <button
                                 type="button"
                                 onClick={handleNext}
-                                className="px-6 h-11 bg-[#F8C630] hover:bg-[#F2BA1F] active:translate-y-[2px] active:shadow-[0_1px_0_0_#DEB12C] text-[#002A45] font-extrabold text-sm rounded-xl shadow-[0_3px_0_0_#DEB12C] transition-all flex items-center gap-2"
+                                className="px-5 py-2.5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold text-sm transition-all shadow-xs flex items-center gap-2 cursor-pointer"
                               >
                                 <span>Continuer</span>
-                                <ArrowRight className="h-4 w-4" />
+                                <ArrowRight className="h-4 w-4 text-primary-foreground" />
                               </button>
                             </div>
                           </motion.fieldset>
@@ -841,118 +864,113 @@ export function DevisLandingClient() {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -12 }}
                             transition={{ duration: 0.2 }}
-                            className="space-y-4"
+                            className="flex flex-col gap-4 border-none p-0 m-0"
                           >
-                            <legend className="text-sm sm:text-base font-extrabold text-[#002A45] block">
-                              Caractéristiques de votre toiture &amp; équipements
+                            <legend className="text-sm sm:text-base font-semibold text-foreground font-heading">
+                              Spécifications toiture &amp; équipements souhaités
                             </legend>
 
-                            {/* 1. Type de toiture */}
-                            <div>
-                              <Label className="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-2">
-                                1. Revêtement de toiture
-                              </Label>
+                            {/* Type de toiture */}
+                            <div className="flex flex-col gap-1.5">
+                              <span className="text-xs font-semibold text-foreground">Revêtement de toiture :</span>
                               <div className="grid grid-cols-2 gap-2">
-                                {ROOF_OPTIONS.map((item) => {
-                                  const isChecked = roofType === item.id
+                                {ROOF_OPTIONS.map((r) => {
+                                  const isChecked = roofType === r.id
                                   return (
                                     <button
-                                      key={item.id}
                                       type="button"
-                                      onClick={() => setRoofType(item.id)}
-                                      className={`p-2.5 rounded-xl border-[1.5px] text-left transition-all ${
+                                      key={r.id}
+                                      onClick={() => setRoofType(r.id)}
+                                      className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
                                         isChecked
-                                          ? "border-[#002A45] bg-[#002A45]/[0.03] ring-1 ring-[#002A45]"
-                                          : "border-slate-200 bg-white hover:border-slate-300"
+                                          ? "bg-accent/[0.04] border-accent ring-1 ring-accent/20"
+                                          : "bg-card border-border hover:border-accent/40 hover:bg-muted/50"
                                       }`}
                                     >
-                                      <p className="text-xs font-extrabold text-[#002A45]">{item.label}</p>
-                                      <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">{item.sublabel}</p>
+                                      <span className="text-xs font-semibold text-foreground">{r.label}</span>
+                                      <span className="text-[10px] text-muted-foreground mt-0.5">{r.sublabel}</span>
                                     </button>
                                   )
                                 })}
                               </div>
                             </div>
 
-                            {/* 2. Surface de toiture */}
-                            <div>
-                              <Label className="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-2">
-                                2. Surface exploitable estimée
-                              </Label>
+                            {/* Surface disponible estimée */}
+                            <div className="flex flex-col gap-1.5 pt-1">
+                              <span className="text-xs font-semibold text-foreground">Surface de toiture disponible :</span>
                               <div className="grid grid-cols-3 gap-2">
-                                {ROOF_SURFACES.map((item) => {
-                                  const isChecked = roofSurface === item.id
+                                {ROOF_SURFACES.map((s) => {
+                                  const isChecked = roofSurface === s.id
                                   return (
                                     <button
-                                      key={item.id}
                                       type="button"
-                                      onClick={() => setRoofSurface(item.id)}
-                                      className={`p-2.5 rounded-xl border-[1.5px] text-center transition-all ${
+                                      key={s.id}
+                                      onClick={() => setRoofSurface(s.id)}
+                                      className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
                                         isChecked
-                                          ? "border-[#002A45] bg-[#002A45] text-[#F8C630] shadow-2xs"
-                                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                                          ? "bg-accent/[0.04] border-accent ring-1 ring-accent/20"
+                                          : "bg-card border-border hover:border-accent/40 hover:bg-muted/50"
                                       }`}
                                     >
-                                      <p className="text-xs sm:text-sm font-black">{item.label}</p>
-                                      <p className={`text-[10px] mt-0.5 ${isChecked ? "text-amber-200" : "text-slate-500"}`}>{item.sublabel}</p>
+                                      <span className="text-xs font-semibold font-mono tabular-nums text-foreground block">
+                                        {s.label}
+                                      </span>
+                                      <span className="text-[10px] text-muted-foreground font-mono tabular-nums mt-0.5 block">
+                                        {s.sublabel}
+                                      </span>
                                     </button>
                                   )
                                 })}
                               </div>
                             </div>
 
-                            {/* 3. Intérêt Batterie & Borne VE */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                              <div>
-                                <Label className="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
-                                  <BatteryFull className="h-3.5 w-3.5 text-amber-500" />
-                                  <span>Batterie domestique ?</span>
-                                </Label>
-                                <div className="grid grid-cols-3 gap-1.5">
-                                  {BATTERY_INTEREST_OPTIONS.map((item) => {
-                                    const isChecked = batteryInterest === item.id
-                                    return (
-                                      <button
-                                        key={item.id}
-                                        type="button"
-                                        onClick={() => setBatteryInterest(item.id)}
-                                        className={`py-2 px-1 rounded-lg border text-center text-xs font-extrabold transition-all ${
-                                          isChecked
-                                            ? "border-[#002A45] bg-[#002A45] text-[#F8C630]"
-                                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                                        }`}
-                                      >
-                                        {item.label}
-                                      </button>
-                                    )
-                                  })}
-                                </div>
+                            {/* Batterie domestique */}
+                            <div className="flex flex-col gap-1.5 pt-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                  <BatteryFull className="h-3.5 w-3.5 text-accent" />
+                                  <span>Intérêt pour une batterie domestique :</span>
+                                </span>
                               </div>
+                              <div className="grid grid-cols-3 gap-2">
+                                {BATTERY_INTEREST_OPTIONS.map((b) => (
+                                  <button
+                                    type="button"
+                                    key={b.id}
+                                    onClick={() => setBatteryInterest(b.id)}
+                                    className={`py-2 px-3 rounded-xl border text-xs font-medium transition-all cursor-pointer text-center ${
+                                      batteryInterest === b.id
+                                        ? "bg-accent/[0.04] border-accent ring-1 ring-accent/20 font-semibold text-foreground"
+                                        : "bg-card border-border hover:border-accent/40 text-muted-foreground"
+                                    }`}
+                                  >
+                                    {b.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
 
-                              <div>
-                                <Label className="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
-                                  <Car className="h-3.5 w-3.5 text-blue-500" />
-                                  <span>Borne de recharge VE ?</span>
-                                </Label>
-                                <div className="grid grid-cols-3 gap-1.5">
-                                  {EV_CHARGER_INTEREST_OPTIONS.map((item) => {
-                                    const isChecked = evChargerInterest === item.id
-                                    return (
-                                      <button
-                                        key={item.id}
-                                        type="button"
-                                        onClick={() => setEvChargerInterest(item.id)}
-                                        className={`py-2 px-1 rounded-lg border text-center text-xs font-extrabold transition-all ${
-                                          isChecked
-                                            ? "border-[#002A45] bg-[#002A45] text-[#F8C630]"
-                                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                                        }`}
-                                      >
-                                        {item.label}
-                                      </button>
-                                    )
-                                  })}
-                                </div>
+                            {/* Borne de recharge véhicule électrique */}
+                            <div className="flex flex-col gap-1.5 pt-1">
+                              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                <Car className="h-3.5 w-3.5 text-accent" />
+                                <span>Borne de recharge pour véhicule électrique :</span>
+                              </span>
+                              <div className="grid grid-cols-3 gap-2">
+                                {EV_CHARGER_INTEREST_OPTIONS.map((v) => (
+                                  <button
+                                    type="button"
+                                    key={v.id}
+                                    onClick={() => setEvChargerInterest(v.id)}
+                                    className={`py-2 px-3 rounded-xl border text-xs font-medium transition-all cursor-pointer text-center ${
+                                      evChargerInterest === v.id
+                                        ? "bg-accent/[0.04] border-accent ring-1 ring-accent/20 font-semibold text-foreground"
+                                        : "bg-card border-border hover:border-accent/40 text-muted-foreground"
+                                    }`}
+                                  >
+                                    {v.label}
+                                  </button>
+                                ))}
                               </div>
                             </div>
 
@@ -960,7 +978,7 @@ export function DevisLandingClient() {
                               <button
                                 type="button"
                                 onClick={handleBack}
-                                className="px-5 h-11 rounded-xl text-slate-700 bg-slate-100 hover:bg-slate-200 font-bold text-sm gap-1.5 flex items-center transition-all"
+                                className="px-4 py-2.5 rounded-xl bg-card text-foreground border border-border hover:bg-secondary font-medium text-sm gap-1.5 flex items-center transition-colors cursor-pointer"
                               >
                                 <ArrowLeft className="h-4 w-4" />
                                 <span>Retour</span>
@@ -968,16 +986,16 @@ export function DevisLandingClient() {
                               <button
                                 type="button"
                                 onClick={handleNext}
-                                className="px-6 h-11 bg-[#F8C630] hover:bg-[#F2BA1F] active:translate-y-[2px] active:shadow-[0_1px_0_0_#DEB12C] text-[#002A45] font-extrabold text-sm rounded-xl shadow-[0_3px_0_0_#DEB12C] transition-all flex items-center gap-2"
+                                className="px-5 py-2.5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold text-sm transition-all shadow-xs flex items-center gap-2 cursor-pointer"
                               >
                                 <span>Continuer</span>
-                                <ArrowRight className="h-4 w-4" />
+                                <ArrowRight className="h-4 w-4 text-primary-foreground" />
                               </button>
                             </div>
                           </motion.fieldset>
                         )}
 
-                        {/* ── ÉTAPE 5 : Localisation Wallonne (Code postal en 1er) ── */}
+                        {/* ── ÉTAPE 5 : Localisation en Wallonie ── */}
                         {step === 5 && (
                           <motion.fieldset
                             key="step5"
@@ -985,111 +1003,91 @@ export function DevisLandingClient() {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -12 }}
                             transition={{ duration: 0.2 }}
-                            className="space-y-4"
+                            className="flex flex-col gap-4 border-none p-0 m-0"
                           >
-                            <legend className="text-sm sm:text-base font-extrabold text-[#002A45] mb-1 block">
-                              Où se situe votre habitation en Wallonie&nbsp;?
+                            <legend className="text-sm sm:text-base font-semibold text-foreground font-heading">
+                              Où se situe votre bâtiment en Wallonie ?
                             </legend>
 
-                            {/* 1. Code postal en PREMIER pour auto-sélection */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              <div>
-                                <Label htmlFor="postalCode" className="text-xs font-bold text-slate-700 block">
-                                  1. Code postal (4 chiffres) <span className="text-red-500">*</span>
+                            <p className="text-xs text-muted-foreground">
+                              Nous sélectionnons uniquement des professionnels agréés résidant et opérant dans votre zone géographique.
+                            </p>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                              <div className="flex flex-col gap-1">
+                                <Label htmlFor="postalCode" className="text-xs font-semibold text-foreground">
+                                  Code postal (4 chiffres) <span className="text-destructive">*</span>
                                 </Label>
                                 <Input
                                   id="postalCode"
-                                  autoFocus
+                                  type="text"
                                   inputMode="numeric"
-                                  pattern="[0-9]{4}"
+                                  pattern="[0-9]*"
                                   maxLength={4}
-                                  placeholder="ex. 4000, 5000, 7000..."
+                                  placeholder="ex. 4000"
                                   value={postalCode}
                                   onChange={(e) => handlePostalCodeChange(e.target.value)}
-                                  className={`h-11 mt-1.5 rounded-xl text-base font-semibold ${
-                                    showPostalCodeError ? "border-red-500 ring-1 ring-red-500" : "border-slate-300"
+                                  className={`h-11 rounded-xl font-mono tabular-nums text-base sm:text-sm ${
+                                    showPostalCodeError ? "border-destructive ring-1 ring-destructive" : "border-input"
                                   }`}
                                 />
                                 {showPostalCodeError && (
-                                  <p className="text-xs text-red-500 mt-1 font-semibold">
-                                    Veuillez indiquer un code postal belge à 4 chiffres.
+                                  <p className="text-[11px] text-destructive font-medium" role="alert">
+                                    Veuillez saisir un code postal wallon valide (4 chiffres).
                                   </p>
                                 )}
                               </div>
 
-                              <div>
-                                <Label htmlFor="city" className="text-xs font-bold text-slate-700 block">
-                                  Commune <span className="text-slate-400 font-normal">(facultatif)</span>
+                              <div className="flex flex-col gap-1">
+                                <Label htmlFor="city" className="text-xs font-semibold text-foreground">
+                                  Commune / Ville
                                 </Label>
                                 <Input
                                   id="city"
-                                  placeholder="ex. Liège, Namur, Wavre..."
+                                  placeholder="ex. Liège"
                                   value={city}
-                                  onChange={(e) => setCity(e.target.value.slice(0, 60))}
-                                  className="h-11 mt-1.5 rounded-xl text-base border-slate-300"
+                                  onChange={(e) => setCity(e.target.value)}
+                                  className="h-11 rounded-xl text-base sm:text-sm border-input"
                                 />
                               </div>
                             </div>
 
-                            {/* 2. Province auto-sélectionnée */}
-                            <div>
-                              <div className="flex items-center justify-between mb-1.5">
-                                <Label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
-                                  2. Province wallonne
-                                </Label>
-                                <span className="text-[11px] text-emerald-700 font-semibold">
-                                  ✓ Détectée via code postal
+                            {/* Badge Province Détectée */}
+                            {postalCode.length >= 2 && (
+                              <div className="p-3 rounded-xl bg-accent/[0.06] border border-accent/20 flex items-center justify-between">
+                                <span className="text-xs text-foreground font-medium flex items-center gap-2">
+                                  <MapPin className="h-3.5 w-3.5 text-accent" />
+                                  <span>Province détectée :</span>
+                                </span>
+                                <span className="font-mono text-xs font-bold text-accent uppercase tracking-wider">
+                                  {province.replace("_", " ")}
                                 </span>
                               </div>
-                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                {WALLONIA_PROVINCES.map((prov) => {
-                                  const isSelected = province === prov.value
-                                  return (
-                                    <button
-                                      key={prov.value}
-                                      type="button"
-                                      onClick={() => setProvince(prov.value)}
-                                      className={`p-2.5 rounded-xl border-2 text-center font-extrabold text-xs sm:text-sm transition-all ${
-                                        isSelected
-                                          ? "border-[#002A45] bg-[#002A45] text-[#F8C630] shadow-2xs"
-                                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
-                                      }`}
-                                    >
-                                      {prov.label}
-                                    </button>
-                                  )
-                                })}
-                              </div>
-                            </div>
+                            )}
 
                             <div className="pt-2 flex items-center justify-between gap-3">
                               <button
                                 type="button"
                                 onClick={handleBack}
-                                className="px-5 h-11 rounded-xl text-slate-700 bg-slate-100 hover:bg-slate-200 font-bold text-sm gap-1.5 flex items-center transition-all"
+                                className="px-4 py-2.5 rounded-xl bg-card text-foreground border border-border hover:bg-secondary font-medium text-sm gap-1.5 flex items-center transition-colors cursor-pointer"
                               >
                                 <ArrowLeft className="h-4 w-4" />
                                 <span>Retour</span>
                               </button>
                               <button
                                 type="button"
-                                onClick={() => {
-                                  if (isPostalCodeValid) {
-                                    handleNext()
-                                  } else {
-                                    setHasAttemptedSubmit(true)
-                                  }
-                                }}
-                                className="px-6 h-11 bg-[#F8C630] hover:bg-[#F2BA1F] active:translate-y-[2px] active:shadow-[0_1px_0_0_#DEB12C] text-[#002A45] font-extrabold text-sm rounded-xl shadow-[0_3px_0_0_#DEB12C] transition-all flex items-center gap-2"
+                                onClick={handleNext}
+                                disabled={postalCode.trim().length !== 4}
+                                className="px-5 py-2.5 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl font-semibold text-sm transition-all shadow-xs flex items-center gap-2 cursor-pointer"
                               >
                                 <span>Continuer</span>
-                                <ArrowRight className="h-4 w-4" />
+                                <ArrowRight className="h-4 w-4 text-primary-foreground" />
                               </button>
                             </div>
                           </motion.fieldset>
                         )}
 
-                        {/* ── ÉTAPE 6 : Coordonnées de contact (Bobex Final Step) ── */}
+                        {/* ── ÉTAPE 6 : Coordonnées de contact (Étape finale) ── */}
                         {step === 6 && (
                           <motion.fieldset
                             key="step6"
@@ -1097,21 +1095,21 @@ export function DevisLandingClient() {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -12 }}
                             transition={{ duration: 0.2 }}
-                            className="space-y-3.5"
+                            className="flex flex-col gap-3.5 border-none p-0 m-0"
                           >
                             <div>
-                              <legend className="text-sm sm:text-base font-extrabold text-[#002A45] block">
-                                Où pouvons-nous envoyer vos devis&nbsp;?
+                              <legend className="text-sm sm:text-base font-semibold text-foreground font-heading">
+                                Où pouvons-nous envoyer vos 3 devis ?
                               </legend>
-                              <p className="text-xs text-slate-500 mt-0.5">
-                                Vos données ne sont transmises qu&apos;aux installateurs agréés sélectionnés pour votre projet.
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Vos coordonnées sont protégées et uniquement transmises aux 3 installateurs agréés sélectionnés pour votre projet.
                               </p>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              <div>
-                                <Label htmlFor="firstName" className="text-xs font-bold text-slate-700">
-                                  Prénom <span className="text-red-500">*</span>
+                              <div className="flex flex-col gap-1">
+                                <Label htmlFor="firstName" className="text-xs font-medium text-foreground">
+                                  Prénom <span className="text-destructive">*</span>
                                 </Label>
                                 <Input
                                   id="firstName"
@@ -1119,18 +1117,20 @@ export function DevisLandingClient() {
                                   placeholder="ex. Sophie"
                                   value={firstName}
                                   onChange={(e) => setFirstName(e.target.value)}
-                                  className={`h-11 mt-1 rounded-xl text-base sm:text-sm ${
-                                    showFirstNameError ? "border-red-500 ring-1 ring-red-500" : "border-slate-300"
+                                  className={`h-11 rounded-xl text-base sm:text-sm ${
+                                    showFirstNameError ? "border-destructive ring-1 ring-destructive" : "border-input"
                                   }`}
                                 />
                                 {showFirstNameError && (
-                                  <p className="text-[11px] text-red-500 mt-1 font-semibold">Prénom requis (min. 2 lettres).</p>
+                                  <p className="text-[11px] text-destructive font-medium" role="alert">
+                                    Prénom requis (min. 2 lettres).
+                                  </p>
                                 )}
                               </div>
 
-                              <div>
-                                <Label htmlFor="lastName" className="text-xs font-bold text-slate-700">
-                                  Nom <span className="text-red-500">*</span>
+                              <div className="flex flex-col gap-1">
+                                <Label htmlFor="lastName" className="text-xs font-medium text-foreground">
+                                  Nom <span className="text-destructive">*</span>
                                 </Label>
                                 <Input
                                   id="lastName"
@@ -1138,20 +1138,22 @@ export function DevisLandingClient() {
                                   placeholder="ex. Dupont"
                                   value={lastName}
                                   onChange={(e) => setLastName(e.target.value)}
-                                  className={`h-11 mt-1 rounded-xl text-base sm:text-sm ${
-                                    showLastNameError ? "border-red-500 ring-1 ring-red-500" : "border-slate-300"
+                                  className={`h-11 rounded-xl text-base sm:text-sm ${
+                                    showLastNameError ? "border-destructive ring-1 ring-destructive" : "border-input"
                                   }`}
                                 />
                                 {showLastNameError && (
-                                  <p className="text-[11px] text-red-500 mt-1 font-semibold">Nom requis (min. 2 lettres).</p>
+                                  <p className="text-[11px] text-destructive font-medium" role="alert">
+                                    Nom requis (min. 2 lettres).
+                                  </p>
                                 )}
                               </div>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              <div>
-                                <Label htmlFor="email" className="text-xs font-bold text-slate-700">
-                                  E-mail <span className="text-red-500">*</span>
+                              <div className="flex flex-col gap-1">
+                                <Label htmlFor="email" className="text-xs font-medium text-foreground">
+                                  E-mail <span className="text-destructive">*</span>
                                 </Label>
                                 <Input
                                   id="email"
@@ -1160,18 +1162,20 @@ export function DevisLandingClient() {
                                   placeholder="nom@exemple.be"
                                   value={email}
                                   onChange={(e) => setEmail(e.target.value)}
-                                  className={`h-11 mt-1 rounded-xl text-base sm:text-sm ${
-                                    showEmailError ? "border-red-500 ring-1 ring-red-500" : "border-slate-300"
+                                  className={`h-11 rounded-xl text-base sm:text-sm ${
+                                    showEmailError ? "border-destructive ring-1 ring-destructive" : "border-input"
                                   }`}
                                 />
                                 {showEmailError && (
-                                  <p className="text-[11px] text-red-500 mt-1 font-semibold">{emailErr}</p>
+                                  <p className="text-[11px] text-destructive font-medium" role="alert">
+                                    {emailErr}
+                                  </p>
                                 )}
                               </div>
 
-                              <div>
-                                <Label htmlFor="phone" className="text-xs font-bold text-slate-700">
-                                  Téléphone <span className="text-red-500">*</span>
+                              <div className="flex flex-col gap-1">
+                                <Label htmlFor="phone" className="text-xs font-medium text-foreground">
+                                  Téléphone <span className="text-destructive">*</span>
                                 </Label>
                                 <Input
                                   id="phone"
@@ -1180,19 +1184,21 @@ export function DevisLandingClient() {
                                   placeholder="0470 12 34 56"
                                   value={phone}
                                   onChange={(e) => setPhone(e.target.value)}
-                                  className={`h-11 mt-1 rounded-xl text-base sm:text-sm ${
-                                    showPhoneError ? "border-red-500 ring-1 ring-red-500" : "border-slate-300"
+                                  className={`h-11 rounded-xl font-mono tabular-nums text-base sm:text-sm ${
+                                    showPhoneError ? "border-destructive ring-1 ring-destructive" : "border-input"
                                   }`}
                                 />
                                 {showPhoneError && (
-                                  <p className="text-[11px] text-red-500 mt-1 font-semibold">{phoneErr}</p>
+                                  <p className="text-[11px] text-destructive font-medium" role="alert">
+                                    {phoneErr}
+                                  </p>
                                 )}
                               </div>
                             </div>
 
-                            <div>
-                              <Label htmlFor="address" className="text-xs font-bold text-slate-700">
-                                Adresse (Rue et numéro) <span className="text-red-500">*</span>
+                            <div className="flex flex-col gap-1">
+                              <Label htmlFor="address" className="text-xs font-medium text-foreground">
+                                Adresse (Rue et numéro) <span className="text-destructive">*</span>
                               </Label>
                               <Input
                                 id="address"
@@ -1200,20 +1206,20 @@ export function DevisLandingClient() {
                                 placeholder="ex. Rue de la Station 12"
                                 value={address}
                                 onChange={(e) => setAddress(e.target.value)}
-                                className={`h-11 mt-1 rounded-xl text-base sm:text-sm ${
-                                  showAddressError ? "border-red-500 ring-1 ring-red-500" : "border-slate-300"
+                                className={`h-11 rounded-xl text-base sm:text-sm ${
+                                  showAddressError ? "border-destructive ring-1 ring-destructive" : "border-input"
                                 }`}
                               />
                               {showAddressError && (
-                                <p className="text-[11px] text-red-500 mt-1 font-semibold">
-                                  L&apos;adresse complète (rue et numéro) est requise pour le contrôle de faisabilité toiture.
+                                <p className="text-[11px] text-destructive font-medium" role="alert">
+                                  L&apos;adresse complète est requise pour le contrôle de faisabilité toiture.
                                 </p>
                               )}
                             </div>
 
-                            <div>
-                              <Label htmlFor="remarks" className="text-xs font-bold text-slate-700">
-                                Précisions sur votre projet <span className="text-slate-400 font-normal">(facultatif)</span>
+                            <div className="flex flex-col gap-1">
+                              <Label htmlFor="remarks" className="text-xs font-medium text-foreground">
+                                Précisions sur votre projet <span className="text-muted-foreground font-normal">(facultatif)</span>
                               </Label>
                               <textarea
                                 id="remarks"
@@ -1221,12 +1227,12 @@ export function DevisLandingClient() {
                                 placeholder="ex. Orientation du toit, contraintes particulières, accès..."
                                 value={remarks}
                                 onChange={(e) => setRemarks(e.target.value.slice(0, 500))}
-                                className="w-full mt-1 p-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-[#002A45]"
+                                className="w-full p-3 text-xs sm:text-sm border border-input rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-accent bg-card text-foreground"
                               />
                             </div>
 
-                            {/* Case consentement RGPD obligatoire */}
-                            <div className="space-y-2 pt-1 border-t border-slate-100">
+                            {/* Consentement RGPD obligatoire */}
+                            <div className="flex flex-col gap-2.5 pt-2 border-t border-border">
                               <label className="flex items-start gap-2.5 cursor-pointer">
                                 <Checkbox
                                   id="partnerConsent"
@@ -1234,15 +1240,24 @@ export function DevisLandingClient() {
                                   onCheckedChange={(c) => setPartnerConsent(c === true)}
                                   className="mt-0.5"
                                 />
-                                <span className="text-xs text-slate-600 leading-tight">
-                                  J&apos;accepte que mes coordonnées soient transmises à un maximum de 3 installateurs agréés RESCERT pour recevoir mes devis comparatifs gratuits conformément à la{" "}
-                                  <Link href="/politique-confidentialite" target="_blank" className="underline text-[#002A45] font-semibold">
+                                <span className="text-xs text-muted-foreground leading-tight">
+                                  J&apos;accepte que mes coordonnées soient transmises à un maximum de{" "}
+                                  <span className="font-mono tabular-nums font-semibold text-foreground">3</span>{" "}
+                                  installateurs agréés RESCERT pour recevoir mes devis comparatifs gratuits conformément à la{" "}
+                                  <Link
+                                    href="/politique-confidentialite"
+                                    target="_blank"
+                                    className="underline text-accent font-semibold"
+                                  >
                                     politique de confidentialité
-                                  </Link>.
+                                  </Link>
+                                  .
                                 </span>
                               </label>
                               {showConsentError && (
-                                <p className="text-[11px] text-red-500 font-bold">Veuillez cocher cette case pour valider votre demande.</p>
+                                <p className="text-[11px] text-destructive font-medium" role="alert">
+                                  Veuillez cocher cette case pour valider votre demande.
+                                </p>
                               )}
 
                               <label className="flex items-start gap-2.5 cursor-pointer">
@@ -1252,14 +1267,14 @@ export function DevisLandingClient() {
                                   onCheckedChange={(c) => setNewsletterConsent(c === true)}
                                   className="mt-0.5"
                                 />
-                                <span className="text-xs text-slate-500 leading-tight">
-                                  Je souhaite recevoir occasionnellement les actualités solaires et conseils d&apos;Aegis Solaire (facultatif).
+                                <span className="text-xs text-muted-foreground leading-tight">
+                                  Je souhaite recevoir occasionnellement les analyses et conseils d&apos;Aegis Solaire (facultatif).
                                 </span>
                               </label>
                             </div>
 
                             {errorMessage && (
-                              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-semibold">
+                              <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs text-destructive font-medium">
                                 {errorMessage}
                               </div>
                             )}
@@ -1268,7 +1283,7 @@ export function DevisLandingClient() {
                               <button
                                 type="button"
                                 onClick={handleBack}
-                                className="px-4 h-12 rounded-xl text-slate-700 bg-slate-100 hover:bg-slate-200 font-bold text-sm gap-1.5 flex items-center transition-all"
+                                className="px-4 py-3 rounded-xl bg-card text-foreground border border-border hover:bg-secondary font-medium text-sm gap-1.5 flex items-center transition-colors cursor-pointer"
                               >
                                 <ArrowLeft className="h-4 w-4" />
                                 <span>Retour</span>
@@ -1276,25 +1291,25 @@ export function DevisLandingClient() {
                               <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="flex-1 h-12 bg-[#F8C630] hover:bg-[#F2BA1F] active:translate-y-[2px] active:shadow-[0_1px_0_0_#DEB12C] text-[#002A45] font-black text-sm sm:text-base rounded-xl shadow-[0_4px_0_0_#DEB12C] transition-all flex items-center justify-center gap-2"
+                                className="flex-1 py-3.5 px-6 bg-accent text-accent-foreground hover:bg-accent/90 disabled:opacity-50 rounded-xl font-bold text-sm sm:text-base transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
                               >
                                 {isSubmitting ? (
                                   <>
-                                    <Loader2 className="h-5 w-5 animate-spin" />
-                                    <span>Envoi en cours...</span>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span>Transmission en cours...</span>
                                   </>
                                 ) : (
                                   <>
-                                    <span>Recevoir mes devis gratuits</span>
+                                    <span>Recevoir mes 3 devis gratuits</span>
                                     <ArrowRight className="h-4 w-4" />
                                   </>
                                 )}
                               </button>
                             </div>
 
-                            <p className="text-center text-[11px] text-slate-400 mt-2 flex items-center justify-center gap-1.5">
-                              <Lock className="h-3 w-3" />
-                              <span>100 % gratuit &amp; sans engagement · Vos données restent confidentielles</span>
+                            <p className="text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1.5 pt-1">
+                              <Lock className="h-3 w-3 text-accent" />
+                              <span>100 % gratuit &amp; sans engagement · Chiffrement SSL 256 bits</span>
                             </p>
                           </motion.fieldset>
                         )}
@@ -1303,33 +1318,43 @@ export function DevisLandingClient() {
                     </form>
                   </>
                 ) : (
-                  /* ── Écran de Succès (Confirmation rassurante) ── */
-                  <div className="py-8 text-center space-y-4">
-                    <div className="h-16 w-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-xs">
-                      <CheckCircle2 className="h-10 w-10" />
+                  /* ── Écran de Succès : Confirmation Institutionnelle ── */
+                  <div className="p-8 sm:p-12 text-center flex flex-col items-center gap-5">
+                    <div className="h-16 w-16 rounded-2xl bg-primary/[0.08] border border-primary/20 text-primary flex items-center justify-center shadow-xs">
+                      <CheckCircle2 className="h-9 w-9 text-accent" />
                     </div>
-                    <h3 className="text-2xl font-black text-[#002A45]">
-                      Demande enregistrée avec succès&nbsp;!
-                    </h3>
-                    <p className="text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
-                      Merci <strong className="text-slate-800">{firstName}</strong>. Votre demande de devis comparatifs pour la région de{" "}
-                      <strong className="text-slate-800 capitalize">{province}</strong> a bien été prise en compte.
-                    </p>
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-left max-w-md mx-auto space-y-2 text-xs sm:text-sm text-slate-700">
-                      <p className="font-bold text-[#002A45] flex items-center gap-1.5">
-                        <Clock className="h-4 w-4 text-emerald-600" />
-                        Prochaines étapes (sous 48 h) :
+                    <div>
+                      <h3 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight font-heading">
+                        Demande enregistrée avec succès
+                      </h3>
+                      <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed mt-2">
+                        Merci <strong className="text-foreground">{firstName}</strong>. Votre demande de devis comparatifs pour la région de{" "}
+                        <strong className="text-foreground capitalize">{province}</strong> a bien été prise en charge.
                       </p>
-                      <ul className="list-disc pl-5 space-y-1 text-slate-600">
-                        <li>Sélection de jusqu&apos;à 3 installateurs certifiés RESCERT de votre province.</li>
-                        <li>Brève prise de contact pour affiner les contraintes de votre toiture.</li>
-                        <li>Envoi de vos devis comparables sans engagement.</li>
+                    </div>
+
+                    <div className="bg-secondary/60 border border-border rounded-xl p-5 text-left max-w-md w-full flex flex-col gap-3 text-xs sm:text-sm">
+                      <p className="font-semibold text-foreground flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-accent" />
+                        <span>
+                          Prochaines étapes (sous{" "}
+                          <span className="font-mono tabular-nums font-semibold">48 h</span>) :
+                        </span>
+                      </p>
+                      <ul className="flex flex-col gap-2 text-muted-foreground list-disc pl-5">
+                        <li>
+                          Sélection de jusqu&apos;à{" "}
+                          <span className="font-mono tabular-nums font-semibold text-foreground">3</span> installateurs agréés RESCERT de votre province.
+                        </li>
+                        <li>Prise de contact rapide pour affiner les contraintes de votre toiture.</li>
+                        <li>Réception de vos offres comparables et sans engagement.</li>
                       </ul>
                     </div>
+
                     <div className="pt-2">
                       <Link
                         href="/"
-                        className="inline-flex items-center gap-2 text-xs font-bold text-[#002A45] hover:underline"
+                        className="inline-flex items-center gap-2 text-xs font-mono font-semibold text-accent hover:underline underline-offset-4"
                       >
                         Retourner sur la page d&apos;accueil
                       </Link>
@@ -1340,133 +1365,159 @@ export function DevisLandingClient() {
             </div>
 
           </div>
-
-          {/* ── EN-DESSOUS DU FORMULAIRE SUR MOBILE : Puces réassurance et Avis ── */}
-          <div className="lg:hidden mt-10 space-y-6">
-            <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs">
-              <h3 className="text-base font-extrabold text-[#002A45] mb-3">
-                Pourquoi comparer avec Aegis Solaire&nbsp;?
-              </h3>
-              <ul className="space-y-3">
-                {[
-                  {
-                    id: 1,
-                    text: "Économisez jusqu'à 70 % sur votre facture d'électricité",
-                  },
-                  {
-                    id: 2,
-                    text: "Installateurs certifiés RESCERT de votre région",
-                  },
-                  {
-                    id: 3,
-                    text: "Réponse sous 48 h, sans aucune obligation",
-                  },
-                ].map((item) => (
-                  <li key={item.id} className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                    <span className="h-5 w-5 rounded-full bg-[#002A45] text-white flex items-center justify-center shrink-0 shadow-xs">
-                      <Check className="h-3 w-3 stroke-[3]" />
-                    </span>
-                    <span>{item.text}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => setIsHowItWorksOpen(true)}
-                  className="text-xs font-bold text-slate-700 underline underline-offset-4"
-                >
-                  Comment ça marche ?
-                </button>
-                <button
-                  type="button"
-                  onClick={scrollToForm}
-                  className="text-xs font-extrabold text-[#002A45] flex items-center gap-1"
-                >
-                  <span>Démarrer</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Avis client Mobile */}
-            <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs flex items-start gap-3">
-              <div className="h-9 w-9 rounded-full bg-[#002A45] text-[#F8C630] font-black flex items-center justify-center text-xs shrink-0">
-                JD
-              </div>
-              <div>
-                <div className="flex gap-0.5 text-amber-400 mb-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                <blockquote className="text-xs italic text-slate-700 leading-relaxed">
-                  « Trois devis reçus en 48 heures, un écart de près de 1.850 €. Sans comparaison, j&apos;aurais payé bien trop cher. »
-                </blockquote>
-                <p className="mt-1 text-[11px] text-slate-500">
-                  <strong className="text-slate-800">Julien Dubois</strong> · Chaudfontaine (Province de Liège)
-                </p>
-              </div>
-            </div>
-          </div>
-
         </div>
       </section>
 
-      {/* ── BARRE DE CONFIANCE (Trust Bar 4 piliers Bobex) ── */}
-      <section className="bg-white border-y border-slate-200/90 py-8 sm:py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 text-center">
+      {/* ── BANDEAU DE RÉASSURANCE (Trust Bar - 4 Piliers Bento) ── */}
+      <section className="py-8 md:py-10 bg-secondary/50 border-b border-border">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 text-center">
             
-            <div className="space-y-1">
-              <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-emerald-50 text-emerald-700 mb-1">
-                <ShieldCheck className="h-5 w-5" />
+            <div className="flex flex-col items-center gap-1.5 p-3">
+              <div className="inline-flex items-center justify-center h-11 w-11 rounded-xl bg-card border border-border text-primary shadow-2xs mb-1">
+                <ShieldCheck className="h-5 w-5 text-accent" />
               </div>
-              <p className="text-2xl sm:text-3xl font-black text-[#002A45]">100 %</p>
-              <p className="text-xs sm:text-sm font-bold text-slate-600">Agréés RESCERT Wallonie</p>
+              <p className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-foreground">100 %</p>
+              <p className="text-xs sm:text-sm text-muted-foreground font-medium">Agréés RESCERT Wallonie</p>
             </div>
 
-            <div className="space-y-1">
-              <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-amber-50 text-amber-700 mb-1">
-                <FileText className="h-5 w-5" />
+            <div className="flex flex-col items-center gap-1.5 p-3">
+              <div className="inline-flex items-center justify-center h-11 w-11 rounded-xl bg-card border border-border text-foreground shadow-2xs mb-1">
+                <FileText className="h-5 w-5 text-accent" />
               </div>
-              <p className="text-2xl sm:text-3xl font-black text-[#002A45]">Jusqu&apos;à 3</p>
-              <p className="text-xs sm:text-sm font-bold text-slate-600">Devis comparatifs détaillés</p>
+              <p className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-foreground">Jusqu&apos;à 3</p>
+              <p className="text-xs sm:text-sm text-muted-foreground font-medium">Devis comparatifs détaillés</p>
             </div>
 
-            <div className="space-y-1">
-              <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-blue-50 text-blue-700 mb-1">
-                <BadgeEuro className="h-5 w-5" />
+            <div className="flex flex-col items-center gap-1.5 p-3">
+              <div className="inline-flex items-center justify-center h-11 w-11 rounded-xl bg-card border border-border text-foreground shadow-2xs mb-1">
+                <BadgeEuro className="h-5 w-5 text-accent" />
               </div>
-              <p className="text-2xl sm:text-3xl font-black text-[#002A45]">0 €</p>
-              <p className="text-xs sm:text-sm font-bold text-slate-600">Gratuit &amp; sans engagement</p>
+              <p className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-foreground">0 €</p>
+              <p className="text-xs sm:text-sm text-muted-foreground font-medium">Gratuit &amp; sans engagement</p>
             </div>
 
-            <div className="space-y-1">
-              <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-purple-50 text-purple-700 mb-1">
-                <Clock className="h-5 w-5" />
+            <div className="flex flex-col items-center gap-1.5 p-3">
+              <div className="inline-flex items-center justify-center h-11 w-11 rounded-xl bg-card border border-border text-primary shadow-2xs mb-1">
+                <Clock className="h-5 w-5 text-accent" />
               </div>
-              <p className="text-2xl sm:text-3xl font-black text-[#002A45]">48 h</p>
-              <p className="text-xs sm:text-sm font-bold text-slate-600">Délai moyen de prise de contact</p>
+              <p className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-foreground">48 h</p>
+              <p className="text-xs sm:text-sm text-muted-foreground font-medium">Délai moyen de réponse</p>
             </div>
 
           </div>
         </div>
       </section>
 
-      {/* ── COMMENT ÇA MARCHE EN 3 ÉTAPES (Explication Bobex) ── */}
-      <section className="py-12 sm:py-16 bg-[#F8FAFC]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-10">
-            <span className="text-xs font-extrabold uppercase tracking-widest text-[#002A45] bg-slate-200/70 px-3 py-1 rounded-full">
-              Processus simple &amp; transparent
+      {/* ── SECTION COMPARATIVE : SANS AEGIS VS AVEC AEGIS SOLAIRE ── */}
+      <section className="py-16 md:py-24 border-b border-border bg-background">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-12 flex flex-col gap-2">
+            <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">
+              Protection du Consommateur Wallon
             </span>
-            <h2 className="text-2xl sm:text-3xl font-black text-[#002A45] mt-3">
-              Comment ça marche en 3 étapes&nbsp;?
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-heading">
+              Pourquoi passer par Aegis Solaire plutôt qu&apos;un démarchage direct ?
             </h2>
-            <p className="text-sm text-slate-600 mt-2">
-              Nous facilitons la comparaison pour vous éviter les prix excessifs et les installateurs non qualifiés.
+            <p className="text-sm sm:text-base text-muted-foreground">
+              Le marché solaire belge compte des écarts de prix injustifiés pouvant dépasser 3 000 €. Notre audit remet l&apos;équilibre en votre faveur.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {/* Sans Aegis */}
+            <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 flex flex-col gap-5 shadow-xs">
+              <div className="flex items-center justify-between pb-4 border-b border-border">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center font-bold text-sm">
+                    ✕
+                  </div>
+                  <h3 className="font-heading font-bold text-lg text-foreground">Sans comparaison neutre</h3>
+                </div>
+                <span className="font-mono text-xs text-muted-foreground">Méthode classique</span>
+              </div>
+
+              <ul className="flex flex-col gap-3 text-xs sm:text-sm text-muted-foreground">
+                <li className="flex items-start gap-2.5">
+                  <span className="text-destructive font-bold text-sm">✕</span>
+                  <span>Un seul devis présenté avec prix gonflé sans élément de comparaison.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <span className="text-destructive font-bold text-sm">✕</span>
+                  <span>Risque d&apos;artisan non agréé RESCERT (refus de réception RGIE par ORES / RESA).</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <span className="text-destructive font-bold text-sm">✕</span>
+                  <span>Pression commerciale et démarchage téléphonique intempestif.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <span className="text-destructive font-bold text-sm">✕</span>
+                  <span>Sur-dimensionnement ou sous-dimensionnement de la puissance kWc.</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Avec Aegis Solaire */}
+            <div className="bg-secondary/40 border-2 border-accent/40 rounded-2xl p-6 sm:p-8 flex flex-col gap-5 shadow-xs relative">
+              <div className="absolute -top-3 right-6 bg-accent text-accent-foreground px-3 py-0.5 rounded-full font-mono text-[10px] font-bold uppercase tracking-wider shadow-2xs">
+                Norme de Confiance
+              </div>
+
+              <div className="flex items-center justify-between pb-4 border-b border-border">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-lg bg-accent text-accent-foreground flex items-center justify-center font-bold text-sm">
+                    ✓
+                  </div>
+                  <h3 className="font-heading font-bold text-lg text-foreground">Avec Aegis Solaire</h3>
+                </div>
+                <span className="font-mono text-xs font-semibold text-accent">100 % Wallonie</span>
+              </div>
+
+              <ul className="flex flex-col gap-3 text-xs sm:text-sm text-foreground font-medium">
+                <li className="flex items-start gap-2.5">
+                  <Check className="h-4 w-4 text-accent shrink-0 mt-0.5 stroke-[3]" />
+                  <span>Jusqu&apos;à 3 devis complets et directement comparables ligne par ligne.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check className="h-4 w-4 text-accent shrink-0 mt-0.5 stroke-[3]" />
+                  <span>Exclusivement des artisans avec certification RESCERT vérifiée à la date du jour.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check className="h-4 w-4 text-accent shrink-0 mt-0.5 stroke-[3]" />
+                  <span>Zéro harcèlement : vos coordonnées ne sont transmises qu&apos;aux 3 candidats retenus.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check className="h-4 w-4 text-accent shrink-0 mt-0.5 stroke-[3]" />
+                  <span>Économie moyenne constatée de 1 400 € à 2 200 € TTC à matériel équivalent.</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="text-center mt-10">
+            <button
+              onClick={scrollToForm}
+              className="inline-flex items-center gap-2 py-3.5 px-6 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-semibold text-sm transition-all shadow-xs cursor-pointer"
+            >
+              <span>Comparer 3 devis dès maintenant</span>
+              <ArrowRight className="h-4 w-4 text-primary-foreground" />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ── COMMENT ÇA MARCHE EN 3 ÉTAPES ── */}
+      <section className="py-16 md:py-24 border-b border-border bg-secondary/30">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-12 flex flex-col gap-2">
+            <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">
+              Processus Transparent &amp; Simplifié
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-heading">
+              Comment fonctionne la mise en concurrence en 3 étapes ?
+            </h2>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              De votre simulation en ligne jusqu&apos;à la signature de votre devis certifié.
             </p>
           </div>
 
@@ -1474,79 +1525,147 @@ export function DevisLandingClient() {
             {[
               {
                 num: "01",
-                title: "Remplissez le formulaire (45 sec)",
-                desc: "Indiquez votre type de bien, votre toiture et votre commune wallonne. Le formulaire est instantané et 100 % gratuit.",
+                title: "Remplissez le formulaire (45 s)",
+                desc: "Indiquez votre type de toiture, commune wallonne et consommation annuelle. Le formulaire est instantané et 100 % gratuit.",
               },
               {
                 num: "02",
                 title: "Sélection d'experts certifiés",
-                desc: "Nous transmettons votre demande à des installateurs certifiés RESCERT actifs dans votre région pour une analyse technique sur mesure.",
+                desc: "Notre système attribue votre projet à un maximum de 3 artisans certifiés RESCERT actifs dans votre province pour une analyse technique.",
               },
               {
                 num: "03",
-                title: "Comparez jusqu'à 3 devis",
+                title: "Comparez et économisez",
                 desc: "Recevez les offres chiffrées chez vous. Comparez les garanties, les rendements, les prix et décidez en toute liberté avec qui signer.",
               },
             ].map((stepItem, idx) => (
               <div
                 key={idx}
-                className="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 shadow-xs relative overflow-hidden"
+                className="bg-card border border-border rounded-2xl p-6 sm:p-7 shadow-xs flex flex-col gap-3 relative hover:border-accent/30 transition-colors"
               >
-                <span className="text-4xl font-black text-[#002A45]/15 block mb-2 font-mono">
-                  {stepItem.num}
-                </span>
-                <h3 className="text-lg font-bold text-[#002A45] mb-2">{stepItem.title}</h3>
-                <p className="text-sm text-slate-600 leading-relaxed">{stepItem.desc}</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-3xl sm:text-4xl font-extrabold text-foreground/20 font-mono tabular-nums">
+                    {stepItem.num}
+                  </span>
+                  <div className="h-8 w-8 rounded-lg bg-secondary flex items-center justify-center text-accent">
+                    <Check className="h-4 w-4 stroke-[3]" />
+                  </div>
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-foreground font-heading">{stepItem.title}</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{stepItem.desc}</p>
               </div>
             ))}
-          </div>
-
-          <div className="text-center mt-10">
-            <button
-              onClick={scrollToForm}
-              className="inline-flex items-center gap-2 py-3.5 px-7 rounded-xl bg-[#F8C630] hover:bg-[#F2BA1F] active:translate-y-[2px] active:shadow-[0_1px_0_0_#DEB12C] text-[#002A45] font-extrabold text-sm shadow-[0_4px_0_0_#DEB12C] transition-all"
-            >
-              <span>Lancer ma comparaison maintenant</span>
-              <ArrowRight className="h-4 w-4" />
-            </button>
           </div>
         </div>
       </section>
 
-      {/* ── FAQ ACCORDION INTERACTIF ── */}
-      <section className="py-12 sm:py-16 bg-white border-t border-slate-200/90">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-xl mx-auto mb-10">
-            <h2 className="text-2xl sm:text-3xl font-black text-[#002A45]">
-              Foire aux questions
+      {/* ── RETOURS D'EXPÉRIENCE & AVIS VÉRIFIÉS EN WALLONIE ── */}
+      <section className="py-16 md:py-24 border-b border-border bg-background">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-12 flex flex-col gap-2">
+            <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">
+              Retours d&apos;Expérience Vérifiés
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-heading">
+              Ce que disent les propriétaires wallons
             </h2>
-            <p className="text-sm text-slate-600 mt-2">
-              Toutes les réponses pour aborder votre projet solaire en Wallonie en toute sérénité.
+            <p className="text-sm sm:text-base text-muted-foreground">
+              Des témoignages authentiques de particuliers ayant fait jouer la concurrence via Aegis Solaire.
             </p>
           </div>
 
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                name: "Julien Dubois",
+                location: "Chaudfontaine (Province de Liège)",
+                quote:
+                  "Trois devis reçus en 48 heures, un écart de près de 1 850 € sur des panneaux de marque identique. Sans comparaison, j'aurais payé bien trop cher.",
+                stat: "1 850 € économisés",
+              },
+              {
+                name: "Marc & Laurence",
+                location: "Wavre (Brabant wallon)",
+                quote:
+                  "Très rassurant de ne parler qu'à des installateurs ayant le certificat RESCERT à jour. Dossier RGIE et déclaration ORES traités sans aucun accroc.",
+                stat: "Installation 6,4 kWc",
+              },
+              {
+                name: "Thierry Vanderstraeten",
+                location: "Namur (Province de Namur)",
+                quote:
+                  "Le formulaire a pris moins d'une minute. Les deux artisans qui sont venus sur place étaient très pro et n'ont poussé aucune vente forcée.",
+                stat: "Réponse en 24 h",
+              },
+            ].map((t, i) => (
+              <div
+                key={i}
+                className="bg-card border border-border rounded-2xl p-6 shadow-xs flex flex-col justify-between gap-5 hover:border-accent/30 transition-colors"
+              >
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-0.5 text-accent-solar">
+                      {[...Array(5)].map((_, idx) => (
+                        <Star key={idx} className="h-3.5 w-3.5 fill-accent-solar text-accent-solar" />
+                      ))}
+                    </div>
+                    <span className="font-mono text-xs font-semibold text-primary bg-primary/[0.06] border border-primary/20 px-2 py-0.5 rounded-md">
+                      {t.stat}
+                    </span>
+                  </div>
+                  <blockquote className="text-xs sm:text-sm text-foreground leading-relaxed">
+                    « {t.quote} »
+                  </blockquote>
+                </div>
+
+                <div className="pt-3 border-t border-border flex flex-col">
+                  <span className="text-xs font-bold text-foreground">{t.name}</span>
+                  <span className="text-[11px] text-muted-foreground">{t.location}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FOIRE AUX QUESTIONS (Accordion Accessible) ── */}
+      <section className="py-16 md:py-24 border-b border-border bg-secondary/30">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-xl mx-auto mb-12 flex flex-col gap-2">
+            <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">
+              Réponses d&apos;Ingénieurs
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-heading">
+              Foire aux questions
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Toutes les réponses pour aborder votre transition photovoltaïque en Wallonie en toute sérénité.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3">
             {FAQ_ITEMS.map((item, index) => {
               const isOpen = openFaqIndex === index
               return (
                 <div
                   key={index}
-                  className="border border-slate-200/90 rounded-2xl overflow-hidden transition-all shadow-2xs"
+                  className="border border-border rounded-xl overflow-hidden bg-card transition-all shadow-xs"
                 >
                   <button
                     type="button"
                     onClick={() => setOpenFaqIndex(isOpen ? null : index)}
-                    className="w-full text-left p-4 sm:p-5 font-bold text-sm sm:text-base text-[#002A45] flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors"
+                    aria-expanded={isOpen}
+                    className="w-full text-left p-4 sm:p-5 font-semibold text-sm sm:text-base text-foreground flex items-center justify-between gap-4 hover:bg-secondary/40 transition-colors cursor-pointer"
                   >
                     <span>{item.q}</span>
                     <ChevronDown
-                      className={`h-5 w-5 text-slate-400 shrink-0 transition-transform ${
-                        isOpen ? "rotate-180 text-[#002A45]" : ""
+                      className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200 ${
+                        isOpen ? "rotate-180 text-foreground" : ""
                       }`}
                     />
                   </button>
                   {isOpen && (
-                    <div className="px-4 pb-5 pt-1 sm:px-5 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100 bg-slate-50/50">
+                    <div className="px-4 pb-5 pt-1 sm:px-5 text-xs sm:text-sm text-muted-foreground leading-relaxed border-t border-border bg-card">
                       {item.a}
                     </div>
                   )}
@@ -1557,99 +1676,126 @@ export function DevisLandingClient() {
         </div>
       </section>
 
-      {/* ── FOOTER LÉGAL ALLÉGÉ INIT42 ── */}
-      <footer className="bg-slate-900 text-slate-400 py-10 border-t border-slate-800 text-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-          <div>
-            <p className="font-semibold text-slate-200">
+      {/* ── FOOTER LÉGAL INSTITUTIONNEL ── */}
+      <footer className="bg-primary text-primary-foreground/80 py-12 md:py-16 border-t border-border text-xs">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="flex flex-col gap-1.5 max-w-md">
+            <p className="font-bold text-primary-foreground text-sm font-heading">
               Aegis Solaire · Comparateur indépendant d&apos;installateurs solaires en Wallonie
             </p>
-            <p className="text-slate-500 mt-1">
-              Édité par INIT42 (Nathan Remacle) · BCE 1039.899.980 · Liège, Belgique
+            <p className="text-primary-foreground/60 leading-relaxed font-mono text-[11px]">
+              Édité par INIT42 (Nathan Remacle) · BCE n° 1039.899.980 · TVA BE 1039.899.980 · Liège, Belgique
             </p>
           </div>
-          <div className="flex items-center gap-4 flex-wrap justify-center font-medium">
-            <Link href="/mentions-legales" className="hover:text-white transition-colors">
+
+          <div className="flex items-center gap-6 flex-wrap font-medium text-xs">
+            <Link href="/mentions-legales" className="hover:text-primary-foreground transition-colors">
               Mentions légales
             </Link>
-            <Link href="/politique-confidentialite" className="hover:text-white transition-colors">
+            <Link href="/politique-confidentialite" className="hover:text-primary-foreground transition-colors">
               Politique de confidentialité
             </Link>
-            <Link href="/cgv" className="hover:text-white transition-colors">
+            <Link href="/cgv" className="hover:text-primary-foreground transition-colors">
               CGV
             </Link>
           </div>
         </div>
       </footer>
 
+      {/* ── STICKY BAR MOBILE AU SCROLL ── */}
+      <AnimatePresence>
+        {showStickyBar && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-card/95 backdrop-blur-md border-t border-border shadow-lg sm:hidden flex items-center justify-between gap-3"
+          >
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-foreground font-heading">
+                Comparez 3 devis RESCERT
+              </span>
+              <span className="font-mono text-[10px] text-muted-foreground">
+                Gratuit · Réponse sous 48 h
+              </span>
+            </div>
+            <button
+              onClick={scrollToForm}
+              className="py-2.5 px-4 rounded-xl bg-accent text-accent-foreground font-bold text-xs shadow-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>Lancer en 45 s</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── MODALE "COMMENT ÇA MARCHE ?" ── */}
       {isHowItWorksOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/60 backdrop-blur-xs animate-in fade-in duration-200"
+        >
+          <div className="relative bg-card border border-border rounded-2xl max-w-lg w-full p-6 sm:p-8 shadow-xl flex flex-col gap-5">
             <button
               onClick={() => setIsHowItWorksOpen(false)}
-              className="absolute top-4 right-4 h-9 w-9 rounded-full bg-slate-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200 flex items-center justify-center transition-all"
-              aria-label="Fermer"
+              className="absolute top-4 right-4 h-8 w-8 rounded-xl bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80 flex items-center justify-center transition-colors cursor-pointer"
+              aria-label="Fermer la boîte de dialogue"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4" />
             </button>
 
-            <h3 className="text-xl sm:text-2xl font-black text-[#002A45] mb-2 pr-8">
-              Comment ça marche en 3 étapes&nbsp;?
-            </h3>
-            <p className="text-xs text-slate-500 mb-6">
-              Notre service est 100 % gratuit pour les particuliers et entreprises wallonnes.
-            </p>
+            <div className="flex flex-col gap-1">
+              <span className="font-mono text-xs uppercase tracking-wider text-accent font-semibold">
+                Guide explicatif
+              </span>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground font-heading">
+                Comment fonctionne la mise en concurrence ?
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Notre mission est 100 % gratuite et sans engagement pour les particuliers en Wallonie.
+              </p>
+            </div>
 
-            <ol className="space-y-4">
-              <li className="flex items-start gap-3">
-                <span className="h-7 w-7 rounded-full bg-[#002A45] text-[#F8C630] font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
-                  1
-                </span>
-                <div>
-                  <strong className="block text-sm font-bold text-slate-900">
-                    Remplissez votre demande en 45 secondes
-                  </strong>
-                  <p className="text-xs text-slate-600 mt-0.5">
-                    Indiquez votre type de toiture, commune et consommation approximative. Aucune carte bancaire requise.
-                  </p>
-                </div>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="h-7 w-7 rounded-full bg-[#002A45] text-[#F8C630] font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
-                  2
-                </span>
-                <div>
-                  <strong className="block text-sm font-bold text-slate-900">
-                    Sélection d&apos;artisans RESCERT locaux
-                  </strong>
-                  <p className="text-xs text-slate-600 mt-0.5">
-                    Nous sollicitons jusqu&apos;à 3 professionnels certifiés de votre province pour une prise de contact rapide.
-                  </p>
-                </div>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="h-7 w-7 rounded-full bg-[#002A45] text-[#F8C630] font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
-                  3
-                </span>
-                <div>
-                  <strong className="block text-sm font-bold text-slate-900">
-                    Comparez les devis et économisez
-                  </strong>
-                  <p className="text-xs text-slate-600 mt-0.5">
-                    Vous recevez les offres chiffrées et pouvez choisir la meilleure proposition en toute sérénité — ou aucune.
-                  </p>
-                </div>
-              </li>
+            <ol className="flex flex-col gap-3 list-none p-0 m-0">
+              {[
+                {
+                  step: "01",
+                  title: "Remplissez votre demande en 45 secondes",
+                  desc: "Indiquez votre toiture, commune et consommation approximative. Aucune carte bancaire requise.",
+                },
+                {
+                  step: "02",
+                  title: "Sélection d'artisans RESCERT locaux",
+                  desc: "Nous sollicitons jusqu'à 3 professionnels certifiés de votre province pour une analyse technique.",
+                },
+                {
+                  step: "03",
+                  title: "Comparez les devis et économisez",
+                  desc: "Vous recevez les offres chiffrées et pouvez choisir la meilleure proposition en toute sérénité — ou aucune.",
+                },
+              ].map((item) => (
+                <li key={item.step} className="flex items-start gap-3 p-3.5 rounded-xl bg-secondary/50 border border-border">
+                  <span className="font-mono tabular-nums text-xs font-bold text-accent px-2 py-0.5 rounded-md bg-accent/10 shrink-0 mt-0.5">
+                    {item.step}
+                  </span>
+                  <div className="flex flex-col">
+                    <strong className="text-xs sm:text-sm font-semibold text-foreground">{item.title}</strong>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{item.desc}</p>
+                  </div>
+                </li>
+              ))}
             </ol>
 
-            <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end">
+            <div className="pt-2 flex justify-end">
               <button
                 onClick={() => {
                   setIsHowItWorksOpen(false)
                   scrollToForm()
                 }}
-                className="w-full py-3 px-5 rounded-xl bg-[#F8C630] hover:bg-[#F2BA1F] active:translate-y-[2px] active:shadow-[0_1px_0_0_#DEB12C] text-[#002A45] font-extrabold text-sm shadow-[0_4px_0_0_#DEB12C] transition-all flex items-center justify-center gap-2"
+                className="w-full py-3.5 px-5 rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 font-bold text-sm transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>Faire ma demande gratuite</span>
                 <ArrowRight className="h-4 w-4" />

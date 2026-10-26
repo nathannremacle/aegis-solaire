@@ -121,7 +121,7 @@ Regarde les dossiers actuellement disponibles en Wallonie. Si tu as la moindre q
 À très bientôt,
 
 Fabrice Remacle
-Tél : +32 495 57 07 73`.trim()
+Email : contact@aegissolaire.com`.trim()
   }
 
   if (data.tone === "court_whatsapp") {
@@ -144,12 +144,12 @@ ${noteBlock}${creditsBlockVouvoiement}
 Vous pouvez activer votre accès réservé en 1 minute ici :
 ${data.inviteUrl}
 
-N'hésitez pas à consulter les dossiers actuellement disponibles en Wallonie. Si vous avez la moindre question ou si vous souhaitez que l'on étudie un projet ensemble, vous pouvez me joindre directement sur mon portable.
+N'hésitez pas à consulter les dossiers actuellement disponibles en Wallonie. Si vous avez la moindre question ou si vous souhaitez que l'on étudie un projet ensemble, vous pouvez me contacter par e-mail à contact@aegissolaire.com.
 
 Bien cordialement,
 
 Fabrice Remacle
-Tél : +32 495 57 07 73`.trim()
+Email : contact@aegissolaire.com`.trim()
 }
 
 /**
@@ -292,7 +292,7 @@ export function renderFabriceInviteHtml(data: FabriceInviteData, customBodyText?
                       Fournisseur &amp; Partenaire Matériel Photovoltaïque
                     </p>
                     <p style="margin: 2px 0 0 0; font-size: 12px; color: #525E59;" class="mono">
-                      Tél : +32 495 57 07 73 · Wallonie, Belgique
+                      Email : contact@aegissolaire.com · Wallonie, Belgique
                     </p>
                   </td>
                 </tr>

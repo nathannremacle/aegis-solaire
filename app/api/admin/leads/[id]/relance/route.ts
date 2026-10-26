@@ -28,13 +28,16 @@ export async function GET(
 
   const maxSlots = lead.segment === "B2B" ? MAX_SLOTS_B2B : MAX_SLOTS_B2C
 
-  // 2. Récupérer les achats réels (slots vendus)
+  // 2. Récupérer les achats réels (slots vendus, hors comptes de test DEV)
   const { data: purchases } = await supabase
     .from("lead_purchases")
-    .select("id, partner_id, purchased_at, credits_spent, partners(company_name, email)")
+    .select("id, partner_id, purchased_at, credits_spent, partners(company_name, email, is_test)")
     .eq("lead_id", id)
 
-  const takenSlots = purchases ? purchases.length : 0
+  const realPurchases = (purchases || []).filter(
+    (p: any) => !p.partners?.is_test && !p.partners?.company_name?.toLowerCase().includes("test")
+  )
+  const takenSlots = realPurchases.length
 
   // 3. Récupérer l'historique des relances envoyées
   let dispatches: any[] = []

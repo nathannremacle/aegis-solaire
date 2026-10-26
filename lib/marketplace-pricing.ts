@@ -56,9 +56,11 @@ export function calculateMarketplaceFinancials(lead: {
   surfaceType?: string | null | undefined
   annualBill?: number | null | undefined
   creditCost?: number | null | undefined
+  estimatedPowerKwc?: number | null | undefined
 }): FinancialEstimates {
   const isB2C = lead.segment === "B2C"
   const rawArea = Math.max(0, Number(lead.surfaceArea) || 0)
+  const annualBill = Math.max(0, Number(lead.annualBill) || 0)
   
   // Plafonnement de cohérence B2C :
   // En Wallonie, le résidentiel standard est capé à 10 kVA pour les démarches simplifiées.
@@ -66,7 +68,17 @@ export function calculateMarketplaceFinancials(lead: {
   const effectiveArea = isB2C && rawArea > 150 ? Math.min(rawArea, 80) : rawArea
 
   // Rendement standard : ~170 Wc / m² (soit ~0.17 kWc par m²)
-  let powerKwc = Math.round(effectiveArea * 0.17)
+  let powerKwc = Number(lead.estimatedPowerKwc) || Math.round(effectiveArea * 0.17)
+
+  // Si pas de surface mais facture présente, inférer la puissance équivalente
+  if (powerKwc <= 0 && annualBill > 0) {
+    powerKwc = Math.max(isB2C ? 6 : 20, Math.round(annualBill / 1000 * (isB2C ? 1.2 : 1.5)))
+  }
+
+  // Baseline par défaut pour éviter les dossiers à 0 kWc / 0 €
+  if (powerKwc <= 0) {
+    powerKwc = isB2C ? 8 : 35
+  }
 
   // Plafonnement de cohérence B2C (en Wallonie résidentiel capé à 10 kVA / 10 kWc)
   if (isB2C && powerKwc > 10) {
@@ -101,7 +113,6 @@ export function calculateMarketplaceFinancials(lead: {
   const leadCostEuros = Math.round(credits * REFERENCE_CREDIT_PRICE_EUR)
 
   // Économie annuelle brute estimée sur la facture d'électricité (~35 % d'autoconsommation/effacement)
-  const annualBill = Math.max(0, Number(lead.annualBill) || 0)
   // Wallonie : 930 kWh/kWc/an. L'économie réelle correspond à l'autoconsommation + revente surplus,
   // et ne peut en aucun cas dépasser la facture ou excéder la production physique.
   const maxPossibleSolarSavings = Math.round(powerKwc * 930 * 0.32)

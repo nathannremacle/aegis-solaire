@@ -1,7 +1,7 @@
 import { Resend } from "resend"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { calculateMarketplaceFinancials, calculateLeadCreditCost } from "@/lib/marketplace-pricing"
-import { renderInstallerLeadTeaserEmail } from "@/lib/email-templates/installer-lead-teaser"
+import { renderInstallerLeadTeaserEmail, buildLeadEmailSubject } from "@/lib/email-templates/installer-lead-teaser"
 
 // ==============================================================================
 // 1. CONFIGURATION & CONSTANTES MÉTIER
@@ -216,6 +216,7 @@ export function calculatePartnerMatchScore(
 export interface EligiblePartnerForDispatch {
   partner: any
   scoreInfo: PartnerMatchingScore
+  isTest?: boolean
 }
 
 /**
@@ -229,16 +230,20 @@ export async function getEligiblePartnersForWave(
   const maxSlots = lead.segment === "B2B" ? MAX_SLOTS_B2B : MAX_SLOTS_B2C
   const creditCost = lead.credit_cost || calculateLeadCreditCost(lead)
 
-  // 1. Récupérer les achats existants pour ce lead
+  // 1. Récupérer les achats existants pour ce lead (filtrer les comptes de test)
   const { data: purchases } = await supabase
     .from("lead_purchases")
-    .select("partner_id")
+    .select("partner_id, partners(is_test, company_name)")
     .eq("lead_id", lead.id)
 
-  const purchasedPartnerIds = new Set((purchases || []).map((p) => p.partner_id))
+  const realPurchases = (purchases || []).filter(
+    (p: any) => !p.partners?.is_test && !p.partners?.company_name?.toLowerCase().includes("test")
+  )
+  const realPurchasedPartnerIds = new Set(realPurchases.map((p) => p.partner_id))
+  const allPurchasedPartnerIds = new Set((purchases || []).map((p) => p.partner_id))
 
-  // Si le lead est déjà plein, aucun partenaire n'est éligible
-  if (purchasedPartnerIds.size >= maxSlots) {
+  // Si le lead est déjà plein pour les vrais installateurs, aucun partenaire n'est éligible
+  if (realPurchasedPartnerIds.size >= maxSlots) {
     return []
   }
 
@@ -264,22 +269,28 @@ export async function getEligiblePartnersForWave(
     partnerNotificationCounts.set(d.partner_id, (partnerNotificationCounts.get(d.partner_id) || 0) + 1)
   }
 
-  // 3. Récupérer tous les partenaires réels actifs
+  // 3. Récupérer tous les partenaires actifs
   const { data: allPartners, error: partnersErr } = await supabase
     .from("partners")
-    .select("id, company_name, email, phone, credits, segment, target_provinces, target_surfaces, min_facture")
-    .eq("is_test", false)
+    .select("id, company_name, email, phone, credits, segment, target_provinces, target_surfaces, min_facture, is_test")
 
   if (partnersErr || !allPartners || allPartners.length === 0) {
     return []
   }
 
-  // 4. Calculer le score et filtrer les candidats
+  const realPartners = allPartners.filter(
+    (p) => !p.is_test && !p.company_name?.toLowerCase().includes("test") && p.email !== "mrnathanrem@gmail.com"
+  )
+  const devTestPartner = allPartners.find(
+    (p) => p.is_test || p.company_name?.toLowerCase().includes("test") || p.email === "mrnathanrem@gmail.com"
+  )
+
+  // 4. Calculer le score et filtrer les candidats réels
   const scoredCandidates: EligiblePartnerForDispatch[] = []
 
-  for (const partner of allPartners) {
+  for (const partner of realPartners) {
     // Exclure si déjà acheteur
-    if (purchasedPartnerIds.has(partner.id)) continue
+    if (allPurchasedPartnerIds.has(partner.id)) continue
 
     // Exclure si a déjà reçu cette vague précise
     if (partnersWhoReceivedThisWave.has(partner.id)) continue
@@ -313,7 +324,7 @@ export async function getEligiblePartnersForWave(
     }
 
     // Vague 3 : Tous les Tiers restants (Tier 1, Tier 2, Tier 3)
-    scoredCandidates.push({ partner, scoreInfo })
+    scoredCandidates.push({ partner, scoreInfo, isTest: false })
   }
 
   // 5. Trier par score décroissant (les plus pertinents et ceux ayant des crédits en premier)
@@ -326,7 +337,7 @@ export async function getEligiblePartnersForWave(
     return b.scoreInfo.score - a.scoreInfo.score
   })
 
-  // 6. Limiter le nombre de destinataires selon la jauge cible de la vague
+  // 6. Limiter le nombre de destinataires selon la jauge cible de la vague (sans compter DEV TEST !)
   const isB2B = lead.segment === "B2B"
   const targetCount = isB2B
     ? waveNumber === 1
@@ -340,7 +351,30 @@ export async function getEligiblePartnersForWave(
     ? WAVE_TARGET_COUNTS.B2C.wave2
     : WAVE_TARGET_COUNTS.B2C.wave3
 
-  return scoredCandidates.slice(0, targetCount)
+  const selectedCandidates = scoredCandidates.slice(0, targetCount)
+
+  // 7. Inclure DEV TEST en observateur/destinataire sans consommer de place dans le quota réel
+  if (devTestPartner && devTestPartner.email && devTestPartner.email.includes("@")) {
+    const hasAlreadyReceivedThisWave = partnersWhoReceivedThisWave.has(devTestPartner.id)
+    if (!hasAlreadyReceivedThisWave) {
+      const devScoreInfo: PartnerMatchingScore = {
+        partnerId: devTestPartner.id,
+        score: 95,
+        tier: "tier_1",
+        isExactProvince: true,
+        isNeighborProvince: false,
+        hasEnoughCredits: (devTestPartner.credits || 0) >= creditCost,
+        segmentMatch: true,
+      }
+      selectedCandidates.push({
+        partner: devTestPartner,
+        scoreInfo: devScoreInfo,
+        isTest: true,
+      })
+    }
+  }
+
+  return selectedCandidates
 }
 
 // ==============================================================================
@@ -352,7 +386,7 @@ export interface DispatchWaveResult {
   leadId: string
   waveNumber: number
   sentCount: number
-  recipients: { email: string; companyName: string; score: number; tier: string }[]
+  recipients: { email: string; companyName: string; score: number; tier: string; isTest?: boolean }[]
   takenSlots: number
   maxSlots: number
   isFullySold: boolean
@@ -383,13 +417,16 @@ export async function dispatchLeadWave(
   const isB2B = lead.segment === "B2B"
   const maxSlots = isB2B ? MAX_SLOTS_B2B : MAX_SLOTS_B2C
 
-  // 2. Vérifier les achats réels enregistrés
+  // 2. Vérifier les achats réels enregistrés (hors comptes de test)
   const { data: purchases } = await supabase
     .from("lead_purchases")
-    .select("id")
+    .select("id, partner_id, partners(is_test, company_name)")
     .eq("lead_id", leadId)
 
-  const takenSlots = purchases ? purchases.length : 0
+  const realPurchases = (purchases || []).filter(
+    (p: any) => !p.partners?.is_test && !p.partners?.company_name?.toLowerCase().includes("test")
+  )
+  const takenSlots = realPurchases.length
 
   // 3. Vérifier si le lead est épuisé ou non disponible
   if (takenSlots >= maxSlots) {
@@ -452,7 +489,7 @@ export async function dispatchLeadWave(
 
   // 6. Envoi des e-mails via Resend et journalisation
   const resend = resendApiKey ? new Resend(resendApiKey) : null
-  const dispatchedRecipients: { email: string; companyName: string; score: number; tier: string }[] = []
+  const dispatchedRecipients: { email: string; companyName: string; score: number; tier: string; isTest?: boolean }[] = []
 
   for (const candidate of candidates) {
     const partner = candidate.partner
@@ -540,6 +577,7 @@ export async function dispatchLeadWave(
       companyName: partner.company_name,
       score: scoreInfo.score,
       tier: scoreInfo.tier,
+      isTest: Boolean(candidate.isTest || partner.is_test || partner.company_name?.toLowerCase().includes("test")),
     })
   }
 
@@ -556,6 +594,9 @@ export async function dispatchLeadWave(
     // Non bloquant
   }
 
+  const realSentCount = dispatchedRecipients.filter((r) => !r.isTest).length
+  const devIncluded = dispatchedRecipients.some((r) => r.isTest)
+
   return {
     success: true,
     leadId,
@@ -565,7 +606,7 @@ export async function dispatchLeadWave(
     takenSlots,
     maxSlots,
     isFullySold: false,
-    message: `Vague ${waveNumber} envoyée avec succès à ${dispatchedRecipients.length} installateur(s).`,
+    message: `Vague ${waveNumber} envoyée avec succès à ${realSentCount} installateur(s)${devIncluded ? " (+ compte DEV TEST)" : ""}.`,
   }
 }
 
@@ -655,3 +696,546 @@ export async function processPendingLeadRelances(): Promise<CronRelanceSummary> 
     skippedLeadsCount: skippedCount,
   }
 }
+
+// ==============================================================================
+// 7. FONCTIONS DE SUPERVISION DASHBOARD : PLANNING, HISTORIQUE ET STATISTIQUES
+// ==============================================================================
+
+export interface UpcomingRelanceItem {
+  id: string
+  leadId: string
+  lead: {
+    id: string
+    segment: string
+    province: string | null
+    city: string | null
+    postalCode: string | null
+    surfaceArea: number | null
+    surfaceType: string | null
+    annualElectricityBill: number | null
+    estimatedPowerKwc: number
+    marginEur: number
+    creditCost: number
+    createdAt: string
+  }
+  currentWave: number
+  nextWave: number
+  lastRelanceAt: string | null
+  scheduledAt: string
+  effectiveSendAt: string
+  msRemaining: number
+  isReadyNow: boolean
+  takenSlots: number
+  maxSlots: number
+  remainingSlots: number
+  targetCount: number
+  targetRecipients: {
+    partnerId: string
+    companyName: string
+    email: string
+    phone: string | null
+    credits: number
+    score: number
+    tier: MatchingTier
+    isExactProvince: boolean
+    hasEnoughCredits: boolean
+    isTest?: boolean
+  }[]
+  subjectPreview: string
+}
+
+export interface SentRelanceItem {
+  id: string
+  leadId: string
+  partnerId: string
+  waveNumber: number
+  emailTo: string
+  emailSubject: string
+  matchingScore: number
+  matchingTier: string
+  creditsAtSend: number
+  sentAt: string
+  openedAt: string | null
+  clickedAt: string | null
+  partner: {
+    id: string
+    companyName: string
+    email: string
+    phone: string | null
+    currentCredits: number
+  } | null
+  lead: {
+    id: string
+    segment: string
+    province: string | null
+    city: string | null
+    postalCode: string | null
+    marketplaceStatus: string
+    creditCost: number
+    estimatedPowerKwc: number
+    takenSlots: number
+    maxSlots: number
+  } | null
+  outcome: "purchased_by_recipient" | "purchased_by_other" | "available" | "sold_out"
+  isTest?: boolean
+}
+
+export interface RelancesOverviewStats {
+  totalSentCount: number
+  sentTodayCount: number
+  sentWave1Count: number
+  sentWave2Count: number
+  sentWave3Count: number
+  upcomingWavesCount: number
+  upcomingRecipientsCount: number
+  nextScheduledInMs: number | null
+  activeCascadesCount: number
+  readyNowCount: number
+  conversionRatePercent: number
+  isBusinessHoursNow: boolean
+}
+
+/**
+ * Ajuste une date selon les plages horaires ouvrées en Belgique (Europe/Brussels)
+ */
+export function getEffectiveSendTime(targetDate: Date): Date {
+  const current = new Date(targetDate)
+  const maxAttempts = 14
+  let attempts = 0
+
+  while (attempts < maxAttempts) {
+    const brusselsTime = new Date(current.toLocaleString("en-US", { timeZone: "Europe/Brussels" }))
+    const day = brusselsTime.getDay() // 0 = Dimanche, 6 = Samedi
+    const hour = brusselsTime.getHours()
+    const minute = brusselsTime.getMinutes()
+
+    // Dimanche : fermé -> Lundi 08:00
+    if (day === 0) {
+      current.setDate(current.getDate() + 1)
+      current.setHours(8, 0, 0, 0)
+      attempts++
+      continue
+    }
+
+    // Samedi : 09:00 - 13:00
+    if (day === 6) {
+      if (hour < 9) {
+        current.setHours(9, 0, 0, 0)
+        return current
+      }
+      if (hour >= 13) {
+        current.setDate(current.getDate() + 2)
+        current.setHours(8, 0, 0, 0)
+        attempts++
+        continue
+      }
+      return current
+    }
+
+    // Lundi au Vendredi : 08:00 - 19:30
+    if (hour < 8) {
+      current.setHours(8, 0, 0, 0)
+      return current
+    }
+    if (hour > 19 || (hour === 19 && minute >= 30)) {
+      current.setDate(current.getDate() + 1)
+      current.setHours(8, 0, 0, 0)
+      attempts++
+      continue
+    }
+
+    return current
+  }
+  return current
+}
+
+/**
+ * Récupère le planning détaillé des relances programmées à venir (quels mails, à qui, dans combien de temps)
+ */
+export async function getUpcomingRelancesSchedule(): Promise<UpcomingRelanceItem[]> {
+  const supabase = createServiceRoleClient()
+  const now = Date.now()
+
+  // 1. Récupérer tous les leads en statut 'available'
+  const { data: availableLeads, error } = await supabase
+    .from("leads")
+    .select("*")
+    .eq("marketplace_status", "available")
+    .order("created_at", { ascending: false })
+
+  if (error || !availableLeads || availableLeads.length === 0) {
+    return []
+  }
+
+  // 2. Récupérer tous les achats existants pour vérifier les slots (hors tests)
+  const { data: allPurchases } = await supabase
+    .from("lead_purchases")
+    .select("lead_id, partner_id, partners(is_test, company_name)")
+
+  const purchasesByLead = new Map<string, string[]>()
+  for (const p of (allPurchases as any[]) || []) {
+    const partnerObj = Array.isArray(p.partners) ? p.partners[0] : p.partners
+    if (partnerObj?.is_test || partnerObj?.company_name?.toLowerCase().includes("test")) {
+      continue
+    }
+    const list = purchasesByLead.get(p.lead_id) || []
+    list.push(p.partner_id)
+    purchasesByLead.set(p.lead_id, list)
+  }
+
+  const upcomingItems: UpcomingRelanceItem[] = []
+
+  for (const lead of availableLeads) {
+    const currentWave = Number(lead.relance_wave) || 0
+    if (currentWave >= 3) {
+      // Toutes les vagues ont déjà été envoyées pour ce lead
+      continue
+    }
+
+    const nextWave = currentWave + 1
+    const isB2B = lead.segment === "B2B"
+    const maxSlots = isB2B ? MAX_SLOTS_B2B : MAX_SLOTS_B2C
+    const takenSlots = purchasesByLead.get(lead.id)?.length || 0
+
+    if (takenSlots >= maxSlots) {
+      // Déjà vendu complètement
+      continue
+    }
+
+    const remainingSlots = Math.max(0, maxSlots - takenSlots)
+
+    // Calculer la date théorique selon les cooldowns
+    let scheduledTimestamp = now
+    if (currentWave === 0) {
+      // Vague 1 : immédiat à la publication (ou maintenant si publication passée)
+      scheduledTimestamp = new Date(lead.created_at).getTime()
+    } else if (currentWave === 1) {
+      // Vague 2 : 4h après Vague 1
+      const base = lead.last_relance_at ? new Date(lead.last_relance_at).getTime() : new Date(lead.created_at).getTime()
+      scheduledTimestamp = base + COOLDOWN_WAVE_1_TO_2_MS
+    } else if (currentWave === 2) {
+      // Vague 3 : 20h après Vague 2
+      const base = lead.last_relance_at ? new Date(lead.last_relance_at).getTime() : new Date(lead.created_at).getTime()
+      scheduledTimestamp = base + COOLDOWN_WAVE_2_TO_3_MS
+    }
+
+    const rawScheduledDate = new Date(scheduledTimestamp)
+    const effectiveSendDate = getEffectiveSendTime(rawScheduledDate < new Date() ? new Date() : rawScheduledDate)
+    const msRemaining = Math.max(0, effectiveSendDate.getTime() - now)
+    const isReadyNow = now >= scheduledTimestamp && isWithinBusinessHours()
+
+    // Calculer les données financières
+    const creditCost = lead.credit_cost || calculateLeadCreditCost(lead)
+    const financials = calculateMarketplaceFinancials({
+      segment: lead.segment,
+      surfaceArea: lead.surface_area_m2 || lead.surface_area,
+      surfaceType: lead.surface_type,
+      annualBill: lead.annual_bill_eur || lead.annual_electricity_bill,
+      creditCost,
+    })
+
+    // Obtenir la liste des installateurs cibles éligibles
+    const candidates = await getEligiblePartnersForWave(supabase, lead, nextWave)
+    if (candidates.length === 0) {
+      continue
+    }
+
+    const targetRecipients = candidates.map((c) => ({
+      partnerId: c.partner.id,
+      companyName: c.partner.company_name,
+      email: c.partner.email,
+      phone: c.partner.phone || null,
+      credits: c.partner.credits || 0,
+      score: c.scoreInfo.score,
+      tier: c.scoreInfo.tier,
+      isExactProvince: c.scoreInfo.isExactProvince,
+      hasEnoughCredits: c.scoreInfo.hasEnoughCredits,
+      isTest: Boolean(c.isTest || c.partner.is_test || c.partner.company_name?.toLowerCase().includes("test")),
+    }))
+
+    // Calcul du quota réel ciblé (sans compter DEV TEST)
+    const realRecipientsCount = targetRecipients.filter((r) => !r.isTest).length
+
+    // Sujet d'email prévisionnel
+    const subjectPreview = buildLeadEmailSubject({
+      partner: {
+        id: targetRecipients[0]?.partnerId || "",
+        companyName: targetRecipients[0]?.companyName || "Installateur",
+        credits: targetRecipients[0]?.credits || 0,
+      },
+      lead: {
+        id: lead.id,
+        segment: lead.segment,
+        province: lead.province,
+        provinceFreeText: lead.province_free_text,
+        postalCode: lead.postal_code,
+        city: lead.city,
+        surfaceType: lead.surface_type,
+        surfaceArea: lead.surface_area_m2 || lead.surface_area || 0,
+        roofMaterial: lead.roof_material,
+        annualElectricityBill: lead.annual_bill_eur || lead.annual_electricity_bill || 0,
+        estimatedPowerKwc: financials.estimatedPowerKwc,
+        firstName: lead.first_name,
+        createdAt: lead.created_at,
+      },
+      waveNumber: nextWave,
+      takenSlots,
+      maxSlots,
+      creditCost,
+      financials,
+    })
+
+    upcomingItems.push({
+      id: `${lead.id}-wave-${nextWave}`,
+      leadId: lead.id,
+      lead: {
+        id: lead.id,
+        segment: lead.segment,
+        province: lead.province,
+        city: lead.city,
+        postalCode: lead.postal_code,
+        surfaceArea: lead.surface_area_m2 || lead.surface_area || null,
+        surfaceType: lead.surface_type,
+        annualElectricityBill: lead.annual_bill_eur || lead.annual_electricity_bill || null,
+        estimatedPowerKwc: financials.estimatedPowerKwc,
+        marginEur: financials.estimatedInstallerMargin,
+        creditCost,
+        createdAt: lead.created_at,
+      },
+      currentWave,
+      nextWave,
+      lastRelanceAt: lead.last_relance_at,
+      scheduledAt: rawScheduledDate.toISOString(),
+      effectiveSendAt: effectiveSendDate.toISOString(),
+      msRemaining,
+      isReadyNow,
+      takenSlots,
+      maxSlots,
+      remainingSlots,
+      targetCount: realRecipientsCount,
+      targetRecipients,
+      subjectPreview,
+    })
+  }
+
+  // Trier par échéance la plus proche (ceux prêts ou qui partent en premier)
+  upcomingItems.sort((a, b) => a.msRemaining - b.msRemaining)
+
+  return upcomingItems
+}
+
+/**
+ * Récupère l'historique de tous les e-mails de relance déjà envoyés (qui, quand, quoi, résultat)
+ */
+export async function getSentRelancesHistory(limit = 100): Promise<SentRelanceItem[]> {
+  const supabase = createServiceRoleClient()
+
+  let dispatches: any[] = []
+  try {
+    const { data, error } = await supabase
+      .from("lead_relance_dispatches")
+      .select(`
+        id,
+        lead_id,
+        partner_id,
+        wave_number,
+        email_to,
+        email_subject,
+        matching_score,
+        matching_tier,
+        credits_at_send,
+        sent_at,
+        opened_at,
+        clicked_at,
+        partners(id, company_name, email, phone, credits, is_test),
+        leads(id, segment, province, city, postal_code, marketplace_status, credit_cost, surface_area, annual_electricity_bill)
+      `)
+      .order("sent_at", { ascending: false })
+      .limit(limit)
+
+    if (!error && data) {
+      dispatches = data
+    }
+  } catch (err) {
+    console.error("[getSentRelancesHistory] error:", err)
+    return []
+  }
+
+  if (dispatches.length === 0) {
+    return []
+  }
+
+  // Vérifier les achats réels (hors comptes de test) pour déterminer l'outcome
+  const leadIds = Array.from(new Set(dispatches.map((d: any) => d.lead_id)))
+  const { data: purchases } = await supabase
+    .from("lead_purchases")
+    .select("lead_id, partner_id, partners(is_test, company_name)")
+    .in("lead_id", leadIds)
+
+  const purchasesMap = new Map<string, string[]>()
+  for (const p of (purchases as any[]) || []) {
+    const partnerObj = Array.isArray(p.partners) ? p.partners[0] : p.partners
+    if (partnerObj?.is_test || partnerObj?.company_name?.toLowerCase().includes("test")) {
+      continue
+    }
+    const list = purchasesMap.get(p.lead_id) || []
+    list.push(p.partner_id)
+    purchasesMap.set(p.lead_id, list)
+  }
+
+  return dispatches.map((d: any) => {
+    const lead = d.leads
+    const buyers = purchasesMap.get(d.lead_id) || []
+    const isB2B = lead?.segment === "B2B"
+    const maxSlots = isB2B ? MAX_SLOTS_B2B : MAX_SLOTS_B2C
+    const takenSlots = buyers.length
+    const isTest = Boolean(
+      d.partners?.is_test ||
+      d.partners?.company_name?.toLowerCase().includes("test") ||
+      d.email_to === "mrnathanrem@gmail.com"
+    )
+
+    let outcome: "purchased_by_recipient" | "purchased_by_other" | "available" | "sold_out" = "available"
+    if (buyers.includes(d.partner_id)) {
+      outcome = "purchased_by_recipient"
+    } else if (takenSlots >= maxSlots || lead?.marketplace_status === "sold_out") {
+      outcome = "sold_out"
+    } else if (takenSlots > 0) {
+      outcome = "purchased_by_other"
+    }
+
+    const financials = calculateMarketplaceFinancials({
+      segment: lead?.segment || "B2C",
+      surfaceArea: lead?.surface_area || 0,
+      annualBill: lead?.annual_electricity_bill || 0,
+      creditCost: lead?.credit_cost || 2,
+    })
+
+    return {
+      id: d.id,
+      leadId: d.lead_id,
+      partnerId: d.partner_id,
+      waveNumber: d.wave_number,
+      emailTo: d.email_to,
+      emailSubject: d.email_subject,
+      matchingScore: d.matching_score,
+      matchingTier: d.matching_tier,
+      creditsAtSend: d.credits_at_send,
+      sentAt: d.sent_at,
+      openedAt: d.opened_at,
+      clickedAt: d.clicked_at,
+      partner: d.partners
+        ? {
+            id: d.partners.id,
+            companyName: d.partners.company_name,
+            email: d.partners.email,
+            phone: d.partners.phone || null,
+            currentCredits: d.partners.credits || 0,
+          }
+        : null,
+      lead: lead
+        ? {
+            id: lead.id,
+            segment: lead.segment,
+            province: lead.province,
+            city: lead.city,
+            postalCode: lead.postal_code,
+            marketplaceStatus: lead.marketplace_status,
+            creditCost: lead.credit_cost || 2,
+            estimatedPowerKwc: financials.estimatedPowerKwc,
+            takenSlots,
+            maxSlots,
+          }
+        : null,
+      outcome,
+      isTest,
+    }
+  })
+}
+
+/**
+ * Calcule les indicateurs statistiques Bento globaux des relances
+ */
+export async function getRelancesOverviewStats(): Promise<RelancesOverviewStats> {
+  const supabase = createServiceRoleClient()
+  const now = new Date()
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
+
+  let totalSent = 0
+  let sentToday = 0
+  let sentW1 = 0
+  let sentW2 = 0
+  let sentW3 = 0
+  let purchasedFromRelanceCount = 0
+
+  try {
+    const { data: allDispatches } = await supabase
+      .from("lead_relance_dispatches")
+      .select("id, wave_number, sent_at, lead_id, partner_id, email_to, partners(is_test, company_name)")
+
+    if (allDispatches) {
+      // Exclure les envois de test des calculs statistiques de conversion et de volume
+      const realDispatches = allDispatches.filter((d: any) => {
+        const isTest =
+          d.partners?.is_test ||
+          d.partners?.company_name?.toLowerCase().includes("test") ||
+          d.email_to === "mrnathanrem@gmail.com"
+        return !isTest
+      })
+
+      totalSent = realDispatches.length
+      sentToday = realDispatches.filter((d: any) => d.sent_at >= startOfDay).length
+      sentW1 = realDispatches.filter((d: any) => d.wave_number === 1).length
+      sentW2 = realDispatches.filter((d: any) => d.wave_number === 2).length
+      sentW3 = realDispatches.filter((d: any) => d.wave_number === 3).length
+
+      // Taux d'attribution (uniquement sur les vrais achats et vrais dispatches)
+      const { data: purchases } = await supabase
+        .from("lead_purchases")
+        .select("lead_id, partner_id, partners(is_test, company_name)")
+
+      if (purchases) {
+        const realPurchases = purchases.filter(
+          (p: any) => !p.partners?.is_test && !p.partners?.company_name?.toLowerCase().includes("test")
+        )
+        const purchaseSet = new Set(realPurchases.map((p: any) => `${p.lead_id}:${p.partner_id}`))
+        purchasedFromRelanceCount = realDispatches.filter((d: any) => purchaseSet.has(`${d.lead_id}:${d.partner_id}`)).length
+      }
+    }
+  } catch (err) {
+    // Si la table est encore vide
+  }
+
+  // Calcul du planning à venir
+  const upcoming = await getUpcomingRelancesSchedule()
+  const upcomingWavesCount = upcoming.length
+  let upcomingRecipientsCount = 0
+  for (const item of upcoming) {
+    const realCount = item.targetRecipients.filter((r) => !r.isTest).length
+    upcomingRecipientsCount += realCount
+  }
+
+  const nextScheduledInMs = upcoming.length > 0 ? upcoming[0].msRemaining : null
+  const readyNowCount = upcoming.filter((u) => u.isReadyNow).length
+
+  // Leads uniques actuellement en cascade
+  const activeCascadesCount = new Set(upcoming.map((u) => u.leadId)).size
+
+  const conversionRatePercent = totalSent > 0 ? Math.round((purchasedFromRelanceCount / totalSent) * 100) : 0
+
+  return {
+    totalSentCount: totalSent,
+    sentTodayCount: sentToday,
+    sentWave1Count: sentW1,
+    sentWave2Count: sentW2,
+    sentWave3Count: sentW3,
+    upcomingWavesCount,
+    upcomingRecipientsCount,
+    nextScheduledInMs,
+    activeCascadesCount,
+    readyNowCount,
+    conversionRatePercent,
+    isBusinessHoursNow: isWithinBusinessHours(),
+  }
+}
+

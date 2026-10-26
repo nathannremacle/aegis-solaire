@@ -61,7 +61,7 @@ export function MobileStickyCta({
     <div
       aria-hidden={!showBar}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-40 border-t border-white/15 bg-[#001D3D]/95 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-lg transition-all duration-300 md:hidden",
+        "fixed inset-x-0 bottom-0 z-40 border-t border-white/15 bg-primary/95 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-lg transition-all duration-300 md:hidden",
         showBar
           ? "translate-y-0 opacity-100"
           : "pointer-events-none translate-y-full opacity-0"

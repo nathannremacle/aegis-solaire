@@ -111,29 +111,33 @@ Dès que la fonction PostgreSQL `purchase_marketplace_lead` enregistre le 3e ach
 
 ## 5. Direction Artistique du Mail : Homedeal vs Aegis Solaire
 
-L'e-mail produit par [`lib/email-templates/installer-lead-teaser.ts`](file:///c:/Users/mrnat/Documents/SaaS/Aegis%20Solaire/aegis-solaire-main/lib/email-templates/installer-lead-teaser.ts) respecte scrupuleusement la charte **Swiss Editorial & Trust** (`DESIGN.md` et `ui-strictness.md`) :
+L'e-mail produit par [`lib/email-templates/installer-lead-teaser.ts`](file:///c:/Users/mrnat/Documents/SaaS/Aegis%20Solaire/aegis-solaire-main/lib/email-templates/installer-lead-teaser.ts) respecte scrupuleusement la charte **Fintech Slate & Solar Trust** (`DESIGN.md` et `ui-strictness.md`), aligné sur les e-mails de confirmation de compte :
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  [LOGO AEGIS SOLAIRE]              RÉSEAU WALLON AGRÉÉ      │  (Fond Vert Forêt #0B2B22)
+│  [Liseré supérieur Cobalt Tech #2563EB / Or Solaire #F59E0B] │
 ├─────────────────────────────────────────────────────────────┤
-│  ATTRIBUTION STRICTEMENT LIMITÉE À 3 ARTISANS · #13427051   │  (Fond Grès Chaud #F0ECE3)
+│  [LOGO AEGIS SOLAIRE]            [⏳ PLUS QUE 2 PLACES]     │  (Fond Blanc Pur #FFFFFF)
 ├─────────────────────────────────────────────────────────────┤
-│  Bonjour Nathan Remacle,                                    │
-│  Un nouveau dossier de rénovation photovoltaïque hautement   │
-│  qualifié vient d'être validé à Herstal (Liège).            │
+│  RELANCE VAGUE 2 · OPPORTUNITÉ LOCALE · #13427051           │  (Surtitre Mono Or Solaire)
+│  Plus que 2 place(s) disponible(s) à Herstal (Liège)        │  (Titre Ardoise #0F172A)
 │                                                             │
-│         [ DÉBLOQUER CE DOSSIER SUR MON DASHBOARD → ]        │  (Bouton Vert Forêt #0B2B22)
+│  Bonjour Marc Dupont,                                       │
+│  Rappel : Le dossier photovoltaïque à Herstal dispose       │
+│  encore de 2 place(s) artisan disponible(s).                │
+│                                                             │
+│         [ DÉBLOQUER CE DOSSIER SUR MON DASHBOARD → ]        │  (Bouton Ardoise Sombre #0F172A)
+│  Accès immédiat · Coût du dossier : 2 crédits (~24.00 € HT) │  (Sous-titre mono)
 │                                                             │
 │  ┌───────────────────────────────────────────────────────┐  │
-│  │ Installation solaire à Herstal                     🔒 │  │  (Fiche Blanche #FFFFFF)
+│  │ Installation solaire à Herstal                     🔒 │  │  (Bento Blanc #FFFFFF)
 │  │ Madame, Monsieur Infantino · Liège (4040)             │  │
 │  │ [✓ Téléphone Contrôlé] [✓ Propriétaire] [✓ Satellite] │  │
 │  │───────────────────────────────────────────────────────│  │
 │  │ Segment : Résidentiel / B2C (Partagé max 3)           │  │
-│  │ Puissance estimée : 10 kWc                            │  │  (Chiffres en font-mono
-│  │ Surface toiture : 75 m² (Tuiles mécaniques)           │  │   tabular-nums)
-│  │ Facture annuelle : 2 850 € HT / an                    │  │
+│  │ Puissance estimée : 10 kWc (font-mono #2563EB)        │  │
+│  │ Surface toiture : 75 m² (Tuiles mécaniques)           │  │  (Chiffres en font-mono
+│  │ Facture annuelle : 2 850 € HT / an                    │  │   tabular-nums)
 │  │ Décisionnaire : Propriétaire occupant                 │  │
 │  │ Échéance : À moyen terme (3 à 6 mois)                 │  │
 │  │───────────────────────────────────────────────────────│  │
@@ -143,8 +147,8 @@ L'e-mail produit par [`lib/email-templates/installer-lead-teaser.ts`](file:///c:
 │  │ Téléphone : ********* [✓ Vérifié par Aegis]           │  │
 │  │ E-mail : ********* [✓ Vérifié par Aegis]              │  │
 │  │───────────────────────────────────────────────────────│  │
-│  │ ATTRIBUTION RESTREINTE À 3 ARTISANS MAXIMUM :         │  │
-│  │ [● Place 1 : Réservée] [○ Place 2 : LIBRE] [○ Place 3]│  │  (Jauge de Rareté)
+│  │ RÈGLE DE CONCURRENCE AEGIS SOLAIRE (MAX 3) :          │  │
+│  │ [● Place 1 : Réservée] [○ Place 2 : LIBRE] [○ Place 3]│  │  (Jauge de Rareté Bento)
 │  │───────────────────────────────────────────────────────│  │
 │  │ Valeur devis estimée : 11 700 € à 13 950 € HT         │  │
 │  │ Marge brute indicative : ~2 822 € HT                  │  │  (Rentabilité Installateur)
@@ -154,10 +158,10 @@ L'e-mail produit par [`lib/email-templates/installer-lead-teaser.ts`](file:///c:
 │         [ DÉBLOQUER LES COORDONNÉES COMPLÈTES → ]           │
 │  Votre solde : 24 crédits · Recharger mon pack de crédits   │
 │                                                             │
+│  🛠️ Assistance technique : Cellule Ingénierie Aegis Solaire │
 │  🛡️ Garantie Sérénité : Recrédit 24h si numéro erroné       │
-│  📞 Conseil technique sur ce chantier : Fabrice Remacle     │
 ├─────────────────────────────────────────────────────────────┤
-│  Aegis Solaire · INIT42 (Liège, BCE 1039.899.980)           │  (Pied de page institutionnel)
+│  Aegis Solaire · Plateforme éditée par INIT42 (Liège, BE)   │  (Pied de page institutionnel)
 └─────────────────────────────────────────────────────────────┘
 ```
 

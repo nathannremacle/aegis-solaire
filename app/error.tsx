@@ -17,7 +17,7 @@ export default function GlobalError({
   }, [error])
 
   return (
-    <div className="min-h-screen bg-[#001D3D] flex flex-col items-center justify-center px-4 py-16 text-center text-white font-sans">
+    <div className="min-h-screen bg-primary flex flex-col items-center justify-center px-4 py-16 text-center text-white font-sans">
       <div className="max-w-md w-full space-y-6">
         <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-destructive/20 border border-destructive/40 text-destructive mx-auto">
           <AlertTriangle className="h-8 w-8 text-amber-400" />
@@ -35,7 +35,7 @@ export default function GlobalError({
         <div className="flex flex-col sm:flex-row gap-3 pt-2 justify-center">
           <Button
             onClick={() => reset()}
-            className="h-11 bg-accent text-[#001D3D] hover:bg-[#e6a600] font-bold text-sm"
+            className="h-11 bg-accent text-accent-foreground hover:bg-accent/90 font-bold text-sm shadow-xs"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Réessayer

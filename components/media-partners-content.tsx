@@ -150,7 +150,7 @@ export function MediaPartnersContent() {
     <>
       {/* Hero — DA §4.2 */}
       <section
-        className="relative flex min-h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[#001D3D] sm:min-h-[calc(100dvh-5rem)] [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
+        className="relative flex min-h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-primary sm:min-h-[calc(100dvh-5rem)] [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
         style={{ viewTransitionName: "hero-section" }}
       >
         <ProgressiveHeroBackground
@@ -166,13 +166,13 @@ export function MediaPartnersContent() {
               "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.1) 100%)",
           }}
         />
-        <div className="pointer-events-none select-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,29,61,0.15)_0%,rgba(0,29,61,0.75)_100%)]" aria-hidden />
+        <div className="pointer-events-none select-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(15,23,42,0.15)_0%,rgba(15,23,42,0.85)_100%)]" aria-hidden />
 
         <div className="relative z-10 mx-auto flex max-w-5xl flex-1 items-center px-4 py-12 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
             <motion.div initial="hidden" animate="visible" custom={0} variants={fadeUp}>
-              <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-white/5 px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-accent backdrop-blur-md sm:text-sm">
-                <Euro className="h-4 w-4 text-accent" aria-hidden />
+              <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-500/10 px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-blue-400 backdrop-blur-md sm:text-sm">
+                <Euro className="h-4 w-4 text-blue-400" aria-hidden />
                 Programme partenaires média
               </span>
             </motion.div>
@@ -185,7 +185,7 @@ export function MediaPartnersContent() {
               className="mt-4 text-balance text-3xl font-extrabold tracking-tight text-white sm:text-5xl md:text-6xl"
             >
               Monétisez le{" "}
-              <span className="text-accent drop-shadow-[0_0_12px_rgba(255,184,0,0.35)]">solaire wallon</span>{" "}
+              <span className="text-blue-400">solaire wallon</span>{" "}
               sans frais fixes
             </motion.h1>
 
@@ -210,7 +210,7 @@ export function MediaPartnersContent() {
             >
               <a
                 href="#candidature"
-                className="group inline-flex h-14 items-center justify-center gap-2.5 rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 px-8 text-base font-bold text-[#001D3D] shadow-[0_4px_0_0_#b47e00,0_10px_20px_rgba(245,158,11,0.25)] transition-all duration-150 hover:from-amber-300 hover:to-amber-400 active:translate-y-1 active:shadow-[0_0_0_0_#b47e00]"
+                className="group inline-flex h-14 items-center justify-center gap-2.5 rounded-xl bg-accent px-8 text-base font-bold text-accent-foreground shadow-xs transition-all hover:bg-accent/90"
               >
                 Candidater au programme
                 <ArrowRight className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
@@ -219,7 +219,7 @@ export function MediaPartnersContent() {
                 href="/media-partners/login"
                 className="inline-flex h-14 items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-6 text-sm font-bold text-white backdrop-blur-md transition-all duration-200 hover:border-white/40 hover:bg-white/15"
               >
-                <KeyRound className="h-4 w-4 text-accent" />
+                <KeyRound className="h-4 w-4 text-blue-400" />
                 Espace affilié (Connexion)
               </Link>
               <a
@@ -243,7 +243,7 @@ export function MediaPartnersContent() {
                 { value: "7 j", label: "Cycle indicatif" },
               ].map((s) => (
                 <HeroTrustCard key={s.label}>
-                  <p className="font-sans text-2xl font-extrabold tabular-nums text-accent sm:text-3xl">{s.value}</p>
+                  <p className="font-mono text-2xl font-extrabold tabular-nums text-blue-400 sm:text-3xl">{s.value}</p>
                   <p className="mt-1 text-[11px] font-medium text-neutral-400 sm:text-xs">{s.label}</p>
                 </HeroTrustCard>
               ))}
@@ -266,7 +266,7 @@ export function MediaPartnersContent() {
             <span className="mb-3 inline-block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 sm:text-xs">
               Infrastructure
             </span>
-            <h2 className="text-2xl font-extrabold tracking-tight text-[#001D3D] sm:text-3xl lg:text-4xl">
+            <h2 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
               Une plateforme pensée pour la conversion
             </h2>
             <p className="mt-4 text-base text-muted-foreground sm:text-lg">
@@ -292,11 +292,11 @@ export function MediaPartnersContent() {
                     </div>
                     <card.accent className="h-5 w-5 text-slate-400 transition-colors group-hover:text-slate-600" />
                   </div>
-                  <h3 className="text-lg font-bold text-[#001D3D]">{card.title}</h3>
+                  <h3 className="text-lg font-bold text-foreground">{card.title}</h3>
                   <p className="mt-1 text-sm font-semibold text-accent">{card.subtitle}</p>
                   <p className="mt-4 flex-1 text-sm leading-relaxed text-muted-foreground">{card.description}</p>
                   <div className="mt-6 flex items-baseline gap-2 border-t border-slate-100 pt-5">
-                    <span className="font-sans text-2xl font-bold tabular-nums text-[#001D3D]">{card.stat}</span>
+                    <span className="font-mono text-2xl font-bold tabular-nums text-foreground">{card.stat}</span>
                     <span className="text-xs font-medium text-slate-400">{card.statLabel}</span>
                   </div>
                 </LightCard>
@@ -322,7 +322,7 @@ export function MediaPartnersContent() {
             <span className="mb-3 inline-block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 sm:text-xs">
               Commissions
             </span>
-            <h2 className="text-2xl font-extrabold tracking-tight text-[#001D3D] sm:text-3xl lg:text-4xl">
+            <h2 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
               Tarifs fixes par segment
             </h2>
             <p className="mt-4 text-base text-muted-foreground sm:text-lg">
@@ -346,7 +346,7 @@ export function MediaPartnersContent() {
                   <div className="mb-6 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100">
-                        <p.icon className="h-5 w-5 text-[#001D3D]" />
+                        <p.icon className="h-5 w-5 text-foreground" />
                       </div>
                       <span className="text-lg font-bold text-slate-900">Segment {p.segment}</span>
                     </div>
@@ -357,7 +357,7 @@ export function MediaPartnersContent() {
                     </span>
                   </div>
                   <div className="mb-4">
-                    <span className="font-sans text-4xl font-extrabold tabular-nums text-[#001D3D] sm:text-5xl">
+                    <span className="font-mono text-4xl font-extrabold tabular-nums text-foreground sm:text-5xl">
                       {p.amount}
                     </span>
                     <span className="ml-2 text-sm text-slate-500">{p.per}</span>
@@ -379,7 +379,7 @@ export function MediaPartnersContent() {
             <LightCard className="flex items-center gap-3 px-6 py-4">
               <Euro className="h-5 w-5 shrink-0 text-accent" />
               <p className="text-sm text-slate-600">
-                <strong className="text-[#001D3D]">Paiement hebdomadaire</strong> — virement SEPA. Modalités
+                <strong className="text-foreground">Paiement hebdomadaire</strong> — virement SEPA. Modalités
                 précisées au contrat partenaire.
               </p>
             </LightCard>
@@ -400,7 +400,7 @@ export function MediaPartnersContent() {
             <span className="mb-3 inline-block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 sm:text-xs">
               Processus
             </span>
-            <h2 className="text-2xl font-extrabold tracking-tight text-[#001D3D] sm:text-3xl lg:text-4xl">
+            <h2 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
               Quatre étapes
             </h2>
           </motion.div>
@@ -416,11 +416,11 @@ export function MediaPartnersContent() {
                 variants={scaleIn}
               >
                 <LightCard className="flex h-full flex-col p-7">
-                  <span className="mb-4 font-sans text-2xl font-black tabular-nums text-accent/25">{step.number}</span>
+                  <span className="mb-4 font-mono text-2xl font-black tabular-nums text-accent/25">{step.number}</span>
                   <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-accent/10 ring-1 ring-accent/20">
                     <step.icon className="h-5 w-5 text-accent" />
                   </div>
-                  <h3 className="text-lg font-bold text-[#001D3D]">{step.title}</h3>
+                  <h3 className="text-lg font-bold text-foreground">{step.title}</h3>
                   <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">{step.description}</p>
                 </LightCard>
               </motion.div>
@@ -432,7 +432,7 @@ export function MediaPartnersContent() {
       {/* Bloc CTA sombre — même famille que Benefits / Webinaire (DA §2.4) */}
       <section
         id="candidature"
-        className="relative scroll-mt-24 overflow-hidden bg-[radial-gradient(circle_at_top,rgba(0,29,61,1)_0%,rgba(0,10,25,1)_100%)] py-20 sm:py-28 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
+        className="relative scroll-mt-24 overflow-hidden bg-primary py-20 sm:py-28 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
       >
         <div className="pointer-events-none absolute inset-0 opacity-30">
           <div
@@ -443,7 +443,7 @@ export function MediaPartnersContent() {
             }}
           />
         </div>
-        <div className="absolute inset-0 bg-[#001D3D]/85" />
+        <div className="absolute inset-0 bg-primary/85" />
 
         <motion.div
           initial="hidden"
@@ -453,7 +453,7 @@ export function MediaPartnersContent() {
           variants={fadeUp}
           className="relative z-10 mx-auto max-w-2xl px-4 text-center"
         >
-          <Euro className="mx-auto mb-6 h-11 w-11 text-accent drop-shadow-[0_0_12px_rgba(255,184,0,0.5)]" />
+          <Euro className="mx-auto mb-6 h-11 w-11 text-blue-400" />
           <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">Candidature partenaire média</h2>
           <p className="mx-auto mt-5 max-w-lg text-neutral-300 sm:text-lg">
             Soumettez votre dossier : canaux, volumes indicatifs et expérience en acquisition qualifiée. Traitement sous 48h

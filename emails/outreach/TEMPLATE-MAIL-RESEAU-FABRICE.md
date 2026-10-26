@@ -44,7 +44,7 @@ Regarde les dossiers actuellement disponibles en Wallonie. Si tu as la moindre q
 À très bientôt,
 
 Fabrice Remacle
-Tél : +32 495 57 07 73
+Email : contact@aegissolaire.com
 ```
 
 *Note : Si l'option « Offre de crédits dans le message » est désactivée dans l'admin, le paragraphe « Comme on se connaît bien, je t'ai fait créditer... » est automatiquement retiré du texte.*
@@ -77,7 +77,7 @@ N'hésitez pas à consulter les dossiers actuellement disponibles en Wallonie. S
 Bien cordialement,
 
 Fabrice Remacle
-Tél : +32 495 57 07 73
+Email : contact@aegissolaire.com
 ```
 
 ---
@@ -87,7 +87,7 @@ Tél : +32 495 57 07 73
 
 **Texte WhatsApp :**
 ```text
-Salut [Prénom], c'est Fabrice Remacle. Je te conseille de t'inscrire sur Aegis Solaire, une plateforme sérieuse avec qui je collabore pour des chantiers solaires qualifiés en Wallonie (toiture & facture vérifiées, max 3 artisans, zéro commission). Je t'ai fait réserver 2 crédits offerts pour tester ton 1er dossier gratuit : [LIEN_PERSONNALISE] . Donne-moi un coup de fil sur mon portable (+32 495 57 07 73) si tu as la moindre question !
+Salut [Prénom], c'est Fabrice Remacle. Je te conseille de t'inscrire sur Aegis Solaire, une plateforme sérieuse avec qui je collabore pour des chantiers solaires qualifiés en Wallonie (toiture & facture vérifiées, max 3 artisans, zéro commission). Je t'ai fait réserver 2 crédits offerts pour tester ton 1er dossier gratuit : [LIEN_PERSONNALISE] . Écris-moi ou contacte l'équipe à contact@aegissolaire.com si tu as la moindre question !
 ```
 
 ---

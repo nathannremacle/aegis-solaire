@@ -2,63 +2,67 @@
 @import 'tw-animate-css';
 
 :root {
-  /* Surfaces : Pierre chaude éditoriale & Blanc pur pour les cartes actives */
-  --background: #FAF8F5;
-  --foreground: #111815;
+  /* Surfaces : Blanc pur & Gris ardoise clair ultra-net */
+  --background: #FFFFFF;
+  --foreground: #0F172A;
   --card: #FFFFFF;
-  --card-foreground: #111815;
+  --card-foreground: #0F172A;
   --popover: #FFFFFF;
-  --popover-foreground: #111815;
+  --popover-foreground: #0F172A;
 
-  /* Primary : Vert Forêt Institutionnel Profond (Autorité, Ingénierie, Durabilité) */
-  --primary: #0B2B22;
-  --primary-foreground: #FAF8F5;
+  /* Primary : Bleu Nuit Ardoise Profond (Rigueur, Autorité Institutionnelle & B2B) */
+  --primary: #0F172A;
+  --primary-foreground: #FFFFFF;
 
-  /* Secondary & Muted : Grès chaud / Ardoise minérale */
-  --secondary: #F0ECE3;
-  --secondary-foreground: #182722;
-  --muted: #F2EFE9;
-  --muted-foreground: #525E59;
+  /* Secondary & Muted : Surfaces Slate techniques */
+  --secondary: #F1F5F9;
+  --secondary-foreground: #0F172A;
+  --muted: #F8FAFC;
+  --muted-foreground: #64748B;
 
-  /* Accent : Ambre Solaire Éditorial (Chaleur, Énergie, Indicateurs clés) */
-  --accent: #D97706;
+  /* Accent : Bleu Cobalt Tech (Confiance bancaire, focus & conversion primaire) */
+  --accent: #2563EB;
   --accent-foreground: #FFFFFF;
 
-  /* États & Bordures architecturales */
-  --destructive: #B91C1C;
-  --destructive-foreground: #FAF8F5;
-  --border: #E2DDD3;
-  --input: #D5CFC4;
-  --ring: #0B2B22;
+  /* Accent Solaire : Or Solaire & Énergie (Indicateurs ROI, kWh, primes & gains) */
+  --accent-solar: #F59E0B;
+  --accent-solar-foreground: #0F172A;
+
+  /* États & Bordures nettes 1px */
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: #2563EB;
 
   /* Graphiques & Data-viz (Recharts / Simulateur ROI) */
-  --chart-1: #0B2B22; /* Vert Forêt */
-  --chart-2: #D97706; /* Ambre Solaire */
-  --chart-3: #2A5C4D; /* Pin Moyen */
-  --chart-4: #78716C; /* Pierre Grise */
-  --chart-5: #B45309; /* Ocre Foncé */
+  --chart-1: #2563EB; /* Cobalt Tech */
+  --chart-2: #F59E0B; /* Or Solaire */
+  --chart-3: #0F172A; /* Ardoise Profonde */
+  --chart-4: #10B981; /* Vert Économies */
+  --chart-5: #6366F1; /* Indigo Réseau */
 
-  /* Rayon de courbure : Sec et architectural (6px base) */
-  --radius: 0.375rem;
+  /* Rayon de courbure : Bento modulaire (12px base) */
+  --radius: 0.75rem;
 
   /* Statuts opérationnels (Pipeline & Litiges) */
-  --status-new: #3B5B7A;
-  --status-review: #B45309;
-  --status-qualified: #2A5C4D;
-  --status-distributed: #0B2B22;
-  --status-disputed: #B91C1C;
-  --status-converted: #4D7C0F;
-  --status-archived: #78716C;
+  --status-new: #2563EB;
+  --status-review: #D97706;
+  --status-qualified: #059669;
+  --status-distributed: #0F172A;
+  --status-disputed: #EF4444;
+  --status-converted: #10B981;
+  --status-archived: #64748B;
 
   /* Sidebar */
-  --sidebar: #FAF8F5;
-  --sidebar-foreground: #111815;
-  --sidebar-primary: #0B2B22;
-  --sidebar-primary-foreground: #FAF8F5;
-  --sidebar-accent: #F0ECE3;
-  --sidebar-accent-foreground: #182722;
-  --sidebar-border: #E2DDD3;
-  --sidebar-ring: #0B2B22;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #0F172A;
+  --sidebar-primary: #0F172A;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F1F5F9;
+  --sidebar-accent-foreground: #0F172A;
+  --sidebar-border: #E2E8F0;
+  --sidebar-ring: #2563EB;
 }
 
 @theme inline {
@@ -79,6 +83,8 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-solar: var(--accent-solar);
+  --color-accent-solar-foreground: var(--accent-solar-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);

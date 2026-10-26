@@ -190,6 +190,10 @@ export function AdminCommandMenu() {
               <span>Litiges & Qualité</span>
               <Kbd className="ml-auto font-mono text-[10px]">G D</Kbd>
             </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => router.push("/admin/relances"))}>
+              <span>Relances Mails & Cascades</span>
+              <Kbd className="ml-auto font-mono text-[10px]">G R</Kbd>
+            </CommandItem>
             <CommandItem onSelect={() => runCommand(() => router.push("/admin/partners"))}>
               <span>Installateurs & Capacité</span>
               <Kbd className="ml-auto font-mono text-[10px]">G I</Kbd>

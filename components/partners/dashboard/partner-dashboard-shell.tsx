@@ -4,16 +4,17 @@ import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
 import dynamic from "next/dynamic"
-import { Coins, Store, Briefcase, Bell, Award, LogOut, FileText, ShieldCheck } from "lucide-react"
+import { Coins, Store, Briefcase, Bell, Award, LogOut, FileText, ShieldCheck, Leaf, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MarketplaceFeedView } from "./marketplace-feed-view"
 import { CrmPortfolioView } from "./crm-portfolio-view"
 
-// Code-splitting : ces 4 modales ne sont téléchargées par le navigateur qu'à la demande
+// Code-splitting : ces modales ne sont téléchargées par le navigateur qu'à la demande
 const DisputeClaimModal = dynamic(() => import("./modals/dispute-claim-modal"), { ssr: false })
 const AlertPreferencesModal = dynamic(() => import("./modals/alert-preferences-modal"), { ssr: false })
 const CreditPacksModal = dynamic(() => import("./modals/credit-packs-modal"), { ssr: false })
 const PartnerTierModal = dynamic(() => import("./modals/partner-tier-modal"), { ssr: false })
+const ExpertStudyModal = dynamic(() => import("./modals/expert-study-modal"), { ssr: false })
 
 export interface PartnerDashboardShellProps {
   initialPartner: any
@@ -48,167 +49,245 @@ export function PartnerDashboardShell({
   const [isPrefsOpen, setIsPrefsOpen] = React.useState(false)
   const [isCreditsOpen, setIsCreditsOpen] = React.useState(false)
   const [isTierOpen, setIsTierOpen] = React.useState(false)
+  const [isExpertOpen, setIsExpertOpen] = React.useState(false)
+  const [selectedLeadForExpert, setSelectedLeadForExpert] = React.useState<any | null>(null)
 
   return (
-    <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6 px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
-      {/* 1. En-tête Institutionnel & Profil Installateur (Optimisé Mobile 360px+) */}
-      <header className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3.5 sm:p-5 shadow-xs">
-        {/* Ligne 1 : Logo Aegis + Déconnexion */}
-        <div className="flex items-center justify-between gap-3">
-          <Link href="/" className="relative h-8 w-28 sm:h-9 sm:w-36 shrink-0" title="Retour au site Aegis Solaire">
-            <Image
-              src="/logo.png"
-              alt="Aegis Solaire"
-              fill
-              className="object-contain object-left"
-              priority
-            />
-          </Link>
-
-          <form action="/api/partners/logout" method="POST">
-            <Button
-              variant="ghost"
-              size="sm"
-              type="submit"
-              className="text-xs text-muted-foreground hover:text-foreground h-8 px-2.5 cursor-pointer"
-              title="Déconnexion de l'espace partenaire"
+    <div className="min-h-screen bg-background">
+      {/* ── 1. Topbar Applicative Unique (64px) — Gain de 220px utiles dès le chargement ── */}
+      <header className="sticky top-0 z-40 w-full border-b border-border bg-card/95 backdrop-blur-md shadow-2xs">
+        <div className="mx-auto flex h-16 max-w-[1720px] items-center justify-between gap-2 sm:gap-3 px-2.5 sm:px-6 lg:px-8">
+          {/* Gauche : Logo Aegis + Navigation par Onglets Intégrés */}
+          <div className="flex items-center gap-2 sm:gap-6 min-w-0">
+            <Link
+              href="/"
+              className="relative h-7 w-20 sm:h-9 sm:w-32 shrink-0 transition-opacity hover:opacity-90"
+              title="Retour au site Aegis Solaire"
             >
-              <LogOut className="h-3.5 w-3.5 sm:mr-1.5" />
-              <span className="hidden sm:inline">Quitter</span>
-            </Button>
-          </form>
-        </div>
+              <Image
+                src="/logo.png"
+                alt="Aegis Solaire"
+                fill
+                className="object-contain object-left"
+                priority
+              />
+            </Link>
 
-        {/* Ligne 2 : Identité installateur & Solde interactif */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2.5 border-t border-border/70">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-sm sm:text-base font-bold text-foreground">
-                {initialPartner?.company_name || "Espace Partenaire Installateur"}
-              </h1>
-              <span className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-[11px] font-mono font-semibold text-foreground border border-border">
-                <ShieldCheck className="h-3 w-3 text-primary shrink-0" />
-                {initialPartner?.segment === "B2B" ? "Partenaire B2B" : "Artisan Agréé"}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Marketplace de chantiers qualifiés Wallonie &amp; Suivi CRM terrain
-            </p>
+            {/* Navigation Tabs Intégrée */}
+            <nav aria-label="Espaces du portail" className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab("marketplace")}
+                className={`flex items-center gap-1 sm:gap-2 rounded-xl px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === "marketplace"
+                    ? "bg-primary text-primary-foreground font-bold shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                }`}
+              >
+                <Store className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-accent shrink-0" />
+                <span className="hidden sm:inline">Marketplace</span>
+                <span className="sm:hidden text-xs">Market</span>
+                <span
+                  className={`rounded-full px-1.5 py-0.2 text-[10px] sm:text-[11px] font-mono font-bold tabular-nums shrink-0 ${
+                    activeTab === "marketplace"
+                      ? "bg-primary-foreground/20 text-primary-foreground"
+                      : "bg-secondary text-foreground"
+                  }`}
+                >
+                  {marketplace.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("portfolio")}
+                className={`flex items-center gap-1 sm:gap-2 rounded-xl px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === "portfolio"
+                    ? "bg-primary text-primary-foreground font-bold shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                }`}
+              >
+                <Briefcase className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-accent shrink-0" />
+                <span className="hidden sm:inline">Mon CRM</span>
+                <span className="sm:hidden text-xs">CRM</span>
+                <span
+                  className={`rounded-full px-1.5 py-0.2 text-[10px] sm:text-[11px] font-mono font-bold tabular-nums shrink-0 ${
+                    activeTab === "portfolio"
+                      ? "bg-primary-foreground/20 text-primary-foreground"
+                      : "bg-secondary text-foreground"
+                  }`}
+                >
+                  {portfolio.length}
+                </span>
+              </button>
+
+              {/* Raccourcis Outils */}
+              <button
+                type="button"
+                onClick={() => setIsPrefsOpen(true)}
+                className="hidden md:inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer"
+                title="Gérer mes alertes e-mail et SMS"
+              >
+                <Bell className="h-3.5 w-3.5 text-accent shrink-0" />
+                <span>Alertes</span>
+              </button>
+
+              <Link
+                href="/partenaires/dashboard/credits"
+                className="hidden md:inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all"
+                title="Historique des factures et achats de packs"
+              >
+                <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span>Factures</span>
+              </Link>
+
+              {/* Raccourci Aide Expert & Étude */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedLeadForExpert(null)
+                  setIsExpertOpen(true)
+                }}
+                className="flex items-center gap-1 sm:gap-1.5 rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/20 px-2 sm:px-2.5 py-1.5 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs"
+                title="Demander l'aide d'un expert Aegis Solaire (étude de marché, dimensionnement, rentabilité B2B)"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
+                <span className="hidden sm:inline">Aide Expert</span>
+                <span className="sm:hidden text-xs">Expert</span>
+                <span className="hidden md:inline rounded bg-accent/20 text-accent font-mono text-[9px] px-1 py-0.2 uppercase font-extrabold tracking-wider">
+                  Inclus
+                </span>
+              </button>
+            </nav>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsCreditsOpen(true)}
-            className="flex items-center justify-between sm:justify-start gap-2.5 rounded-xl border border-accent/40 bg-accent/10 px-3.5 py-2 text-xs font-bold text-foreground hover:bg-accent/20 transition-colors shadow-2xs cursor-pointer w-full sm:w-auto"
-            title="Gérer mes crédits de déblocage"
-          >
-            <div className="flex items-center gap-2">
-              <Coins className="h-4 w-4 text-accent shrink-0" />
+          {/* Droite : Badge Statut, Solde Portefeuille & Menu Profil */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            {/* Badge de statut partenaire (cliquable vers le palier) */}
+            <button
+              type="button"
+              onClick={() => setIsTierOpen(true)}
+              className="hidden lg:inline-flex items-center gap-1.5 rounded-xl border border-border bg-secondary/50 hover:bg-secondary px-2.5 py-1 text-xs font-medium text-foreground transition-all cursor-pointer"
+              title="Consulter mon palier et mes avantages installateur"
+            >
+              <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span className="font-semibold truncate max-w-[140px]">
+                {initialPartner?.segment === "B2B" ? "Partenaire B2B" : "Artisan Agréé"}
+              </span>
+            </button>
+
+            {/* Composant Unique du Portefeuille (Coins + Montant + CTA Recharger) */}
+            <button
+              type="button"
+              onClick={() => setIsCreditsOpen(true)}
+              className="flex items-center gap-1.5 sm:gap-2 rounded-xl border border-accent/30 bg-accent/10 hover:bg-accent/15 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs"
+              title="Gérer mes crédits de déblocage"
+            >
+              <Coins className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-accent shrink-0" />
               <span className="font-mono tabular-nums text-foreground">{credits}</span>
-              <span className="text-muted-foreground font-normal">crédits</span>
-            </div>
-            <span className="rounded bg-accent text-accent-foreground px-2 py-0.5 text-[10px] font-bold">
-              Recharger
-            </span>
-          </button>
+              <span className="hidden sm:inline text-muted-foreground font-normal">crédits</span>
+              <span className="rounded-md bg-accent text-accent-foreground px-1 sm:px-1.5 py-0.5 text-[10px] font-bold tracking-tight">
+                <span className="hidden sm:inline">+ Recharger</span>
+                <span className="sm:hidden">+</span>
+              </span>
+            </button>
+
+            {/* Menu déconnexion compact */}
+            <form action="/api/partners/logout" method="POST">
+              <Button
+                variant="ghost"
+                size="sm"
+                type="submit"
+                className="h-8 w-8 sm:w-auto p-0 sm:px-2.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                title="Déconnexion de l'espace partenaire"
+              >
+                <LogOut className="h-3.5 w-3.5 sm:mr-1.5" />
+                <span className="hidden sm:inline">Quitter</span>
+              </Button>
+            </form>
+          </div>
         </div>
       </header>
 
-      {/* 2. Barre de Navigation Mobile-First (Tabs 50/50 + Outils 3 colonnes) */}
-      <div className="flex flex-col gap-2.5 rounded-2xl border border-border bg-card p-2 sm:p-3 shadow-xs">
-        {/* Switcher 2 onglets tactiles pleine largeur */}
-        <nav aria-label="Sections du portail" className="grid grid-cols-2 gap-1 rounded-xl bg-secondary p-1 border border-border">
-          <button
-            type="button"
-            onClick={() => setActiveTab("marketplace")}
-            className={`flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg py-2.5 px-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-              activeTab === "marketplace"
-                ? "bg-primary text-primary-foreground shadow-xs font-bold"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Store className="h-4 w-4 text-accent shrink-0" />
-            <span className="truncate">Marketplace</span>
-            <span className="rounded-full bg-card/25 px-1.5 py-0.5 text-[11px] font-mono font-bold tabular-nums shrink-0">
-              {marketplace.length}
-            </span>
-          </button>
+      {/* ── 2. Contenu Principal ── */}
+      <main className="mx-auto max-w-[1720px] px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
+        {/* En-tête Institutionnel avec H1 Unique et Bannière Énergie Propre */}
+        <div className="mb-5 sm:mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-border/80 pb-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] sm:text-xs uppercase tracking-wider text-accent font-semibold">
+                RÉSEAU OFFICIEL · INSTALLATEURS WALLONIE
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Flux Direct
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-extrabold tracking-tight text-foreground">
+              {activeTab === "marketplace"
+                ? "Marketplace des Chantiers Photovoltaïques"
+                : "Portefeuille & Suivi Commercial"}
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              {activeTab === "marketplace"
+                ? "Projets solaires qualifiés en Wallonie : fiches techniques détaillées, puissance kWc et coordonnées directes vérifiées."
+                : "Dossiers débloqués, coordonnées complètes des décideurs et suivi des relances."}
+            </p>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("portfolio")}
-            className={`flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg py-2.5 px-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-              activeTab === "portfolio"
-                ? "bg-primary text-primary-foreground shadow-xs font-bold"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Briefcase className="h-4 w-4 text-accent shrink-0" />
-            <span className="truncate">Mon CRM</span>
-            <span className="rounded-full bg-card/25 px-1.5 py-0.5 text-[11px] font-mono font-bold tabular-nums shrink-0">
-              {portfolio.length}
-            </span>
-          </button>
-        </nav>
-
-        {/* Outils secondaires : 3 colonnes tactiles sur mobile, alignés à droite sur desktop */}
-        <div className="grid grid-cols-3 gap-1.5 sm:flex sm:items-center sm:justify-end sm:gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsPrefsOpen(true)}
-            className="text-[11px] sm:text-xs h-9 px-2 cursor-pointer justify-center"
-          >
-            <Bell className="h-3.5 w-3.5 sm:mr-1.5 text-accent shrink-0" />
-            <span className="truncate">Alertes</span>
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsTierOpen(true)}
-            className="text-[11px] sm:text-xs h-9 px-2 cursor-pointer justify-center"
-          >
-            <Award className="h-3.5 w-3.5 sm:mr-1.5 text-accent shrink-0" />
-            <span className="truncate">Palier</span>
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            className="text-[11px] sm:text-xs h-9 px-2 cursor-pointer justify-center"
-          >
-            <Link href="/partenaires/dashboard/credits">
-              <FileText className="h-3.5 w-3.5 sm:mr-1.5 text-muted-foreground shrink-0" />
-              <span className="truncate">Factures</span>
-            </Link>
-          </Button>
+          {activeTab === "marketplace" && (
+            <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-r from-emerald-50/70 via-card to-card p-3 sm:p-3.5 shadow-xs flex items-center gap-3.5 max-w-md shrink-0">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600">
+                <Leaf className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 pr-12">
+                <h3 className="text-xs sm:text-sm font-bold text-foreground">Une énergie plus propre</h3>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  Ensemble pour la transition énergétique en Wallonie.
+                </p>
+              </div>
+              <div
+                className="absolute right-0 top-0 bottom-0 w-24 opacity-25 pointer-events-none bg-cover bg-center"
+                style={{
+                  backgroundImage:
+                    "url('https://images.unsplash.com/photo-1509391365360-2e959784a276?q=40&w=300&auto=format&fit=crop')",
+                }}
+              />
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* 3. Vue active */}
-      {activeTab === "marketplace" ? (
-        <MarketplaceFeedView
-          leads={marketplace}
-          partnerCredits={credits}
-          targetLeadId={targetLeadId}
-          onPurchaseSuccess={(purchasedLead, newCredits, newPurchaseRecord) => {
-            setCredits(newCredits)
-            setMarketplace((prev) => prev.filter((item) => item.id !== purchasedLead.id))
-            setPortfolio((prev) => [newPurchaseRecord, ...prev])
-            setActiveTab("portfolio")
-          }}
-          onRequestTopUp={() => setIsCreditsOpen(true)}
-        />
-      ) : (
-        <CrmPortfolioView
-          purchases={portfolio}
-          onOpenDispute={(purchase) => setDisputePurchase(purchase)}
-        />
-      )}
+        {activeTab === "marketplace" ? (
+          <MarketplaceFeedView
+            leads={marketplace}
+            partnerCredits={credits}
+            targetLeadId={targetLeadId}
+            onPurchaseSuccess={(purchasedLead, newCredits, newPurchaseRecord) => {
+              setCredits(newCredits)
+              setMarketplace((prev) => prev.filter((item) => item.id !== purchasedLead.id))
+              setPortfolio((prev) => [newPurchaseRecord, ...prev])
+              setActiveTab("portfolio")
+            }}
+            onRequestTopUp={() => setIsCreditsOpen(true)}
+            onOpenExpertModal={(lead) => {
+              setSelectedLeadForExpert(lead || null)
+              setIsExpertOpen(true)
+            }}
+          />
+        ) : (
+          <CrmPortfolioView
+            purchases={portfolio}
+            onOpenDispute={(purchase) => setDisputePurchase(purchase)}
+            onExploreMarketplace={() => setActiveTab("marketplace")}
+            onOpenExpertModal={(lead) => {
+              setSelectedLeadForExpert(lead || null)
+              setIsExpertOpen(true)
+            }}
+          />
+        )}
+      </main>
 
-      {/* 4. Modales chargées à la demande uniquement */}
+      {/* ── 3. Modales chargées à la demande uniquement ── */}
       {disputePurchase && (
         <DisputeClaimModal
           purchase={disputePurchase}
@@ -231,6 +310,17 @@ export function PartnerDashboardShell({
         <PartnerTierModal
           partner={initialPartner}
           onClose={() => setIsTierOpen(false)}
+        />
+      )}
+      {isExpertOpen && (
+        <ExpertStudyModal
+          partner={initialPartner}
+          purchases={portfolio}
+          initialLead={selectedLeadForExpert}
+          onClose={() => {
+            setIsExpertOpen(false)
+            setSelectedLeadForExpert(null)
+          }}
         />
       )}
     </div>

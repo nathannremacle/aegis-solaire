@@ -402,29 +402,29 @@ export function ROISimulator() {
   if (submitted && results) {
     const calendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL || "#"
     return (
-      <section id="simulator" className="scroll-mt-24 overflow-hidden relative bg-[radial-gradient(circle_at_top,rgba(0,29,61,1)_0%,rgba(0,10,25,1)_100%)] py-16 sm:py-32 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
+      <section id="simulator" className="scroll-mt-24 overflow-hidden relative bg-primary py-16 sm:py-32 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1548618753-157945d81c4e?q=40&w=800&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay" />
         <div className="mx-auto max-w-4xl min-w-0 px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.8, type: "spring", bounce: 0.4 }}
-            className="min-w-0 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_0_50px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:p-10 md:p-12 lg:p-16"
+            className="min-w-0 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-sm backdrop-blur-xl sm:p-10 md:p-12 lg:p-16"
           >
             <div className="mb-8 flex items-center justify-center">
               <motion.div 
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: "spring", stiffness: 200, delay: 0.3 }}
-                className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-accent to-amber-600 shadow-[0_0_30px_rgba(255,184,0,0.5)]"
+                className="flex h-20 w-20 items-center justify-center rounded-2xl bg-accent shadow-xs"
               >
-                <CheckCircle2 className="h-10 w-10 text-black" />
+                <CheckCircle2 className="h-10 w-10 text-accent-foreground" />
               </motion.div>
             </div>
 
-            <h4 className="mb-4 text-center text-2xl font-extrabold tracking-tight text-white sm:text-3xl md:text-5xl drop-shadow-lg">
+            <h2 className="mb-4 text-center text-2xl font-extrabold tracking-tight text-white sm:text-3xl md:text-5xl drop-shadow-lg">
               Votre étude d'éligibilité est confirmée !
-            </h4>
+            </h2>
             <p className="mb-10 text-center text-base font-medium text-neutral-300 sm:mb-12 sm:text-lg max-w-2xl mx-auto">
               Un expert partenaire d&apos;Aegis Solaire vous recontacte sous 24 à 48 h pour vous présenter le dossier technique (Certificats Verts, raccordement GRD et montage financier).
             </p>
@@ -432,9 +432,9 @@ export function ROISimulator() {
             <div className="mb-10 grid min-w-0 grid-cols-2 gap-4 sm:mb-12 sm:grid-cols-4 sm:gap-6">
               <motion.div 
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-                className="flex flex-col items-center justify-center rounded-2xl bg-gradient-to-b from-accent/20 to-transparent p-4 text-center border border-accent/20 sm:p-5"
+                className="flex flex-col items-center justify-center rounded-2xl bg-gradient-to-b from-blue-500/20 to-transparent p-4 text-center border border-blue-400/30 sm:p-5"
               >
-                <div className="flex items-baseline justify-center gap-1.5 whitespace-nowrap text-3xl font-extrabold text-accent drop-shadow sm:text-4xl">
+                <div className="font-mono tabular-nums flex items-baseline justify-center gap-1.5 whitespace-nowrap text-3xl font-extrabold text-blue-400 drop-shadow sm:text-4xl">
                   <AnimatedCounter value={results.estimatedROIYears} format={(v) => v.toFixed(1)} /> <span className="text-xl font-bold">ans</span>
                 </div>
                 <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-neutral-300 sm:text-xs">TRI indicatif</p>
@@ -443,7 +443,7 @@ export function ROISimulator() {
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
                 className="flex flex-col items-center justify-center rounded-2xl bg-gradient-to-b from-white/10 to-transparent p-4 text-center border border-white/10 sm:p-5"
               >
-                <div className="flex items-baseline justify-center gap-1.5 whitespace-nowrap text-3xl font-extrabold text-white drop-shadow sm:text-4xl">
+                <div className="font-mono tabular-nums flex items-baseline justify-center gap-1.5 whitespace-nowrap text-3xl font-extrabold text-white drop-shadow sm:text-4xl">
                   <AnimatedCounter value={results.autoconsumptionRate} /> <span className="text-xl font-bold">%</span>
                 </div>
                 <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-neutral-300 sm:text-xs">Autoconso.</p>
@@ -452,7 +452,7 @@ export function ROISimulator() {
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
                 className="flex flex-col items-center justify-center col-span-2 rounded-2xl bg-gradient-to-b from-white/10 to-transparent p-4 text-center border border-white/10 sm:col-span-1 sm:p-5"
               >
-                <div className="flex items-baseline justify-center gap-1.5 whitespace-nowrap text-3xl font-extrabold text-white drop-shadow sm:text-4xl">
+                <div className="font-mono tabular-nums flex items-baseline justify-center gap-1.5 whitespace-nowrap text-3xl font-extrabold text-white drop-shadow sm:text-4xl">
                   <AnimatedCounter value={results.estimatedSavings} /> <span className="text-xl font-bold">€</span>
                 </div>
                 <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-neutral-300 sm:text-xs">Économies / an</p>
@@ -461,7 +461,7 @@ export function ROISimulator() {
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}
                 className="flex flex-col items-center justify-center col-span-2 rounded-2xl bg-gradient-to-b from-white/10 to-transparent p-4 text-center border border-white/10 sm:col-span-1 sm:p-5"
               >
-                <div className="flex items-baseline justify-center gap-1.5 whitespace-nowrap text-3xl font-extrabold text-white drop-shadow sm:text-4xl">
+                <div className="font-mono tabular-nums flex items-baseline justify-center gap-1.5 whitespace-nowrap text-3xl font-extrabold text-white drop-shadow sm:text-4xl">
                   <AnimatedCounter value={results.installedPower} /> <span className="text-xl font-bold">kWc</span>
                 </div>
                 <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-neutral-300 sm:text-xs">Puissance</p>
@@ -471,7 +471,7 @@ export function ROISimulator() {
             {/* Note de transparence méthodologique */}
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }} className="mt-8 rounded-xl border border-white/10 bg-white/5 p-4 text-xs leading-relaxed text-neutral-300">
               <div className="flex items-start gap-2.5">
-                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#FFB800]" />
+                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-blue-400" />
                 <p>
                   <strong className="text-white">Méthodologie Aegis Solaire :</strong> Cette estimation repose sur une approche prudente intégrant les tarifs des gestionnaires de réseau wallons (Ores, Resa, AIEG) et une dégradation linéaire constructeur garantie sur 25 ans. Un audit technique sur site par un ingénieur certifié <strong className="text-white">RESCERT</strong> permettra de figer votre offre financière définitive.
                 </p>
@@ -484,7 +484,7 @@ export function ROISimulator() {
                   href={calendlyUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex min-h-[56px] w-full min-w-0 items-center justify-center rounded-xl bg-accent px-6 py-4 text-center font-bold text-[#001D3D] shadow-[0_0_20px_rgba(255,184,0,0.4)] transition-all hover:scale-105 hover:bg-accent/90 hover:shadow-[0_0_30px_rgba(255,184,0,0.6)] sm:w-auto sm:px-10"
+                  className="inline-flex min-h-[56px] w-full min-w-0 items-center justify-center rounded-xl bg-accent px-6 py-4 text-center font-bold text-accent-foreground shadow-xs transition-all hover:bg-accent/90 sm:w-auto sm:px-10"
                 >
                   <span className="break-words">Bloquer mon appel stratégique de 10 min. (Prioritaire)</span>
                 </a>
@@ -504,9 +504,9 @@ export function ROISimulator() {
     >
       <div className="mx-auto max-w-3xl min-w-0 px-4 sm:px-6 lg:px-8">
         <div className="mb-6 text-center sm:mb-8">
-          <h4 id="simulator-title" className="text-2xl font-bold tracking-tight text-primary-foreground sm:text-3xl md:text-4xl">
+          <h2 id="simulator-title" className="text-2xl font-bold tracking-tight text-primary-foreground sm:text-3xl md:text-4xl">
             Simulez votre projet solaire en Wallonie
-          </h4>
+          </h2>
           <p className="mt-3 text-base text-primary-foreground/80 sm:mt-4 sm:text-lg">
             Quelques questions pour une première lecture ROI — puis votre étude de faisabilité wallonne.
           </p>
@@ -854,9 +854,9 @@ export function ROISimulator() {
                     </div>
 
                     {/* BANDEAU DE PRÉ-CALCUL TECHNIQUE DÉBLOQUÉ (Teaser Before Gate) */}
-                    <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-[#001D3D] to-[#082d56] p-5 text-white shadow-md">
+                    <div className="rounded-xl border border-primary/20 bg-primary p-5 text-white shadow-md">
                       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/15 pb-3">
-                        <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#FFB800]">
+                        <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-400">
                           <Zap className="h-4 w-4" />
                           Pré-dimensionnement technique calculé ({provinceLabel} • Réseau {formData.grd || "Wallonie"})
                         </span>
@@ -868,21 +868,21 @@ export function ROISimulator() {
                       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
                         <div className="rounded-lg bg-white/10 p-3.5 backdrop-blur-xs">
                           <p className="text-xs text-neutral-300">Puissance installable estimée</p>
-                          <p className="mt-1 text-2xl font-bold text-white">{previewResults.installedPower.toLocaleString("fr-BE")} kWc</p>
+                          <p className="mt-1 font-mono tabular-nums text-2xl font-bold text-white">{previewResults.installedPower.toLocaleString("fr-BE")} kWc</p>
                         </div>
                         <div className="rounded-lg bg-white/10 p-3.5 backdrop-blur-xs">
                           <p className="text-xs text-neutral-300">Production annuelle cible</p>
-                          <p className="mt-1 text-2xl font-bold text-[#FFB800]">{previewResults.annualProduction.toLocaleString("fr-BE")} kWh/an</p>
+                          <p className="mt-1 font-mono tabular-nums text-2xl font-bold text-blue-400">{previewResults.annualProduction.toLocaleString("fr-BE")} kWh/an</p>
                         </div>
-                        <div className="relative overflow-hidden rounded-lg border border-[#FFB800]/40 bg-white/5 p-3.5">
+                        <div className="relative overflow-hidden rounded-lg border border-blue-400/40 bg-white/5 p-3.5">
                           <div className="flex items-center justify-between">
                             <p className="text-xs text-neutral-300">Gain net &amp; Certificats CWaPE</p>
-                            <Lock className="h-3.5 w-3.5 text-[#FFB800]" />
+                            <Lock className="h-3.5 w-3.5 text-blue-400" />
                           </div>
-                          <p className="mt-1 select-none text-lg font-bold text-white/40 blur-[4px]">
+                          <p className="mt-1 select-none font-mono tabular-nums text-lg font-bold text-white/40 blur-[4px]">
                             {previewResults.estimatedSavings.toLocaleString("fr-BE")} € / an • ROI {previewResults.estimatedROIYears} ans
                           </p>
-                          <span className="mt-1 inline-block text-[11px] font-medium text-[#FFB800]">
+                          <span className="mt-1 inline-block text-[11px] font-medium text-blue-400">
                             Débloqué dès validation
                           </span>
                         </div>
@@ -890,9 +890,9 @@ export function ROISimulator() {
                     </div>
 
                     <div>
-                      <h4 className="text-lg font-bold text-[#001D3D] sm:text-xl">
+                      <h3 className="text-lg font-bold text-foreground sm:text-xl">
                         Où devons-nous afficher et envoyer votre étude de rentabilité B2B ?
-                      </h4>
+                      </h3>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Accès immédiat à votre simulation d&apos;autoconsommation, aides Easy&apos;Green et déduction fiscale à 40%.
                       </p>
@@ -914,7 +914,7 @@ export function ROISimulator() {
                             }}
                             className={`h-11 rounded-lg border px-3 text-xs font-semibold transition-all ${
                               formData.jobTitle === role
-                                ? "border-[#001D3D] bg-[#001D3D] text-white shadow-xs"
+                                ? "border-primary bg-primary text-primary-foreground shadow-xs"
                                 : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300"
                             }`}
                           >
@@ -1141,7 +1141,7 @@ export function ROISimulator() {
                           <a href="/partenaires" className="underline font-medium hover:text-accent" target="_blank">
                             réseau de partenaires Aegis Solaire
                           </a>{" "}
-                          afin d&apos;obtenir une étude de faisabilité chiffrée pour mon projet. Je suis informé(e) qu&apos;Aegis Solaire (exploitée par Nathan Remacle / INIT42) agit en qualité d&apos;intermédiaire rémunéré par les installateurs partenaires et je consens à la transmission de mes données à cette fin conformément à la{" "}
+                          afin d&apos;obtenir une étude de faisabilité chiffrée pour mon projet. Je suis informé(e) qu&apos;Aegis Solaire (exploitée par INIT42, BCE 1039.899.980) agit en qualité d&apos;intermédiaire rémunéré par les installateurs partenaires et je consens à la transmission de mes données à cette fin conformément à la{" "}
                           <a href="/politique-confidentialite" className="underline font-medium hover:text-accent" target="_blank">
                             Politique de Confidentialité
                           </a>.

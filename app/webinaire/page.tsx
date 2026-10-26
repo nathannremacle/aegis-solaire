@@ -72,8 +72,8 @@ export default function WebinairePage() {
   return (
     <div className="flex min-h-screen min-w-0 flex-col overflow-x-hidden">
       <main className="min-w-0 flex-1">
-        {/* Hero institutionnel (DA : #001D3D, image + masque, or sur badge uniquement) */}
-        <section className="relative overflow-hidden bg-[#001D3D] py-14 sm:py-16 lg:py-24 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
+        {/* Hero institutionnel */}
+        <section className="relative overflow-hidden bg-primary py-14 sm:py-16 lg:py-24 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
           <div
             className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-80"
             style={{
@@ -85,9 +85,9 @@ export default function WebinairePage() {
                 "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.55) 75%, rgba(0,0,0,0.12) 100%)",
             }}
           />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,29,61,0.2)_0%,rgba(0,29,61,0.82)_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(15,23,42,0.2)_0%,rgba(15,23,42,0.85)_100%)]" />
           <div className="relative z-10 mx-auto max-w-4xl min-w-0 px-4 text-center sm:px-6 lg:px-8">
-            <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-widest text-accent backdrop-blur-md sm:text-sm">
+            <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-500/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-blue-400 backdrop-blur-md sm:text-sm">
               Replay masterclass
             </span>
             <h1 className="text-balance text-2xl font-extrabold tracking-tight text-white min-[480px]:text-3xl sm:text-4xl md:text-5xl">
@@ -113,10 +113,10 @@ export default function WebinairePage() {
                       alt=""
                       className="absolute inset-0 h-full w-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-[#001D3D]/80 backdrop-blur-[8px]" />
+                    <div className="absolute inset-0 bg-primary/80 backdrop-blur-[8px]" />
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-4 text-center">
-                      <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-accent/40 bg-accent/10 shadow-[0_0_30px_rgba(255,184,0,0.4)]">
-                        <Lock className="h-10 w-10 text-accent" />
+                      <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-blue-400/40 bg-blue-500/10 shadow-sm">
+                        <Lock className="h-10 w-10 text-blue-400" />
                       </div>
                       <p className="max-w-sm text-center text-lg font-bold text-white sm:text-xl drop-shadow-md">
                         Remplissez le formulaire de réservation pour visualiser le replay
@@ -251,7 +251,7 @@ export default function WebinairePage() {
                         <Button
                           type="submit"
                           size="lg"
-                          className="w-full h-12 rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 text-base font-bold text-[#001D3D] shadow-[0_4px_0_0_#b47e00,0_10px_20px_rgba(245,158,11,0.25)] transition-all duration-150 hover:from-amber-300 hover:to-amber-400 active:translate-y-1 active:shadow-[0_0_0_0_#b47e00] disabled:opacity-60 disabled:pointer-events-none"
+                          className="w-full h-12 rounded-xl bg-accent text-base font-bold text-accent-foreground shadow-xs transition-all hover:bg-accent/90 disabled:opacity-60 disabled:pointer-events-none"
                           disabled={form.formState.isSubmitting}
                         >
                           {form.formState.isSubmitting ? "Déverrouillage..." : "Débloquer le replay gratuit"}
@@ -376,7 +376,7 @@ export default function WebinairePage() {
                         Calculez gratuitement la faisabilité solaire et le TRI de vos toitures industrielles ou parkings en 2 minutes.
                       </CardDescription>
                     </div>
-                    <Button asChild size="lg" className="w-full shrink-0 rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 font-bold text-[#001D3D] shadow-[0_4px_0_0_#b47e00,0_10px_20px_rgba(245,158,11,0.25)] transition-all duration-150 hover:from-amber-300 hover:to-amber-400 active:translate-y-1 active:shadow-[0_0_0_0_#b47e00] sm:w-auto">
+                    <Button asChild size="lg" className="w-full shrink-0 rounded-xl bg-accent font-bold text-accent-foreground shadow-xs transition-all hover:bg-accent/90 sm:w-auto">
                       <Link href="/#simulator">Lancer mon étude d&apos;éligibilité</Link>
                     </Button>
                   </CardHeader>

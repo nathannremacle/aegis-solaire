@@ -963,7 +963,7 @@ export function AdminNetworkInviteHub() {
                     {resolvedBody}
                   </div>
                   <div className="border-t border-border pt-2 text-[11px] text-muted-foreground font-mono">
-                    Fabrice Remacle · Fournisseur Matériel PV · Tél : +32 495 57 07 73
+                    Fabrice Remacle · Partenaire Matériel PV · contact@aegissolaire.com
                   </div>
                 </div>
               </div>

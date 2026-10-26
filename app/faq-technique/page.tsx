@@ -36,7 +36,7 @@ export default function FaqTechniquePage() {
           <nav className="mb-8" aria-label="Fil d'Ariane">
             <Link
               href="/"
-              className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-[#001D3D]"
+              className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4" aria-hidden />
               Retour à l&apos;accueil
@@ -53,7 +53,7 @@ export default function FaqTechniquePage() {
             </p>
             <Link
               href="/#simulator"
-              className="mt-6 inline-flex items-center justify-center rounded-xl bg-[#001D3D] px-8 py-4 text-base font-bold text-white shadow-md transition-all hover:bg-[#00152e] hover:shadow-lg"
+              className="mt-6 inline-flex items-center justify-center rounded-xl bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xs transition-all hover:bg-primary/90"
             >
               Simuler la rentabilité de mon site
             </Link>

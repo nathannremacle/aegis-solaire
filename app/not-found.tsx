@@ -4,10 +4,10 @@ import { ArrowLeft, Home, Calculator, HelpCircle } from "lucide-react"
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-[#001D3D] flex flex-col items-center justify-center px-4 py-16 text-center text-white font-sans">
+    <div className="min-h-screen bg-primary flex flex-col items-center justify-center px-4 py-16 text-center text-white font-sans">
       <div className="max-w-md w-full space-y-6">
-        <div className="inline-flex items-center justify-center h-20 w-20 rounded-3xl bg-accent/20 border border-accent/40 text-accent mx-auto shadow-lg shadow-accent/10">
-          <span className="text-3xl font-extrabold">404</span>
+        <div className="inline-flex items-center justify-center h-20 w-20 rounded-3xl bg-blue-500/10 border border-blue-400/30 text-blue-400 mx-auto shadow-xs">
+          <span className="font-mono tabular-nums text-3xl font-extrabold">404</span>
         </div>
 
         <div>
@@ -21,7 +21,7 @@ export default function NotFound() {
 
         <div className="grid grid-cols-1 gap-3 pt-2">
           <Link href="/">
-            <Button className="w-full h-12 bg-accent text-[#001D3D] hover:bg-[#e6a600] font-bold text-sm shadow-md">
+            <Button className="w-full h-12 bg-accent text-accent-foreground hover:bg-accent/90 font-bold text-sm shadow-xs">
               <Home className="h-4 w-4 mr-2" />
               Retour à l&apos;accueil (B2B)
             </Button>
@@ -29,14 +29,14 @@ export default function NotFound() {
 
           <Link href="/particuliers">
             <Button variant="outline" className="w-full h-12 border-white/20 bg-white/10 text-white hover:bg-white/20 font-semibold text-sm">
-              <Calculator className="h-4 w-4 mr-2 text-accent" />
-              Espace Particuliers & Résidentiel
+              <Calculator className="h-4 w-4 mr-2 text-blue-400" />
+              Espace Particuliers &amp; Résidentiel
             </Button>
           </Link>
 
           <Link href="/devis-panneaux-solaires">
             <Button variant="outline" className="w-full h-12 border-white/20 bg-white/10 text-white hover:bg-white/20 font-semibold text-sm">
-              <HelpCircle className="h-4 w-4 mr-2 text-accent" />
+              <HelpCircle className="h-4 w-4 mr-2 text-blue-400" />
               Recevoir 3 devis comparatifs gratuits
             </Button>
           </Link>

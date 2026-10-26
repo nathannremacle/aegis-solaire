@@ -417,7 +417,7 @@ export function InstallerRegistrationForm() {
             <Button
               type="button"
               variant="outline"
-              className="h-12 min-h-[44px] w-full rounded-xl border-slate-300 font-semibold text-slate-700 hover:bg-slate-100 sm:w-auto sm:min-w-[120px]"
+              className="h-12 min-h-[44px] w-full rounded-xl border-border bg-card text-foreground font-semibold hover:bg-secondary sm:w-auto sm:min-w-[120px] cursor-pointer"
               onClick={goPrev}
             >
               Retour
@@ -426,21 +426,21 @@ export function InstallerRegistrationForm() {
             <span className="hidden sm:block sm:w-[120px]" aria-hidden />
           )}
           {!isLastStep ? (
-            <button
+            <Button
               type="button"
-              className="inline-flex h-12 min-h-[44px] w-full items-center justify-center rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 px-6 font-sans text-sm font-extrabold text-slate-950 shadow-[0_4px_0_#b45309,0_8px_16px_rgba(245,158,11,0.25)] transition-all hover:from-amber-300 hover:to-amber-400 active:translate-y-1 active:shadow-[0_1px_0_#b45309] sm:ml-auto sm:w-auto sm:min-w-[200px]"
+              className="h-12 min-h-[44px] w-full rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-xs cursor-pointer sm:ml-auto sm:w-auto sm:min-w-[200px]"
               onClick={goNext}
             >
               Continuer
-            </button>
+            </Button>
           ) : (
-            <button
+            <Button
               type="submit"
               disabled={loading}
-              className="inline-flex h-12 min-h-[44px] w-full items-center justify-center rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 px-6 font-sans text-sm font-extrabold text-slate-950 shadow-[0_4px_0_#b45309,0_8px_16px_rgba(245,158,11,0.25)] transition-all hover:from-amber-300 hover:to-amber-400 active:translate-y-1 active:shadow-[0_1px_0_#b45309] disabled:opacity-60 sm:ml-auto sm:w-auto sm:min-w-[220px]"
+              className="h-12 min-h-[44px] w-full rounded-xl bg-accent text-accent-foreground font-bold hover:bg-accent/90 shadow-xs cursor-pointer disabled:opacity-60 sm:ml-auto sm:w-auto sm:min-w-[220px]"
             >
               {loading ? "Envoi en cours…" : "Envoyer la candidature"}
-            </button>
+            </Button>
           )}
         </div>
       </form>
