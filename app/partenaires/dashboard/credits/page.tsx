@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import {
   Zap,
@@ -14,10 +14,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Clock,
-  Sparkles,
-  Copy,
   Check,
-  FileText,
   AlertCircle,
   ShieldCheck,
   Coins,
@@ -104,23 +101,15 @@ const itemVariants = {
    Section Commande sur Facture
    ═══════════════════════════════════════════════ */
 
-function OrderPackSection({
-  pack,
-  onOrderCreated,
-}: {
-  pack: CreditPack
-  onOrderCreated: (order: OrderDetails) => void
-}) {
-  const [submittingMollie, setSubmittingMollie] = useState(false)
-  const [submittingInvoice, setSubmittingInvoice] = useState(false)
+function OrderPackSection({ pack }: { pack: CreditPack }) {
+  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const vatAmount = Math.round(pack.priceHtva * 0.21 * 100) / 100
   const priceTtc = Math.round((pack.priceHtva + vatAmount) * 100) / 100
 
-  // 1. Paiement instantané Bancontact / Payconiq (Mollie)
-  async function handleInstantPayment() {
-    setSubmittingMollie(true)
+  async function handleQrCodePayment() {
+    setSubmitting(true)
     setError(null)
     try {
       const res = await fetch("/api/partners/credits/checkout", {
@@ -130,7 +119,7 @@ function OrderPackSection({
       })
       const data = await res.json()
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Impossible d'initier le paiement en ligne.")
+        throw new Error(data.error || "Impossible d'initier le paiement par QR code.")
       }
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl
@@ -139,29 +128,7 @@ function OrderPackSection({
       }
     } catch (err: any) {
       setError(err.message || "Erreur de connexion au service bancaire.")
-      setSubmittingMollie(false)
-    }
-  }
-
-  // 2. Virement bancaire classique sur facture
-  async function handleInvoiceOrder() {
-    setSubmittingInvoice(true)
-    setError(null)
-    try {
-      const res = await fetch("/api/partners/credits/order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packId: pack.id }),
-      })
-      const data = await res.json()
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Une erreur est survenue lors de la commande.")
-      }
-      onOrderCreated(data.order)
-    } catch (err: any) {
-      setError(err.message || "Erreur de connexion.")
-    } finally {
-      setSubmittingInvoice(false)
+      setSubmitting(false)
     }
   }
 
@@ -196,209 +163,53 @@ function OrderPackSection({
         </div>
       )}
 
-      {/* Boutons d'action : Instantané prioritaire + Virement différé */}
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      {/* Action unique : Paiement instantané par QR Code */}
+      <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-1 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
             <Zap className="h-4 w-4 text-accent shrink-0 fill-accent" />
             <span className="font-medium text-foreground">
-              Activation immédiate 24/7 sur votre compte
+              Activation immédiate 24/7 sur votre solde
             </span>
           </div>
           <span className="text-[11px] text-muted-foreground">
-            Facture pro officielle conforme (TVA 21% déductible) émise automatiquement.
+            Scannez le QR Code avec votre app bancaire (BNP Fortis, Belfius, KBC/CBC, ING) ou Payconiq.
+          </span>
+          <span className="text-[11px] text-muted-foreground">
+            Facture pro officielle conforme (TVA 21% déductible) transmise automatiquement par e-mail.
           </span>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleInvoiceOrder}
-            disabled={submittingInvoice || submittingMollie}
-            className="h-11 px-4 text-xs font-medium border-border bg-transparent text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer justify-center"
-            title="Pour paiement comptable par virement manuel différé"
-          >
-            {submittingInvoice ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Génération bon…
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <FileText className="h-3.5 w-3.5" />
-                Virement bancaire classique
-              </span>
-            )}
-          </Button>
-
-          <Button
-            type="button"
-            onClick={handleInstantPayment}
-            disabled={submittingInvoice || submittingMollie}
-            className="h-12 px-6 font-bold text-xs sm:text-sm bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs justify-center"
-          >
-            {submittingMollie ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin text-accent" />
-                Ouverture session bancaire…
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <QrCode className="h-4 w-4 text-accent" />
-                Payer par Bancontact / Payconiq
-              </span>
-            )}
-          </Button>
-        </div>
-      </div>
-
-      {/* Bandeau d'information bancaire belgique */}
-      <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
-        <span className="flex items-center gap-1.5">
-          <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-          Paiement sécurisé Mollie (QR code via Belfius, BNP Fortis, KBC/CBC, ING, Payconiq)
-        </span>
-        <span className="hidden sm:inline font-mono tabular-nums">
-          Frais bancaires fixes ~0,25 € HT · 0 % de commission variable
-        </span>
-      </div>
-    </div>
-  )
-}
-
-/* ═══════════════════════════════════════════════
-   Modale Confirmation Commande (Mobile Sheet)
-   ═══════════════════════════════════════════════ */
-
-function OrderConfirmationModal({
-  order,
-  onClose,
-}: {
-  order: OrderDetails
-  onClose: () => void
-}) {
-  const [copiedIban, setCopiedIban] = useState(false)
-  const [copiedRef, setCopiedRef] = useState(false)
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose()
-    }
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = "hidden"
-    window.addEventListener("keydown", handleKeyDown)
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown)
-      document.body.style.overflow = prevOverflow
-    }
-  }, [onClose])
-
-  function copy(text: string, type: "iban" | "ref") {
-    navigator.clipboard.writeText(text)
-    if (type === "iban") {
-      setCopiedIban(true)
-      setTimeout(() => setCopiedIban(false), 2000)
-    } else {
-      setCopiedRef(true)
-      setTimeout(() => setCopiedRef(false), 2000)
-    }
-  }
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose()
-      }}
-      role="dialog"
-      aria-modal="true"
-    >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-2xl border border-border bg-card p-5 sm:p-7 shadow-2xl overscroll-contain"
-      >
-        <button
+        <Button
           type="button"
-          onClick={onClose}
-          className="absolute right-4 top-4 rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
-          aria-label="Fermer"
+          onClick={handleQrCodePayment}
+          disabled={submitting}
+          className="h-12 w-full sm:w-auto px-7 font-bold text-xs sm:text-sm bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs justify-center shrink-0"
         >
-          <X className="h-5 w-5" />
-        </button>
-
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
-            <CheckCircle2 className="h-6 w-6" />
-          </div>
-          <div>
-            <h3 className="text-base sm:text-lg font-bold text-foreground">Commande de pack enregistrée</h3>
-            <p className="text-xs text-muted-foreground font-mono tabular-nums">Référence : {order.transferReference}</p>
-          </div>
-        </div>
-
-        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed mb-4">
-          Votre demande de <strong className="font-mono text-foreground tabular-nums">{order.credits} crédits</strong> a bien été enregistrée. Effectuez votre virement bancaire sur le compte de l&apos;exploitant :
-        </p>
-
-        <div className="space-y-2.5 rounded-xl border border-border bg-secondary/40 p-3.5 sm:p-4 text-xs">
-          <div className="flex items-center justify-between py-1 border-b border-border/60">
-            <span className="text-muted-foreground">Bénéficiaire</span>
-            <span className="font-semibold text-foreground text-right">{order.bankDetails.beneficiary}</span>
-          </div>
-          <div className="flex items-center justify-between py-1 border-b border-border/60">
-            <span className="text-muted-foreground">TVA Entreprise</span>
-            <span className="font-mono font-semibold text-foreground">{order.bankDetails.vatNumber}</span>
-          </div>
-          <div className="flex items-center justify-between py-1 border-b border-border/60">
-            <span className="text-muted-foreground">Montant total</span>
-            <span className="font-mono font-bold text-foreground text-sm tabular-nums">
-              {order.priceTtc.toFixed(2)} € TTC <span className="font-normal text-muted-foreground text-xs">({order.priceHtva} € HTVA)</span>
+          {submitting ? (
+            <span className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin text-accent" />
+              Génération du QR Code…
             </span>
-          </div>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 py-1 border-b border-border/60">
-            <span className="text-muted-foreground">IBAN</span>
-            <div className="flex items-center justify-between sm:justify-end gap-2 font-mono font-semibold text-foreground">
-              <span className="text-xs truncate">{order.bankDetails.iban}</span>
-              <button
-                type="button"
-                onClick={() => copy(order.bankDetails.iban, "iban")}
-                className="rounded p-1 text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
-                title="Copier l'IBAN"
-              >
-                {copiedIban ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 py-1">
-            <span className="text-muted-foreground">Communication obligatoire</span>
-            <div className="flex items-center justify-between sm:justify-end gap-2 font-mono font-bold text-accent">
-              <span className="text-xs">{order.transferReference}</span>
-              <button
-                type="button"
-                onClick={() => copy(order.transferReference, "ref")}
-                className="rounded p-1 text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
-                title="Copier la référence"
-              >
-                {copiedRef ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
-        </div>
+          ) : (
+            <span className="flex items-center gap-2">
+              <QrCode className="h-4 w-4 text-accent" />
+              Payer par QR Code (Bancontact / Payconiq)
+            </span>
+          )}
+        </Button>
+      </div>
 
-        <p className="mt-4 text-[11px] text-muted-foreground leading-normal">
-          Vos crédits seront alloués sur votre compte dès confirmation de réception des fonds. La facture avec TVA 21% déductible vous parviendra automatiquement par e-mail.
-        </p>
-
-        <div className="mt-5 flex justify-end">
-          <Button onClick={onClose} className="w-full sm:w-auto h-11 px-6 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer">
-            Compris, fermer
-          </Button>
-        </div>
-      </motion.div>
+      {/* Bandeau de réassurance bancaire */}
+      <div className="mt-4 pt-3 border-t border-border/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-[11px] text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />
+          Paiement sécurisé Mollie · Débit compte à compte sans carte bancaire ni délai de virement
+        </span>
+        <span className="font-mono tabular-nums text-muted-foreground/80">
+          Forfait bancaire fixe ~0,25 € HT · 0 % de commission variable
+        </span>
+      </div>
     </div>
   )
 }
@@ -412,7 +223,6 @@ export default function CreditsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPack, setSelectedPack] = useState<string>("pack_50")
-  const [activeOrder, setActiveOrder] = useState<OrderDetails | null>(null)
   const [verifyingPayment, setVerifyingPayment] = useState(false)
   const [paymentFeedback, setPaymentFeedback] = useState<{
     type: "success" | "pending" | "cancelled" | null
@@ -453,21 +263,20 @@ export default function CreditsPage() {
           if (data.status === "paid") {
             setPaymentFeedback({
               type: "success",
-              message: `Paiement Bancontact validé avec succès ! Vos ${data.credits} crédits ont été alloués instantanément sur votre compte.`,
+              message: `Paiement QR Code validé avec succès ! Vos ${data.credits} crédits ont été ajoutés instantanément sur votre compte.`,
               credits: data.credits,
             })
             fetchCredits()
           } else if (data.status === "cancelled") {
             setPaymentFeedback({
               type: "cancelled",
-              message: "La transaction en ligne a été annulée ou n'a pas pu aboutir.",
+              message: "La transaction par QR Code a été interrompue ou annulée.",
             })
           } else {
             setPaymentFeedback({
               type: "pending",
-              message: "Paiement en cours de confirmation par le réseau bancaire. Votre solde s'actualisera sous peu.",
+              message: "Paiement en cours de confirmation par votre banque. Votre solde s'actualisera sous peu.",
             })
-            // Deuxième tentative après 2,5s si la banque met quelques secondes
             setTimeout(() => {
               fetch(`/api/partners/credits/check-status?order_id=${encodeURIComponent(orderId)}`)
                 .then((r) => r.json())
@@ -475,7 +284,7 @@ export default function CreditsPage() {
                   if (d.status === "paid") {
                     setPaymentFeedback({
                       type: "success",
-                      message: `Paiement Bancontact validé avec succès ! Vos ${d.credits} crédits ont été ajoutés à votre compte.`,
+                      message: `Paiement QR Code validé avec succès ! Vos ${d.credits} crédits sont immédiatement disponibles.`,
                       credits: d.credits,
                     })
                     fetchCredits()
@@ -510,18 +319,6 @@ export default function CreditsPage() {
 
   return (
     <div className="relative min-h-screen bg-background text-foreground pb-12">
-      <AnimatePresence>
-        {activeOrder && (
-          <OrderConfirmationModal
-            order={activeOrder}
-            onClose={() => {
-              setActiveOrder(null)
-              fetchCredits()
-            }}
-          />
-        )}
-      </AnimatePresence>
-
       {/* Header Sticky Mobile-First */}
       <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-3 py-3 sm:px-6 lg:px-8">
@@ -752,10 +549,7 @@ export default function CreditsPage() {
 
           {/* Formulaire de commande */}
           <motion.div variants={itemVariants}>
-            <OrderPackSection
-              pack={currentPack}
-              onOrderCreated={(order) => setActiveOrder(order)}
-            />
+            <OrderPackSection pack={currentPack} />
           </motion.div>
 
           {/* Réassurance & Charte Qualité */}
