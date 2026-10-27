@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
-import { dispatchLeadWave, MAX_SLOTS_B2C, MAX_SLOTS_B2B } from "@/lib/lead-relance-engine"
+import { dispatchLeadWave, MAX_SLOTS_B2C, MAX_SLOTS_B2B, isDevTestPartner } from "@/lib/lead-relance-engine"
 
 export async function GET(
   _request: NextRequest,
@@ -31,24 +31,29 @@ export async function GET(
   // 2. Récupérer les achats réels (slots vendus, hors comptes de test DEV)
   const { data: purchases } = await supabase
     .from("lead_purchases")
-    .select("id, partner_id, purchased_at, credits_spent, partners(company_name, email, is_test)")
+    .select("id, partner_id, purchased_at, credits_spent, partners(id, company_name, email, is_test)")
     .eq("lead_id", id)
+    .order("purchased_at", { ascending: true })
 
-  const realPurchases = (purchases || []).filter(
-    (p: any) => !p.partners?.is_test && !p.partners?.company_name?.toLowerCase().includes("test")
-  )
+  const realPurchases = (purchases || []).filter((p: any) => {
+    const partnerObj = Array.isArray(p.partners) ? p.partners[0] : p.partners
+    return !isDevTestPartner({ ...partnerObj, email: partnerObj?.email })
+  })
   const takenSlots = realPurchases.length
 
-  // 3. Récupérer l'historique des relances envoyées
-  let dispatches: any[] = []
+  // 3. Récupérer l'historique des relances envoyées (hors comptes de test DEV)
+  let realDispatches: any[] = []
   try {
     const { data: dispatchRows } = await supabase
       .from("lead_relance_dispatches")
-      .select("id, wave_number, email_to, sent_at, matching_score, matching_tier, credits_at_send, partner_id, partners(company_name)")
+      .select("id, wave_number, email_to, sent_at, matching_score, matching_tier, credits_at_send, partner_id, partners(id, company_name, email, is_test)")
       .eq("lead_id", id)
       .order("sent_at", { ascending: false })
 
-    dispatches = dispatchRows || []
+    realDispatches = (dispatchRows || []).filter((d: any) => {
+      const partnerObj = Array.isArray(d.partners) ? d.partners[0] : d.partners
+      return !isDevTestPartner({ ...partnerObj, emailTo: d.email_to })
+    })
   } catch {
     // Si la table n'est pas encore créée
   }
@@ -63,8 +68,8 @@ export async function GET(
     maxSlots,
     remainingSlots: Math.max(0, maxSlots - takenSlots),
     isFullySold: takenSlots >= maxSlots,
-    dispatches,
-    purchases: purchases || [],
+    dispatches: realDispatches,
+    purchases: realPurchases,
   })
 }
 

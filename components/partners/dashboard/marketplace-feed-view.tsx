@@ -15,6 +15,7 @@ import {
   List,
   Loader2,
   Calendar,
+  Clock,
   Building2,
   Info,
   Search,
@@ -34,6 +35,11 @@ import {
   Home,
   FileText,
   User,
+  Store,
+  Phone,
+  Mail,
+  FileCheck,
+  Download,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -47,14 +53,18 @@ import {
   getSurfaceTypeLabel,
   getTimeframeLabel,
   getOwnershipLabel,
+  getProjectDriverLabel,
+  sanitizeLeadNotes,
 } from "@/lib/lead-display-helpers"
 import { LeadInspectionDrawer } from "./lead-inspection-drawer"
 import { MarketplaceInteractiveTour } from "./marketplace-interactive-tour"
+import { LeadGeoRadarMap } from "./lead-geo-radar-map"
 
 interface MarketplaceFeedViewProps {
   leads: any[]
   partnerCredits: number
   targetLeadId?: string
+  onClearTargetLead?: () => void
   onPurchaseSuccess: (lead: any, newCredits: number, purchaseRecord: any) => void
   onRequestTopUp: () => void
   onOpenExpertModal?: (lead?: any) => void
@@ -75,114 +85,42 @@ const PROVINCE_OPTIONS = [
   { value: "luxembourg", label: "Luxembourg" },
 ]
 
-const SORT_OPTIONS = [
-  { value: "recent", label: "Plus récents" },
-  { value: "power_desc", label: "Puissance max (kWc)" },
-  { value: "margin_desc", label: "Marge max (€)" },
+export type MarketplaceSortOption =
+  | "recent"
+  | "oldest"
+  | "cost_asc"
+  | "cost_desc"
+  | "contract_desc"
+  | "contract_asc"
+  | "margin_desc"
+  | "power_desc"
+  | "power_asc"
+  | "surface_desc"
+  | "bill_desc"
+  | "score_desc"
+
+const SORT_OPTIONS: { value: MarketplaceSortOption; label: string; badge?: string }[] = [
+  { value: "recent", label: "Plus récents (nouveautés)" },
+  { value: "oldest", label: "Plus anciens (prioritaires)" },
+  { value: "cost_asc", label: "Prix du lead : Moins cher (crédits ↗)", badge: "Éco" },
+  { value: "cost_desc", label: "Prix du lead : Plus élevé (crédits ↘)", badge: "Premium" },
+  { value: "contract_desc", label: "Valeur chantier : Maximale (€ HT)", badge: "Gros projet" },
+  { value: "contract_asc", label: "Valeur chantier : Modérée (€ HT)" },
+  { value: "margin_desc", label: "Marge brute estimée : Max (€)", badge: "Rentable" },
+  { value: "power_desc", label: "Puissance estimée : Max (kWc)", badge: "Puissance" },
+  { value: "power_asc", label: "Puissance estimée : Min (kWc)" },
+  { value: "surface_desc", label: "Surface toiture : Plus grande (m²)" },
+  { value: "bill_desc", label: "Facture annuelle : Plus élevée (€/an)" },
+  { value: "score_desc", label: "Score de qualification IA : Top dossiers", badge: "Qualifié" },
 ]
 
-/**
- * Menu déroulant stylisé (Custom UI) remplaçant les balises <select> natives d'OS
- * Design soigné, coins arrondis, bordures fines, ombres douces et indicateur sélectionné.
- */
-function MarketplaceCustomSelect({
-  value,
-  onChange,
-  options,
-  icon: Icon,
-  ariaLabel,
-}: {
-  value: string
-  onChange: (val: string) => void
-  options: { value: string; label: string }[]
-  icon?: React.ComponentType<{ className?: string }>
-  ariaLabel?: string
-}) {
-  const [isOpen, setIsOpen] = useState(false)
-  const containerRef = React.useRef<HTMLDivElement>(null)
-
-  const selectedOption = options.find((o) => o.value === value) || options[0]
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsOpen(false)
-      }
-    }
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside)
-      document.addEventListener("keydown", handleKeyDown)
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-      document.removeEventListener("keydown", handleKeyDown)
-    }
-  }, [isOpen])
-
-  return (
-    <div ref={containerRef} className="relative inline-block text-left">
-      <button
-        type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-        aria-label={ariaLabel}
-        className={`inline-flex items-center gap-2 rounded-xl border bg-card hover:bg-secondary/70 h-9 px-3 text-xs font-semibold text-foreground transition-all cursor-pointer shadow-2xs select-none ${
-          isOpen ? "border-primary ring-2 ring-primary/20" : "border-border"
-        }`}
-      >
-        {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
-        <span className="truncate">{selectedOption?.label}</span>
-        <ChevronDown
-          className={`h-3.5 w-3.5 text-muted-foreground shrink-0 transition-transform duration-200 ${
-            isOpen ? "rotate-180 text-foreground" : ""
-          }`}
-        />
-      </button>
-
-      {isOpen && (
-        <div
-          role="listbox"
-          className="absolute left-0 top-full mt-1.5 min-w-[200px] z-50 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl animate-in fade-in-0 zoom-in-95 duration-150 space-y-0.5"
-        >
-          {options.map((option) => {
-            const isSelected = option.value === value
-            return (
-              <button
-                key={option.value}
-                type="button"
-                role="option"
-                aria-selected={isSelected}
-                onClick={() => {
-                  onChange(option.value)
-                  setIsOpen(false)
-                }}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors cursor-pointer text-left ${
-                  isSelected
-                    ? "bg-slate-100 font-bold text-slate-900"
-                    : "font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-                }`}
-              >
-                <span>{option.label}</span>
-                {isSelected && <Check className="h-3.5 w-3.5 text-[#2563EB] shrink-0" />}
-              </button>
-            )
-          })}
-        </div>
-      )}
-    </div>
-  )
-}
+import { CustomSelect } from "@/components/ui/custom-select"
 
 export function MarketplaceFeedView({
   leads,
   partnerCredits,
   targetLeadId,
+  onClearTargetLead,
   onPurchaseSuccess,
   onRequestTopUp,
   onOpenExpertModal,
@@ -191,22 +129,44 @@ export function MarketplaceFeedView({
   const [searchQuery, setSearchQuery] = useState("")
   const [segmentFilter, setSegmentFilter] = useState<"ALL" | "B2B" | "B2C">("ALL")
   const [selectedProvince, setSelectedProvince] = useState<string>("ALL")
-  const [sortBy, setSortBy] = useState<"recent" | "power_desc" | "margin_desc">("recent")
+  const [sortBy, setSortBy] = useState<MarketplaceSortOption>("recent")
   const [buyingId, setBuyingId] = useState<string | null>(null)
   const [selectedLeadForDrawer, setSelectedLeadForDrawer] = useState<any | null>(null)
   const [showTutorial, setShowTutorial] = useState(false)
 
-  // Détection 1ère visite : affiche le tutoriel si non encore masqué
+  // État de focus exclusif sur un lead ciblé (Deep-linking direct depuis e-mail de relance)
+  const [focusedLeadId, setFocusedLeadId] = useState<string | null>(targetLeadId || null)
+
+  useEffect(() => {
+    if (targetLeadId) {
+      setFocusedLeadId(targetLeadId)
+    }
+  }, [targetLeadId])
+
+  // Nettoyage propre du focus lead ciblé
+  const handleClearFocus = () => {
+    setFocusedLeadId(null)
+    onClearTargetLead?.()
+    try {
+      const url = new URL(window.location.href)
+      url.searchParams.delete("lead")
+      window.history.replaceState({}, "", url.toString())
+    } catch {
+      // fallback
+    }
+  }
+
+  // Détection 1ère visite : affiche le tutoriel si non encore masqué ET pas en mode lead ciblé
   useEffect(() => {
     try {
       const isDismissed = localStorage.getItem(STORAGE_KEY_TUTORIAL_DISMISSED)
-      if (!isDismissed) {
+      if (!isDismissed && !targetLeadId) {
         setShowTutorial(true)
       }
     } catch {
       // localStorage non disponible
     }
-  }, [])
+  }, [targetLeadId])
 
   const handleDismissTutorial = () => {
     setShowTutorial(false)
@@ -217,27 +177,51 @@ export function MarketplaceFeedView({
     }
   }
 
-  // Gestion du deep-linking direct vers le lead (?lead=[id])
-  useEffect(() => {
-    if (targetLeadId) {
-      const targetLead = leads.find((l) => l.id === targetLeadId)
-      if (targetLead) {
-        setSelectedLeadForDrawer(targetLead)
-        const timer = setTimeout(() => {
-          const el = document.getElementById(`lead-${targetLeadId}`)
-          if (el) {
-            el.scrollIntoView({ behavior: "smooth", block: "center" })
-          }
-        }, 180)
-        return () => clearTimeout(timer)
-      } else {
-        toast.info(
-          "Ce dossier a déjà été attribué au nombre maximum d'installateurs partenaires ou n'est plus disponible.",
-          { duration: 5000 }
-        )
-      }
-    }
-  }, [targetLeadId, leads])
+  const targetedLead = useMemo(() => {
+    if (!focusedLeadId) return null
+    return leads.find((l) => l.id === focusedLeadId) || null
+  }, [focusedLeadId, leads])
+
+  // Variables calculées pour le lead ciblé en mode isolé
+  const targetSurface = Math.max(0, Number(targetedLead?.surface_area || targetedLead?.surface_area_m2) || 0)
+  const targetAnnualBill = Math.max(0, Number(targetedLead?.annual_electricity_bill || targetedLead?.annual_bill_eur) || 0)
+  const targetCost = targetedLead?.credit_cost ?? (targetedLead?.segment === "B2B" ? 8 : 2)
+  const targetFinancials = useMemo(() => {
+    if (!targetedLead) return null
+    return calculateMarketplaceFinancials({
+      segment: targetedLead.segment,
+      surfaceArea: targetSurface,
+      surfaceType: targetedLead.surface_type,
+      annualBill: targetAnnualBill,
+      creditCost: targetCost,
+    })
+  }, [targetedLead, targetSurface, targetAnnualBill, targetCost])
+
+  const targetPower = targetedLead?.estimated_power_kwc ?? (targetFinancials ? targetFinancials.estimatedPowerKwc : 0)
+  const targetIsB2B = targetedLead?.segment === "B2B"
+  const targetMaxSlots = targetedLead?.max_slots ?? (targetIsB2B ? 1 : 3)
+  const targetRemainingSlots = targetedLead?.remaining_slots ?? targetMaxSlots
+  const targetTakenSlots = targetedLead?.taken_slots ?? Math.max(0, targetMaxSlots - targetRemainingSlots)
+  const targetHasEnoughCredits = partnerCredits >= targetCost
+  const targetLocation = useMemo(() => (targetedLead ? getLeadLocationInfo(targetedLead) : null), [targetedLead])
+  const targetSanitized = useMemo(
+    () => (targetedLead ? sanitizeLeadNotes(targetedLead.project_details || targetedLead.message) : null),
+    [targetedLead]
+  )
+
+  const targetLastName = (targetedLead?.last_name?.trim() || "")
+    .replace(/^(madame\s*,\s*monsieur|m\.|monsieur|mme|madame)\s+/i, "")
+    .trim()
+  const targetFirstName = (targetedLead?.first_name?.trim() || "")
+    .replace(/^(madame\s*,\s*monsieur|m\.|monsieur|mme|madame)\s+/i, "")
+    .trim()
+  let targetMaskedName = "xxxx"
+  if (targetLastName) {
+    targetMaskedName = `xxxx ${targetLastName}`
+  } else if (targetFirstName) {
+    const parts = targetFirstName.split(/\s+/)
+    targetMaskedName = parts.length > 1 ? `xxxx ${parts[parts.length - 1]}` : `xxxx ${targetFirstName}`
+  }
 
   // Comptages pour les filtres
   const counts = useMemo(() => {
@@ -282,33 +266,74 @@ export function MarketplaceFeedView({
       return true
     })
 
-    // Tri
-    result = [...result].sort((a, b) => {
-      const aSurface = Math.max(0, Number(a.surface_area || a.surface_area_m2) || 0)
-      const bSurface = Math.max(0, Number(b.surface_area || b.surface_area_m2) || 0)
-      const aPower = a.estimated_power_kwc ?? Math.round(aSurface * 0.17)
-      const bPower = b.estimated_power_kwc ?? Math.round(bSurface * 0.17)
+    // Tri enrichi multi-critères
+    const enriched = result.map((lead) => {
+      const surfaceArea = Math.max(0, Number(lead.surface_area || lead.surface_area_m2) || 0)
+      const annualBill = Math.max(0, Number(lead.annual_electricity_bill || lead.annual_bill_eur) || 0)
+      const isB2C = lead.segment === "B2C"
+      const cost = Number(lead.credit_cost) || (isB2C ? 2 : 8)
+      const score = Number(lead.lead_score) || 0
+      const parsedTime = lead.created_at ? new Date(lead.created_at).getTime() : 0
+      const createdAtTime = Number.isNaN(parsedTime) ? 0 : parsedTime
 
-      if (sortBy === "power_desc") return bPower - aPower
+      const financials = calculateMarketplaceFinancials({
+        segment: lead.segment,
+        surfaceArea,
+        surfaceType: lead.surface_type,
+        annualBill,
+        creditCost: cost,
+        estimatedPowerKwc: lead.estimated_power_kwc,
+      })
 
-      if (sortBy === "margin_desc") {
-        const aFin = calculateMarketplaceFinancials({
-          segment: a.segment,
-          surfaceArea: aSurface,
-          annualBill: Number(a.annual_electricity_bill || a.annual_bill_eur) || 0,
-        })
-        const bFin = calculateMarketplaceFinancials({
-          segment: b.segment,
-          surfaceArea: bSurface,
-          annualBill: Number(b.annual_electricity_bill || b.annual_bill_eur) || 0,
-        })
-        return bFin.estimatedInstallerMargin - aFin.estimatedInstallerMargin
+      const powerKwc = Number(lead.estimated_power_kwc) || financials.estimatedPowerKwc
+      const contractValue = financials.estimatedContractValue || 0
+      const margin = financials.estimatedInstallerMargin || 0
+
+      return {
+        lead,
+        surfaceArea,
+        annualBill,
+        cost,
+        score,
+        createdAtTime,
+        powerKwc,
+        contractValue,
+        margin,
       }
-
-      return 0
     })
 
-    return result
+    enriched.sort((a, b) => {
+      switch (sortBy) {
+        case "recent":
+          return b.createdAtTime - a.createdAtTime
+        case "oldest":
+          return a.createdAtTime - b.createdAtTime
+        case "cost_asc":
+          return a.cost - b.cost || b.powerKwc - a.powerKwc
+        case "cost_desc":
+          return b.cost - a.cost || b.powerKwc - a.powerKwc
+        case "contract_desc":
+          return b.contractValue - a.contractValue || b.powerKwc - a.powerKwc
+        case "contract_asc":
+          return a.contractValue - b.contractValue || a.powerKwc - b.powerKwc
+        case "margin_desc":
+          return b.margin - a.margin || b.powerKwc - a.powerKwc
+        case "power_desc":
+          return b.powerKwc - a.powerKwc || b.createdAtTime - a.createdAtTime
+        case "power_asc":
+          return a.powerKwc - b.powerKwc || b.createdAtTime - a.createdAtTime
+        case "surface_desc":
+          return b.surfaceArea - a.surfaceArea || b.powerKwc - a.powerKwc
+        case "bill_desc":
+          return b.annualBill - a.annualBill || b.powerKwc - a.powerKwc
+        case "score_desc":
+          return b.score - a.score || b.createdAtTime - a.createdAtTime
+        default:
+          return b.createdAtTime - a.createdAtTime
+      }
+    })
+
+    return enriched.map((item) => item.lead)
   }, [leads, segmentFilter, selectedProvince, searchQuery, sortBy])
 
   // KPIs discrets et utiles
@@ -378,7 +403,9 @@ export function MarketplaceFeedView({
       toast.success("Dossier débloqué avec succès ! Coordonnées ajoutées à votre CRM.")
       const newCredits = partnerCredits - cost
       const newRecord = {
-        purchase_id: data.purchaseId || data.purchase?.id || `purch_${Date.now()}`,
+        id: data.lead?.id || lead.id,
+        lead_id: data.lead?.id || lead.id,
+        purchase_id: data.purchaseId || data.purchase_id || data.purchase?.id || `purch_${Date.now()}`,
         purchased_at: new Date().toISOString(),
         credits_spent: cost,
         pipeline_status: "to_contact",
@@ -411,19 +438,420 @@ export function MarketplaceFeedView({
   return (
     <div className="space-y-4">
       {/* ── 0. Visite Guidée Interactive (Modal pas à pas) ── */}
-      <MarketplaceInteractiveTour
-        isOpen={showTutorial}
-        onClose={handleDismissTutorial}
-        onInspectSample={
-          filteredLeads.length > 0
-            ? () => setSelectedLeadForDrawer(filteredLeads[0])
-            : undefined
-        }
-        hasLeads={filteredLeads.length > 0}
-      />
+      {!focusedLeadId && (
+        <MarketplaceInteractiveTour
+          isOpen={showTutorial}
+          onClose={handleDismissTutorial}
+          onInspectSample={
+            filteredLeads.length > 0
+              ? () => setSelectedLeadForDrawer(filteredLeads[0])
+              : undefined
+          }
+          hasLeads={filteredLeads.length > 0}
+        />
+      )}
 
-      {/* ── 1. Barre de Contrôle Unifiée : Filtres avec Badges de Comptage, Recherche, Tri & Visite ── */}
-      <div className="rounded-2xl border border-border bg-card p-3 sm:p-3.5 shadow-xs space-y-3">
+      {/* ── ALERTE SI LE DOSSIER CIBLÉ N'EST PLUS DISPONIBLE ── */}
+      {focusedLeadId && !targetedLead && (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 sm:p-5 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-600 font-bold">
+                <Info className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-foreground">
+                  Dossier non disponible ou déjà attribué
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Ce chantier n'est plus actif ou a atteint son quota d'installateurs. Voici l'ensemble des opportunités actuellement ouvertes :
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearFocus}
+              className="shrink-0 text-xs font-semibold cursor-pointer border-border hover:bg-secondary"
+            >
+              Afficher toute la marketplace &rarr;
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODE FOCUS EXCLUSIF (Deep-link e-mail de relance) : Affichage UNIQUEMENT de ce lead ── */}
+      {focusedLeadId && targetedLead ? (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          {/* Bannière de focus / isolation */}
+          <div className="rounded-2xl border border-accent/40 bg-accent/5 p-4 sm:p-5 shadow-xs">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex items-start gap-3.5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground font-bold shadow-xs">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[11px] uppercase tracking-wider text-accent font-bold">
+                      ● DOSSIER RECOMMANDÉ · E-MAIL DE RAPPEL
+                    </span>
+                    <span className="rounded-full bg-accent/15 border border-accent/30 text-foreground px-2 py-0.5 text-[10px] font-mono font-bold tabular-nums">
+                      Réf. #{targetedLead.id.slice(0, 8)}
+                    </span>
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-heading font-extrabold text-foreground mt-0.5">
+                    Chantier Solaire {targetIsB2B ? "Tertiaire & Professionnel (100% Exclusif)" : "Résidentiel"} · {targetLocation?.city || "Wallonie"} ({targetLocation?.postalCode || "BE"})
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Accès exclusif et direct à la fiche technique de ce chantier qualifié. Aucune dispersion avec le flux général.
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClearFocus}
+                className="shrink-0 text-xs font-semibold cursor-pointer border-border hover:bg-secondary gap-1.5"
+              >
+                <Store className="h-3.5 w-3.5 text-accent" />
+                <span>Voir toute la marketplace ({leads.length} opportunités) &rarr;</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Bento métriques financières du lead ciblé */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="rounded-xl border border-border bg-card p-3.5 shadow-2xs">
+              <span className="text-[11px] text-muted-foreground block font-medium">Puissance estimée</span>
+              <span className="text-base sm:text-lg font-mono font-extrabold text-foreground tabular-nums flex items-center gap-1.5 mt-0.5">
+                <Zap className="h-4 w-4 text-accent shrink-0" />
+                {targetPower} kWc
+              </span>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card p-3.5 shadow-2xs">
+              <span className="text-[11px] text-muted-foreground block font-medium">Surface disponible</span>
+              <span className="text-base sm:text-lg font-mono font-extrabold text-foreground tabular-nums flex items-center gap-1.5 mt-0.5">
+                <Home className="h-4 w-4 text-primary shrink-0" />
+                {targetSurface} m²
+              </span>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card p-3.5 shadow-2xs">
+              <span className="text-[11px] text-muted-foreground block font-medium">Facture annuelle</span>
+              <span className="text-base sm:text-lg font-mono font-extrabold text-foreground tabular-nums mt-0.5 block">
+                {targetAnnualBill > 0 ? `${formatRoundedCurrency(targetAnnualBill)} / an` : "Sur devis"}
+              </span>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card p-3.5 shadow-2xs">
+              <span className="text-[11px] text-muted-foreground block font-medium">Marge brute indicative</span>
+              <span className="text-base sm:text-lg font-mono font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums mt-0.5 block">
+                {targetFinancials ? `~${formatRoundedCurrency(targetFinancials.estimatedInstallerMargin)}` : "—"}
+              </span>
+            </div>
+
+            <div className="col-span-2 sm:col-span-1 rounded-xl border border-accent/40 bg-accent/10 p-3.5 shadow-2xs">
+              <span className="text-[11px] text-muted-foreground block font-medium">Coût d'acquisition</span>
+              <span className="text-base sm:text-lg font-mono font-extrabold text-foreground tabular-nums mt-0.5 block">
+                {targetCost} crédits <span className="text-xs font-normal text-muted-foreground">(~{targetFinancials ? formatRoundedCurrency(targetFinancials.leadCostEuros) : "—"})</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Grille Principale 2 Colonnes */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Colonne Gauche (7 cols) : Fiche Technique & Radar Géographique */}
+            <div className="lg:col-span-7 space-y-6">
+              {/* Spécifications Techniques */}
+              <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-border/70 pb-3">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-accent" />
+                    <span>Audit Technique &amp; Spécifications du Chantier</span>
+                  </h3>
+                  <span className="text-[11px] font-mono text-muted-foreground">
+                    Audit certifié Aegis Solaire
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div className="p-3 rounded-xl bg-secondary/30 border border-border/60">
+                    <span className="text-muted-foreground text-[11px] block">Toiture &amp; Revêtement</span>
+                    <strong className="text-sm font-semibold text-foreground mt-0.5 block">
+                      {getRoofMaterialLabel(targetedLead.roof_material)}
+                    </strong>
+                    <span className="text-[11px] text-muted-foreground mt-0.5 block">
+                      Type : {getSurfaceTypeLabel(targetedLead.surface_type)}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-secondary/30 border border-border/60">
+                    <span className="text-muted-foreground text-[11px] block">Statut du Décisionnaire</span>
+                    <strong className="text-sm font-semibold text-foreground mt-0.5 block">
+                      {getOwnershipLabel(targetedLead.ownership_status)}
+                    </strong>
+                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center gap-1 font-medium">
+                      <CheckCircle2 className="h-3 w-3" /> Décisionnaire direct
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-secondary/30 border border-border/60">
+                    <span className="text-muted-foreground text-[11px] block">Échéance souhaitée</span>
+                    <strong className="text-sm font-semibold text-foreground mt-0.5 block">
+                      {getTimeframeLabel(targetedLead.timeframe || targetedLead.project_timeline)}
+                    </strong>
+                    <span className="text-[11px] text-muted-foreground mt-0.5 block">
+                      Planification chantier
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-secondary/30 border border-border/60">
+                    <span className="text-muted-foreground text-[11px] block">Gestionnaire de Réseau (GRD)</span>
+                    <strong className="text-sm font-mono font-semibold text-foreground mt-0.5 block">
+                      {targetedLead.grd ? `GRD ${targetedLead.grd.toUpperCase()}` : "ORES / RESA"}
+                    </strong>
+                    <span className="text-[11px] text-muted-foreground mt-0.5 block">
+                      Réseau Wallon certifié
+                    </span>
+                  </div>
+                </div>
+
+                {/* Objectif prioritaire */}
+                <div className="p-3 rounded-xl bg-secondary/20 border border-border/50 text-xs">
+                  <span className="text-muted-foreground text-[11px] block font-medium">Objectif prioritaire du client</span>
+                  <span className="font-semibold text-foreground mt-0.5 block">
+                    {getProjectDriverLabel(targetedLead.project_driver)}
+                  </span>
+                </div>
+
+                {/* Précisions & Remarques client */}
+                {targetSanitized?.cleanRemarks && (
+                  <div className="rounded-xl bg-card border border-border p-3.5 text-xs italic text-foreground/90 space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground not-italic block">
+                      Précisions transmises par le client :
+                    </span>
+                    <p className="leading-relaxed">« {targetSanitized.cleanRemarks} »</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Carte Radar Géographique */}
+              <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs space-y-3">
+                <div className="flex items-center justify-between border-b border-border/70 pb-3">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-accent" />
+                    <span>Zone d'Intervention &amp; Localisation</span>
+                  </h3>
+                  <span className="text-[11px] font-mono text-muted-foreground">
+                    {targetLocation?.postalCode} {targetLocation?.city}
+                  </span>
+                </div>
+                <div className="overflow-hidden rounded-xl border border-border/80">
+                  <LeadGeoRadarMap
+                    city={targetLocation?.city || "Wallonie"}
+                    postalCode={targetLocation?.postalCode || "4000"}
+                    provinceLabel={targetLocation?.provinceLabel}
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground text-center">
+                  Localisation approximative par commune. L'adresse exacte (rue et numéro) est immédiatement fournie lors du déblocage.
+                </p>
+              </div>
+            </div>
+
+            {/* Colonne Droite (5 cols) : Coordonnées Masquées + Déblocage + Garantie */}
+            <div className="lg:col-span-5 space-y-6">
+              {/* Box Coordonnées Pré-déblocage */}
+              <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-border/70 pb-3">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                    <span>Coordonnées du Décideur</span>
+                  </h3>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                    ✓ Vérifié
+                  </span>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/30">
+                    <span className="text-muted-foreground">Nom du contact :</span>
+                    <strong className="font-mono text-foreground">{targetMaskedName}</strong>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/30">
+                    <span className="text-muted-foreground">Téléphone direct :</span>
+                    <div className="flex items-center gap-1.5 font-mono">
+                      <span className="text-muted-foreground">04** ** **</span>
+                      <span className="rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.2 text-[10px] font-bold">
+                        [✓ Vérifié]
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/30">
+                    <span className="text-muted-foreground">Adresse e-mail :</span>
+                    <div className="flex items-center gap-1.5 font-mono">
+                      <span className="text-muted-foreground">****@***.be</span>
+                      <span className="rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.2 text-[10px] font-bold">
+                        [✓ Vérifié]
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/30">
+                    <span className="text-muted-foreground">Adresse du chantier :</span>
+                    <span className="font-mono text-muted-foreground">
+                      ********* ({targetLocation?.postalCode} {targetLocation?.city})
+                    </span>
+                  </div>
+                </div>
+
+                {/* Règle de concurrence & Scarcity */}
+                <div className="rounded-xl border border-border/80 bg-secondary/20 p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-foreground block">
+                      Règle de concurrence Aegis Solaire
+                    </span>
+                    {!targetIsB2B && (
+                      <span className="font-mono text-[10px] font-semibold text-primary">
+                        {targetTakenSlots} / {targetMaxSlots} réservé{targetTakenSlots > 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {targetIsB2B
+                      ? "Exclusivité absolue garantie : 1 seul installateur unique sur ce dossier. Aucune concurrence de plateforme."
+                      : `Attribution restreinte à 3 installateurs certifiés maximum. ${targetRemainingSlots} place(s) disponible(s) restante(s).`}
+                  </p>
+                  {!targetIsB2B && targetTakenSlots > 0 && (
+                    <div className="pt-2 flex flex-col gap-1.5 border-t border-border/60">
+                      {Array.from({ length: targetMaxSlots }).map((_, idx) => {
+                        const isTaken = idx < targetTakenSlots
+                        const buyer = targetedLead?.buyers?.[idx]
+                        return (
+                          <div key={idx} className="flex items-center justify-between text-[11px] font-mono">
+                            <span className="flex items-center gap-1.5 text-foreground">
+                              {isTaken ? (
+                                <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                              ) : (
+                                <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              )}
+                              <span>Place {idx + 1} :</span>
+                              <strong className="font-sans font-medium">
+                                {isTaken
+                                  ? buyer?.companyName
+                                    ? buyer.companyName
+                                    : "Réservée par un installateur certifié"
+                                  : "Disponible immédiatement"}
+                              </strong>
+                            </span>
+                            {isTaken && buyer?.purchasedAt && (
+                              <span className="text-[10px] text-muted-foreground">
+                                le {new Date(buyer.purchasedAt).toLocaleDateString("fr-BE")}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Bloc d'action primaire : Déblocage immédiat */}
+                <div className="pt-2 space-y-3">
+                  <Button
+                    size="lg"
+                    onClick={() => handlePurchase(targetedLead)}
+                    disabled={buyingId === targetedLead.id}
+                    className="w-full bg-[#0F172A] hover:bg-[#1E293B] text-white font-bold h-12 shadow-sm cursor-pointer text-sm"
+                  >
+                    {buyingId === targetedLead.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Déblocage en cours...
+                      </>
+                    ) : (
+                      <>
+                        <Unlock className="h-4 w-4 mr-2 text-accent" />
+                        Débloquer ce dossier ({targetCost} crédits) &rarr;
+                      </>
+                    )}
+                  </Button>
+
+                  <div className="flex items-center justify-between text-xs px-1">
+                    <span className="text-muted-foreground">
+                      Votre solde : <strong className="font-mono text-foreground">{partnerCredits} crédits</strong>
+                    </span>
+                    {!targetHasEnoughCredits && (
+                      <button
+                        type="button"
+                        onClick={onRequestTopUp}
+                        className="text-xs font-bold text-accent hover:underline cursor-pointer"
+                      >
+                        + Recharger des crédits
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Cellule d'Assistance Ingénierie (Strict Anonymity) */}
+              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 sm:p-5 space-y-2 shadow-2xs">
+                <h4 className="text-xs font-bold text-foreground">
+                  Assistance Technique &amp; Étude de Dimensionnement (% Projet)
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  En tant que partenaire certifié, vous pouvez solliciter notre cellule technique pour valider la puissance onduleur, le calepinage ou les contraintes GRD sur ce dossier, en échange d&apos;un pourcentage du projet à négocier selon son envergure.
+                </p>
+                <div className="pt-1">
+                  <a
+                    href="mailto:contact@aegissolaire.com"
+                    className="text-xs font-bold text-primary hover:underline inline-flex items-center gap-1"
+                  >
+                    <Mail className="h-3.5 w-3.5" />
+                    <span>contact@aegissolaire.com</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* Garantie Sérénité */}
+              <div className="rounded-xl border border-border/80 bg-card p-3.5 text-center shadow-2xs">
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  🛡️ <strong>Garantie Sérénité Aegis Solaire :</strong> Tout numéro erroné ou dossier injoignable après 3 tentatives est recrédité sous 24h ouvrées.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Escape Footer vers la marketplace globale */}
+          <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-3 shadow-2xs">
+            <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-foreground">
+              <Store className="h-5 w-5 text-accent" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground">
+                Envie de découvrir d'autres opportunités en Wallonie ?
+              </h3>
+              <p className="text-xs text-muted-foreground max-w-lg mx-auto mt-1">
+                Explorez l'ensemble des {leads.length} chantiers photovoltaïques qualifiés actuellement ouverts sur la marketplace.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearFocus}
+              className="text-xs font-bold text-foreground border-border hover:bg-secondary cursor-pointer"
+            >
+              Accéder à toute la marketplace ({leads.length} chantiers) &rarr;
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* ── 1. Barre de Contrôle Unifiée : Filtres avec Badges de Comptage, Recherche, Tri & Visite ── */}
+          <div className="rounded-2xl border border-border bg-card p-3 sm:p-3.5 shadow-xs space-y-3">
         {/* Ligne 1 : Segments avec compteurs, Province, Recherche, Tri, Visite guidée et Toggle Grille/Tableau */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
           {/* Segments + Province */}
@@ -494,8 +922,8 @@ export function MarketplaceFeedView({
               </button>
             </div>
 
-            {/* Province custom UI select (remplace le select natif OS) */}
-            <MarketplaceCustomSelect
+            {/* Province CustomSelect stylisé comme le bouton */}
+            <CustomSelect
               value={selectedProvince}
               onChange={(val) => setSelectedProvince(val)}
               options={PROVINCE_OPTIONS}
@@ -529,13 +957,14 @@ export function MarketplaceFeedView({
               )}
             </div>
 
-            {/* Tri custom UI select (remplace le select natif OS) */}
-            <MarketplaceCustomSelect
+            {/* Tri CustomSelect au style identique au bouton */}
+            <CustomSelect
               value={sortBy}
               onChange={(val) => setSortBy(val as any)}
               options={SORT_OPTIONS}
               icon={ArrowUpDown}
               ariaLabel="Trier les chantiers"
+              contentClassName="min-w-[280px] sm:min-w-[300px]"
             />
 
             {/* Bouton Visite guidée */}
@@ -554,7 +983,7 @@ export function MarketplaceFeedView({
               type="button"
               onClick={() => onOpenExpertModal?.(null)}
               className="inline-flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/20 px-3 h-9 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs"
-              title="Demander l'aide d'un expert Aegis Solaire (étude de marché, dimensionnement, rentabilité)"
+              title="Demander l'aide d'un expert Aegis Solaire (% projet à négocier selon l'envergure)"
             >
               <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
               <span>Aide Expert &amp; Étude</span>
@@ -624,10 +1053,10 @@ export function MarketplaceFeedView({
               type="button"
               onClick={() => onOpenExpertModal?.(null)}
               className="inline-flex items-center gap-1 text-accent hover:underline font-semibold cursor-pointer text-xs"
-              title="Demander une étude de marché ou de dimensionnement"
+              title="Demander une étude de marché ou de dimensionnement (% projet à négocier)"
             >
               <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
-              <span>Étude de marché / Dimensionnement : Demander un expert</span>
+              <span>Étude expert &amp; Dimensionnement (% projet à négocier)</span>
             </button>
           </div>
 
@@ -690,11 +1119,93 @@ export function MarketplaceFeedView({
                 <tr>
                   <th className="px-4 py-3">Modèle</th>
                   <th className="px-4 py-3">Localisation</th>
-                  <th className="px-4 py-3">Puissance</th>
-                  <th className="px-4 py-3">Toiture &amp; Surface</th>
-                  <th className="px-4 py-3">Marge Estimée</th>
-                  <th className="px-4 py-3">Fraîcheur</th>
-                  <th className="px-4 py-3">Tarif</th>
+                  <th className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => setSortBy((prev) => (prev === "power_desc" ? "power_asc" : "power_desc"))}
+                      className="inline-flex items-center gap-1 font-bold uppercase hover:text-foreground cursor-pointer transition-colors group select-none"
+                      title="Trier par puissance estimée"
+                    >
+                      <span>Puissance</span>
+                      <ArrowUpDown
+                        className={`h-3 w-3 ${
+                          sortBy === "power_desc" || sortBy === "power_asc"
+                            ? "text-accent font-bold"
+                            : "text-muted-foreground/40 group-hover:text-muted-foreground"
+                        }`}
+                      />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => setSortBy("surface_desc")}
+                      className="inline-flex items-center gap-1 font-bold uppercase hover:text-foreground cursor-pointer transition-colors group select-none"
+                      title="Trier par surface de toiture disponible"
+                    >
+                      <span>Toiture &amp; Surface</span>
+                      <ArrowUpDown
+                        className={`h-3 w-3 ${
+                          sortBy === "surface_desc"
+                            ? "text-accent font-bold"
+                            : "text-muted-foreground/40 group-hover:text-muted-foreground"
+                        }`}
+                      />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSortBy((prev) => (prev === "margin_desc" ? "contract_desc" : "margin_desc"))
+                      }
+                      className="inline-flex items-center gap-1 font-bold uppercase hover:text-foreground cursor-pointer transition-colors group select-none"
+                      title="Trier par marge estimée ou valeur de chantier"
+                    >
+                      <span>Marge Estimée</span>
+                      <ArrowUpDown
+                        className={`h-3 w-3 ${
+                          sortBy === "margin_desc" || sortBy === "contract_desc"
+                            ? "text-accent font-bold"
+                            : "text-muted-foreground/40 group-hover:text-muted-foreground"
+                        }`}
+                      />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => setSortBy((prev) => (prev === "recent" ? "oldest" : "recent"))}
+                      className="inline-flex items-center gap-1 font-bold uppercase hover:text-foreground cursor-pointer transition-colors group select-none"
+                      title="Trier par fraîcheur / date d'audit"
+                    >
+                      <span>Fraîcheur</span>
+                      <ArrowUpDown
+                        className={`h-3 w-3 ${
+                          sortBy === "recent" || sortBy === "oldest"
+                            ? "text-accent font-bold"
+                            : "text-muted-foreground/40 group-hover:text-muted-foreground"
+                        }`}
+                      />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => setSortBy((prev) => (prev === "cost_asc" ? "cost_desc" : "cost_asc"))}
+                      className="inline-flex items-center gap-1 font-bold uppercase hover:text-foreground cursor-pointer transition-colors group select-none"
+                      title="Trier par prix du lead en crédits"
+                    >
+                      <span>Tarif</span>
+                      <ArrowUpDown
+                        className={`h-3 w-3 ${
+                          sortBy === "cost_asc" || sortBy === "cost_desc"
+                            ? "text-accent font-bold"
+                            : "text-muted-foreground/40 group-hover:text-muted-foreground"
+                        }`}
+                      />
+                    </button>
+                  </th>
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
@@ -781,7 +1292,7 @@ export function MarketplaceFeedView({
                       <td className="px-4 py-3 whitespace-nowrap font-mono text-[11px] text-muted-foreground">
                         <span className="inline-flex items-center gap-1.5">
                           <span className={`h-1.5 w-1.5 rounded-full ${freshness.dotClass}`} />
-                          <span className="tabular-nums font-medium text-foreground/80">{freshness.label}</span>
+                          <span suppressHydrationWarning className="tabular-nums font-medium text-foreground/80">{freshness.label}</span>
                         </span>
                       </td>
 
@@ -822,6 +1333,8 @@ export function MarketplaceFeedView({
             </table>
           </div>
         </div>
+      )}
+        </>
       )}
 
       {/* ── 3. Tiroir Latéral d'Inspection Rapide (Slide-over 540px) ── */}
@@ -940,7 +1453,7 @@ function MarketplaceLeadCard({
             {/* Badge Fraîcheur / Date */}
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white text-slate-800 text-xs font-semibold px-3 py-1.5 shadow-sm">
               <Calendar className="h-3.5 w-3.5 text-slate-500" />
-              <span>{freshness.label}</span>
+              <span suppressHydrationWarning>{freshness.label}</span>
             </span>
           </div>
 

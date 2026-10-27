@@ -44,7 +44,7 @@ const TOUR_STEPS = [
     badge: "INSPECTION TECHNIQUE & ÉTUDE EXPERT",
     title: "Analysez la faisabilité et sollicitez un expert",
     subtitle:
-      "Chaque fiche dispose d'un audit technique complet accessible gratuitement en 1 clic. Vous pouvez également solliciter notre Cellule Technique pour une étude de marché locale ou de dimensionnement.",
+      "Chaque fiche dispose d'un audit technique complet accessible en 1 clic. Pour les dossiers d'envergure, vous pouvez solliciter notre Cellule Technique pour un appui au dimensionnement ou au closing, en échange d'un pourcentage du projet à négocier.",
   },
   {
     stepNumber: "03",

@@ -134,47 +134,73 @@ export function LeadRelanceStatus({
       </div>
 
       {/* Visual Slot Tracker */}
-      <div className="grid grid-cols-3 gap-1.5 pt-0.5">
-        {Array.from({ length: maxSlots }).map((_, index) => {
-          const isSlotTaken = index < takenSlots
-          const purchaseInfo = data?.purchases?.[index]
-          return (
-            <div
-              key={index}
-              className={cn(
-                "p-2 rounded border flex flex-col gap-0.5 text-center transition-colors text-xs",
-                isSlotTaken
-                  ? "bg-primary/[0.06] border-primary text-foreground"
-                  : "bg-secondary/30 border-dashed border-border text-muted-foreground"
-              )}
-            >
-              <div className="flex items-center justify-center gap-1">
-                {isSlotTaken ? (
-                  <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                ) : (
-                  <Clock className="h-3 w-3 text-muted-foreground" />
+      <div className="flex flex-col gap-1.5 pt-0.5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {Array.from({ length: maxSlots }).map((_, index) => {
+            const isSlotTaken = index < takenSlots
+            const purchaseInfo = data?.purchases?.[index]
+            const purchaseDate = purchaseInfo?.purchased_at
+              ? new Date(purchaseInfo.purchased_at).toLocaleDateString("fr-BE", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : null
+
+            return (
+              <div
+                key={index}
+                className={cn(
+                  "p-2.5 rounded-lg border flex flex-col gap-1 transition-colors text-xs shadow-2xs",
+                  isSlotTaken
+                    ? "bg-primary/[0.06] border-primary/40 text-foreground"
+                    : "bg-secondary/20 border-dashed border-border text-muted-foreground"
                 )}
-                <span className="font-mono font-medium text-[11px]">
-                  Place {index + 1}
-                </span>
+              >
+                <div className="flex items-center justify-between gap-1">
+                  <div className="flex items-center gap-1.5">
+                    {isSlotTaken ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                    ) : (
+                      <Clock className="h-3 w-3 text-muted-foreground shrink-0" />
+                    )}
+                    <span className="font-mono font-bold text-[11px]">
+                      Place {index + 1}
+                    </span>
+                  </div>
+                  {isSlotTaken && (
+                    <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-primary/30 text-primary">
+                      Réservé
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="flex flex-col min-w-0 pt-0.5">
+                  <span className="text-[11px] font-semibold truncate text-foreground">
+                    {isSlotTaken
+                      ? purchaseInfo?.partners?.company_name || "Installateur Partenaire"
+                      : "Disponible"}
+                  </span>
+                  {purchaseDate && (
+                    <span className="text-[10px] font-mono text-muted-foreground">
+                      le {purchaseDate}
+                    </span>
+                  )}
+                </div>
               </div>
-              <span className="text-[10px] truncate">
-                {isSlotTaken
-                  ? purchaseInfo?.partners?.company_name || "Vendu"
-                  : "Disponible"}
-              </span>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
 
       {/* Wave Status Information */}
       <div className="border-t border-border/80 pt-2.5 flex items-center justify-between text-xs">
         <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">État actuel :</span>
+          <span className="text-muted-foreground">Cycle de relance :</span>
           <span className="font-mono font-medium text-foreground">
             {currentWave === 0
-              ? "Aucune vague envoyée"
+              ? "Aucune relance envoyée"
               : `Vague ${currentWave} active`}
           </span>
         </div>
@@ -197,7 +223,7 @@ export function LeadRelanceStatus({
             variant="default"
             disabled={isPending || loading}
             onClick={() => handleTriggerWave(currentWave === 0 ? 1 : Math.min(3, currentWave + 1))}
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-8 text-xs font-medium"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-8 text-xs font-semibold"
           >
             <Send className="h-3.5 w-3.5 mr-1.5" />
             {currentWave === 0
@@ -221,35 +247,48 @@ export function LeadRelanceStatus({
       )}
 
       {isFullySold && (
-        <div className="p-2 bg-primary/[0.05] border border-primary/20 rounded text-center text-xs font-mono text-primary font-medium">
-          ✓ Quota complet atteint. Les relances sont automatiquement closes.
+        <div className="p-2.5 bg-primary/[0.05] border border-primary/20 rounded-lg text-center text-xs font-mono text-primary font-medium">
+          ✓ Quota complet atteint ({maxSlots}/{maxSlots} places réservées). Les relances sont closes.
         </div>
       )}
 
       {/* Dispatches summary table */}
-      {data?.dispatches && data.dispatches.length > 0 && (
-        <div className="border-t border-border/80 pt-2 flex flex-col gap-1 max-h-32 overflow-y-auto pr-1">
-          <span className="font-mono text-[10px] text-muted-foreground uppercase">
-            Historique des notifications ({data.dispatches.length})
+      <div className="border-t border-border/80 pt-2 flex flex-col gap-1.5">
+        <div className="flex items-center justify-between text-[11px]">
+          <span className="font-mono text-[10px] text-muted-foreground uppercase font-semibold">
+            Relances envoyées ({data?.dispatches?.length || 0})
           </span>
-          <div className="flex flex-col gap-1">
-            {data.dispatches.slice(0, 5).map((d) => (
+          <span className="font-mono text-[10px] text-muted-foreground">
+            Comptes réels uniquement
+          </span>
+        </div>
+
+        {data?.dispatches && data.dispatches.length > 0 ? (
+          <div className="flex flex-col gap-1 max-h-40 overflow-y-auto pr-1">
+            {data.dispatches.map((d) => (
               <div
                 key={d.id}
-                className="flex items-center justify-between text-[11px] p-1.5 rounded bg-secondary/30"
+                className="flex items-center justify-between text-[11px] p-2 rounded-lg bg-secondary/30 border border-border/70"
               >
-                <div className="flex items-center gap-1.5 truncate">
-                  <Badge variant="outline" className="font-mono text-[9px] px-1 py-0 h-4">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Badge variant="outline" className="font-mono text-[9px] px-1.5 py-0 h-4 border-primary/40 text-primary shrink-0">
                     V{d.wave_number}
                   </Badge>
-                  <span className="truncate text-foreground font-medium">
-                    {d.partners?.company_name || d.email_to}
-                  </span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="truncate text-foreground font-semibold">
+                      {d.partners?.company_name || d.email_to}
+                    </span>
+                    <span className="truncate text-[10px] font-mono text-muted-foreground">
+                      {d.email_to}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0 font-mono text-[10px] text-muted-foreground">
-                  <span>Score: {d.matching_score}</span>
+                <div className="flex flex-col items-end shrink-0 font-mono text-[10px] text-muted-foreground">
+                  <span className="text-chart-3 font-semibold">Score: {d.matching_score}</span>
                   <span>
-                    {new Date(d.sent_at).toLocaleTimeString("fr-BE", {
+                    {new Date(d.sent_at).toLocaleDateString("fr-BE", {
+                      day: "2-digit",
+                      month: "2-digit",
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
@@ -258,8 +297,12 @@ export function LeadRelanceStatus({
               </div>
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <span className="text-xs text-muted-foreground italic py-1">
+            Aucun e-mail de relance transmis pour ce lead à ce stade.
+          </span>
+        )}
+      </div>
     </div>
   )
 }

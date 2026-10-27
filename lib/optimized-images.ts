@@ -25,7 +25,7 @@ export const heroImages = {
     mobile: "/optimized/hero-partenaires-mobile.webp",
     original: "/hero-partenaires.png",
     blurDataUrl:
-      "data:image/webp;base64,UklGRngAAABXRUJQVlA4IGwAAAAwBACdASoUAAsAPzmGuVOvKSWisAgB4CcJYwC7Ef/gPKDvC5Ok8S1FB0AA/nkpgakllKG86E2cRR7+9ErUAS016Z6CCxUD9qwQSYttknWhpvT6/eEk0niJdguwPW1Vbc+N+6FlRH4owmdAAAA=",
+      "data:image/webp;base64,UklGRmoAAABXRUJQVlA4IF4AAACwAwCdASoUAAsAPzmGulQvKSWjMAgB4CcJQBdgAoffHTtCmMCLgAD+ueWCVwftuwIwx4elEpoAcl+O1cDeQlc7nkHO8vg7Bl1iOOzvffFN5xr7OSJOIwkppohC5gAA",
   },
   "hero-particuliers": {
     webp: "/optimized/hero-particuliers.webp",

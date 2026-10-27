@@ -56,6 +56,9 @@ export type CreditOrder = {
   created_at: string
   validated_at: string | null
   notes?: string | null
+  payment_provider?: "bank_transfer" | "mollie" | string
+  payment_id?: string | null
+  checkout_url?: string | null
   partners?: {
     id: string
     company_name: string
@@ -669,26 +672,39 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
                       </div>
                     </TableCell>
 
-                    {/* Référence de Virement SEPA avec Copie Rapide */}
+                    {/* Référence de Virement SEPA ou Mollie */}
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <code className="font-mono text-xs tabular-nums bg-secondary/80 border border-border px-2 py-1 rounded select-all font-semibold tracking-wide">
-                          {order.transfer_reference}
-                        </code>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-muted-foreground hover:text-foreground shrink-0"
-                          title="Copier la référence de virement"
-                          onClick={() => handleCopyRef(order.transfer_reference)}
-                        >
-                          {isCopied ? (
-                            <Check className="h-3.5 w-3.5 text-primary" />
-                          ) : (
-                            <Copy className="h-3.5 w-3.5" />
-                          )}
-                        </Button>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <code className="font-mono text-xs tabular-nums bg-secondary/80 border border-border px-2 py-1 rounded select-all font-semibold tracking-wide">
+                            {order.transfer_reference}
+                          </code>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-foreground shrink-0"
+                            title="Copier la référence de virement"
+                            onClick={() => handleCopyRef(order.transfer_reference)}
+                          >
+                            {isCopied ? (
+                              <Check className="h-3.5 w-3.5 text-primary" />
+                            ) : (
+                              <Copy className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        </div>
+                        {order.payment_provider === "mollie" ? (
+                          <div className="flex items-center gap-1.5 text-[10px] text-accent font-medium">
+                            <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent" />
+                            <span>Paiement en ligne instantané (Mollie)</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                            <span className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
+                            <span>Virement bancaire SEPA pro</span>
+                          </div>
+                        )}
                       </div>
                     </TableCell>
 

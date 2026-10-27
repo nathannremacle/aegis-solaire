@@ -62,10 +62,29 @@ export async function POST(request: Request) {
     .eq("id", body.leadId)
     .single()
 
+  let purchaseId = (result?.purchase_id as string) || (result?.purchaseId as string) || null
+
+  if (!purchaseId) {
+    const { data: lp } = await admin
+      .from("lead_purchases")
+      .select("id")
+      .eq("lead_id", body.leadId)
+      .eq("partner_id", partner.id)
+      .order("purchased_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (lp?.id) {
+      purchaseId = lp.id
+    }
+  }
+
   return NextResponse.json({
     success: true,
-    creditsSpent: result?.credits_spent,
-    creditsRemaining: result?.credits_remaining,
+    purchaseId,
+    purchase_id: purchaseId,
+    creditsSpent: (result?.credits_spent as number) ?? (result?.creditsSpent as number),
+    creditsRemaining: (result?.remaining_credits as number) ?? (result?.creditsRemaining as number) ?? (result?.credits_remaining as number),
     lead,
   })
 }

@@ -71,6 +71,7 @@ export async function createCreditOrderPayment(params: CreateCreditOrderPaymentP
     webhookUrl,
     method: [
       PaymentMethod.bancontact,
+      PaymentMethod.creditcard,
       PaymentMethod.kbc,
       PaymentMethod.belfius,
     ],

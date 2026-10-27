@@ -132,7 +132,7 @@ async function PartnerDashboardLoader({
           timeframe, project_timeline, project_driver, project_details, message, first_name, last_name,
           credit_cost, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings,
           wants_irve, lead_score,
-          lead_purchases(id)
+          lead_purchases(id, partner_id, purchased_at, partners(id, company_name, email, is_test))
         `)
         .eq("marketplace_status", "available")
         .order("created_at", { ascending: false })
@@ -172,17 +172,79 @@ async function PartnerDashboardLoader({
       .filter((l: any) => !myPurchasedLeadIds.has(l.id))
       .map((l: any) => {
         const maxSlots = l.segment === "B2B" ? 1 : 3
-        const takenSlots = Array.isArray(l.lead_purchases) ? l.lead_purchases.length : 0
+        const realPurchases = (Array.isArray(l.lead_purchases) ? l.lead_purchases : []).filter((p: any) => {
+          const partnerObj = Array.isArray(p.partners) ? p.partners[0] : p.partners
+          if (partnerObj?.is_test) return false
+          const cName = (partnerObj?.company_name || "").toLowerCase()
+          if (cName.includes("test") || cName.includes("dev test")) return false
+          const email = (partnerObj?.email || "").toLowerCase()
+          if (email === "mrnathanrem@gmail.com") return false
+          return true
+        })
+        const takenSlots = realPurchases.length
         const remainingSlots = Math.max(0, maxSlots - takenSlots)
         return {
           ...l,
           max_slots: maxSlots,
           taken_slots: takenSlots,
           remaining_slots: remainingSlots,
+          buyers: realPurchases.map((p: any) => ({
+            companyName: p.partners?.company_name || "Installateur Partenaire",
+            purchasedAt: p.purchased_at,
+          })),
           masked_postal_code: l.postal_code ? `${l.postal_code.slice(0, 2)}XX` : "—",
         }
       })
       .filter((l: any) => l.remaining_slots > 0)
+  }
+
+  // 3. Garantir la présence du lead ciblé (?lead=[id]) s'il existe en base
+  if (targetLeadId) {
+    const existsInMarket = initialMarketplace.some((l: any) => l.id === targetLeadId)
+    const existsInPortfolio = initialPortfolio.some(
+      (p: any) => p.id === targetLeadId || p.lead_id === targetLeadId || p.purchase_id === targetLeadId
+    )
+    if (!existsInMarket && !existsInPortfolio) {
+      const { data: specificLead } = await admin
+        .from("leads")
+        .select(`
+          id, segment, province, city, postal_code, site_address, surface_type, surface_area, surface_area_m2,
+          annual_electricity_bill, annual_bill_eur, estimated_power_kwc, roof_material, ownership_status,
+          timeframe, project_timeline, project_driver, project_details, message, first_name, last_name,
+          credit_cost, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings,
+          wants_irve, lead_score,
+          lead_purchases(id, partner_id, purchased_at, partners(id, company_name, email, is_test))
+        `)
+        .eq("id", targetLeadId)
+        .maybeSingle()
+
+      if (specificLead) {
+        const maxSlots = specificLead.segment === "B2B" ? 1 : 3
+        const realPurchases = (Array.isArray(specificLead.lead_purchases) ? specificLead.lead_purchases : []).filter((p: any) => {
+          const partnerObj = Array.isArray(p.partners) ? p.partners[0] : p.partners
+          if (partnerObj?.is_test) return false
+          const cName = (partnerObj?.company_name || "").toLowerCase()
+          if (cName.includes("test") || cName.includes("dev test")) return false
+          const email = (partnerObj?.email || "").toLowerCase()
+          if (email === "mrnathanrem@gmail.com") return false
+          return true
+        })
+        const takenSlots = realPurchases.length
+        const remainingSlots = Math.max(0, maxSlots - takenSlots)
+        const formattedLead = {
+          ...specificLead,
+          max_slots: maxSlots,
+          taken_slots: takenSlots,
+          remaining_slots: remainingSlots,
+          buyers: realPurchases.map((p: any) => ({
+            companyName: p.partners?.company_name || "Installateur Partenaire",
+            purchasedAt: p.purchased_at,
+          })),
+          masked_postal_code: specificLead.postal_code ? `${specificLead.postal_code.slice(0, 2)}XX` : "—",
+        }
+        initialMarketplace = [formattedLead, ...initialMarketplace]
+      }
+    }
   }
 
   return (

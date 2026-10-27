@@ -33,12 +33,27 @@ import {
   Info,
   Timer,
   Play,
+  Users,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { CustomSelect } from "@/components/ui/custom-select"
+
+const WAVE_OPTIONS = [
+  { value: "ALL", label: "Toutes les vagues" },
+  { value: "1", label: "Vague 1 (Alerte Immédiate)" },
+  { value: "2", label: "Vague 2 (Relance Élargie H+4)" },
+  { value: "3", label: "Vague 3 (Clôture H+24)" },
+]
+
+const SEGMENT_OPTIONS = [
+  { value: "ALL", label: "Tous les segments" },
+  { value: "B2B", label: "B2B Tertiaire (Exclusif)" },
+  { value: "B2C", label: "B2C Résidentiel (Max 3)" },
+]
 import { RelancesKpiBar } from "./relances-kpi-bar"
 import { EmailPreviewDrawer } from "./email-preview-drawer"
 import type {
@@ -69,6 +84,7 @@ export function AdminRelancesDashboard({
   const [filterWave, setFilterWave] = useState<string>("ALL")
   const [filterSegment, setFilterSegment] = useState<string>("ALL")
   const [displayMode, setDisplayMode] = useState<"cards" | "table">("cards")
+  const [hideTestAccounts, setHideTestAccounts] = useState(true)
 
   const [currentTime, setCurrentTime] = useState(Date.now())
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -261,6 +277,7 @@ export function AdminRelancesDashboard({
   // Filtered Sent items
   const filteredSent = useMemo(() => {
     return sent.filter((item) => {
+      if (hideTestAccounts && item.isTest) return false
       if (filterWave !== "ALL" && item.waveNumber.toString() !== filterWave) return false
       if (filterSegment !== "ALL" && item.lead?.segment !== filterSegment) return false
 
@@ -275,7 +292,7 @@ export function AdminRelancesDashboard({
       }
       return true
     })
-  }, [sent, filterWave, filterSegment, searchQuery])
+  }, [sent, filterWave, filterSegment, searchQuery, hideTestAccounts])
 
   // Grouped by lead for Waterfall Matrix view
   const matrixLeads = useMemo(() => {
@@ -283,20 +300,37 @@ export function AdminRelancesDashboard({
       string,
       {
         lead: any
+        buyers: { partnerId: string; companyName: string; purchasedAt: string }[]
         upcomingWaves: UpcomingRelanceItem[]
         sentDispatches: SentRelanceItem[]
       }
     >()
 
     for (const u of upcoming) {
-      const existing = map.get(u.leadId) || { lead: u.lead, upcomingWaves: [], sentDispatches: [] }
+      const existing = map.get(u.leadId) || {
+        lead: u.lead,
+        buyers: u.buyers || [],
+        upcomingWaves: [],
+        sentDispatches: [],
+      }
       existing.upcomingWaves.push(u)
+      if (u.buyers && u.buyers.length > 0) {
+        existing.buyers = u.buyers
+      }
       map.set(u.leadId, existing)
     }
 
     for (const s of sent) {
-      const existing = map.get(s.leadId) || { lead: s.lead, upcomingWaves: [], sentDispatches: [] }
+      const existing = map.get(s.leadId) || {
+        lead: s.lead,
+        buyers: s.lead?.buyers || [],
+        upcomingWaves: [],
+        sentDispatches: [],
+      }
       existing.sentDispatches.push(s)
+      if (s.lead?.buyers && s.lead.buyers.length > 0) {
+        existing.buyers = s.lead.buyers
+      }
       map.set(s.leadId, existing)
     }
 
@@ -487,31 +521,37 @@ export function AdminRelancesDashboard({
             {/* Wave Filter */}
             <div className="flex items-center gap-1.5">
               <span className="font-mono text-[10px] text-muted-foreground uppercase">Vague :</span>
-              <select
+              <CustomSelect
                 value={filterWave}
-                onChange={(e) => setFilterWave(e.target.value)}
-                className="h-9 rounded-lg border border-border bg-background px-2.5 text-xs font-medium text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary"
-              >
-                <option value="ALL">Toutes les vagues</option>
-                <option value="1">Vague 1 (Alerte Immédiate)</option>
-                <option value="2">Vague 2 (Relance Élargie H+4)</option>
-                <option value="3">Vague 3 (Clôture H+24)</option>
-              </select>
+                onChange={setFilterWave}
+                options={WAVE_OPTIONS}
+                size="sm"
+                ariaLabel="Filtrer par vague de relance"
+              />
             </div>
 
             {/* Segment Filter */}
             <div className="flex items-center gap-1.5">
               <span className="font-mono text-[10px] text-muted-foreground uppercase">Segment :</span>
-              <select
+              <CustomSelect
                 value={filterSegment}
-                onChange={(e) => setFilterSegment(e.target.value)}
-                className="h-9 rounded-lg border border-border bg-background px-2.5 text-xs font-medium text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary"
-              >
-                <option value="ALL">Tous les segments</option>
-                <option value="B2B">B2B Tertiaire (Exclusif)</option>
-                <option value="B2C">B2C Résidentiel (Max 3)</option>
-              </select>
+                onChange={setFilterSegment}
+                options={SEGMENT_OPTIONS}
+                size="sm"
+                ariaLabel="Filtrer par segment"
+              />
             </div>
+
+            {/* Toggle Exclure DEV TEST */}
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer px-2.5 py-1.5 rounded-lg border border-border bg-secondary/40 select-none transition-colors">
+              <input
+                type="checkbox"
+                checked={hideTestAccounts}
+                onChange={(e) => setHideTestAccounts(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-border text-primary cursor-pointer accent-primary"
+              />
+              <span className="font-mono text-[11px] font-medium">Exclure DEV TEST</span>
+            </label>
 
             {(searchQuery || filterWave !== "ALL" || filterSegment !== "ALL") && (
               <Button
@@ -649,6 +689,64 @@ export function AdminRelancesDashboard({
                           </div>
                         </div>
                       </div>
+
+                      {/* Section : Qui a pris les places (si des places ont été prises sur ce lead) */}
+                      {item.buyers && item.buyers.length > 0 && (
+                        <div className="rounded-lg border border-primary/25 bg-primary/[0.04] p-3 flex flex-col gap-2 text-xs">
+                          <div className="flex items-center justify-between font-mono text-[11px] font-semibold text-primary">
+                            <span className="flex items-center gap-1.5">
+                              <Users className="h-3.5 w-3.5" />
+                              <span>Places attribuées ({item.takenSlots} / {item.maxSlots}) :</span>
+                            </span>
+                            <span className="text-muted-foreground text-[10px]">
+                              {item.remainingSlots} restante{item.remainingSlots > 1 ? "s" : ""}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+                            {item.buyers.map((buyer, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center justify-between font-mono text-[11px] bg-card p-2 rounded-md border border-border shadow-2xs"
+                              >
+                                <span className="font-semibold text-foreground flex items-center gap-1.5 truncate">
+                                  <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                                  Place {idx + 1} : {buyer.companyName}
+                                </span>
+                                <span className="text-muted-foreground text-[10px] shrink-0 ml-2">
+                                  le {new Date(buyer.purchasedAt).toLocaleDateString("fr-BE", { day: "2-digit", month: "2-digit" })}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Section : À qui ont été envoyés les mails de relance (hors DEV TEST) */}
+                      {item.sentRecipients && item.sentRecipients.length > 0 && (
+                        <div className="rounded-lg border border-border bg-secondary/30 p-2.5 flex flex-col gap-1.5 text-xs">
+                          <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                            <span className="flex items-center gap-1">
+                              <Mail className="h-3 w-3 text-accent" />
+                              <span>Relances déjà envoyées ({item.sentRecipients.length}) :</span>
+                            </span>
+                            <span className="text-[9px]">Comptes réels</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {item.sentRecipients.map((rec, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-card border border-border text-[11px] text-foreground font-medium shadow-2xs"
+                                title={`Envoyé le ${new Date(rec.sentAt).toLocaleString("fr-BE")} à ${rec.email}`}
+                              >
+                                <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 font-mono border-primary/40 text-primary">
+                                  V{rec.waveNumber}
+                                </Badge>
+                                <span className="font-semibold">{rec.companyName}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Target Recipients List */}
                       <div className="flex flex-col gap-2">
@@ -803,6 +901,16 @@ export function AdminRelancesDashboard({
                               <div className="font-mono text-[10px] text-muted-foreground">
                                 #{item.leadId.slice(0, 8)} · {item.lead.segment} · {item.takenSlots}/{item.maxSlots} slots
                               </div>
+                              {item.buyers && item.buyers.length > 0 && (
+                                <div className="text-[10px] font-mono text-primary font-medium pt-0.5 truncate max-w-xs">
+                                  Pris par : {item.buyers.map((b) => b.companyName).join(", ")}
+                                </div>
+                              )}
+                              {item.sentRecipients && item.sentRecipients.length > 0 && (
+                                <div className="text-[10px] font-mono text-muted-foreground pt-0.5">
+                                  Relances : {item.sentRecipients.length} transmise{item.sentRecipients.length > 1 ? "s" : ""}
+                                </div>
+                              )}
                             </td>
                             <td className="p-3">
                               <div className="flex flex-col gap-0.5">
@@ -978,6 +1086,16 @@ export function AdminRelancesDashboard({
                         </p>
                       </div>
 
+                      {/* Places réservées sur ce lead */}
+                      {item.lead?.buyers && item.lead.buyers.length > 0 && (
+                        <div className="flex items-center gap-1.5 font-mono text-[11px] text-primary bg-primary/5 px-2.5 py-1.5 rounded-lg border border-primary/20">
+                          <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                          <span className="font-semibold truncate">
+                            Place(s) prise(s) par : {item.lead.buyers.map((b) => b.companyName).join(", ")}
+                          </span>
+                        </div>
+                      )}
+
                       {/* Bottom Lead reference and preview action */}
                       <div className="flex items-center justify-between pt-2 border-t border-border text-xs">
                         <div className="flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground">
@@ -1102,7 +1220,7 @@ export function AdminRelancesDashboard({
         {/* ---------------- ONGLET 3 : MATRICE DES CASCADES PAR DOSSIER ---------------- */}
         {activeTab === "matrix" && (
           <div className="flex flex-col gap-4">
-            {matrixLeads.map(({ lead, upcomingWaves, sentDispatches }) => {
+            {matrixLeads.map(({ lead, buyers, upcomingWaves, sentDispatches }) => {
               if (!lead) return null
               const isB2B = lead.segment === "B2B"
               const maxSlots = isB2B ? 1 : 3
@@ -1110,6 +1228,7 @@ export function AdminRelancesDashboard({
               // Calculate unique partner recipients for this lead
               const sentPartnersCount = new Set(sentDispatches.map((s) => s.partnerId)).size
               const nextUpcoming = upcomingWaves[0]
+              const leadBuyers = buyers || []
 
               return (
                 <div
@@ -1159,10 +1278,63 @@ export function AdminRelancesDashboard({
                     )}
                   </div>
 
-                  {/* 3 Waves Progression Pipeline */}
+                  {/* Section Attribution des Places (B2C) : Qui a pris les leads */}
+                  {lead.segment === "B2C" && (
+                    <div className="rounded-lg border border-primary/20 bg-primary/[0.04] p-3 flex flex-col gap-2 text-xs">
+                      <div className="flex items-center justify-between font-mono text-[11px] font-semibold text-primary">
+                        <span className="flex items-center gap-1.5">
+                          <Users className="h-3.5 w-3.5" />
+                          <span>Attribution des créneaux B2C ({leadBuyers.length} / {maxSlots}) :</span>
+                        </span>
+                        <span className="text-muted-foreground text-[10px]">
+                          {Math.max(0, maxSlots - leadBuyers.length)} place{Math.max(0, maxSlots - leadBuyers.length) > 1 ? "s" : ""} restante{Math.max(0, maxSlots - leadBuyers.length) > 1 ? "s" : ""}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-0.5">
+                        {Array.from({ length: maxSlots }).map((_, idx) => {
+                          const buyer = leadBuyers[idx]
+                          return (
+                            <div
+                              key={idx}
+                              className={cn(
+                                "p-2 rounded-lg border flex flex-col gap-0.5 text-xs shadow-2xs transition-colors",
+                                buyer
+                                  ? "bg-card border-primary/40 text-foreground"
+                                  : "bg-secondary/20 border-dashed border-border text-muted-foreground"
+                              )}
+                            >
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="font-mono font-bold text-[10px]">Place {idx + 1}</span>
+                                {buyer ? (
+                                  <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-primary/40 text-primary">
+                                    Attribuée
+                                  </Badge>
+                                ) : (
+                                  <span className="text-[9px] text-muted-foreground">Libre</span>
+                                )}
+                              </div>
+                              <span className="font-semibold truncate text-[11px] text-foreground">
+                                {buyer ? buyer.companyName : "Disponible"}
+                              </span>
+                              {buyer && (
+                                <span className="font-mono text-[9px] text-muted-foreground">
+                                  le {new Date(buyer.purchasedAt).toLocaleDateString("fr-BE")}
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 3 Waves Progression Pipeline avec Destinataires */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     {[1, 2, 3].map((waveNum) => {
-                      const waveDispatches = sentDispatches.filter((s) => s.waveNumber === waveNum)
+                      const waveDispatches = sentDispatches.filter(
+                        (s) => s.waveNumber === waveNum && (!hideTestAccounts || !s.isTest)
+                      )
                       const isUpcomingWave = nextUpcoming?.nextWave === waveNum
                       const isPast = waveDispatches.length > 0
                       const isFuture = !isPast && !isUpcomingWave
@@ -1198,10 +1370,30 @@ export function AdminRelancesDashboard({
                             </Badge>
                           </div>
 
-                          <div className="flex flex-col gap-1">
+                          <div className="flex flex-col gap-1.5">
                             {isPast ? (
-                              <div className="font-mono text-[11px] text-foreground">
-                                ✓ {waveDispatches.length} artisan{waveDispatches.length > 1 ? "s" : ""} notifié{waveDispatches.length > 1 ? "s" : ""}
+                              <div className="flex flex-col gap-1">
+                                <div className="font-mono text-[11px] font-semibold text-foreground">
+                                  ✓ {waveDispatches.length} artisan{waveDispatches.length > 1 ? "s" : ""} notifié{waveDispatches.length > 1 ? "s" : ""} :
+                                </div>
+                                <div className="flex flex-col gap-1 max-h-24 overflow-y-auto pr-0.5">
+                                  {waveDispatches.map((d) => (
+                                    <div
+                                      key={d.id}
+                                      className="flex items-center justify-between text-[11px] px-2 py-1 rounded bg-card border border-border shadow-2xs"
+                                    >
+                                      <span className="font-semibold text-foreground truncate">
+                                        {d.partner?.companyName || d.emailTo}
+                                      </span>
+                                      <span className="font-mono text-[10px] text-muted-foreground shrink-0 ml-1">
+                                        {new Date(d.sentAt).toLocaleTimeString("fr-BE", {
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                        })}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             ) : isUpcomingWave ? (
                               <div className="flex flex-col gap-0.5">

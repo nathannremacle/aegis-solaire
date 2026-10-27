@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getPartner } from "@/lib/partner-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { getMollieClient } from "@/lib/mollie"
+import { fulfillPaidCreditOrder } from "@/lib/mollie-fulfillment"
 
 export const dynamic = "force-dynamic"
 
@@ -45,9 +46,11 @@ export async function GET(request: NextRequest) {
     })
   }
 
-  // Si en attente et qu'un Mollie Payment ID est trouvé dans les notes
-  const paymentIdMatch = order.notes?.match(/tr_[a-zA-Z0-9]+/)
-  const paymentId = paymentIdMatch ? paymentIdMatch[0] : null
+  // Chercher le Payment ID Mollie (dans la colonne payment_id ou les notes)
+  const paymentId =
+    order.payment_id ||
+    order.notes?.match(/tr_[a-zA-Z0-9]+/)?.[0] ||
+    null
 
   if (paymentId && process.env.MOLLIE_API_KEY) {
     try {
@@ -55,29 +58,13 @@ export async function GET(request: NextRequest) {
       const payment = await mollie.payments.get(paymentId)
 
       if (payment.status === "paid") {
-        // Validation synchrone si le webhook a eu un léger délai
-        const { data: newCredits, error: rpcErr } = await supabase.rpc("add_credits", {
-          p_partner_id: order.partner_id,
-          p_amount: order.credits,
-          p_type: "topup",
-          p_reference: `MOLLIE-${payment.id}`,
-        })
-
-        if (!rpcErr) {
-          await supabase
-            .from("credit_orders")
-            .update({
-              status: "paid",
-              validated_at: new Date().toISOString(),
-              notes: `Paiement Bancontact synchronisé via vérification directe (${payment.id}).`,
-            })
-            .eq("id", order.id)
-
+        const result = await fulfillPaidCreditOrder(order.id, payment)
+        if (result.success) {
           return NextResponse.json({
             status: "paid",
             credits: order.credits,
             packName: order.pack_name,
-            newCredits,
+            newCredits: result.newCredits,
             freshlyValidated: true,
           })
         }

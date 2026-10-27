@@ -27,8 +27,8 @@ export function HeroBg({
       fallbackSrc={img.original}
       className={className}
       style={{
-        maskImage: maskGradient,
-        WebkitMaskImage: maskGradient,
+        maskImage: maskGradient && maskGradient !== "none" ? maskGradient : undefined,
+        WebkitMaskImage: maskGradient && maskGradient !== "none" ? maskGradient : undefined,
       }}
     />
   )

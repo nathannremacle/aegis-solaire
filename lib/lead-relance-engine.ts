@@ -701,6 +701,33 @@ export async function processPendingLeadRelances(): Promise<CronRelanceSummary> 
 // 7. FONCTIONS DE SUPERVISION DASHBOARD : PLANNING, HISTORIQUE ET STATISTIQUES
 // ==============================================================================
 
+/**
+ * Détermine avec certitude si un partenaire ou un envoi relève des tests internes / DEV TEST
+ */
+export function isDevTestPartner(p: {
+  is_test?: boolean
+  isTest?: boolean
+  company_name?: string | null
+  companyName?: string | null
+  email?: string | null
+  emailTo?: string | null
+} | null | undefined): boolean {
+  if (!p) return false
+  if (p.is_test || p.isTest) return true
+  const company = (p.company_name || p.companyName || "").toLowerCase().trim()
+  if (company.includes("test") || company.includes("dev test") || company.startsWith("dev-")) return true
+  const email = (p.email || p.emailTo || "").toLowerCase().trim()
+  if (
+    email === "mrnathanrem@gmail.com" ||
+    email.includes("+test") ||
+    email.startsWith("test@") ||
+    email.endsWith("@test.com")
+  ) {
+    return true
+  }
+  return false
+}
+
 export interface UpcomingRelanceItem {
   id: string
   leadId: string
@@ -741,6 +768,19 @@ export interface UpcomingRelanceItem {
     hasEnoughCredits: boolean
     isTest?: boolean
   }[]
+  buyers: {
+    partnerId: string
+    companyName: string
+    email?: string
+    purchasedAt: string
+  }[]
+  sentRecipients: {
+    partnerId: string
+    companyName: string
+    email: string
+    waveNumber: number
+    sentAt: string
+  }[]
   subjectPreview: string
 }
 
@@ -775,6 +815,11 @@ export interface SentRelanceItem {
     estimatedPowerKwc: number
     takenSlots: number
     maxSlots: number
+    buyers?: {
+      partnerId: string
+      companyName: string
+      purchasedAt: string
+    }[]
   } | null
   outcome: "purchased_by_recipient" | "purchased_by_other" | "available" | "sold_out"
   isTest?: boolean
@@ -870,17 +915,48 @@ export async function getUpcomingRelancesSchedule(): Promise<UpcomingRelanceItem
   // 2. Récupérer tous les achats existants pour vérifier les slots (hors tests)
   const { data: allPurchases } = await supabase
     .from("lead_purchases")
-    .select("lead_id, partner_id, partners(is_test, company_name)")
+    .select("lead_id, partner_id, purchased_at, partners(id, company_name, email, is_test)")
+    .order("purchased_at", { ascending: true })
 
-  const purchasesByLead = new Map<string, string[]>()
+  const purchasesByLead = new Map<string, { partnerId: string; companyName: string; email: string; purchasedAt: string }[]>()
   for (const p of (allPurchases as any[]) || []) {
     const partnerObj = Array.isArray(p.partners) ? p.partners[0] : p.partners
-    if (partnerObj?.is_test || partnerObj?.company_name?.toLowerCase().includes("test")) {
+    if (isDevTestPartner({ ...partnerObj, email: partnerObj?.email })) {
       continue
     }
     const list = purchasesByLead.get(p.lead_id) || []
-    list.push(p.partner_id)
+    list.push({
+      partnerId: p.partner_id,
+      companyName: partnerObj?.company_name || "Installateur Partenaire",
+      email: partnerObj?.email || "",
+      purchasedAt: p.purchased_at,
+    })
     purchasesByLead.set(p.lead_id, list)
+  }
+
+  // 3. Récupérer les relances déjà envoyées pour ces leads (hors comptes DEV TEST)
+  const availableLeadIds = availableLeads.map((l) => l.id)
+  const { data: allDispatches } = await supabase
+    .from("lead_relance_dispatches")
+    .select("id, lead_id, partner_id, wave_number, email_to, sent_at, partners(id, company_name, email, is_test)")
+    .in("lead_id", availableLeadIds)
+    .order("sent_at", { ascending: false })
+
+  const dispatchesByLead = new Map<string, { partnerId: string; companyName: string; email: string; waveNumber: number; sentAt: string }[]>()
+  for (const d of (allDispatches as any[]) || []) {
+    const partnerObj = Array.isArray(d.partners) ? d.partners[0] : d.partners
+    if (isDevTestPartner({ ...partnerObj, emailTo: d.email_to })) {
+      continue
+    }
+    const list = dispatchesByLead.get(d.lead_id) || []
+    list.push({
+      partnerId: d.partner_id,
+      companyName: partnerObj?.company_name || d.email_to,
+      email: d.email_to,
+      waveNumber: d.wave_number,
+      sentAt: d.sent_at,
+    })
+    dispatchesByLead.set(d.lead_id, list)
   }
 
   const upcomingItems: UpcomingRelanceItem[] = []
@@ -895,7 +971,8 @@ export async function getUpcomingRelancesSchedule(): Promise<UpcomingRelanceItem
     const nextWave = currentWave + 1
     const isB2B = lead.segment === "B2B"
     const maxSlots = isB2B ? MAX_SLOTS_B2B : MAX_SLOTS_B2C
-    const takenSlots = purchasesByLead.get(lead.id)?.length || 0
+    const leadBuyers = purchasesByLead.get(lead.id) || []
+    const takenSlots = leadBuyers.length
 
     if (takenSlots >= maxSlots) {
       // Déjà vendu complètement
@@ -950,7 +1027,7 @@ export async function getUpcomingRelancesSchedule(): Promise<UpcomingRelanceItem
       tier: c.scoreInfo.tier,
       isExactProvince: c.scoreInfo.isExactProvince,
       hasEnoughCredits: c.scoreInfo.hasEnoughCredits,
-      isTest: Boolean(c.isTest || c.partner.is_test || c.partner.company_name?.toLowerCase().includes("test")),
+      isTest: isDevTestPartner({ ...c.partner, email: c.partner.email }),
     }))
 
     // Calcul du quota réel ciblé (sans compter DEV TEST)
@@ -1014,6 +1091,8 @@ export async function getUpcomingRelancesSchedule(): Promise<UpcomingRelanceItem
       remainingSlots,
       targetCount: realRecipientsCount,
       targetRecipients,
+      buyers: leadBuyers,
+      sentRecipients: dispatchesByLead.get(lead.id) || [],
       subjectPreview,
     })
   }
@@ -1069,34 +1148,36 @@ export async function getSentRelancesHistory(limit = 100): Promise<SentRelanceIt
   const leadIds = Array.from(new Set(dispatches.map((d: any) => d.lead_id)))
   const { data: purchases } = await supabase
     .from("lead_purchases")
-    .select("lead_id, partner_id, partners(is_test, company_name)")
+    .select("lead_id, partner_id, purchased_at, partners(id, company_name, email, is_test)")
     .in("lead_id", leadIds)
+    .order("purchased_at", { ascending: true })
 
-  const purchasesMap = new Map<string, string[]>()
+  const purchasesMap = new Map<string, { partnerId: string; companyName: string; purchasedAt: string }[]>()
   for (const p of (purchases as any[]) || []) {
     const partnerObj = Array.isArray(p.partners) ? p.partners[0] : p.partners
-    if (partnerObj?.is_test || partnerObj?.company_name?.toLowerCase().includes("test")) {
+    if (isDevTestPartner({ ...partnerObj, email: partnerObj?.email })) {
       continue
     }
     const list = purchasesMap.get(p.lead_id) || []
-    list.push(p.partner_id)
+    list.push({
+      partnerId: p.partner_id,
+      companyName: partnerObj?.company_name || "Installateur Partenaire",
+      purchasedAt: p.purchased_at,
+    })
     purchasesMap.set(p.lead_id, list)
   }
 
   return dispatches.map((d: any) => {
     const lead = d.leads
-    const buyers = purchasesMap.get(d.lead_id) || []
+    const buyersList = purchasesMap.get(d.lead_id) || []
+    const buyerPartnerIds = buyersList.map((b) => b.partnerId)
     const isB2B = lead?.segment === "B2B"
     const maxSlots = isB2B ? MAX_SLOTS_B2B : MAX_SLOTS_B2C
-    const takenSlots = buyers.length
-    const isTest = Boolean(
-      d.partners?.is_test ||
-      d.partners?.company_name?.toLowerCase().includes("test") ||
-      d.email_to === "mrnathanrem@gmail.com"
-    )
+    const takenSlots = buyersList.length
+    const isTest = isDevTestPartner({ ...d.partners, emailTo: d.email_to })
 
     let outcome: "purchased_by_recipient" | "purchased_by_other" | "available" | "sold_out" = "available"
-    if (buyers.includes(d.partner_id)) {
+    if (buyerPartnerIds.includes(d.partner_id)) {
       outcome = "purchased_by_recipient"
     } else if (takenSlots >= maxSlots || lead?.marketplace_status === "sold_out") {
       outcome = "sold_out"
@@ -1145,6 +1226,7 @@ export async function getSentRelancesHistory(limit = 100): Promise<SentRelanceIt
             estimatedPowerKwc: financials.estimatedPowerKwc,
             takenSlots,
             maxSlots,
+            buyers: buyersList,
           }
         : null,
       outcome,

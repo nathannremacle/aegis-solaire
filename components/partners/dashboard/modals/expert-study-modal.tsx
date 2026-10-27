@@ -24,6 +24,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
+import { CustomSelect } from "@/components/ui/custom-select"
 
 export interface ExpertStudyModalProps {
   partner: any
@@ -109,6 +110,21 @@ export default function ExpertStudyModal({
     return null
   }, [initialLead, selectedLeadId, purchases])
 
+  const leadOptions = React.useMemo(
+    () => [
+      {
+        value: "none",
+        label: "Dossier externe / Hors marketplace (prospection générale Wallonie)",
+      },
+      ...purchases.map((p) => {
+        const id = p.purchase_id || p.id
+        const title = `${p.company ? `${p.company} — ` : ""}${p.first_name || ""} ${p.last_name || ""} (${p.city || p.province || "Chantier"})`
+        return { value: id, label: title }
+      }),
+    ],
+    [purchases]
+  )
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -188,7 +204,7 @@ export default function ExpertStudyModal({
                   CELLULE TECHNIQUE &amp; INGÉNIERIE
                 </span>
                 <span className="inline-flex items-center gap-1 rounded bg-accent/10 border border-accent/20 px-1.5 py-0.2 text-[10px] font-mono font-bold text-foreground">
-                  Inclus Partenaire
+                  % Projet · À négocier
                 </span>
               </div>
               <h2
@@ -198,7 +214,7 @@ export default function ExpertStudyModal({
                 Aide d&apos;un Expert &amp; Étude de Marché
               </h2>
               <p className="text-xs text-muted-foreground">
-                Appui gratuit aux installateurs certifiés : dimensionnement, marché Wallonie et modélisation B2B.
+                Accompagnement expert et ingénierie : dimensionnement, marché Wallonie et closing B2B en échange d&apos;un pourcentage du projet, à négocier selon son envergure.
               </p>
             </div>
           </div>
@@ -225,7 +241,7 @@ export default function ExpertStudyModal({
                 Demande transmise avec succès !
               </h3>
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Notre Cellule Technique &amp; Ingénierie a bien reçu votre demande concernant l&apos;étude sélectionnée. Un ingénieur dédié analyse vos éléments et vous recontactera sous <strong>24 heures ouvrées</strong>.
+                Notre Cellule Technique &amp; Ingénierie a bien reçu votre demande. Un ingénieur dédié analyse vos éléments et vous recontactera sous <strong>24 heures ouvrées</strong> pour convenir des modalités techniques et du pourcentage d&apos;honoraires applicable au succès du chantier.
               </p>
             </div>
 
@@ -356,24 +372,15 @@ export default function ExpertStudyModal({
                   </button>
                 </div>
               ) : (
-                <select
+                <CustomSelect
                   value={selectedLeadId}
-                  onChange={(e) => setSelectedLeadId(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs font-medium text-foreground cursor-pointer focus:ring-1 focus:ring-primary focus:border-primary outline-hidden"
-                >
-                  <option value="none">
-                    Dossier externe / Hors marketplace (prospection générale Wallonie)
-                  </option>
-                  {purchases.map((p) => {
-                    const id = p.purchase_id || p.id
-                    const title = `${p.company ? `${p.company} — ` : ""}${p.first_name || ""} ${p.last_name || ""} (${p.city || p.province || "Chantier"})`
-                    return (
-                      <option key={id} value={id}>
-                        {title}
-                      </option>
-                    )
-                  })}
-                </select>
+                  onChange={setSelectedLeadId}
+                  options={leadOptions}
+                  className="w-full"
+                  triggerClassName="w-full justify-between"
+                  contentClassName="w-[calc(100vw-2rem)] max-w-xl"
+                  ariaLabel="Sélectionner un chantier pour l'étude expert"
+                />
               )}
             </div>
 
@@ -487,13 +494,15 @@ export default function ExpertStudyModal({
               </div>
             </div>
 
-            {/* Note d'engagement institutionnel */}
-            <div className="rounded-xl border border-border bg-secondary/40 p-3 flex items-start gap-2.5 text-xs text-muted-foreground">
-              <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-              <div className="leading-snug">
-                <strong className="text-foreground">Engagement de la Cellule Technique :</strong>{" "}
-                Toutes nos études sont conformes aux normes belges (RGIE, Synergrid C10/11, décret PEB 2026 et plan PACE 2030 Wallonie). Traitement prioritaire sous 24h ouvrées.
+            {/* Note d'honoraires et engagement bilatéral */}
+            <div className="rounded-xl border border-accent/30 bg-accent/5 p-3.5 space-y-1.5 text-xs">
+              <div className="flex items-center gap-2 font-bold text-foreground">
+                <Handshake className="h-4 w-4 text-accent shrink-0" />
+                <span>Modalités d&apos;accompagnement : Pourcentage du projet à négocier</span>
               </div>
+              <p className="text-muted-foreground leading-relaxed">
+                L&apos;intervention de la Cellule Technique (dimensionnement, calepinage, validation GRD ORES/RESA, closing B2B) n&apos;est pas gratuite : elle s&apos;effectue en échange d&apos;un <strong>pourcentage convenu sur le montant du projet signé</strong>, à négocier et fixer ensemble selon la puissance (kWc) et la complexité du chantier.
+              </p>
             </div>
 
             {/* ── 3. Pied de Formulaire avec CTA ── */}

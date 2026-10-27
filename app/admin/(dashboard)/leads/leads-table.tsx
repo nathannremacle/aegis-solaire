@@ -542,6 +542,7 @@ export function LeadsTable({
                 const isActive = activeLead?.id === lead.id
                 const age = formatRelativeAge(lead.created_at)
                 const isB2B = lead.segment === "B2B"
+                const isB2C = lead.segment === "B2C"
                 const title = isB2B && lead.company ? lead.company : `${lead.first_name} ${lead.last_name || ""}`
                 const isOutOfWallonia = lead.postal_code && !isWalloonPostalCode(lead.postal_code)
 
@@ -601,10 +602,32 @@ export function LeadsTable({
                     </TableCell>
 
                     {/* Segment */}
-                    <TableCell>
-                      <span className="font-mono text-[10px] uppercase tracking-wider px-1 py-0.5 rounded-sm bg-secondary text-secondary-foreground border border-border">
-                        {lead.segment ?? "B2B"}
-                      </span>
+                    <TableCell className="text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="font-mono text-[10px] uppercase tracking-wider px-1 py-0.5 rounded-sm bg-secondary text-secondary-foreground border border-border">
+                          {lead.segment ?? "B2B"}
+                        </span>
+                        {isB2C && (() => {
+                          const realPurchases = (lead.lead_purchases || []).filter((p: any) => {
+                            const partnerObj = Array.isArray(p.partners) ? p.partners[0] : p.partners
+                            if (partnerObj?.is_test) return false
+                            const cName = (partnerObj?.company_name || "").toLowerCase()
+                            if (cName.includes("test") || cName.includes("dev test")) return false
+                            const email = (partnerObj?.email || "").toLowerCase()
+                            if (email === "mrnathanrem@gmail.com") return false
+                            return true
+                          })
+                          if (realPurchases.length === 0) return null
+                          return (
+                            <span
+                              className="font-mono text-[9px] px-1.5 py-0.2 rounded bg-primary/10 text-primary border border-primary/25 font-bold tabular-nums whitespace-nowrap"
+                              title={`Places réservées par : ${realPurchases.map((p: any) => p.partners?.company_name || "Installateur").join(", ")}`}
+                            >
+                              {realPurchases.length}/3 pris
+                            </span>
+                          )
+                        })()}
+                      </div>
                     </TableCell>
 
                     {/* Localité */}

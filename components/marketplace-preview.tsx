@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { useState, useMemo, useEffect, useRef } from "react"
+import { useState, useMemo } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import {
   MapPin,
@@ -24,6 +25,12 @@ import {
   Mail,
   Building2,
   Coins,
+  Calendar,
+  ChevronRight,
+  Home,
+  FileText,
+  User,
+  Eye,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -38,6 +45,26 @@ import {
   getOwnershipLabel,
 } from "@/lib/lead-display-helpers"
 import { LeadInspectionDrawer } from "@/components/partners/dashboard/lead-inspection-drawer"
+import { CustomSelect } from "@/components/ui/custom-select"
+
+const B2B_SOLAR_IMAGE = "/solar/b2b-lead-preview.jpg"
+const B2C_SOLAR_IMAGE = "/solar/b2c-lead-preview.jpg"
+
+const PROVINCE_OPTIONS = [
+  { value: "ALL", label: "Toute la Wallonie" },
+  { value: "liege", label: "Liège" },
+  { value: "namur", label: "Namur" },
+  { value: "hainaut", label: "Hainaut" },
+  { value: "brabant_wallon", label: "Brabant Wallon" },
+  { value: "luxembourg", label: "Luxembourg" },
+]
+
+const SORT_OPTIONS = [
+  { value: "recent", label: "Plus récents" },
+  { value: "power_desc", label: "Puissance max (kWc)" },
+  { value: "margin_desc", label: "Marge max (€)" },
+  { value: "cost_asc", label: "Crédits min (↗)" },
+]
 
 export interface DemoLead {
   id: string
@@ -73,9 +100,8 @@ export interface DemoLead {
   coords?: [number, number]
   lead_score?: number
   is_demo_preview?: boolean
+  freshness_label?: string
 }
-
-const NOW = Date.now()
 
 const DEMO_LEADS: DemoLead[] = [
   {
@@ -102,7 +128,8 @@ const DEMO_LEADS: DemoLead[] = [
     message: "Audit toiture 2025 validé. Souhaite une offre pour toiture industrielle avec injection réseau et autoconsommation maximale.",
     project_details: "Audit structurel toiture validé. Décideur unique joignable directement par téléphone. Compteur moyenne tension déjà équipé.",
     grd: "RESA",
-    created_at: new Date(NOW - 14 * 60 * 1000).toISOString(),
+    created_at: "2026-03-01T10:00:00.000Z",
+    freshness_label: "Vérifié il y a 14 min",
     first_name: "Marc",
     last_name: "V.",
     company: "Société Logistique SA",
@@ -116,15 +143,15 @@ const DEMO_LEADS: DemoLead[] = [
     id: "demo-b2c-1",
     is_demo_preview: true,
     segment: "B2C",
-    city: "Wavre",
-    province: "brabant_wallon",
-    postal_code: "1300",
-    masked_postal_code: "13XX",
-    surface_area: 140,
+    city: "Namur",
+    province: "namur",
+    postal_code: "5000",
+    masked_postal_code: "50XX",
+    surface_area: 58,
     surface_type: "toiture",
     roof_material: "tuiles",
-    annual_electricity_bill: 3400,
-    estimated_power_kwc: 24,
+    annual_electricity_bill: 2100,
+    estimated_power_kwc: 9.6,
     credit_cost: 2,
     max_slots: 3,
     taken_slots: 1,
@@ -133,157 +160,333 @@ const DEMO_LEADS: DemoLead[] = [
     timeframe: "immediat_3mois",
     project_timeline: "immediat_3mois",
     project_driver: "autoconsommation",
-    message: "Maison 4 façades bien orientée Sud-Sud-Est. Compteur bidirectionnel déjà installé. Souhaite ajouter une batterie domestique 10 kWh.",
-    project_details: "Numéro de téléphone vérifié par appel manuel Aegis Solaire. Projet mature, budget alloué, attend 2 devis comparatifs maximum.",
+    message: "Maison unifamiliale bien orientée Sud-Sud-Est. Compteur bidirectionnel déjà installé. Souhaite ajouter une batterie domestique 10 kWh.",
+    project_details: "Numéro de téléphone vérifié par appel manuel Aegis Solaire. Maison unifamiliale à Namur (5000), projet mature, budget alloué, attend 2 devis comparatifs maximum.",
     grd: "ORES",
-    created_at: new Date(NOW - 32 * 60 * 1000).toISOString(),
+    created_at: "2026-03-01T09:40:00.000Z",
+    freshness_label: "Vérifié il y a 32 min",
     first_name: "Sophie",
     last_name: "L.",
     phone: "—",
     email: "—",
-    coords: [50.7172, 4.6133],
+    coords: [50.4674, 4.8720],
     lead_score: 91,
   },
-  {
-    id: "demo-b2b-2",
-    is_demo_preview: true,
-    segment: "B2B",
-    city: "Gosselies",
-    province: "hainaut",
-    postal_code: "6041",
-    masked_postal_code: "60XX",
-    surface_area: 1600,
-    surface_type: "parking",
-    roof_material: "plat_epdm",
-    annual_electricity_bill: 32000,
-    estimated_power_kwc: 272,
-    credit_cost: 8,
-    max_slots: 1,
-    taken_slots: 0,
-    remaining_slots: 1,
-    ownership_status: "owner",
-    timeframe: "immediat",
-    project_timeline: "immediat",
-    project_driver: "flotte_irve",
-    message: "Parking 80 places et toiture de bureaux. Projet d'ombrières avec 4 bornes de recharge rapide DC.",
-    project_details: "Projet validé au conseil d'administration. Recherche un installateur RESCERT avec références tertiaires en Wallonie.",
-    grd: "ORES",
-    created_at: new Date(NOW - 65 * 60 * 1000).toISOString(),
-    first_name: "Didier",
-    last_name: "R.",
-    company: "AeroTech SCRL",
-    company_vat: "BE 0812.***.***",
-    phone: "—",
-    email: "—",
-    coords: [50.465, 4.435],
-    lead_score: 94,
-  },
-  {
-    id: "demo-b2c-2",
-    is_demo_preview: true,
-    segment: "B2C",
-    city: "Namur",
-    province: "namur",
-    postal_code: "5100",
-    masked_postal_code: "51XX",
-    surface_area: 95,
-    surface_type: "toiture",
-    roof_material: "ardoises",
-    annual_electricity_bill: 2600,
-    estimated_power_kwc: 14,
-    credit_cost: 2,
-    max_slots: 3,
-    taken_slots: 0,
-    remaining_slots: 3,
-    ownership_status: "owner",
-    timeframe: "immediat_3mois",
-    project_timeline: "immediat_3mois",
-    project_driver: "reduire_facture",
-    message: "Pente de toit à 40 degrés, aucune ombre portée. Facture annuelle de 2600 € souhaitant être réduite au maximum.",
-    project_details: "Facture d'électricité et photos de toiture téléversées lors de la qualification. Téléphone vérifié.",
-    grd: "ORES",
-    created_at: new Date(NOW - 120 * 60 * 1000).toISOString(),
-    first_name: "Benoît",
-    last_name: "D.",
-    phone: "—",
-    email: "—",
-    coords: [50.455, 4.875],
-    lead_score: 89,
-  },
-  {
-    id: "demo-b2b-3",
-    is_demo_preview: true,
-    segment: "B2B",
-    city: "Libramont",
-    province: "luxembourg",
-    postal_code: "6800",
-    masked_postal_code: "68XX",
-    surface_area: 3200,
-    surface_type: "toiture",
-    roof_material: "bac_acier",
-    annual_electricity_bill: 58000,
-    estimated_power_kwc: 544,
-    credit_cost: 18,
-    max_slots: 1,
-    taken_slots: 0,
-    remaining_slots: 1,
-    ownership_status: "owner",
-    timeframe: "immediat_3mois",
-    project_timeline: "immediat_3mois",
-    project_driver: "tiers_invest",
-    message: "2 hangars récents de 1600 m² chacun. Raccordement cabine haute tension déjà validé par ORES. Recherche installateur certifié RESCERT.",
-    project_details: "Charpente lamellé-collé récente avec note de calcul de surcharge validée par bureau de contrôle. Décideur unique.",
-    grd: "ORES",
-    created_at: new Date(NOW - 180 * 60 * 1000).toISOString(),
-    first_name: "Jean-François",
-    last_name: "C.",
-    company: "Agro-Logistique SA",
-    company_vat: "BE 0501.***.***",
-    phone: "—",
-    email: "—",
-    coords: [49.9167, 5.3833],
-    lead_score: 97,
-  },
-  {
-    id: "demo-b2c-3",
-    is_demo_preview: true,
-    segment: "B2C",
-    city: "Arlon",
-    province: "luxembourg",
-    postal_code: "6700",
-    masked_postal_code: "67XX",
-    surface_area: 110,
-    surface_type: "toiture",
-    roof_material: "tuiles",
-    annual_electricity_bill: 3100,
-    estimated_power_kwc: 18,
-    credit_cost: 2,
-    max_slots: 3,
-    taken_slots: 2,
-    remaining_slots: 1,
-    ownership_status: "owner",
-    timeframe: "3_6mois",
-    project_timeline: "3_6mois",
-    project_driver: "reduire_facture",
-    message: "Maison construite en 2018. Compteur communicant déjà en place. Souhaite coupler solaire et pompe à chaleur.",
-    project_details: "Dossier qualifié avec 2 installateurs déjà positionnés. Reste 1 place disponible avant fermeture définitive du dossier.",
-    grd: "ORES",
-    created_at: new Date(NOW - 240 * 60 * 1000).toISOString(),
-    first_name: "Marc",
-    last_name: "G.",
-    phone: "—",
-    email: "—",
-    coords: [49.6833, 5.8167],
-    lead_score: 88,
-  },
 ]
+
+/**
+ * Carte de Chantier Réaliste (Identique à 100% à MarketplaceLeadCard dans le portail partenaire)
+ */
+function MarketplaceLeadCardPreview({
+  lead,
+  index,
+  onInspect,
+  onUnlock,
+}: {
+  lead: DemoLead
+  index: number
+  onInspect: () => void
+  onUnlock: () => void
+}) {
+  const isB2B = lead.segment === "B2B"
+  const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
+  const remainingSlots = lead.remaining_slots ?? maxSlots
+  const cost = lead.credit_cost ?? (isB2B ? 8 : 2)
+
+  const surfaceArea = Math.max(0, Number(lead.surface_area) || 0)
+  const annualBill = Math.max(0, Number(lead.annual_electricity_bill) || 0)
+
+  const financials = calculateMarketplaceFinancials({
+    segment: lead.segment,
+    surfaceArea,
+    surfaceType: lead.surface_type,
+    annualBill,
+    creditCost: cost,
+  })
+
+  const location = getLeadLocationInfo(lead)
+  const freshness = getLeadFreshness(lead.created_at, lead.freshness_label)
+  const powerKwc = lead.estimated_power_kwc ?? financials.estimatedPowerKwc
+
+  const leadImage = isB2B ? B2B_SOLAR_IMAGE : B2C_SOLAR_IMAGE
+
+  const contractMin = Math.round((financials.estimatedContractValueRange?.min || 0) / 1000) * 1000
+  const contractMax = Math.round((financials.estimatedContractValueRange?.max || 0) / 1000) * 1000
+  const marginEst = Math.round((financials.estimatedInstallerMargin || 0) / 1000) * 1000
+
+  const rangeText = `${contractMin.toLocaleString("fr-BE")} € HT à ${contractMax.toLocaleString("fr-BE")} € HT`
+  const marginText = `~${marginEst.toLocaleString("fr-BE")} € HT`
+
+  const rawRoof = getRoofMaterialLabel(lead.roof_material)
+  const roofDisplay = rawRoof === "Bac acier / Métallique" ? "Bac acier / Mét..." : rawRoof
+
+  const isPremium = isB2B || powerKwc >= 20 || (lead.lead_score && lead.lead_score >= 70)
+
+  return (
+    <div
+      id={`lead-${lead.id}`}
+      onClick={onInspect}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          onInspect()
+        }
+      }}
+      className="group relative flex flex-col justify-between rounded-3xl border border-slate-200/90 hover:border-slate-300 bg-white shadow-xs hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden text-left"
+    >
+      <div className="flex flex-col">
+        {/* A. Photo de toiture avec badges superposés et mention non contractuelle */}
+        <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-slate-100">
+          <Image
+            src={leadImage}
+            alt={`Chantier solaire ${location.city}`}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            priority={index < 2}
+          />
+
+          {/* Dégradé supérieur pour contraster les badges */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/10 to-transparent pointer-events-none" />
+
+          {/* Badges superposés en haut */}
+          <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 pointer-events-none">
+            {/* Badge Modèle */}
+            <span className="inline-flex items-center rounded-full bg-[#0B1528] text-white text-xs font-bold px-3.5 py-1.5 shadow-sm">
+              {isB2B ? "B2B • 100% Exclusif" : `B2C • ${remainingSlots}/${maxSlots} places dispo`}
+            </span>
+
+            {/* Badge Fraîcheur / Date */}
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white text-slate-800 text-xs font-semibold px-3.5 py-1.5 shadow-sm">
+              <Calendar className="h-3.5 w-3.5 text-slate-500" />
+              <span suppressHydrationWarning>{freshness.label}</span>
+            </span>
+          </div>
+
+          {/* Flèche droite de prévisualisation */}
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-xs transition-all pointer-events-none opacity-85 group-hover:opacity-100">
+            <ChevronRight className="h-4 w-4" />
+          </div>
+
+          {/* Mention discrète illustration non contractuelle */}
+          <span className="absolute bottom-2.5 right-3 text-[10px] font-medium text-white/85 bg-black/45 backdrop-blur-xs px-2.5 py-0.5 rounded-full pointer-events-none">
+            Illustration non contractuelle
+          </span>
+        </div>
+
+        {/* B. Contenu de la Carte : Titre, Puissance, Spécifications 2x2, Économie */}
+        <div className="p-4 sm:p-5 space-y-3">
+          {/* Ligne 1 : Titre à gauche & Puissance kWc à droite */}
+          <div className="flex items-baseline justify-between gap-2">
+            <h3 className="font-bold text-base sm:text-[17px] text-slate-900 tracking-tight leading-tight group-hover:text-blue-900 transition-colors truncate min-w-0">
+              {location.fullTitle}
+            </h3>
+            <div className="text-right shrink-0 flex items-baseline justify-end gap-1 pl-1.5">
+              <span className="text-2xl sm:text-3xl font-extrabold text-[#0B1528] tracking-tight tabular-nums font-mono">
+                {powerKwc > 0 ? powerKwc : "—"}
+              </span>
+              <span className="text-xs font-bold text-slate-500 lowercase">
+                kWc
+              </span>
+            </div>
+          </div>
+
+          {/* Ligne 2 : Localisation & Bâtiment */}
+          <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5 -mt-1">
+            <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+            <span className="truncate">{location.subtitle}</span>
+          </p>
+
+          {/* Ligne 3 : Badge Projet */}
+          <div className="-mt-1">
+            {isPremium ? (
+              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#EBFBF3] text-[#059669] text-xs font-semibold">
+                <span className="text-emerald-500 font-bold">—</span>
+                <span>Projet premium</span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold">
+                <span className="text-slate-400 font-bold">—</span>
+                <span>Projet qualifié</span>
+              </div>
+            )}
+          </div>
+
+          {/* Ligne 4 : Grille Technique 2x2 dans un encart clair dédié */}
+          <div className="rounded-2xl bg-[#F8FAFD] border border-[#E9EFF7] p-3 sm:p-3.5 grid grid-cols-2 gap-2.5 sm:gap-3 text-xs">
+            {/* 1. Toiture & Surface */}
+            <div className="flex items-start gap-2 min-w-0">
+              <Home className="h-4 w-4 text-slate-700 shrink-0 mt-0.5" />
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block font-mono">
+                  TOITURE &amp; SURFACE
+                </span>
+                <span
+                  className="font-bold text-[11px] sm:text-xs text-slate-900 leading-tight block truncate"
+                  title={surfaceArea > 0 ? `${surfaceArea} m² · ${rawRoof}` : "Toiture standard"}
+                >
+                  {surfaceArea > 0 ? (
+                    <>
+                      <span className="font-mono tabular-nums">{surfaceArea} m²</span> · <span>{roofDisplay}</span>
+                    </>
+                  ) : (
+                    <span>Toiture standard</span>
+                  )}
+                </span>
+              </div>
+            </div>
+
+            {/* 2. Facture Élec */}
+            <div className="flex items-start gap-2 min-w-0">
+              <FileText className="h-4 w-4 text-slate-700 shrink-0 mt-0.5" />
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block font-mono">
+                  FACTURE ÉLEC.
+                </span>
+                <span className="text-[11px] sm:text-xs font-bold text-slate-900 leading-tight block truncate font-mono">
+                  {annualBill > 0 ? (
+                    <span className="tabular-nums font-mono">
+                      {annualBill.toLocaleString("fr-BE")} €/an
+                    </span>
+                  ) : (
+                    <span>{isB2B ? "Facture pro" : "Tarif résidentiel"}</span>
+                  )}
+                </span>
+              </div>
+            </div>
+
+            {/* 3. Échéance */}
+            <div className="flex items-start gap-2 min-w-0">
+              <Calendar className="h-4 w-4 text-slate-700 shrink-0 mt-0.5" />
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block font-mono">
+                  ÉCHÉANCE
+                </span>
+                <span className="font-bold text-[11px] sm:text-xs text-slate-900 leading-tight block truncate">
+                  {getTimeframeLabel(lead.timeframe || lead.project_timeline)}
+                </span>
+              </div>
+            </div>
+
+            {/* 4. Décisionnaire */}
+            <div className="flex items-start gap-2 min-w-0">
+              <User className="h-4 w-4 text-slate-700 shrink-0 mt-0.5" />
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block font-mono">
+                  DÉCISIONNAIRE
+                </span>
+                <span
+                  className="font-bold text-[11px] sm:text-xs text-slate-900 leading-tight block truncate"
+                  title={getOwnershipLabel(lead.ownership_status)}
+                >
+                  {getOwnershipLabel(lead.ownership_status)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Ligne 5 : Encadré d'Économie & Marge Indicative (Teinte bleue douce) */}
+          <div className="rounded-2xl bg-[#F3F7FF] border border-[#DCE7FD] p-3 sm:p-3.5 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="h-7 w-7 rounded-lg bg-blue-100/90 text-[#2563EB] flex items-center justify-center shrink-0">
+                <svg
+                  className="h-4 w-4 text-[#2563EB]"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M4 19V11a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v8" />
+                  <path d="M12 19V6a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v13" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <span className="text-[11px] sm:text-xs font-semibold text-[#2563EB] block">
+                  Estimation du chantier
+                </span>
+                <span className="font-bold text-[11px] sm:text-xs text-slate-900 font-mono tabular-nums block whitespace-nowrap">
+                  {rangeText}
+                </span>
+              </div>
+            </div>
+
+            <div className="text-right shrink-0 pl-1.5">
+              <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 block text-right font-mono">
+                MARGE INDICATIVE
+              </span>
+              <span className="text-xs sm:text-sm font-extrabold text-[#2563EB] font-mono tabular-nums block text-right whitespace-nowrap">
+                {marginText}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* C. Pied de Carte : Coût en Crédits & Boutons Pilules (Inspecter & Débloquer) */}
+      <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+        {/* Crédits avec icône pile de pièces */}
+        <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+          <svg
+            className="h-4 w-4 sm:h-5 sm:w-5 text-slate-700 shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <ellipse cx="12" cy="6" rx="8" ry="3" />
+            <path d="M4 6v5c0 1.66 3.58 3 8 3s8-1.34 8-3V6" />
+            <path d="M4 11v5c0 1.66 3.58 3 8 3s8-1.34 8-3v-5" />
+          </svg>
+          <div className="flex items-baseline gap-1">
+            <span className="font-bold text-xs sm:text-sm text-slate-900 font-mono tabular-nums">
+              {cost} crédits
+            </span>
+            <span className="text-[11px] text-slate-400 font-mono tabular-nums">
+              (≈{financials.leadCostEuros} € HT)
+            </span>
+          </div>
+        </div>
+
+        {/* Boutons d'action pilules compacts */}
+        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={onInspect}
+            className="rounded-full border border-slate-200 bg-white hover:bg-slate-50 px-3 sm:px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-1 shrink-0"
+            title="Inspecter la fiche technique complète"
+          >
+            <Eye className="h-3.5 w-3.5 text-[#2563EB]" />
+            <span>Inspecter</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onUnlock}
+            className="rounded-full bg-[#0B1528] hover:bg-[#1E293B] text-white px-3.5 sm:px-4 py-1.5 text-xs font-bold shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1 shrink-0"
+          >
+            <Lock className="h-3.5 w-3.5 text-white" />
+            <span>Débloquer</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function MarketplaceLivePreview() {
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid")
   const [searchQuery, setSearchQuery] = useState("")
   const [segmentFilter, setSegmentFilter] = useState<"ALL" | "B2B" | "B2C">("ALL")
   const [selectedProvince, setSelectedProvince] = useState<string>("ALL")
-  const [sortBy, setSortBy] = useState<"recent" | "power_desc" | "margin_desc" | "cost_asc">("recent")
+  const [sortBy, setSortBy] = useState<string>("recent")
   const [selectedLeadForDrawer, setSelectedLeadForDrawer] = useState<DemoLead | null>(null)
   const [leadForSignupModal, setLeadForSignupModal] = useState<DemoLead | null>(null)
   const [showSignupModal, setShowSignupModal] = useState(false)
@@ -391,11 +594,6 @@ export function MarketplaceLivePreview() {
   const hasActiveFilters =
     searchQuery !== "" || segmentFilter !== "ALL" || selectedProvince !== "ALL" || sortBy !== "recent"
 
-  /**
-   * Règle métier stricte demandée par l'utilisateur :
-   * Ne jamais débloquer les leads dans l'aperçu public.
-   * Afficher systématiquement un message modal institutionnel qui redirige vers le formulaire d'inscription.
-   */
   const handleUnlockAttempt = (lead: DemoLead) => {
     setLeadForSignupModal(lead)
     setShowSignupModal(true)
@@ -420,7 +618,7 @@ export function MarketplaceLivePreview() {
 
   return (
     <div className="space-y-4">
-      {/* ── 1. Barre de Contrôle Unifiée (Identique à 100% à la Marketplace Réelle) ── */}
+      {/* ── 1. Barre de Contrôle Unifiée (Identique à la Marketplace Réelle) ── */}
       <div className="rounded-2xl border border-border bg-card p-3 sm:p-3.5 shadow-xs space-y-3">
         {/* Ligne 1 : Segments, Province, Recherche, Tri et Toggle Grille/Tableau */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
@@ -444,20 +642,13 @@ export function MarketplaceLivePreview() {
               ))}
             </div>
 
-            {/* Province select */}
-            <select
+            {/* Province select via CustomSelect */}
+            <CustomSelect
               value={selectedProvince}
-              onChange={(e) => setSelectedProvince(e.target.value)}
-              className="rounded-xl border border-border bg-secondary/60 hover:bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground outline-hidden cursor-pointer h-9 transition-colors"
-              aria-label="Filtrer par province"
-            >
-              <option value="ALL">Toute la Wallonie</option>
-              <option value="liege">Liège</option>
-              <option value="namur">Namur</option>
-              <option value="hainaut">Hainaut</option>
-              <option value="brabant_wallon">Brabant Wallon</option>
-              <option value="luxembourg">Luxembourg</option>
-            </select>
+              onChange={setSelectedProvince}
+              options={PROVINCE_OPTIONS}
+              ariaLabel="Filtrer par province"
+            />
           </div>
 
           {/* Recherche, Tri et Switcher Grille / Tableau */}
@@ -485,21 +676,14 @@ export function MarketplaceLivePreview() {
               )}
             </div>
 
-            {/* Tri select */}
-            <div className="flex items-center gap-1.5 rounded-xl border border-border bg-secondary/60 px-2.5 h-9">
-              <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="bg-transparent text-xs font-semibold text-foreground outline-hidden cursor-pointer pr-1"
-                aria-label="Trier les opportunités"
-              >
-                <option value="recent">Plus récents</option>
-                <option value="power_desc">Puissance max</option>
-                <option value="margin_desc">Marge max</option>
-                <option value="cost_asc">Crédits min</option>
-              </select>
-            </div>
+            {/* Tri select via CustomSelect */}
+            <CustomSelect
+              value={sortBy}
+              onChange={setSortBy}
+              options={SORT_OPTIONS}
+              icon={ArrowUpDown}
+              ariaLabel="Trier les opportunités"
+            />
 
             {/* Switcher Grille / Tableau */}
             <div className="inline-flex items-center rounded-xl border border-border bg-secondary p-0.5 h-9">
@@ -538,7 +722,7 @@ export function MarketplaceLivePreview() {
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-muted-foreground font-medium">
             <span className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              <strong className="font-mono text-foreground font-bold tabular-nums">{kpis.totalLeads}</strong> dossiers
+              <strong className="font-mono text-foreground font-bold tabular-nums">{kpis.totalLeads}</strong> chantiers
               actifs
             </span>
             <span>•</span>
@@ -570,11 +754,11 @@ export function MarketplaceLivePreview() {
         </div>
       </div>
 
-      {/* ── 2. Rendu des Opportunités : Grille ou Tableau ── */}
+      {/* ── 2. Rendu des Opportunités : Grille Réaliste de 2 Colonnes ou Tableau ── */}
       {filteredLeads.length === 0 ? (
         <div className="rounded-2xl border border-border bg-card p-12 text-center shadow-xs">
           <SlidersHorizontal className="mx-auto h-9 w-9 text-muted-foreground/60" />
-          <h3 className="mt-3 text-base font-bold text-foreground">Aucun dossier disponible avec ces filtres</h3>
+          <h3 className="mt-3 text-base font-bold text-foreground">Aucun dossier disponible avec ces critères</h3>
           <p className="mt-1 text-xs text-muted-foreground max-w-sm mx-auto">
             Élargissez votre sélection de provinces ou réinitialisez les filtres.
           </p>
@@ -582,227 +766,37 @@ export function MarketplaceLivePreview() {
             size="sm"
             variant="outline"
             onClick={resetFilters}
-            className="mt-4 text-xs font-medium cursor-pointer"
+            className="mt-4 text-xs font-semibold cursor-pointer border-border"
           >
             <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
             Afficher toutes les opportunités
           </Button>
         </div>
       ) : viewMode === "grid" ? (
-        /* ── Vue Grille : Rendu 100% Identique à MarketplaceFeedView ── */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-          {filteredLeads.map((lead) => {
-            const isB2B = lead.segment === "B2B"
-            const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
-            const remainingSlots = lead.remaining_slots ?? maxSlots
-            const cost = lead.credit_cost
-
-            const surfaceArea = lead.surface_area
-            const annualBill = lead.annual_electricity_bill
-
-            const financials = calculateMarketplaceFinancials({
-              segment: lead.segment,
-              surfaceArea,
-              surfaceType: lead.surface_type,
-              annualBill,
-              creditCost: cost,
-            })
-
-            const location = getLeadLocationInfo(lead)
-            const freshness = getLeadFreshness(lead.created_at)
-            const powerKwc = lead.estimated_power_kwc ?? financials.estimatedPowerKwc
-            const roi = calculateLeadRoiRatio(
-              financials.estimatedInstallerMargin,
-              cost,
-              financials.estimatedContractValue
-            )
-
-            // Indicateur visuel compact de disponibilité B2C (ex: ●●○ 2/3 dispos)
-            const b2cDotIndicator = !isB2B
-              ? Array.from({ length: maxSlots })
-                  .map((_, i) => (i < remainingSlots ? "●" : "○"))
-                  .join("")
-              : ""
-
-            return (
-              <div
-                key={lead.id}
-                id={`lead-${lead.id}`}
-                onClick={() => setSelectedLeadForDrawer(lead)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault()
-                    setSelectedLeadForDrawer(lead)
-                  }
-                }}
-                className="group flex flex-col justify-between rounded-2xl border border-border bg-card p-4 sm:p-5 transition-all cursor-pointer text-left shadow-xs hover:border-accent/40 hover:shadow-md"
-              >
-                <div className="flex flex-col gap-3.5">
-                  {/* Ligne 1 : En-tête de Rareté & Fraîcheur */}
-                  <div className="flex items-center justify-between gap-2 h-6">
-                    {/* Badge modèle & disponibilité */}
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-md px-2.5 py-0.5 text-xs font-bold ${
-                        isB2B
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary text-secondary-foreground border border-border"
-                      }`}
-                    >
-                      {isB2B ? (
-                        <span>B2B • Exclusif 100%</span>
-                      ) : (
-                        <span>
-                          B2C • {b2cDotIndicator} {remainingSlots}/{maxSlots} dispos
-                        </span>
-                      )}
-                    </span>
-
-                    {/* Fraîcheur du lead */}
-                    <span className="inline-flex items-center gap-1.5 text-xs font-mono text-muted-foreground whitespace-nowrap">
-                      <span className={`h-1.5 w-1.5 rounded-full ${freshness.dotClass}`} />
-                      <span>{freshness.label}</span>
-                    </span>
-                  </div>
-
-                  {/* Ligne 2 : Titre d'Accroche Métier & Puissance en Grand Format */}
-                  <div className="flex items-baseline justify-between gap-3 border-b border-border/80 pb-3">
-                    <div className="min-w-0 pr-1">
-                      <h3 className="font-bold text-base text-foreground group-hover:text-primary transition-colors truncate">
-                        {location.fullTitle}
-                      </h3>
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">
-                        {location.subtitle}
-                      </p>
-                    </div>
-
-                    <div className="text-right shrink-0">
-                      <span className="font-mono text-xl sm:text-2xl font-black text-foreground tabular-nums whitespace-nowrap">
-                        {powerKwc > 0 ? `${powerKwc} kWc` : "PV"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Ligne 3 : Réassurance Compacte & Grille Technique 2×2 */}
-                  <div className="space-y-2.5">
-                    <div className="flex items-center gap-1.5 text-[11px] font-mono text-muted-foreground">
-                      <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                      <span>Dossier vérifié : Tél, Toiture &amp; Statut</span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 rounded-xl bg-secondary/35 border border-border p-2.5 text-xs">
-                      <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                          Toiture &amp; Surface
-                        </span>
-                        <span className="font-semibold text-foreground truncate block font-mono">
-                          {surfaceArea > 0 ? `${surfaceArea} m²` : "—"} · {getRoofMaterialLabel(lead.roof_material)}
-                        </span>
-                      </div>
-
-                      <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                          Facture Élec.
-                        </span>
-                        <span className="font-mono font-bold text-foreground tabular-nums truncate block">
-                          {annualBill > 0 ? `${annualBill.toLocaleString("fr-BE")} €/an` : "Résidentiel"}
-                        </span>
-                      </div>
-
-                      <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                          Échéance
-                        </span>
-                        <span className="font-semibold text-foreground flex items-center gap-1 truncate">
-                          <span className="h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
-                          <span className="truncate">{getTimeframeLabel(lead.timeframe || lead.project_timeline)}</span>
-                        </span>
-                      </div>
-
-                      <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                          Profil
-                        </span>
-                        <span className="font-semibold text-foreground truncate block">
-                          {getOwnershipLabel(lead.ownership_status)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Ligne 4 : Encadré d'Équation Financière (Arrondi & Ratio ROI) */}
-                  <div className="rounded-xl border border-accent/20 bg-accent/5 p-3 space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Marge brute estimée</span>
-                      <span className="font-mono font-bold text-accent tabular-nums">
-                        {formatRoundedCurrency(financials.estimatedInstallerMargin)}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-1 border-t border-accent/10">
-                      <span className="text-[11px] font-mono text-muted-foreground">Ratio rentabilité</span>
-                      <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-mono font-bold text-accent">
-                        {roi.roiBadgeText}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Ligne 5 : Footer d'Action Sans Friction */}
-                <div className="mt-4 pt-3.5 border-t border-border flex items-center justify-between gap-2">
-                  <div>
-                    <span className="text-[10px] text-muted-foreground block uppercase font-mono tracking-wider">
-                      Tarif
-                    </span>
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-mono text-lg font-bold text-foreground tabular-nums">{cost}</span>
-                      <span className="text-xs text-muted-foreground font-medium">crédits</span>
-                      <span className="font-mono text-[11px] text-muted-foreground tabular-nums ml-1">
-                        (~{financials.leadCostEuros} € HT)
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setSelectedLeadForDrawer(lead)}
-                      className="h-9 px-2.5 text-xs font-semibold cursor-pointer"
-                      title="Inspecter le dossier"
-                    >
-                      <Info className="h-3.5 w-3.5 sm:mr-1 text-accent shrink-0" />
-                      <span className="hidden sm:inline">Inspecter</span>
-                    </Button>
-
-                    <Button
-                      size="sm"
-                      variant="default"
-                      onClick={() => handleUnlockAttempt(lead)}
-                      className="h-9 px-3.5 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-2xs"
-                    >
-                      <Unlock className="h-3.5 w-3.5 mr-1" />
-                      <span>Débloquer</span>
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
+        /* ── Vue Grille : Cartes Photographiques en Lignes de 2 (2 Colonnes) ── */
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+          {filteredLeads.map((lead, index) => (
+            <MarketplaceLeadCardPreview
+              key={lead.id}
+              lead={lead}
+              index={index}
+              onInspect={() => setSelectedLeadForDrawer(lead)}
+              onUnlock={() => handleUnlockAttempt(lead)}
+            />
+          ))}
         </div>
       ) : (
-        /* ── Vue Tableau Haute-Productivité (Identique à MarketplaceFeedView) ── */
+        /* ── Vue Tableau Haute-Productivité (Exactement comme dans le Dashboard) ── */
         <div className="space-y-1.5">
           <div className="block sm:hidden text-center text-[11px] font-mono text-muted-foreground py-0.5">
             ↔ Glisser horizontalement pour voir toutes les colonnes
           </div>
           <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-xs overscroll-x-contain">
             <table className="w-full min-w-[840px] text-left text-xs">
-              <thead className="border-b border-border bg-secondary/50 text-[11px] font-bold uppercase text-muted-foreground sticky top-0">
+              <thead className="border-b border-border bg-secondary/60 text-[11px] font-bold uppercase text-muted-foreground sticky top-0">
                 <tr>
                   <th className="px-4 py-3">Modèle</th>
-                  <th className="px-4 py-3">Localisation &amp; Province</th>
+                  <th className="px-4 py-3">Localisation</th>
                   <th className="px-4 py-3">Puissance</th>
                   <th className="px-4 py-3">Toiture &amp; Surface</th>
                   <th className="px-4 py-3">Marge Estimée</th>
@@ -816,9 +810,9 @@ export function MarketplaceLivePreview() {
                   const isB2B = lead.segment === "B2B"
                   const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
                   const remainingSlots = lead.remaining_slots ?? maxSlots
-                  const cost = lead.credit_cost
-                  const surfaceArea = lead.surface_area
-                  const annualBill = lead.annual_electricity_bill
+                  const cost = lead.credit_cost ?? (isB2B ? 8 : 2)
+                  const surfaceArea = Math.max(0, Number(lead.surface_area) || 0)
+                  const annualBill = Math.max(0, Number(lead.annual_electricity_bill) || 0)
 
                   const financials = calculateMarketplaceFinancials({
                     segment: lead.segment,
@@ -829,22 +823,22 @@ export function MarketplaceLivePreview() {
                   })
 
                   const location = getLeadLocationInfo(lead)
-                  const freshness = getLeadFreshness(lead.created_at)
+                  const freshness = getLeadFreshness(lead.created_at, lead.freshness_label)
                   const powerKwc = lead.estimated_power_kwc ?? financials.estimatedPowerKwc
 
                   return (
                     <tr
                       key={lead.id}
                       onClick={() => setSelectedLeadForDrawer(lead)}
-                      className="hover:bg-secondary/40 transition-colors cursor-pointer group"
+                      className="hover:bg-secondary/50 transition-colors cursor-pointer group"
                     >
                       {/* Modèle Commercial */}
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center rounded px-2 py-0.5 text-[11px] font-bold ${
+                          className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold ${
                             isB2B
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-secondary text-secondary-foreground border border-border"
+                              ? "bg-[#0F172A] text-white"
+                              : "bg-secondary text-foreground border border-border"
                           }`}
                         >
                           {isB2B ? "B2B Exclusif" : `B2C (${remainingSlots}/${maxSlots})`}
@@ -861,28 +855,31 @@ export function MarketplaceLivePreview() {
 
                       {/* Puissance */}
                       <td className="px-4 py-3 text-foreground whitespace-nowrap">
-                        <span className="font-mono font-bold text-sm tabular-nums">
-                          {powerKwc > 0 ? `${powerKwc} kWc` : "PV"}
-                        </span>
+                        <div className="flex items-baseline gap-1">
+                          <span className="font-mono font-bold text-sm tabular-nums">
+                            {powerKwc > 0 ? powerKwc : "—"}
+                          </span>
+                          <span className="text-[10px] font-semibold text-muted-foreground uppercase font-mono">kWc</span>
+                        </div>
                       </td>
 
                       {/* Toiture & Surface */}
                       <td className="px-4 py-3 text-foreground">
                         <div className="font-mono tabular-nums font-semibold">
-                          {surfaceArea > 0 ? `${surfaceArea} m²` : "—"}
+                          {surfaceArea > 0 ? `${surfaceArea} m²` : "À dimensionner"}
                         </div>
                         <div className="text-[11px] text-muted-foreground truncate max-w-[150px]">
                           {getRoofMaterialLabel(lead.roof_material)}
                         </div>
                       </td>
 
-                      {/* Marge Estimée & ROI */}
+                      {/* Marge Estimée */}
                       <td className="px-4 py-3 text-foreground whitespace-nowrap">
                         <div className="font-mono font-bold text-accent tabular-nums">
-                          {formatRoundedCurrency(financials.estimatedInstallerMargin)}
+                          {formatRoundedCurrency(financials.estimatedInstallerMargin)} HT
                         </div>
-                        <div className="font-mono text-[10px] text-muted-foreground">
-                          {annualBill > 0 ? `${annualBill.toLocaleString("fr-BE")} €/an` : "Standard"}
+                        <div className="font-mono text-[10px] text-muted-foreground tabular-nums">
+                          {annualBill > 0 ? `${annualBill.toLocaleString("fr-BE")} €/an` : (isB2B ? "Facture pro" : "Résidentiel")}
                         </div>
                       </td>
 
@@ -890,38 +887,35 @@ export function MarketplaceLivePreview() {
                       <td className="px-4 py-3 whitespace-nowrap font-mono text-[11px] text-muted-foreground">
                         <span className="inline-flex items-center gap-1.5">
                           <span className={`h-1.5 w-1.5 rounded-full ${freshness.dotClass}`} />
-                          <span>{freshness.label}</span>
+                          <span suppressHydrationWarning className="tabular-nums font-medium text-foreground/80">{freshness.label}</span>
                         </span>
                       </td>
 
                       {/* Tarif */}
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="font-mono font-bold text-foreground tabular-nums">{cost} cr.</span>
-                        <span className="text-[11px] text-muted-foreground font-mono ml-1">
-                          (~{financials.leadCostEuros} €)
-                        </span>
+                      <td className="px-4 py-3 whitespace-nowrap font-mono text-foreground font-bold tabular-nums">
+                        <div>{cost} crédits</div>
+                        <div className="text-[10px] text-muted-foreground font-normal">
+                          ~{financials.leadCostEuros} € HT
+                        </div>
                       </td>
 
                       {/* Actions */}
                       <td className="px-4 py-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                        <div className="inline-flex items-center gap-1.5">
+                        <div className="flex items-center justify-end gap-1.5">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => setSelectedLeadForDrawer(lead)}
-                            className="h-8 px-2 text-xs font-semibold cursor-pointer"
+                            className="h-8 px-2.5 rounded-lg text-xs font-semibold cursor-pointer border-border hover:bg-secondary text-foreground"
                           >
-                            <Info className="h-3 w-3 mr-1 text-accent" />
                             Inspecter
                           </Button>
-
                           <Button
                             size="sm"
                             variant="default"
                             onClick={() => handleUnlockAttempt(lead)}
-                            className="h-8 px-2.5 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-2xs"
+                            className="h-8 px-3 rounded-lg text-xs font-bold bg-[#0F172A] text-white hover:bg-[#0F172A]/90 cursor-pointer shadow-2xs active:scale-[0.99]"
                           >
-                            <Unlock className="h-3 w-3 mr-1" />
                             Débloquer
                           </Button>
                         </div>
@@ -935,22 +929,23 @@ export function MarketplaceLivePreview() {
         </div>
       )}
 
-      {/* ── 3. Tiroir Latéral d'Inspection Technique (Exact LeadInspectionDrawer) ── */}
+      {/* ── 3. Tiroir Latéral d'Inspection Rapide (Slide-over) ── */}
       {selectedLeadForDrawer && (
         <LeadInspectionDrawer
           lead={selectedLeadForDrawer}
           partnerCredits={0}
           isBuying={false}
           onClose={() => setSelectedLeadForDrawer(null)}
-          onPurchase={(lead) => handleUnlockAttempt(lead as DemoLead)}
+          onPurchase={(lead) => handleUnlockAttempt(lead)}
           onRequestTopUp={() => handleUnlockAttempt(selectedLeadForDrawer)}
+          onRequestExpert={(lead) => handleUnlockAttempt(lead)}
         />
       )}
 
-      {/* ── 4. Modal Institutionnel de Redirection vers le Formulaire d'Inscription ── */}
+      {/* ── 4. Modal de Rassurance & Inscription pour Débloquer ── */}
       {showSignupModal && leadForSignupModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 backdrop-blur-xs p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowSignupModal(false)
@@ -960,12 +955,12 @@ export function MarketplaceLivePreview() {
           aria-modal="true"
           aria-labelledby="modal-signup-title"
         >
-          <div className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-6 sm:p-7 shadow-2xl text-left flex flex-col gap-5 animate-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-lg rounded-3xl border border-border bg-card p-6 sm:p-7 shadow-2xl text-left flex flex-col gap-5 animate-in zoom-in-95 duration-200">
             {/* Bouton Fermer */}
             <button
               type="button"
               onClick={() => setShowSignupModal(false)}
-              className="absolute right-4 top-4 rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
+              className="absolute right-4 top-4 rounded-xl p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
               aria-label="Fermer la boîte de dialogue"
             >
               <X className="h-4 w-4" />
@@ -995,27 +990,27 @@ export function MarketplaceLivePreview() {
             </div>
 
             {/* Récapitulatif du lead */}
-            <div className="rounded-xl border border-border bg-secondary/35 p-3.5 text-xs grid grid-cols-2 gap-2.5">
+            <div className="rounded-2xl border border-border bg-secondary/35 p-3.5 text-xs grid grid-cols-2 gap-2.5">
               <div>
-                <span className="text-[11px] text-muted-foreground block">Localisation</span>
+                <span className="text-[11px] text-muted-foreground block font-mono">Localisation</span>
                 <strong className="text-foreground">
                   {leadForSignupModal.city} ({leadForSignupModal.masked_postal_code})
                 </strong>
               </div>
               <div>
-                <span className="text-[11px] text-muted-foreground block">Modèle commercial</span>
+                <span className="text-[11px] text-muted-foreground block font-mono">Modèle commercial</span>
                 <strong className="text-foreground">
                   {leadForSignupModal.segment === "B2B" ? "B2B 100% Exclusif" : "B2C Partagé (Max 3)"}
                 </strong>
               </div>
               <div>
-                <span className="text-[11px] text-muted-foreground block">Surface utile</span>
+                <span className="text-[11px] text-muted-foreground block font-mono">Surface utile</span>
                 <strong className="text-foreground font-mono tabular-nums">
                   {leadForSignupModal.surface_area} m² ({getRoofMaterialLabel(leadForSignupModal.roof_material)})
                 </strong>
               </div>
               <div>
-                <span className="text-[11px] text-muted-foreground block">Marge brute estimée</span>
+                <span className="text-[11px] text-muted-foreground block font-mono">Marge brute estimée</span>
                 <strong className="text-accent font-mono tabular-nums">
                   {formatRoundedCurrency(
                     calculateMarketplaceFinancials({
@@ -1052,20 +1047,20 @@ export function MarketplaceLivePreview() {
             </div>
 
             {/* Actions : Redirection vers formulaire d'inscription ou Connexion */}
-            <div className="pt-2 border-t border-border flex flex-col sm:flex-row items-center gap-2.5">
+            <div className="pt-2 border-t border-border flex flex-col gap-2.5 w-full">
               <Button
                 onClick={handleRedirectToRegistration}
-                className="w-full sm:flex-1 py-3 h-11 bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-xs sm:text-sm rounded-xl cursor-pointer shadow-xs"
+                className="w-full py-3 h-11 bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-xs sm:text-sm rounded-xl cursor-pointer shadow-xs"
               >
-                Postuler au réseau (Gratuit)
+                Postuler au réseau RESCERT (Gratuit)
                 <ArrowRight className="h-4 w-4 ml-1.5 text-accent" />
               </Button>
 
-              <Link href="/partenaires/login" className="w-full sm:w-auto">
+              <Link href="/partenaires/login" className="w-full">
                 <Button
                   variant="outline"
                   onClick={() => setShowSignupModal(false)}
-                  className="w-full sm:w-auto py-3 h-11 border-border bg-card text-foreground hover:bg-secondary text-xs font-semibold rounded-xl cursor-pointer"
+                  className="w-full py-3 h-11 border-border bg-card text-foreground hover:bg-secondary text-xs font-semibold rounded-xl cursor-pointer"
                 >
                   <Lock className="h-3.5 w-3.5 mr-1.5 text-accent" />
                   Déjà partenaire ? Se connecter

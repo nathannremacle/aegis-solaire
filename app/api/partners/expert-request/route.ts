@@ -183,7 +183,7 @@ export async function POST(request: Request) {
               <p style="margin: 0; font-size: 13px; font-style: italic;">"${escapeHtml(message.trim())}"</p>
             </div>
             <p style="font-size: 13px; color: #334155;">
-              Un ingénieur de notre cellule technique analyse les spécificités de votre dossier (raccordement GRD, faisabilité PEB/PACE 2030, dimensionnement et rentabilité) et vous recontactera sous <strong>24 heures ouvrées</strong> par ${preferredContact === "phone" ? "téléphone" : preferredContact === "email" ? "e-mail" : "téléphone ou e-mail"}.
+              Un ingénieur de notre cellule technique analyse les spécificités de votre dossier (raccordement GRD, faisabilité PEB/PACE 2030, dimensionnement et rentabilité) et vous recontactera sous <strong>24 heures ouvrées</strong> par ${preferredContact === "phone" ? "téléphone" : preferredContact === "email" ? "e-mail" : "téléphone ou e-mail"} pour échanger sur le projet et convenir ensemble du pourcentage d'honoraires au succès.
             </p>
           </div>
 

@@ -3,7 +3,7 @@ import { Footer } from "@/components/footer"
 import { InstallerRegistrationForm } from "@/components/installer-registration-form"
 import { MarketplaceLivePreview } from "@/components/marketplace-preview"
 import { InstallerRoiCalculator } from "@/components/installer-roi-calculator"
-import { HeroBg } from "@/components/hero-bg"
+import { PartnersHero } from "@/components/partners-hero"
 import { Button } from "@/components/ui/button"
 import {
   ShieldCheck,
@@ -18,19 +18,11 @@ import {
   Zap,
   TrendingUp,
   FileText,
-  BadgeEuro,
-  Award,
+  Star,
+  XCircle,
   Clock,
   Sparkles,
-  HelpCircle,
-  XCircle,
-  Scale,
-  Star,
-  Users,
-  CheckCheck,
-  MapPin,
-  AlertCircle,
-  Calculator,
+  ArrowUpRight,
 } from "lucide-react"
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.aegissolaire.com"
@@ -48,131 +40,80 @@ export default function PartenairesPage() {
   return (
     <div className="flex min-h-screen min-w-0 flex-col overflow-x-hidden font-sans bg-background text-foreground selection:bg-accent/15 selection:text-foreground">
       <main className="min-w-0 flex-1">
-        
-        {/* ─── 1. Hero Section B2B Institutional with Background Image ─── */}
-        <section
-          className="relative flex min-h-[calc(100dvh-4rem)] sm:min-h-[calc(100dvh-5rem)] flex-col justify-center overflow-hidden bg-primary py-16 sm:py-20 lg:py-24 border-b border-border [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
-          style={{ viewTransitionName: "hero-section" }}
-        >
-          {/* Progressive Blur-Up Background Image */}
-          <HeroBg
-            heroKey="hero-partenaires"
-            className="opacity-70"
-            maskGradient="linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 65%, rgba(0,0,0,0.2) 100%)"
-          />
-          <div
-            className="pointer-events-none select-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(11,21,40,0.35)_0%,rgba(11,21,40,0.92)_100%)]"
-            aria-hidden
-          />
 
-          <div className="relative z-10 mx-auto max-w-6xl min-w-0 px-4 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-4xl text-center">
-              
-              {/* Badge supérieur institutionnel */}
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-mono font-semibold text-white shadow-xs backdrop-blur-md">
-                <ShieldCheck className="h-4 w-4 text-accent" />
-                <span>RÉSEAU OFFICIEL · INSTALLATEURS CERTIFIÉS RESCERT WALLONIE</span>
-              </div>
+        {/* ─── 1. Hero Section B2B Institutionnelle (Inspirée de la page d'accueil) ─── */}
+        <PartnersHero />
 
-              {/* Titre Principal Unique */}
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-[1.12] font-heading drop-shadow-sm">
-                La Marketplace Photovoltaïque <br className="hidden sm:inline" />
-                des Professionnels en Wallonie
-              </h1>
-
-              {/* Sous-titre institutionnel */}
-              <p className="mx-auto mt-5 max-w-2xl text-base sm:text-lg leading-relaxed text-slate-200">
-                Accédez à un flux continu de chantiers qualifiés sans démarchage à froid. B2B exclusif (<span className="font-mono tabular-nums font-semibold text-white">1 seul</span> acheteur dès <span className="font-mono tabular-nums font-semibold text-white">8 crédits</span>) et B2C transparent (<span className="font-mono tabular-nums font-semibold text-white">max 3</span> installateurs dès <span className="font-mono tabular-nums font-semibold text-white">2 crédits</span>). Zéro abonnement mensuel forcé, déblocage direct aux crédits.
+        {/* ─── 1.1 Présentation des Deux Segments de Chantiers ─── */}
+        <section className="border-b border-border py-12 md:py-16 bg-background [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
+          <div className="mx-auto max-w-6xl min-w-0 px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-8 flex flex-col gap-2">
+              <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">
+                Deux Segments de Chantiers
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-heading">
+                Choisissez les projets adaptés à vos équipes
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Toitures industrielles à forte marge ou volume résidentiel qualifié : chaque fiche fait l&apos;objet d&apos;un audit préalable rigoureux.
               </p>
+            </div>
 
-              {/* Live Ticker Metrics Wallonie */}
-              <div className="mx-auto mt-6 inline-flex flex-wrap items-center justify-center gap-4 sm:gap-6 py-2.5 px-5 rounded-2xl bg-white/[0.08] border border-white/15 text-xs font-mono text-slate-200 backdrop-blur-md shadow-xs">
-                <div className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-accent-solar animate-pulse" />
-                  <span className="text-slate-300">Activité du jour :</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <strong className="text-white tabular-nums">28 chantiers</strong>
-                  <span className="text-slate-300">ouverts</span>
-                </div>
-                <div className="hidden sm:inline text-white/20">|</div>
-                <div className="flex items-center gap-1">
-                  <strong className="text-white tabular-nums">524 kWc</strong>
-                  <span className="text-slate-300">de puissance</span>
-                </div>
-                <div className="hidden sm:inline text-white/20">|</div>
-                <div className="flex items-center gap-1">
-                  <strong className="text-accent-solar font-mono tabular-nums font-bold">~840 000 €</strong>
-                  <span className="text-slate-300">de travaux</span>
-                </div>
-                <div className="hidden md:inline text-white/20">|</div>
-                <div className="hidden md:flex items-center gap-1">
-                  <BadgeCheck className="h-3.5 w-3.5 text-accent-solar" />
-                  <span className="text-slate-300">Audit toiture &amp; TVA vérifiés</span>
-                </div>
-              </div>
-
-              {/* Indicateurs hero — Cartes Segment Bento Glassmorphism */}
-              <div className="mx-auto mt-8 grid w-full max-w-md grid-cols-1 gap-4 sm:max-w-3xl sm:grid-cols-2">
-                <div className="rounded-2xl border border-white/15 bg-white/[0.07] p-6 text-left shadow-lg backdrop-blur-md hover:border-accent-solar/50 transition-colors">
+            <div className="grid w-full grid-cols-1 gap-6 sm:grid-cols-2">
+              {/* Carte Segment B2B */}
+              <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 text-left shadow-xs hover:border-accent/50 transition-all duration-200 flex flex-col justify-between gap-5">
+                <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
-                    <span className="rounded-md bg-accent-solar/20 px-2.5 py-1 font-mono text-xs font-bold text-accent-solar border border-accent-solar/30">
-                      SEGMENT B2B
+                    <span className="rounded-md bg-accent/10 px-2.5 py-1 font-mono text-xs font-bold text-accent border border-accent/20">
+                      SEGMENT B2B · 100% EXCLUSIF
                     </span>
-                    <span className="font-mono text-xs font-bold text-accent-solar tabular-nums">Dès 8 crédits (~95,84 € HT)</span>
+                    <span className="font-mono text-xs font-bold text-accent tabular-nums">
+                      Dès 8 crédits (~95,84 € HT)
+                    </span>
                   </div>
-                  <h3 className="mt-3 text-base font-bold text-white font-heading">Exclusivité totale — 1 seul installateur</h3>
-                  <p className="mt-1.5 text-xs text-slate-300 leading-relaxed">
-                    PME, toitures industrielles, hangars agricoles, ombrières de parking, Corporate PPA. Aucune mise en concurrence interne après déblocage.
+                  <h3 className="text-lg sm:text-xl font-bold text-foreground font-heading">
+                    1 seul installateur par dossier — Exclusivité totale
+                  </h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                    Toitures industrielles, PME, hangars agricoles, ombrières de parking, Corporate PPA. Dès l&apos;achat, le dossier est retiré immédiatement de la marketplace.
                   </p>
                 </div>
-
-                <div className="rounded-2xl border border-white/15 bg-white/[0.07] p-6 text-left shadow-lg backdrop-blur-md hover:border-white/40 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <span className="rounded-md bg-white/15 px-2.5 py-1 font-mono text-xs font-bold text-white border border-white/20">
-                      SEGMENT B2C
-                    </span>
-                    <span className="font-mono text-xs font-bold text-accent-solar tabular-nums">Dès 2 crédits (~23,96 € HT)</span>
-                  </div>
-                  <h3 className="mt-3 text-base font-bold text-white font-heading">Maximum 3 installateurs par dossier</h3>
-                  <p className="mt-1.5 text-xs text-slate-300 leading-relaxed">
-                    Résidentiel Wallonie avec compteur &amp; facture vérifiés. Places restantes visibles en temps réel dans votre portail.
-                  </p>
+                <div className="flex flex-wrap gap-2 pt-4 border-t border-border text-xs font-mono text-foreground">
+                  <span className="rounded-lg bg-secondary px-2.5 py-1 text-muted-foreground border border-border">0 concurrence interne</span>
+                  <span className="rounded-lg bg-secondary px-2.5 py-1 text-muted-foreground border border-border">Décideur vérifié</span>
+                  <span className="rounded-lg bg-secondary px-2.5 py-1 text-muted-foreground border border-border">&gt; 30 kWc</span>
                 </div>
               </div>
 
-              {/* Actions Principales Hero */}
-              <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-                <a href="#candidature" className="w-full sm:w-auto">
-                  <Button
-                    size="lg"
-                    className="w-full sm:w-auto px-7 py-3.5 h-12 bg-accent text-accent-foreground hover:bg-accent/90 font-bold rounded-xl shadow-md cursor-pointer transition-transform hover:scale-[1.01]"
-                  >
-                    Postuler au réseau RESCERT (Gratuit)
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                </a>
-                <Link href="/partenaires/login" className="w-full sm:w-auto">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="w-full sm:w-auto px-7 py-3.5 h-12 border-white/25 bg-white/10 text-white hover:bg-white/20 font-semibold rounded-xl cursor-pointer backdrop-blur-md transition-colors"
-                  >
-                    <Lock className="h-4 w-4 mr-2 text-accent" />
-                    Accès Partenaire (Se connecter)
-                  </Button>
-                </Link>
+              {/* Carte Segment B2C */}
+              <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 text-left shadow-xs hover:border-accent/50 transition-all duration-200 flex flex-col justify-between gap-5">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <span className="rounded-md bg-secondary px-2.5 py-1 font-mono text-xs font-bold text-foreground border border-border">
+                      SEGMENT B2C · TRANSPARENCE TOTALE
+                    </span>
+                    <span className="font-mono text-xs font-bold text-accent tabular-nums">
+                      Dès 2 crédits (~23,96 € HT)
+                    </span>
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-bold text-foreground font-heading">
+                    Maximum 3 installateurs par chantier résidentiel
+                  </h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                    Résidentiel Wallonie avec compteur &amp; facture vérifiés par appel préalable. Places restantes visibles en temps réel dans votre portail avant déblocage.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2 pt-4 border-t border-border text-xs font-mono text-foreground">
+                  <span className="rounded-lg bg-secondary px-2.5 py-1 text-muted-foreground border border-border">Max 3 devis</span>
+                  <span className="rounded-lg bg-secondary px-2.5 py-1 text-muted-foreground border border-border">Taux de closing 35%+</span>
+                  <span className="rounded-lg bg-secondary px-2.5 py-1 text-muted-foreground border border-border">Remplacement 7j</span>
+                </div>
               </div>
-
-              {/* Réassurance sous CTA */}
-              <p className="mt-4 text-xs font-mono text-slate-300">
-                <span className="tabular-nums font-semibold text-white">0 €</span> de frais d&apos;inscription · Zéro abonnement imposé · Audit sous <span className="tabular-nums font-semibold text-white">48 h</span>
-              </p>
             </div>
           </div>
         </section>
 
-        {/* ─── 2. Aperçu Interactif du Live Feed Marketplace ─── */}
+        {/* ─── 2. Aperçu Interactif du Live Feed Marketplace (Identique au portail réel) ─── */}
         <section
           id="apercu"
           className="scroll-mt-24 border-b border-border py-16 md:py-24 bg-secondary/30 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
@@ -182,11 +123,11 @@ export default function PartenairesPage() {
               <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">
                 Flux de Chantiers en Direct
               </span>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-heading">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground font-heading">
                 Explorez le flux de chantiers en temps réel
               </h2>
               <p className="text-sm sm:text-base text-muted-foreground">
-                Filtrez par segment, province ou puissance. Testez l&apos;inspection d&apos;un dossier ou simulez un déblocage de contact immédiat.
+                Filtrez par segment, province ou puissance. Testez l&apos;inspection technique d&apos;un dossier ou observez la rentabilité brute estimée.
               </p>
             </div>
 
@@ -204,16 +145,16 @@ export default function PartenairesPage() {
               <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">
                 Modèle de Distribution Éthique
               </span>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-heading">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground font-heading">
                 Pourquoi les installateurs agréés choisissent Aegis Solaire
               </h2>
               <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                Nous avons conçu notre marketplace en rupture totale avec les plateformes de leads discount qui revendent les mêmes coordonnées à dix installateurs.
+                Nous avons conçu notre marketplace en rupture totale avec les plateformes de leads discount qui revendent les mêmes coordonnées à dix concurrents.
               </p>
             </div>
 
             {/* Tableau comparatif stylisé Fintech */}
-            <div className="mt-12 overflow-x-auto rounded-2xl border border-border bg-card shadow-xs">
+            <div className="mt-12 overflow-x-auto rounded-3xl border border-border bg-card shadow-xs">
               <table className="w-full text-left text-xs sm:text-sm">
                 <thead>
                   <tr className="border-b border-border bg-secondary/50 font-mono text-xs">
@@ -221,7 +162,10 @@ export default function PartenairesPage() {
                       Critères d&apos;exploitation
                     </th>
                     <th className="py-4 px-4 sm:px-6 font-bold text-accent uppercase tracking-wider w-1/3 bg-accent/[0.04] border-x border-accent/20">
-                      Aegis Solaire (Réseau Agréé)
+                      <div className="flex items-center gap-1.5">
+                        <BadgeCheck className="h-4 w-4 text-accent" />
+                        <span>Aegis Solaire (Réseau Agréé)</span>
+                      </div>
                     </th>
                     <th className="py-4 px-4 sm:px-6 font-semibold text-muted-foreground uppercase tracking-wider w-1/3">
                       Plateformes traditionnelles (Bobex, TrustUp...)
@@ -334,8 +278,8 @@ export default function PartenairesPage() {
 
             {/* 4 Piliers Bento Cards */}
             <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-2xl border border-border bg-card p-6 shadow-xs hover:border-accent/40 transition-colors">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary text-primary border border-border shadow-2xs">
+              <div className="rounded-3xl border border-border bg-card p-6 shadow-xs hover:border-accent/40 transition-colors">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-primary border border-border shadow-2xs">
                   <Building2 className="h-5 w-5 text-accent" />
                 </div>
                 <h3 className="mt-4 text-base font-bold text-foreground font-heading">B2B Exclusif (1 seul acheteur)</h3>
@@ -344,8 +288,8 @@ export default function PartenairesPage() {
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-border bg-card p-6 shadow-xs hover:border-accent/40 transition-colors">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary text-primary border border-border shadow-2xs">
+              <div className="rounded-3xl border border-border bg-card p-6 shadow-xs hover:border-accent/40 transition-colors">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-primary border border-border shadow-2xs">
                   <Home className="h-5 w-5 text-accent" />
                 </div>
                 <h3 className="mt-4 text-base font-bold text-foreground font-heading">B2C Transparent (Max 3 places)</h3>
@@ -354,23 +298,23 @@ export default function PartenairesPage() {
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-border bg-card p-6 shadow-xs hover:border-accent/40 transition-colors">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary text-primary border border-border shadow-2xs">
+              <div className="rounded-3xl border border-border bg-card p-6 shadow-xs hover:border-accent/40 transition-colors">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-primary border border-border shadow-2xs">
                   <Coins className="h-5 w-5 text-accent" />
                 </div>
                 <h3 className="mt-4 text-base font-bold text-foreground font-heading">Packs de crédits sans engagement</h3>
                 <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                  Rechargez votre solde sur facture officielle INIT42 avec TVA déductible à <span className="font-mono tabular-nums font-semibold text-foreground">21 %</span>. Vos crédits n&apos;expirent pas.
+                  Rechargez votre solde sur facture officielle avec TVA déductible à <span className="font-mono tabular-nums font-semibold text-foreground">21 %</span>. Vos crédits n&apos;expirent pas.
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-border bg-card p-6 shadow-xs hover:border-accent/40 transition-colors">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary text-primary border border-border shadow-2xs">
+              <div className="rounded-3xl border border-border bg-card p-6 shadow-xs hover:border-accent/40 transition-colors">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-primary border border-border shadow-2xs">
                   <ShieldCheck className="h-5 w-5 text-accent" />
                 </div>
                 <h3 className="mt-4 text-base font-bold text-foreground font-heading">100% Qualité &amp; Remplacement</h3>
                 <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                  Filtrage strict anti-spam, agréments RESCERT vérifiés et engagement de remplacement immédiat si le contact est injoignable.
+                  Filtrage strict anti-spam, agréments RESCERT vérifiés et engagement de remplacement immédiat si le contact est injoignable sous <span className="font-mono tabular-nums font-semibold text-foreground">7 jours</span>.
                 </p>
               </div>
             </div>
@@ -387,11 +331,11 @@ export default function PartenairesPage() {
               <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">
                 Modélisation Financière
               </span>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-heading">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground font-heading">
                 Simulateur de rentabilité : Anticipez votre carnet de commandes
               </h2>
               <p className="text-sm sm:text-base text-muted-foreground">
-                Découvrez combien de marge brute générer chaque mois selon vos disponibilités de pose.
+                Découvrez la marge brute prévisionnelle générée chaque mois selon vos disponibilités de pose.
               </p>
             </div>
 
@@ -409,7 +353,7 @@ export default function PartenairesPage() {
               <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">
                 Transparence Économique
               </span>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-heading">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground font-heading">
                 Packs de crédits déductibles : zéro abonnement, rechargez selon vos besoins
               </h2>
               <p className="text-sm sm:text-base text-muted-foreground">
@@ -418,8 +362,8 @@ export default function PartenairesPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-              {/* Pack 1 */}
-              <div className="bg-card border border-border rounded-2xl p-6 shadow-xs flex flex-col justify-between gap-5 hover:border-accent/40 transition-colors">
+              {/* Pack 1 : Découverte */}
+              <div className="bg-card border border-border rounded-3xl p-6 shadow-xs flex flex-col justify-between gap-5 hover:border-accent/40 transition-colors">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider">
@@ -457,8 +401,8 @@ export default function PartenairesPage() {
                 </a>
               </div>
 
-              {/* Pack 2 (Recommandé - Croissance) */}
-              <div className="bg-card border-2 border-accent rounded-2xl p-6 shadow-sm flex flex-col justify-between gap-5 relative">
+              {/* Pack 2 : Recommandé - Croissance */}
+              <div className="bg-card border-2 border-accent rounded-3xl p-6 shadow-sm flex flex-col justify-between gap-5 relative">
                 <div className="absolute -top-3 right-6 bg-accent text-accent-foreground px-3 py-0.5 rounded-full font-mono text-[10px] font-bold uppercase tracking-wider shadow-2xs">
                   Le Plus Populaire
                 </div>
@@ -499,8 +443,8 @@ export default function PartenairesPage() {
                 </a>
               </div>
 
-              {/* Pack 3 (Entreprise) */}
-              <div className="bg-card border border-border rounded-2xl p-6 shadow-xs flex flex-col justify-between gap-5 hover:border-accent/40 transition-colors">
+              {/* Pack 3 : Entreprise */}
+              <div className="bg-card border border-border rounded-3xl p-6 shadow-xs flex flex-col justify-between gap-5 hover:border-accent/40 transition-colors">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider">
@@ -538,8 +482,8 @@ export default function PartenairesPage() {
                 </a>
               </div>
 
-              {/* Pack 4 (Grands Projets B2B) */}
-              <div className="bg-card border border-border rounded-2xl p-6 shadow-xs flex flex-col justify-between gap-5 hover:border-accent/40 transition-colors">
+              {/* Pack 4 : Grands Projets B2B */}
+              <div className="bg-card border border-border rounded-3xl p-6 shadow-xs flex flex-col justify-between gap-5 hover:border-accent/40 transition-colors">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider">
@@ -566,7 +510,7 @@ export default function PartenairesPage() {
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="h-3.5 w-3.5 text-accent shrink-0" />
-                      <span>Ligne directe avec l&apos;ingénieur d&apos;audit</span>
+                      <span>Ligne directe avec la cellule technique</span>
                     </li>
                   </ul>
                 </div>
@@ -579,8 +523,8 @@ export default function PartenairesPage() {
             </div>
 
             {/* Box Rentabilité Métier Exemple */}
-            <div className="mt-10 max-w-4xl mx-auto bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row items-start gap-4">
-              <div className="h-10 w-10 rounded-xl bg-secondary flex items-center justify-center text-primary shrink-0">
+            <div className="mt-10 max-w-4xl mx-auto bg-card border border-border rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row items-start gap-4">
+              <div className="h-10 w-10 rounded-2xl bg-secondary flex items-center justify-center text-primary shrink-0">
                 <TrendingUp className="h-5 w-5 text-accent" />
               </div>
               <div className="flex flex-col gap-1">
@@ -605,7 +549,7 @@ export default function PartenairesPage() {
               <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">
                 Retours du Terrain
               </span>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-heading">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground font-heading">
                 Ce que disent nos installateurs certifiés en Wallonie
               </h2>
               <p className="text-sm sm:text-base text-muted-foreground">
@@ -615,7 +559,7 @@ export default function PartenairesPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Témoignage 1 */}
-              <div className="rounded-2xl border border-border bg-card p-6 shadow-xs flex flex-col justify-between gap-4">
+              <div className="rounded-3xl border border-border bg-card p-6 shadow-xs flex flex-col justify-between gap-4">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-1 text-accent-solar">
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -638,7 +582,7 @@ export default function PartenairesPage() {
               </div>
 
               {/* Témoignage 2 */}
-              <div className="rounded-2xl border border-border bg-card p-6 shadow-xs flex flex-col justify-between gap-4">
+              <div className="rounded-3xl border border-border bg-card p-6 shadow-xs flex flex-col justify-between gap-4">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-1 text-accent-solar">
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -661,7 +605,7 @@ export default function PartenairesPage() {
               </div>
 
               {/* Témoignage 3 */}
-              <div className="rounded-2xl border border-border bg-card p-6 shadow-xs flex flex-col justify-between gap-4">
+              <div className="rounded-3xl border border-border bg-card p-6 shadow-xs flex flex-col justify-between gap-4">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-1 text-accent-solar">
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -669,7 +613,7 @@ export default function PartenairesPage() {
                     ))}
                   </div>
                   <p className="text-xs sm:text-sm text-muted-foreground italic leading-relaxed">
-                    « Le remplacement automatique des prospects injoignables sous 7 jours est une vraie garantie de sérénité. Zéro mauvaise surprise sur notre solde de crédits, le service client répond en 2 heures. »
+                    « Le remplacement automatique des prospects injoignables sous 7 jours est une vraie garantie de sérénité. Zéro mauvaise surprise sur notre solde de crédits, le support répond en 2 heures. »
                   </p>
                 </div>
                 <div className="pt-3 border-t border-border flex items-center justify-between">
@@ -686,25 +630,25 @@ export default function PartenairesPage() {
 
             {/* Chiffres clés de confiance */}
             <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-              <div className="rounded-xl border border-border bg-card p-4">
+              <div className="rounded-2xl border border-border bg-card p-5">
                 <span className="font-mono text-2xl sm:text-3xl font-extrabold text-foreground tabular-nums">
                   94 %
                 </span>
                 <span className="text-xs text-muted-foreground block mt-1">Satisfaction installateurs</span>
               </div>
-              <div className="rounded-xl border border-border bg-card p-4">
+              <div className="rounded-2xl border border-border bg-card p-5">
                 <span className="font-mono text-2xl sm:text-3xl font-extrabold text-accent tabular-nums">
                   100 %
                 </span>
                 <span className="text-xs text-muted-foreground block mt-1">Certifiés RESCERT Wallonie</span>
               </div>
-              <div className="rounded-xl border border-border bg-card p-4">
+              <div className="rounded-2xl border border-border bg-card p-5">
                 <span className="font-mono text-2xl sm:text-3xl font-extrabold text-foreground tabular-nums">
                   &lt; 48 h
                 </span>
                 <span className="text-xs text-muted-foreground block mt-1">Délai d&apos;audit &amp; activation</span>
               </div>
-              <div className="rounded-xl border border-border bg-card p-4">
+              <div className="rounded-2xl border border-border bg-card p-5">
                 <span className="font-mono text-2xl sm:text-3xl font-extrabold text-foreground tabular-nums">
                   0 €
                 </span>
@@ -719,14 +663,14 @@ export default function PartenairesPage() {
           <div className="mx-auto max-w-6xl min-w-0 px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto">
               <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">Parcours Intégration</span>
-              <h2 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-heading">
+              <h2 className="mt-2 text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground font-heading">
                 Comment rejoindre la marketplace en 3 étapes simples ?
               </h2>
             </div>
 
             <div className="mt-12 grid gap-6 sm:grid-cols-3">
-              <div className="relative rounded-2xl border border-border bg-card p-6 shadow-xs hover:border-accent/30 transition-colors">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-sm font-mono font-bold text-primary-foreground shadow-2xs">
+              <div className="relative rounded-3xl border border-border bg-card p-6 shadow-xs hover:border-accent/30 transition-colors">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-sm font-mono font-bold text-primary-foreground shadow-2xs">
                   01
                 </div>
                 <h3 className="mt-4 text-base font-bold text-foreground font-heading">Candidature en ligne</h3>
@@ -735,8 +679,8 @@ export default function PartenairesPage() {
                 </p>
               </div>
 
-              <div className="relative rounded-2xl border border-border bg-card p-6 shadow-xs hover:border-accent/30 transition-colors">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-sm font-mono font-bold text-primary-foreground shadow-2xs">
+              <div className="relative rounded-3xl border border-border bg-card p-6 shadow-xs hover:border-accent/30 transition-colors">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-sm font-mono font-bold text-primary-foreground shadow-2xs">
                   02
                 </div>
                 <h3 className="mt-4 text-base font-bold text-foreground font-heading">Revue &amp; Accès Portail</h3>
@@ -745,8 +689,8 @@ export default function PartenairesPage() {
                 </p>
               </div>
 
-              <div className="relative rounded-2xl border border-border bg-card p-6 shadow-xs hover:border-accent/30 transition-colors">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-sm font-mono font-bold text-primary-foreground shadow-2xs">
+              <div className="relative rounded-3xl border border-border bg-card p-6 shadow-xs hover:border-accent/30 transition-colors">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-sm font-mono font-bold text-primary-foreground shadow-2xs">
                   03
                 </div>
                 <h3 className="mt-4 text-base font-bold text-foreground font-heading">Live Feed &amp; Déblocage</h3>
@@ -764,7 +708,7 @@ export default function PartenairesPage() {
           className="scroll-mt-24 py-16 md:py-24 bg-secondary/30 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
         >
           <div className="mx-auto max-w-3xl min-w-0 px-4 sm:px-6 lg:px-8">
-            <div className="rounded-2xl border border-border bg-card p-6 sm:p-10 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_10px_25px_-5px_rgba(15,23,42,0.05)]">
+            <div className="rounded-3xl border border-border bg-card p-6 sm:p-10 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_10px_25px_-5px_rgba(15,23,42,0.05)]">
               <div className="border-b border-border pb-6 text-center">
                 <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/[0.06] px-4 py-1.5 text-xs font-mono font-semibold text-primary">
                   <BadgeCheck className="h-4 w-4 text-accent" />
@@ -801,7 +745,7 @@ export default function PartenairesPage() {
               <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">
                 Questions Fréquentes
               </span>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-heading">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground font-heading">
                 Questions fréquentes des installateurs photovoltaïques
               </h2>
             </div>
@@ -810,7 +754,7 @@ export default function PartenairesPage() {
               <div className="p-5 rounded-2xl bg-secondary/40 border border-border flex flex-col gap-2">
                 <h3 className="font-bold text-foreground font-heading">Comment fonctionne la facturation des crédits ?</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Chaque recharge donne lieu à une facture fiscale belge conforme émise par INIT42 SRL avec TVA à 21 % déductible. Vous recevez le PDF immédiatement par email dès la confirmation du paiement.
+                  Chaque recharge donne lieu à une facture fiscale belge conforme émise avec TVA à 21 % déductible. Vous recevez le PDF immédiatement par email dès la confirmation du paiement.
                 </p>
               </div>
 
@@ -848,6 +792,42 @@ export default function PartenairesPage() {
                   Pour garantir la confiance des propriétaires wallons et le respect des normes CWaPE / RGIE. Seuls les professionnels agréés peuvent garantir la conformité des installations.
                 </p>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ─── 10. Call to Action Final Haute Conversion ─── */}
+        <section className="border-t border-border py-16 sm:py-20 bg-primary text-primary-foreground [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
+          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
+            <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">
+              Accélérateur de Croissance Solaire
+            </span>
+            <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white font-heading">
+              Prêt à alimenter vos équipes de pose sans prospection à froid ?
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-sm sm:text-base text-slate-300 leading-relaxed">
+              Rejoignez les installateurs agréés RESCERT qui développent leur carnet de commandes en Wallonie en toute transparence. Validation gratuite de votre compte sous <span className="font-mono tabular-nums font-semibold text-white">48 h</span>.
+            </p>
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5">
+              <a href="#candidature" className="w-full sm:w-auto">
+                <Button
+                  size="lg"
+                  className="w-full sm:w-auto px-7 py-3.5 h-12 bg-accent text-accent-foreground hover:bg-accent/90 font-bold rounded-xl shadow-md cursor-pointer transition-transform hover:scale-[1.01]"
+                >
+                  Postuler au réseau RESCERT (Gratuit)
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </a>
+              <Link href="/partenaires/login" className="w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full sm:w-auto px-7 py-3.5 h-12 border-white/25 bg-white/10 text-white hover:bg-white/20 font-semibold rounded-xl cursor-pointer backdrop-blur-md transition-colors"
+                >
+                  <Lock className="h-4 w-4 mr-2 text-accent" />
+                  Accéder à mon espace partenaire
+                </Button>
+              </Link>
             </div>
           </div>
         </section>

@@ -29,11 +29,17 @@ export function PartnerDashboardShell({
   initialPortfolio,
   targetLeadId,
 }: PartnerDashboardShellProps) {
+  const [activeTargetLeadId, setActiveTargetLeadId] = React.useState<string | undefined>(targetLeadId)
+
+  React.useEffect(() => {
+    setActiveTargetLeadId(targetLeadId)
+  }, [targetLeadId])
+
   // Détection si le lead ciblé a déjà été acheté
   const isAlreadyPurchased = Boolean(
-    targetLeadId &&
+    activeTargetLeadId &&
       (initialPortfolio ?? []).some(
-        (p: any) => p.id === targetLeadId || p.lead_id === targetLeadId || p.purchase_id === targetLeadId
+        (p: any) => p.id === activeTargetLeadId || p.lead_id === activeTargetLeadId || p.purchase_id === activeTargetLeadId
       )
   )
 
@@ -51,6 +57,21 @@ export function PartnerDashboardShell({
   const [isTierOpen, setIsTierOpen] = React.useState(false)
   const [isExpertOpen, setIsExpertOpen] = React.useState(false)
   const [selectedLeadForExpert, setSelectedLeadForExpert] = React.useState<any | null>(null)
+
+  const handleUpdatePipelineStatus = React.useCallback(
+    (purchaseId: string, newStatus: string) => {
+      setPortfolio((prev) =>
+        prev.map((item) => {
+          const match =
+            (item.purchase_id && item.purchase_id === purchaseId) ||
+            (item.id && item.id === purchaseId) ||
+            (item.lead_id && item.lead_id === purchaseId)
+          return match ? { ...item, pipeline_status: newStatus } : item
+        })
+      )
+    },
+    []
+  )
 
   return (
     <div className="min-h-screen bg-background">
@@ -224,18 +245,22 @@ export function PartnerDashboardShell({
               </span>
             </div>
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-extrabold tracking-tight text-foreground">
-              {activeTab === "marketplace"
+              {activeTargetLeadId && activeTab === "marketplace"
+                ? "Opportunité Solaire Ciblée"
+                : activeTab === "marketplace"
                 ? "Marketplace des Chantiers Photovoltaïques"
                 : "Portefeuille & Suivi Commercial"}
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground">
-              {activeTab === "marketplace"
+              {activeTargetLeadId && activeTab === "marketplace"
+                ? "Fiche technique d'ingénierie et accès prioritaire au chantier recommandé par e-mail."
+                : activeTab === "marketplace"
                 ? "Projets solaires qualifiés en Wallonie : fiches techniques détaillées, puissance kWc et coordonnées directes vérifiées."
                 : "Dossiers débloqués, coordonnées complètes des décideurs et suivi des relances."}
             </p>
           </div>
 
-          {activeTab === "marketplace" && (
+          {activeTab === "marketplace" && !activeTargetLeadId && (
             <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-r from-emerald-50/70 via-card to-card p-3 sm:p-3.5 shadow-xs flex items-center gap-3.5 max-w-md shrink-0">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600">
                 <Leaf className="h-5 w-5" />
@@ -261,7 +286,8 @@ export function PartnerDashboardShell({
           <MarketplaceFeedView
             leads={marketplace}
             partnerCredits={credits}
-            targetLeadId={targetLeadId}
+            targetLeadId={activeTargetLeadId}
+            onClearTargetLead={() => setActiveTargetLeadId(undefined)}
             onPurchaseSuccess={(purchasedLead, newCredits, newPurchaseRecord) => {
               setCredits(newCredits)
               setMarketplace((prev) => prev.filter((item) => item.id !== purchasedLead.id))
@@ -277,6 +303,7 @@ export function PartnerDashboardShell({
         ) : (
           <CrmPortfolioView
             purchases={portfolio}
+            onUpdateStatus={handleUpdatePipelineStatus}
             onOpenDispute={(purchase) => setDisputePurchase(purchase)}
             onExploreMarketplace={() => setActiveTab("marketplace")}
             onOpenExpertModal={(lead) => {

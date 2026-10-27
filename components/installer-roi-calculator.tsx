@@ -64,11 +64,11 @@ export function InstallerRoiCalculator() {
   }, [leadsPerMonth, conversionRate, economics])
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_10px_25px_-5px_rgba(15,23,42,0.05)]">
+    <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_10px_25px_-5px_rgba(15,23,42,0.05)]">
       {/* En-tête du calculateur */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-6">
         <div>
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/[0.06] px-3 py-1 text-xs font-mono font-semibold text-primary">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/[0.06] px-3.5 py-1 text-xs font-mono font-semibold text-primary">
             <Calculator className="h-3.5 w-3.5 text-accent" />
             <span>SIMULATEUR DE RENTABILITÉ INSTALLATEUR</span>
           </div>
@@ -81,7 +81,7 @@ export function InstallerRoiCalculator() {
         </div>
 
         {/* Badge multiplicateur moyen */}
-        <div className="shrink-0 rounded-xl border border-accent/30 bg-accent/[0.06] p-3 text-center sm:text-right">
+        <div className="shrink-0 rounded-2xl border border-accent/30 bg-accent/[0.06] p-3.5 text-center sm:text-right">
           <span className="text-[11px] font-mono text-muted-foreground uppercase block font-medium">
             Multiplicateur ROI estimé
           </span>
@@ -105,7 +105,7 @@ export function InstallerRoiCalculator() {
                 onClick={() => setProjectType("mixed")}
                 className={`rounded-xl border p-2.5 text-xs font-semibold transition-all cursor-pointer text-center ${
                   projectType === "mixed"
-                    ? "border-accent bg-accent/10 text-foreground ring-1 ring-accent font-bold"
+                    ? "border-accent bg-accent/10 text-foreground ring-1 ring-accent font-bold shadow-2xs"
                     : "border-border bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/40"
                 }`}
               >
@@ -116,7 +116,7 @@ export function InstallerRoiCalculator() {
                 onClick={() => setProjectType("b2c")}
                 className={`rounded-xl border p-2.5 text-xs font-semibold transition-all cursor-pointer text-center ${
                   projectType === "b2c"
-                    ? "border-accent bg-accent/10 text-foreground ring-1 ring-accent font-bold"
+                    ? "border-accent bg-accent/10 text-foreground ring-1 ring-accent font-bold shadow-2xs"
                     : "border-border bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/40"
                 }`}
               >
@@ -127,7 +127,7 @@ export function InstallerRoiCalculator() {
                 onClick={() => setProjectType("b2b")}
                 className={`rounded-xl border p-2.5 text-xs font-semibold transition-all cursor-pointer text-center ${
                   projectType === "b2b"
-                    ? "border-accent bg-accent/10 text-foreground ring-1 ring-accent font-bold"
+                    ? "border-accent bg-accent/10 text-foreground ring-1 ring-accent font-bold shadow-2xs"
                     : "border-border bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/40"
                 }`}
               >
@@ -137,12 +137,12 @@ export function InstallerRoiCalculator() {
           </div>
 
           {/* 2. Curseur : Chantiers débloqués / mois */}
-          <div className="flex flex-col gap-2.5 rounded-xl border border-border bg-secondary/30 p-4">
+          <div className="flex flex-col gap-2.5 rounded-2xl border border-border bg-secondary/30 p-4">
             <div className="flex items-center justify-between">
               <label htmlFor="leads-slider" className="text-xs font-bold text-foreground">
                 2. Chantiers débloqués par mois
               </label>
-              <span className="font-mono text-sm font-bold text-accent tabular-nums bg-card px-2.5 py-0.5 rounded-md border border-border">
+              <span className="font-mono text-sm font-bold text-accent tabular-nums bg-card px-2.5 py-0.5 rounded-lg border border-border shadow-2xs">
                 {leadsPerMonth} dossiers / mois
               </span>
             </div>
@@ -154,7 +154,7 @@ export function InstallerRoiCalculator() {
               step={1}
               value={leadsPerMonth}
               onChange={(e) => setLeadsPerMonth(Number(e.target.value))}
-              className="w-full accent-accent cursor-pointer"
+              className="w-full accent-accent cursor-pointer h-2 bg-secondary rounded-lg"
             />
             <div className="flex justify-between text-[11px] text-muted-foreground font-mono">
               <span>2 chantiers (test)</span>
@@ -164,12 +164,12 @@ export function InstallerRoiCalculator() {
           </div>
 
           {/* 3. Curseur : Taux de signature estimé */}
-          <div className="flex flex-col gap-2.5 rounded-xl border border-border bg-secondary/30 p-4">
+          <div className="flex flex-col gap-2.5 rounded-2xl border border-border bg-secondary/30 p-4">
             <div className="flex items-center justify-between">
               <label htmlFor="rate-slider" className="text-xs font-bold text-foreground">
                 3. Taux de transformation en devis signé
               </label>
-              <span className="font-mono text-sm font-bold text-foreground tabular-nums bg-card px-2.5 py-0.5 rounded-md border border-border">
+              <span className="font-mono text-sm font-bold text-foreground tabular-nums bg-card px-2.5 py-0.5 rounded-lg border border-border shadow-2xs">
                 {conversionRate} % (env. 1 sur {Math.round(100 / conversionRate)})
               </span>
             </div>
@@ -181,7 +181,7 @@ export function InstallerRoiCalculator() {
               step={5}
               value={conversionRate}
               onChange={(e) => setConversionRate(Number(e.target.value))}
-              className="w-full accent-accent cursor-pointer"
+              className="w-full accent-accent cursor-pointer h-2 bg-secondary rounded-lg"
             />
             <p className="text-[11px] text-muted-foreground leading-relaxed">
               Moyenne observée sur Aegis Solaire : <strong className="text-foreground">30% à 40%</strong> grâce aux pièces justificatives toiture et compteurs déjà vérifiés.
@@ -191,7 +191,7 @@ export function InstallerRoiCalculator() {
 
         {/* Colonne droite : Synthèse financière Bento */}
         <div className="lg:col-span-5 flex flex-col gap-4">
-          <div className="rounded-2xl border-2 border-accent/40 bg-secondary/40 p-5 flex flex-col gap-4">
+          <div className="rounded-3xl border-2 border-accent/40 bg-secondary/40 p-5 flex flex-col gap-4">
             <span className="font-mono text-xs uppercase tracking-wider text-accent font-bold">
               Bilan Financier Mensuel Estimé
             </span>
@@ -243,7 +243,7 @@ export function InstallerRoiCalculator() {
             </a>
           </div>
 
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-card border border-border text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 p-3.5 rounded-2xl bg-card border border-border text-xs text-muted-foreground">
             <CheckCircle2 className="h-4 w-4 text-accent shrink-0" />
             <span>Aucune commission de fin de chantier réclamée par Aegis Solaire.</span>
           </div>

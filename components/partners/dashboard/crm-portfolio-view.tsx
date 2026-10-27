@@ -44,6 +44,7 @@ import {
 import { LeadInspectionDrawer } from "./lead-inspection-drawer"
 import { CrmInteractiveTour } from "./crm-interactive-tour"
 import { downloadLeadVCard, buildWhatsAppLink } from "./lib/vcard-export"
+import { CustomSelect } from "@/components/ui/custom-select"
 
 const STORAGE_KEY_CRM_TUTORIAL_DISMISSED = "aegis_crm_tour_dismissed_v1"
 
@@ -96,11 +97,29 @@ export const PIPELINE_STAGES = [
   },
 ] as const
 
+const SORT_OPTIONS = [
+  { value: "recent", label: "Plus récents (débloqués)" },
+  { value: "status", label: "Statut commercial" },
+  { value: "power_desc", label: "Puissance max (kWc)" },
+  { value: "margin_desc", label: "Marge max (€)" },
+  { value: "alpha", label: "Nom client (A-Z)" },
+]
+
+const PROVINCE_OPTIONS = [
+  { value: "ALL", label: "Toute la Wallonie" },
+  { value: "liege", label: "Liège" },
+  { value: "namur", label: "Namur" },
+  { value: "hainaut", label: "Hainaut" },
+  { value: "brabant_wallon", label: "Brabant Wallon" },
+  { value: "luxembourg", label: "Luxembourg" },
+]
+
 interface CrmPortfolioViewProps {
   purchases: any[]
   onOpenDispute: (purchase: any) => void
   onExploreMarketplace?: () => void
   onOpenExpertModal?: (lead?: any) => void
+  onUpdateStatus?: (purchaseId: string, newStatus: string) => void
 }
 
 export function CrmPortfolioView({
@@ -108,6 +127,7 @@ export function CrmPortfolioView({
   onOpenDispute,
   onExploreMarketplace,
   onOpenExpertModal,
+  onUpdateStatus,
 }: CrmPortfolioViewProps) {
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid")
   const [searchQuery, setSearchQuery] = useState("")
@@ -115,9 +135,17 @@ export function CrmPortfolioView({
   const [selectedProvince, setSelectedProvince] = useState<string>("ALL")
   const [selectedStage, setSelectedStage] = useState<string>("ALL")
   const [sortBy, setSortBy] = useState<"recent" | "power_desc" | "margin_desc" | "status" | "alpha">("recent")
-  const [isPending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [selectedLeadForDrawer, setSelectedLeadForDrawer] = useState<any | null>(null)
   const [showTutorial, setShowTutorial] = useState(false)
+
+  // État local synchronisé avec les props pour persister les mutations après l'achèvement de la transition
+  const [internalPurchases, setInternalPurchases] = useState<any[]>(purchases)
+
+  React.useEffect(() => {
+    setInternalPurchases(purchases)
+  }, [purchases])
 
   // Détection 1ère visite : affiche le tutoriel CRM si non encore masqué
   React.useEffect(() => {
@@ -142,30 +170,77 @@ export function CrmPortfolioView({
 
   // React 19 Optimistic UI : changement de colonne instantané sans attendre le serveur
   const [optimisticPurchases, setOptimisticStatus] = useOptimistic(
-    purchases,
-    (state: any[], { purchaseId, newStatus }: { purchaseId: string; newStatus: string }) =>
-      state.map((item) =>
-        item.purchase_id === purchaseId ? { ...item, pipeline_status: newStatus } : item
-      )
+    internalPurchases,
+    (state: any[], { targetId, newStatus }: { targetId: string; newStatus: string }) =>
+      state.map((item) => {
+        const match =
+          (item.purchase_id && item.purchase_id === targetId) ||
+          (item.id && item.id === targetId) ||
+          (item.lead_id && item.lead_id === targetId)
+        return match ? { ...item, pipeline_status: newStatus } : item
+      })
   )
 
-  const handleStatusChange = (purchaseId: string, newStatus: string) => {
+  const handleStatusChange = (itemOrId: any, newStatus: string) => {
+    const targetId =
+      typeof itemOrId === "string"
+        ? itemOrId
+        : itemOrId?.purchase_id || itemOrId?.id || itemOrId?.lead_id
+
+    if (!targetId) {
+      toast.error("Identifiant du dossier introuvable.")
+      return
+    }
+
+    setUpdatingId(targetId)
+
     startTransition(async () => {
-      setOptimisticStatus({ purchaseId, newStatus })
+      // 1. Mise à jour optimiste immédiate (<1ms)
+      setOptimisticStatus({ targetId, newStatus })
+
       try {
         const res = await fetch("/api/partners/pipeline-status", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ purchaseId, pipeline_status: newStatus }),
+          body: JSON.stringify({ purchaseId: targetId, pipeline_status: newStatus }),
         })
+
         if (!res.ok) {
-          toast.error("Erreur lors de la mise à jour du statut commercial.")
-        } else {
-          const stageObj = PIPELINE_STAGES.find((s) => s.id === newStatus)
-          toast.success(`Dossier mis à jour : ${stageObj?.label || newStatus}`)
+          const errData = await res.json().catch(() => ({}))
+          toast.error(errData.error || "Erreur lors de la mise à jour du statut commercial.")
+          return
         }
+
+        // 2. Commit permanent dans l'état local pour ne pas régresser à la fin de la transition
+        setInternalPurchases((prev) =>
+          prev.map((item) => {
+            const match =
+              (item.purchase_id && item.purchase_id === targetId) ||
+              (item.id && item.id === targetId) ||
+              (item.lead_id && item.lead_id === targetId)
+            return match ? { ...item, pipeline_status: newStatus } : item
+          })
+        )
+
+        // 3. Notification au shell parent pour synchronisation globale
+        onUpdateStatus?.(targetId, newStatus)
+
+        // 4. Synchronisation du drawer s'il est ouvert sur ce dossier
+        setSelectedLeadForDrawer((prev: any) => {
+          if (!prev) return null
+          const match =
+            (prev.purchase_id && prev.purchase_id === targetId) ||
+            (prev.id && prev.id === targetId) ||
+            (prev.lead_id && prev.lead_id === targetId)
+          return match ? { ...prev, pipeline_status: newStatus } : prev
+        })
+
+        const stageObj = PIPELINE_STAGES.find((s) => s.id === newStatus)
+        toast.success(`Dossier mis à jour : ${stageObj?.label || newStatus}`)
       } catch {
         toast.error("Échec réseau lors de la mise à jour.")
+      } finally {
+        setUpdatingId(null)
       }
     })
   }
@@ -201,6 +276,27 @@ export function CrmPortfolioView({
       stages: stageCounts,
     }
   }, [optimisticPurchases])
+
+  const stageFilterOptions = useMemo(
+    () => [
+      { value: "ALL", label: "Tous les statuts", badge: counts.all },
+      ...PIPELINE_STAGES.map((s) => ({
+        value: s.id,
+        label: s.label,
+        badge: counts.stages[s.id] || 0,
+      })),
+    ],
+    [counts]
+  )
+
+  const tablePipelineOptions = useMemo(
+    () =>
+      PIPELINE_STAGES.map((s) => ({
+        value: s.id,
+        label: s.label,
+      })),
+    []
+  )
 
   // Filtrage et Tri des dossiers en portefeuille
   const filteredPurchases = useMemo(() => {
@@ -438,7 +534,7 @@ export function CrmPortfolioView({
                 onClick={() => setSegmentFilter("B2B")}
                 className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
                   segmentFilter === "B2B"
-                    ? "bg-[#0F172A] text-white shadow-2xs"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
                     : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
                 }`}
               >
@@ -457,7 +553,7 @@ export function CrmPortfolioView({
                 onClick={() => setSegmentFilter("B2C")}
                 className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
                   segmentFilter === "B2C"
-                    ? "bg-[#0F172A] text-white shadow-2xs"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
                     : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
                 }`}
               >
@@ -472,43 +568,23 @@ export function CrmPortfolioView({
               </button>
             </div>
 
-            {/* Province select avec icône Pin et Chevron */}
-            <div className="relative inline-flex items-center rounded-xl border border-border bg-card hover:bg-secondary/60 transition-colors h-9 shadow-2xs">
-              <MapPin className="pointer-events-none absolute left-3 h-3.5 w-3.5 text-muted-foreground" />
-              <select
-                value={selectedProvince}
-                onChange={(e) => setSelectedProvince(e.target.value)}
-                className="h-full appearance-none border-0 bg-transparent pl-8.5 pr-8 text-xs font-semibold text-foreground outline-none cursor-pointer focus:ring-0 focus:outline-none"
-                aria-label="Filtrer par province"
-              >
-                <option value="ALL">Toute la Wallonie</option>
-                <option value="liege">Liège</option>
-                <option value="namur">Namur</option>
-                <option value="hainaut">Hainaut</option>
-                <option value="brabant_wallon">Brabant Wallon</option>
-                <option value="luxembourg">Luxembourg</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-muted-foreground" />
-            </div>
+            {/* Province CustomSelect stylisé comme le bouton */}
+            <CustomSelect
+              value={selectedProvince}
+              onChange={(val) => setSelectedProvince(val)}
+              options={PROVINCE_OPTIONS}
+              icon={MapPin}
+              ariaLabel="Filtrer par province"
+            />
 
-            {/* Filtre Statut Pipeline */}
-            <div className="relative inline-flex items-center rounded-xl border border-border bg-card hover:bg-secondary/60 transition-colors h-9 shadow-2xs">
-              <TrendingUp className="pointer-events-none absolute left-3 h-3.5 w-3.5 text-muted-foreground" />
-              <select
-                value={selectedStage}
-                onChange={(e) => setSelectedStage(e.target.value)}
-                className="h-full appearance-none border-0 bg-transparent pl-8.5 pr-8 text-xs font-semibold text-foreground outline-none cursor-pointer focus:ring-0 focus:outline-none"
-                aria-label="Filtrer par statut pipeline"
-              >
-                <option value="ALL">Tous les statuts ({counts.all})</option>
-                {PIPELINE_STAGES.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.label} ({counts.stages[s.id] || 0})
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-muted-foreground" />
-            </div>
+            {/* Filtre Statut Pipeline CustomSelect stylisé comme le bouton */}
+            <CustomSelect
+              value={selectedStage}
+              onChange={(val) => setSelectedStage(val)}
+              options={stageFilterOptions}
+              icon={TrendingUp}
+              ariaLabel="Filtrer par statut commercial"
+            />
           </div>
 
           {/* Recherche, Tri & Switcher Grille / Tableau */}
@@ -536,23 +612,14 @@ export function CrmPortfolioView({
               )}
             </div>
 
-            {/* Tri select avec icône ArrowUpDown et Chevron propre */}
-            <div className="relative inline-flex items-center rounded-xl border border-border bg-card hover:bg-secondary/60 transition-colors h-9 px-2.5 shadow-2xs">
-              <ArrowUpDown className="pointer-events-none mr-1.5 h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="h-full appearance-none border-0 bg-transparent pr-6 text-xs font-semibold text-foreground outline-none cursor-pointer focus:ring-0 focus:outline-none"
-                aria-label="Trier les dossiers"
-              >
-                <option value="recent">Plus récents (débloqués)</option>
-                <option value="status">Statut commercial</option>
-                <option value="power_desc">Puissance max (kWc)</option>
-                <option value="margin_desc">Marge max (€)</option>
-                <option value="alpha">Nom client (A-Z)</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-muted-foreground" />
-            </div>
+            {/* Tri CustomSelect au style identique au bouton */}
+            <CustomSelect
+              value={sortBy}
+              onChange={(val) => setSortBy(val as any)}
+              options={SORT_OPTIONS}
+              icon={ArrowUpDown}
+              ariaLabel="Trier les dossiers"
+            />
 
             {/* Bouton Visite guidée CRM */}
             <button
@@ -570,7 +637,7 @@ export function CrmPortfolioView({
               type="button"
               onClick={() => onOpenExpertModal?.(null)}
               className="inline-flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/20 px-3 h-9 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs"
-              title="Demander l'aide d'un expert Aegis Solaire (étude de marché, dimensionnement, rentabilité B2B)"
+              title="Demander l'aide d'un expert Aegis Solaire (% projet à négocier selon l'envergure)"
             >
               <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
               <span>Aide Expert &amp; Étude</span>
@@ -683,18 +750,21 @@ export function CrmPortfolioView({
       ) : viewMode === "grid" ? (
         /* ── Vue Grille : Cartes Photographiques en Lignes de 2 (2 Colonnes) ── */
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-          {filteredPurchases.map((item, index) => (
-            <CrmPortfolioCard
-              key={item.purchase_id || item.id}
-              item={item}
-              index={index}
-              isPending={isPending}
-              onInspect={() => setSelectedLeadForDrawer({ ...item, already_purchased: true })}
-              onStatusChange={(newStatus) => handleStatusChange(item.purchase_id, newStatus)}
-              onOpenDispute={() => onOpenDispute(item)}
-              onOpenExpertModal={() => onOpenExpertModal?.(item)}
-            />
-          ))}
+          {filteredPurchases.map((item, index) => {
+            const itemId = item.purchase_id || item.id || item.lead_id
+            return (
+              <CrmPortfolioCard
+                key={itemId}
+                item={item}
+                index={index}
+                isPending={updatingId === itemId}
+                onInspect={() => setSelectedLeadForDrawer({ ...item, already_purchased: true })}
+                onStatusChange={(newStatus) => handleStatusChange(item, newStatus)}
+                onOpenDispute={() => onOpenDispute(item)}
+                onOpenExpertModal={() => onOpenExpertModal?.(item)}
+              />
+            )
+          })}
         </div>
       ) : (
         /* ── Vue Liste Dense Haute-Productivité (Style Marketplace) ── */
@@ -791,20 +861,18 @@ export function CrmPortfolioView({
                         </div>
                       </td>
 
-                      {/* Statut Pipeline (Select interactif) */}
+                      {/* Statut Pipeline (CustomSelect interactif) */}
                       <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                        <select
+                        <CustomSelect
                           value={item.pipeline_status || "to_contact"}
-                          onChange={(e) => handleStatusChange(item.purchase_id, e.target.value)}
-                          disabled={isPending}
-                          className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-semibold text-foreground cursor-pointer focus:ring-1 focus:ring-primary"
-                        >
-                          {PIPELINE_STAGES.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.label}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={(val) => handleStatusChange(item, val)}
+                          options={tablePipelineOptions}
+                          disabled={updatingId === (item.purchase_id || item.id || item.lead_id)}
+                          size="sm"
+                          triggerClassName="h-7 px-2.5 text-xs font-semibold"
+                          contentClassName="min-w-[160px]"
+                          ariaLabel="Modifier le statut commercial"
+                        />
                       </td>
 
                       {/* Actions directes */}
@@ -847,7 +915,7 @@ export function CrmPortfolioView({
                             type="button"
                             onClick={() => onOpenExpertModal?.(item)}
                             className="inline-flex h-8 items-center justify-center rounded-lg border border-accent/40 bg-accent/10 hover:bg-accent/20 px-2.5 text-xs font-bold text-foreground transition-colors gap-1 shadow-2xs cursor-pointer"
-                            title="Demander l'aide d'un expert Aegis Solaire pour ce dossier"
+                            title="Demander l'aide d'un expert pour ce dossier (% projet à négocier)"
                           >
                             <Sparkles className="h-3.5 w-3.5 text-accent" />
                             <span>Expert</span>
@@ -1022,10 +1090,17 @@ function CrmPortfolioCard({
           </p>
 
           {/* Ligne 3 : Sélecteur de statut commercial 1-Tap (Défilement fluide) */}
-          <div className="space-y-1 -mt-0.5" onClick={(e) => e.stopPropagation()}>
+          <div className="flex flex-col gap-1 -mt-0.5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              <span>STATUT PIPELINE</span>
-              <span className="text-slate-500 font-semibold lowercase">cliquer pour changer</span>
+              <span className="flex items-center gap-1.5">
+                <span>STATUT PIPELINE</span>
+                {isPending && (
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent animate-ping" />
+                )}
+              </span>
+              <span className="text-slate-500 font-semibold lowercase">
+                {isPending ? "mise à jour..." : "cliquer pour changer"}
+              </span>
             </div>
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 overscroll-x-contain">
               {PIPELINE_STAGES.map((stage) => {
@@ -1035,12 +1110,18 @@ function CrmPortfolioCard({
                     key={stage.id}
                     type="button"
                     disabled={isPending}
-                    onClick={() => onStatusChange(stage.id)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      e.preventDefault()
+                      if (!isActive) {
+                        onStatusChange(stage.id)
+                      }
+                    }}
                     className={`rounded-lg border px-2.5 py-1 text-[11px] whitespace-nowrap shrink-0 transition-all cursor-pointer ${
                       isActive
                         ? stage.pillActiveClass
                         : "border-slate-200 dark:border-border bg-slate-50 dark:bg-secondary/40 text-slate-600 dark:text-muted-foreground hover:bg-slate-100 dark:hover:bg-secondary hover:text-slate-900 dark:hover:text-foreground font-medium"
-                    }`}
+                    } ${isPending ? "opacity-60 cursor-not-allowed" : ""}`}
                   >
                     {stage.label}
                   </button>
@@ -1234,7 +1315,7 @@ function CrmPortfolioCard({
             type="button"
             onClick={onOpenExpertModal}
             className="rounded-full border border-accent/40 bg-accent/10 hover:bg-accent/20 text-foreground px-2.5 sm:px-3 py-1.5 text-xs font-bold shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-1 shrink-0"
-            title="Demander l'aide d'un expert Aegis Solaire pour ce dossier (étude de marché, calepinage, rentabilité)"
+            title="Demander l'aide d'un expert pour ce dossier (% projet à négocier selon l'envergure)"
           >
             <Sparkles className="h-3.5 w-3.5 text-accent" />
             <span>Expert</span>

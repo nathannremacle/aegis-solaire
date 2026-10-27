@@ -81,6 +81,25 @@ export type LeadDetail = {
   media_partner_code?: string | null
   admin_notes?: string | null
   created_at: string
+  lead_purchases?: {
+    id: string
+    partner_id: string
+    purchased_at?: string
+    partners?:
+      | {
+          id: string
+          company_name: string
+          email: string
+          is_test?: boolean
+        }
+      | {
+          id: string
+          company_name: string
+          email: string
+          is_test?: boolean
+        }[]
+      | null
+  }[]
 }
 
 export function LeadDrawer({

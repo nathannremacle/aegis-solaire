@@ -56,7 +56,7 @@ const CRM_TOUR_STEPS = [
     badge: "PRODUCTIVITÉ TERRAIN & AUDIT EXPERT",
     title: "Boutons « vCard », « Fiche » & « Expert »",
     subtitle:
-      "Synchronisez votre carnet d'adresses en un tap, consultez l'audit technique complet et sollicitez en 1 clic l'assistance de notre Cellule Technique & Ingénierie pour vos études de marché et dimensionnements complexes.",
+      "Synchronisez votre carnet d'adresses en un tap, consultez l'audit technique complet et sollicitez en 1 clic l'assistance de notre Cellule Technique & Ingénierie (rémunération au pourcentage du projet à négocier).",
   },
   {
     stepNumber: "04",
@@ -478,7 +478,7 @@ export function CrmInteractiveTour({
                 <div className="flex items-center gap-2 rounded-xl bg-accent/10 border border-accent/25 p-2.5 text-xs text-foreground">
                   <Sparkles className="h-4 w-4 text-accent shrink-0" />
                   <span>
-                    <strong>Bouton « Expert » inclus :</strong> Besoin d&apos;une étude de marché locale, d&apos;un calepinage technique, d&apos;un arbitrage batteries ou d&apos;un calcul de rentabilité B2B ? Notre Cellule Technique vous répond sous 24h ouvrées.
+                    <strong>Bouton « Expert » (% projet à négocier) :</strong> Besoin d&apos;une étude de marché locale, d&apos;un calepinage technique, d&apos;un arbitrage batteries ou d&apos;un closing B2B ? Notre Cellule Technique vous accompagne en échange d&apos;un pourcentage du projet, convenu et négocié ensemble.
                   </span>
                 </div>
 

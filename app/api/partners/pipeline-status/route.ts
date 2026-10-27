@@ -28,18 +28,38 @@ export async function PATCH(request: Request) {
 
   const admin = createServiceRoleClient()
 
-  // Vérifier la propriété de l'achat
-  const { data: purchase, error: purchaseErr } = await admin
+  // Tolérance résiliente : accepter soit l'ID d'achat (lead_purchases.id), soit l'ID du lead (lead_purchases.lead_id)
+  let purchase: { id: string; partner_id: string } | null = null
+
+  const { data: purchaseById } = await admin
     .from("lead_purchases")
     .select("id, partner_id")
     .eq("id", purchaseId)
-    .single()
+    .eq("partner_id", partner.id)
+    .maybeSingle()
 
-  if (purchaseErr || !purchase || purchase.partner_id !== partner.id) {
+  if (purchaseById) {
+    purchase = purchaseById
+  } else {
+    const { data: purchaseByLead } = await admin
+      .from("lead_purchases")
+      .select("id, partner_id")
+      .eq("lead_id", purchaseId)
+      .eq("partner_id", partner.id)
+      .maybeSingle()
+
+    if (purchaseByLead) {
+      purchase = purchaseByLead
+    }
+  }
+
+  if (!purchase) {
     return NextResponse.json({ error: "Achat introuvable ou non autorisé" }, { status: 404 })
   }
 
-  const updatePayload: Record<string, any> = {}
+  const updatePayload: Record<string, any> = {
+    updated_at: new Date().toISOString(),
+  }
 
   if (body.pipeline_status !== undefined) {
     const validStatuses = ["to_contact", "contacted", "meeting_scheduled", "quote_sent", "won", "lost"]
@@ -57,15 +77,17 @@ export async function PATCH(request: Request) {
     updatePayload.next_action_at = body.next_action_at
   }
 
-  const { error: updateErr } = await admin
+  const { data: updated, error: updateErr } = await admin
     .from("lead_purchases")
     .update(updatePayload)
-    .eq("id", purchaseId)
+    .eq("id", purchase.id)
+    .select("id, pipeline_status, notes, next_action_at, updated_at")
+    .single()
 
   if (updateErr) {
     console.error("[pipeline-status] update error:", updateErr)
     return NextResponse.json({ error: "Erreur lors de la mise à jour" }, { status: 500 })
   }
 
-  return NextResponse.json({ success: true, updated: updatePayload })
+  return NextResponse.json({ success: true, updated: updated || updatePayload })
 }

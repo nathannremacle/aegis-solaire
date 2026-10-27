@@ -383,11 +383,22 @@ export function calculateLeadRoiRatio(estimatedMargin: number, creditCost: numbe
  * Calcule l'indicateur de fraîcheur d'un lead (signal n°1 de conversion).
  * Assure un affichage crédible et professionnel pour les installateurs partenaires.
  */
-export function getLeadFreshness(createdAt?: string | null): {
+export function getLeadFreshness(
+  createdAt?: string | null,
+  overrideLabel?: string | null
+): {
   label: string
   isHot: boolean
   dotClass: string
 } {
+  if (overrideLabel) {
+    return {
+      label: overrideLabel,
+      isHot: true,
+      dotClass: "bg-emerald-500 animate-pulse",
+    }
+  }
+
   if (!createdAt) {
     return {
       label: "Vérifié aujourd'hui",

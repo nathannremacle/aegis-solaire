@@ -123,10 +123,33 @@
   html {
     overflow-x: hidden;
     -webkit-text-size-adjust: 100%;
+    scrollbar-gutter: stable;
   }
   body {
     @apply bg-background text-foreground min-w-0;
     overflow-x: hidden;
+  }
+
+  /* Neutralisation stricte du décalage horizontal (layout shift vers la gauche)
+     provoqué par le verrouillage du défilement de Radix UI (Select, Popover, Dialog) */
+  html body[data-scroll-locked] {
+    --removed-body-scroll-bar-size: 0px !important;
+    margin-right: 0px !important;
+    padding-right: 0px !important;
+    overflow: visible !important;
+  }
+
+  .with-scroll-bars-hidden {
+    overflow: visible !important;
+    padding-right: 0px !important;
+  }
+
+  .right-scroll-bar-position {
+    right: 0px !important;
+  }
+
+  .width-before-scroll-bar {
+    margin-right: 0px !important;
   }
   /* Éviter le débordement des conteneurs flex/grid sur petits écrans */
   img, video, iframe {

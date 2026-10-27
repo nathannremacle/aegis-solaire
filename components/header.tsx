@@ -1,10 +1,20 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Menu, X, Building2, Home, Calculator, ArrowUpRight } from "lucide-react"
+import {
+  Menu,
+  X,
+  Building2,
+  Home,
+  Calculator,
+  ArrowUpRight,
+  ShieldCheck,
+  Lock,
+  ArrowRight,
+} from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { usePathname } from "next/navigation"
 
@@ -27,10 +37,20 @@ const B2C_NAV_ITEMS: NavItem[] = [
   { label: "FAQ", href: "/faq-technique" },
 ]
 
+const PARTNER_NAV_ITEMS: NavItem[] = [
+  { label: "Chantiers", href: "/partenaires#apercu" },
+  { label: "Simulateur", href: "/partenaires#simulateur-roi" },
+  { label: "Tarifs", href: "/partenaires#tarifs" },
+  { label: "Avis", href: "/partenaires#temoignages" },
+  { label: "Ressources", href: "/partenaires#comparatif" },
+]
+
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const pathname = usePathname()
   const [optimisticSegment, setOptimisticSegment] = useState<"b2b" | "b2c" | null>(null)
+
+  const isPartner = pathname.startsWith("/partenaires")
 
   const [prevPathname, setPrevPathname] = useState(pathname)
   if (prevPathname !== pathname) {
@@ -41,7 +61,7 @@ export function Header() {
   const currentSegment = optimisticSegment ?? (pathname === "/particuliers" ? "b2c" : "b2b")
   const isB2C = currentSegment === "b2c"
 
-  const navItems = isB2C ? B2C_NAV_ITEMS : B2B_NAV_ITEMS
+  const navItems = isPartner ? PARTNER_NAV_ITEMS : isB2C ? B2C_NAV_ITEMS : B2B_NAV_ITEMS
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href.startsWith("/#") && pathname === "/") {
@@ -55,6 +75,14 @@ export function Header() {
     } else if (href.startsWith("/particuliers#") && pathname === "/particuliers") {
       e.preventDefault()
       const targetId = href.replace("/particuliers#", "")
+      const el = document.getElementById(targetId)
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth" })
+        window.history.pushState(null, "", href)
+      }
+    } else if (href.startsWith("/partenaires#") && pathname === "/partenaires") {
+      e.preventDefault()
+      const targetId = href.replace("/partenaires#", "")
       const el = document.getElementById(targetId)
       if (el) {
         el.scrollIntoView({ behavior: "smooth" })
@@ -75,51 +103,63 @@ export function Header() {
     setMobileMenuOpen(false)
   }
 
+  const scrollToPartnerCandidature = () => {
+    const el = document.getElementById("candidature")
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" })
+    } else {
+      window.location.href = "/partenaires#candidature"
+    }
+    setMobileMenuOpen(false)
+  }
+
   return (
     <header
       className="sticky top-0 z-[100] w-full border-b border-neutral-200 bg-white/95 shadow-sm backdrop-blur-xl"
       style={{ viewTransitionName: "site-header" }}
     >
-      {/* Barre de switch mobile & tablette toujours visible */}
-      <div className="flex md:hidden items-center justify-between bg-primary px-3.5 py-1.5 text-xs text-white">
-        <span className="text-[11px] font-medium text-neutral-300">
-          Espace : <strong className="text-blue-400">{isB2C ? "Particuliers" : "Industrie & Pro"}</strong>
-        </span>
-        <div className="flex items-center rounded-full bg-white/10 p-0.5 border border-white/15">
-          <Link
-            href="/"
-            onClick={() => {
-              if (!isB2C) return
-              setOptimisticSegment("b2b")
-            }}
-            aria-current={!isB2C ? "page" : undefined}
-            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all ${
-              !isB2C
-                ? "bg-accent text-accent-foreground shadow-xs"
-                : "text-white/80 hover:text-white"
-            }`}
-          >
-            <Building2 className="h-3 w-3" />
-            Pro / B2B
-          </Link>
-          <Link
-            href="/particuliers"
-            onClick={() => {
-              if (isB2C) return
-              setOptimisticSegment("b2c")
-            }}
-            aria-current={isB2C ? "page" : undefined}
-            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all ${
-              isB2C
-                ? "bg-accent text-accent-foreground shadow-xs"
-                : "text-white/80 hover:text-white"
-            }`}
-          >
-            <Home className="h-3 w-3" />
-            Particuliers
-          </Link>
+      {/* Barre de switch mobile & tablette (uniquement site public B2B/B2C) */}
+      {!isPartner && (
+        <div className="flex md:hidden items-center justify-between bg-primary px-3.5 py-1.5 text-xs text-white">
+          <span className="text-[11px] font-medium text-neutral-300">
+            Espace : <strong className="text-blue-400">{isB2C ? "Particuliers" : "Industrie & Pro"}</strong>
+          </span>
+          <div className="flex items-center rounded-full bg-white/10 p-0.5 border border-white/15">
+            <Link
+              href="/"
+              onClick={() => {
+                if (!isB2C) return
+                setOptimisticSegment("b2b")
+              }}
+              aria-current={!isB2C ? "page" : undefined}
+              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all ${
+                !isB2C
+                  ? "bg-accent text-accent-foreground shadow-xs"
+                  : "text-white/80 hover:text-white"
+              }`}
+            >
+              <Building2 className="h-3 w-3" />
+              Pro / B2B
+            </Link>
+            <Link
+              href="/particuliers"
+              onClick={() => {
+                if (isB2C) return
+                setOptimisticSegment("b2c")
+              }}
+              aria-current={isB2C ? "page" : undefined}
+              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all ${
+                isB2C
+                  ? "bg-accent text-accent-foreground shadow-xs"
+                  : "text-white/80 hover:text-white"
+              }`}
+            >
+              <Home className="h-3 w-3" />
+              Particuliers
+            </Link>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:min-h-20 sm:py-4 sm:px-6 lg:px-8 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
         {/* Left Zone: Logo + Segment Toggle */}
@@ -137,72 +177,74 @@ export function Header() {
             </div>
           </Link>
 
-          {/* Segment Toggle – Desktop */}
-          <div
-            className="hidden md:flex h-11 items-center rounded-full border border-neutral-200/90 bg-neutral-100/90 p-1 shadow-inner backdrop-blur-sm"
-            role="tablist"
-            aria-label="Sélection univers"
-            style={{ viewTransitionName: "segment-toggle" }}
-          >
-            <Link
-              href="/"
-              role="tab"
-              aria-selected={!isB2C}
-              onClick={() => {
-                if (!isB2C) return
-                setOptimisticSegment("b2b")
-              }}
-              className={`group relative flex h-full min-w-[138px] lg:min-w-[148px] items-center justify-center rounded-full px-3.5 lg:px-4 text-sm font-semibold transition-colors duration-200 ${
-                !isB2C ? "text-white" : "text-neutral-500 hover:text-neutral-900"
-              }`}
+          {/* Segment Toggle – Desktop (uniquement site public B2B/B2C) */}
+          {!isPartner && (
+            <div
+              className="hidden md:flex h-11 items-center rounded-full border border-neutral-200/90 bg-neutral-100/90 p-1 shadow-inner backdrop-blur-sm"
+              role="tablist"
+              aria-label="Sélection univers"
+              style={{ viewTransitionName: "segment-toggle" }}
             >
-              {!isB2C && (
-                <motion.div
-                  layoutId="segment-pill-desktop"
-                  className="absolute inset-0 rounded-full bg-primary shadow-xs border border-white/10"
-                  transition={{ type: "spring", stiffness: 450, damping: 32 }}
-                  style={{ viewTransitionName: "segment-pill" }}
-                />
-              )}
-              <span className="relative z-10 flex items-center justify-center gap-1.5 select-none">
-                <Building2
-                  className={`h-4 w-4 shrink-0 transition-all duration-200 ${
-                    !isB2C ? "text-blue-400 scale-105" : "text-neutral-400 group-hover:text-neutral-600"
-                  }`}
-                />
-                <span>Industrie &amp; Pro</span>
-              </span>
-            </Link>
-            <Link
-              href="/particuliers"
-              role="tab"
-              aria-selected={isB2C}
-              onClick={() => {
-                if (isB2C) return
-                setOptimisticSegment("b2c")
-              }}
-              className={`group relative flex h-full min-w-[138px] lg:min-w-[148px] items-center justify-center rounded-full px-3.5 lg:px-4 text-sm font-semibold transition-colors duration-200 ${
-                isB2C ? "text-white" : "text-neutral-500 hover:text-neutral-900"
-              }`}
-            >
-              {isB2C && (
-                <motion.div
-                  layoutId="segment-pill-desktop"
-                  className="absolute inset-0 rounded-full bg-primary shadow-xs border border-white/10"
-                  transition={{ type: "spring", stiffness: 450, damping: 32 }}
-                  style={{ viewTransitionName: "segment-pill" }}
-                />
-              )}
-              <span className="relative z-10 flex items-center justify-center gap-1.5 select-none">
-                <Home
-                  className={`h-4 w-4 shrink-0 transition-all duration-200 ${
-                    isB2C ? "text-blue-400 scale-105" : "text-neutral-400 group-hover:text-neutral-600"
-                  }`}
-                />
-                <span>Particuliers</span>
-              </span>
-            </Link>
-          </div>
+              <Link
+                href="/"
+                role="tab"
+                aria-selected={!isB2C}
+                onClick={() => {
+                  if (!isB2C) return
+                  setOptimisticSegment("b2b")
+                }}
+                className={`group relative flex h-full min-w-[138px] lg:min-w-[148px] items-center justify-center rounded-full px-3.5 lg:px-4 text-sm font-semibold transition-colors duration-200 ${
+                  !isB2C ? "text-white" : "text-neutral-500 hover:text-neutral-900"
+                }`}
+              >
+                {!isB2C && (
+                  <motion.div
+                    layoutId="segment-pill-desktop"
+                    className="absolute inset-0 rounded-full bg-primary shadow-xs border border-white/10"
+                    transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                    style={{ viewTransitionName: "segment-pill" }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center justify-center gap-1.5 select-none">
+                  <Building2
+                    className={`h-4 w-4 shrink-0 transition-all duration-200 ${
+                      !isB2C ? "text-blue-400 scale-105" : "text-neutral-400 group-hover:text-neutral-600"
+                    }`}
+                  />
+                  <span>Industrie &amp; Pro</span>
+                </span>
+              </Link>
+              <Link
+                href="/particuliers"
+                role="tab"
+                aria-selected={isB2C}
+                onClick={() => {
+                  if (isB2C) return
+                  setOptimisticSegment("b2c")
+                }}
+                className={`group relative flex h-full min-w-[138px] lg:min-w-[148px] items-center justify-center rounded-full px-3.5 lg:px-4 text-sm font-semibold transition-colors duration-200 ${
+                  isB2C ? "text-white" : "text-neutral-500 hover:text-neutral-900"
+                }`}
+              >
+                {isB2C && (
+                  <motion.div
+                    layoutId="segment-pill-desktop"
+                    className="absolute inset-0 rounded-full bg-primary shadow-xs border border-white/10"
+                    transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                    style={{ viewTransitionName: "segment-pill" }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center justify-center gap-1.5 select-none">
+                  <Home
+                    className={`h-4 w-4 shrink-0 transition-all duration-200 ${
+                      isB2C ? "text-blue-400 scale-105" : "text-neutral-400 group-hover:text-neutral-600"
+                    }`}
+                  />
+                  <span>Particuliers</span>
+                </span>
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Right Zone: Navigation Links + Stable CTA */}
@@ -226,18 +268,36 @@ export function Header() {
           </nav>
 
           {/* Unified CTA Button */}
-          <div className="hidden md:block shrink-0">
-            <Button
-              onClick={scrollToSimulator}
-              variant="accent"
-              size="sm"
-              className="h-10 min-w-[175px] gap-2 text-xs font-bold sm:text-sm"
-            >
-              <Calculator className="h-4 w-4" />
-              <span>{isB2C ? "Simuler mes économies" : "Audit ROI gratuit"}</span>
-              <ArrowUpRight className="hidden sm:inline h-3.5 w-3.5" />
-            </Button>
-          </div>
+          {isPartner ? (
+            <div className="hidden md:flex items-center gap-3 shrink-0">
+              <Link
+                href="/partenaires/login"
+                className="text-sm font-medium text-neutral-600 hover:text-primary transition-colors px-2 py-1.5"
+              >
+                Connexion
+              </Link>
+              <Button
+                onClick={scrollToPartnerCandidature}
+                className="h-9 px-5 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold sm:text-sm cursor-pointer shadow-xs flex items-center gap-1.5 transition-all"
+              >
+                <span>Postuler</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ) : (
+            <div className="hidden md:block shrink-0">
+              <Button
+                onClick={scrollToSimulator}
+                variant="accent"
+                size="sm"
+                className="h-10 min-w-[175px] gap-2 text-xs font-bold sm:text-sm"
+              >
+                <Calculator className="h-4 w-4" />
+                <span>{isB2C ? "Simuler mes économies" : "Audit ROI gratuit"}</span>
+                <ArrowUpRight className="hidden sm:inline h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
 
           {/* Mobile Menu Button */}
           <button
@@ -265,55 +325,57 @@ export function Header() {
             transition={{ duration: 0.2 }}
             className="overflow-hidden border-t border-neutral-200 bg-white md:hidden shadow-lg"
           >
-            {/* Mobile Segment Toggle */}
-            <div className="flex justify-center px-4 pt-4 pb-3">
-              <div className="flex h-11 w-full max-w-[320px] items-center rounded-full border border-neutral-200 bg-neutral-100 p-1 shadow-inner">
-                <Link
-                  href="/"
-                  onClick={() => {
-                    setOptimisticSegment("b2b")
-                    setMobileMenuOpen(false)
-                  }}
-                  className={`group relative flex h-full flex-1 items-center justify-center rounded-full text-sm font-bold transition-all ${
-                    !isB2C ? "text-white" : "text-neutral-500"
-                  }`}
-                >
-                  {!isB2C && (
-                    <motion.div
-                      layoutId="segment-pill-mobile"
-                      className="absolute inset-0 rounded-full bg-primary shadow-xs border border-white/10"
-                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
-                    />
-                  )}
-                  <span className="relative z-10 flex items-center justify-center gap-1.5">
-                    <Building2 className={`h-4 w-4 ${!isB2C ? "text-blue-400" : "text-neutral-400"}`} />
-                    <span>Industrie &amp; Pro</span>
-                  </span>
-                </Link>
-                <Link
-                  href="/particuliers"
-                  onClick={() => {
-                    setOptimisticSegment("b2c")
-                    setMobileMenuOpen(false)
-                  }}
-                  className={`group relative flex h-full flex-1 items-center justify-center rounded-full text-sm font-bold transition-all ${
-                    isB2C ? "text-white" : "text-neutral-500"
-                  }`}
-                >
-                  {isB2C && (
-                    <motion.div
-                      layoutId="segment-pill-mobile"
-                      className="absolute inset-0 rounded-full bg-primary shadow-xs border border-white/10"
-                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
-                    />
-                  )}
-                  <span className="relative z-10 flex items-center justify-center gap-1.5">
-                    <Home className={`h-4 w-4 ${isB2C ? "text-blue-400" : "text-neutral-400"}`} />
-                    <span>Particuliers</span>
-                  </span>
-                </Link>
+            {/* Mobile Segment Toggle (uniquement site public B2B/B2C) */}
+            {!isPartner && (
+              <div className="flex justify-center px-4 pt-4 pb-3">
+                <div className="flex h-11 w-full max-w-[320px] items-center rounded-full border border-neutral-200 bg-neutral-100 p-1 shadow-inner">
+                  <Link
+                    href="/"
+                    onClick={() => {
+                      setOptimisticSegment("b2b")
+                      setMobileMenuOpen(false)
+                    }}
+                    className={`group relative flex h-full flex-1 items-center justify-center rounded-full text-sm font-bold transition-all ${
+                      !isB2C ? "text-white" : "text-neutral-500"
+                    }`}
+                  >
+                    {!isB2C && (
+                      <motion.div
+                        layoutId="segment-pill-mobile"
+                        className="absolute inset-0 rounded-full bg-primary shadow-xs border border-white/10"
+                        transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center justify-center gap-1.5">
+                      <Building2 className={`h-4 w-4 ${!isB2C ? "text-blue-400" : "text-neutral-400"}`} />
+                      <span>Industrie &amp; Pro</span>
+                    </span>
+                  </Link>
+                  <Link
+                    href="/particuliers"
+                    onClick={() => {
+                      setOptimisticSegment("b2c")
+                      setMobileMenuOpen(false)
+                    }}
+                    className={`group relative flex h-full flex-1 items-center justify-center rounded-full text-sm font-bold transition-all ${
+                      isB2C ? "text-white" : "text-neutral-500"
+                    }`}
+                  >
+                    {isB2C && (
+                      <motion.div
+                        layoutId="segment-pill-mobile"
+                        className="absolute inset-0 rounded-full bg-primary shadow-xs border border-white/10"
+                        transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center justify-center gap-1.5">
+                      <Home className={`h-4 w-4 ${isB2C ? "text-blue-400" : "text-neutral-400"}`} />
+                      <span>Particuliers</span>
+                    </span>
+                  </Link>
+                </div>
               </div>
-            </div>
+            )}
 
             <nav className="flex flex-col border-t border-neutral-100 py-2" aria-label="Menu mobile">
               {navItems.map((item) => (
@@ -327,16 +389,37 @@ export function Header() {
                 </Link>
               ))}
 
-              <div className="px-4 py-3 border-t border-neutral-100">
-                <Button
-                  onClick={scrollToSimulator}
-                  variant="accent"
-                  size="default"
-                  className="w-full h-11 gap-2 font-bold"
-                >
-                  <Calculator className="h-4 w-4" />
-                  <span>{isB2C ? "Simuler mes économies" : "Audit ROI gratuit"}</span>
-                </Button>
+              <div className="px-4 py-3 border-t border-neutral-100 flex flex-col gap-2">
+                {isPartner ? (
+                  <>
+                    <Button
+                      onClick={scrollToPartnerCandidature}
+                      className="w-full h-11 font-bold rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white cursor-pointer shadow-md shadow-blue-600/30 flex items-center justify-center gap-1.5"
+                    >
+                      <span>Postuler</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                    <Link href="/partenaires/login" onClick={() => setMobileMenuOpen(false)}>
+                      <Button
+                        variant="outline"
+                        size="default"
+                        className="w-full h-11 font-semibold text-neutral-700 cursor-pointer"
+                      >
+                        Connexion
+                      </Button>
+                    </Link>
+                  </>
+                ) : (
+                  <Button
+                    onClick={scrollToSimulator}
+                    variant="accent"
+                    size="default"
+                    className="w-full h-11 gap-2 font-bold"
+                  >
+                    <Calculator className="h-4 w-4" />
+                    <span>{isB2C ? "Simuler mes économies" : "Audit ROI gratuit"}</span>
+                  </Button>
+                )}
               </div>
             </nav>
           </motion.div>

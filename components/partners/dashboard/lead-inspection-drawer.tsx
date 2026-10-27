@@ -22,6 +22,7 @@ import {
   AlertCircle,
   FileCheck,
   Sparkles,
+  Clock,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
@@ -108,7 +109,7 @@ export function LeadInspectionDrawer({
   })
 
   const location = getLeadLocationInfo(lead)
-  const freshness = getLeadFreshness(lead.created_at)
+  const freshness = getLeadFreshness(lead.created_at, (lead as { freshness_label?: string }).freshness_label)
   const sanitized = sanitizeLeadNotes(lead.project_details, lead.message)
   const powerKwc = lead.estimated_power_kwc ?? financials.estimatedPowerKwc
   const roi = calculateLeadRoiRatio(financials.estimatedInstallerMargin, cost, financials.estimatedContractValue)
@@ -146,7 +147,7 @@ export function LeadInspectionDrawer({
 
               <span className="inline-flex items-center gap-1.5 text-[11px] font-mono text-muted-foreground">
                 <span className={`h-1.5 w-1.5 rounded-full ${freshness.dotClass}`} />
-                <span>{freshness.label}</span>
+                <span suppressHydrationWarning>{freshness.label}</span>
               </span>
 
               <span className="font-mono text-[10px] text-muted-foreground/80 tabular-nums">
@@ -244,6 +245,50 @@ export function LeadInspectionDrawer({
               </div>
             </div>
           </div>
+
+          {/* Attribution des places B2C */}
+          {!isB2B && (
+            <div className="rounded-xl border border-border/80 bg-secondary/20 p-3.5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-foreground block">
+                  Créneaux B2C Aegis Solaire
+                </span>
+                <span className="font-mono text-[10px] font-semibold text-primary">
+                  {takenSlots} / {maxSlots} attribué{takenSlots > 1 ? "s" : ""}
+                </span>
+              </div>
+              <div className="flex flex-col gap-1.5 pt-1">
+                {Array.from({ length: maxSlots }).map((_, idx) => {
+                  const isTaken = idx < takenSlots
+                  const buyer = lead.buyers?.[idx]
+                  return (
+                    <div key={idx} className="flex items-center justify-between text-[11px] font-mono">
+                      <span className="flex items-center gap-1.5 text-foreground">
+                        {isTaken ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                        ) : (
+                          <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        )}
+                        <span>Place {idx + 1} :</span>
+                        <strong className="font-sans font-medium">
+                          {isTaken
+                            ? buyer?.companyName
+                              ? buyer.companyName
+                              : "Réservée par un installateur certifié"
+                            : "Disponible"}
+                        </strong>
+                      </span>
+                      {isTaken && buyer?.purchasedAt && (
+                        <span className="text-[10px] text-muted-foreground">
+                          le {new Date(buyer.purchasedAt).toLocaleDateString("fr-BE")}
+                        </span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* D. Fiche Technique Déduite & Normalisée */}
           <div className="rounded-xl border border-border bg-secondary/20 p-3.5 space-y-2.5">
@@ -402,11 +447,11 @@ export function LeadInspectionDrawer({
                 <span>Besoin d&apos;une étude expert ou dimensionnement ?</span>
               </span>
               <span className="text-[10px] font-mono font-bold text-accent uppercase tracking-wider bg-accent/15 px-1.5 py-0.5 rounded">
-                Inclus
+                % Projet · À négocier
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Notre Cellule Technique &amp; Ingénierie vous accompagne gratuitement : étude de marché locale, dimensionnement onduleurs/batteries, contraintes GRD Wallonie et rentabilité B2B.
+              Notre Cellule Technique &amp; Ingénierie vous accompagne sur ce dossier (étude de marché locale, dimensionnement onduleurs/batteries, contraintes GRD Wallonie et rentabilité B2B) en échange d&apos;un pourcentage d&apos;honoraires sur le projet, à convenir et négocier selon son envergure.
             </p>
             {onRequestExpert && (
               <Button
@@ -417,7 +462,7 @@ export function LeadInspectionDrawer({
                 className="w-full h-8 text-xs font-bold border-accent/40 bg-card hover:bg-accent/10 text-foreground cursor-pointer gap-1.5 shadow-2xs"
               >
                 <Sparkles className="h-3.5 w-3.5 text-accent" />
-                <span>Solliciter un expert Aegis Solaire pour ce dossier</span>
+                <span>Solliciter un expert pour ce dossier (% projet à négocier)</span>
               </Button>
             )}
           </div>
