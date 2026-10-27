@@ -1,3 +1,4 @@
+import { CONSENT_COOKIE, hasAdvertisingConsent } from "@/lib/advertising-consent"
 import { NextRequest, NextResponse } from "next/server"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { leadSubmitSchema } from "@/lib/leads-schema"
@@ -336,6 +337,7 @@ export async function POST(request: NextRequest) {
 
     // Déclenchement serveur Meta Conversions API (CAPI) pour tracking sans perte
     sendMetaConversionApiLead({
+      advertisingConsent: hasAdvertisingConsent(request.cookies.get(CONSENT_COOKIE)?.value),
       eventId: inserted.id,
       email,
       phone,

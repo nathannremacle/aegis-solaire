@@ -1,6 +1,8 @@
 "use client"
 
 import Script from "next/script"
+import { useSyncExternalStore } from "react"
+import { hasAdvertisingConsent, readAdvertisingConsent, subscribeToConsent } from "@/lib/advertising-consent"
 
 declare global {
   interface Window {
@@ -24,7 +26,7 @@ export function trackLeadConversion(params?: {
   value?: number
   currency?: string
 }) {
-  if (typeof window === "undefined") return
+  if (typeof window === "undefined" || !hasAdvertisingConsent(readAdvertisingConsent())) return
 
   const eventData = {
     content_name: params?.segment === "B2C" ? "Lead Solaire Résidentiel" : "Lead Solaire B2B",
@@ -80,6 +82,8 @@ export function trackLeadConversion(params?: {
  * Composant client pour injecter les balises de tracking publicitaire sans blocage
  */
 export function AdTrackingScripts() {
+  const consent = useSyncExternalStore(subscribeToConsent, readAdvertisingConsent, () => undefined)
+  if (!hasAdvertisingConsent(consent)) return null
   return (
     <>
       {/* ── Meta Pixel ── */}
@@ -98,23 +102,13 @@ export function AdTrackingScripts() {
                 t.src=v;s=b.getElementsByTagName(e)[0];
                 s.parentNode.insertBefore(t,s)}(window, document,'script',
                 'https://connect.facebook.net/en_US/fbevents.js');
-                if (!document.cookie.includes('aegis_cookie_consent=granted')) {
-                  fbq('consent', 'revoke');
-                }
+                fbq('consent', 'grant');
                 fbq('init', '${META_PIXEL_ID}');
                 fbq('track', 'PageView');
               `,
             }}
           />
-          <noscript>
-            <img
-              height="1"
-              width="1"
-              style={{ display: "none" }}
-              src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`}
-              alt=""
-            />
-          </noscript>
+
         </>
       )}
 

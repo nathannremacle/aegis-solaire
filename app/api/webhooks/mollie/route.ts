@@ -60,13 +60,13 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (order && order.status === "pending") {
-        await supabase
-          .from("credit_orders")
-          .update({
-            status: "cancelled",
-            notes: `Session de paiement Mollie abandonnée ou expirée (${payment.status}).`,
-          })
-          .eq("id", orderId)
+        const { error: cancelError } = await supabase.rpc("cancel_credit_order", {
+          p_order_id: orderId,
+          p_notes: `Session de paiement abandonnée (${payment.status}).`,
+        })
+        if (cancelError) {
+          return NextResponse.json({ error: "Unable to cancel order" }, { status: 409 })
+        }
       }
     }
 

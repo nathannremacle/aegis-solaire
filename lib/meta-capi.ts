@@ -5,6 +5,7 @@ function sha256(value: string): string {
 }
 
 export interface MetaCapiLeadParams {
+  advertisingConsent: boolean
   eventId: string
   email: string
   phone: string
@@ -21,6 +22,7 @@ export interface MetaCapiLeadParams {
  * Se déduplique automatiquement avec le pixel client-side grâce au même eventId.
  */
 export async function sendMetaConversionApiLead(params: MetaCapiLeadParams): Promise<void> {
+  if (!params.advertisingConsent) return
   const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID
   const accessToken = process.env.META_CAPI_ACCESS_TOKEN
 

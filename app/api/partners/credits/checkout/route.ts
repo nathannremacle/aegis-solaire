@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto"
 import { NextResponse } from "next/server"
 import { getPartner } from "@/lib/partner-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
@@ -39,12 +40,7 @@ export async function POST(request: Request) {
   const vatAmount = Math.round(pack.priceHtva * vatRate * 100) / 100
   const priceTtc = Math.round((pack.priceHtva + vatAmount) * 100) / 100
 
-  const cleanCompanyName = partner.company_name
-    .slice(0, 6)
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, "")
-  const timestamp = Date.now().toString().slice(-4)
-  const transferReference = `AEGIS-BC-${cleanCompanyName || "PART"}-${pack.credits}CR-${timestamp}`
+  const transferReference = `AEGIS-${randomUUID()}`
 
   const admin = createServiceRoleClient()
 

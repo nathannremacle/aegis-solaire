@@ -27,26 +27,6 @@ export async function getPartner(): Promise<PartnerRow | null> {
     error,
   } = await supabase.auth.getUser()
 
-  if (process.env.NODE_ENV === "development" && (error || !user?.email)) {
-    const admin = createServiceRoleClient()
-    const { data: firstPartner } = await admin.from("partners").select("*").limit(1).maybeSingle()
-    if (firstPartner) return firstPartner as PartnerRow
-    return {
-      id: "00000000-0000-0000-0000-000000000001",
-      company_name: "Installateur Solaire Wallonie SPRL",
-      email: "installateur@exemple.be",
-      phone: "+32 4 220 00 00",
-      credits: 25,
-      segment: "ALL",
-      target_provinces: ["liege", "namur", "hainaut"],
-      target_surfaces: ["toiture", "parking"],
-      min_facture: 0,
-      auth_user_id: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }
-  }
-
   if (error || !user?.email) return null
 
   const admin = createServiceRoleClient()

@@ -20,7 +20,7 @@ import Link from "next/link"
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.aegissolaire.com'
 
 export const metadata = {
-  title: "Panneaux solaires résidentiels en Wallonie | Aegis Solaire",
+  title: "Panneaux solaires résidentiels en Wallonie",
   description:
     "Simulez gratuitement votre installation photovoltaïque résidentielle en Wallonie. Batterie domestique, calcul d'autoconsommation, conformité RESCERT & RGIE.",
   alternates: {

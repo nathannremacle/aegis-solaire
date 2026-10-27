@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto"
 import { NextResponse } from "next/server"
 import { getPartner } from "@/lib/partner-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
@@ -43,17 +44,12 @@ export async function POST(request: Request) {
   const vatAmount = Math.round(pack.priceHtva * vatRate * 100) / 100
   const priceTtc = Math.round((pack.priceHtva + vatAmount) * 100) / 100
 
-  const cleanCompanyName = partner.company_name
-    .slice(0, 6)
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, "")
-  const timestamp = Date.now().toString().slice(-4)
-  const transferReference = `AEGIS-${cleanCompanyName || "PART"}-${pack.credits}CR-${timestamp}`
+  const transferReference = `AEGIS-${randomUUID()}`
 
   // Enregistrement de la commande en base de données
   try {
     const admin = createServiceRoleClient()
-    await admin.from("credit_orders").insert({
+    const { error } = await admin.from("credit_orders").insert({
       partner_id: partner.id,
       pack_id: pack.id,
       pack_name: pack.name,
@@ -64,8 +60,10 @@ export async function POST(request: Request) {
       transfer_reference: transferReference,
       status: "pending",
     })
+    if (error) throw error
   } catch (err) {
     console.warn("[Credit Order] Erreur insertion credit_orders:", err)
+    return NextResponse.json({ error: "Impossible d’enregistrer la commande. Veuillez réessayer." }, { status: 500 })
   }
 
   // Notification admin par email (si configuré)

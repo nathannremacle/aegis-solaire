@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
+import { z } from "zod"
 import { Resend } from "resend"
 
 export async function PATCH(
@@ -13,7 +14,10 @@ export async function PATCH(
   }
 
   const { id } = await params
-  const body = await request.json()
+  const parsed = z.object({ action: z.enum(["validate", "cancel"]), notes: z.string().max(2000).optional() })
+    .safeParse(await request.json().catch(() => null))
+  if (!parsed.success) return NextResponse.json({ error: "Requête invalide" }, { status: 400 })
+  const body = parsed.data
   const supabase = createServiceRoleClient()
 
   // 1. Récupérer la commande
@@ -30,35 +34,18 @@ export async function PATCH(
   const action = body.action // 'validate' | 'cancel'
 
   if (action === "validate") {
-    if (order.status === "paid") {
-      return NextResponse.json({ error: "Cette commande a déjà été validée" }, { status: 400 })
-    }
-
-    // 2. Créditer le compte via RPC atomique
-    const { data: newCredits, error: rpcErr } = await supabase.rpc("add_credits", {
-      p_partner_id: order.partner_id,
-      p_amount: order.credits,
-      p_type: "topup",
-      p_reference: order.transfer_reference || `order:${order.id.slice(0, 8)}`,
+    const { data: result, error: rpcErr } = await supabase.rpc("settle_credit_order", {
+      p_order_id: id,
+      p_provider: "bank_transfer",
+      p_notes: body.notes ?? null,
     })
-
-    if (rpcErr) {
-      console.error("[validate-order] RPC add_credits error:", rpcErr)
-      return NextResponse.json({ error: "Erreur lors du crédit : " + rpcErr.message }, { status: 500 })
+    if (rpcErr || !result) {
+      console.error("[validate-order] Settlement failed:", rpcErr)
+      return NextResponse.json({ error: "Impossible de valider cette commande." }, { status: 409 })
     }
-
-    // 3. Mettre à jour le statut de la commande
-    const { error: updateErr } = await supabase
-      .from("credit_orders")
-      .update({
-        status: "paid",
-        validated_at: new Date().toISOString(),
-        notes: body.notes ?? order.notes,
-      })
-      .eq("id", id)
-
-    if (updateErr) {
-      console.error("[validate-order] update error:", updateErr)
+    const newCredits = result.newCredits as number
+    if (result.alreadyPaid) {
+      return NextResponse.json({ success: true, alreadyPaid: true, newCredits, orderStatus: "paid" })
     }
 
     // 4. Log d'audit
@@ -102,16 +89,12 @@ export async function PATCH(
   }
 
   if (action === "cancel") {
-    const { error: cancelErr } = await supabase
-      .from("credit_orders")
-      .update({
-        status: "cancelled",
-        notes: body.notes ?? order.notes,
-      })
-      .eq("id", id)
-
+    const { error: cancelErr } = await supabase.rpc("cancel_credit_order", {
+      p_order_id: id,
+      p_notes: body.notes ?? null,
+    })
     if (cancelErr) {
-      return NextResponse.json({ error: cancelErr.message }, { status: 500 })
+      return NextResponse.json({ error: "Impossible d’annuler cette commande. Une commande payée doit faire l’objet d’un remboursement." }, { status: 409 })
     }
 
     try {

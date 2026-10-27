@@ -1,36 +1,23 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useSyncExternalStore } from "react"
 import Link from "next/link"
+import { readAdvertisingConsent, saveAdvertisingConsent, subscribeToConsent } from "@/lib/advertising-consent"
 import { ShieldCheck } from "lucide-react"
 
 export function CookieConsentBanner() {
-  const [showBanner, setShowBanner] = useState(false)
-
-  useEffect(() => {
-    const consent = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("aegis_cookie_consent="))
-      ?.split("=")[1]
-
-    if (!consent) {
-      queueMicrotask(() => setShowBanner(true))
-    }
-  }, [])
-
+  const [editing, setEditing] = useState(false)
+  const consent = useSyncExternalStore(subscribeToConsent, readAdvertisingConsent, () => undefined)
   const handleConsent = (accepted: boolean) => {
-    const value = accepted ? "granted" : "denied"
-    const maxAge = 180 * 24 * 60 * 60 // 6 mois
-    document.cookie = `aegis_cookie_consent=${value}; path=/; max-age=${maxAge}; SameSite=Lax`
-
-    if (typeof window !== "undefined" && typeof window.fbq === "function") {
-      window.fbq("consent", accepted ? "grant" : "revoke")
-    }
-
-    setShowBanner(false)
+    saveAdvertisingConsent(accepted)
+    setEditing(false)
   }
-
-  if (!showBanner) return null
+  if (consent && !editing) return (
+    <button type="button" onClick={() => setEditing(true)}
+      className="fixed bottom-3 left-3 z-50 rounded-lg border bg-white px-3 py-2 text-xs text-slate-700 shadow-sm">
+      Gérer mes cookies
+    </button>
+  )
 
   return (
     <aside

@@ -69,13 +69,13 @@ export async function GET(request: NextRequest) {
           })
         }
       } else if (["canceled", "failed", "expired"].includes(payment.status)) {
-        await supabase
-          .from("credit_orders")
-          .update({
-            status: "cancelled",
-            notes: `Session abandonnée ou expirée (${payment.status}).`,
-          })
-          .eq("id", order.id)
+        const { error: cancelError } = await supabase.rpc("cancel_credit_order", {
+          p_order_id: order.id,
+          p_notes: `Session abandonnée ou expirée (${payment.status}).`,
+        })
+        if (cancelError) {
+          return NextResponse.json({ error: "Le statut a changé. Veuillez actualiser." }, { status: 409 })
+        }
 
         return NextResponse.json({
           status: "cancelled",

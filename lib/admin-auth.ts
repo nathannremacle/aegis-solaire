@@ -60,9 +60,9 @@ export async function getAdminUser() {
   const supabase = await createClient()
   const { data: { user }, error } = await supabase.auth.getUser()
   
-  if (user && user.email) {
+  if (!error && user && user.email) {
     // 1. Contrôle direct via la variable d'environnement ADMIN_EMAILS
-    if (isAdminEmail(user.email)) return user
+    if (isAdminEmail(user.email)) return { ...user, email: user.email }
 
     // 2. Contrôle de secours en base de données (public.admin_users)
     try {
@@ -73,15 +73,10 @@ export async function getAdminUser() {
         .ilike("email", user.email.trim())
         .maybeSingle()
 
-      if (adminRecord) return user
+      if (adminRecord) return { ...user, email: user.email }
     } catch (err) {
       console.error("[getAdminUser] Fallback DB error:", err)
     }
-  }
-
-  // Fallback dev local uniquement si aucune session réelle n'est connectée
-  if (process.env.NODE_ENV === "development") {
-    return { email: "mrnathanrem@gmail.com", id: "00000000-0000-0000-0000-000000000000" } as any
   }
 
   return null

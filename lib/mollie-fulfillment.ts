@@ -31,39 +31,24 @@ export async function fulfillPaidCreditOrder(
     return { success: false, error: "Order not found" }
   }
 
-  // 2. Idempotence absolue : si la commande est déjà marquée payée, ne rien allouer à nouveau
-  if (order.status === "paid") {
-    return {
-      success: true,
-      alreadyPaid: true,
-      newCredits: order.partners?.credits,
-    }
+  const metadata = payment.metadata as { orderId?: string } | null
+  if (payment.status !== "paid" || metadata?.orderId !== orderId) {
+    return { success: false, error: "Payment does not match order" }
   }
-
-  // 3. Attribution atomique des crédits via RPC PostgreSQL
-  const { data: newCredits, error: rpcErr } = await supabase.rpc("add_credits", {
-    p_partner_id: order.partner_id,
-    p_amount: order.credits,
-    p_type: "topup",
-    p_reference: `MOLLIE-${payment.id}`,
+  const { data: result, error: rpcErr } = await supabase.rpc("settle_credit_order", {
+    p_order_id: orderId,
+    p_provider: "mollie",
+    p_payment_id: payment.id,
+    p_amount: payment.amount.value,
+    p_currency: payment.amount.currency,
+    p_notes: `Paiement en ligne validé (${payment.id}).`,
   })
-
-  if (rpcErr) {
-    console.error("[Mollie Fulfillment] Erreur RPC add_credits:", rpcErr)
-    return { success: false, error: "Failed to allocate credits" }
+  if (rpcErr || !result) {
+    console.error("[Mollie Fulfillment] Settlement failed:", rpcErr)
+    return { success: false, error: "Failed to settle order" }
   }
-
-  // 4. Mettre à jour le statut de la commande en base
-  await supabase
-    .from("credit_orders")
-    .update({
-      status: "paid",
-      payment_provider: "mollie",
-      payment_id: payment.id,
-      validated_at: new Date().toISOString(),
-      notes: `Paiement en ligne validé (${payment.id} / ${payment.method || "bancontact"}).`,
-    })
-    .eq("id", order.id)
+  const newCredits = result.newCredits as number
+  if (result.alreadyPaid) return { success: true, alreadyPaid: true, newCredits }
 
   // 5. Journal d'audit sécurisé
   try {
