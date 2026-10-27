@@ -82,6 +82,7 @@ function FormItem({ className, id: explicitId, ...props }: React.ComponentProps<
       <div
         data-slot="form-item"
         id={explicitId}
+        suppressHydrationWarning
         className={cn('grid gap-2', className)}
         {...props}
       />
@@ -99,6 +100,7 @@ function FormLabel({
     <Label
       data-slot="form-label"
       data-error={!!error}
+      suppressHydrationWarning
       className={cn('data-[error=true]:text-destructive', className)}
       htmlFor={formItemId}
       {...props}
@@ -113,6 +115,7 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
     <Slot
       data-slot="form-control"
       id={formItemId}
+      suppressHydrationWarning
       aria-describedby={
         !error
           ? `${formDescriptionId}`
@@ -131,6 +134,7 @@ function FormDescription({ className, ...props }: React.ComponentProps<'p'>) {
     <p
       data-slot="form-description"
       id={formDescriptionId}
+      suppressHydrationWarning
       className={cn('text-muted-foreground text-sm', className)}
       {...props}
     />
@@ -149,6 +153,7 @@ function FormMessage({ className, ...props }: React.ComponentProps<'p'>) {
     <p
       data-slot="form-message"
       id={formMessageId}
+      suppressHydrationWarning
       className={cn('text-destructive text-sm', className)}
       {...props}
     >

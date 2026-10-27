@@ -644,6 +644,8 @@ export function MarketplaceLivePreview() {
 
             {/* Province select via CustomSelect */}
             <CustomSelect
+              id="marketplace-filter-province"
+              name="province"
               value={selectedProvince}
               onChange={setSelectedProvince}
               options={PROVINCE_OPTIONS}
@@ -678,6 +680,8 @@ export function MarketplaceLivePreview() {
 
             {/* Tri select via CustomSelect */}
             <CustomSelect
+              id="marketplace-filter-sort"
+              name="sort"
               value={sortBy}
               onChange={setSortBy}
               options={SORT_OPTIONS}

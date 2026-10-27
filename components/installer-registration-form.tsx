@@ -147,7 +147,7 @@ export function InstallerRegistrationForm() {
                   control={form.control}
                   name="companyName"
                   render={({ field }) => (
-                    <FormItem className="sm:col-span-2">
+                    <FormItem id="reg-companyName" className="sm:col-span-2">
                       <FormLabel>Nom de l&apos;entreprise (dénomination sociale)</FormLabel>
                       <FormControl>
                         <Input placeholder="Ex. Solar Wallonie SRL, Toitures & Solaires SA..." className={inputClass} {...field} />
@@ -160,7 +160,7 @@ export function InstallerRegistrationForm() {
                   control={form.control}
                   name="siret"
                   render={({ field }) => (
-                    <FormItem className="sm:col-span-2">
+                    <FormItem id="reg-siret" className="sm:col-span-2">
                       <FormLabel>Numéro d&apos;entreprise BCE / KBO (10 chiffres)</FormLabel>
                       <FormControl>
                         <Input
@@ -182,14 +182,14 @@ export function InstallerRegistrationForm() {
                   control={form.control}
                   name="targetSegment"
                   render={({ field }) => (
-                    <FormItem className="sm:col-span-1">
+                    <FormItem id="reg-targetSegment" className="sm:col-span-1">
                       <FormLabel>Segments d&apos;intervention</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
                       >
                         <FormControl>
-                          <SelectTrigger className={inputClass}>
+                          <SelectTrigger className={inputClass} suppressHydrationWarning>
                             <SelectValue placeholder="Sélectionnez vos segments" />
                           </SelectTrigger>
                         </FormControl>
@@ -209,14 +209,14 @@ export function InstallerRegistrationForm() {
                   control={form.control}
                   name="powerCapacity"
                   render={({ field }) => (
-                    <FormItem className="sm:col-span-1">
+                    <FormItem id="reg-powerCapacity" className="sm:col-span-1">
                       <FormLabel>Puissance habituelle</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
                       >
                         <FormControl>
-                          <SelectTrigger className={inputClass}>
+                          <SelectTrigger className={inputClass} suppressHydrationWarning>
                             <SelectValue placeholder="Sélectionnez la puissance" />
                           </SelectTrigger>
                         </FormControl>
@@ -244,7 +244,7 @@ export function InstallerRegistrationForm() {
                   control={form.control}
                   name="firstName"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem id="reg-firstName">
                       <FormLabel>Prénom</FormLabel>
                       <FormControl>
                         <Input placeholder="Jean" className={inputClass} {...field} />
@@ -257,7 +257,7 @@ export function InstallerRegistrationForm() {
                   control={form.control}
                   name="lastName"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem id="reg-lastName">
                       <FormLabel>Nom</FormLabel>
                       <FormControl>
                         <Input placeholder="Dupont" className={inputClass} {...field} />
@@ -270,7 +270,7 @@ export function InstallerRegistrationForm() {
                   control={form.control}
                   name="jobTitle"
                   render={({ field }) => (
-                    <FormItem className="sm:col-span-2">
+                    <FormItem id="reg-jobTitle" className="sm:col-span-2">
                       <FormLabel>Fonction</FormLabel>
                       <FormControl>
                         <Input placeholder="Ex. Directeur technique" className={inputClass} {...field} />
@@ -283,7 +283,7 @@ export function InstallerRegistrationForm() {
                   control={form.control}
                   name="email"
                   render={({ field }) => (
-                    <FormItem className="sm:col-span-2 lg:col-span-1">
+                    <FormItem id="reg-email" className="sm:col-span-2 lg:col-span-1">
                       <FormLabel>E-mail</FormLabel>
                       <FormControl>
                         <Input
@@ -303,7 +303,7 @@ export function InstallerRegistrationForm() {
                   control={form.control}
                   name="phone"
                   render={({ field }) => (
-                    <FormItem className="sm:col-span-2 lg:col-span-1">
+                    <FormItem id="reg-phone" className="sm:col-span-2 lg:col-span-1">
                       <FormLabel>Téléphone</FormLabel>
                       <FormControl>
                         <Input
@@ -331,7 +331,7 @@ export function InstallerRegistrationForm() {
                   control={form.control}
                   name="rescertPhotovoltaicRef"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem id="reg-rescertRef">
                       <FormLabel>Référence RESCERT Photovoltaïque</FormLabel>
                       <FormControl>
                         <Input placeholder="Numéro ou identifiant" className={inputClass} {...field} />
@@ -344,7 +344,7 @@ export function InstallerRegistrationForm() {
                   control={form.control}
                   name="rescertPhotovoltaicConfirmed"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-start gap-3 space-y-0 rounded-lg border border-border/60 bg-background/60 p-3">
+                    <FormItem id="reg-rescertConfirmed" className="flex flex-row items-start gap-3 space-y-0 rounded-lg border border-border/60 bg-background/60 p-3">
                       <FormControl>
                         <Checkbox
                           checked={field.value}
@@ -374,7 +374,7 @@ export function InstallerRegistrationForm() {
                 control={form.control}
                 name="regions"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem id="reg-regions">
                     <FormLabel className="text-base sm:text-sm">Région(s) couverte(s)</FormLabel>
                     <p className="text-xs text-muted-foreground">Cochez toutes les zones concernées.</p>
                     <div className="max-h-[min(52vh,20rem)] overflow-y-auto overscroll-contain rounded-xl border border-border p-2 sm:max-h-none sm:overflow-visible sm:p-0 sm:border-0">

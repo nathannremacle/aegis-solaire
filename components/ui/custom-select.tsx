@@ -24,6 +24,8 @@ export interface CustomSelectProps {
   icon?: React.ComponentType<{ className?: string }>
   placeholder?: string
   ariaLabel?: string
+  id?: string
+  name?: string
   className?: string
   triggerClassName?: string
   contentClassName?: string
@@ -47,6 +49,8 @@ export function CustomSelect({
   icon: Icon,
   placeholder = 'Sélectionner...',
   ariaLabel,
+  id,
+  name,
   className,
   triggerClassName,
   contentClassName,
@@ -57,15 +61,18 @@ export function CustomSelect({
   const selectedOption = options.find((o) => o.value === value) || options[0]
 
   return (
-    <div className={cn('relative inline-block', className)}>
+    <div className={cn('relative inline-block', className)} suppressHydrationWarning>
       <Select
         value={value}
         onValueChange={onChange}
         disabled={disabled}
+        name={name}
       >
         <SelectTrigger
+          id={id}
           size={size}
           aria-label={ariaLabel || selectedOption?.label}
+          suppressHydrationWarning
           className={cn(
             'inline-flex items-center gap-2 rounded-xl border border-border bg-card hover:bg-secondary/70 h-9 px-3 text-xs font-semibold text-foreground shadow-2xs transition-all cursor-pointer select-none',
             size === 'sm' && 'h-7 sm:h-8 px-2.5 text-xs rounded-lg',
