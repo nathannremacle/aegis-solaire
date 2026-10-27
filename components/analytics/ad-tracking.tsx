@@ -79,6 +79,44 @@ export function trackLeadConversion(params?: {
 }
 
 /**
+ * Envoie un événement de qualification d'intention (InitiateCheckout)
+ * Déclenché lors du passage Step 5 -> Step 6 (code postal wallon validé + propriétaire vérifié).
+ */
+export function trackInitiateCheckout(params?: {
+  province?: string
+  postalCode?: string
+}) {
+  if (typeof window === "undefined" || !hasAdvertisingConsent(readAdvertisingConsent())) return
+
+  if (typeof window.fbq === "function") {
+    try {
+      window.fbq("track", "InitiateCheckout", {
+        content_name: "Audit Solaire Wallonie",
+        content_category: "Owner Qualified",
+        province: params?.province,
+        postal_code: params?.postalCode,
+        currency: "EUR",
+        value: 15,
+      })
+    } catch (e) {
+      console.warn("Meta Pixel InitiateCheckout error:", e)
+    }
+  }
+
+  if (Array.isArray(window.dataLayer)) {
+    try {
+      window.dataLayer.push({
+        event: "begin_checkout",
+        province: params?.province,
+        postal_code: params?.postalCode,
+      })
+    } catch (e) {
+      console.warn("GTM begin_checkout push error:", e)
+    }
+  }
+}
+
+/**
  * Composant client pour injecter les balises de tracking publicitaire sans blocage
  */
 export function AdTrackingScripts() {

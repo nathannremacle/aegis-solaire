@@ -19,3 +19,5 @@ supabase/.temp/
 __pycache__/
 *.py[cod]
 .gemini/
+~$*
+*.tmp

@@ -227,37 +227,37 @@ function renderAngle1Html(aspectRatio = '1:1') {
     <div class="eyebrow">Wallonie · Étude Technique 2026</div>
     <h1 class="main-title">
       Fin du compteur qui tourne à l'envers : <br>
-      <span class="highlight">que rapporte vraiment une batterie ?</span>
+      <span class="highlight">les panneaux sont-ils encore rentables ?</span>
     </h1>
   </div>
 
   <div class="card">
     <div class="card-header">
-      <span class="card-title">Maison 4 façades type (14 panneaux · 5,6 kWc)</span>
-      <span class="specs-pill">Province de Liège & Namur</span>
+      <span class="card-title">Maison 4 façades type (Toiture 12 panneaux · 5,2 kWc)</span>
+      <span class="specs-pill">Amortissement : 6 à 8 ans</span>
     </div>
 
     <div class="comparison-grid">
       <div class="metric-box standard">
-        <div class="metric-label">Sans batterie domestique</div>
-        <div class="metric-val">32 %</div>
-        <div class="metric-sub">Surplus réinjecté à tarif dérisoire</div>
+        <div class="metric-label">Facture sans panneaux</div>
+        <div class="metric-val">2.400 €</div>
+        <div class="metric-sub">Achat réseau plein pot (0,35 €/kWh)</div>
       </div>
       <div class="metric-box battery">
-        <div class="metric-label">Avec batterie 10 kWh</div>
-        <div class="metric-val green">74 %</div>
-        <div class="metric-sub">Énergie stockée pour la soirée</div>
+        <div class="metric-label">Facture avec solaire</div>
+        <div class="metric-val green">920 €</div>
+        <div class="metric-sub">Après autoconsommation directe</div>
       </div>
     </div>
 
     <div class="savings-banner">
-      <span class="savings-label">Économie moyenne constatée sur la facture réseau :</span>
+      <span class="savings-label">Économie nette moyenne constatée en Wallonie :</span>
       <span class="savings-amount">1.480 € / an</span>
     </div>
   </div>
 
   <div class="footer-bar">
-    <span class="footer-trust">Simulation impartiale en 45 s · 100 % gratuit · 0 démarcheur</span>
+    <span class="footer-trust">Simulation neutre en 45 s · 1 seul artisan RESCERT local · 0 démarcheur</span>
     <span class="cta-fake-btn">Calculer mes économies →</span>
   </div>
 </body>
@@ -829,6 +829,8 @@ async function main() {
   const browser = await chromium.launch();
 
   const tasks = [
+    { name: 'ad_angle1_rentabilite_1080x1080.png', html: renderAngle1Html('1:1'), width: 1080, height: 1080 },
+    { name: 'ad_angle1_rentabilite_1080x1350.png', html: renderAngle1Html('4:5'), width: 1080, height: 1350 },
     { name: 'ad_angle1_batterie_1080x1080.png', html: renderAngle1Html('1:1'), width: 1080, height: 1080 },
     { name: 'ad_angle1_batterie_1080x1350.png', html: renderAngle1Html('4:5'), width: 1080, height: 1350 },
     { name: 'ad_angle2_rescert_1080x1080.png', html: renderAngle2Html('1:1'), width: 1080, height: 1080 },

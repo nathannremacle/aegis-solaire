@@ -336,17 +336,31 @@ export async function POST(request: NextRequest) {
     }
 
     // Déclenchement serveur Meta Conversions API (CAPI) pour tracking sans perte
-    sendMetaConversionApiLead({
-      advertisingConsent: hasAdvertisingConsent(request.cookies.get(CONSENT_COOKIE)?.value),
-      eventId: inserted.id,
-      email,
-      phone,
-      segment: data.segment,
-      clientIp: getClientIp(request),
-      userAgent: request.headers.get("user-agent") || undefined,
-      fbp: request.cookies.get("_fbp")?.value,
-      fbc: request.cookies.get("_fbc")?.value,
-    }).catch((e) => console.warn("[Meta CAPI trigger error]", e))
+    // Seuls les propriétaires confirmés (ou prospects B2B) nourrissent l'IA Meta pour ne pas fausser le ciblage
+    const isMetaLeadEligible = data.segment === "B2B" || safeOwnership === "owner"
+    if (isMetaLeadEligible) {
+      const qualificationMeta = (data.qualificationMetadata || {}) as Record<string, unknown>
+      const rawFbclid =
+        (typeof qualificationMeta.fbclid === "string" && qualificationMeta.fbclid.trim() !== "" ? qualificationMeta.fbclid.trim() : undefined) ||
+        (typeof body.fbclid === "string" && body.fbclid.trim() !== "" ? body.fbclid.trim() : undefined)
+
+      sendMetaConversionApiLead({
+        advertisingConsent: hasAdvertisingConsent(request.cookies.get(CONSENT_COOKIE)?.value),
+        eventId: inserted.id,
+        email,
+        phone,
+        firstName: first_name,
+        lastName: last_name,
+        postalCode: safePostalCode || undefined,
+        countryCode: "be",
+        segment: data.segment,
+        clientIp: getClientIp(request),
+        userAgent: request.headers.get("user-agent") || undefined,
+        fbp: request.cookies.get("_fbp")?.value,
+        fbc: request.cookies.get("_fbc")?.value,
+        fbclid: rawFbclid,
+      }).catch((e) => console.warn("[Meta CAPI trigger error]", e))
+    }
 
     return NextResponse.json({
       success: true,

@@ -30,66 +30,71 @@ Les créations publicitaires rompent formellement avec les codes discount du sec
 
 ---
 
-## Pack Publicitaire #1 : La Tangibilité Électrique & la Batterie Domestique
-*Angle inspiré du concept d'Energreen actif depuis plus de 60 jours, optimisé pour la proposition de valeur Aegis Solaire.*
+## Pack Publicitaire #1 : La Rentabilité Solaire Réelle 2026 (Fin du Compteur qui Tourne à l'Envers)
+*Angle déconstruisant le mythe selon lequel les panneaux photovoltaïques ne sont plus rentables depuis la fin de la compensation intégrale. 100 % orienté vers de nouvelles installations complètes de panneaux solaires en toiture.*
 
 ### 1. Copies Publicitaires Meta (Facebook / Instagram)
 
-* **Primary Text Court (Mobile First — 109 caractères)** :
-  > Marre d'injecter votre surplus solaire pour presque rien ? Découvrez en 45 s si une batterie divise votre facture par 2.
+* **Primary Text Court (Mobile First — 112 caractères)** :
+  > Les panneaux solaires sont-ils encore rentables en Wallonie ? Oui, jusqu'à 70 % d'économies réseau. Testez en 45 s.
 
-* **Primary Text Moyen (Accroche + Preuve — 232 caractères)** :
-  > En Wallonie, injecter son électricité sur le réseau ne rapporte plus. Avec une batterie de 10 kWh bien dimensionnée, vous couvrez jusqu'à 72% de vos besoins réels, même la nuit. Simulez l'amortissement exact pour votre toiture en 45 secondes.
+* **Primary Text Moyen (Accroche + Chiffres concrets — 275 caractères)** :
+  > Beaucoup pensent que la fin du compteur qui tourne à l'envers a tué le solaire en Wallonie. C'est faux : avec la flambée des tarifs réseau ORES/RESA (0,35 €/kWh), 12 panneaux bien dimensionnés vous font économiser jusqu'à 1 450 € par an. Amortissement : 6 à 8 ans. Calculez votre rentabilité en 45 s.
 
-* **Primary Text Long (Storytelling & Éducation — 364 caractères)** :
-  > « Est-ce qu'une batterie domestique est vraiment rentable chez nous ? »  
-  > 
-  > Beaucoup pensent que non. Pourtant, avec la fin de la compensation intégrale, chaque kWh autoconsommé vous fait économiser le prix plein du réseau (environ 0,35 €/kWh).  
-  > 
-  > Notre simulateur neutre calcule en 45 secondes votre taux d'autoconsommation réel et le gain net annuel pour votre foyer. Sans démarcheur.
+* **Primary Text Long (Éducation & Tiers de Confiance — 520 caractères)** :
+  > « Est-ce que ça vaut encore le coup d'installer des panneaux solaires en Wallonie en 2026 ? »
+  >
+  > C'est la question que tous les propriétaires se posent depuis la fin de la compensation intégrale.
+  >
+  > La réalité des chiffres :
+  > 1. Le coût du matériel photovoltaïque a chuté en 3 ans.
+  > 2. L'électricité réseau coûte toujours plus de 0,35 €/kWh.
+  > 3. Chaque kWh solaire produit et consommé sur place est un kWh que vous n'achetez pas au fournisseur.
+  >
+  > Résultat : pour une toiture bien orientée, l'économie moyenne atteint 1 450 € par an avec un retour sur investissement en 6 à 8 ans.
+  >
+  > En 45 secondes, notre simulateur neutre calcule le potentiel de votre toiture et transmet votre dossier à 1 seul artisan agréé RESCERT local. 0 démarchage.
 
 * **Headline (Titre d'annonce)** :
-  > Votre batterie est-elle rentable ? Testez en 45 s
+  > Panneaux solaires 2026 : calculez vos économies réelles
 
 * **Description (Réassurance)** :
-  > Simulation gratuite · 0 démarcheur
+  > Simulation gratuite en 45 s · 1 artisan RESCERT dédié
 
 * **Bouton CTA Meta** :
-  > *Obtenir un devis* ou *En savoir plus*
+  > *Obtenir un devis*
 
 ---
 
 ### 2. Scripts Vidéo Minutés (UGC / Voix-off & Face Caméra)
 
-#### Script 30 Secondes (≈ 78 mots)
-> *(Plan 0-3s : Plan serré sur un compteur électrique qui tourne ou une facture d'électricité wallonne).*  
-> **Voix-off / Créateur** : « Vous avez des panneaux ou vous prévoyez d'en poser en Wallonie ? Mauvaise nouvelle : injecter votre électricité sur le réseau ne vous rapporte presque plus rien.  
-> *(Plan 3-15s : Présentation d'une batterie murale élégante dans un garage).*  
-> Mais avec une batterie domestique bien calibrée, vous stockez votre production pour la nuit et réduisez votre facture jusqu'à 70%.  
-> *(Plan 15-30s : Capture mobile du simulateur Aegis).*  
-> Faites le test neutre en 45 secondes sur Aegis Solaire. Cliquez ci-dessous. »
+#### Script 30 Secondes (≈ 74 mots)
+> *(Plan 0-4s : Face caméra devant une maison ou plan sur un toit wallon sous le soleil).*  
+> **Créateur** : « Tout le monde vous dit que les panneaux solaires ne valent plus le coup en Wallonie ? C'est faux.  
+> *(Plan 4-15s : Infographie simple montrant le prix du kWh réseau vs autoproduction).*  
+> Avec l'électricité réseau à plus de 0,35 € le kWh, une installation bien dimensionnée s'amortit en 6 à 8 ans et divise votre facture annuelle par deux.  
+> *(Plan 15-30s : Démonstration sur smartphone du simulateur).*  
+> Calculez la rentabilité exacte de votre toiture en 45 secondes sur Aegis Solaire. Cliquez ci-dessous. »
 
-#### Script 60 Secondes (≈ 154 mots)
-> *(Plan 0-5s : Face caméra dans une maison lumineuse).*  
-> **Créateur** : « Pourquoi tout le monde en Wallonie parle de batteries domestiques cette année ?  
-> *(Plan 5-20s : Graphique simple ou feuille de calcul montrant le jour vs la nuit).*  
-> C'est simple : avant, le compteur tournait à l'envers. Aujourd'hui, quand vous n'êtes pas chez vous à midi, votre énergie solaire part sur le réseau pour quelques centimes. Et le soir, vous la rachetez au prix fort.  
-> *(Plan 20-40s : Plan sur l'écran avec les données d'Aegis Solaire).*  
-> Une batterie de 10 kWh stocke ce surplus pour alimenter votre pompe à chaleur, vos électroménagers et votre maison toute la soirée. Résultat : vous passez de 30% d'autoconsommation à plus de 70%.  
-> *(Plan 40-60s : Face caméra réassurance).*  
-> Mais attention : mal dimensionnée, elle ne sera jamais amortie. C'est pour ça qu'Aegis Solaire a créé un audit indépendant. En 45 secondes, vous découvrez votre rentabilité réelle sans qu'aucun commercial ne vienne frapper à votre porte. Cliquez sur le lien pour calculer votre score. »
+#### Script 60 Secondes (≈ 148 mots)
+> *(Plan 0-6s : Face caméra en extérieur devant une maison unifamiliale).*  
+> **Créateur** : « Est-ce que ça vaut encore le coup de poser des panneaux solaires en Wallonie depuis la fin du compteur qui tourne à l'envers ?  
+> *(Plan 6-25s : Tableau blanc ou écran montrant le calcul).*  
+> Avant 2024, on surdimensionnait les installations sans réfléchir. Aujourd'hui, la règle a changé : on dimensionne précisément selon votre consommation réelle de la journée.  
+> *(Plan 25-45s : Mise en avant des chiffres concrets).*  
+> Pour une maison 4 façades type avec 12 à 14 panneaux, vous autoconsommez votre propre énergie au lieu de la payer 0,35 €/kWh sur le réseau. L'économie nette moyenne atteint 1 450 € par an, et votre toiture est rentabilisée en 6 à 8 ans.  
+> *(Plan 45-60s : Tiers de confiance).*  
+> Pour connaître votre rentabilité exacte sans subir le harcèlement de 5 démarcheurs commerciaux, faites le test neutre en 45 secondes sur Aegis Solaire. Votre dossier est confié à un seul artisan certifié RESCERT de votre commune. Cliquez sur le lien. »
 
-#### Script 90 Secondes (≈ 225 mots)
+#### Script 90 Secondes (≈ 210 mots)
 > *(Plan 0-10s : Face caméra calme, ton posé d'ingénieur).*  
-> **Expert** : « Si un installateur vous propose une batterie domestique sans avoir analysé votre talon de consommation horaire, fuyez. Voici la vérité mathématique sur le stockage solaire en Wallonie en 2026.  
-> *(Plan 10-30s : Schéma visuel propre sur tablette ou papier minéral).*  
-> Une famille wallonne moyenne consomme environ 4 000 kWh par an. Sans stockage, même avec 14 panneaux sur le toit, vous ne consommez directement que 30 à 35% de ce que vous produisez. Le reste est injecté à bas tarif, pendant que vous payez le tarif de réseau plein pot pour vos soirées et vos nuits.  
-> *(Plan 30-55s : Démonstration chiffrée).*  
-> En ajoutant une capacité de stockage adaptée — entre 5 et 10 kWh selon votre profil — vous doublez votre autoconsommation. Votre retour sur investissement tombe sous la barre des 6 à 7 ans, tout en vous protégeant durablement contre la volatilité des tarifs réseau.  
-> *(Plan 55-75s : Positionnement Aegis Solaire).*  
-> Chez Aegis Solaire, nous ne vendons pas de matériel. Nous sommes un tiers de confiance technique indépendant. Notre algorithme croise l'orientation de votre toiture, vos habitudes de consommation et les tarifs CWaPE pour vous donner un chiffre net et indiscutable.  
-> *(Plan 75-90s : Appel à l'action).*  
-> La simulation prend exactement 45 secondes, elle est 100% gratuite et protège vos coordonnées. Cliquez sous la vidéo pour générer votre rapport d'autonomie. »
+> **Expert** : « Depuis le 1er janvier 2024, le marché solaire wallon a totalement changé. Si un installateur vous parle encore comme à l'époque de l'ancien compteur, méfiez-vous. Voici la vérité économique sur les panneaux solaires en 2026.  
+> *(Plan 10-35s : Schéma visuel propre sur tablette).*  
+> En Wallonie, les nouveaux compteurs mesurent séparément ce que vous injectez et ce que vous prélevez. Injecter votre surplus sur le réseau ne rapporte que quelques centimes. En revanche, chaque kWh solaire consommé directement à la maison vous fait économiser le prix plein du réseau, soit près de 35 centimes par kWh.  
+> *(Plan 35-65s : Dimensionnement optimal).*  
+> Le secret n'est donc plus de couvrir tout le toit pour revendre, mais de poser le nombre exact de panneaux adapté au talon de consommation de votre foyer (généralement 10 à 14 panneaux pour une maison familiale). À ce format, le projet s'amortit en 6 à 8 ans et vous procure 25 ans d'électricité à coût quasi nul.  
+> *(Plan 65-90s : Appel à l'action).*  
+> Aegis Solaire a développé un simulateur d'ingénierie neutre qui calcule votre production en 45 secondes et vous met en relation avec un seul artisan certifié RESCERT de votre région. 0 démarchage, 100 % gratuit. Cliquez ci-dessous pour tester votre toiture. »
 
 ---
 

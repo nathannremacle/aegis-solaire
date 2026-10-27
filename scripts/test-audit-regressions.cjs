@@ -83,3 +83,62 @@ test('already settled Mollie callbacks do not send duplicate email or write audi
   assert.equal(invalid.success, false)
   assert.equal(rpcCalls, 1)
 })
+test('normalizePhoneForMeta correctly handles 0032, +32 (0), national 0, and raw 9-digit numbers', async () => {
+  const module = load('lib/meta-capi.ts', {}, {}, {})
+  assert.equal(module.normalizePhoneForMeta('0032 475 12 34 56'), '32475123456')
+  assert.equal(module.normalizePhoneForMeta('+32 (0)475 12 34 56'), '32475123456')
+  assert.equal(module.normalizePhoneForMeta('0475 12 34 56'), '32475123456')
+  assert.equal(module.normalizePhoneForMeta('02 123 45 67'), '3221234567')
+  assert.equal(module.normalizePhoneForMeta('475123456'), '32475123456')
+  assert.equal(module.normalizePhoneForMeta('+33 6 12 34 56 78'), '33612345678')
+})
+
+test('formatFbc formats raw fbclid or preserves valid fb.1 format', async () => {
+  const module = load('lib/meta-capi.ts', {}, {}, {})
+  assert.match(module.formatFbc(undefined, 'IwZXh0bgNhZW10'), /^fb\.1\.\d+\.IwZXh0bgNhZW10$/)
+  assert.equal(module.formatFbc('fb.1.1600000000.IwZXh0bgNhZW10'), 'fb.1.1600000000.IwZXh0bgNhZW10')
+  assert.match(module.formatFbc('IwZXh0bgNhZW10'), /^fb\.1\.\d+\.IwZXh0bgNhZW10$/)
+  assert.equal(module.formatFbc('', ''), undefined)
+  assert.equal(module.formatFbc(undefined, undefined), undefined)
+})
+
+test('Meta CAPI user_data includes fn, ln, zp, country, fbc, and fbp for EMQ >= 8.8', async () => {
+  let capturedBody = null
+  const module = load('lib/meta-capi.ts', {}, { NEXT_PUBLIC_META_PIXEL_ID: '123456', META_CAPI_ACCESS_TOKEN: 'token' }, {
+    fetch: async (url, options) => {
+      capturedBody = JSON.parse(options.body)
+      return { ok: true }
+    },
+  })
+
+  await module.sendMetaConversionApiLead({
+    advertisingConsent: true,
+    eventId: 'lead-test-123',
+    email: 'Jean.Dupont@Example.be',
+    phone: '0475 12 34 56',
+    firstName: 'Jean',
+    lastName: 'Dupont',
+    postalCode: '4000',
+    countryCode: 'be',
+    segment: 'B2C',
+    clientIp: '198.51.100.1',
+    userAgent: 'Mozilla/5.0 TestBrowser',
+    fbp: 'fb.1.12345.67890',
+    fbclid: 'IwZXh0bgNhZW10',
+  })
+
+  assert.ok(capturedBody)
+  const userData = capturedBody.data[0].user_data
+  assert.ok(Array.isArray(userData.em))
+  assert.ok(Array.isArray(userData.ph))
+  assert.ok(Array.isArray(userData.fn))
+  assert.ok(Array.isArray(userData.ln))
+  assert.ok(Array.isArray(userData.zp))
+  assert.ok(Array.isArray(userData.country))
+  assert.equal(userData.client_ip_address, '198.51.100.1')
+  assert.equal(userData.client_user_agent, 'Mozilla/5.0 TestBrowser')
+  assert.equal(userData.fbp, 'fb.1.12345.67890')
+  assert.match(userData.fbc, /^fb\.1\.\d+\.IwZXh0bgNhZW10$/)
+})
+
+
