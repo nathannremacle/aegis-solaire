@@ -231,10 +231,10 @@ export function PartnersHero() {
           >
             Accédez à un flux continu de chantiers qualifiés sans démarchage à froid.
             <br className="hidden sm:inline" />
-            <strong className="font-semibold text-white">B2B 100% exclusif</strong> (1 seul acheteur dès 8 crédits) et{" "}
+            <strong className="font-semibold text-white">B2B 100% exclusif</strong> (1 seul acheteur à 9 crédits) et{" "}
             <strong className="font-semibold text-white">B2C transparent</strong>
             <br className="hidden sm:inline" />
-            (max 3 installateurs dès 2 crédits). Zéro abonnement mensuel forcé.
+            (max 3 installateurs à 3 crédits). Zéro abonnement mensuel forcé.
           </motion.p>
 
           {/* Action CTAs */}

@@ -99,7 +99,7 @@ export async function GET() {
     const lp = purchases.filter((p) => p.lead_id === lead.id)
     const isB2C = lead.segment === "B2C"
     const maxSlots = isB2C ? 3 : 1
-    const cost = lead.credit_cost ?? (isB2C ? 2 : 5)
+    const cost = lead.credit_cost ?? (isB2C ? 3 : 9)
 
     // Calculs de valorisation financière rigoureux et crédibles
     const financials = calculateMarketplaceFinancials({

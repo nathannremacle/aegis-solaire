@@ -85,7 +85,7 @@ export function LeadInspectionDrawer({
   const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
   const remainingSlots = lead.remaining_slots ?? maxSlots
   const takenSlots = lead.taken_slots ?? Math.max(0, maxSlots - remainingSlots)
-  const cost = lead.credit_cost ?? (isB2B ? 8 : 2)
+  const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
   const hasEnoughCredits = partnerCredits >= cost
 
   const isDemo = Boolean(lead.is_demo_preview)
@@ -477,7 +477,7 @@ export function LeadInspectionDrawer({
                   <span className="font-mono text-2xl font-black text-foreground tabular-nums">{cost}</span>
                   <span className="text-xs font-bold text-muted-foreground">crédits</span>
                   <span className="font-mono text-xs text-muted-foreground tabular-nums ml-1">
-                    (~{financials.leadCostEuros} € HT)
+                    ({financials.leadCostEuros.toFixed(2)} € HT)
                   </span>
                 </div>
                 <div className="text-[11px] text-muted-foreground">

@@ -49,7 +49,7 @@ interface InvitationClientProps {
 export function InvitationClient({
   initialNom = "",
   initialCie = "",
-  initialInviter = "Fabrice Remacle",
+  initialInviter = "Direction des Partenariats",
 }: InvitationClientProps) {
   const searchParams = useSearchParams()
   const rawNom = searchParams.get("nom") || searchParams.get("name") || initialNom
@@ -206,7 +206,7 @@ export function InvitationClient({
           </div>
         </section>
 
-        {/* ─── Mot de Fabrice Remacle (Lettre Ouverte Confraternelle) ─── */}
+        {/* ─── Mot de la Cellule Technique (Engagement Confraternel) ─── */}
         <section className="py-16 md:py-24 border-b border-border bg-secondary/30">
           <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
             <div className="mb-8">
@@ -220,16 +220,16 @@ export function InvitationClient({
 
             <div className="rounded-lg border border-border bg-card p-6 sm:p-10 shadow-[0_2px_12px_-4px_rgba(17,24,21,0.06)]">
               <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
-                {/* Monogramme / Badge Fabrice */}
+                {/* Monogramme / Badge Ingénierie */}
                 <div className="flex flex-col items-center md:items-start shrink-0">
                   <div className="flex h-16 w-16 items-center justify-center rounded-md bg-primary text-primary-foreground font-heading font-bold text-xl border border-primary/20">
-                    FR
+                    CT
                   </div>
                   <div className="mt-3 text-center md:text-left">
-                    <div className="font-heading font-semibold text-sm text-foreground">Fabrice Remacle</div>
-                    <div className="text-xs text-muted-foreground font-sans">Conseiller Technique &amp; Formateur PV</div>
+                    <div className="font-heading font-semibold text-sm text-foreground">Cellule Technique &amp; Ingénierie</div>
+                    <div className="text-xs text-muted-foreground font-sans">Audit Solaire &amp; Accompagnement Partenaires</div>
                     <div className="mt-2 inline-flex items-center gap-1 rounded-sm bg-primary/[0.06] border border-primary/20 px-2 py-0.5 font-mono text-[11px] text-primary">
-                      <span>20 ans d'expertise terrain en Wallonie</span>
+                      <span>20 ans d'expertise cumulée en Wallonie</span>
                     </div>
                   </div>
                 </div>
@@ -239,16 +239,16 @@ export function InvitationClient({
                   <p>
                     {nom ? (
                       <>
-                        « Bonjour <strong className="text-foreground">{nom}</strong>. Après plus de <span className="font-mono tabular-nums font-semibold">20 ans</span> d'expérience dans le secteur photovoltaïque en Wallonie, je mesure l'importance pour une entreprise d'installation de travailler sur des dossiers fiables, techniquement préparés et sans dispersion commerciale excessive.
+                        « Bonjour <strong className="text-foreground">{nom}</strong>. Avec plus de <span className="font-mono tabular-nums font-semibold">20 ans</span> d'expérience cumulée dans le secteur photovoltaïque en Wallonie, notre cellule technique mesure l'importance pour une entreprise d'installation de travailler sur des dossiers fiables, techniquement préparés et sans dispersion commerciale excessive.
                       </>
                     ) : (
                       <>
-                        « Chers confrères installateurs. Avec plus de <span className="font-mono tabular-nums font-semibold">20 ans</span> d'expérience sur le terrain photovoltaïque en Wallonie, nous savons à quel point la qualification préalable et le respect des marges sont essentiels à la pérennité de nos entreprises.
+                        « Chers confrères installateurs. Avec plus de <span className="font-mono tabular-nums font-semibold">20 ans</span> d'expérience cumulée sur le terrain photovoltaïque en Wallonie, nous savons à quel point la qualification préalable et le respect des marges sont essentiels à la pérennité de nos entreprises.
                       </>
                     )}
                   </p>
                   <p>
-                    En tant que professionnel de terrain, je soutiens pleinement la démarche d'<strong>Aegis Solaire</strong> et leur apporte mon appui technique, car leur plateforme répond aux exigences rigoureuses que nous attendions tous :
+                    En tant qu'auditeurs et ingénieurs de terrain, nous soutenons pleinement la démarche d'<strong>Aegis Solaire</strong> et leur apportons notre appui technique, car leur plateforme répond aux exigences rigoureuses que les professionnels attendaient :
                   </p>
                   <ul className="flex flex-col gap-2.5 my-1 pl-4 border-l-2 border-primary/30">
                     <li className="flex items-start gap-2 text-sm">
@@ -273,7 +273,7 @@ export function InvitationClient({
                   </p>
 
                   <div className="mt-2 pt-4 border-t border-border flex items-center justify-between text-xs text-muted-foreground font-mono">
-                    <span>Fabrice Remacle · Conseil Technique Partenaires</span>
+                    <span>La Cellule Technique &amp; Ingénierie Aegis Solaire</span>
                     <span>Wallonie</span>
                   </div>
                 </div>
@@ -537,7 +537,7 @@ export function InvitationClient({
                 <div className="mt-5 mx-auto max-w-xl rounded-lg border border-accent/30 bg-accent/10 p-3.5 text-center text-xs font-semibold text-accent flex items-center justify-center gap-2">
                   <Sparkles className="h-4 w-4 shrink-0 text-accent" />
                   <span>
-                    <strong>Avantage Réseau Fabrice Remacle :</strong>{" "}
+                    <strong>Avantage Accueil Partenaire Privilégié :</strong>{" "}
                     <span className="font-mono font-bold tabular-nums">{freeCredits} crédits d&apos;accueil</span> offerts sur votre compte pour tester et débloquer votre premier chantier sans engagement.
                   </span>
                 </div>

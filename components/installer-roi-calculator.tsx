@@ -11,21 +11,21 @@ export function InstallerRoiCalculator() {
   const [leadsPerMonth, setLeadsPerMonth] = useState<number>(6)
   const [conversionRate, setConversionRate] = useState<number>(33) // 33% = 1 chantier sur 3
 
-  // Paramètres économiques par segment
+  // Paramètres économiques par segment (Barème V2 : 11,50 € HTVA / crédit)
   const economics = useMemo(() => {
     switch (projectType) {
       case "b2c":
         return {
-          avgCreditCost: 2,
-          avgCreditEuro: 23.96, // ~11.98€ / crédit
+          avgCreditCost: 3,
+          avgCreditEuro: 34.5, // 3 crédits x 11,50 €
           avgContractValue: 14500, // 14 500 € par installation résidentielle
           avgGrossMargin: 3600, // ~25% marge brute installateur
           label: "Résidentiel B2C (8 à 20 kWc)",
         }
       case "b2b":
         return {
-          avgCreditCost: 8,
-          avgCreditEuro: 95.84, // ~11.98€ / crédit
+          avgCreditCost: 9,
+          avgCreditEuro: 103.5, // 9 crédits x 11,50 €
           avgContractValue: 160000, // toiture tertiaire PME
           avgGrossMargin: 28000, // marge brute tertiaire
           label: "Tertiaire & PME B2B (50 à 400 kWc)",
@@ -33,8 +33,8 @@ export function InstallerRoiCalculator() {
       case "mixed":
       default:
         return {
-          avgCreditCost: 4,
-          avgCreditEuro: 47.92,
+          avgCreditCost: 4.8, // 70% x 3 + 30% x 9 = 4,8 crédits
+          avgCreditEuro: 55.2, // 70% x 34,50 € + 30% x 103,50 € = 55,20 €
           avgContractValue: 48000,
           avgGrossMargin: 9500,
           label: "Mixte (70% Résidentiel / 30% Tertiaire)",
@@ -44,13 +44,16 @@ export function InstallerRoiCalculator() {
 
   // Calculs financiers
   const calculations = useMemo(() => {
-    const totalCredits = leadsPerMonth * economics.avgCreditCost
+    const totalCredits = Math.round(leadsPerMonth * economics.avgCreditCost)
     const totalCreditCostEuro = leadsPerMonth * economics.avgCreditEuro
-    const signedProjects = Math.max(1, Math.round((leadsPerMonth * conversionRate) / 100))
+    const signedProjects = Math.max(0, Math.round((leadsPerMonth * conversionRate) / 100))
     const totalTurnover = signedProjects * economics.avgContractValue
     const totalGrossMargin = signedProjects * economics.avgGrossMargin
     const netReturn = totalGrossMargin - totalCreditCostEuro
-    const roiMultiplier = Math.round(totalGrossMargin / (totalCreditCostEuro || 1))
+    const roiMultiplier =
+      totalCreditCostEuro > 0 && totalGrossMargin > 0
+        ? Math.round(totalGrossMargin / totalCreditCostEuro)
+        : 0
 
     return {
       totalCredits,
@@ -170,13 +173,15 @@ export function InstallerRoiCalculator() {
                 3. Taux de transformation en devis signé
               </label>
               <span className="font-mono text-sm font-bold text-foreground tabular-nums bg-card px-2.5 py-0.5 rounded-lg border border-border shadow-2xs">
-                {conversionRate} % (env. 1 sur {Math.round(100 / conversionRate)})
+                {conversionRate === 0
+                  ? "0 % (aucun chantier signé)"
+                  : `${conversionRate} % (env. 1 sur ${Math.round(100 / conversionRate)})`}
               </span>
             </div>
             <input
               id="rate-slider"
               type="range"
-              min={20}
+              min={0}
               max={50}
               step={5}
               value={conversionRate}
@@ -230,7 +235,7 @@ export function InstallerRoiCalculator() {
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground font-medium">Bénéfice net d&apos;exploitation :</span>
               <span className="font-mono font-extrabold text-foreground tabular-nums text-sm">
-                +{Math.round(calculations.netReturn).toLocaleString("fr-BE")} € HT
+                {calculations.netReturn >= 0 ? "+" : ""}{Math.round(calculations.netReturn).toLocaleString("fr-BE")} € HT
               </span>
             </div>
 

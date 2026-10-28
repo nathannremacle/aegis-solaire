@@ -282,7 +282,7 @@ export function MarketplaceInteractiveTour({
                       Dossier débloqué instantanément
                     </span>
                     <span className="rounded bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 font-mono text-[10px] font-bold px-1.5 py-0.5">
-                      2 crédits dépensés
+                      3 crédits dépensés
                     </span>
                   </div>
 

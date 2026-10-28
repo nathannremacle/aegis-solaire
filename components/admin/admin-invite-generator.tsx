@@ -32,13 +32,14 @@ export function AdminInviteGenerator() {
   const params = new URLSearchParams()
   if (firstName.trim()) params.set("nom", firstName.trim())
   if (companyName.trim()) params.set("cie", companyName.trim())
+  params.set("cr", "3")
 
   const queryString = params.toString()
   const generatedUrl = `${origin}/partenaires/invitation${queryString ? `?${queryString}` : ""}`
 
   const prefilledMessage = firstName.trim()
-    ? `Salut ${firstName.trim()}, c'est Fabrice Remacle. Je te conseille de regarder Aegis Solaire, une plateforme sérieuse avec qui je collabore pour des chantiers photovoltaïques qualifiés en Wallonie (max 3 installateurs, audit toiture & facture vérifiés, zéro commission). Voici ton lien d'accès privilégié : ${generatedUrl} . Écris-moi ou contacte l'équipe à contact@aegissolaire.com si tu as des questions !`
-    : `Bonjour, c'est Fabrice Remacle. Je vous invite à découvrir la marketplace photovoltaïque Aegis Solaire avec laquelle je collabore en Wallonie (dossiers vérifiés, exclusivité B2B) : ${generatedUrl}`
+    ? `Bonjour ${firstName.trim()}, l'équipe Aegis Solaire vous invite à découvrir notre plateforme dédiée aux installateurs photovoltaïques en Wallonie (max 3 installateurs en résidentiel, exclusivité B2B, audit toiture & facture vérifiés, zéro commission). Voici votre lien d'accès privilégié avec votre 1er dossier B2C offert (3 crédits) : ${generatedUrl} . Contactez notre équipe partenaires à contact@aegissolaire.com pour toute question.`
+    : `Bonjour, l'équipe Aegis Solaire vous invite à découvrir notre marketplace photovoltaïque réservée aux installateurs en Wallonie (dossiers vérifiés, exclusivité B2B, 3 crédits offerts à l'inscription) : ${generatedUrl}`
 
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(prefilledMessage)}`
 
@@ -70,14 +71,14 @@ export function AdminInviteGenerator() {
         <div className="space-y-1">
           <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 border border-amber-200 px-3 py-0.5 text-xs font-bold text-amber-900">
             <Sparkles className="h-3.5 w-3.5 text-amber-600" />
-            <span>Outil de Démarchage Privé · Réseau Fabrice</span>
+            <span>Outil de Démarchage Privé · Direction des Partenariats</span>
           </div>
           <h3 className="text-lg sm:text-xl font-black text-slate-900 flex items-center gap-2">
             <UserPlus className="h-5 w-5 text-amber-600" />
             Générateur de Liens d'Invitation Personnalisés
           </h3>
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-2xl">
-            Permet à Fabrice de générer en 3 secondes un lien sur-mesure pour un installateur partenaire, avec pré-remplissage de son prénom et accès privilégié.
+            Permet à l'équipe Partenariats de générer en 3 secondes un lien sur-mesure pour un installateur partenaire, avec pré-remplissage de son prénom et accès privilégié.
           </p>
         </div>
 

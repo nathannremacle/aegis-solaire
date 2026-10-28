@@ -220,6 +220,9 @@ export async function POST(request: NextRequest) {
       project_driver: data.projectDriver ?? null,
       timeframe: data.timeframe ?? null,
       qualification_metadata: data.qualificationMetadata ?? {},
+
+      // --- Tarification V2 Officielle ---
+      pricing_version: "v2",
     }
 
     let { data: inserted, error } = await supabase.from("leads").insert(insertPayload).select().single()

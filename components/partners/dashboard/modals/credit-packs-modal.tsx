@@ -6,16 +6,12 @@ import Link from "next/link"
 import { Coins, ArrowRight, X, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
+import { CREDIT_PACKS_LIST, CREDIT_UNIT_PRICE_EUR } from "@/lib/credit-pricing"
+
 interface CreditPacksModalProps {
   partner: any
   onClose: () => void
 }
-
-const PACKS = [
-  { id: "pack_10", name: "Pack Découverte", credits: 10, priceHtva: 149, pricePerCredit: 14.9 },
-  { id: "pack_50", name: "Pack Croissance", credits: 50, priceHtva: 599, pricePerCredit: 11.98, popular: true, saving: "-20%" },
-  { id: "pack_100", name: "Pack Entreprise", credits: 100, priceHtva: 999, pricePerCredit: 9.99, saving: "-33%" },
-]
 
 export default function CreditPacksModal({ partner, onClose }: CreditPacksModalProps) {
   useEffect(() => {
@@ -60,13 +56,13 @@ export default function CreditPacksModal({ partner, onClose }: CreditPacksModalP
           <div>
             <h3 className="text-lg font-bold text-foreground">Recharger mon Solde de Crédits</h3>
             <p className="text-xs text-muted-foreground">
-              Solde actuel : <strong className="font-mono text-foreground tabular-nums">{partner.credits ?? 0} crédits</strong> • 1 crédit = ~15 € HTVA
+              Solde actuel : <strong className="font-mono text-foreground tabular-nums">{partner.credits ?? 0} crédits</strong> • 1 crédit = {CREDIT_UNIT_PRICE_EUR.toFixed(2).replace(".", ",")} € HTVA
             </p>
           </div>
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {PACKS.map((pack) => (
+          {CREDIT_PACKS_LIST.map((pack) => (
             <div
               key={pack.id}
               className={`relative flex flex-col justify-between rounded-xl border p-4 transition-all ${
@@ -92,7 +88,7 @@ export default function CreditPacksModal({ partner, onClose }: CreditPacksModalP
                   <span className="text-[10px] text-muted-foreground">HTVA</span>
                 </p>
                 <p className="text-[11px] font-mono text-muted-foreground tabular-nums">
-                  ({pack.pricePerCredit.toFixed(2)} € / crédit)
+                  ({pack.priceTtc.toFixed(2).replace(".", ",")} € TTC)
                 </p>
               </div>
 

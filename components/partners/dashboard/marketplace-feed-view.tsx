@@ -185,7 +185,7 @@ export function MarketplaceFeedView({
   // Variables calculées pour le lead ciblé en mode isolé
   const targetSurface = Math.max(0, Number(targetedLead?.surface_area || targetedLead?.surface_area_m2) || 0)
   const targetAnnualBill = Math.max(0, Number(targetedLead?.annual_electricity_bill || targetedLead?.annual_bill_eur) || 0)
-  const targetCost = targetedLead?.credit_cost ?? (targetedLead?.segment === "B2B" ? 8 : 2)
+  const targetCost = targetedLead?.credit_cost ?? (targetedLead?.segment === "B2B" ? 9 : 3)
   const targetFinancials = useMemo(() => {
     if (!targetedLead) return null
     return calculateMarketplaceFinancials({
@@ -1376,7 +1376,7 @@ function MarketplaceLeadCard({
   const isB2B = lead.segment === "B2B"
   const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
   const remainingSlots = lead.remaining_slots ?? maxSlots
-  const cost = lead.credit_cost ?? (isB2B ? 8 : 2)
+  const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
 
   const surfaceArea = Math.max(0, Number(lead.surface_area || lead.surface_area_m2) || 0)
   const annualBill = Math.max(0, Number(lead.annual_electricity_bill || lead.annual_bill_eur) || 0)
@@ -1645,7 +1645,7 @@ function MarketplaceLeadCard({
               {cost} crédits
             </span>
             <span className="text-[11px] text-slate-400 tabular-nums">
-              (≈{financials.leadCostEuros} € HT)
+              ({financials.leadCostEuros.toFixed(2)} € HT)
             </span>
           </div>
         </div>

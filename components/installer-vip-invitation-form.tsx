@@ -57,7 +57,7 @@ interface InstallerVipInvitationFormProps {
 export function InstallerVipInvitationForm({
   initialFirstName = "",
   initialCompanyName = "",
-  inviterName = "Fabrice Remacle",
+  inviterName = "Direction des Partenariats",
 }: InstallerVipInvitationFormProps) {
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(0)

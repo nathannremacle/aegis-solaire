@@ -102,7 +102,7 @@ export default async function AdminDashboardPage() {
         <AdminDashboardContent />
       </Suspense>
 
-      {/* 3. Hub d'Invitation Réseau Grossiste — Fabrice Remacle */}
+      {/* 3. Hub d'Invitation Réseau Partenaires — Direction des Partenariats */}
       <section aria-label="Hub d'invitation réseau partenaires">
         <AdminNetworkInviteHub />
       </section>

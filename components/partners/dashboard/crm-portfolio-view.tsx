@@ -790,7 +790,7 @@ export function CrmPortfolioView({
                   const isB2B = item.segment === "B2B"
                   const surfaceArea = Math.max(0, Number(item.surface_area || item.surface_area_m2) || 0)
                   const annualBill = Math.max(0, Number(item.annual_electricity_bill || item.annual_bill_eur) || 0)
-                  const cost = item.credits_spent ?? (isB2B ? 8 : 2)
+                  const cost = item.credits_spent ?? (isB2B ? 9 : 3)
 
                   const financials = calculateMarketplaceFinancials({
                     segment: item.segment,
@@ -970,7 +970,7 @@ function CrmPortfolioCard({
   const isB2B = item.segment === "B2B"
   const surfaceArea = Math.max(0, Number(item.surface_area || item.surface_area_m2) || 0)
   const annualBill = Math.max(0, Number(item.annual_electricity_bill || item.annual_bill_eur) || 0)
-  const cost = item.credits_spent ?? (isB2B ? 8 : 2)
+  const cost = item.credits_spent ?? (isB2B ? 9 : 3)
 
   const financials = calculateMarketplaceFinancials({
     segment: item.segment,

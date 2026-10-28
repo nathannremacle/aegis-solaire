@@ -27,6 +27,17 @@ import {
    Types
    ═══════════════════════════════════════════════ */
 
+import {
+  CREDIT_PACKS_LIST,
+  CREDIT_UNIT_PRICE_EUR,
+  B2C_CREDIT_COST,
+  B2B_CREDIT_COST,
+} from "@/lib/credit-pricing"
+
+/* ═══════════════════════════════════════════════
+   Types
+   ═══════════════════════════════════════════════ */
+
 type PartnerInfo = { id: string; credits: number; companyName: string }
 
 type CreditPack = {
@@ -34,9 +45,9 @@ type CreditPack = {
   name: string
   credits: number
   priceHtva: number
+  priceTtc: number
   pricePerCredit: number
   popular?: boolean
-  saving?: string
 }
 
 type Transaction = {
@@ -66,19 +77,15 @@ type OrderDetails = {
    Constants
    ═══════════════════════════════════════════════ */
 
-const PACKS: CreditPack[] = [
-  { id: "pack_10", name: "Pack Découverte", credits: 10, priceHtva: 149, pricePerCredit: 14.9 },
-  {
-    id: "pack_50",
-    name: "Pack Croissance",
-    credits: 50,
-    priceHtva: 599,
-    pricePerCredit: 11.98,
-    popular: true,
-    saving: "-20%",
-  },
-  { id: "pack_100", name: "Pack Entreprise", credits: 100, priceHtva: 999, pricePerCredit: 9.99, saving: "-33%" },
-]
+const PACKS: CreditPack[] = CREDIT_PACKS_LIST.map((p) => ({
+  id: p.id,
+  name: p.name,
+  credits: p.credits,
+  priceHtva: p.priceHtva,
+  priceTtc: p.priceTtc,
+  pricePerCredit: p.pricePerCredit,
+  popular: p.popular,
+}))
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -105,8 +112,8 @@ function OrderPackSection({ pack }: { pack: CreditPack }) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const vatAmount = Math.round(pack.priceHtva * 0.21 * 100) / 100
-  const priceTtc = Math.round((pack.priceHtva + vatAmount) * 100) / 100
+  const priceTtc = pack.priceTtc
+  const vatAmount = Math.round((priceTtc - pack.priceHtva) * 100) / 100
 
   async function handleQrCodePayment() {
     setSubmitting(true)
@@ -143,12 +150,12 @@ function OrderPackSection({ pack }: { pack: CreditPack }) {
             {pack.name} — <span className="font-mono tabular-nums">{pack.credits}</span> crédits
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Équivalent : <span className="font-mono tabular-nums">{pack.pricePerCredit.toFixed(2)} € HTVA</span> par crédit
+            Tarif unique : <span className="font-mono tabular-nums">{pack.pricePerCredit.toFixed(2)} € HTVA</span> par crédit
           </p>
         </div>
         <div className="text-left sm:text-right">
           <p className="text-xl sm:text-2xl font-bold font-mono text-foreground tabular-nums">
-            {pack.priceHtva} € <span className="text-xs font-normal text-muted-foreground">HTVA</span>
+            {pack.priceHtva.toFixed(2)} € <span className="text-xs font-normal text-muted-foreground">HTVA</span>
           </p>
           <p className="text-xs text-muted-foreground font-mono tabular-nums">
             {priceTtc.toFixed(2)} € TTC (TVA 21% comprise)
@@ -222,7 +229,7 @@ export default function CreditsPage() {
   const [partner, setPartner] = useState<PartnerInfo | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedPack, setSelectedPack] = useState<string>("pack_50")
+  const [selectedPack, setSelectedPack] = useState<string>("pack_10")
   const [verifyingPayment, setVerifyingPayment] = useState(false)
   const [paymentFeedback, setPaymentFeedback] = useState<{
     type: "success" | "pending" | "cancelled" | null
@@ -422,15 +429,17 @@ export default function CreditsPage() {
             </p>
 
             {/* Alerte solde faible si applicable */}
-            {(partner?.credits ?? 0) <= 4 && (
+            {(partner?.credits ?? 0) < 9 && (
               <div className="mt-4 flex items-start gap-3 rounded-xl border border-accent/40 bg-accent/10 p-3.5 text-xs text-foreground">
                 <AlertCircle className="h-4 w-4 text-accent shrink-0 mt-0.5" />
                 <div>
                   <h4 className="font-bold text-foreground">
-                    Solde actuel : <span className="font-mono tabular-nums">{partner?.credits ?? 0} crédits</span>
+                    Solde actuel : <span className="font-mono tabular-nums">{partner?.credits ?? 0} {(partner?.credits ?? 0) === 1 ? "crédit" : "crédits"}</span>
                   </h4>
                   <p className="text-muted-foreground mt-0.5">
-                    Un dossier B2B exclusif requiert de 8 à 18 crédits selon la puissance. Réapprovisionnez pour débloquer les opportunités en direct.
+                    {(partner?.credits ?? 0) < 3
+                      ? "Solde insuffisant pour débloquer un nouveau dossier. Un dossier B2C requiert 3 crédits (34,50 € HTVA) et un B2B exclusif requiert 9 crédits (103,50 € HTVA)."
+                      : "Votre solde permet de débloquer un dossier B2C (3 crédits = 34,50 € HTVA), mais est insuffisant pour un dossier B2B exclusif (9 crédits = 103,50 € HTVA)."}
                   </p>
                 </div>
               </div>
@@ -462,11 +471,6 @@ export default function CreditsPage() {
                       <span className="font-mono text-3xl font-black text-foreground tabular-nums">
                         {pack.credits}
                       </span>
-                      {pack.saving && (
-                        <span className="rounded-md bg-secondary px-2 py-0.5 font-mono text-xs font-bold text-primary border border-border">
-                          {pack.saving}
-                        </span>
-                      )}
                     </div>
                     <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mt-1">
                       crédits leads
@@ -474,11 +478,11 @@ export default function CreditsPage() {
 
                     <div className="mt-4 border-t border-border pt-3">
                       <p className="text-xl font-bold font-mono text-foreground tabular-nums">
-                        {pack.priceHtva} €{" "}
+                        {pack.priceHtva.toFixed(2)} €{" "}
                         <span className="text-xs font-normal text-muted-foreground">HTVA</span>
                       </p>
                       <p className="mt-0.5 text-[11px] font-mono text-muted-foreground tabular-nums">
-                        ({pack.pricePerCredit.toFixed(2)} € / crédit)
+                        ({pack.pricePerCredit.toFixed(2)} € / crédit · {pack.priceTtc.toFixed(2)} € TTC)
                       </p>
                     </div>
 
@@ -526,21 +530,21 @@ export default function CreditsPage() {
 
               <div className="mt-3.5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
                 <div className="rounded-xl bg-card p-3 border border-border">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Volume de chantiers</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Volume de dossiers</span>
                   <p className="mt-1 text-sm font-bold font-mono text-foreground tabular-nums">
-                    {Math.floor(currentPack.credits / 8)} B2B <span className="font-normal text-xs text-muted-foreground">ou</span> {Math.floor(currentPack.credits / 2)} B2C
+                    {Math.floor(currentPack.credits / 9)} B2B <span className="font-normal text-xs text-muted-foreground">ou</span> {Math.floor(currentPack.credits / 3)} B2C
                   </p>
                 </div>
                 <div className="rounded-xl bg-card p-3 border border-border">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Chiffre d&apos;Affaires Estimé</span>
                   <p className="mt-1 text-sm font-bold font-mono text-foreground tabular-nums">
-                    ~{(Math.floor(currentPack.credits / 8) * 35000).toLocaleString("fr-BE")} € à {(Math.floor(currentPack.credits / 8) * 60000).toLocaleString("fr-BE")} €
+                    ~{(Math.floor(currentPack.credits / 9) * 35000).toLocaleString("fr-BE")} € à {(Math.floor(currentPack.credits / 9) * 60000).toLocaleString("fr-BE")} €
                   </p>
                 </div>
                 <div className="rounded-xl bg-card p-3 border border-border">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Marge brute estimée (~22%)</span>
                   <p className="mt-1 text-sm font-bold font-mono text-accent tabular-nums">
-                    ~{(Math.floor(currentPack.credits / 8) * 7700).toLocaleString("fr-BE")} € à {(Math.floor(currentPack.credits / 8) * 13200).toLocaleString("fr-BE")} €
+                    ~{(Math.floor(currentPack.credits / 9) * 7700).toLocaleString("fr-BE")} € à {(Math.floor(currentPack.credits / 9) * 13200).toLocaleString("fr-BE")} €
                   </p>
                 </div>
               </div>

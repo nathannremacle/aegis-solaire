@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     const resend = new Resend(resendApiKey)
-    const formattedFrom = `Fabrice Remacle — Aegis Solaire <${fromEmail}>`
+    const formattedFrom = `Direction des Partenariats — Aegis Solaire <${fromEmail}>`
 
     const { data: resendData, error: sendErr } = await resend.emails.send({
       from: formattedFrom,

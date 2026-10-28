@@ -44,7 +44,7 @@ export function substituteTemplateVariables(
 ): string {
   const name = variables.installerName?.trim() || "partenaire"
   const company = variables.companyName?.trim() || ""
-  const credits = String(variables.freeCredits ?? 2)
+  const credits = String(variables.freeCredits ?? 3)
 
   let result = text
     .replace(/\{\{\s*prenom\s*\}\}/gi, name)
@@ -75,12 +75,12 @@ export function buildFabriceInviteSubject(data: FabriceInviteData): string {
   const name = data.installerName?.trim() || "partenaire"
 
   if (data.tone === "tutoiement") {
-    return `Un mot de Fabrice : chantiers photovoltaïques qualifiés en Wallonie${company}`
+    return `Direction des Partenariats : chantiers photovoltaïques qualifiés en Wallonie${company}`
   }
   if (data.tone === "court_whatsapp") {
-    return `Fabrice Remacle — Chantiers solaires qualifiés Wallonie`
+    return `Aegis Solaire — Chantiers solaires qualifiés Wallonie`
   }
-  return `Fabrice Remacle — Opportunités de chantiers solaires vérifiés${company}`
+  return `Aegis Solaire — Opportunités de chantiers solaires vérifiés${company}`
 }
 
 /**
@@ -91,24 +91,24 @@ export function buildFabriceInvitePlainText(data: FabriceInviteData): string {
   const name = data.installerName?.trim() || (data.tone === "tutoiement" ? "{{prenom}}" : "Monsieur")
   const company = data.companyName?.trim() ? ` chez ${data.companyName.trim()}` : ""
   const showCredits = data.includeCreditsText !== false && data.freeCredits > 0
-  const creditsCount = data.freeCredits > 0 ? data.freeCredits : 2
+  const creditsCount = data.freeCredits > 0 ? data.freeCredits : 3
 
   const creditsBlockTutoiement = showCredits
-    ? `\nComme on se connaît bien, je t'ai fait créditer ${creditsCount} crédits d'accueil sur ton espace pour que tu puisses tester et débloquer ton 1er dossier B2C gratuitement sans rien payer.\n`
+    ? `\nPour vous permettre de tester la qualité de nos dossiers, nous vous avons crédité ${creditsCount} crédits d'accueil sur votre espace (soit votre 1er dossier B2C offert, valeur 34,50 € HTVA) sans aucun engagement financier.\n`
     : `\n`
 
   const creditsBlockVouvoiement = showCredits
-    ? `\nDans le cadre de nos relations, je vous ai fait allouer ${creditsCount} crédits d'accueil sur votre espace afin que vous puissiez tester et débloquer votre 1er dossier sans aucun engagement financier.\n`
+    ? `\nAfin de vous permettre de constater la précision de nos dossiers techniques, la Direction des Partenariats vous alloue ${creditsCount} crédits d'accueil (valeur 34,50 € HTVA, correspondant à votre 1er dossier B2C offert) sans aucun engagement financier.\n`
     : `\n`
 
-  const noteBlock = data.customNote?.trim() ? `\nNote personnelle : ${data.customNote.trim()}\n` : ""
+  const noteBlock = data.customNote?.trim() ? `\nNote de l'équipe : ${data.customNote.trim()}\n` : ""
 
   if (data.tone === "tutoiement") {
     return `Salut ${name},
 
-Je t'écris pour te recommander une plateforme wallonne avec laquelle je collabore : Aegis Solaire. C'est un réseau de confiance qui sélectionne uniquement des installateurs sérieux pour des projets photovoltaïques concrets, en résidentiel et en tertiaire (B2C & B2B).
+Je t'écris pour te présenter la plateforme Aegis Solaire, dédiée aux professionnels du photovoltaïque en Wallonie. C'est un réseau de confiance qui sélectionne des installateurs sérieux pour des projets photovoltaïques concrets, en résidentiel et en tertiaire (B2C & B2B).
 
-Leur fonctionnement tranche nettement avec les centrales d'appels habituelles :
+Notre fonctionnement tranche nettement avec les centrales d'appels habituelles :
 1. Maximum 3 artisans par projet en résidentiel (et exclusivité totale 100% à un seul installateur en B2B/tertiaire).
 2. Dossier technique complet avant diffusion : surface, pente, toiture, facture d'électricité réelle, photo satellite et coordonnées vérifiées par téléphone avant publication.
 3. Zéro abonnement, zéro commission sur ton chiffre d'affaires : tu choisis uniquement les dossiers qui t'intéressent dans ta zone via un système simple de crédits.
@@ -116,27 +116,27 @@ ${noteBlock}${creditsBlockTutoiement}
 Tu peux activer ton accès réservé en 1 minute ici :
 ${data.inviteUrl}
 
-Regarde les dossiers actuellement disponibles en Wallonie. Si tu as la moindre question ou si tu veux qu'on regarde un projet ensemble, donne-moi un coup de fil sur mon portable.
+Consulte les dossiers actuellement disponibles en Wallonie. Si tu as la moindre question, n'hésite pas à écrire à notre équipe à contact@aegissolaire.com.
 
 À très bientôt,
 
-Fabrice Remacle
+La Direction des Partenariats Aegis Solaire
 Email : contact@aegissolaire.com`.trim()
   }
 
   if (data.tone === "court_whatsapp") {
     const bonus = showCredits
-      ? ` Je t'ai fait réserver ${creditsCount} crédits offerts pour tester ton 1er dossier gratuit : ${data.inviteUrl} .`
-      : ` Tu peux activer ton accès réservé ici : ${data.inviteUrl} .`
-    return `Salut ${name}, c'est Fabrice Remacle. Je te conseille de t'inscrire sur Aegis Solaire, une plateforme sérieuse avec qui je collabore pour des chantiers solaires qualifiés en Wallonie (toiture & facture vérifiées, max 3 artisans, zéro commission).${bonus} Donne-moi un coup de fil sur mon portable si tu as la moindre question !`.trim()
+      ? ` Nous vous avons réservé ${creditsCount} crédits offerts pour débloquer votre 1er dossier B2C sans frais : ${data.inviteUrl} .`
+      : ` Vous pouvez activer votre accès réservé ici : ${data.inviteUrl} .`
+    return `Bonjour ${name}, l'équipe Aegis Solaire vous invite à découvrir notre réseau d'installateurs solaires en Wallonie (toiture & facture vérifiées, max 3 artisans en résidentiel, exclusivité B2B, zéro commission).${bonus} Contactez-nous à contact@aegissolaire.com pour toute question !`.trim()
   }
 
   // Vouvoiement
   return `Bonjour ${name}${company},
 
-Je me permets de vous contacter pour vous recommander la plateforme wallonne Aegis Solaire, avec laquelle je collabore. Il s'agit d'un réseau de confiance qui sélectionne des installateurs de référence pour des projets photovoltaïques concrets et vérifiés, en résidentiel et en tertiaire (B2C & B2B).
+La Direction des Partenariats Aegis Solaire se permet de vous contacter pour vous présenter notre marketplace photovoltaïque en Wallonie. Il s'agit d'un réseau sélectif qui met en relation des installateurs de référence avec des porteurs de projets vérifiés, en résidentiel et en tertiaire (B2C & B2B).
 
-Leur fonctionnement se distingue nettement des centrales d'appels habituelles :
+Notre fonctionnement se distingue nettement des centrales d'appels habituelles :
 1. Maximum 3 installateurs par projet en résidentiel (et exclusivité totale 100% à un seul installateur en B2B/tertiaire).
 2. Dossier technique complet avant diffusion : surface, pente, toiture, facture d'électricité réelle, photo satellite et coordonnées vérifiées par téléphone avant publication.
 3. Zéro abonnement, zéro commission sur votre chiffre d'affaires : vous choisissez uniquement les dossiers qui vous intéressent dans votre zone via un système simple de crédits.
@@ -144,11 +144,11 @@ ${noteBlock}${creditsBlockVouvoiement}
 Vous pouvez activer votre accès réservé en 1 minute ici :
 ${data.inviteUrl}
 
-N'hésitez pas à consulter les dossiers actuellement disponibles en Wallonie. Si vous avez la moindre question ou si vous souhaitez que l'on étudie un projet ensemble, vous pouvez me contacter par e-mail à contact@aegissolaire.com.
+N'hésitez pas à consulter les dossiers actuellement disponibles en Wallonie. Pour toute question ou étude de dossier conjointe, notre équipe est à votre écoute par e-mail à contact@aegissolaire.com.
 
 Bien cordialement,
 
-Fabrice Remacle
+La Direction des Partenariats Aegis Solaire
 Email : contact@aegissolaire.com`.trim()
 }
 
@@ -156,11 +156,11 @@ Email : contact@aegissolaire.com`.trim()
  * Génère un message WhatsApp optimisé et court
  */
 export function buildFabriceWhatsAppMessage(data: FabriceInviteData): string {
-  const name = data.installerName?.trim() || "l'ami"
+  const name = data.installerName?.trim() || "Cher partenaire"
   const showCredits = data.includeCreditsText !== false && data.freeCredits > 0
-  const bonus = showCredits ? ` (je t'ai fait réserver ${data.freeCredits} crédits offerts pour tester)` : ""
+  const bonus = showCredits ? ` (nous vous avons réservé ${data.freeCredits} crédits offerts pour votre 1er dossier B2C)` : ""
 
-  return `Salut ${name}, c'est Fabrice Remacle. Je te conseille de regarder Aegis Solaire, une plateforme sérieuse avec qui je collabore pour des chantiers photovoltaïques qualifiés en Wallonie (max 3 installateurs, audit toiture & facture vérifiés, zéro commission). Voici ton lien d'accès privilégié${bonus} : ${data.inviteUrl} . Donne-moi un coup de fil sur mon portable si tu as des questions !`
+  return `Bonjour ${name}, la Direction des Partenariats Aegis Solaire vous invite à découvrir notre plateforme dédiée aux installateurs photovoltaïques qualifiés en Wallonie (max 3 installateurs en résidentiel, exclusivité B2B, audit toiture & facture vérifiés, zéro commission). Voici votre lien d'accès privilégié${bonus} : ${data.inviteUrl} . Contactez-nous à contact@aegissolaire.com pour toute question !`
 }
 
 /**
@@ -259,7 +259,7 @@ export function renderFabriceInviteHtml(data: FabriceInviteData, customBodyText?
               <table width="100%" border="0" cellspacing="0" cellpadding="0">
                 <tr>
                   <td align="left" class="mono" style="font-family: ui-monospace, monospace; font-size: 11px; font-weight: 600; color: #0B2B22; text-transform: uppercase; letter-spacing: 0.05em;">
-                    INVITATION DIRECTE · RÉSEAU FABRICE REMACLE
+                    INVITATION PROFESSIONNELLE · DIRECTION DES PARTENARIATS
                   </td>
                   <td align="right" class="mono" style="font-family: ui-monospace, monospace; font-size: 11px; color: #525E59;">
                     ${escapeHtml(data.companyName || "Artisan Qualifié")}
@@ -281,18 +281,18 @@ export function renderFabriceInviteHtml(data: FabriceInviteData, customBodyText?
                 </p>
               </div>
 
-              <!-- Signature Fabrice Remacle -->
+              <!-- Signature Direction des Partenariats -->
               <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top: 28px; border-top: 1px solid #E2DDD3; padding-top: 18px;">
                 <tr>
                   <td align="left" valign="middle">
                     <p style="margin: 0; font-size: 14px; font-weight: 700; color: #111815;">
-                      Fabrice Remacle
+                      La Direction des Partenariats
                     </p>
                     <p style="margin: 2px 0 0 0; font-size: 12px; color: #525E59;">
-                      Fournisseur &amp; Partenaire Matériel Photovoltaïque
+                      Aegis Solaire · Réseau Professionnel Photovoltaïque Wallon
                     </p>
                     <p style="margin: 2px 0 0 0; font-size: 12px; color: #525E59;" class="mono">
-                      Email : contact@aegissolaire.com · Wallonie, Belgique
+                      Email : contact@aegissolaire.com · Liège, Belgique
                     </p>
                   </td>
                 </tr>
@@ -304,7 +304,7 @@ export function renderFabriceInviteHtml(data: FabriceInviteData, customBodyText?
           <tr>
             <td style="background-color: #FAF8F5; padding: 14px 24px; border-top: 1px solid #E2DDD3; text-align: center;">
               <p style="margin: 0; font-size: 11px; color: #8C827A;" class="mono">
-                Aegis Solaire · Initiative exploitée par INIT42 (Liège, Belgique — BCE 1039.899.980)
+                Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
               </p>
             </td>
           </tr>

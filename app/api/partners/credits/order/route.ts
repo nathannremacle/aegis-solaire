@@ -6,14 +6,7 @@ import { Resend } from "resend"
 
 export const dynamic = "force-dynamic"
 
-const CREDIT_PACKS: Record<
-  string,
-  { id: string; name: string; credits: number; priceHtva: number }
-> = {
-  pack_10: { id: "pack_10", name: "Pack Découverte", credits: 10, priceHtva: 149 },
-  pack_50: { id: "pack_50", name: "Pack Croissance", credits: 50, priceHtva: 599 },
-  pack_100: { id: "pack_100", name: "Pack Entreprise", credits: 100, priceHtva: 999 },
-}
+import { CREDIT_PACKS, PRICING_VERSION, calculateOrderFinancials } from "@/lib/credit-pricing"
 
 const BANK_DETAILS = {
   beneficiary: "INIT42 (Nathan Remacle)",
@@ -40,10 +33,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Pack de crédits introuvable" }, { status: 400 })
   }
 
-  const vatRate = 0.21
-  const vatAmount = Math.round(pack.priceHtva * vatRate * 100) / 100
-  const priceTtc = Math.round((pack.priceHtva + vatAmount) * 100) / 100
-
+  const financials = calculateOrderFinancials(pack.credits)
   const transferReference = `AEGIS-${randomUUID()}`
 
   // Enregistrement de la commande en base de données
@@ -54,11 +44,12 @@ export async function POST(request: Request) {
       pack_id: pack.id,
       pack_name: pack.name,
       credits: pack.credits,
-      price_htva: pack.priceHtva,
-      vat_amount: vatAmount,
-      price_ttc: priceTtc,
+      price_htva: financials.priceHtva,
+      vat_amount: financials.vatAmount,
+      price_ttc: financials.priceTtc,
       transfer_reference: transferReference,
       status: "pending",
+      pricing_version: PRICING_VERSION,
     })
     if (error) throw error
   } catch (err) {
@@ -76,7 +67,7 @@ export async function POST(request: Request) {
         from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
         to: adminEmail,
         subject: `[Aegis Solaire] Nouvelle commande de crédits : ${partner.company_name} (${pack.credits} crédits)`,
-        text: `Nouvelle commande de crédits partenaires :\n\n- Entreprise : ${partner.company_name}\n- Email : ${partner.email}\n- Pack : ${pack.name} (${pack.credits} crédits)\n- Montant HTVA : ${pack.priceHtva} €\n- Montant TTC (21%) : ${priceTtc} €\n- Référence virement : ${transferReference}\n\nActiver les crédits dans le panel admin une fois le virement reçu sur le compte INIT42 (BE84 0020 3534 7259).`,
+        text: `Nouvelle commande de crédits partenaires :\n\n- Entreprise : ${partner.company_name}\n- Email : ${partner.email}\n- Pack : ${pack.name} (${pack.credits} crédits)\n- Montant HTVA : ${financials.priceHtva.toFixed(2)} €\n- Montant TTC (21%) : ${financials.priceTtc.toFixed(2)} €\n- Référence virement : ${transferReference}\n\nActiver les crédits dans le panel admin une fois le virement reçu sur le compte INIT42 (BE84 0020 3534 7259).`,
       })
     } catch (e) {
       console.error("[Credit Order Email] Erreur notification admin:", e)
@@ -90,10 +81,10 @@ export async function POST(request: Request) {
       packId: pack.id,
       packName: pack.name,
       credits: pack.credits,
-      priceHtva: pack.priceHtva,
+      priceHtva: financials.priceHtva,
       vatRate: "21%",
-      vatAmount,
-      priceTtc,
+      vatAmount: financials.vatAmount,
+      priceTtc: financials.priceTtc,
       transferReference,
       bankDetails: BANK_DETAILS,
     },

@@ -46,44 +46,54 @@ export async function PATCH(
     return NextResponse.json({ error: `Cette réclamation a déjà été traitée (${dispute.status}).` }, { status: 400 })
   }
 
-  const refundAmount = body.refundCredits ?? (dispute.lead_purchases?.credits_spent || 2)
-
   if (action === "approve") {
-    // 2. Rembourser les crédits via add_credits RPC
-    const { error: rpcErr } = await supabase.rpc("add_credits", {
-      p_partner_id: dispute.partner_id,
-      p_amount: refundAmount,
-      p_type: "refund",
-      p_reference: `Garantie 48h - Réclamation #${dispute.id.slice(0, 8)}`,
+    // 2. Traitement atomique du remboursement via refund_lead_dispute RPC
+    const { data: refundResult, error: rpcErr } = await supabase.rpc("refund_lead_dispute", {
+      p_dispute_id: id,
+      p_admin_email: user.email || "admin@aegissolaire.com",
+      p_admin_notes: adminNotes || "Remboursement accepté sous garantie Lead Conforme",
+      p_refund_credits: body.refundCredits !== undefined ? body.refundCredits : null,
     })
 
+    let refundedCredits = refundResult?.credits_refunded
+
     if (rpcErr) {
-      console.error("[admin:disputes] add_credits error:", rpcErr)
-      return NextResponse.json({ error: "Erreur lors du recrédit partenaire : " + rpcErr.message }, { status: 500 })
+      console.warn("[admin:disputes] RPC refund_lead_dispute fallback:", rpcErr.message)
+      // Fallback comptable exact : coût réel enregistré (0 si lead de bienvenue offert)
+      const exactCost = body.refundCredits ?? (dispute.lead_purchases?.credits_spent ?? 0)
+      refundedCredits = exactCost
+
+      if (exactCost > 0) {
+        await supabase.rpc("add_credits", {
+          p_partner_id: dispute.partner_id,
+          p_amount: exactCost,
+          p_type: "refund",
+          p_reference: `Garantie Lead Conforme - Réclamation #${dispute.id.slice(0, 8)}`,
+        })
+      }
+
+      await supabase
+        .from("lead_disputes")
+        .update({
+          status: "approved",
+          credits_refunded: exactCost,
+          admin_notes: adminNotes || "Remboursement accepté sous garantie Lead Conforme",
+          resolved_at: new Date().toISOString(),
+        })
+        .eq("id", id)
     }
 
-    // 3. Mettre à jour la réclamation
-    await supabase
-      .from("lead_disputes")
-      .update({
-        status: "approved",
-        credits_refunded: refundAmount,
-        admin_notes: adminNotes || "Remboursement accepté sous garantie 48h",
-        resolved_at: new Date().toISOString(),
-      })
-      .eq("id", id)
-
-    // 4. Audit Log
+    // 3. Audit Log
     try {
       await supabase.from("audit_log").insert({
-        admin_email: user.email || "admin",
+        admin_email: user.email || "admin@aegissolaire.com",
         action: "LEAD_DISPUTE_APPROVED_REFUNDED",
         entity_type: "lead_disputes",
         entity_id: id,
         details: {
           partner_id: dispute.partner_id,
           lead_id: dispute.lead_id,
-          credits_refunded: refundAmount,
+          credits_refunded: refundedCredits,
         },
       })
     } catch {
@@ -93,8 +103,8 @@ export async function PATCH(
     return NextResponse.json({
       success: true,
       status: "approved",
-      creditsRefunded: refundAmount,
-      message: `Réclamation approuvée. ${refundAmount} crédits restitués au partenaire.`,
+      creditsRefunded: refundedCredits,
+      message: `Réclamation approuvée. ${refundedCredits} crédits restitués au partenaire.`,
     })
   } else {
     // Rejet

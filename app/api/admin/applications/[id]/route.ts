@@ -85,6 +85,15 @@ async function syncPartnerFromApplication(
     return { created: false, partnerId: existing.id }
   }
 
+  // Vérifier si des crédits d'accueil / invitation sont prévus (par défaut 3 crédits V2 si invitation VIP)
+  let initialCredits = 0
+  const match = app.admin_notes?.match(/(\d+)\s*crédits?\s*offerts?/i)
+  if (match) {
+    initialCredits = parseInt(match[1], 10) || 0
+  } else if (app.admin_notes?.includes("INVITATION VIP")) {
+    initialCredits = 3 // Barème V2 : 3 crédits pour 1er dossier B2C offert
+  }
+
   const { data: inserted, error } = await supabase
     .from("partners")
     .insert({
@@ -104,6 +113,20 @@ async function syncPartnerFromApplication(
     }
     throw error
   }
+
+  if (inserted?.id && initialCredits > 0) {
+    try {
+      await supabase.rpc("add_credits", {
+        p_partner_id: inserted.id,
+        p_amount: initialCredits,
+        p_type: "bonus",
+        p_reference: "Bienvenue Partenaire Privilégié (1er dossier B2C offert)",
+      })
+    } catch (creditErr) {
+      console.error("[syncPartnerFromApplication] add_credits bonus error:", creditErr)
+    }
+  }
+
   return { created: true, partnerId: inserted?.id }
 }
 

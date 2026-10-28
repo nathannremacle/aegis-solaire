@@ -66,10 +66,10 @@ Les hypothèses financières ont été recalibrées en tenant compte :
 | **Volume de Leads Bruts Générés** | **13 leads** | **18 leads** | Formulaires complets validés |
 | **Taux de Qualification / Facturabilité** | **80 % (Décote 20%)** | **80 % (Décote 20%)** | Prise en compte du déchet B2B |
 | **Volume de Leads Facturables** | **10 leads nets** | **14 leads nets** | Leads vendus aux installateurs partenaires |
-| **Prix de Vente B2B Moyen** | **55,00 € / lead** | **60,00 € / lead** | Grille tarifaire Aegis Marketplace |
-| **Chiffre d'Affaires Brut Réalisé** | **550,00 €** | **840,00 €** | Revenu de revente direct |
-| **Bénéfice Net Campagne** | **+50,00 €** | **+340,00 €** | **Campagne auto-financée dès le test** |
-| **ROAS Réel Net** | **1,10x (110 %)** | **1,68x (168 %)** | Base saine validant le passage à 1 500 €/mois |
+| **Recette Moyenne par Lead B2C (Barème V2)** | **75,90 € / lead** | **75,90 € / lead** | Moyenne de 2,2 installateurs acheteurs à 34,50 € (3 crédits) |
+| **Chiffre d'Affaires Brut Réalisé** | **759,00 €** | **1 062,60 €** | Revenu de revente direct aux installateurs |
+| **Bénéfice Net Campagne** | **+259,00 €** | **+562,60 €** | **Campagne auto-financée dès le test** |
+| **ROAS Réel Net** | **1,52x (152 %)** | **2,12x (212 %)** | Base saine validant le passage à 1 500 €/mois |
 
 ---
 

@@ -117,7 +117,7 @@ const DEMO_LEADS: DemoLead[] = [
     roof_material: "bac_acier",
     annual_electricity_bill: 46000,
     estimated_power_kwc: 408,
-    credit_cost: 8,
+    credit_cost: 9,
     max_slots: 1,
     taken_slots: 0,
     remaining_slots: 1,
@@ -152,7 +152,7 @@ const DEMO_LEADS: DemoLead[] = [
     roof_material: "tuiles",
     annual_electricity_bill: 2100,
     estimated_power_kwc: 9.6,
-    credit_cost: 2,
+    credit_cost: 3,
     max_slots: 3,
     taken_slots: 1,
     remaining_slots: 2,
@@ -191,7 +191,7 @@ function MarketplaceLeadCardPreview({
   const isB2B = lead.segment === "B2B"
   const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
   const remainingSlots = lead.remaining_slots ?? maxSlots
-  const cost = lead.credit_cost ?? (isB2B ? 8 : 2)
+  const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
 
   const surfaceArea = Math.max(0, Number(lead.surface_area) || 0)
   const annualBill = Math.max(0, Number(lead.annual_electricity_bill) || 0)
@@ -450,7 +450,7 @@ function MarketplaceLeadCardPreview({
               {cost} crédits
             </span>
             <span className="text-[11px] text-slate-400 font-mono tabular-nums">
-              (≈{financials.leadCostEuros} € HT)
+              ({financials.leadCostEuros.toFixed(2)} € HT)
             </span>
           </div>
         </div>
@@ -814,7 +814,7 @@ export function MarketplaceLivePreview() {
                   const isB2B = lead.segment === "B2B"
                   const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
                   const remainingSlots = lead.remaining_slots ?? maxSlots
-                  const cost = lead.credit_cost ?? (isB2B ? 8 : 2)
+                  const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
                   const surfaceArea = Math.max(0, Number(lead.surface_area) || 0)
                   const annualBill = Math.max(0, Number(lead.annual_electricity_bill) || 0)
 
@@ -899,7 +899,7 @@ export function MarketplaceLivePreview() {
                       <td className="px-4 py-3 whitespace-nowrap font-mono text-foreground font-bold tabular-nums">
                         <div>{cost} crédits</div>
                         <div className="text-[10px] text-muted-foreground font-normal">
-                          ~{financials.leadCostEuros} € HT
+                          {financials.leadCostEuros.toFixed(2)} € HT
                         </div>
                       </td>
 

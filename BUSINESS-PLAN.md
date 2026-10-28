@@ -277,26 +277,29 @@ Aucun lead n'est accessible aux installateurs de façon purement brute. Le panne
 
 Pour fluidifier les micro-transactions sans friction de carte bancaire à chaque lead et garantir un fonds de roulement positif, la plateforme repose sur une économie de crédits.
 
-#### Grille des Packs Installateurs (Facturation B2B INIT42)
+#### Grille des Recharges Installateurs (Facturation B2B INIT42 — Barème V2)
 
-| Nom du Pack | Nombre de Crédits | Prix HTVA | Prix TTC (TVA 21 %) | Coût Unitaire par Crédit HTVA | Profil Acheteur Ciblé |
+| Nom de la Recharge | Nombre de Crédits | Prix HTVA | Prix TTC (TVA 21 %) | Coût Unitaire par Crédit HTVA | Profil Acheteur Ciblé |
 |---|---|---|---|---|---|
-| **Pack Découverte** | 10 crédits | **149 €** | 180,29 € | 14,90 € / crédit | Installateur indépendant testant le service |
-| **Pack Croissance** | 50 crédits | **599 €** | 724,79 € | **11,98 € / crédit** *(Prix de référence)* | PME photovoltaïque régionale (2-5 équipes) |
-| **Pack Entreprise** | 100 crédits | **999 €** | 1 208,79 € | 9,99 € / crédit | Acteur national / Équipes commerciales dédiées |
+| **Recharge Démarrage** | 10 crédits | **115,00 €** | 139,15 € | **11,50 € / crédit** *(Prix unitaire fixe)* | Installateur testant le service (3 dossiers B2C ou 1 B2B) |
+| **Recharge Standard** | 20 crédits | **230,00 €** | 278,30 € | **11,50 € / crédit** *(Prix unitaire fixe)* | PME photovoltaïque alimentant 1 équipe de pose |
+| **Recharge Confort** | 50 crédits | **575,00 €** | 695,75 € | **11,50 € / crédit** *(Prix unitaire fixe)* | Acteur régional actif (16 chantiers B2C ou 5 B2B) |
 
-*Modalités de règlement : Commande émise en ligne (`/api/partners/credits/order`), virement bancaire instantané ou sous 24h avec référence normalisée (`AEGIS-[NOM]-XXCR-[ID]`), crédit manuel ou semi-automatisé par l'administration.*
+*Modalités de règlement : Commande émise en ligne via paiement électronique sécurisé Mollie (Bancontact, cartes bancaires) ou bon de commande officiel INIT42 par virement bancaire sous 24h avec référence normalisée.*
 
-### 7.2 Valeur Marchande par Type de Dossier (Tarification Dynamique)
+> **Règle Commerciale Canonique V2 :**  
+> Un crédit coûte **11,50 € HTVA**, quelle que soit la recharge. Le volume acheté change uniquement la fréquence de réapprovisionnement, jamais le prix du dossier.
 
-Afin de préserver une marge brute élevée même en cas de hausse du coût d'acquisition média sur Meta Ads en Wallonie, la tarification B2B est étalonnée selon la taille du projet :
+### 7.2 Valeur Marchande par Type de Dossier (Barème V2 Unifié)
 
-| Segment & Calibre du Dossier | Exclusivité | Coût en Crédits | Valeur Équivalente HTVA (Pack Croissance à 11,98 €/crédit) | Marge Installateur Estimée | Ratio Marge / Coût Lead |
+Afin d'éliminer toute complexité d'évaluation pour les installateurs, les anciens paliers B2B (8, 12, 18 crédits) sont abolis. La tarification est strictement unifiée :
+
+| Segment & Calibre du Dossier | Exclusivité & Limites | Coût par Installateur | Recette Maximale Plateforme | Marge Installateur Estimée | Ratio Marge / Coût Lead |
 |---|---|---|---|---|---|
-| **B2C Résidentiel qualifié** | **Partagé (3 acheteurs max)** | **2 crédits / acheteur** | **23,96 € HTVA / slot** *(soit 71,88 € HTVA pour Aegis)* | 1 800 € – 2 500 € | **~75:1** |
-| **B2B PME Standard (< 500 m² ou facture < 20k €)** | **100 % Exclusif (1 acheteur)** | **8 crédits** | **95,84 € HTVA** | 6 000 € – 12 000 € | **~80:1** |
-| **B2B Tertiaire / Industriel (500 à 1 500 m²)** | **100 % Exclusif (1 acheteur)** | **12 crédits** | **143,76 € HTVA** | 15 000 € – 35 000 € | **~150:1** |
-| **B2B Grand Compte (> 1 500 m² ou Ombrières)** | **100 % Exclusif (1 acheteur)** | **18 crédits** | **215,64 € HTVA** | 35 000 € – 80 000 € | **> 200:1** |
+| **B2C Résidentiel qualifié** | **Partagé (3 acheteurs max)** | **3 crédits = 34,50 € HTVA** | **103,50 € HTVA** *(si 3 acheteurs)* | 1 800 € – 2 500 € | **~60:1** |
+| **B2B Professionnel exclusif** | **100 % Exclusif (1 acheteur unique)** | **9 crédits = 103,50 € HTVA** | **103,50 € HTVA** *(1 acheteur)* | 6 000 € – 35 000 € | **> 100:1** |
+
+*Recette réelle B2C : selon le nombre réel d'acheteurs (1, 2 ou 3), la recette par dossier est de 34,50 €, 69,00 € ou 103,50 € HTVA (taux moyen constaté : 2,2 acheteurs, soit 75,90 € HTVA).*
 
 ### 7.3 Programme d'Affiliation & Partenaires Médias (`/media-partners`)
 
@@ -307,11 +310,11 @@ Aegis Solaire opère un réseau d'affiliés (médias spécialisés rénovation, 
 
 ---
 
-## 8. Économie Unitaire (Unit Economics)
+## 8. Économie Unitaire (Unit Economics — Barème V2)
 
-L'évaluation de la rentabilité intrinsèque à l'échelle d'une transaction unique démontre la solidité du modèle.
+L'évaluation de la rentabilité intrinsèque à l'échelle d'une transaction unique démontre la robustesse du barème unifié à 11,50 € HTVA.
 
-### 8.1 Décomposition Économique Unitaire B2B (Dossier Industriel & PME)
+### 8.1 Décomposition Économique Unitaire B2B (Dossier Industriel & Tertiaire Exclusif)
 
 ```
 Hypothèses : Campagnes Meta Ads B2B ciblées + Google Search
@@ -323,31 +326,31 @@ Hypothèses : Campagnes Meta Ads B2B ciblées + Google Search
 
 | Poste Unitaire | Montant (€ HTVA) | % du Revenu |
 |---|---|---|
-| **Chiffre d'Affaires Brut (5 crédits vendus)** | **+ 59,90 €** | 100,0 % |
-| **Coût d'Acquisition Média Brut (CPL blended)** | - 32,00 € | 53,4 % |
-| **Pertes liées au déchet / qualification (25 % rejet)** | - 8,00 € | 13,4 % |
-| **Frais transactionnels bancaires & hébergement** | - 0,90 € | 1,5 % |
-| **Marge Brute par Lead B2B** | **+ 19,00 €** | **31,7 %** |
+| **Chiffre d'Affaires Brut (9 crédits vendus)** | **+ 103,50 €** | 100,0 % |
+| **Coût d'Acquisition Média Brut (CPL blended)** | - 38,00 € | 36,7 % |
+| **Pertes liées au déchet / qualification (20 % rejet)** | - 9,50 € | 9,2 % |
+| **Frais transactionnels bancaires & hébergement** | - 1,50 € | 1,4 % |
+| **Marge Brute par Lead B2B Exclusif** | **+ 54,50 €** | **52,7 %** |
 
-### 8.2 Décomposition Économique Unitaire B2C (Dossier Résidentiel)
+### 8.2 Décomposition Économique Unitaire B2C (Dossier Résidentiel Partagé)
 
 ```
 Hypothèses : Campagnes Meta Ads LeadGen grand public
-- Coût d'Acquisition Média brut (CPL) : 14,00 €
+- Coût d'Acquisition Média brut (CPL) : 16,00 €
 - Taux de validation admin : 85 %
-- Taux de remplissage des slots : 2,4 acheteurs en moyenne par lead
+- Taux de remplissage effectif : 2,2 acheteurs en moyenne par dossier (sur 3 max)
 ```
 
 | Poste Unitaire | Montant (€ HTVA) | % du Revenu |
 |---|---|---|
-| **Chiffre d'Affaires Brut (2,4 slots × 23,96 €)** | **+ 57,50 €** | 100,0 % |
-| **Coût d'Acquisition Média Effectif** | - 14,00 € | 24,3 % |
-| **Pertes déchet & provision litige (10 %)** | - 3,50 € | 6,1 % |
-| **Frais techniques** | - 0,50 € | 0,9 % |
-| **Marge Brute par Lead B2C** | **+ 39,50 €** | **68,7 %** |
+| **Chiffre d'Affaires Brut Moyen (2,2 acheteurs × 34,50 €)** | **+ 75,90 €** | 100,0 % |
+| **Coût d'Acquisition Média Effectif** | - 16,00 € | 21,1 % |
+| **Pertes déchet & provision litige (8 %)** | - 4,00 € | 5,3 % |
+| **Frais techniques** | - 0,90 € | 1,2 % |
+| **Marge Brute Moyenne par Lead B2C** | **+ 55,00 €** | **72,5 %** |
 
-> **Constat Stratégique Majeur :**  
-> Le segment **B2C agit comme un booster de marge brute immédiate** (68,7 % de marge grâce à la multi-vente de slots non-exclusifs), tandis que le segment **B2B assoit la crédibilité institutionnelle de la marque**, fidélise les grands installateurs et génère des volumes de crédits importants lors des recharges de packs.
+> **Constat Stratégique Majeur V2 :**  
+> Avec un plafond de recette identique à **103,50 € HTVA** sur un dossier B2B exclusif (9 crédits) et sur un dossier B2C vendu à 3 acheteurs (3 × 3 crédits), le modèle assure une cohérence économique parfaite. Le B2C génère 72,5 % de marge brute moyenne grâce au multi-slotting (2,2 acheteurs en moyenne), tandis que le B2B exclusif délivre 52,7 % de marge nette avec un encaissement direct de 103,50 € HTVA par vente.
 
 ---
 

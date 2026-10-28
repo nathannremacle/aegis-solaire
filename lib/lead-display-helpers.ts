@@ -354,7 +354,7 @@ export function calculateLeadRoiRatio(estimatedMargin: number, creditCost: numbe
   roiMultiplier: number
   roiBadgeText: string
 } {
-  const creditPriceEur = 12 // Prix unitaire indicatif moyen d'un crédit HTVA
+  const creditPriceEur = 11.5 // Prix unitaire fixe V2 d'un crédit HTVA (11,50 €)
   const leadCostEur = creditCost * creditPriceEur
 
   const margin = Math.max(0, estimatedMargin || 0)

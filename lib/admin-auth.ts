@@ -12,16 +12,16 @@ export function getAdminProfile(email?: string | null): AdminProfile {
   const clean = email?.trim().toLowerCase()
   if (clean === "fabrice.remacle@gmail.com") {
     return {
-      name: "Fabrice Remacle",
-      initials: "FR",
+      name: "Direction Partenariats",
+      initials: "DP",
       role: "Administrateur",
       email: clean,
     }
   }
   if (clean === "mrnathanrem@gmail.com") {
     return {
-      name: "Nathan Remacle",
-      initials: "NR",
+      name: "Direction Technique",
+      initials: "DT",
       role: "Super Admin",
       email: clean,
     }

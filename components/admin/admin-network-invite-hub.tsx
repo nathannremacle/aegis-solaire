@@ -78,7 +78,7 @@ export function AdminNetworkInviteHub() {
   const [installerEmail, setInstallerEmail] = useState("")
   const [installerPhone, setInstallerPhone] = useState("")
   const [tone, setTone] = useState<ToneKey>("tutoiement")
-  const [freeCredits, setFreeCredits] = useState<number>(2)
+  const [freeCredits, setFreeCredits] = useState<number>(3)
   const [includeCreditsText, setIncludeCreditsText] = useState<boolean>(true)
   const [provinces, setProvinces] = useState("ALL")
   const [customNote, setCustomNote] = useState("")
@@ -117,7 +117,7 @@ export function AdminNetworkInviteHub() {
     if (companyName.trim()) params.set("cie", companyName.trim())
     if (freeCredits > 0 && includeCreditsText) params.set("credits", String(freeCredits))
     if (provinces !== "ALL") params.set("provinces", provinces)
-    params.set("par", "Fabrice Remacle")
+    params.set("par", "Direction des Partenariats")
 
     const query = params.toString()
     return `${origin}/partenaires/invitation${query ? `?${query}` : ""}`
@@ -503,7 +503,7 @@ export function AdminNetworkInviteHub() {
       return
     }
 
-    if (!confirm(`Envoyer cet e-mail d'invitation personnalisé signé Fabrice Remacle à ${installerEmail} ?`)) {
+    if (!confirm(`Envoyer cet e-mail d'invitation personnalisé à ${installerEmail} ?`)) {
       return
     }
 
@@ -550,7 +550,7 @@ export function AdminNetworkInviteHub() {
         <div className="space-y-1.5">
           <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary border border-border px-2.5 py-1 text-xs font-semibold text-foreground">
             <Sparkles className="h-3.5 w-3.5 text-accent" />
-            <span>Réseau Installateurs · Fabrice Remacle (Grossiste PV)</span>
+            <span>Réseau Installateurs · Direction des Partenariats</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
             <UserPlus className="h-5 w-5 text-primary" />
@@ -682,8 +682,8 @@ export function AdminNetworkInviteHub() {
                 }}
                 className="w-full h-9 rounded-md border border-border bg-card px-2.5 text-xs font-semibold text-foreground"
               >
-                <option value={2}>🎁 2 crédits (1er lead gratuit)</option>
-                <option value={5}>⭐ 5 crédits (Pack VIP Découverte)</option>
+                <option value={3}>🎁 3 crédits (1er dossier B2C offert · 34,50 € HT)</option>
+                <option value={9}>⭐ 9 crédits (1er dossier B2B exclusif offert · 103,50 € HT)</option>
                 <option value={0}>⚪ Aucun crédit offert</option>
               </select>
             </div>
@@ -714,7 +714,7 @@ export function AdminNetworkInviteHub() {
               </div>
               <p className="text-[11px] text-muted-foreground leading-tight">
                 {includeCreditsText
-                  ? `Mentionne l'accueil de ${freeCredits > 0 ? freeCredits : 2} crédits offerts pour tester gratuitement.`
+                  ? `Mentionne l'accueil de ${freeCredits > 0 ? freeCredits : 3} crédits offerts pour tester gratuitement.`
                   : "Le paragraphe offrant les crédits est retiré du message."}
               </p>
             </div>
@@ -963,7 +963,7 @@ export function AdminNetworkInviteHub() {
                     {resolvedBody}
                   </div>
                   <div className="border-t border-border pt-2 text-[11px] text-muted-foreground font-mono">
-                    Fabrice Remacle · Partenaire Matériel PV · contact@aegissolaire.com
+                    Direction des Partenariats · Aegis Solaire · contact@aegissolaire.com
                   </div>
                 </div>
               </div>

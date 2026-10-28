@@ -331,24 +331,27 @@ Les routes critiques utilisent **`createServiceRoleClient()`** tout en vérifian
 
 Les **POST** `/api/partners/*` exigent le header **`x-admin-request`** (convention CSRF du middleware).
 
-### 17.3 Système de Crédits et Paiement Sécurisé (INIT42)
+### 17.3 Système de Crédits et Paiement Sécurisé (INIT42 — Barème V2)
 
-Pour éliminer les risques de fraude et de rétro-facturation, les packs de crédits sont réglés sur facture professionnelle :
+Pour fluidifier les acquisitions de dossiers et éliminer les risques d'impayés, les dossiers s'acquièrent via des crédits à prix fixe :
 
-1. **Grille tarifaire officielle (HTVA) :**
-   - **Pack Découverte** : 10 crédits = **149 € HTVA** (14,90 €/crédit)
-   - **Pack Croissance** : 50 crédits = **599 € HTVA** (11,98 €/crédit — Pack de référence)
-   - **Pack Entreprise** : 100 crédits = **999 € HTVA** (9,99 €/crédit)
-2. **Flux de commande (`/api/partners/credits/order`) :**
-   - L'installateur choisit son pack sur `/partenaires/dashboard/credits`.
-   - L'API génère un bon de commande officiel INIT42 avec référence unique normalisée (`AEGIS-[NOM]-XXCR-[ID]`).
-   - L'installateur effectue le virement bancaire vers le compte professionnel INIT42 :
+1. **Grille tarifaire officielle (HTVA) — Barème V2 :**
+   - **Prix unitaire canonique :** 1 crédit = **11,50 € HTVA** (1 150 centimes).
+   - **Recharge 10 crédits** : 115,00 € HTVA / 139,15 € TTC (TVA 21 %).
+   - **Recharge 20 crédits** : 230,00 € HTVA / 278,30 € TTC (TVA 21 %).
+   - **Recharge 50 crédits** : 575,00 € HTVA / 695,75 € TTC (TVA 21 %).
+   - **Déblocage B2C résidentiel** : 3 crédits = **34,50 € HTVA** (3 acheteurs max, recette max 103,50 € HTVA).
+   - **Déblocage B2B exclusif** : 9 crédits = **103,50 € HTVA** (1 acheteur unique, recette max 103,50 € HTVA).
+2. **Flux de commande & règlement :**
+   - L'installateur choisit sa recharge sur `/partenaires/dashboard/credits`.
+   - Règlement direct par carte bancaire ou Bancontact via Mollie (`/api/partners/credits/checkout`).
+   - Ou commande par virement bancaire sur facture proforma INIT42 (`/api/partners/credits/order`) :
      - **IBAN** : `BE84 0020 3534 7259`
      - **BIC** : `GEBABEBB`
      - **Bénéficiaire** : INIT42 / Nathan Remacle
 3. **Crédit sur le compte partenaire :**
-   - L'administration crédite le solde via `/api/admin/partners/[id]/credits` (RPC `add_credits`) dès réception du virement ou justificatif.
-   - L'ancien endpoint de paiement Revolut a été neutralisé (HTTP 503 Service Unavailable) suite à l'audit de sécurité d'octobre 2026.
+   - Mollie crédite automatiquement via webhook (`settle_credit_order`).
+   - Par virement, l'administration valide la commande dans `/admin/credits` qui exécute la RPC atomique `settle_credit_order`.
 
 ---
 

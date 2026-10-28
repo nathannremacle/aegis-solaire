@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic"
 export const metadata = {
   title: "Invitation Privée Installateur RESCERT | Aegis Solaire Wallonie",
   description:
-    "Vous êtes invité par Fabrice Remacle à rejoindre le réseau exclusif d'installateurs photovoltaïques Aegis Solaire en Wallonie. Leads vérifiés à la main, zéro guerre des prix et support chantier B2B.",
+    "Vous êtes invité par la Direction des Partenariats à rejoindre le réseau d'installateurs photovoltaïques Aegis Solaire en Wallonie. Leads qualifiés, exclusivité B2B et transparence B2C.",
   alternates: {
     canonical: `${baseUrl}/partenaires/invitation`,
   },
@@ -41,7 +41,7 @@ export default async function PartenairesInvitationPage({
   const inviter =
     typeof resolved.par === "string" && resolved.par.trim()
       ? resolved.par.trim()
-      : "Fabrice Remacle"
+      : "Direction des Partenariats"
 
   const nom = rawNom ? rawNom.charAt(0).toUpperCase() + rawNom.slice(1).trim() : ""
   const cie = rawCie ? rawCie.trim() : ""

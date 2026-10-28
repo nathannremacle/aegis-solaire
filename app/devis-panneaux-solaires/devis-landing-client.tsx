@@ -79,7 +79,7 @@ const STEP_QUESTIONS = [
 const TOOLTIPS = {
   economies: "En autoconsommant votre électricité solaire directe et en comparant les devis d'installateurs qualifiés pour obtenir le meilleur tarif du marché.",
   rescert: "Le label officiel obligatoire en Région Wallonne garantissant la qualification technique des professionnels, la conformité RGIE et la validation du raccordement.",
-  sansEngagement: "Recevez jusqu'à 4 devis gratuits et sans aucun engagement. Vous comparez les offres tranquillement chez vous et restez totalement libre de choisir l'installateur de votre choix — ou aucun.",
+  sansEngagement: "Recevez jusqu'à 3 devis gratuits et sans aucun engagement. Vous comparez les offres tranquillement chez vous et restez totalement libre de choisir l'installateur de votre choix — ou aucun.",
 }
 
 export function DevisLandingClient() {
@@ -430,7 +430,7 @@ export function DevisLandingClient() {
               <h1 className="text-3xl sm:text-4xl lg:text-[40px] font-extrabold tracking-tight text-foreground font-heading leading-[1.14]">
                 La meilleure offre solaire ?{" "}
                 <span className="block text-primary">
-                  Comparez jusqu&apos;à 4 devis.
+                  Comparez jusqu&apos;à 3 devis.
                 </span>
               </h1>
 
@@ -572,7 +572,7 @@ export function DevisLandingClient() {
                       Remplissez et économisez
                     </h2>
                     <p className="text-xs sm:text-[13px] text-muted-foreground leading-relaxed">
-                      En quelques étapes (<span className="font-mono tabular-nums font-semibold">45 secondes</span>), nous trouvons jusqu&apos;à <span className="font-mono tabular-nums font-semibold text-foreground">4</span> installateurs agréés près de chez vous.
+                      En quelques étapes (<span className="font-mono tabular-nums font-semibold">45 secondes</span>), nous trouvons jusqu&apos;à <span className="font-mono tabular-nums font-semibold text-foreground">3</span> installateurs agréés près de chez vous.
                     </p>
 
                     {/* Badges horizontaux Bobex */}
@@ -1010,7 +1010,7 @@ export function DevisLandingClient() {
                                 className="mt-0.5"
                               />
                               <span className="text-xs text-muted-foreground leading-relaxed">
-                                J&apos;accepte la transmission de ma demande aux installateurs agréés RESCERT de ma région (afin de recevoir jusqu&apos;à <span className="font-mono tabular-nums font-semibold text-foreground">4</span> devis comparatifs sans engagement) selon la{" "}
+                                J&apos;accepte la transmission de ma demande aux installateurs agréés RESCERT de ma région (afin de recevoir jusqu&apos;à <span className="font-mono tabular-nums font-semibold text-foreground">3</span> devis comparatifs sans engagement) selon la{" "}
                                 <Link
                                   href="/politique-confidentialite"
                                   target="_blank"
@@ -1119,7 +1119,7 @@ export function DevisLandingClient() {
                     <ul className="flex flex-col gap-1.5 text-muted-foreground list-disc pl-5">
                       <li>
                         Transmission de votre demande à jusqu&apos;à{" "}
-                        <span className="font-mono tabular-nums font-semibold text-foreground">4</span> installateurs agréés RESCERT de votre région.
+                        <span className="font-mono tabular-nums font-semibold text-foreground">3</span> installateurs agréés RESCERT de votre région.
                       </li>
                       <li>Prise de contact rapide pour valider vos spécificités toiture et vos habitudes de consommation.</li>
                       <li>Réception et comparaison de vos devis gratuits : vous êtes totalement libre de choisir votre installateur — ou aucun.</li>
@@ -1200,11 +1200,11 @@ export function DevisLandingClient() {
                 {
                   step: "02",
                   title: "Sélection d'installateurs RESCERT locaux",
-                  desc: "Notre système sollicite jusqu'à 4 professionnels certifiés et audités de votre province pour votre projet.",
+                  desc: "Notre système sollicite jusqu'à 3 professionnels certifiés et audités de votre province pour votre projet.",
                 },
                 {
                   step: "03",
-                  title: "Comparez jusqu'à 4 devis et économisez",
+                  title: "Comparez jusqu'à 3 devis et économisez",
                   desc: "Vous recevez les offres chiffrées détaillées et choisissez librement la meilleure proposition — ou aucune.",
                 },
               ].map((item) => (

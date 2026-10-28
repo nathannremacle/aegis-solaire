@@ -106,25 +106,21 @@ export function DispatchPanel({
         </div>
       </div>
 
-      {/* Coût en crédits */}
+      {/* Coût en crédits (Barème V2 officiel fixe) */}
       <div className="flex items-center justify-between border-t border-border/80 pt-3 text-xs">
-        <Label className="text-muted-foreground">Coût d'acquisition du lead</Label>
-        <div className="flex items-center gap-1">
-          {[2, 3, 5, 8].map((cost) => (
-            <button
-              key={cost}
-              type="button"
-              onClick={() => onCreditCostChange(cost)}
-              className={cn(
-                "h-6 px-2 rounded-sm font-mono text-xs font-medium tabular-nums border transition-colors",
-                creditCost === cost
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-secondary text-secondary-foreground border-border hover:bg-secondary/80"
-              )}
-            >
-              {cost} cr.
-            </button>
-          ))}
+        <div>
+          <Label className="text-muted-foreground block">Coût d'acquisition du lead</Label>
+          <span className="text-[10px] text-muted-foreground font-mono">
+            Barème V2 · {segment === "B2B" ? "B2B exclusif" : "B2C résidentiel"}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 font-mono">
+          <span className="rounded-md bg-secondary px-2.5 py-1 text-xs font-bold text-foreground border border-border tabular-nums">
+            {segment === "B2B" ? 9 : 3} cr.
+          </span>
+          <span className="text-[11px] text-muted-foreground tabular-nums">
+            ({segment === "B2B" ? "103,50" : "34,50"} € HT)
+          </span>
         </div>
       </div>
 

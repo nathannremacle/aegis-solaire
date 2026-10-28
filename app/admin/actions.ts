@@ -2,88 +2,84 @@
 
 import { revalidateTag } from "next/cache"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
+import { getAdminUser } from "@/lib/admin-auth"
 import { dispatchLeadWave } from "@/lib/lead-relance-engine"
+import { B2C_CREDIT_COST, B2B_CREDIT_COST } from "@/lib/credit-pricing"
 
-export async function validateCreditOrderAction(orderId: string, adminEmail: string) {
+export async function validateCreditOrderAction(orderId: string, adminEmail?: string) {
+  const adminUser = await getAdminUser()
+  if (!adminUser) {
+    throw new Error("Accès administrateur requis.")
+  }
+
   const supabase = createServiceRoleClient()
+  const callerEmail = adminEmail || adminUser.email || "admin@aegissolaire.com"
 
-  // 1. Récupération de la commande en attente
-  const { data: order, error: fetchErr } = await supabase
+  // 1. Validation comptable et crédit de solde via la RPC atomique officielle
+  const { data: settleResult, error: settleErr } = await supabase.rpc("settle_credit_order", {
+    p_order_id: orderId,
+    p_provider: "bank_transfer",
+    p_notes: `Validé manuellement par ${callerEmail}`,
+  })
+
+  if (settleErr) {
+    throw new Error(settleErr.message || "Erreur lors de la validation atomique de la commande.")
+  }
+
+  // 2. Récupérer l'ID partenaire pour l'invalidation du cache
+  const { data: order } = await supabase
     .from("credit_orders")
-    .select("id, partner_id, credits, status, transfer_reference")
+    .select("partner_id, credits")
     .eq("id", orderId)
     .single()
 
-  if (fetchErr || !order || order.status !== "pending") {
-    throw new Error("Commande introuvable ou déjà validée.")
-  }
-
-  // 2. Mise à jour du statut de la commande
-  const { error: updateOrderErr } = await supabase
-    .from("credit_orders")
-    .update({ status: "paid", validated_at: new Date().toISOString() })
-    .eq("id", orderId)
-
-  if (updateOrderErr) throw new Error(updateOrderErr.message)
-
-  // 3. Créditer le compte partenaire via RPC atomique
-  try {
-    await supabase.rpc("increment_partner_credits", {
-      p_partner_id: order.partner_id,
-      p_amount: order.credits,
-      p_reference: `ORDER:${order.transfer_reference || order.id}`,
-    })
-  } catch {
-    // Fallback direct sur add_credits ou UPDATE si increment_partner_credits n'est pas encore actif
-    try {
-      await supabase.rpc("add_credits", {
-        p_partner_id: order.partner_id,
-        p_amount: order.credits,
-        p_type: "topup",
-        p_reference: `ORDER:${order.transfer_reference || order.id}`,
-      })
-    } catch {
-      const { data: currentPartner } = await supabase.from("partners").select("credits").eq("id", order.partner_id).single()
-      await supabase.from("partners").update({ credits: (currentPartner?.credits || 0) + order.credits }).eq("id", order.partner_id)
-      await supabase.from("credit_transactions").insert({
-        partner_id: order.partner_id,
-        amount: order.credits,
-        type: "topup",
-        reference: `ORDER:${order.transfer_reference || order.id}`,
-        created_at: new Date().toISOString(),
-      })
-    }
-  }
-
-  // 4. Journal d'audit
+  // 3. Journal d'audit
   try {
     await supabase.from("audit_log").insert({
-      admin_email: adminEmail,
+      admin_email: callerEmail,
       action: "VALIDATE_CREDIT_ORDER",
       entity_type: "credit_orders",
-      entity_id: order.id,
-      payload: { credits: order.credits, partner_id: order.partner_id },
+      entity_id: orderId,
+      payload: { credits: order?.credits, partner_id: order?.partner_id, settleResult },
       created_at: new Date().toISOString(),
     })
   } catch {
     // Non-blocking
   }
 
-  // 5. Invalidation chirurgicale immédiate des caches Next.js
+  // 4. Invalidation chirurgicale immédiate des caches Next.js
   revalidateTag("admin-kpis", "max")
   revalidateTag("admin-badges", "max")
-  revalidateTag(`partner-dashboard-${order.partner_id}`, "max")
+  if (order?.partner_id) {
+    revalidateTag(`partner-dashboard-${order.partner_id}`, "max")
+  }
 }
 
 export async function publishLeadAction(leadId: string, creditCost?: number) {
+  const adminUser = await getAdminUser()
+  if (!adminUser) {
+    throw new Error("Accès administrateur requis.")
+  }
+
   const supabase = createServiceRoleClient()
+
+  // Récupérer le segment du lead si le coût n'est pas fourni
+  const { data: lead } = await supabase
+    .from("leads")
+    .select("segment, credit_cost")
+    .eq("id", leadId)
+    .single()
+
+  const finalCost =
+    creditCost && creditCost > 0
+      ? creditCost
+      : lead?.credit_cost ?? (lead?.segment === "B2B" ? B2B_CREDIT_COST : B2C_CREDIT_COST)
 
   const updatePayload: Record<string, any> = {
     status: "qualified",
     marketplace_status: "available",
-  }
-  if (creditCost && creditCost > 0) {
-    updatePayload.credit_cost = creditCost
+    credit_cost: finalCost,
+    pricing_version: "v2",
   }
 
   const { error } = await supabase
@@ -95,11 +91,11 @@ export async function publishLeadAction(leadId: string, creditCost?: number) {
 
   try {
     await supabase.from("audit_log").insert({
-      admin_email: "admin@aegis-solaire.be",
+      admin_email: adminUser.email || "admin@aegissolaire.com",
       action: "LEAD_QUALIFIED_AND_PUBLISHED",
       entity_type: "leads",
       entity_id: leadId,
-      details: { credit_cost: creditCost },
+      details: { credit_cost: finalCost, pricing_version: "v2" },
       created_at: new Date().toISOString(),
     })
   } catch {
@@ -117,6 +113,11 @@ export async function publishLeadAction(leadId: string, creditCost?: number) {
 }
 
 export async function rejectLeadAction(leadId: string, reason: string, adminNotes?: string) {
+  const adminUser = await getAdminUser()
+  if (!adminUser) {
+    throw new Error("Accès administrateur requis.")
+  }
+
   const supabase = createServiceRoleClient()
 
   const updatePayload: Record<string, any> = {
@@ -136,7 +137,7 @@ export async function rejectLeadAction(leadId: string, reason: string, adminNote
 
   try {
     await supabase.from("audit_log").insert({
-      admin_email: "admin@aegis-solaire.be",
+      admin_email: adminUser.email || "admin@aegissolaire.com",
       action: "LEAD_REJECTED",
       entity_type: "leads",
       entity_id: leadId,
@@ -152,6 +153,11 @@ export async function rejectLeadAction(leadId: string, reason: string, adminNote
 }
 
 export async function archiveLeadAction(leadId: string) {
+  const adminUser = await getAdminUser()
+  if (!adminUser) {
+    throw new Error("Accès administrateur requis.")
+  }
+
   const supabase = createServiceRoleClient()
 
   const { error } = await supabase
@@ -163,7 +169,7 @@ export async function archiveLeadAction(leadId: string) {
 
   try {
     await supabase.from("audit_log").insert({
-      admin_email: "admin@aegis-solaire.be",
+      admin_email: adminUser.email || "admin@aegissolaire.com",
       action: "LEAD_ARCHIVED",
       entity_type: "leads",
       entity_id: leadId,
@@ -179,18 +185,44 @@ export async function archiveLeadAction(leadId: string) {
 
 export async function bulkQualifyAndPublishAction(leadIds: string[]) {
   if (leadIds.length === 0) return
+
+  const adminUser = await getAdminUser()
+  if (!adminUser) {
+    throw new Error("Accès administrateur requis.")
+  }
+
   const supabase = createServiceRoleClient()
 
-  const { error } = await supabase
+  // Mettre à jour avec prix par défaut v2 selon segment pour les leads qui n'en ont pas
+  const { data: leads } = await supabase
     .from("leads")
-    .update({ status: "qualified", marketplace_status: "available" })
+    .select("id, segment, credit_cost")
     .in("id", leadIds)
 
-  if (error) throw new Error(error.message)
+  if (leads) {
+    for (const lead of leads) {
+      const finalCost =
+        lead.credit_cost && lead.credit_cost > 0
+          ? lead.credit_cost
+          : lead.segment === "B2B"
+            ? B2B_CREDIT_COST
+            : B2C_CREDIT_COST
+
+      await supabase
+        .from("leads")
+        .update({
+          status: "qualified",
+          marketplace_status: "available",
+          credit_cost: finalCost,
+          pricing_version: "v2",
+        })
+        .eq("id", lead.id)
+    }
+  }
 
   try {
     await supabase.from("audit_log").insert({
-      admin_email: "admin@aegis-solaire.be",
+      admin_email: adminUser.email || "admin@aegissolaire.com",
       action: "BULK_LEADS_PUBLISHED",
       entity_type: "leads",
       details: { count: leadIds.length, ids: leadIds },
@@ -207,6 +239,12 @@ export async function bulkQualifyAndPublishAction(leadIds: string[]) {
 
 export async function bulkRejectAction(leadIds: string[], reason: string) {
   if (leadIds.length === 0) return
+
+  const adminUser = await getAdminUser()
+  if (!adminUser) {
+    throw new Error("Accès administrateur requis.")
+  }
+
   const supabase = createServiceRoleClient()
 
   const { error } = await supabase
@@ -218,7 +256,7 @@ export async function bulkRejectAction(leadIds: string[], reason: string) {
 
   try {
     await supabase.from("audit_log").insert({
-      admin_email: "admin@aegis-solaire.be",
+      admin_email: adminUser.email || "admin@aegissolaire.com",
       action: "BULK_LEADS_REJECTED",
       entity_type: "leads",
       details: { count: leadIds.length, ids: leadIds, reason },
@@ -241,6 +279,11 @@ export async function assignLeadAction(
     throw new Error("Au moins un installateur doit être sélectionné.")
   }
 
+  const adminUser = await getAdminUser()
+  if (!adminUser) {
+    throw new Error("Accès administrateur requis.")
+  }
+
   const supabase = createServiceRoleClient()
 
   // 1. Récupérer le lead
@@ -259,7 +302,8 @@ export async function assignLeadAction(
     throw new Error(`Ce lead ne peut être attribué qu'à ${maxSlots} installateur(s) maximum.`)
   }
 
-  const costPerPartner = lead.credit_cost ?? (lead.segment === "B2B" ? 5 : 2)
+  const costPerPartner =
+    lead.credit_cost ?? (lead.segment === "B2B" ? B2B_CREDIT_COST : B2C_CREDIT_COST)
 
   // 2. Traiter chaque installateur
   for (const partnerId of partnerIds) {
@@ -317,7 +361,7 @@ export async function assignLeadAction(
   // 4. Journal d'audit
   try {
     await supabase.from("audit_log").insert({
-      admin_email: "admin@aegis-solaire.be",
+      admin_email: adminUser.email || "admin@aegissolaire.com",
       action: "LEAD_DIRECTLY_ASSIGNED",
       entity_type: "leads",
       entity_id: leadId,
@@ -339,4 +383,3 @@ export async function assignLeadAction(
     revalidateTag(`partner-dashboard-${pId}`, "max")
   }
 }
-

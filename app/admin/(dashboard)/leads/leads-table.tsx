@@ -674,7 +674,7 @@ export function LeadsTable({
 
                     {/* Prix */}
                     <TableCell className="text-right font-mono text-[11px] tabular-nums text-muted-foreground">
-                      {lead.credit_cost ?? (lead.segment === "B2B" ? 5 : 2)} cr.
+                      {lead.credit_cost ?? (lead.segment === "B2B" ? 9 : 3)} cr.
                     </TableCell>
 
                     {/* Quick Actions au survol */}

@@ -30,7 +30,7 @@ const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.aegissolaire.co
 export const metadata = {
   title: "Devenir Partenaire Installateur RESCERT | Marketplace Photovoltaïque Wallonie",
   description:
-    "Marketplace de chantiers solaires qualifiés pour installateurs certifiés RESCERT en Wallonie. B2B exclusif (1 seul acheteur dès 8 crédits) et B2C transparent (max 3 installateurs dès 2 crédits). Zéro abonnement, déblocage direct aux crédits.",
+    "Marketplace de chantiers solaires qualifiés pour installateurs certifiés RESCERT en Wallonie. B2B exclusif (1 seul acheteur à 9 crédits = 103,50 € HTVA) et B2C transparent (max 3 installateurs à 3 crédits = 34,50 € HTVA). Zéro abonnement, déblocage direct aux crédits.",
   alternates: {
     canonical: `${baseUrl}/partenaires`,
   },
@@ -68,7 +68,7 @@ export default function PartenairesPage() {
                       SEGMENT B2B · 100% EXCLUSIF
                     </span>
                     <span className="font-mono text-xs font-bold text-accent tabular-nums">
-                      Dès 8 crédits (~95,84 € HT)
+                      9 crédits (103,50 € HT)
                     </span>
                   </div>
                   <h3 className="text-lg sm:text-xl font-bold text-foreground font-heading">
@@ -93,7 +93,7 @@ export default function PartenairesPage() {
                       SEGMENT B2C · TRANSPARENCE TOTALE
                     </span>
                     <span className="font-mono text-xs font-bold text-accent tabular-nums">
-                      Dès 2 crédits (~23,96 € HT)
+                      3 crédits (34,50 € HT)
                     </span>
                   </div>
                   <h3 className="text-lg sm:text-xl font-bold text-foreground font-heading">
@@ -361,162 +361,132 @@ export default function PartenairesPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-              {/* Pack 1 : Découverte */}
-              <div className="bg-card border border-border rounded-3xl p-6 shadow-xs flex flex-col justify-between gap-5 hover:border-accent/40 transition-colors">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+              {/* Recharge 1 : 10 crédits (Présélectionné) */}
+              <div className="bg-card border-2 border-accent rounded-3xl p-6 shadow-sm flex flex-col justify-between gap-5 relative">
+                <div className="absolute -top-3 right-6 bg-accent text-accent-foreground px-3 py-0.5 rounded-full font-mono text-[10px] font-bold uppercase tracking-wider shadow-2xs">
+                  Recommandé · Démarrage
+                </div>
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                      Pack Découverte
+                    <span className="font-mono text-xs font-bold text-accent uppercase tracking-wider">
+                      Recharge 10 Crédits
                     </span>
                   </div>
                   <div>
                     <span className="text-3xl font-extrabold font-mono tabular-nums text-foreground">
-                      119,80 €
+                      115,00 €
                     </span>
                     <span className="text-xs text-muted-foreground ml-1.5 font-mono">HT</span>
+                    <span className="block text-[11px] text-muted-foreground font-mono mt-0.5 tabular-nums">
+                      139,15 € TTC (TVA 21%)
+                    </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Idéal pour tester le réseau et acquérir jusqu&apos;à <span className="font-mono tabular-nums font-semibold text-foreground">5 chantiers</span> résidentiels B2C.
+                    Idéal pour démarrer : permet <span className="font-mono tabular-nums font-semibold text-foreground">3 déblocages B2C</span> (reste 1 crédit) ou <span className="font-mono tabular-nums font-semibold text-foreground">1 B2B exclusif</span>.
                   </p>
-                  <ul className="flex flex-col gap-2 pt-2 border-t border-border text-xs text-muted-foreground">
+                  <ul className="flex flex-col gap-2 pt-2 border-t border-border text-xs text-foreground font-medium">
                     <li className="flex items-center gap-2">
-                      <Check className="h-3.5 w-3.5 text-accent shrink-0" />
-                      <span><strong className="font-mono tabular-nums">10 crédits</strong> (~11,98 € / crédit)</span>
+                      <Check className="h-3.5 w-3.5 text-accent shrink-0 stroke-[3]" />
+                      <span><strong className="font-mono tabular-nums">10 crédits</strong> (11,50 € HT / crédit)</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="h-3.5 w-3.5 text-accent shrink-0" />
+                      <Check className="h-3.5 w-3.5 text-accent shrink-0 stroke-[3]" />
                       <span>Accès complet au portail Wallonie</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="h-3.5 w-3.5 text-accent shrink-0" />
+                      <Check className="h-3.5 w-3.5 text-accent shrink-0 stroke-[3]" />
                       <span>Crédits sans date de péremption</span>
                     </li>
                   </ul>
                 </div>
                 <a href="#candidature">
-                  <Button variant="outline" className="w-full rounded-xl text-xs font-semibold cursor-pointer">
-                    Sélectionner ce pack
+                  <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90 rounded-xl text-xs font-bold shadow-xs cursor-pointer">
+                    Postuler &amp; activer 10 crédits
                   </Button>
                 </a>
               </div>
 
-              {/* Pack 2 : Recommandé - Croissance */}
-              <div className="bg-card border-2 border-accent rounded-3xl p-6 shadow-sm flex flex-col justify-between gap-5 relative">
-                <div className="absolute -top-3 right-6 bg-accent text-accent-foreground px-3 py-0.5 rounded-full font-mono text-[10px] font-bold uppercase tracking-wider shadow-2xs">
-                  Le Plus Populaire
-                </div>
+              {/* Recharge 2 : 20 crédits */}
+              <div className="bg-card border border-border rounded-3xl p-6 shadow-xs flex flex-col justify-between gap-5 hover:border-accent/40 transition-colors">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-accent uppercase tracking-wider">
-                      Pack Croissance
+                    <span className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                      Recharge 20 Crédits
                     </span>
                   </div>
                   <div>
                     <span className="text-3xl font-extrabold font-mono tabular-nums text-foreground">
-                      274,50 €
+                      230,00 €
                     </span>
                     <span className="text-xs text-muted-foreground ml-1.5 font-mono">HT</span>
+                    <span className="block text-[11px] text-muted-foreground font-mono mt-0.5 tabular-nums">
+                      278,30 € TTC (TVA 21%)
+                    </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Le pack de référence pour alimenter régulièrement <span className="font-mono tabular-nums font-semibold text-foreground">1 à 2 équipes</span> de pose.
+                    Alimentez régulièrement <span className="font-mono tabular-nums font-semibold text-foreground">1 équipe de pose</span> : permet 6 chantiers B2C ou 2 dossiers B2B exclusifs.
                   </p>
-                  <ul className="flex flex-col gap-2 pt-2 border-t border-border text-xs text-foreground font-medium">
+                  <ul className="flex flex-col gap-2 pt-2 border-t border-border text-xs text-muted-foreground">
                     <li className="flex items-center gap-2">
-                      <Check className="h-3.5 w-3.5 text-accent shrink-0 stroke-[3]" />
-                      <span><strong className="font-mono tabular-nums">25 crédits</strong> (~10,98 € / cr., -8% remise)</span>
+                      <Check className="h-3.5 w-3.5 text-accent shrink-0" />
+                      <span><strong className="font-mono tabular-nums">20 crédits</strong> (11,50 € HT / crédit)</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="h-3.5 w-3.5 text-accent shrink-0 stroke-[3]" />
+                      <Check className="h-3.5 w-3.5 text-accent shrink-0" />
                       <span>Éligible B2B exclusif &amp; B2C</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="h-3.5 w-3.5 text-accent shrink-0 stroke-[3]" />
+                      <Check className="h-3.5 w-3.5 text-accent shrink-0" />
                       <span>Alertes chantiers par email</span>
                     </li>
                   </ul>
                 </div>
                 <a href="#candidature">
-                  <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90 rounded-xl text-xs font-bold shadow-xs cursor-pointer">
-                    Postuler &amp; activer ce pack
+                  <Button variant="outline" className="w-full rounded-xl text-xs font-semibold cursor-pointer">
+                    Sélectionner 20 crédits
                   </Button>
                 </a>
               </div>
 
-              {/* Pack 3 : Entreprise */}
+              {/* Recharge 3 : 50 crédits */}
               <div className="bg-card border border-border rounded-3xl p-6 shadow-xs flex flex-col justify-between gap-5 hover:border-accent/40 transition-colors">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                      Pack Entreprise
+                      Recharge 50 Crédits
                     </span>
                   </div>
                   <div>
                     <span className="text-3xl font-extrabold font-mono tabular-nums text-foreground">
-                      499,00 €
+                      575,00 €
                     </span>
                     <span className="text-xs text-muted-foreground ml-1.5 font-mono">HT</span>
+                    <span className="block text-[11px] text-muted-foreground font-mono mt-0.5 tabular-nums">
+                      695,75 € TTC (TVA 21%)
+                    </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Pour les installateurs cherchant des chantiers tertiaires et toitures d&apos;envergure.
+                    Confort de trésorerie pour les installateurs actifs : permet <span className="font-mono tabular-nums font-semibold text-foreground">16 chantiers B2C</span> ou 5 dossiers B2B exclusifs.
                   </p>
                   <ul className="flex flex-col gap-2 pt-2 border-t border-border text-xs text-muted-foreground">
                     <li className="flex items-center gap-2">
                       <Check className="h-3.5 w-3.5 text-accent shrink-0" />
-                      <span><strong className="font-mono tabular-nums">50 crédits</strong> (~9,98 € / cr., -17% remise)</span>
+                      <span><strong className="font-mono tabular-nums">50 crédits</strong> (11,50 € HT / crédit)</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="h-3.5 w-3.5 text-accent shrink-0" />
-                      <span>Priorité sur toitures &gt; 100 kWc</span>
+                      <span>Facturation TVA déductible 21 %</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="h-3.5 w-3.5 text-accent shrink-0" />
-                      <span>Support par gestionnaire dédié</span>
+                      <span>Support prioritaire par email</span>
                     </li>
                   </ul>
                 </div>
                 <a href="#candidature">
                   <Button variant="outline" className="w-full rounded-xl text-xs font-semibold cursor-pointer">
-                    Sélectionner ce pack
-                  </Button>
-                </a>
-              </div>
-
-              {/* Pack 4 : Grands Projets B2B */}
-              <div className="bg-card border border-border rounded-3xl p-6 shadow-xs flex flex-col justify-between gap-5 hover:border-accent/40 transition-colors">
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                      Grands Projets B2B
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-3xl font-extrabold font-mono tabular-nums text-foreground">
-                      890,00 €
-                    </span>
-                    <span className="text-xs text-muted-foreground ml-1.5 font-mono">HT</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Pour les entreprises photovoltaïques régionales à forte capacité de déploiement.
-                  </p>
-                  <ul className="flex flex-col gap-2 pt-2 border-t border-border text-xs text-muted-foreground">
-                    <li className="flex items-center gap-2">
-                      <Check className="h-3.5 w-3.5 text-accent shrink-0" />
-                      <span><strong className="font-mono tabular-nums">100 crédits</strong> (~8,90 € / cr., -26% remise)</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-3.5 w-3.5 text-accent shrink-0" />
-                      <span>Exclusivité sur mégaprojets tertiaires</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-3.5 w-3.5 text-accent shrink-0" />
-                      <span>Ligne directe avec la cellule technique</span>
-                    </li>
-                  </ul>
-                </div>
-                <a href="#candidature">
-                  <Button variant="outline" className="w-full rounded-xl text-xs font-semibold cursor-pointer">
-                    Sélectionner ce pack
+                    Sélectionner 50 crédits
                   </Button>
                 </a>
               </div>
@@ -532,7 +502,7 @@ export default function PartenairesPage() {
                   Exemple concret d&apos;exploitation (Chantier B2B toiture PME)
                 </span>
                 <p className="text-xs sm:text-sm text-foreground leading-relaxed">
-                  Débloquez 1 dossier B2B toiture industrielle à <strong className="font-mono tabular-nums">8 crédits</strong> (soit <span className="font-mono tabular-nums font-semibold">95,84 € HT</span>). Signez un chantier de <span className="font-mono tabular-nums font-semibold">60 kWc</span> (~54 000 € HT). Votre marge brute moyenne réalisée dépasse <strong className="font-mono tabular-nums font-bold text-accent">9 000 € HT</strong>. Le retour sur investissement est immédiat dès le premier dossier transformé.
+                  Débloquez 1 dossier B2B toiture industrielle à <strong className="font-mono tabular-nums">9 crédits</strong> (soit <span className="font-mono tabular-nums font-semibold">103,50 € HT</span>). Signez un chantier de <span className="font-mono tabular-nums font-semibold">60 kWc</span> (~54 000 € HT). Votre marge brute moyenne réalisée dépasse <strong className="font-mono tabular-nums font-bold text-accent">9 000 € HT</strong>. Le retour sur investissement est immédiat dès le premier dossier transformé.
                 </p>
               </div>
             </div>

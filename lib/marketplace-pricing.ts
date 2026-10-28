@@ -4,8 +4,15 @@
  * Garantit la cohérence entre l'API, les fiches projets et la page crédits.
  */
 
-// Prix de référence unitaire moyen constaté sur les packs installateurs (Pack 50 crédits à 599 € HTVA)
-export const REFERENCE_CREDIT_PRICE_EUR = 11.98
+import {
+  CREDIT_UNIT_PRICE_EUR,
+  CREDIT_UNIT_PRICE_CENTIMES,
+  B2C_CREDIT_COST,
+  B2B_CREDIT_COST,
+} from "./credit-pricing"
+
+// Prix de référence unitaire moyen constaté sur les recharges installateurs (1 crédit = 11,50 € HTVA)
+export const REFERENCE_CREDIT_PRICE_EUR = CREDIT_UNIT_PRICE_EUR
 
 export interface FinancialEstimates {
   estimatedPowerKwc: number
@@ -21,11 +28,10 @@ export interface FinancialEstimates {
 }
 
 /**
- * Calcule dynamiquement le coût en crédits d'un dossier selon sa valeur économique :
- * - B2C (partagé max 3 installateurs) : 2 crédits / acheteur
- * - B2B PME standard (< 500 m² et facture < 20 000 €) : 8 crédits en exclusivité
- * - B2B Tertiaire / Industriel (500 à 1 500 m² ou facture 20k-50k €) : 12 crédits en exclusivité
- * - B2B Grand Compte (> 1 500 m², facture > 50k € ou ombrière parking) : 18 crédits en exclusivité
+ * Calcule dynamiquement le coût en crédits d'un dossier selon le barème fixe V2 :
+ * - B2C (partagé max 3 installateurs) : 3 crédits / acheteur (34,50 € HTVA)
+ * - B2B professionnel exclusif : 9 crédits en exclusivité (103,50 € HTVA)
+ * Les anciens paliers B2B de 8, 12 et 18 crédits ont disparu au profit d'un tarif fixe unique.
  */
 export function calculateLeadCreditCost(lead: {
   segment: "B2B" | "B2C" | string
@@ -33,18 +39,8 @@ export function calculateLeadCreditCost(lead: {
   surfaceType?: string | null
   annualBill?: number | null
 }): number {
-  if (lead.segment === "B2C") return 2
-  const area = Number(lead.surfaceArea) || 0
-  const bill = Number(lead.annualBill) || 0
-  const isParking = lead.surfaceType === "parking"
-
-  if (area >= 1500 || bill >= 50000 || isParking) {
-    return 18
-  }
-  if (area >= 500 || bill >= 20000) {
-    return 12
-  }
-  return 8
+  if (lead.segment === "B2C") return B2C_CREDIT_COST
+  return B2B_CREDIT_COST
 }
 
 /**
@@ -103,14 +99,14 @@ export function calculateMarketplaceFinancials(lead: {
   // Marge brute indicative installateur (~22 % selon structure de coûts)
   const estimatedInstallerMargin = Math.round(avgContract * 0.22)
 
-  // Coût d'acquisition du dossier en crédits et en euros
+  // Coût d'acquisition du dossier en crédits et en euros (calcul exact en centimes sans arrondi entier)
   const credits = lead.creditCost ?? calculateLeadCreditCost({
     segment: lead.segment,
     surfaceArea: effectiveArea,
     surfaceType: lead.surfaceType,
     annualBill: lead.annualBill,
   })
-  const leadCostEuros = Math.round(credits * REFERENCE_CREDIT_PRICE_EUR)
+  const leadCostEuros = (credits * CREDIT_UNIT_PRICE_CENTIMES) / 100
 
   // Économie annuelle brute estimée sur la facture d'électricité (~35 % d'autoconsommation/effacement)
   // Wallonie : 930 kWh/kWc/an. L'économie réelle correspond à l'autoconsommation + revente surplus,

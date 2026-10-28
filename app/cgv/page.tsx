@@ -121,45 +121,42 @@ export default function CGV() {
           </p>
           <ul className="mt-3 list-disc space-y-2 pl-6 text-muted-foreground">
             <li>
-              Les crédits sont achetés par packs via le portail partenaire. Les tarifs des packs sont
-              libellés en Euros Hors Taxe (HTVA). La TVA belge au taux légal de 21 % s&apos;applique
-              à toute commande passée par un partenaire assujetti en Belgique.
+              <strong>Valeur du crédit :</strong> un (1) crédit équivaut à <strong>11,50 € HTVA</strong>.
             </li>
             <li>
-              <strong>Modalités de paiement :</strong> toute commande génère un bon de commande / facture
-              proforma avec référence de virement structurée. Le règlement s&apos;effectue par virement
-              bancaire direct sur le compte professionnel de l&apos;Exploitant (IBAN :{" "}
+              <strong>Recharges de crédits :</strong> les crédits sont acquis par recharges à tarif unitaire fixe (10 crédits pour 115,00 € HTVA / 139,15 € TTC ; 20 crédits pour 230,00 € HTVA / 278,30 € TTC ; 50 crédits pour 575,00 € HTVA / 695,75 € TTC). La TVA belge au taux légal de 21 % s&apos;applique à toute commande passée par un partenaire assujetti en Belgique.
+            </li>
+            <li>
+              <strong>Modalités de paiement :</strong> le règlement des commandes s&apos;effectue soit par paiement électronique instantané (Bancontact, carte bancaire via le prestataire de paiement agréé Mollie), soit par virement bancaire sur la base d&apos;un bon de commande proforma émis sur le compte professionnel de l&apos;Exploitant (IBAN :{" "}
               <strong>BE84 0020 3534 7259</strong>, BIC : <strong>GEBABEBB</strong>, titulaire :{" "}
-              <strong>INIT42</strong>). Les crédits sont crédités sur le compte du Partenaire Installateur
-              dès réception et rapprochement comptable du virement.
+              <strong>INIT42</strong>). En cas de virement, les crédits sont débloqués dès rapprochement comptable.
             </li>
             <li>
-              Le coût en crédits de chaque lead est indiqué sur sa fiche avant achat (à titre indicatif :
-              environ 5 crédits pour un lead B2B exclusif, environ 2 crédits pour un lead B2C).
-              L&apos;Exploitant se réserve le droit d&apos;ajuster ces montants en fonction de la
-              qualité et des caractéristiques du lead.
+              <strong>Tarification des dossiers :</strong>
+              <ul className="mt-1 list-disc pl-5 space-y-1">
+                <li>
+                  <strong>Lead B2C résidentiel :</strong> trois (3) crédits par installateur acheteur, soit <strong>34,50 € HTVA</strong> (limité à 3 acheteurs maximum).
+                </li>
+                <li>
+                  <strong>Lead B2B professionnel exclusif :</strong> neuf (9) crédits, soit <strong>103,50 € HTVA</strong> (réservé en exclusivité totale à un seul acheteur).
+                </li>
+              </ul>
             </li>
             <li>
-              <strong>Les crédits achetés ne sont pas remboursables</strong>, sauf dans les cas prévus
-              à l&apos;article 4.1 ci-dessous.
+              <strong>Les crédits achetés ne sont pas remboursables en numéraire</strong>, sauf dans les cas de non-conformité technique prévus à l&apos;article 4.1 ci-dessous.
             </li>
             <li>
-              Les crédits n&apos;ont pas de date d&apos;expiration et restent disponibles tant que le
-              compte du Partenaire Installateur est actif.
+              Les crédits n&apos;ont pas de date d&apos;expiration et restent disponibles tant que le compte du Partenaire Installateur est actif.
             </li>
           </ul>
 
-          <h3 className="mt-6 text-lg font-medium text-foreground">4.1. Leads non conformes</h3>
+          <h3 className="mt-6 text-lg font-medium text-foreground">4.1. Leads non conformes & Remplacement</h3>
           <p className="mt-3 text-muted-foreground">
-            Si un lead acheté s&apos;avère manifestement non conforme (fausses coordonnées, doublon avéré,
-            prospect hors zone géographique), le Partenaire Installateur peut signaler le lead via son
-            Dashboard ou par e-mail à{" "}
+            Si un lead acheté s&apos;avère manifestement non conforme (numéro erroné, prospect injoignable après 3 tentatives documentées sous 7 jours, doublon avéré, prospect hors zone géographique), le Partenaire Installateur peut déclarer un litige depuis son Dashboard ou par e-mail à{" "}
             <a href="mailto:cgv@aegissolaire.com" className="text-primary font-medium hover:underline">
               cgv@aegissolaire.com
             </a>{" "}
-            dans un délai de <strong>sept (7) jours ouvrés</strong> suivant l&apos;achat. Après vérification,
-            l&apos;Exploitant pourra, à sa seule discrétion, créditer le montant correspondant sur le compte
-            du Partenaire.
+            dans un délai de <strong>sept (7) jours ouvrés</strong> suivant l&apos;achat. Après examen par la cellule technique, l&apos;Exploitant procède au remboursement intégral et automatique du nombre exact de crédits dépensés sur le dossier concerné.
           </p>
         </section>
 
@@ -167,19 +164,14 @@ export default function CGV() {
         <section className="mb-8">
           <h2 className="text-xl font-semibold text-foreground">5. Conditions d&apos;achat des leads</h2>
 
-          <h3 className="mt-6 text-lg font-medium text-foreground">5.1. Segment B2B (exclusivité)</h3>
+          <h3 className="mt-6 text-lg font-medium text-foreground">5.1. Segment B2B (exclusivité totale)</h3>
           <p className="mt-3 text-muted-foreground">
-            Chaque lead B2B est proposé à <strong>un seul</strong> Partenaire Installateur. Une fois acheté,
-            le lead n&apos;est plus disponible pour d&apos;autres partenaires. Les données complètes du
-            prospect (nom, prénom, téléphone, e-mail, numéro de TVA) sont débloquées immédiatement après
-            l&apos;achat.
+            Chaque lead B2B est proposé à <strong>un seul et unique</strong> Partenaire Installateur au tarif fixe de <strong>9 crédits (103,50 € HTVA)</strong>. Dès l&apos;achat, le lead est retiré définitivement de la marketplace. Les données complètes du prospect (nom, téléphone, e-mail, surface de toiture, compteur, puissance estimée) sont débloquées immédiatement.
           </p>
 
-          <h3 className="mt-6 text-lg font-medium text-foreground">5.2. Segment B2C (partagé)</h3>
+          <h3 className="mt-6 text-lg font-medium text-foreground">5.2. Segment B2C (partage transparent plafonné)</h3>
           <p className="mt-3 text-muted-foreground">
-            Chaque lead B2C est proposé à <strong>trois (3) Partenaires Installateurs maximum</strong>. Le
-            nombre de places restantes est affiché sur la fiche du lead avant achat. Lorsque toutes les
-            places sont prises, le lead est marqué comme épuisé.
+            Chaque lead B2C est proposé au tarif fixe de <strong>3 crédits (34,50 € HTVA)</strong> par installateur acheteur, à <strong>trois (3) Partenaires Installateurs maximum</strong>. Le nombre de places restantes est affiché en temps réel sur la fiche avant tout débit. Lorsque les trois places sont pourvues, le dossier est définitivement clôturé.
           </p>
 
           <h3 className="mt-6 text-lg font-medium text-foreground">5.3. Informations avant achat</h3>

@@ -6,14 +6,7 @@ import { createCreditOrderPayment } from "@/lib/mollie"
 
 export const dynamic = "force-dynamic"
 
-const CREDIT_PACKS: Record<
-  string,
-  { id: string; name: string; credits: number; priceHtva: number }
-> = {
-  pack_10: { id: "pack_10", name: "Pack Découverte", credits: 10, priceHtva: 149 },
-  pack_50: { id: "pack_50", name: "Pack Croissance", credits: 50, priceHtva: 599 },
-  pack_100: { id: "pack_100", name: "Pack Entreprise", credits: 100, priceHtva: 999 },
-}
+import { CREDIT_PACKS, PRICING_VERSION, calculateOrderFinancials } from "@/lib/credit-pricing"
 
 export async function POST(request: Request) {
   const partner = await getPartner()
@@ -36,10 +29,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Pack de crédits introuvable" }, { status: 400 })
   }
 
-  const vatRate = 0.21
-  const vatAmount = Math.round(pack.priceHtva * vatRate * 100) / 100
-  const priceTtc = Math.round((pack.priceHtva + vatAmount) * 100) / 100
-
+  const financials = calculateOrderFinancials(pack.credits)
   const transferReference = `AEGIS-${randomUUID()}`
 
   const admin = createServiceRoleClient()
@@ -52,11 +42,12 @@ export async function POST(request: Request) {
       pack_id: pack.id,
       pack_name: pack.name,
       credits: pack.credits,
-      price_htva: pack.priceHtva,
-      vat_amount: vatAmount,
-      price_ttc: priceTtc,
+      price_htva: financials.priceHtva,
+      vat_amount: financials.vatAmount,
+      price_ttc: financials.priceTtc,
       transfer_reference: transferReference,
       status: "pending",
+      pricing_version: PRICING_VERSION,
       notes: "Paiement Bancontact en cours d'initialisation...",
     })
     .select("id")
@@ -81,7 +72,7 @@ export async function POST(request: Request) {
       orderId: order.id,
       packName: pack.name,
       credits: pack.credits,
-      priceTtc,
+      priceTtc: financials.priceTtc,
       partnerId: partner.id,
       partnerEmail: partner.email,
       partnerCompany: partner.company_name,
