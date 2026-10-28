@@ -5,6 +5,12 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
 import {
+  BadgeCheck,
+  CheckCircle2,
+  Mail,
+  RefreshCw,
+} from "lucide-react"
+import {
   Form,
   FormControl,
   FormField,
@@ -50,6 +56,14 @@ const inputClass =
 export function InstallerRegistrationForm() {
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(0)
+  const [submittedData, setSubmittedData] = useState<{
+    email: string
+    companyName: string
+    firstName: string
+    regions: string[]
+  } | null>(null)
+  const [resending, setResending] = useState(false)
+  const [resendSent, setResendSent] = useState(false)
 
   const form = useForm<InstallerRegistrationInput>({
     resolver: zodResolver(installerRegistrationSchema),
@@ -82,6 +96,29 @@ export function InstallerRegistrationForm() {
     setStep((s) => Math.max(s - 1, 0))
   }
 
+  async function handleResendEmail() {
+    if (!submittedData?.email) return
+    setResending(true)
+    try {
+      const res = await fetch("/api/installateurs/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: submittedData.email }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || "Impossible de renvoyer l'e-mail.")
+        return
+      }
+      setResendSent(true)
+      toast.success("E-mail de confirmation renvoyé avec succès !")
+    } catch {
+      toast.error("Erreur de connexion. Veuillez réessayer.")
+    } finally {
+      setResending(false)
+    }
+  }
+
   async function onSubmit(values: InstallerRegistrationInput) {
     setLoading(true)
     try {
@@ -95,12 +132,22 @@ export function InstallerRegistrationForm() {
         toast.error(data.error ?? "Erreur lors de l'envoi")
         return
       }
+      setSubmittedData({
+        email: values.email,
+        companyName: values.companyName,
+        firstName: values.firstName,
+        regions: values.regions ?? [],
+      })
       toast.success(
         data.message ??
-          "Votre demande a bien été envoyée. Notre équipe va vérifier votre certification RESCERT Photovoltaïque et vous recontactera sous 48h."
+          "Votre candidature a été transmise avec succès ! Vérifiez votre boîte mail."
       )
-      form.reset()
-      setStep(0)
+      if (typeof window !== "undefined") {
+        const anchor = document.getElementById("candidature")
+        if (anchor) {
+          anchor.scrollIntoView({ behavior: "smooth", block: "start" })
+        }
+      }
     } catch {
       toast.error("Une erreur est survenue. Veuillez réessayer.")
     } finally {
@@ -108,13 +155,174 @@ export function InstallerRegistrationForm() {
     }
   }
 
+  if (submittedData) {
+    return (
+      <div className="animate-in fade-in-0 duration-300">
+        {/* En-tête de confirmation */}
+        <div className="border-b border-border pb-6 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-1.5 text-xs font-mono font-semibold text-emerald-700 dark:text-emerald-300">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <span>CANDIDATURE BIEN REÇUE</span>
+          </div>
+          <h2 className="mt-3 text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-heading">
+            Votre candidature a bien été reçue !
+          </h2>
+          <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground leading-relaxed">
+            Merci{submittedData.firstName ? ` ${submittedData.firstName}` : ""} ! Votre demande d&apos;adhésion pour <strong className="text-foreground">{submittedData.companyName}</strong> a été enregistrée avec succès.
+          </p>
+        </div>
+
+        <div className="mt-8 flex flex-col gap-6">
+          {/* Encadré d'action prioritaire : Vérification e-mail */}
+          <div className="rounded-2xl border-2 border-accent/40 bg-accent/5 p-5 sm:p-6 flex flex-col gap-4 text-left shadow-2xs">
+            <div className="flex items-start gap-3.5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground shadow-2xs mt-0.5">
+                <Mail className="h-5 w-5" />
+              </div>
+              <div className="flex flex-col gap-1.5 min-w-0 flex-1">
+                <span className="font-mono text-xs uppercase tracking-wider font-bold text-accent">
+                  Action requise pour activer votre compte
+                </span>
+                <h3 className="text-base sm:text-lg font-bold text-foreground font-heading">
+                  Vérifiez votre boîte e-mail
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Un e-mail de confirmation contenant votre <strong className="text-foreground">lien de validation sécurisé</strong> vient d&apos;être envoyé à l&apos;adresse suivante :
+                </p>
+                <div className="mt-1 inline-flex max-w-full items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2 font-mono text-sm font-semibold text-foreground shadow-2xs break-all">
+                  <Mail className="h-4 w-4 shrink-0 text-accent" />
+                  <span className="truncate">{submittedData.email}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border/70 bg-card/70 p-4 text-xs sm:text-sm text-foreground flex flex-col gap-2">
+              <p className="font-semibold text-foreground flex items-center gap-2">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground font-mono text-xs font-bold">
+                  !
+                </span>
+                <span>Veuillez cliquer sur le lien reçu par e-mail</span>
+              </p>
+              <p className="text-xs text-muted-foreground leading-relaxed pl-7">
+                Cette étape est indispensable pour certifier votre adresse professionnelle. Dès votre validation effectuée, notre cellule technique procèdera à l&apos;audit de votre agrément RESCERT Photovoltaïque et débloquera vos accès à la marketplace de chantiers solaires.
+              </p>
+            </div>
+          </div>
+
+          {/* Parcours des étapes de traitement */}
+          <div className="rounded-2xl border border-border bg-secondary/30 p-5 sm:p-6 flex flex-col gap-3.5">
+            <span className="font-mono text-xs uppercase tracking-wider font-semibold text-muted-foreground">
+              Étapes de traitement de votre dossier
+            </span>
+            <div className="grid gap-3 text-xs sm:text-sm">
+              <div className="flex items-start gap-3">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 font-bold text-xs mt-0.5">
+                  ✓
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">01. Enregistrement de la candidature</p>
+                  <p className="text-xs text-muted-foreground">
+                    Informations consignées avec succès pour vos zones d&apos;intervention{" "}
+                    {submittedData.regions.length > 0 ? `(${submittedData.regions.join(", ")})` : "(Wallonie)"}.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground font-mono font-bold text-xs mt-0.5 animate-pulse">
+                  02
+                </div>
+                <div>
+                  <p className="font-semibold text-accent">02. Confirmation de votre e-mail (En attente de votre clic)</p>
+                  <p className="text-xs text-muted-foreground">
+                    Consultez votre boîte mail et cliquez sur le lien d&apos;activation pour valider votre demande.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 opacity-80">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground font-mono font-bold text-xs mt-0.5">
+                  03
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">03. Audit RESCERT & Déblocage Marketplace</p>
+                  <p className="text-xs text-muted-foreground">
+                    Vérification technique sous <span className="font-mono tabular-nums font-semibold text-foreground">48 h</span> par nos auditeurs, puis réception de vos identifiants partenaires.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Boutons d'action et support */}
+          <div className="flex flex-col gap-3.5">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={resending}
+                onClick={handleResendEmail}
+                className="h-11 rounded-xl border-border bg-card text-foreground font-semibold hover:bg-secondary cursor-pointer shadow-2xs"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 text-accent ${resending ? "animate-spin" : ""}`} />
+                {resending ? "Envoi en cours…" : resendSent ? "E-mail renvoyé avec succès !" : "Renvoyer l'e-mail de validation"}
+              </Button>
+
+              <a
+                href="mailto:contact@aegissolaire.com"
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-border/80 bg-background px-4 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Support : contact@aegissolaire.com
+              </a>
+            </div>
+
+            <p className="text-xs text-muted-foreground text-center leading-relaxed">
+              💡 L&apos;e-mail arrive sous <span className="font-mono tabular-nums">60 s</span>. Pensez à vérifier vos dossiers <strong className="text-foreground">Spams / Courriers indésirables</strong> s&apos;il n&apos;apparaît pas immédiatement dans votre boîte principale.
+            </p>
+          </div>
+
+          {/* Bouton pour réinitialiser / nouvelle soumission */}
+          <div className="border-t border-border pt-4 text-center">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSubmittedData(null)
+                setResendSent(false)
+                form.reset()
+                setStep(0)
+              }}
+              className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              Déposer une autre candidature
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="space-y-6 [padding-bottom:max(0.75rem,env(safe-area-inset-bottom))]"
-        noValidate
-      >
+    <div>
+      <div className="border-b border-border pb-6 text-center">
+        <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/[0.06] px-4 py-1.5 text-xs font-mono font-semibold text-primary">
+          <BadgeCheck className="h-4 w-4 text-accent" />
+          <span>INSCRIPTION INSTALLATEUR PARTENAIRE</span>
+        </div>
+        <h2 className="mt-3 text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-heading">
+          Postuler au réseau d&apos;installateurs Aegis Solaire
+        </h2>
+        <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
+          Seuls les installateurs couverts par une certification RESCERT Photovoltaïque en cours de validité en Wallonie sont éligibles.
+        </p>
+      </div>
+
+      <div className="mt-8">
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6 [padding-bottom:max(0.75rem,env(safe-area-inset-bottom))]"
+            noValidate
+          >
         {/* Progress — compact on mobile */}
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground sm:text-sm">
@@ -443,7 +651,9 @@ export function InstallerRegistrationForm() {
             </Button>
           )}
         </div>
-      </form>
-    </Form>
+          </form>
+        </Form>
+      </div>
+    </div>
   )
 }

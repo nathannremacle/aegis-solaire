@@ -132,11 +132,10 @@ export function Header() {
                 setOptimisticSegment("b2b")
               }}
               aria-current={!isB2C ? "page" : undefined}
-              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all ${
-                !isB2C
+              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all ${!isB2C
                   ? "bg-accent text-accent-foreground shadow-xs"
                   : "text-white/80 hover:text-white"
-              }`}
+                }`}
             >
               <Building2 className="h-3 w-3" />
               Pro / B2B
@@ -148,11 +147,10 @@ export function Header() {
                 setOptimisticSegment("b2c")
               }}
               aria-current={isB2C ? "page" : undefined}
-              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all ${
-                isB2C
+              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all ${isB2C
                   ? "bg-accent text-accent-foreground shadow-xs"
                   : "text-white/80 hover:text-white"
-              }`}
+                }`}
             >
               <Home className="h-3 w-3" />
               Particuliers
@@ -193,9 +191,8 @@ export function Header() {
                   if (!isB2C) return
                   setOptimisticSegment("b2b")
                 }}
-                className={`group relative flex h-full min-w-[138px] lg:min-w-[148px] items-center justify-center rounded-full px-3.5 lg:px-4 text-sm font-semibold transition-colors duration-200 ${
-                  !isB2C ? "text-white" : "text-neutral-500 hover:text-neutral-900"
-                }`}
+                className={`group relative flex h-full min-w-[138px] lg:min-w-[148px] items-center justify-center rounded-full px-3.5 lg:px-4 text-sm font-semibold transition-colors duration-200 ${!isB2C ? "text-white" : "text-neutral-500 hover:text-neutral-900"
+                  }`}
               >
                 {!isB2C && (
                   <motion.div
@@ -207,9 +204,8 @@ export function Header() {
                 )}
                 <span className="relative z-10 flex items-center justify-center gap-1.5 select-none">
                   <Building2
-                    className={`h-4 w-4 shrink-0 transition-all duration-200 ${
-                      !isB2C ? "text-blue-400 scale-105" : "text-neutral-400 group-hover:text-neutral-600"
-                    }`}
+                    className={`h-4 w-4 shrink-0 transition-all duration-200 ${!isB2C ? "text-blue-400 scale-105" : "text-neutral-400 group-hover:text-neutral-600"
+                      }`}
                   />
                   <span>Industrie &amp; Pro</span>
                 </span>
@@ -222,9 +218,8 @@ export function Header() {
                   if (isB2C) return
                   setOptimisticSegment("b2c")
                 }}
-                className={`group relative flex h-full min-w-[138px] lg:min-w-[148px] items-center justify-center rounded-full px-3.5 lg:px-4 text-sm font-semibold transition-colors duration-200 ${
-                  isB2C ? "text-white" : "text-neutral-500 hover:text-neutral-900"
-                }`}
+                className={`group relative flex h-full min-w-[138px] lg:min-w-[148px] items-center justify-center rounded-full px-3.5 lg:px-4 text-sm font-semibold transition-colors duration-200 ${isB2C ? "text-white" : "text-neutral-500 hover:text-neutral-900"
+                  }`}
               >
                 {isB2C && (
                   <motion.div
@@ -236,9 +231,8 @@ export function Header() {
                 )}
                 <span className="relative z-10 flex items-center justify-center gap-1.5 select-none">
                   <Home
-                    className={`h-4 w-4 shrink-0 transition-all duration-200 ${
-                      isB2C ? "text-blue-400 scale-105" : "text-neutral-400 group-hover:text-neutral-600"
-                    }`}
+                    className={`h-4 w-4 shrink-0 transition-all duration-200 ${isB2C ? "text-blue-400 scale-105" : "text-neutral-400 group-hover:text-neutral-600"
+                      }`}
                   />
                   <span>Particuliers</span>
                 </span>
@@ -257,9 +251,8 @@ export function Header() {
                   key={item.label}
                   href={item.href}
                   onClick={(e) => handleNavClick(e, item.href)}
-                  className={`px-3 py-2 text-sm font-medium text-neutral-600 transition-colors hover:text-primary hover:bg-neutral-100/70 rounded-lg ${
-                    isFourth ? "min-w-[76px] text-center" : ""
-                  }`}
+                  className={`px-3 py-2 text-sm font-medium text-neutral-600 transition-colors hover:text-primary hover:bg-neutral-100/70 rounded-lg ${isFourth ? "min-w-[76px] text-center" : ""
+                    }`}
                 >
                   {item.label}
                 </Link>
@@ -335,9 +328,8 @@ export function Header() {
                       setOptimisticSegment("b2b")
                       setMobileMenuOpen(false)
                     }}
-                    className={`group relative flex h-full flex-1 items-center justify-center rounded-full text-sm font-bold transition-all ${
-                      !isB2C ? "text-white" : "text-neutral-500"
-                    }`}
+                    className={`group relative flex h-full flex-1 items-center justify-center rounded-full text-sm font-bold transition-all ${!isB2C ? "text-white" : "text-neutral-500"
+                      }`}
                   >
                     {!isB2C && (
                       <motion.div
@@ -357,9 +349,8 @@ export function Header() {
                       setOptimisticSegment("b2c")
                       setMobileMenuOpen(false)
                     }}
-                    className={`group relative flex h-full flex-1 items-center justify-center rounded-full text-sm font-bold transition-all ${
-                      isB2C ? "text-white" : "text-neutral-500"
-                    }`}
+                    className={`group relative flex h-full flex-1 items-center justify-center rounded-full text-sm font-bold transition-all ${isB2C ? "text-white" : "text-neutral-500"
+                      }`}
                   >
                     {isB2C && (
                       <motion.div

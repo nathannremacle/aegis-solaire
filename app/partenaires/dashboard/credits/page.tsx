@@ -213,8 +213,8 @@ function OrderPackSection({ pack }: { pack: CreditPack }) {
           <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />
           Paiement sécurisé Mollie · Débit compte à compte sans carte bancaire ni délai de virement
         </span>
-        <span className="font-mono tabular-nums text-muted-foreground/80">
-          Forfait bancaire fixe ~0,25 € HT · 0 % de commission variable
+        <span className="text-muted-foreground/80">
+          Protocole bancaire SSL chiffré · Aucun frais additionnel
         </span>
       </div>
     </div>

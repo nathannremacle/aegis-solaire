@@ -83,7 +83,11 @@ export function PartnersHero() {
 
       {/* Cinematic gradient overlays to guarantee pristine contrast on text while preserving the golden sunset & engineers */}
       <div
-        className="pointer-events-none select-none absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/65 to-slate-950/20 sm:via-slate-950/45 sm:to-transparent"
+        className="pointer-events-none select-none absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/75 to-slate-950/20 sm:via-slate-950/65 sm:to-transparent"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none select-none absolute inset-y-0 left-0 w-full lg:w-3/5 2xl:w-1/2 bg-gradient-to-r from-slate-950/80 via-slate-950/40 to-transparent"
         aria-hidden
       />
       <div
@@ -95,16 +99,16 @@ export function PartnersHero() {
         aria-hidden
       />
 
-      {/* Floating Live Lead Pin (Desktop: 100% fidèle à la maquette de référence) */}
+      {/* Floating Live Lead Pin (Desktop: 100% fidèle à la maquette de référence, responsive tous écrans) */}
       <div className="hidden lg:block absolute inset-0 pointer-events-none z-15 overflow-hidden">
         <motion.div
           initial={{ opacity: 0, scale: 0.92, y: 12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
-          className="absolute select-none pointer-events-auto"
+          className="absolute select-none pointer-events-auto origin-top-left scale-[0.84] xl:scale-95 2xl:scale-100"
           style={{
-            left: "calc(83% - 370px)",
-            top: "9.5%",
+            left: "calc(min(87%, 100% - 220px) - 370px)",
+            top: "clamp(3rem, 9.5%, 5.5rem)",
           }}
         >
           {/* Carte Flottante Détachée Interactive (Redirige vers l'exemple B2C au clic) */}
@@ -197,7 +201,7 @@ export function PartnersHero() {
       </div>
 
       {/* Main Hero Content */}
-      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-between px-4 pt-8 pb-6 sm:px-6 sm:pt-10 sm:pb-8 lg:px-8">
+      <div className="relative z-10 mx-auto flex w-full max-w-7xl 2xl:max-w-screen-2xl 3xl:max-w-[1720px] flex-1 flex-col justify-between px-4 pt-8 pb-6 sm:px-6 sm:pt-10 sm:pb-8 lg:px-8">
         <motion.div
           className="max-w-2xl lg:max-w-3xl xl:max-w-4xl text-left"
           variants={containerVariants}
@@ -217,7 +221,7 @@ export function PartnersHero() {
           {/* Headline H1 Unique */}
           <motion.h1
             variants={itemVariants}
-            className="mt-5 text-balance text-3xl font-extrabold tracking-tight text-white min-[480px]:text-4xl sm:text-5xl lg:text-[50px] xl:text-[54px] font-heading leading-[1.08] drop-shadow-md"
+            className="mt-5 text-balance text-3xl font-extrabold tracking-tight text-white min-[480px]:text-4xl sm:text-5xl lg:text-[46px] xl:text-[50px] 2xl:text-[54px] font-heading leading-[1.08] drop-shadow-md max-w-xl xl:max-w-2xl"
           >
             La marketplace<br />
             photovoltaïque des<br />
@@ -227,7 +231,7 @@ export function PartnersHero() {
           {/* Subheadline descriptive */}
           <motion.p
             variants={itemVariants}
-            className="mt-5 max-w-2xl text-pretty text-sm sm:text-base lg:text-[16px] font-light leading-relaxed text-slate-200"
+            className="mt-5 max-w-2xl 2xl:max-w-3xl text-pretty text-sm sm:text-base lg:text-[16px] 2xl:text-[17px] font-light leading-relaxed text-slate-200"
           >
             Accédez à un flux continu de chantiers qualifiés sans démarchage à froid.
             <br className="hidden sm:inline" />
@@ -268,13 +272,13 @@ export function PartnersHero() {
           {/* Micro-réassurance sous les CTAs */}
           <motion.div
             variants={itemVariants}
-            className="mt-7 flex flex-wrap lg:flex-nowrap items-center gap-x-4 sm:gap-x-5 lg:gap-x-6 gap-y-2 text-xs sm:text-xs lg:text-[12px] xl:text-[13px] text-slate-200/90 whitespace-nowrap"
+            className="mt-7 flex flex-wrap xl:flex-nowrap items-center gap-x-4 sm:gap-x-5 lg:gap-x-6 gap-y-2.5 text-xs sm:text-xs lg:text-[12px] xl:text-[13px] text-slate-200/90"
           >
             <div className="inline-flex items-center gap-1.5 sm:gap-2 shrink-0">
               <span className="flex h-5 w-5 items-center justify-center rounded-full border border-slate-300/40 bg-black/25 font-mono font-bold text-white shrink-0 text-xs">
                 €
               </span>
-              <span>
+              <span className="whitespace-nowrap">
                 <span className="font-mono tabular-nums">0 €</span> de frais fixes &amp; zéro abonnement forcé
               </span>
             </div>
@@ -282,7 +286,7 @@ export function PartnersHero() {
               <span className="flex h-5 w-5 items-center justify-center rounded-full border border-slate-300/40 bg-black/25 text-white shrink-0 text-xs">
                 <Check className="h-3 w-3 stroke-[2.5]" />
               </span>
-              <span>
+              <span className="whitespace-nowrap">
                 Audit toiture &amp; TVA vérifiés sous <span className="font-mono tabular-nums">48 h</span>
               </span>
             </div>
@@ -290,7 +294,7 @@ export function PartnersHero() {
               <span className="flex h-5 w-5 items-center justify-center rounded-full border border-slate-300/40 bg-black/25 text-white shrink-0 text-xs">
                 <Zap className="h-3 w-3 fill-white" />
               </span>
-              <span>
+              <span className="whitespace-nowrap">
                 Remplacement garanti si prospect injoignable sous <span className="font-mono tabular-nums">7 j</span>
               </span>
             </div>
@@ -304,7 +308,7 @@ export function PartnersHero() {
           animate="visible"
           className="mt-10 sm:mt-12 w-full rounded-2xl sm:rounded-3xl border border-neutral-200/90 bg-white/95 backdrop-blur-xl p-4 sm:p-5 lg:p-6 shadow-xl shadow-slate-950/25"
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 divide-y sm:divide-y-0 sm:divide-x divide-neutral-200/80">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 2xl:gap-8 divide-y sm:divide-y-0 sm:divide-x divide-neutral-200/80">
             {/* Colonne 1 : 100% Exclusif */}
             <div className="flex items-center gap-3.5 sm:px-3 first:pl-0">
               <Users2 className="h-7 w-7 sm:h-8 sm:w-8 text-[#2563EB] shrink-0" />

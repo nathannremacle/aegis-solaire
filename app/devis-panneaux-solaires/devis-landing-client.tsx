@@ -389,7 +389,7 @@ export function DevisLandingClient() {
   const progressPercent = Math.round((step / totalSteps) * 100)
 
   return (
-    <div className="min-h-screen lg:h-screen lg:overflow-hidden bg-background bg-[linear-gradient(to_right,rgba(15,23,42,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.03)_1px,transparent_1px)] bg-[size:44px_44px] text-foreground flex flex-col justify-between font-sans selection:bg-accent/15 selection:text-foreground">
+    <div className="min-h-screen bg-background bg-[linear-gradient(to_right,rgba(15,23,42,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.03)_1px,transparent_1px)] bg-[size:44px_44px] text-foreground flex flex-col justify-between font-sans selection:bg-accent/15 selection:text-foreground">
       
       {/* ── HEADER MINIMAL : Logo Aegis Solaire en haut à gauche ── */}
       <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-2 sm:pt-5 sm:pb-2 shrink-0 flex items-center justify-between">
@@ -408,7 +408,7 @@ export function DevisLandingClient() {
       </header>
 
       {/* ── CORPS CENTRAL : Structure Fullscreen Split-Screen Style Bobex ── */}
-      <main className="flex-1 flex items-center justify-center w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 lg:py-4 overflow-y-auto lg:overflow-visible">
+      <main className="flex-1 flex items-center justify-center w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-center w-full my-auto">
           
           {/* ── COLONNE GAUCHE (Autorité, Réassurance & Preuve Bobex-style) ── */}
@@ -1144,7 +1144,7 @@ export function DevisLandingClient() {
       </main>
 
       {/* ── FOOTER DISCRET PLEIN ÉCRAN : Mentions légales obligatoires ── */}
-      <footer className="w-full max-w-7xl mx-auto pl-24 pr-4 sm:pl-28 sm:pr-6 lg:pl-28 lg:pr-8 py-2.5 sm:py-3 shrink-0 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-muted-foreground border-t border-border/40">
+      <footer className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 shrink-0 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-muted-foreground border-t border-border/40">
         <p className="font-mono text-[11px] text-center sm:text-left">
           Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
         </p>

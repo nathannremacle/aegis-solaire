@@ -124,10 +124,37 @@
     overflow-x: hidden;
     -webkit-text-size-adjust: 100%;
     scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
   }
   body {
     @apply bg-background text-foreground min-w-0;
     overflow-x: hidden;
+  }
+
+  /* Barre de défilement moderne et discrète (pas de scrollbar Windows 95 épaisse) */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+  }
+
+  /* Masquer la barre de défilement tout en permettant le scroll */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 
   /* Neutralisation stricte du décalage horizontal (layout shift vers la gauche)

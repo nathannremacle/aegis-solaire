@@ -679,22 +679,7 @@ export default function PartenairesPage() {
         >
           <div className="mx-auto max-w-3xl min-w-0 px-4 sm:px-6 lg:px-8">
             <div className="rounded-3xl border border-border bg-card p-6 sm:p-10 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_10px_25px_-5px_rgba(15,23,42,0.05)]">
-              <div className="border-b border-border pb-6 text-center">
-                <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/[0.06] px-4 py-1.5 text-xs font-mono font-semibold text-primary">
-                  <BadgeCheck className="h-4 w-4 text-accent" />
-                  <span>INSCRIPTION INSTALLATEUR PARTENAIRE</span>
-                </div>
-                <h2 className="mt-3 text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-heading">
-                  Postuler au réseau d&apos;installateurs Aegis Solaire
-                </h2>
-                <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
-                  Seuls les installateurs couverts par une certification RESCERT Photovoltaïque en cours de validité en Wallonie sont éligibles.
-                </p>
-              </div>
-
-              <div className="mt-8">
-                <InstallerRegistrationForm />
-              </div>
+              <InstallerRegistrationForm />
 
               <div className="mt-8 border-t border-border pt-6 text-center">
                 <p className="text-xs text-muted-foreground">
