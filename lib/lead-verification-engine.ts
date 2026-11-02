@@ -147,74 +147,65 @@ export async function verifyWalloniaAddressSpw(params: {
   }
 
   try {
-    // Interrogation de l'API officielle geocodeWS du SPW
-    const queryZone = cleanPostal || cleanCity
-    const url = new URL("https://geoservices.wallonie.be/geocodeWS/geolist")
-    url.searchParams.set("zone", queryZone)
-    if (cleanStreet) {
-      url.searchParams.set("street", cleanStreet)
-    }
+    const fullText = [cleanStreet, cleanPostal, cleanCity].filter(Boolean).join(", ")
 
-    const res = await fetch(url.toString(), {
-      signal: AbortSignal.timeout(3500),
-      headers: { Accept: "application/json" },
-    })
+    // 1. Si une adresse ou rue est fournie, interroger le géocodeur d'adresse SPW
+    if (cleanStreet || (cleanPostal && cleanCity)) {
+      const geocodeUrl = `https://geoservices.wallonie.be/geocodeWS/geocode?address=${encodeURIComponent(fullText)}`
+      const res = await fetch(geocodeUrl, {
+        signal: AbortSignal.timeout(3500),
+        headers: { Accept: "application/json" },
+      })
 
-    if (!res.ok) {
-      return {
-        validInWallonia: false,
-        confidenceScore: 0,
-        source: "SPW_ICAR",
-        rawCandidatesCount: 0,
-      }
-    }
-
-    const data = await res.json()
-    const candidates = Array.isArray(data?.candidates) ? data.candidates : []
-
-    if (candidates.length === 0) {
-      // Deuxième tentative : recherche libre sur la commune seule
-      if (cleanPostal && cleanPostal !== queryZone) {
-        const fallbackUrl = `https://geoservices.wallonie.be/geocodeWS/geolist?zone=${encodeURIComponent(cleanPostal)}`
-        const fallbackRes = await fetch(fallbackUrl, {
-          signal: AbortSignal.timeout(3000),
-          headers: { Accept: "application/json" },
-        })
-        if (fallbackRes.ok) {
-          const fallbackData = await fallbackRes.json()
-          if (Array.isArray(fallbackData?.candidates) && fallbackData.candidates.length > 0) {
-            const best = fallbackData.candidates[0]
+      if (res.ok) {
+        const data = await res.json()
+        const candidates = Array.isArray(data?.candidates) ? data.candidates : []
+        if (candidates.length > 0) {
+          const top = candidates[0]
+          const score = typeof top?.score === "number" ? top.score : 100
+          if (score >= 80) {
             return {
               validInWallonia: true,
-              officialCity: best?.city?.name || best?.zone?.name,
-              officialPostalCode: best?.zone?.ident || cleanPostal,
-              confidenceScore: 85,
+              officialCity: top?.city?.name || top?.zone?.name || cleanCity,
+              officialPostalCode: top?.zone?.ident || cleanPostal,
+              confidenceScore: Math.min(100, score),
               source: "SPW_ICAR",
-              rawCandidatesCount: fallbackData.candidates.length,
+              rawCandidatesCount: candidates.length,
             }
           }
         }
       }
+    }
 
-      return {
-        validInWallonia: false,
-        confidenceScore: 10,
-        source: "SPW_ICAR",
-        rawCandidatesCount: 0,
+    // 2. Recherche par zone / commune via geolist
+    const queryZone = cleanPostal || cleanCity
+    const geolistUrl = `https://geoservices.wallonie.be/geocodeWS/geolist?zone=${encodeURIComponent(queryZone)}`
+    const listRes = await fetch(geolistUrl, {
+      signal: AbortSignal.timeout(3000),
+      headers: { Accept: "application/json" },
+    })
+
+    if (listRes.ok) {
+      const listData = await listRes.json()
+      const candidates = Array.isArray(listData?.candidates) ? listData.candidates : []
+      if (candidates.length > 0) {
+        const top = candidates[0]
+        return {
+          validInWallonia: true,
+          officialCity: top?.city?.name || top?.zone?.name || cleanCity,
+          officialPostalCode: top?.zone?.ident || cleanPostal,
+          confidenceScore: 90,
+          source: "SPW_ICAR",
+          rawCandidatesCount: candidates.length,
+        }
       }
     }
 
-    const bestCandidate = candidates[0]
-    const officialCity = bestCandidate?.city?.name || bestCandidate?.zone?.name || cleanCity
-    const officialPostal = bestCandidate?.zone?.ident || cleanPostal
-
     return {
-      validInWallonia: true,
-      officialCity,
-      officialPostalCode: officialPostal,
-      confidenceScore: cleanStreet ? 100 : 90,
+      validInWallonia: false,
+      confidenceScore: 10,
       source: "SPW_ICAR",
-      rawCandidatesCount: candidates.length,
+      rawCandidatesCount: 0,
     }
   } catch (e) {
     console.warn("[SPW Geoportail] Erreur ou timeout consultation SPW:", e)
