@@ -32,6 +32,7 @@ import {
   buildPartnerWhatsAppMessage,
   renderPartnerInviteHtml,
   substituteTemplateVariables,
+  MOCK_COMPETITORS_LIEGE_PHRASE,
   type PartnerInviteData,
 } from "@/lib/email-templates/fabrice-network-invite"
 
@@ -927,6 +928,22 @@ export function AdminNetworkInviteHub() {
                       title="Insérer le paragraphe complet d'offre de crédits"
                     >
                       + Paragraphe Crédits
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertVariableTag(MOCK_COMPETITORS_LIEGE_PHRASE)}
+                      className="rounded bg-blue-500/10 text-blue-600 border border-blue-500/20 px-1.5 py-0.5 font-mono text-[10px] hover:bg-blue-500/20 font-semibold"
+                      title="Insérer la mention des 5 installateurs liégeois sollicités (plafond 5 places)"
+                    >
+                      + Mention Concurrence Liège (5 max)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertVariableTag("{{installateurs_sollicites}}")}
+                      className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px] hover:bg-secondary/80 border border-border"
+                      title="Insérer la liste brute des 5 entreprises de Liège"
+                    >
+                      + 5 Installateurs Liège
                     </button>
                   </div>
                 </div>

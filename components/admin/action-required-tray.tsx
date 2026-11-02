@@ -125,7 +125,7 @@ export function ActionRequiredTray({
             >
               <CreditCard className="h-3.5 w-3.5" />
               <span>
-                Virements SEPA (
+                Commandes de crédits (
                 <span className="font-mono tabular-nums">{badges.pending_credit_orders}</span>)
               </span>
             </button>
@@ -154,11 +154,11 @@ export function ActionRequiredTray({
 
       {/* Contenu dynamique de la file sélectionnée */}
       <div className="divide-y divide-border max-h-80 overflow-y-auto">
-        {/* 1. File VIREMENTS SEPA */}
+        {/* 1. File COMMANDES DE CRÉDITS */}
         {activeQueue === "orders" &&
           (pendingOrders.length === 0 ? (
             <div className="p-8 text-center text-xs text-muted-foreground">
-              Aucune commande de crédits en attente de validation bancaire.
+              Aucune commande de crédits en attente.
             </div>
           ) : (
             pendingOrders.map((order) => {
@@ -180,7 +180,7 @@ export function ActionRequiredTray({
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
-                      <span>Réf. virement :</span>
+                      <span>Réf. commande :</span>
                       <strong className="font-mono tabular-nums text-foreground bg-muted/60 px-1.5 py-0.5 rounded border border-border">
                         {order.transfer_reference || "Non renseignée"}
                       </strong>
@@ -223,7 +223,7 @@ export function ActionRequiredTray({
                       ) : (
                         <>
                           <CheckCircle2 className="h-3.5 w-3.5" />
-                          <span>Valider SEPA</span>
+                          <span>Valider manuellement</span>
                         </>
                       )}
                     </Button>

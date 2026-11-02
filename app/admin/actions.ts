@@ -1,6 +1,6 @@
 "use server"
 
-import { revalidateTag } from "next/cache"
+import { revalidateTag, revalidatePath } from "next/cache"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { getAdminUser } from "@/lib/admin-auth"
 import { dispatchLeadWave } from "@/lib/lead-relance-engine"
@@ -50,6 +50,7 @@ export async function validateCreditOrderAction(orderId: string, adminEmail?: st
   // 4. Invalidation chirurgicale immédiate des caches Next.js
   revalidateTag("admin-kpis", "max")
   revalidateTag("admin-badges", "max")
+  revalidatePath("/admin", "layout")
   if (order?.partner_id) {
     revalidateTag(`partner-dashboard-${order.partner_id}`, "max")
   }
@@ -109,6 +110,7 @@ export async function publishLeadAction(leadId: string, creditCost?: number) {
 
   revalidateTag("admin-kpis", "max")
   revalidateTag("admin-badges", "max")
+  revalidatePath("/admin", "layout")
   revalidateTag("marketplace-feed", "max")
 }
 
@@ -150,6 +152,7 @@ export async function rejectLeadAction(leadId: string, reason: string, adminNote
 
   revalidateTag("admin-kpis", "max")
   revalidateTag("admin-badges", "max")
+  revalidatePath("/admin", "layout")
 }
 
 export async function archiveLeadAction(leadId: string) {
@@ -181,6 +184,7 @@ export async function archiveLeadAction(leadId: string) {
 
   revalidateTag("admin-kpis", "max")
   revalidateTag("admin-badges", "max")
+  revalidatePath("/admin", "layout")
 }
 
 export async function bulkQualifyAndPublishAction(leadIds: string[]) {
@@ -234,6 +238,7 @@ export async function bulkQualifyAndPublishAction(leadIds: string[]) {
 
   revalidateTag("admin-kpis", "max")
   revalidateTag("admin-badges", "max")
+  revalidatePath("/admin", "layout")
   revalidateTag("marketplace-feed", "max")
 }
 
@@ -268,6 +273,7 @@ export async function bulkRejectAction(leadIds: string[], reason: string) {
 
   revalidateTag("admin-kpis", "max")
   revalidateTag("admin-badges", "max")
+  revalidatePath("/admin", "layout")
 }
 
 export async function assignLeadAction(
@@ -378,6 +384,7 @@ export async function assignLeadAction(
 
   revalidateTag("admin-kpis", "max")
   revalidateTag("admin-badges", "max")
+  revalidatePath("/admin", "layout")
   revalidateTag("marketplace-feed", "max")
   for (const pId of partnerIds) {
     revalidateTag(`partner-dashboard-${pId}`, "max")

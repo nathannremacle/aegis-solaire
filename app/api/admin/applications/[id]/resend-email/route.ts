@@ -7,6 +7,11 @@ import {
   buildInstallerMarketplaceWelcomeEmail,
   sendInstallerEmail,
 } from "@/lib/installer-welcome-emails"
+import {
+  getAvailableMatchingLeadsForPartner,
+  recordCatchUpDispatches,
+  type AvailableLeadSummary,
+} from "@/lib/lead-relance-engine"
 
 function getSiteBaseUrl(): string {
   return (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.aegissolaire.com").replace(/\/$/, "")
@@ -74,6 +79,22 @@ export async function POST(
       })
     } else {
       const marketplaceUrl = `${baseUrl}/partenaires/dashboard`
+
+      let availableLeads: AvailableLeadSummary[] = []
+      const { data: partner } = await supabase
+        .from("partners")
+        .select("id, email, credits, segment, target_provinces, target_surfaces, min_facture")
+        .eq("email", app.email.toLowerCase().trim())
+        .maybeSingle()
+
+      if (partner) {
+        try {
+          availableLeads = await getAvailableMatchingLeadsForPartner(supabase, partner, 3)
+        } catch (leadsErr) {
+          console.error("[resend-email] Échec recherche leads:", leadsErr)
+        }
+      }
+
       const emailPayload = buildInstallerMarketplaceWelcomeEmail({
         applicationId: app.id,
         firstName: app.first_name,
@@ -82,6 +103,7 @@ export async function POST(
         email: app.email,
         rescertRef: app.rescert_ref,
         marketplaceUrl,
+        availableLeads,
       })
 
       const sendRes = await sendInstallerEmail({
@@ -92,12 +114,25 @@ export async function POST(
         tag: "installer-marketplace-welcome-resend",
       })
 
+      if (sendRes.success && partner && availableLeads.length > 0) {
+        void recordCatchUpDispatches(
+          supabase,
+          { id: partner.id, email: app.email },
+          availableLeads,
+          emailPayload.subject
+        ).catch(() => {})
+      }
+
       return NextResponse.json({
         success: sendRes.success,
         simulated: sendRes.simulated,
         type: "marketplace",
         recipient: app.email,
-        message: "E-mail de bienvenue Marketplace réexpédié avec succès.",
+        availableLeadsCount: availableLeads.length,
+        message:
+          availableLeads.length > 0
+            ? `E-mail de bienvenue Marketplace réexpédié avec ${availableLeads.length} dossier(s) disponible(s).`
+            : "E-mail de bienvenue Marketplace réexpédié avec succès.",
       })
     }
   } catch (err: any) {

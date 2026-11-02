@@ -2,7 +2,11 @@ import { redirect } from "next/navigation"
 import { getAdminUser, getAdminProfile } from "@/lib/admin-auth"
 import { AdminNav } from "@/components/admin-nav"
 import { AdminHeader } from "@/components/admin-header"
+import { AdminBadgesProvider } from "@/components/admin/admin-badges-provider"
 import { getAdminDashboardData } from "@/lib/admin/queries"
+
+export const dynamic = "force-dynamic"
+export const revalidate = 0
 
 export default async function AdminDashboardLayout({
   children,
@@ -53,36 +57,38 @@ export default async function AdminDashboardLayout({
   } = badges
 
   return (
-    <div className="min-h-screen bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground">
-      {/* Desktop Fixed Sidebar */}
-      <aside className="hidden md:flex md:w-60 md:flex-col md:fixed md:inset-y-0 z-30 border-r border-border bg-card">
-        <AdminNav
-          adminProfile={adminProfile}
-          pendingApplications={installAppsCount}
-          pendingMedia={mediaAppsCount}
-          needsReview={needsReviewCount}
-          pendingCreditOrders={pendingOrdersCount}
-          pendingDisputes={pendingDisputesCount}
-        />
-      </aside>
+    <AdminBadgesProvider initialBadges={badges}>
+      <div className="min-h-screen bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground">
+        {/* Desktop Fixed Sidebar */}
+        <aside className="hidden md:flex md:w-60 md:flex-col md:fixed md:inset-y-0 z-30 border-r border-border bg-card">
+          <AdminNav
+            adminProfile={adminProfile}
+            pendingApplications={installAppsCount}
+            pendingMedia={mediaAppsCount}
+            needsReview={needsReviewCount}
+            pendingCreditOrders={pendingOrdersCount}
+            pendingDisputes={pendingDisputesCount}
+          />
+        </aside>
 
-      {/* Main Content Area */}
-      <div className="flex flex-col min-w-0 md:pl-60 min-h-screen">
-        {/* Sticky Header with Breadcrumbs & Mobile Nav */}
-        <AdminHeader
-          adminProfile={adminProfile}
-          pendingApplications={installAppsCount}
-          pendingMedia={mediaAppsCount}
-          needsReview={needsReviewCount}
-          pendingCreditOrders={pendingOrdersCount}
-          pendingDisputes={pendingDisputesCount}
-        />
+        {/* Main Content Area */}
+        <div className="flex flex-col min-w-0 md:pl-60 min-h-screen">
+          {/* Sticky Header with Breadcrumbs & Mobile Nav */}
+          <AdminHeader
+            adminProfile={adminProfile}
+            pendingApplications={installAppsCount}
+            pendingMedia={mediaAppsCount}
+            needsReview={needsReviewCount}
+            pendingCreditOrders={pendingOrdersCount}
+            pendingDisputes={pendingDisputesCount}
+          />
 
-        {/* Page Content: Full-width for dense operational tables */}
-        <main className="flex-1 w-full p-4 sm:p-6 lg:p-8">
-          {children}
-        </main>
+          {/* Page Content: Full-width for dense operational tables */}
+          <main className="flex-1 w-full p-4 sm:p-6 lg:p-8">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </AdminBadgesProvider>
   )
 }

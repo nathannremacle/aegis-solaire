@@ -6,6 +6,7 @@ import { calculateLeadScore } from "@/lib/lead-score"
 import { calculateLeadCreditCost, calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
 import { checkRateLimit } from "@/lib/rate-limit"
 import { sendProspectConfirmationEmail } from "@/lib/prospect-confirmation-email"
+import { sendAdminNewLeadAlertEmail } from "@/lib/notify-admin-lead"
 import { sendMetaConversionApiLead } from "@/lib/meta-capi"
 import { createHmac } from "crypto"
 
@@ -299,6 +300,38 @@ export async function POST(request: NextRequest) {
       estimatedROIYears: computedRoiYears,
       province: data.province,
     }).catch((err) => console.error("[Prospect confirmation] envoi non bloquant échoué:", err))
+
+    // Alerte immédiate à l'administrateur pour modération / validation ultra-rapide
+    void sendAdminNewLeadAlertEmail({
+      leadId: inserted.id,
+      firstName: first_name,
+      lastName: last_name,
+      email,
+      phone,
+      company,
+      companyVat: company_vat,
+      jobTitle: job_title,
+      segment: data.segment,
+      surfaceType: data.surfaceType,
+      surfaceArea: financials.normalizedSurfaceAreaM2,
+      annualBill: financials.normalizedAnnualBill,
+      estimatedSavings: computedSavings,
+      estimatedROIYears: computedRoiYears,
+      estimatedPowerKwc,
+      province: data.province,
+      postalCode: safePostalCode,
+      city: data.city ? sanitizeString(data.city, 100) : null,
+      siteAddress: data.siteAddress ? sanitizeString(data.siteAddress, 255) : null,
+      grd: data.grd ?? null,
+      ownershipStatus: safeOwnership,
+      timeframe: data.timeframe ?? null,
+      roofMaterial: safeRoofMaterial,
+      leadScore: score,
+      creditCost: credit_cost,
+      sourceForm: safeSourceForm,
+      mediaPartnerCode,
+      message: projectDetailsText,
+    }).catch((err) => console.error("[Admin Lead Alert] Envoi non bloquant échoué:", err))
 
     const webhookUrl = process.env.LEAD_WEBHOOK_URL
     const webhookSecret = process.env.LEAD_WEBHOOK_SECRET

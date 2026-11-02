@@ -1,6 +1,8 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { triggerAdminBadgesRefresh } from "@/components/admin/admin-badges-provider"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -103,10 +105,16 @@ interface DisputesClientProps {
 }
 
 export function DisputesClient({ initialDisputes }: DisputesClientProps) {
+  const router = useRouter()
   const [disputes, setDisputes] = useState<DisputeItem[]>(initialDisputes)
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<"ALL" | "pending" | "approved" | "rejected">("pending")
+
+  // Synchroniser le badge de la sidebar dès le montage
+  useEffect(() => {
+    triggerAdminBadgesRefresh()
+  }, [])
 
   // Modal d'approbation
   const [selectedDisputeToApprove, setSelectedDisputeToApprove] = useState<DisputeItem | null>(null)
@@ -127,6 +135,8 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
       if (!res.ok) throw new Error("Échec chargement")
       const data = await res.json()
       setDisputes(Array.isArray(data.disputes) ? data.disputes : [])
+      triggerAdminBadgesRefresh()
+      router.refresh()
       toast.success("Litiges actualisés")
     } catch {
       toast.error("Impossible de rafraîchir les litiges")
@@ -181,6 +191,8 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
 
       setSelectedDisputeToApprove(null)
       setApprovalNotes("")
+      triggerAdminBadgesRefresh()
+      router.refresh()
     } catch (err: any) {
       toast.error(err.message || "Erreur de traitement du litige")
     } finally {
@@ -230,6 +242,8 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
 
       setSelectedDisputeToReject(null)
       setRejectionNotes("")
+      triggerAdminBadgesRefresh()
+      router.refresh()
     } catch (err: any) {
       toast.error(err.message || "Erreur lors du rejet")
     } finally {

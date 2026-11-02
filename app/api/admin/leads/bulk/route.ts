@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { revalidateTag, revalidatePath } from "next/cache"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { logAudit } from "@/lib/audit-log"
@@ -58,6 +59,12 @@ export async function DELETE(req: Request) {
     }
 
     const supabase = createServiceRoleClient()
+
+    // 1. Supprimer préventivement tout litige ou achat lié aux leads pour éviter des enregistrements orphelins
+    await supabase.from("lead_disputes").delete().in("lead_id", ids)
+    await supabase.from("lead_purchases").delete().in("lead_id", ids)
+
+    // 2. Supprimer les leads
     const { error } = await supabase.from("leads").delete().in("id", ids)
 
     if (error) throw error
@@ -69,6 +76,10 @@ export async function DELETE(req: Request) {
       entityId: "multiple",
       details: { count: ids.length },
     })
+
+    revalidateTag("admin-badges", "max")
+    revalidateTag("admin-kpis", "max")
+    revalidatePath("/admin", "layout")
 
     return NextResponse.json({ message: `${ids.length} leads supprimés` })
   } catch (error) {

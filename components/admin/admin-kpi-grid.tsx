@@ -321,7 +321,7 @@ export function AdminKpiGrid({
           </div>
         </button>
 
-        {/* Commandes SEPA en attente */}
+        {/* Commandes en attente */}
         <button
           type="button"
           onClick={() => setSelectedKpi("sepa_pending")}
@@ -329,7 +329,7 @@ export function AdminKpiGrid({
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground group-hover:text-foreground transition-colors">
-              Trésorerie SEPA en Attente
+              Commandes en Attente
             </span>
             <div className="rounded-lg bg-secondary p-2 text-foreground group-hover:bg-accent group-hover:text-accent-foreground transition-colors border border-border">
               <CreditCard className="h-4 w-4" />
@@ -494,7 +494,7 @@ export function AdminKpiGrid({
               <DialogFooter className="border-t border-border pt-4">
                 <Button variant="outline" size="sm" asChild className="text-xs gap-1.5 border-border">
                   <Link href="/admin/finance">
-                    <span>Accéder à la Gestion Financière &amp; SEPA</span>
+                    <span>Accéder aux Finances &amp; Commandes</span>
                     <ChevronRight className="h-3.5 w-3.5" />
                   </Link>
                 </Button>
@@ -914,13 +914,13 @@ export function AdminKpiGrid({
               <DialogHeader>
                 <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-2.5 py-1 text-xs font-semibold text-foreground w-fit mb-1 border border-border">
                   <CreditCard className="h-3.5 w-3.5 text-accent" />
-                  <span>TRÉSORERIE EN ATTENTE DE POINTAGE</span>
+                  <span>COMMANDES DE CRÉDITS EN ATTENTE</span>
                 </div>
                 <DialogTitle className="text-lg font-bold text-foreground">
-                  Trésorerie SEPA en Cours de Rapprochement
+                  Commandes de Crédits en Attente
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground">
-                  Commandes de crédits initiées par les installateurs, en attente de validation du virement bancaire.
+                  Commandes de packs de crédits initiées par les installateurs (via Mollie ou enregistrement direct).
                 </DialogDescription>
               </DialogHeader>
 
@@ -933,28 +933,28 @@ export function AdminKpiGrid({
                   </span>
                 </div>
                 <div className="flex flex-col items-end gap-1 text-right">
-                  <span className="text-xs text-muted-foreground">Montant TTC exigible :</span>
+                  <span className="text-xs text-muted-foreground">Montant TTC :</span>
                   <span className="text-sm font-bold font-mono tabular-nums text-foreground">
                     {Number(revenue.pending_ttc || 0).toLocaleString("fr-BE")} € TTC
                   </span>
                   <Badge variant="outline" className="text-xs font-mono tabular-nums">
-                    {revenue.pending_orders_count} virement{revenue.pending_orders_count > 1 ? "s" : ""} à pointer
+                    {revenue.pending_orders_count} commande{revenue.pending_orders_count > 1 ? "s" : ""} en attente
                   </Badge>
                 </div>
               </div>
 
-              {/* Règle métier de pointage */}
+              {/* Règle métier */}
               <div className="rounded-xl border border-border p-4 flex flex-col gap-2.5 bg-card">
                 <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                   <Calculator className="h-4 w-4 text-accent" />
-                  <span>Processus de Validation Bancaire</span>
+                  <span>Paiements en Ligne &amp; Crédits</span>
                 </div>
                 <code className="text-xs font-mono tabular-nums bg-muted p-2 rounded-md border border-border text-foreground">
-                  Trésorerie SEPA = Σ (price_htva) WHERE credit_orders.status = 'pending'
+                  Volume en attente = Σ (price_htva) WHERE credit_orders.status = &apos;pending&apos;
                 </code>
                 <ul className="text-xs text-muted-foreground list-disc list-inside flex flex-col gap-1 leading-relaxed">
-                  <li>L'installateur a validé son bon de commande et a reçu les coordonnées bancaires (IBAN Aegis + Référence de virement).</li>
-                  <li>Dès réception sur l'extrait bancaire, un clic sur <em>"Valider le virement"</em> crédite automatiquement le solde du partenaire en direct.</li>
+                  <li>Les paiements confirmés par Mollie (Bancontact, Payconiq, Carte) créditent instantanément le solde du partenaire.</li>
+                  <li>En cas de commande non finalisée ou d&apos;accord exceptionnel, l&apos;administrateur peut valider manuellement l&apos;attribution.</li>
                 </ul>
               </div>
 
@@ -962,14 +962,14 @@ export function AdminKpiGrid({
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-foreground uppercase tracking-wide">
-                    Virements Attendus ({pendingOrders.length})
+                    Commandes en Attente ({pendingOrders.length})
                   </span>
-                  <span className="text-[11px] text-muted-foreground">Références bancaires</span>
+                  <span className="text-[11px] text-muted-foreground">Références</span>
                 </div>
 
                 {pendingOrders.length === 0 ? (
                   <div className="rounded-xl border border-border p-6 text-center text-xs text-muted-foreground">
-                    Aucun virement en attente actuellement. Toutes les commandes sont pointées !
+                    Aucune commande en attente actuellement.
                   </div>
                 ) : (
                   <div className="rounded-xl border border-border overflow-hidden divide-y divide-border text-xs max-h-60 overflow-y-auto">
@@ -1003,7 +1003,7 @@ export function AdminKpiGrid({
               <DialogFooter className="border-t border-border pt-4">
                 <Button size="sm" asChild className="text-xs gap-1.5 shadow-2xs">
                   <Link href="/admin/finance">
-                    <span>Valider les Virements dans la Console Finance</span>
+                    <span>Gérer les Commandes dans la Console Finance</span>
                     <ChevronRight className="h-3.5 w-3.5" />
                   </Link>
                 </Button>

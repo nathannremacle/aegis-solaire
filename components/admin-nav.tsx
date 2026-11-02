@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { AdminLogoutButton } from "@/components/admin-logout-button"
 import { AdminCommandMenu } from "@/components/admin-command-menu"
+import { useAdminBadges } from "@/components/admin/admin-badges-provider"
 import { cn } from "@/lib/utils"
 import type { AdminProfile } from "@/lib/admin-auth"
 
@@ -53,6 +54,13 @@ export function AdminNav({
   onNavigate?: () => void
 }) {
   const pathname = usePathname()
+  const { badges } = useAdminBadges()
+
+  const liveNeedsReview = badges?.pending_review_leads ?? needsReview
+  const livePendingDisputes = badges?.pending_disputes ?? pendingDisputes
+  const livePendingApplications = badges?.pending_installer_apps ?? pendingApplications
+  const livePendingMedia = badges?.pending_media_apps ?? pendingMedia
+  const livePendingCreditOrders = badges?.pending_credit_orders ?? pendingCreditOrders
 
   const navGroups: NavGroup[] = [
     {
@@ -67,8 +75,8 @@ export function AdminNav({
           href: "/admin/leads?view=triage",
           label: "Triage des Leads",
           icon: Flame,
-          badgeCount: needsReview,
-          badgeVariant: needsReview > 0 ? "destructive" : "neutral",
+          badgeCount: liveNeedsReview,
+          badgeVariant: liveNeedsReview > 0 ? "destructive" : "neutral",
         },
         {
           href: "/admin/leads",
@@ -79,8 +87,8 @@ export function AdminNav({
           href: "/admin/disputes",
           label: "Litiges & Qualité",
           icon: ShieldAlert,
-          badgeCount: pendingDisputes,
-          badgeVariant: pendingDisputes > 0 ? "destructive" : "neutral",
+          badgeCount: livePendingDisputes,
+          badgeVariant: livePendingDisputes > 0 ? "destructive" : "neutral",
         },
         {
           href: "/admin/relances",
@@ -101,14 +109,14 @@ export function AdminNav({
           href: "/admin/applications",
           label: "Candidatures",
           icon: ClipboardCheck,
-          badgeCount: pendingApplications,
+          badgeCount: livePendingApplications,
           badgeVariant: "neutral",
         },
         {
           href: "/admin/media-partners",
           label: "Apporteurs d'affaires",
           icon: Megaphone,
-          badgeCount: pendingMedia,
+          badgeCount: livePendingMedia,
           badgeVariant: "neutral",
         },
       ],
@@ -120,8 +128,8 @@ export function AdminNav({
           href: "/admin/finance",
           label: "Finances & Virements",
           icon: Coins,
-          badgeCount: pendingCreditOrders,
-          badgeVariant: pendingCreditOrders > 0 ? "accent" : "neutral",
+          badgeCount: livePendingCreditOrders,
+          badgeVariant: livePendingCreditOrders > 0 ? "accent" : "neutral",
         },
         {
           href: "/admin/audit",

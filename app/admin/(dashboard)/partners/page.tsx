@@ -78,7 +78,7 @@ export default function AdminPartnersPage() {
   const [partners, setPartners] = useState<Partner[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [activeTab, setActiveTab] = useState<"all" | "at_risk" | "coverage">("all")
+  const [activeTab, setActiveTab] = useState<"certified" | "test" | "all" | "at_risk" | "coverage">("certified")
   const [showInviteHub, setShowInviteHub] = useState(false)
 
   // Modale d'ajout de crédits
@@ -171,20 +171,43 @@ export default function AdminPartnersPage() {
     }
   }
 
-  // Partenaires "À risque" (solde < 5 crédits ou zéro achat récent)
-  const isPartnerAtRisk = (p: Partner) => {
-    const isCreditCritical = p.credits < 5
-    return isCreditCritical
+  // Détection des comptes de test
+  const isTestPartner = (p: Partner) => {
+    return (
+      Boolean(p.is_test) ||
+      p.company_name?.toLowerCase().includes("test") ||
+      p.email === "mrnathanrem@gmail.com" ||
+      p.email === "fabrice.remacle@gmail.com"
+    )
   }
 
-  const partnersAtRisk = useMemo(
-    () => partners.filter((p) => isPartnerAtRisk(p)),
+  const testPartners = useMemo(
+    () => partners.filter((p) => isTestPartner(p)),
     [partners]
   )
 
+  const realPartners = useMemo(
+    () => partners.filter((p) => !isTestPartner(p)),
+    [partners]
+  )
+
+  // Partenaires "À risque" (solde < 5 crédits parmi les installateurs réels)
+  const isPartnerAtRisk = (p: Partner) => {
+    return p.credits < 5
+  }
+
+  const partnersAtRisk = useMemo(
+    () => realPartners.filter((p) => isPartnerAtRisk(p)),
+    [realPartners]
+  )
+
   const filteredPartners = useMemo(() => {
-    let list = partners
-    if (activeTab === "at_risk") {
+    let list = realPartners
+    if (activeTab === "test") {
+      list = testPartners
+    } else if (activeTab === "all") {
+      list = partners
+    } else if (activeTab === "at_risk") {
       list = partnersAtRisk
     }
     if (!searchTerm.trim()) return list
@@ -195,24 +218,24 @@ export default function AdminPartnersPage() {
         p.email.toLowerCase().includes(q) ||
         p.phone?.toLowerCase().includes(q)
     )
-  }, [partners, activeTab, partnersAtRisk, searchTerm])
+  }, [partners, realPartners, testPartners, activeTab, partnersAtRisk, searchTerm])
 
-  // KPIs
+  // KPIs basés sur le réseau certifié réel
   const totalCreditsCirculation = useMemo(
-    () => partners.reduce((s, p) => s + (p.credits || 0), 0),
-    [partners]
+    () => realPartners.reduce((s, p) => s + (p.credits || 0), 0),
+    [realPartners]
   )
   const totalLeadsPurchased = useMemo(
-    () => partners.reduce((s, p) => s + (p.stats.leadsPurchased || 0), 0),
-    [partners]
+    () => realPartners.reduce((s, p) => s + (p.stats.leadsPurchased || 0), 0),
+    [realPartners]
   )
   const b2bPartnersCount = useMemo(
-    () => partners.filter((p) => p.segment?.toUpperCase() === "B2B" || p.segment?.toUpperCase() === "BOTH").length,
-    [partners]
+    () => realPartners.filter((p) => p.segment?.toUpperCase() === "B2B" || p.segment?.toUpperCase() === "BOTH").length,
+    [realPartners]
   )
   const b2cPartnersCount = useMemo(
-    () => partners.filter((p) => p.segment?.toUpperCase() === "B2C" || p.segment?.toUpperCase() === "BOTH").length,
-    [partners]
+    () => realPartners.filter((p) => p.segment?.toUpperCase() === "B2C" || p.segment?.toUpperCase() === "BOTH").length,
+    [realPartners]
   )
 
   return (
@@ -225,7 +248,7 @@ export default function AdminPartnersPage() {
               Réseau Installateurs &amp; Capacité
             </h1>
             <span className="font-mono text-xs tabular-nums text-muted-foreground bg-secondary px-2 py-0.5 rounded-sm border border-border">
-              {partners.length} partenaires
+              {realPartners.length} certifiés ({testPartners.length} test)
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
@@ -258,7 +281,7 @@ export default function AdminPartnersPage() {
           <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1.5">
             <Link href="/admin/finance">
               <Coins className="h-3.5 w-3.5" />
-              <span>Virements &amp; SEPA</span>
+              <span>Finances &amp; Commandes</span>
               <ArrowRight className="h-3 w-3" />
             </Link>
           </Button>
@@ -291,9 +314,9 @@ export default function AdminPartnersPage() {
           </div>
           <div className="flex items-baseline gap-2">
             <span className="font-mono text-2xl font-bold tabular-nums text-foreground">
-              {partners.length}
+              {realPartners.length}
             </span>
-            <span className="text-xs text-muted-foreground">partenaires actifs</span>
+            <span className="text-xs text-muted-foreground">partenaires certifiés</span>
           </div>
           <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
             {b2bPartnersCount} B2B · {b2cPartnersCount} B2C
@@ -377,6 +400,40 @@ export default function AdminPartnersPage() {
         <div className="flex items-center rounded-md border border-border bg-card p-0.5 text-xs overflow-x-auto">
           <button
             type="button"
+            onClick={() => setActiveTab("certified")}
+            className={cn(
+              "px-3 py-1.5 rounded-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5",
+              activeTab === "certified"
+                ? "bg-secondary text-foreground shadow-2xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <span>Installateurs certifiés</span>
+            <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+              ({realPartners.length})
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("test")}
+            className={cn(
+              "px-3 py-1.5 rounded-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5",
+              activeTab === "test"
+                ? "bg-secondary text-foreground shadow-2xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <span>Comptes de test</span>
+            {testPartners.length > 0 && (
+              <span className="rounded-full bg-amber-500/20 px-1.5 py-0.2 font-mono text-[10px] tabular-nums font-bold text-amber-700 dark:text-amber-400">
+                {testPartners.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab("all")}
             className={cn(
               "px-3 py-1.5 rounded-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5",
@@ -385,7 +442,7 @@ export default function AdminPartnersPage() {
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <span>Tous les installateurs</span>
+            <span>Tous</span>
             <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
               ({partners.length})
             </span>
@@ -522,7 +579,9 @@ export default function AdminPartnersPage() {
               {filteredPartners.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="py-12 text-center text-muted-foreground italic">
-                    Aucun installateur ne correspond aux critères sélectionnés.
+                    {activeTab === "test"
+                      ? "Aucun compte de test."
+                      : "Aucun installateur ne correspond aux critères sélectionnés."}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -547,12 +606,12 @@ export default function AdminPartnersPage() {
                             <span className="font-medium text-foreground">
                               {partner.company_name}
                             </span>
-                            {partner.is_test && (
+                            {isTestPartner(partner) && (
                               <Badge
                                 variant="outline"
-                                className="text-[9px] font-mono py-0 h-4 bg-secondary text-muted-foreground"
+                                className="text-[9px] font-mono py-0 h-4 bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 font-semibold"
                               >
-                                TEST
+                                COMPTE TEST
                               </Badge>
                             )}
                           </div>

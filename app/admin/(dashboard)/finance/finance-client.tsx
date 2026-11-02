@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { toast } from "sonner"
+import { triggerAdminBadgesRefresh } from "@/components/admin/admin-badges-provider"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -37,8 +38,6 @@ import {
   ArrowUpRight,
   ShieldCheck,
   AlertCircle,
-  FileCheck,
-  Upload,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -91,6 +90,11 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
   const [statusFilter, setStatusFilter] = useState<"ALL" | "pending" | "paid" | "cancelled">("ALL")
   const [copiedRef, setCopiedRef] = useState<string | null>(null)
 
+  // Synchroniser les badges dès le montage
+  useEffect(() => {
+    triggerAdminBadgesRefresh()
+  }, [])
+
   // Validation modal state
   const [selectedOrderToValidate, setSelectedOrderToValidate] = useState<CreditOrder | null>(null)
   const [validationNotes, setValidationNotes] = useState("")
@@ -106,7 +110,7 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
   const [selectedMatchedIds, setSelectedMatchedIds] = useState<Set<string>>(new Set())
   const [reconciling, setReconciling] = useState(false)
 
-  // Copier la référence de virement
+  // Copier la référence de commande
   const handleCopyRef = (refText: string) => {
     navigator.clipboard.writeText(refText)
     setCopiedRef(refText)
@@ -156,7 +160,7 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
       }
 
       toast.success(
-        `Virement validé avec succès ! ${selectedOrderToValidate.credits} crédits alloués à ${selectedOrderToValidate.partners?.company_name || "l'installateur"}.`
+        `Commande validée avec succès ! ${selectedOrderToValidate.credits} crédits alloués à ${selectedOrderToValidate.partners?.company_name || "l'installateur"}.`
       )
 
       // Mise à jour optimiste de la liste locale
@@ -175,8 +179,9 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
 
       setSelectedOrderToValidate(null)
       setValidationNotes("")
+      triggerAdminBadgesRefresh()
     } catch (err: any) {
-      toast.error(err.message || "Impossible de valider ce virement")
+      toast.error(err.message || "Impossible de valider cette commande")
     } finally {
       setValidating(false)
     }
@@ -252,22 +257,38 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
             notes: "Rapprochement automatique relevé bancaire CSV",
           }),
         })
-        if (res.ok) successCount++
-      } catch {}
+
+        if (res.ok) {
+          successCount++
+          setOrders((prev) =>
+            prev.map((o) =>
+              o.id === orderId
+                ? {
+                    ...o,
+                    status: "paid",
+                    validated_at: new Date().toISOString(),
+                    notes: "Rapprochement automatique relevé bancaire CSV",
+                  }
+                : o
+            )
+          )
+        }
+      } catch (err) {
+        console.error("Batch reconcile error on order:", orderId, err)
+      }
     }
 
-    toast.success(`${successCount} virement(s) rapproché(s) et crédité(s) avec succès`)
-    setOrders((prev) =>
-      prev.map((o) =>
-        selectedMatchedIds.has(o.id)
-          ? { ...o, status: "paid", validated_at: new Date().toISOString() }
-          : o
-      )
-    )
     setReconciling(false)
     setReconcileModalOpen(false)
-    setReconcileCsvText("")
     setSelectedMatchedIds(new Set())
+    setReconcileCsvText("")
+
+    if (successCount > 0) {
+      triggerAdminBadgesRefresh()
+      toast.success(`${successCount} commande(s) rapprochée(s) et validée(s) avec succès !`)
+    } else {
+      toast.error("Aucune commande n'a pu être validée.")
+    }
   }
 
   // Export CSV
@@ -286,7 +307,7 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
       "Crédits",
       "Prix HTVA (€)",
       "Prix TTC (€)",
-      "Référence virement SEPA",
+      "Référence commande",
       "Statut",
       "Date de validation",
       "Notes",
@@ -365,14 +386,14 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-3">
             <h1 className="font-heading text-xl font-semibold tracking-tight text-foreground">
-              Finances &amp; Rapprochement SEPA
+              Finances &amp; Commandes de Crédits
             </h1>
             <span className="font-mono text-xs tabular-nums text-muted-foreground bg-secondary px-2 py-0.5 rounded-sm border border-border">
               {orders.length} ordres
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Validation des virements bancaires entrants, crédit instantané des installateurs RESCERT et rapprochement comptable.
+            Suivi des commandes de packs de crédits, paiements en ligne instantanés via Mollie (Bancontact, Payconiq, Cartes) et audit comptable.
           </p>
         </div>
 
@@ -396,18 +417,6 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
           >
             <Download className="h-3.5 w-3.5" />
             <span>Exporter CSV</span>
-          </Button>
-
-          <Button
-            size="sm"
-            onClick={() => {
-              setReconcileModalOpen(true)
-              setSelectedMatchedIds(new Set())
-            }}
-            className="h-8 text-xs gap-1.5 font-medium"
-          >
-            <FileCheck className="h-3.5 w-3.5" />
-            <span>Rapprocher un relevé</span>
           </Button>
         </div>
       </div>
@@ -437,13 +446,13 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
           </span>
         </div>
 
-        {/* Virements SEPA en attente */}
+        {/* Commandes en attente */}
         <div className={cn(
           "rounded-lg border p-4 flex flex-col gap-2 transition-colors",
           pendingCount > 0 ? "border-accent/40 bg-accent/5" : "border-border bg-card"
         )}>
           <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-medium">En attente de rapprochement</span>
+            <span className="text-xs font-medium">En attente de paiement</span>
             <div className={cn(
               "h-7 w-7 rounded-md flex items-center justify-center",
               pendingCount > 0 ? "bg-accent/20 text-accent-foreground" : "bg-secondary text-foreground"
@@ -455,7 +464,7 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
             <span className="font-mono text-2xl font-bold tabular-nums text-foreground">
               {pendingCount}
             </span>
-            <span className="text-xs text-muted-foreground">virements en attente</span>
+            <span className="text-xs text-muted-foreground">commandes en attente</span>
           </div>
           <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
             Volume en attente :{" "}
@@ -498,7 +507,7 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
             <span className="font-mono text-2xl font-bold tabular-nums text-foreground">
               {paidCount}
             </span>
-            <span className="text-xs text-muted-foreground">virements confirmés</span>
+            <span className="text-xs text-muted-foreground">commandes payées</span>
           </div>
           <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
             Taux d&apos;exécution : {orders.length > 0 ? Math.round((paidCount / orders.length) * 100) : 0} %
@@ -536,7 +545,7 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <span>En attente SEPA</span>
+            <span>En attente</span>
             {pendingCount > 0 && (
               <span className="rounded-full bg-accent/20 px-1.5 py-0.2 font-mono text-[10px] tabular-nums font-bold text-accent-foreground">
                 {pendingCount}
@@ -581,7 +590,7 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
         <div className="relative min-w-[260px] max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
           <Input
-            placeholder="Rechercher société, référence SEPA, email…"
+            placeholder="Rechercher société, référence, email…"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-8 h-8 text-xs bg-card"
@@ -598,7 +607,7 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
               <TableHead className="min-w-[200px]">Installateur Partenaire</TableHead>
               <TableHead className="w-40">Pack Commandé</TableHead>
               <TableHead className="w-32 text-right font-mono text-[11px] text-muted-foreground">Montant HTVA / TTC</TableHead>
-              <TableHead className="min-w-[220px]">Communication Structurée SEPA</TableHead>
+              <TableHead className="min-w-[220px]">Référence Commande / Mollie</TableHead>
               <TableHead className="w-28 text-center font-mono text-[11px] text-muted-foreground">Statut</TableHead>
               <TableHead className="w-44 text-right">Action Opérationnelle</TableHead>
             </TableRow>
@@ -702,7 +711,7 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
                         ) : (
                           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                             <span className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
-                            <span>Virement bancaire SEPA pro</span>
+                            <span>Paiement en ligne</span>
                           </div>
                         )}
                       </div>
@@ -752,7 +761,7 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
                               setValidationNotes("")
                             }}
                           >
-                            Valider SEPA
+                            Valider manuellement
                           </Button>
                           <Button
                             size="sm"
@@ -785,7 +794,7 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
         </Table>
       </div>
 
-      {/* Dialogue de Validation de Réception SEPA */}
+      {/* Dialogue de Validation Manuelle */}
       <Dialog
         open={Boolean(selectedOrderToValidate)}
         onOpenChange={(open) => !open && setSelectedOrderToValidate(null)}
@@ -794,7 +803,7 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-primary" />
-              <span>Valider la réception du virement</span>
+              <span>Validation manuelle du paiement</span>
             </DialogTitle>
             <DialogDescription>
               Cette opération créditera immédiatement le compte de l&apos;installateur et lui enverra un email de confirmation.
@@ -817,13 +826,13 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Montant TTC à constater :</span>
+                  <span className="text-muted-foreground">Montant TTC :</span>
                   <span className="font-mono font-bold tabular-nums text-foreground">
                     {selectedOrderToValidate.price_ttc.toFixed(2)} € TTC
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Communication SEPA :</span>
+                  <span className="text-muted-foreground">Référence commande :</span>
                   <code className="font-mono font-semibold bg-secondary px-1.5 py-0.5 rounded text-foreground">
                     {selectedOrderToValidate.transfer_reference}
                   </code>
@@ -836,7 +845,7 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
                 </Label>
                 <Textarea
                   id="validationNotes"
-                  placeholder="Ex : Constaté sur extrait de compte Belfius #104..."
+                  placeholder="Ex : Constaté sur compte ou accord commercial..."
                   value={validationNotes}
                   onChange={(e) => setValidationNotes(e.target.value)}
                   className="text-xs resize-none h-18"
@@ -920,166 +929,6 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
               disabled={cancelling}
             >
               {cancelling ? "Annulation…" : "Confirmer l'annulation"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialogue de Rapprochement Automatique Relevé Bancaire (CSV/CODA) */}
-      <Dialog
-        open={reconcileModalOpen}
-        onOpenChange={(open) => !open && setReconcileModalOpen(false)}
-      >
-        <DialogContent className="max-w-xl max-h-[85vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileCheck className="h-5 w-5 text-primary" />
-              <span>Rapprochement Automatique de Relevé Bancaire</span>
-            </DialogTitle>
-            <DialogDescription>
-              Collez les lignes de votre extrait bancaire (BNP, Belfius, ING, CBC) ou importez un fichier CSV pour réconcilier les références automatiquement.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex flex-col gap-3 py-2 flex-1 overflow-y-auto">
-            <div className="flex flex-col gap-1.5">
-              <div className="flex justify-between items-center text-xs">
-                <Label htmlFor="csvText">Extrait de compte brut ou contenu CSV :</Label>
-                <label className="text-[11px] text-primary hover:underline cursor-pointer flex items-center gap-1">
-                  <Upload className="h-3 w-3" />
-                  <span>Charger un fichier .csv</span>
-                  <input
-                    type="file"
-                    accept=".csv,.txt"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) {
-                        const reader = new FileReader()
-                        reader.onload = (event) => {
-                          const content = event.target?.result as string
-                          setReconcileCsvText(content || "")
-                        }
-                        reader.readAsText(file)
-                      }
-                    }}
-                  />
-                </label>
-              </div>
-              <Textarea
-                id="csvText"
-                placeholder="Exemple :
-23/10/2026 VIREMENT SEPA SOLARIS SRL ORDER-928172 484,00 EUR
-23/10/2026 VIREMENT SEPA ECOTOIT SPRL ORDER-419281 242,00 EUR"
-                value={reconcileCsvText}
-                onChange={(e) => {
-                  setReconcileCsvText(e.target.value)
-                }}
-                className="font-mono text-xs h-28 resize-none"
-              />
-            </div>
-
-            {/* Résultats du matching automatique */}
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between text-xs font-semibold">
-                <span>Virements identifiés ({matchedPendingOrders.length})</span>
-                {matchedPendingOrders.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (selectedMatchedIds.size === matchedPendingOrders.length) {
-                        setSelectedMatchedIds(new Set())
-                      } else {
-                        setSelectedMatchedIds(new Set(matchedPendingOrders.map((o) => o.id)))
-                      }
-                    }}
-                    className="text-[11px] text-primary hover:underline font-normal"
-                  >
-                    {selectedMatchedIds.size === matchedPendingOrders.length
-                      ? "Tout désélectionner"
-                      : "Tout sélectionner"}
-                  </button>
-                )}
-              </div>
-
-              {matchedPendingOrders.length === 0 ? (
-                <div className="rounded-md border border-border bg-secondary/20 p-4 text-center text-xs text-muted-foreground italic">
-                  {reconcileCsvText.trim()
-                    ? "Aucune communication structurée en attente trouvée dans ce texte."
-                    : "Collez votre extrait ci-dessus pour détecter les communications correspondantes."}
-                </div>
-              ) : (
-                <div className="rounded-md border border-border max-h-48 overflow-y-auto divide-y divide-border">
-                  {matchedPendingOrders.map((order) => {
-                    const isSelected = selectedMatchedIds.has(order.id)
-                    return (
-                      <div
-                        key={order.id}
-                        className={cn(
-                          "flex items-center justify-between p-2.5 text-xs transition-colors cursor-pointer",
-                          isSelected ? "bg-primary/[0.05]" : "hover:bg-secondary/40"
-                        )}
-                        onClick={() => {
-                          const next = new Set(selectedMatchedIds)
-                          if (next.has(order.id)) next.delete(order.id)
-                          else next.add(order.id)
-                          setSelectedMatchedIds(next)
-                        }}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => {}}
-                            className="rounded border-border text-primary"
-                          />
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-foreground">
-                              {order.partners?.company_name}
-                            </span>
-                            <span className="font-mono text-[10px] text-muted-foreground">
-                              Réf : {order.transfer_reference}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col items-end font-mono tabular-nums">
-                          <span className="font-bold text-foreground">
-                            {order.price_ttc.toFixed(2)} € TTC
-                          </span>
-                          <span className="text-[10px] text-primary font-medium">
-                            +{order.credits} crédits
-                          </span>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setReconcileModalOpen(false)}
-              disabled={reconciling}
-            >
-              Fermer
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleBatchReconcile}
-              disabled={reconciling || selectedMatchedIds.size === 0}
-              className="gap-1.5"
-            >
-              <Check className="h-3.5 w-3.5" />
-              <span>
-                {reconciling
-                  ? "Rapprochement en cours…"
-                  : `Valider les ${selectedMatchedIds.size} virement(s) rapproché(s)`}
-              </span>
             </Button>
           </DialogFooter>
         </DialogContent>

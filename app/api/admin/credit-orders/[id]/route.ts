@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { revalidateTag, revalidatePath } from "next/cache"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { z } from "zod"
@@ -86,6 +87,10 @@ export async function PATCH(
       } catch { /* silent */ }
     }
 
+    revalidateTag("admin-badges", "max")
+    revalidateTag("admin-kpis", "max")
+    revalidatePath("/admin", "layout")
+
     return NextResponse.json({
       success: true,
       message: `${order.credits} crédits attribués avec succès.`,
@@ -112,6 +117,10 @@ export async function PATCH(
         details: { reference: order.transfer_reference },
       })
     } catch { /* silent */ }
+
+    revalidateTag("admin-badges", "max")
+    revalidateTag("admin-kpis", "max")
+    revalidatePath("/admin", "layout")
 
     return NextResponse.json({
       success: true,

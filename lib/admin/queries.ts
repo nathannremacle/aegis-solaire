@@ -161,7 +161,7 @@ async function fetchAdminKpisRaw(): Promise<AdminDashboardData> {
     supabase.from("lead_purchases").select("id, lead_id, partner_id, credits_spent, purchased_at"),
     supabase.from("media_partners").select("id, name, tracking_code, commission_b2b, commission_b2c, status"),
     supabase.from("credit_orders").select("id, partner_id, pack_name, credits, price_htva, price_ttc, transfer_reference, status, created_at, validated_at, partners(company_name)").order("created_at", { ascending: false }).limit(100),
-    supabase.from("lead_disputes").select("id, purchase_id, lead_id, partner_id, reason, details, created_at, status, partners(company_name), leads(first_name, last_name, company, segment)").eq("status", "pending").order("created_at", { ascending: true }).limit(10),
+    supabase.from("lead_disputes").select("id, purchase_id, lead_id, partner_id, reason, details, created_at, status, partners(company_name), leads!inner(first_name, last_name, company, segment)").eq("status", "pending").order("created_at", { ascending: true }).limit(10),
     supabase.from("audit_log").select("id, admin_email, action, entity_type, entity_id, details, created_at").order("created_at", { ascending: false }).limit(10),
   ])
 
@@ -233,7 +233,7 @@ async function fetchAdminKpisRaw(): Promise<AdminDashboardData> {
       pending_credit_orders: pendingOrders.length,
       pending_installer_apps: installerAppsRes.count ?? 0,
       pending_media_apps: mediaAppsRes.count ?? 0,
-      pending_disputes: disputesRes.data?.length ?? 0,
+      pending_disputes: (disputesRes.data ?? []).filter((d: any) => Boolean(d.leads)).length,
     },
     lists: {
       needs_review: leadsNeedsReviewRes.data ?? [],
@@ -275,7 +275,11 @@ export const getAdminKpisCached = unstable_cache(
 /**
  * Dédupliqué par requête au sein de React (Server Components).
  * Partagé instantanément entre app/admin/(dashboard)/layout.tsx et app/admin/(dashboard)/dashboard/page.tsx.
+ * Supporte { fresh: true } pour contourner le cache TTL de 30s et forcer une lecture instantanée.
  */
-export const getAdminDashboardData = cache(async () => {
+export const getAdminDashboardData = cache(async (options?: { fresh?: boolean }) => {
+  if (options?.fresh) {
+    return await fetchAdminKpisRaw()
+  }
   return await getAdminKpisCached()
 })

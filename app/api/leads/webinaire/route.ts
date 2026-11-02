@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { webinaireLeadSchema } from "@/lib/webinaire-schema"
 import { checkRateLimit } from "@/lib/rate-limit"
+import { sendAdminWebinarAlertEmail } from "@/lib/notify-admin-lead"
 
 function sanitizeString(input: string, maxLength = 255): string {
   const trimmed = String(input).trim().slice(0, maxLength)
@@ -115,6 +116,17 @@ export async function POST(request: NextRequest) {
         { error: "Erreur lors de l'enregistrement. Veuillez réessayer." },
         { status: 500 }
       )
+    }
+
+    if (insertRes.data?.id) {
+      void sendAdminWebinarAlertEmail({
+        leadId: insertRes.data.id,
+        firstName: first_name,
+        email,
+        jobTitle: job_title,
+        companyName: company,
+        surfaceRange: data.surfaceRange ?? null,
+      }).catch((err) => console.error("[Webinaire Admin Alert] Échec:", err))
     }
 
     return NextResponse.json({

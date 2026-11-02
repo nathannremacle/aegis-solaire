@@ -3,6 +3,9 @@ import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { redirect } from "next/navigation"
 import { LeadsTable } from "./leads-table"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 async function getLeads(
   page: number,
   limit: number,

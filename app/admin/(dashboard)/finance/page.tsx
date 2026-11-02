@@ -5,9 +5,10 @@ import { getAdminDashboardData } from "@/lib/admin/queries"
 import { FinanceClient, type CreditOrder, type FinanceKpis } from "./finance-client"
 
 export const dynamic = "force-dynamic"
+export const revalidate = 0
 export const metadata = {
-  title: "Finances & Virements SEPA | Aegis Solaire Admin",
-  description: "Contrôle financier, rapprochement bancaire SEPA et validation des packs de crédits",
+  title: "Finances & Commandes | Aegis Solaire Admin",
+  description: "Contrôle financier, suivi des encaissements Mollie et facturation des packs de crédits",
 }
 
 export default async function AdminFinancePage() {
@@ -48,7 +49,7 @@ export default async function AdminFinancePage() {
     .limit(150)
 
   // 2. Charger les KPIs financiers
-  const dashboardData = await getAdminDashboardData()
+  const dashboardData = await getAdminDashboardData({ fresh: true })
 
   const kpis: FinanceKpis = {
     paid_htva_month: dashboardData.revenue.paid_htva_month ?? 0,

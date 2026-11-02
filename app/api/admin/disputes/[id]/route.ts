@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { revalidateTag, revalidatePath } from "next/cache"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { Resend } from "resend"
@@ -136,6 +137,10 @@ export async function PATCH(
       }
     }
 
+    revalidateTag("admin-badges", "max")
+    revalidateTag("admin-kpis", "max")
+    revalidatePath("/admin", "layout")
+
     return NextResponse.json({
       success: true,
       status: "approved",
@@ -185,6 +190,10 @@ export async function PATCH(
         /* silent */
       }
     }
+
+    revalidateTag("admin-badges", "max")
+    revalidateTag("admin-kpis", "max")
+    revalidatePath("/admin", "layout")
 
     return NextResponse.json({
       success: true,

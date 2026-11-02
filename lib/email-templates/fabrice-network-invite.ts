@@ -29,8 +29,19 @@ function getSiteBaseUrl(): string {
   return (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.aegissolaire.com").replace(/\/$/, "")
 }
 
+export const MOCK_COMPETITORS_LIEGE = [
+  "Sogreen SRL",
+  "Enersol SA",
+  "High Tech Solar Group SRL",
+  "Solena SRL",
+  "Belga Solar SRL",
+]
+
+export const MOCK_COMPETITORS_LIEGE_PHRASE = 
+  "Nous avons également envoyé ce courrier d'invitation à ces confrères de la région liégeoise : Sogreen SRL, Enersol SA, High Tech Solar Group SRL, Solena SRL et Belga Solar SRL (en précisant que seulement 5 places sont ouvertes au total sur la province de Liège pour préserver la rentabilité de chacun)."
+
 /**
- * Remplace les variables dynamiques (ex: {{prenom}}, {{lien}}, {{entreprise}}, {{credits}})
+ * Remplace les variables dynamiques (ex: {{prenom}}, {{lien}}, {{entreprise}}, {{credits}}, {{installateurs_sollicites}})
  * dans un texte de modèle personnalisé.
  */
 export function substituteTemplateVariables(
@@ -45,6 +56,7 @@ export function substituteTemplateVariables(
   const name = variables.installerName?.trim() || "partenaire"
   const company = variables.companyName?.trim() || ""
   const credits = String(variables.freeCredits ?? 3)
+  const competitorsList = MOCK_COMPETITORS_LIEGE.join(", ")
 
   let result = text
     .replace(/\{\{\s*prenom\s*\}\}/gi, name)
@@ -58,6 +70,8 @@ export function substituteTemplateVariables(
     .replace(/\{\{\s*url\s*\}\}/gi, variables.inviteUrl)
     .replace(/\{\{\s*link\s*\}\}/gi, variables.inviteUrl)
     .replace(/\{\{\s*credits\s*\}\}/gi, credits)
+    .replace(/\{\{\s*(installateurs_sollicites|confreres_liege|concurrents)\s*\}\}/gi, competitorsList)
+    .replace(/\{\{\s*(phrase_concurrence_liege|mention_courrier_liege)\s*\}\}/gi, MOCK_COMPETITORS_LIEGE_PHRASE)
 
   // Si le texte contient l'URL d'invitation brute, s'assurer qu'elle pointe vers le lien dynamique
   if (result.includes("/partenaires/invitation")) {

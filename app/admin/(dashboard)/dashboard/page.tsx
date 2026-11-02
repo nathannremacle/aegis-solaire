@@ -25,6 +25,9 @@ import { AdminRecentActivity } from "@/components/admin/admin-recent-activity"
 import { AdminRelancesCockpitWidget } from "@/components/admin/admin-relances-cockpit-widget"
 import { DashboardSkeleton } from "@/components/admin/dashboard-skeleton"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 export const metadata = {
   title: "Cockpit Opérationnel | Aegis Solaire Admin",
   description: "Tour de contrôle administrative et supervision de la marketplace photovoltaïque en Wallonie",
@@ -78,7 +81,7 @@ export default async function AdminDashboardPage() {
             <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1.5 border-border">
               <Link href="/admin/finance">
                 <Coins className="h-3.5 w-3.5 text-foreground" />
-                <span>Finances SEPA</span>
+                <span>Finances &amp; Commandes</span>
               </Link>
             </Button>
             <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1.5 border-border">
@@ -111,7 +114,7 @@ export default async function AdminDashboardPage() {
 }
 
 async function AdminDashboardContent() {
-  const data = await getAdminDashboardData()
+  const data = await getAdminDashboardData({ fresh: true })
 
   return (
     <div className="flex flex-col gap-6">

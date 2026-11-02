@@ -2,6 +2,7 @@ import { Resend } from "resend"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { calculateMarketplaceFinancials, calculateLeadCreditCost } from "@/lib/marketplace-pricing"
 import { renderInstallerLeadTeaserEmail, buildLeadEmailSubject } from "@/lib/email-templates/installer-lead-teaser"
+import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 
 // ==============================================================================
 // 1. CONFIGURATION & CONSTANTES MÉTIER
@@ -279,7 +280,7 @@ export async function getEligiblePartnersForWave(
   }
 
   const realPartners = allPartners.filter((p) => !isDevTestPartner(p))
-  const devTestPartner = allPartners.find((p) => isDevTestPartner(p))
+  const devTestPartners = allPartners.filter((p) => isDevTestPartner(p))
 
   // 4. Calculer le score et filtrer les candidats réels
   const scoredCandidates: EligiblePartnerForDispatch[] = []
@@ -349,24 +350,26 @@ export async function getEligiblePartnersForWave(
 
   const selectedCandidates = scoredCandidates.slice(0, targetCount)
 
-  // 7. Inclure DEV TEST en observateur/destinataire sans consommer de place dans le quota réel
-  if (devTestPartner && devTestPartner.email && devTestPartner.email.includes("@")) {
-    const hasAlreadyReceivedThisWave = partnersWhoReceivedThisWave.has(devTestPartner.id)
-    if (!hasAlreadyReceivedThisWave) {
-      const devScoreInfo: PartnerMatchingScore = {
-        partnerId: devTestPartner.id,
-        score: 95,
-        tier: "tier_1",
-        isExactProvince: true,
-        isNeighborProvince: false,
-        hasEnoughCredits: (devTestPartner.credits || 0) >= creditCost,
-        segmentMatch: true,
+  // 7. Inclure les comptes DEV TEST / ADMIN en observateurs sans consommer de place dans le quota réel
+  for (const devPartner of devTestPartners) {
+    if (devPartner && devPartner.email && devPartner.email.includes("@")) {
+      const hasAlreadyReceivedThisWave = partnersWhoReceivedThisWave.has(devPartner.id)
+      if (!hasAlreadyReceivedThisWave) {
+        const devScoreInfo: PartnerMatchingScore = {
+          partnerId: devPartner.id,
+          score: 95,
+          tier: "tier_1",
+          isExactProvince: true,
+          isNeighborProvince: false,
+          hasEnoughCredits: (devPartner.credits || 0) >= creditCost,
+          segmentMatch: true,
+        }
+        selectedCandidates.push({
+          partner: devPartner,
+          scoreInfo: devScoreInfo,
+          isTest: true,
+        })
       }
-      selectedCandidates.push({
-        partner: devTestPartner,
-        scoreInfo: devScoreInfo,
-        isTest: true,
-      })
     }
   }
 
@@ -715,11 +718,24 @@ export function isDevTestPartner(p: {
   if (!p) return false
   if (p.is_test || p.isTest) return true
   const company = (p.company_name || p.companyName || "").toLowerCase().trim()
-  if (company.includes("test") || company.includes("dev test") || company.startsWith("dev-")) return true
+  if (
+    company.includes("test") ||
+    company.includes("dev test") ||
+    company.includes("mega solar") ||
+    company.startsWith("dev-")
+  ) return true
   const email = (p.email || p.emailTo || "").toLowerCase().trim()
   const testEmailEnv = (process.env.TEST_PARTNER_EMAIL || "").toLowerCase().trim()
+  const adminEmails = (process.env.ADMIN_EMAILS || "")
+    .toLowerCase()
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean)
   if (
     (testEmailEnv && email === testEmailEnv) ||
+    adminEmails.includes(email) ||
+    email === "fabrice.remacle@gmail.com" ||
+    email === "mrnathanrem@gmail.com" ||
     email.includes("+test") ||
     email.startsWith("test@") ||
     email.endsWith("@test.com")
@@ -1331,4 +1347,188 @@ export async function getRelancesOverviewStats(): Promise<RelancesOverviewStats>
     isBusinessHoursNow: isWithinBusinessHours(),
   }
 }
+
+// ==============================================================================
+// 8. ONBOARDING & RATTRAPAGE DES LEADS DISPONIBLES (CATCH-UP INSTALLATEURS)
+// ==============================================================================
+
+export interface AvailableLeadSummary {
+  id: string
+  segment: "B2B" | "B2C" | string
+  province: string
+  provinceLabel: string
+  city: string | null
+  postalCode: string | null
+  surfaceArea: number
+  surfaceType: string
+  estimatedPowerKwc: number
+  annualBill: number
+  estimatedSavings: number
+  creditCost: number
+  remainingSlots: number
+  maxSlots: number
+  matchingScore: number
+  matchingTier: MatchingTier
+  createdAt: string
+}
+
+/**
+ * Récupère les leads disponibles (non épuisés) correspondant aux zones et segments d'un partenaire,
+ * triés par pertinence (Tier 1 local en premier).
+ * Utile pour l'intégration immédiate d'un nouvel installateur ou le renvoi d'e-mail de bienvenue.
+ */
+export async function getAvailableMatchingLeadsForPartner(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  partner: {
+    id: string
+    credits?: number | null
+    segment?: string | null
+    target_provinces?: string[] | null
+    target_surfaces?: string[] | null
+    min_facture?: number | null
+  },
+  limit = 3
+): Promise<AvailableLeadSummary[]> {
+  const { data: leads, error } = await supabase
+    .from("leads")
+    .select("*")
+    .eq("marketplace_status", "available")
+    .order("created_at", { ascending: false })
+    .limit(50)
+
+  if (error || !leads || leads.length === 0) return []
+
+  const leadIds = leads.map((l) => l.id)
+
+  const { data: purchases } = await supabase
+    .from("lead_purchases")
+    .select("lead_id, partner_id, partners(is_test, company_name)")
+    .in("lead_id", leadIds)
+
+  const purchasesByLead = new Map<string, number>()
+  const partnerPurchasedLeads = new Set<string>()
+
+  for (const p of purchases || []) {
+    const isTest = (p as any).partners?.is_test || (p as any).partners?.company_name?.toLowerCase().includes("test")
+    if (!isTest) {
+      purchasesByLead.set(p.lead_id, (purchasesByLead.get(p.lead_id) || 0) + 1)
+    }
+    if (p.partner_id === partner.id) {
+      partnerPurchasedLeads.add(p.lead_id)
+    }
+  }
+
+  const partnerForScore = {
+    id: partner.id,
+    credits: partner.credits || 0,
+    segment: partner.segment || "BOTH",
+    target_provinces: partner.target_provinces || [],
+    target_surfaces: partner.target_surfaces || [],
+    min_facture: partner.min_facture || null,
+  }
+
+  const candidates: AvailableLeadSummary[] = []
+
+  for (const lead of leads) {
+    if (partnerPurchasedLeads.has(lead.id)) continue
+
+    const isB2B = lead.segment === "B2B"
+    const maxSlots = isB2B ? MAX_SLOTS_B2B : MAX_SLOTS_B2C
+    const takenSlots = purchasesByLead.get(lead.id) || 0
+    if (takenSlots >= maxSlots) continue
+
+    const creditCost = lead.credit_cost || calculateLeadCreditCost(lead)
+    const scoreInfo = calculatePartnerMatchScore(partnerForScore, {
+      segment: lead.segment,
+      province: lead.province,
+      surface_type: lead.surface_type,
+      annual_electricity_bill: lead.annual_electricity_bill,
+      credit_cost: creditCost,
+    })
+
+    if (scoreInfo.score === 0 || !scoreInfo.segmentMatch) continue
+
+    const financials = calculateMarketplaceFinancials({
+      segment: lead.segment,
+      surfaceArea: lead.surface_area_m2 || lead.surface_area || 0,
+      surfaceType: lead.surface_type,
+      roofMaterial: lead.roof_material,
+      annualBill: lead.annual_bill_eur || lead.annual_electricity_bill || 0,
+      creditCost,
+      estimatedPowerKwc: lead.estimated_power_kwc,
+      projectDetails: lead.project_details || lead.message,
+      qualificationMetadata: lead.qualification_metadata,
+    })
+
+    const provinceLabel = getProvinceDisplayLabel(lead.province, lead.province_free_text)
+
+    candidates.push({
+      id: lead.id,
+      segment: lead.segment,
+      province: lead.province,
+      provinceLabel,
+      city: lead.city || null,
+      postalCode: lead.postal_code || null,
+      surfaceArea: financials.normalizedSurfaceAreaM2,
+      surfaceType: lead.surface_type,
+      estimatedPowerKwc: financials.estimatedPowerKwc,
+      annualBill: financials.normalizedAnnualBill,
+      estimatedSavings: financials.revenueEstimatePerYear,
+      creditCost,
+      remainingSlots: Math.max(0, maxSlots - takenSlots),
+      maxSlots,
+      matchingScore: scoreInfo.score,
+      matchingTier: scoreInfo.tier,
+      createdAt: lead.created_at,
+    })
+  }
+
+  // Trier par pertinence : Tier 1 en premier, puis Tier 2, puis meilleur score, puis date récente
+  candidates.sort((a, b) => {
+    if (a.matchingTier !== b.matchingTier) {
+      if (a.matchingTier === "tier_1") return -1
+      if (b.matchingTier === "tier_1") return 1
+      if (a.matchingTier === "tier_2") return -1
+      if (b.matchingTier === "tier_2") return 1
+    }
+    if (b.matchingScore !== a.matchingScore) {
+      return b.matchingScore - a.matchingScore
+    }
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  })
+
+  return candidates.slice(0, limit)
+}
+
+/**
+ * Journalise le dispatch de rattrapage pour un partenaire nouvellement approuvé
+ */
+export async function recordCatchUpDispatches(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  partner: { id: string; email: string; credits?: number | null },
+  leads: AvailableLeadSummary[],
+  emailSubject: string
+): Promise<void> {
+  if (!leads || leads.length === 0) return
+
+  for (const lead of leads) {
+    try {
+      await supabase.from("lead_relance_dispatches").insert({
+        lead_id: lead.id,
+        partner_id: partner.id,
+        wave_number: 1,
+        email_to: partner.email,
+        email_subject: emailSubject,
+        matching_score: lead.matchingScore,
+        matching_tier: lead.matchingTier,
+        credits_at_send: partner.credits || 0,
+        sent_at: new Date().toISOString(),
+        metadata: { trigger: "installer_approval_catchup" },
+      })
+    } catch {
+      // Tolérance si la contrainte unique uq_lead_partner_wave existe déjà
+    }
+  }
+}
+
 

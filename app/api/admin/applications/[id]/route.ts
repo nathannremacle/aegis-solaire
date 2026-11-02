@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { revalidateTag, revalidatePath } from "next/cache"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 
@@ -74,6 +75,7 @@ async function syncPartnerFromApplication(
   app: ApplicationRow
 ) {
   const email = app.email.toLowerCase().trim()
+  const targetProvinces = Array.isArray(app.regions) && app.regions.length > 0 ? app.regions : null
 
   const { data: existing } = await supabase
     .from("partners")
@@ -82,6 +84,12 @@ async function syncPartnerFromApplication(
     .maybeSingle()
 
   if (existing?.id) {
+    if (targetProvinces) {
+      await supabase
+        .from("partners")
+        .update({ target_provinces: targetProvinces })
+        .eq("id", existing.id)
+    }
     return { created: false, partnerId: existing.id }
   }
 
@@ -102,6 +110,7 @@ async function syncPartnerFromApplication(
       phone: app.phone?.trim().slice(0, 50) || null,
       credits: 0,
       segment: "BOTH",
+      target_provinces: targetProvinces,
     })
     .select("id")
     .single()
@@ -134,6 +143,11 @@ import {
   buildInstallerMarketplaceWelcomeEmail,
   sendInstallerEmail,
 } from "@/lib/installer-welcome-emails"
+import {
+  getAvailableMatchingLeadsForPartner,
+  recordCatchUpDispatches,
+  type AvailableLeadSummary,
+} from "@/lib/lead-relance-engine"
 
 function getSiteBaseUrl(): string {
   return (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.aegissolaire.com").replace(/\/$/, "")
@@ -180,6 +194,7 @@ export async function PATCH(
   let installateurSync: { created: boolean; installateurId?: string } | null = null
   let partnerSync: { created: boolean; partnerId?: string } | null = null
   let marketplaceEmailSent = false
+  let availableLeads: AvailableLeadSummary[] = []
 
   if (data.status === "approved") {
     const app = data as ApplicationRow
@@ -203,7 +218,25 @@ export async function PATCH(
       console.error("[admin/applications] sync partner:", e)
     }
 
-    // Envoi de l'e-mail de bienvenue sur la Marketplace (HomeDeal style Aegis)
+    const partnerId = partnerSync?.partnerId
+
+    if (partnerId) {
+      try {
+        const { data: fullPartner } = await supabase
+          .from("partners")
+          .select("id, email, credits, segment, target_provinces, target_surfaces, min_facture")
+          .eq("id", partnerId)
+          .maybeSingle()
+
+        if (fullPartner) {
+          availableLeads = await getAvailableMatchingLeadsForPartner(supabase, fullPartner, 3)
+        }
+      } catch (leadsErr) {
+        console.error("[admin/applications] Échec recherche leads de rattrapage:", leadsErr)
+      }
+    }
+
+    // Envoi de l'e-mail de bienvenue sur la Marketplace (avec rattrapage des leads chauds)
     try {
       const baseUrl =
         request.nextUrl.origin && !request.nextUrl.origin.includes("localhost:0")
@@ -218,6 +251,7 @@ export async function PATCH(
         email: app.email,
         rescertRef: app.rescert_ref,
         marketplaceUrl,
+        availableLeads,
       })
 
       const sendRes = await sendInstallerEmail({
@@ -228,11 +262,33 @@ export async function PATCH(
         tag: "installer-marketplace-welcome",
       })
       marketplaceEmailSent = sendRes.success
+
+      // Journalisation dans lead_relance_dispatches pour ces leads disponibles
+      if (sendRes.success && partnerId && availableLeads.length > 0) {
+        void recordCatchUpDispatches(
+          supabase,
+          { id: partnerId, email: app.email },
+          availableLeads,
+          emailPayload.subject
+        ).catch((dispatchErr) =>
+          console.warn("[admin/applications] recordCatchUpDispatches error:", dispatchErr)
+        )
+      }
     } catch (mailErr) {
       console.error("[admin/applications] Échec envoi email marketplace:", mailErr)
     }
   }
 
-  return NextResponse.json({ ...data, installateurSync, partnerSync, marketplaceEmailSent })
+  revalidateTag("admin-badges", "max")
+  revalidateTag("admin-kpis", "max")
+  revalidatePath("/admin", "layout")
+
+  return NextResponse.json({
+    ...data,
+    installateurSync,
+    partnerSync,
+    marketplaceEmailSent,
+    availableLeadsCount: availableLeads.length,
+  })
 }
 

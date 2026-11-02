@@ -48,6 +48,7 @@ import { LeadDrawer, type LeadDetail } from "@/components/admin/leads/lead-drawe
 import { BulkActionBar } from "@/components/admin/leads/bulk-action-bar"
 import { type CompatiblePartner } from "@/components/admin/leads/dispatch-panel"
 import { isWalloonPostalCode } from "@/lib/admin/lead-risk"
+import { triggerAdminBadgesRefresh } from "@/components/admin/admin-badges-provider"
 import {
   publishLeadAction,
   rejectLeadAction,
@@ -229,6 +230,7 @@ export function LeadsTable({
 
   function handleLeadActionDone(id: string, _action: "qualified" | "rejected" | "archived") {
     setRemovedLeadIds((prev) => new Set([...prev, id]))
+    triggerAdminBadgesRefresh()
     const currentIdx = activeLeads.findIndex((l) => l.id === id)
     if (currentIdx !== -1 && currentIdx < activeLeads.length - 1) {
       openLeadDetail(activeLeads[currentIdx + 1].id)
@@ -247,6 +249,7 @@ export function LeadsTable({
       await bulkQualifyAndPublishAction(Array.from(selectedIds))
       toast.success(`${selectedIds.size} leads qualifiés et publiés`)
       setSelectedIds(new Set())
+      triggerAdminBadgesRefresh()
       router.refresh()
     } catch {
       toast.error("Échec de la validation groupée")
@@ -262,6 +265,7 @@ export function LeadsTable({
       await bulkRejectAction(Array.from(selectedIds), reason)
       toast.success(`${selectedIds.size} leads rejetés (${reason})`)
       setSelectedIds(new Set())
+      triggerAdminBadgesRefresh()
       router.refresh()
     } catch {
       toast.error("Échec du rejet groupé")

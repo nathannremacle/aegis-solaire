@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/s
 import { Button } from "@/components/ui/button"
 import { AdminBreadcrumbs } from "@/components/admin-breadcrumbs"
 import { AdminNav } from "@/components/admin-nav"
+import { useAdminBadges } from "@/components/admin/admin-badges-provider"
 import type { AdminProfile } from "@/lib/admin-auth"
 
 export function AdminHeader({
@@ -23,8 +24,16 @@ export function AdminHeader({
   pendingCreditOrders: number
   pendingDisputes?: number
 }) {
+  const { badges } = useAdminBadges()
+
+  const liveNeedsReview = badges?.pending_review_leads ?? needsReview
+  const livePendingDisputes = badges?.pending_disputes ?? pendingDisputes
+  const livePendingApplications = badges?.pending_installer_apps ?? pendingApplications
+  const livePendingMedia = badges?.pending_media_apps ?? pendingMedia
+  const livePendingCreditOrders = badges?.pending_credit_orders ?? pendingCreditOrders
+
   const [mobileOpen, setMobileOpen] = React.useState(false)
-  const totalSlaAlerts = (pendingCreditOrders > 0 ? 1 : 0) + (needsReview > 0 ? 1 : 0) + (pendingDisputes > 0 ? 1 : 0)
+  const totalSlaAlerts = (livePendingCreditOrders > 0 ? 1 : 0) + (liveNeedsReview > 0 ? 1 : 0) + (livePendingDisputes > 0 ? 1 : 0)
 
   // Current formatted date in French (Wallonie/Belgique)
   const todayStr = new Intl.DateTimeFormat("fr-BE", {
@@ -73,11 +82,11 @@ export function AdminHeader({
         {totalSlaAlerts > 0 && (
           <a
             href="/admin/dashboard"
-            title={`${needsReview + pendingCreditOrders + pendingDisputes} actions soumises au SLA 24h : ${needsReview} lead(s) à trier, ${pendingCreditOrders} virement(s) SEPA, ${pendingDisputes} litige(s)`}
+            title={`${liveNeedsReview + livePendingCreditOrders + livePendingDisputes} actions soumises au SLA 24h : ${liveNeedsReview} lead(s) à trier, ${livePendingCreditOrders} commande(s) en attente, ${livePendingDisputes} litige(s)`}
             className="inline-flex items-center gap-1.5 rounded-sm bg-destructive/10 border border-destructive/25 px-2 py-0.5 text-xs font-mono font-medium text-destructive hover:bg-destructive/20 transition-colors cursor-pointer"
           >
             <AlertTriangle className="h-3 w-3 shrink-0" />
-            <span className="font-mono tabular-nums">{needsReview + pendingCreditOrders + pendingDisputes} urgences SLA</span>
+            <span className="font-mono tabular-nums">{liveNeedsReview + livePendingCreditOrders + livePendingDisputes} urgences SLA</span>
           </a>
         )}
 

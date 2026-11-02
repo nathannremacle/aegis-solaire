@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
+import { triggerAdminBadgesRefresh } from "@/components/admin/admin-badges-provider"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
@@ -72,18 +73,24 @@ export default function ApplicationsPage() {
       })
       if (!res.ok) throw new Error()
       const updated = await res.json()
-      const { installateurSync, marketplaceEmailSent, ...appRow } = updated as Application & {
+      const { installateurSync, marketplaceEmailSent, availableLeadsCount, ...appRow } = updated as Application & {
         installateurSync?: { created: boolean; installateurId?: string }
         marketplaceEmailSent?: boolean
+        availableLeadsCount?: number
       }
       setApps((prev) => prev.map((a) => (a.id === id ? { ...a, ...appRow } : a)))
       setSelected(null)
+      triggerAdminBadgesRefresh()
       if (status === "approved") {
-        toast.success(
-          marketplaceEmailSent
-            ? "Candidature approuvée — installateur synchronisé & e-mail de bienvenue Marketplace envoyé !"
-            : "Candidature approuvée — installateur synchronisé avec succès."
-        )
+        if (marketplaceEmailSent) {
+          toast.success(
+            availableLeadsCount && availableLeadsCount > 0
+              ? `Candidature approuvée — e-mail envoyé avec ${availableLeadsCount} dossier(s) solaire(s) disponible(s) !`
+              : "Candidature approuvée — e-mail de bienvenue Marketplace envoyé !"
+          )
+        } else {
+          toast.success("Candidature approuvée — installateur synchronisé avec succès.")
+        }
       } else {
         toast.success("Candidature rejetée")
       }
