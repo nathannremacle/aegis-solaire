@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -24,7 +25,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Plus, Pencil, Trash2 } from "lucide-react"
+import { Plus, Pencil, Trash2, ShieldCheck } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 type Installateur = {
   id: string
@@ -149,9 +151,102 @@ export function InstallateursClient({ initialData }: { initialData: Installateur
     }
   }
 
+  const [tab, setTab] = useState<"network" | "test" | "all">("network")
+
+  const isDevTestAdmin = (inst: Installateur) => {
+    const email = (inst.email || "").toLowerCase().trim()
+    const name = (inst.name || "").toLowerCase().trim()
+    return (
+      email === "mrnathanrem@gmail.com" ||
+      email === "fabrice.remacle@gmail.com" ||
+      name.includes("dev test") ||
+      name.includes("mega solar")
+    )
+  }
+
+  const isSimulation = (inst: Installateur) => {
+    const email = (inst.email || "").toLowerCase().trim()
+    const name = (inst.name || "").toLowerCase().trim()
+    return (
+      email.includes("@aegissolaire-pro.be") ||
+      name.includes("sogreen") ||
+      name.includes("enersol") ||
+      name.includes("high tech") ||
+      name.includes("solena") ||
+      name.includes("belga solar") ||
+      name.includes("aitex")
+    )
+  }
+
+  const networkInstallers = useMemo(
+    () => list.filter((i) => !isDevTestAdmin(i)),
+    [list]
+  )
+
+  const testInstallers = useMemo(
+    () => list.filter((i) => isDevTestAdmin(i) || isSimulation(i)),
+    [list]
+  )
+
+  const displayedList = useMemo(() => {
+    if (tab === "test") return testInstallers
+    if (tab === "all") return list
+    return networkInstallers
+  }, [tab, list, networkInstallers, testInstallers])
+
   return (
     <>
-      <div className="flex justify-end">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="flex items-center rounded-md border border-border bg-card p-0.5 text-xs overflow-x-auto">
+          <button
+            type="button"
+            onClick={() => setTab("network")}
+            className={cn(
+              "px-3 py-1.5 rounded-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer",
+              tab === "network"
+                ? "bg-secondary text-foreground shadow-2xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <span>Tous les installateurs</span>
+            <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+              ({networkInstallers.length})
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setTab("test")}
+            className={cn(
+              "px-3 py-1.5 rounded-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer",
+              tab === "test"
+                ? "bg-secondary text-foreground shadow-2xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <span>Installateurs de test</span>
+            <span className="rounded-full bg-amber-500/20 px-1.5 py-0.2 font-mono text-[10px] tabular-nums font-bold text-amber-700 dark:text-amber-400">
+              {testInstallers.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setTab("all")}
+            className={cn(
+              "px-3 py-1.5 rounded-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer",
+              tab === "all"
+                ? "bg-secondary text-foreground shadow-2xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <span>Tous (incluant admin)</span>
+            <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+              ({list.length})
+            </span>
+          </button>
+        </div>
+
         <Button onClick={openCreate} className="gap-2">
           <Plus className="h-4 w-4" />
           Ajouter un installateur
@@ -173,16 +268,37 @@ export function InstallateursClient({ initialData }: { initialData: Installateur
             </tr>
           </thead>
           <tbody>
-            {list.length === 0 ? (
+            {displayedList.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                  Aucun installateur. Cliquez sur « Ajouter un installateur » pour en créer un.
+                <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
+                  {tab === "test"
+                    ? "Aucun installateur de test répertorié."
+                    : "Aucun installateur. Cliquez sur « Ajouter un installateur » pour en créer un."}
                 </td>
               </tr>
             ) : (
-              list.map((inst) => (
+              displayedList.map((inst) => (
                 <tr key={inst.id} className="border-b border-border">
-                  <td className="px-4 py-3 font-medium">{inst.name}</td>
+                  <td className="px-4 py-3 font-medium">
+                    <div className="flex items-center gap-2">
+                      <span>{inst.name}</span>
+                      {isDevTestAdmin(inst) ? (
+                        <Badge
+                          variant="outline"
+                          className="text-[9px] font-mono py-0 h-4 bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/30 font-semibold"
+                        >
+                          COMPTE ADMIN TEST
+                        </Badge>
+                      ) : isSimulation(inst) ? (
+                        <Badge
+                          variant="outline"
+                          className="text-[9px] font-mono py-0 h-4 bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 font-semibold"
+                        >
+                          SIMULATION E-MAILS
+                        </Badge>
+                      ) : null}
+                    </div>
+                  </td>
                   <td className="px-4 py-3">{inst.email}</td>
                   <td className="px-4 py-3 text-muted-foreground">{inst.phone ?? "–"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{inst.region ?? "–"}</td>

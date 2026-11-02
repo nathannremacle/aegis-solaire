@@ -1,5 +1,12 @@
 import { FinancialEstimates } from "@/lib/marketplace-pricing"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
+import {
+  SURFACE_TYPE_LABELS,
+  ROOF_MATERIAL_LABELS,
+  TIMEFRAME_LABELS,
+  OWNERSHIP_LABELS,
+  PROJECT_DRIVER_LABELS,
+} from "@/lib/lead-display-helpers"
 
 export interface InstallerLeadTeaserData {
   partner: {
@@ -36,14 +43,6 @@ export interface InstallerLeadTeaserData {
   financials: FinancialEstimates
 }
 
-import {
-  SURFACE_TYPE_LABELS,
-  ROOF_MATERIAL_LABELS,
-  TIMEFRAME_LABELS,
-  OWNERSHIP_LABELS,
-  PROJECT_DRIVER_LABELS,
-} from "@/lib/lead-display-helpers"
-
 function escapeHtml(s: string): string {
   return String(s)
     .replace(/&/g, "&amp;")
@@ -58,6 +57,49 @@ function formatEur(amount: number): string {
 
 function getSiteBaseUrl(): string {
   return (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.aegissolaire.com").replace(/\/$/, "")
+}
+
+function getSafeOwnershipLabel(val?: string | null): string {
+  if (!val) return "Propriétaire occupant"
+  const clean = val.toLowerCase().trim()
+  if (OWNERSHIP_LABELS[clean]) return OWNERSHIP_LABELS[clean]
+  if (clean.includes("occup")) return "Propriétaire occupant"
+  if (clean.includes("propri")) return "Propriétaire occupant"
+  if (clean.includes("locat")) return "Locataire"
+  if (clean.includes("business") || clean.includes("owner") || clean.includes("dirig")) return "Chef d'entreprise / Dirigeant"
+  return "Propriétaire occupant"
+}
+
+function getSafeTimeframeLabel(val?: string | null): string {
+  if (!val) return "Dans les 3 mois"
+  const clean = val.toLowerCase().trim()
+  if (TIMEFRAME_LABELS[clean]) return TIMEFRAME_LABELS[clean]
+  if (clean.includes("immed") || clean.includes("urgent")) return "Immédiat (1 à 3 mois)"
+  if (clean.includes("3")) return "Dans les 3 mois"
+  if (clean.includes("6")) return "D'ici 3 à 6 mois"
+  return "Dans les 3 mois"
+}
+
+function getSafeDriverLabel(val?: string | null): string {
+  if (!val) return "Réduction de la facture d'électricité"
+  const clean = val.toLowerCase().trim()
+  if (PROJECT_DRIVER_LABELS[clean]) return PROJECT_DRIVER_LABELS[clean]
+  if (clean.includes("facture") || clean.includes("cost") || clean.includes("reduc")) return "Réduction de la facture d'électricité"
+  if (clean.includes("auto")) return "Autonomie & autoconsommation"
+  if (clean.includes("esg") || clean.includes("rse")) return "Transition énergétique & conformité RSE"
+  return "Réduction de la facture d'électricité"
+}
+
+function getSafeSurfaceTypeLabel(val?: string | null): string {
+  if (!val) return "Toiture"
+  const clean = val.toLowerCase().trim()
+  return SURFACE_TYPE_LABELS[clean] || "Toiture"
+}
+
+function getSafeRoofMaterialLabel(val?: string | null): string {
+  if (!val) return "Toiture standard"
+  const clean = val.toLowerCase().trim()
+  return ROOF_MATERIAL_LABELS[clean] || "Toiture standard"
 }
 
 function getLeadLocationInfo(lead: {
@@ -96,7 +138,8 @@ function getLeadLocationInfo(lead: {
 }
 
 /**
- * Construit l'objet d'e-mail selon la vague et la typologie du dossier
+ * Construit l'objet d'e-mail selon le niveau d'urgence et la typologie du dossier
+ * Sans jamais mentionner le terme interne "vague".
  */
 export function buildLeadEmailSubject(data: InstallerLeadTeaserData): string {
   const { locPhrase } = getLeadLocationInfo(data.lead)
@@ -118,7 +161,7 @@ export function buildLeadEmailSubject(data: InstallerLeadTeaserData): string {
     return `Rappel : Plus que ${remainingSlots} place(s) restante(s) — Projet solaire ${locPhrase}`
   }
 
-  // Wave 3
+  // Étape 3
   if (isB2B) {
     return `Dernier appel : Projet B2B ${locPhrase} en attente d'artisan certifié`
   }
@@ -143,11 +186,11 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
   const isB2B = data.lead.segment === "B2B"
   const remainingSlots = Math.max(0, data.maxSlots - data.takenSlots)
 
-  const surfaceTypeLabel = SURFACE_TYPE_LABELS[data.lead.surfaceType] ?? data.lead.surfaceType
-  const roofMaterialLabel = data.lead.roofMaterial ? (ROOF_MATERIAL_LABELS[data.lead.roofMaterial] ?? data.lead.roofMaterial) : "Toiture standard"
-  const timeframeLabel = data.lead.timeframe ? (TIMEFRAME_LABELS[data.lead.timeframe] ?? data.lead.timeframe) : "Dans les 3 mois"
-  const ownershipLabel = data.lead.ownershipStatus ? (OWNERSHIP_LABELS[data.lead.ownershipStatus] ?? data.lead.ownershipStatus) : "Propriétaire occupant"
-  const driverLabel = data.lead.projectDriver ? (PROJECT_DRIVER_LABELS[data.lead.projectDriver] ?? data.lead.projectDriver) : "Optimisation des coûts énergétiques"
+  const surfaceTypeLabel = getSafeSurfaceTypeLabel(data.lead.surfaceType)
+  const roofMaterialLabel = getSafeRoofMaterialLabel(data.lead.roofMaterial)
+  const timeframeLabel = getSafeTimeframeLabel(data.lead.timeframe)
+  const ownershipLabel = getSafeOwnershipLabel(data.lead.ownershipStatus)
+  const driverLabel = getSafeDriverLabel(data.lead.projectDriver)
 
   const panelInfo = data.financials.estimatedPanelCount ? ` (${data.financials.estimatedPanelCount} panneaux)` : ""
   const powerKwc = `${data.financials.estimatedPowerKwc} kWc${panelInfo}`
@@ -182,36 +225,42 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
     }
   }
 
-  // Text Hook based on Wave
+  // Text Hook according to urgency
   let waveIntroText = ""
   let waveUrgencyBadge = ""
 
   if (data.waveNumber === 1) {
-    waveIntroText = `Un nouveau dossier de rénovation photovoltaïque hautement qualifié vient d'être validé par nos auditeurs techniques dans votre zone d'intervention (${city}${provinceLabel && provinceLabel !== city ? `, ${provinceLabel}` : ""}).`
-    waveUrgencyBadge = isB2B ? "EXCLUSIVITÉ 100% — 1 SEUL ACHETEUR" : "ATTRIBUTION STRICTEMENT LIMITÉE À 3 ARTISANS"
+    waveIntroText = isB2B
+      ? `Un nouveau projet photovoltaïque d'entreprise vient d'être qualifié et audité ${locPhrase}. En tant qu'installateur agréé sur ce secteur, ce chantier vous est proposé en exclusivité.`
+      : `Un nouveau dossier de rénovation photovoltaïque vient d'être validé par notre cellule technique ${locPhrase}. Les coordonnées complètes du demandeur sont prêtes à être transmises.`
+    waveUrgencyBadge = isB2B ? "EXCLUSIVITÉ B2B — 1 SEUL ARTISAN" : "ATTRIBUTION RESTREINTE — 3 ARTISANS MAX"
   } else if (data.waveNumber === 2) {
-    waveIntroText = `Rappel : Le dossier photovoltaïque ${locPhrase} dispose encore de ${remainingSlots} place(s) artisan disponible(s). Les installateurs de votre région étudient actuellement ce chantier.`
-    waveUrgencyBadge = `PLUS QUE ${remainingSlots} CRÉNEAU(X) DISPONIBLE(S)`
+    waveIntroText = isB2B
+      ? `Rappel de disponibilité : Le projet photovoltaïque professionnel ${locPhrase} est toujours accessible en exclusivité sur votre espace partenaire.`
+      : `Rappel de disponibilité : Le dossier photovoltaïque ${locPhrase} dispose encore de ${remainingSlots} place(s) artisan ouverte(s) avant fermeture de la mise en relation.`
+    waveUrgencyBadge = isB2B ? "PROJET B2B DISPONIBLE" : `PLUS QUE ${remainingSlots} CRÉNEAU(X) OUVERT(S)`
   } else {
-    waveIntroText = `Dernière opportunité : Ce dossier qualifié ${locPhrase} n'a plus qu'un créneau disponible avant clôture définitive de la mise en relation.`
-    waveUrgencyBadge = "DERNIER CRÉNEAU DISPONIBLE — CLÔTURE IMMINENTE"
+    waveIntroText = isB2B
+      ? `Dernière opportunité : Le projet photovoltaïque d'entreprise ${locPhrase} sera prochainement clôturé si aucun artisan partenaire ne le prend en charge.`
+      : `Dernier créneau disponible : Il ne reste qu'une seule place artisan ouverte sur ce chantier ${locPhrase} avant clôture définitive de la mise en relation.`
+    waveUrgencyBadge = isB2B ? "AVIS DE CLÔTURE IMMINENTE" : "DERNIER CRÉNEAU AVANT CLÔTURE"
   }
 
-  // Visual Scarcity Slots for B2C
+  // Visual Scarcity Slots for B2C (Épuré sans emojis)
   let slotsHtml = ""
   if (!isB2B) {
     const slots = []
     for (let i = 1; i <= data.maxSlots; i++) {
       if (i <= data.takenSlots) {
         slots.push(`
-          <td style="padding: 8px 12px; background-color: #F1F5F9; border-radius: 8px; border: 1px solid #E2E8F0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; color: #64748B; text-align: center;">
-            <span style="color: #94A3B8; font-weight: 700;">●</span> Place ${i} : Réservée
+          <td style="padding: 10px 14px; background-color: #F8FAFC; border-radius: 6px; border: 1px solid #E2E8F0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; color: #64748B; text-align: center; font-weight: 500;">
+            Place ${i} : Réservée
           </td>
         `)
       } else {
         slots.push(`
-          <td style="padding: 8px 12px; background-color: #FEF3C7; border-radius: 8px; border: 1px solid #FDE68A; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; color: #B45309; font-weight: 700; text-align: center;">
-            <span style="color: #F59E0B; font-weight: 700;">○</span> Place ${i} : DISPONIBLE
+          <td style="padding: 10px 14px; background-color: #EFF6FF; border-radius: 6px; border: 1px solid #BFDBFE; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; color: #1D4ED8; font-weight: 700; text-align: center;">
+            Place ${i} : Disponible
           </td>
         `)
       }
@@ -225,7 +274,7 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
     `
   }
 
-  // Plain Text Version
+  // Plain Text Version (Clair, direct, sobre)
   const text = `AEGIS SOLAIRE — DOSSIER PHOTOVOLTAÏQUE QUALIFIÉ
 Tiers de Confiance Wallon · Agrément RESCERT & CWaPE
 
@@ -233,53 +282,51 @@ Bonjour ${partnerGreetingName},
 
 ${waveIntroText}
 
-Consultez la fiche technique et débloquez les coordonnées complètes du client :
+Consulter la fiche du chantier et obtenir les coordonnées :
 ${dashboardLeadUrl}
 
 ============================================================
 RÉSUMÉ DU PROJET : Installation Solaire ${locPhrase}
 ============================================================
-• Segment : ${isB2B ? "Professionnel / B2B (Exclusif)" : "Résidentiel / B2C (Max 3 artisans)"}
+• Segment : ${isB2B ? "Professionnel / B2B (Exclusivité 100%)" : "Résidentiel / B2C (3 artisans maximum)"}
 • Puissance estimée : ${powerKwc}
 • Surface disponible : ${surfaceArea} (${surfaceTypeLabel})
-• Type de toiture : ${roofMaterialLabel}
-• Facture d'électricité : ${annualBill}
-• Décisionnaire : ${ownershipLabel}
+• Couverture toiture : ${roofMaterialLabel}
+• Facture annuelle : ${annualBill}
+• Profil du demandeur : ${ownershipLabel}
 • Objectif du projet : ${driverLabel}
 • Échéance souhaitée : ${timeframeLabel}
 
 COORDONNÉES CLIENT :
-• Nom du client : ${leadMaskedName}
+• Nom : ${leadMaskedName}
 • Localisation : ${locPhrase}
-• Téléphone : ********* [Vérifié par Aegis Solaire]
-• E-mail : ********* [Vérifié par Aegis Solaire]
-• Adresse exacte : ********* [Débloquée après acquisition]
+• Téléphone : [Vérifié par notre cellule technique]
+• E-mail : [Vérifié par notre cellule technique]
+• Adresse exacte : [Débloquée instantanément lors de l'accès au dossier]
 
-CONDITIONS D'ACQUISITION :
+CONDITIONS D'ACCÈS :
 • Coût du dossier : ${data.creditCost} crédits (~${creditCostEur})
 • Votre solde actuel : ${data.partner.credits} crédits
 • Montant estimé du devis : ${estimatedContract}
-• Marge brute estimée : ${estimatedMargin}
+• Marge brute indicative : ${estimatedMargin}
 ${!isB2B ? `• Attribution : Limité à 3 artisans maximum (${remainingSlots} place(s) restante(s))` : "• Exclusivité : 100 % exclusif (1 seul artisan sur ce dossier)"}
 
-Pour débloquer ce dossier en 1 clic :
+Pour consulter la fiche et obtenir les coordonnées :
 ${dashboardLeadUrl}
 
-${!hasEnoughCredits ? `Note : Votre solde actuel (${data.partner.credits} crédits) est insuffisant pour ce dossier (${data.creditCost} crédits). Vous pouvez recharger votre pack en quelques clics ici : ${creditsOrderUrl}\n` : ""}
-Une question technique ?
+${!hasEnoughCredits ? `Note : Votre solde actuel (${data.partner.credits} crédits) est insuffisant pour ce dossier (${data.creditCost} crédits). Vous pouvez recharger votre compte ici : ${creditsOrderUrl}\n` : ""}
+Une question technique sur ce dossier ?
 Notre cellule technique et ingénierie se tient à votre entière disposition par e-mail à contact@aegissolaire.com.
 
 Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
 `.trim()
 
-  // Dynamic tokens depending on urgency stage (sans jamais mentionner le mot interne "vague")
   const topStripeColor =
     data.waveNumber === 1 ? "#2563EB" : data.waveNumber === 2 ? "#F59E0B" : "#DC2626"
 
   let pillBadgeBg = "#EFF6FF"
   let pillBadgeBorder = "#BFDBFE"
   let pillBadgeColor = "#1D4ED8"
-  let bulletColor = "#2563EB"
   let pillBadgeText = isB2B ? "Exclusivité 100% · B2B" : "Attribution Restreinte · 3 Max"
 
   let eyebrowColor = "#2563EB"
@@ -291,7 +338,6 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
     pillBadgeBg = "#FEF3C7"
     pillBadgeBorder = "#FDE68A"
     pillBadgeColor = "#92400E"
-    bulletColor = "#D97706"
     pillBadgeText = isB2B ? "Dossier Disponible · B2B" : `${remainingSlots} place(s) restante(s)`
     eyebrowColor = "#D97706"
     eyebrowText = isB2B
@@ -302,7 +348,6 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
     pillBadgeBg = "#FEF2F2"
     pillBadgeBorder = "#FECACA"
     pillBadgeColor = "#991B1B"
-    bulletColor = "#DC2626"
     pillBadgeText = isB2B ? "Clôture Imminente · B2B" : "Dernier créneau disponible"
     eyebrowColor = "#DC2626"
     eyebrowText = isB2B
@@ -311,7 +356,7 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
     headlineTitle = `Dernier créneau disponible ${escapeHtml(locPhrase)}`
   }
 
-  // High-End Fintech Slate & Solar Trust HTML Email
+  // Clean, Swiss editorial HTML Email without cheesy AI emojis
   const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="fr">
 <head>
@@ -356,8 +401,7 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
     <tr>
       <td align="center">
 
-        <!-- Main Card Container avec liseré supérieur dynamique selon la vague -->
-        <table role="presentation" class="email-container" width="600" style="width: 600px; max-width: 600px; background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid ${topStripeColor}; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);">
+        <table role="presentation" class="email-container" width="600" style="width: 600px; max-width: 600px; background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid ${topStripeColor}; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.05);">
           
           <!-- Header Blanc Pur pour contraste maximal avec logo.png -->
           <tr>
@@ -370,8 +414,8 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                     </a>
                   </td>
                   <td align="right" valign="middle" style="white-space: nowrap; padding-left: 12px;">
-                    <span class="mono" style="display: inline-block; white-space: nowrap; background-color: ${pillBadgeBg}; border: 1px solid ${pillBadgeBorder}; color: ${pillBadgeColor}; font-size: 11px; font-weight: 700; padding: 6px 14px; border-radius: 9999px; letter-spacing: 0.04em; text-transform: uppercase; line-height: 1.3;">
-                      <span style="color: ${bulletColor}; font-size: 8px; vertical-align: middle; margin-right: 6px;">●</span>${escapeHtml(pillBadgeText)}
+                    <span class="mono" style="display: inline-block; white-space: nowrap; background-color: ${pillBadgeBg}; border: 1px solid ${pillBadgeBorder}; color: ${pillBadgeColor}; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 6px; letter-spacing: 0.03em; text-transform: uppercase; line-height: 1.3;">
+                      ${escapeHtml(pillBadgeText)}
                     </span>
                   </td>
                 </tr>
@@ -381,13 +425,13 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
 
           <!-- Body Content -->
           <tr>
-            <td class="email-body" style="padding: 34px 32px 28px 32px;">
+            <td class="email-body" style="padding: 32px 32px 28px 32px;">
 
               <!-- Eyebrow & Subject Headline -->
-              <p class="mono" style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: ${eyebrowColor}; text-transform: uppercase; letter-spacing: 0.08em;">
+              <p class="mono" style="margin: 0 0 8px 0; font-size: 11px; font-weight: 700; color: ${eyebrowColor}; text-transform: uppercase; letter-spacing: 0.08em;">
                 ${eyebrowText}
               </p>
-              <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 800; line-height: 1.25; color: #0F172A; letter-spacing: -0.02em;">
+              <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; line-height: 1.3; color: #0F172A; letter-spacing: -0.01em;">
                 ${headlineTitle}
               </h1>
 
@@ -398,15 +442,15 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                 ${escapeHtml(waveIntroText)}
               </p>
 
-              <!-- Top Primary CTA Button (Fintech Slate) -->
+              <!-- Top Primary CTA Button -->
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 28px;">
                 <tr>
                   <td align="center" style="padding: 4px 0;">
                     <table role="presentation" cellspacing="0" cellpadding="0">
                       <tr>
-                        <td align="center" style="background-color: #0F172A; border-radius: 10px; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);">
-                          <a href="${dashboardLeadUrl}" target="_blank" style="display: inline-block; padding: 15px 34px; font-size: 15px; font-weight: 700; color: #FFFFFF; text-decoration: none; letter-spacing: 0.01em;">
-                            Débloquer ce dossier sur mon Dashboard &rarr;
+                        <td align="center" style="background-color: #0F172A; border-radius: 8px; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);">
+                          <a href="${dashboardLeadUrl}" target="_blank" style="display: inline-block; padding: 14px 30px; font-size: 15px; font-weight: 700; color: #FFFFFF; text-decoration: none; letter-spacing: 0.01em;">
+                            Consulter la fiche et obtenir les coordonnées &rarr;
                           </a>
                         </td>
                       </tr>
@@ -416,46 +460,46 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                 <tr>
                   <td align="center" style="padding-top: 10px;">
                     <span class="mono" style="font-size: 12px; color: #64748B;">
-                      Accès immédiat · Coût du dossier : <strong style="color: #0F172A;">${data.creditCost} crédits</strong> (~${creditCostEur})
+                      Accès immédiat · <strong style="color: #0F172A;">${data.creditCost} crédits</strong> (~${creditCostEur}) · Téléphone et adresse complète vérifiés
                     </span>
                   </td>
                 </tr>
               </table>
 
               <!-- Project Technical Bento Card -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; overflow: hidden; margin-bottom: 28px; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px; overflow: hidden; margin-bottom: 26px; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);">
                 
                 <!-- Card Header -->
                 <tr>
-                  <td style="padding: 18px 22px; border-bottom: 1px solid #E2E8F0; background-color: #F8FAFC;">
+                  <td style="padding: 16px 20px; border-bottom: 1px solid #E2E8F0; background-color: #F8FAFC;">
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                       <tr>
                         <td align="left" valign="middle">
-                          <h2 style="margin: 0; font-size: 17px; font-weight: 700; color: #0F172A; line-height: 1.3;">
+                          <h2 style="margin: 0; font-size: 16px; font-weight: 700; color: #0F172A; line-height: 1.3;">
                             Installation solaire ${escapeHtml(locPhrase)}
                           </h2>
                           <p style="margin: 4px 0 0 0; font-size: 12px; color: #64748B;" class="mono">
-                            ${escapeHtml(leadMaskedName)} · Région : ${escapeHtml(provinceLabel)}${postalCode && postalCode !== "—" ? ` (${escapeHtml(postalCode)})` : ""}
+                            ${escapeHtml(leadMaskedName)} · Secteur : ${escapeHtml(provinceLabel)}${postalCode && postalCode !== "—" ? ` (${escapeHtml(postalCode)})` : ""}
                           </p>
                         </td>
-                        <td align="right" valign="middle" style="width: 32px;">
-                          <div style="background-color: #F1F5F9; border: 1px solid #E2E8F0; border-radius: 6px; padding: 6px; text-align: center; width: 20px; height: 20px; line-height: 20px; font-size: 12px;">
-                            🔒
-                          </div>
+                        <td align="right" valign="middle">
+                          <span class="mono" style="font-size: 11px; color: #64748B; font-weight: 600; background-color: #F1F5F9; border: 1px solid #E2E8F0; border-radius: 4px; padding: 3px 8px;">
+                            Dossier vérifié
+                          </span>
                         </td>
                       </tr>
                     </table>
 
-                    <!-- Trust Badges Bento -->
-                    <div style="margin-top: 12px;">
-                      <span class="mono" style="display: inline-block; font-size: 11px; padding: 4px 10px; background-color: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; border-radius: 9999px; font-weight: 700; margin-right: 6px;">
-                        ✓ Téléphone Contrôlé
+                    <!-- Trust Badges -->
+                    <div style="margin-top: 10px;">
+                      <span class="mono" style="display: inline-block; font-size: 11px; padding: 3px 8px; background-color: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; border-radius: 4px; font-weight: 600; margin-right: 6px;">
+                        Téléphone vérifié
                       </span>
-                      <span class="mono" style="display: inline-block; font-size: 11px; padding: 4px 10px; background-color: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; border-radius: 9999px; font-weight: 700; margin-right: 6px;">
-                        ✓ Propriétaire Vérifié
+                      <span class="mono" style="display: inline-block; font-size: 11px; padding: 3px 8px; background-color: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; border-radius: 4px; font-weight: 600; margin-right: 6px;">
+                        Propriétaire occupant
                       </span>
-                      <span class="mono" style="display: inline-block; font-size: 11px; padding: 4px 10px; background-color: #F1F5F9; color: #334155; border: 1px solid #E2E8F0; border-radius: 9999px; font-weight: 700;">
-                        ✓ Satellite Cadastre OK
+                      <span class="mono" style="display: inline-block; font-size: 11px; padding: 3px 8px; background-color: #F8FAFC; color: #334155; border: 1px solid #E2E8F0; border-radius: 4px; font-weight: 600;">
+                        Cadastre toiture vérifié
                       </span>
                     </div>
                   </td>
@@ -463,7 +507,7 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
 
                 <!-- Technical Specs Rows -->
                 <tr>
-                  <td style="padding: 8px 22px;">
+                  <td style="padding: 6px 20px;">
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                       <tr>
                         <td width="44%" valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Segment de marché</td>
@@ -496,7 +540,7 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                         </td>
                       </tr>
                       <tr>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Profil du décideur</td>
+                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Profil du demandeur</td>
                         <td valign="top" style="padding: 10px 0; font-size: 13px; font-weight: 600; color: #0F172A; border-bottom: 1px solid #F1F5F9;">
                           ${escapeHtml(ownershipLabel)}
                         </td>
@@ -528,9 +572,9 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
 
                 <!-- Masked Contact Details -->
                 <tr>
-                  <td style="padding: 16px 22px; background-color: #F8FAFC; border-top: 1px solid #E2E8F0;">
-                    <p class="mono" style="margin: 0 0 10px 0; font-size: 11px; font-weight: 700; color: #0F172A; text-transform: uppercase; letter-spacing: 0.06em;">
-                      Coordonnées débloquées après acquisition :
+                  <td style="padding: 16px 20px; background-color: #F8FAFC; border-top: 1px solid #E2E8F0;">
+                    <p class="mono" style="margin: 0 0 10px 0; font-size: 11px; font-weight: 700; color: #0F172A; text-transform: uppercase; letter-spacing: 0.05em;">
+                      Coordonnées débloquées après validation :
                     </p>
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="4">
                       <tr>
@@ -548,29 +592,29 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                       <tr>
                         <td style="font-size: 13px; color: #64748B;">Numéro de téléphone :</td>
                         <td style="font-size: 13px; color: #0F172A; font-weight: 600;" class="mono">
-                          ********* <span style="color: #059669; font-weight: 700;">[✓ Vérifié]</span>
+                          ********* <span style="color: #059669; font-weight: 600;">[Numéro vérifié]</span>
                         </td>
                       </tr>
                       <tr>
                         <td style="font-size: 13px; color: #64748B;">Adresse e-mail :</td>
                         <td style="font-size: 13px; color: #0F172A; font-weight: 600;" class="mono">
-                          ********* <span style="color: #059669; font-weight: 700;">[✓ Vérifié]</span>
+                          ********* <span style="color: #059669; font-weight: 600;">[E-mail vérifié]</span>
                         </td>
                       </tr>
                     </table>
                   </td>
                 </tr>
 
-                <!-- Scarcity & Competition Rules -->
+                <!-- Attribution Rules -->
                 <tr>
-                  <td style="padding: 18px 22px; background-color: #FFFFFF; border-top: 1px solid #E2E8F0;">
+                  <td style="padding: 16px 20px; background-color: #FFFFFF; border-top: 1px solid #E2E8F0;">
                     <p class="mono" style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: #0F172A; text-transform: uppercase; letter-spacing: 0.05em;">
-                      Règle de concurrence Aegis Solaire :
+                      Règle d'attribution Aegis Solaire :
                     </p>
                     <p style="margin: 0; font-size: 13px; color: #475569; line-height: 1.5;">
                       ${isB2B
-      ? "<strong>Exclusivité absolue garantie :</strong> Ce dossier est cédé à <strong>1 seul installateur unique</strong>. Aucune concurrence de plateforme ne sera admise."
-      : "<strong>Attribution restreinte à 3 installateurs certifiés maximum :</strong> Pour protéger vos marges et éviter les enchères destructrices, ce lead est automatiquement verrouillé dès le 3ème déblocage."
+      ? "<strong>Exclusivité absolue garantie :</strong> Ce chantier est cédé à <strong>1 seul installateur partenaire</strong>. Aucune concurrence de plateforme."
+      : "<strong>Attribution restreinte à 3 installateurs certifiés maximum :</strong> Pour protéger vos marges et éviter la guerre des prix, ce lead est automatiquement verrouillé dès le 3ème déblocage."
     }
                     </p>
                     ${slotsHtml}
@@ -579,7 +623,7 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
 
                 <!-- Financial Estimations Bento Footer -->
                 <tr>
-                  <td style="padding: 18px 20px; background-color: #F8FAFC; border-top: 1px solid #E2E8F0;">
+                  <td style="padding: 16px 20px; background-color: #F8FAFC; border-top: 1px solid #E2E8F0;">
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                       <tr>
                         <td width="33%" align="center" class="bento-cell" style="border-right: 1px solid #E2E8F0; padding: 4px 8px;">
@@ -591,7 +635,7 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                           <div class="mono" style="font-size: 13px; font-weight: 700; color: #059669; margin-top: 4px;">${estimatedMargin}</div>
                         </td>
                         <td width="34%" align="center" class="bento-cell" style="padding: 4px 8px;">
-                          <div style="font-size: 11px; color: #64748B; font-weight: 500;">Coût du lead</div>
+                          <div style="font-size: 11px; color: #64748B; font-weight: 500;">Coût d'acquisition</div>
                           <div class="mono" style="font-size: 13px; font-weight: 700; color: #2563EB; margin-top: 4px;">${data.creditCost} cr. (~${creditCostEur})</div>
                         </td>
                       </tr>
@@ -600,15 +644,15 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                 </tr>
               </table>
 
-              <!-- Bottom CTA Button & Balance Status -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 26px;">
+              <!-- Bottom CTA Button & Balance Status (Identique au bouton du haut) -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
                 <tr>
                   <td align="center">
                     <table role="presentation" cellspacing="0" cellpadding="0">
                       <tr>
-                        <td align="center" style="background-color: #0F172A; border-radius: 10px; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);">
-                          <a href="${dashboardLeadUrl}" target="_blank" style="display: inline-block; padding: 15px 34px; font-size: 15px; font-weight: 700; color: #FFFFFF; text-decoration: none; letter-spacing: 0.01em;">
-                            Débloquer les coordonnées complètes &rarr;
+                        <td align="center" style="background-color: #0F172A; border-radius: 8px; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);">
+                          <a href="${dashboardLeadUrl}" target="_blank" style="display: inline-block; padding: 14px 30px; font-size: 15px; font-weight: 700; color: #FFFFFF; text-decoration: none; letter-spacing: 0.01em;">
+                            Consulter la fiche et obtenir les coordonnées &rarr;
                           </a>
                         </td>
                       </tr>
@@ -625,18 +669,18 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
               </table>
 
               <!-- Technical Assistance Bento Box (Anonymity Compliant) -->
-              <div style="background-color: #F1F5F9; border-left: 3px solid #2563EB; padding: 16px 18px; border-radius: 0 8px 8px 0; margin-bottom: 24px;">
+              <div style="background-color: #F8FAFC; border-left: 3px solid #2563EB; padding: 14px 18px; border-radius: 0 6px 6px 0; margin-bottom: 20px;">
                 <p style="margin: 0 0 4px 0; font-size: 13px; font-weight: 700; color: #0F172A;">
-                  Besoin d'un accompagnement technique ou d'un dimensionnement ?
+                  Assistance technique &amp; dimensionnement :
                 </p>
                 <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #475569;">
-                  En tant que partenaire certifié Aegis Solaire, vous pouvez solliciter l'assistance de notre cellule technique et ingénierie pour vos études d'onduleurs, batteries et dossiers tertiaires complexes. Contact direct : <a href="mailto:contact@aegissolaire.com" style="color: #2563EB; font-weight: 600; text-decoration: underline;">contact@aegissolaire.com</a>.
+                  Notre cellule technique et ingénierie se tient à votre disposition pour vos questions d'implantation ou de matériel : <a href="mailto:contact@aegissolaire.com" style="color: #2563EB; font-weight: 600; text-decoration: underline;">contact@aegissolaire.com</a>.
                 </p>
               </div>
 
-              <!-- Replacement Guarantee Note -->
+              <!-- Replacement Guarantee Note (Sans emoji) -->
               <p style="margin: 0 0 16px 0; font-size: 12px; color: #64748B; text-align: center; line-height: 1.5;">
-                🛡️ <strong>Garantie Sérénité Aegis Solaire :</strong> Tout numéro erroné ou dossier injoignable signalé sous 7 jours ouvrés est recrédité sous 24h ouvrées via votre interface partenaire.
+                <strong>Garantie de conformité Aegis Solaire :</strong> Tout numéro erroné ou projet injoignable signalé sous 7 jours ouvrés est recrédité sous 24h ouvrées sur votre compte.
               </p>
 
             </td>
@@ -655,7 +699,7 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                 Agrément RESCERT Photovoltaïque · Conformité CWaPE &amp; PACE 2030.
               </p>
               <p style="margin: 0;">
-                Vous recevez cette alerte car votre société est membre agréé de la marketplace Aegis Solaire. Pour ajuster vos préférences : <a href="${baseUrl}/partenaires/dashboard" style="color: #475569; text-decoration: underline;">Gérer mes préférences</a>.
+                Vous recevez cette notification en tant qu'installateur partenaire agréé Aegis Solaire. Pour ajuster vos préférences : <a href="${baseUrl}/partenaires/dashboard" style="color: #475569; text-decoration: underline;">Gérer mes préférences</a>.
               </p>
             </td>
           </tr>

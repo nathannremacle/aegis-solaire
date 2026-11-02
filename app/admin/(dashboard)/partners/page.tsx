@@ -78,7 +78,8 @@ export default function AdminPartnersPage() {
   const [partners, setPartners] = useState<Partner[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [activeTab, setActiveTab] = useState<"certified" | "test" | "all" | "at_risk" | "coverage">("certified")
+  const [activeTab, setActiveTab] = useState<"all" | "test" | "certified" | "at_risk" | "coverage">("all")
+  const [testSubTab, setTestSubTab] = useState<"all" | "simulation" | "admin">("all")
   const [showInviteHub, setShowInviteHub] = useState(false)
 
   // Modale d'ajout de crédits
@@ -171,71 +172,141 @@ export default function AdminPartnersPage() {
     }
   }
 
-  // Détection des comptes de test
-  const isTestPartner = (p: Partner) => {
+  // Détection des comptes admin internes de test (Dev Test & Mega Solar Test)
+  const isDevTestAdmin = (p: Partner) => {
+    const email = (p.email || "").toLowerCase().trim()
+    const name = (p.company_name || "").toLowerCase().trim()
     return (
-      Boolean(p.is_test) ||
-      p.company_name?.toLowerCase().includes("test") ||
-      p.email === "mrnathanrem@gmail.com" ||
-      p.email === "fabrice.remacle@gmail.com"
+      email === "mrnathanrem@gmail.com" ||
+      email === "fabrice.remacle@gmail.com" ||
+      name.includes("dev test") ||
+      name.includes("mega solar")
     )
   }
 
+  // Détection des installateurs de simulation démo / e-mails (Liège)
+  const isSimulationPartner = (p: Partner) => {
+    const email = (p.email || "").toLowerCase().trim()
+    const name = (p.company_name || "").toLowerCase().trim()
+    return (
+      email.includes("@aegissolaire-pro.be") ||
+      name.includes("sogreen") ||
+      name.includes("enersol") ||
+      name.includes("high tech solar") ||
+      name.includes("solena") ||
+      name.includes("belga solar") ||
+      name.includes("aitex")
+    )
+  }
+
+  // Tous les comptes de test (7 au total : 5 simulation e-mails + 2 comptes admin)
+  const isTestPartner = (p: Partner) => {
+    return Boolean(p.is_test) || isDevTestAdmin(p) || isSimulationPartner(p)
+  }
+
+  // Les 7 comptes de test complets
   const testPartners = useMemo(
     () => partners.filter((p) => isTestPartner(p)),
     [partners]
   )
 
+  // Les 5 installateurs de simulation pour les e-mails
+  const simulationPartners = useMemo(
+    () => testPartners.filter((p) => isSimulationPartner(p)),
+    [testPartners]
+  )
+
+  // Les 2 comptes administrateurs de test
+  const adminTestPartners = useMemo(
+    () => testPartners.filter((p) => isDevTestAdmin(p)),
+    [testPartners]
+  )
+
+  // Installateurs certifiés réels (externes, hors tests et démos)
   const realPartners = useMemo(
     () => partners.filter((p) => !isTestPartner(p)),
     [partners]
   )
 
-  // Partenaires "À risque" (solde < 5 crédits parmi les installateurs réels)
+  // Installateurs visibles dans "Tous les installateurs" :
+  // Exclut formellement les 2 comptes admin test (Dev Test & Mega Solar Test)
+  // Contient les installateurs réels et les 5 installateurs de simulation démo
+  const visibleInstallers = useMemo(
+    () => partners.filter((p) => !isDevTestAdmin(p)),
+    [partners]
+  )
+
+  // Partenaires "À risque" (solde < 5 crédits parmi les installateurs du réseau)
   const isPartnerAtRisk = (p: Partner) => {
     return p.credits < 5
   }
 
   const partnersAtRisk = useMemo(
-    () => realPartners.filter((p) => isPartnerAtRisk(p)),
-    [realPartners]
+    () => visibleInstallers.filter((p) => isPartnerAtRisk(p)),
+    [visibleInstallers]
   )
 
   const filteredPartners = useMemo(() => {
-    let list = realPartners
+    let list = visibleInstallers
     if (activeTab === "test") {
-      list = testPartners
+      if (testSubTab === "simulation") {
+        list = simulationPartners
+      } else if (testSubTab === "admin") {
+        list = adminTestPartners
+      } else {
+        list = testPartners
+      }
     } else if (activeTab === "all") {
-      list = partners
+      list = visibleInstallers
+    } else if (activeTab === "certified") {
+      list = realPartners
     } else if (activeTab === "at_risk") {
       list = partnersAtRisk
     }
+
     if (!searchTerm.trim()) return list
     const q = searchTerm.toLowerCase().trim()
-    return list.filter(
-      (p) =>
-        p.company_name.toLowerCase().includes(q) ||
-        p.email.toLowerCase().includes(q) ||
-        p.phone?.toLowerCase().includes(q)
-    )
-  }, [partners, realPartners, testPartners, activeTab, partnersAtRisk, searchTerm])
+    return list.filter((p) => {
+      const name = (p.company_name || "").toLowerCase()
+      const email = (p.email || "").toLowerCase()
+      const phone = (p.phone || "").toLowerCase()
+      const alias = name.includes("high tech") ? "aitex aitex solar" : ""
+      return (
+        name.includes(q) ||
+        email.includes(q) ||
+        phone.includes(q) ||
+        alias.includes(q)
+      )
+    })
+  }, [
+    partners,
+    visibleInstallers,
+    testPartners,
+    simulationPartners,
+    adminTestPartners,
+    realPartners,
+    partnersAtRisk,
+    activeTab,
+    testSubTab,
+    searchTerm,
+  ])
 
-  // KPIs basés sur le réseau certifié réel
+  // KPIs basés sur les installateurs du réseau (hors comptes admin purs)
   const totalCreditsCirculation = useMemo(
-    () => realPartners.reduce((s, p) => s + (p.credits || 0), 0),
-    [realPartners]
+    () => visibleInstallers.reduce((s, p) => s + (p.credits || 0), 0),
+    [visibleInstallers]
   )
   const totalLeadsPurchased = useMemo(
-    () => realPartners.reduce((s, p) => s + (p.stats.leadsPurchased || 0), 0),
-    [realPartners]
+    () => visibleInstallers.reduce((s, p) => s + (p.stats.leadsPurchased || 0), 0),
+    [visibleInstallers]
   )
   const b2bPartnersCount = useMemo(
-    () => realPartners.filter((p) => p.segment?.toUpperCase() === "B2B" || p.segment?.toUpperCase() === "BOTH").length,
-    [realPartners]
+    () => visibleInstallers.filter((p) => p.segment?.toUpperCase() === "B2B" || p.segment?.toUpperCase() === "BOTH").length,
+    [visibleInstallers]
   )
   const b2cPartnersCount = useMemo(
-    () => realPartners.filter((p) => p.segment?.toUpperCase() === "B2C" || p.segment?.toUpperCase() === "BOTH").length,
-    [realPartners]
+    () => visibleInstallers.filter((p) => p.segment?.toUpperCase() === "B2C" || p.segment?.toUpperCase() === "BOTH").length,
+    [visibleInstallers]
   )
 
   return (
@@ -248,7 +319,7 @@ export default function AdminPartnersPage() {
               Réseau Installateurs &amp; Capacité
             </h1>
             <span className="font-mono text-xs tabular-nums text-muted-foreground bg-secondary px-2 py-0.5 rounded-sm border border-border">
-              {realPartners.length} certifiés ({testPartners.length} test)
+              {visibleInstallers.length} installateurs ({testPartners.length} en mode test/simulation)
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
@@ -304,55 +375,58 @@ export default function AdminPartnersPage() {
 
       {/* 2. Cartes de Métriques Réseau (Tokens sémantiques, zéro couleur interdite) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total installateurs */}
+        {/* Total installateurs du réseau */}
         <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-2">
           <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-medium">Installateurs certifiés</span>
+            <span className="text-xs font-medium">Installateurs du réseau</span>
             <div className="h-7 w-7 rounded-md bg-secondary flex items-center justify-center text-foreground">
               <Building2 className="h-4 w-4" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
             <span className="font-mono text-2xl font-bold tabular-nums text-foreground">
-              {realPartners.length}
+              {visibleInstallers.length}
             </span>
-            <span className="text-xs text-muted-foreground">partenaires certifiés</span>
+            <span className="text-xs text-muted-foreground">partenaires actifs</span>
           </div>
           <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
-            {b2bPartnersCount} B2B · {b2cPartnersCount} B2C
+            {realPartners.length > 0
+              ? `${realPartners.length} certifié(s) · ${simulationPartners.length} simulation`
+              : `${simulationPartners.length} en simulation e-mails (${b2bPartnersCount} B2B · ${b2cPartnersCount} B2C)`}
           </span>
         </div>
 
-        {/* Partenaires à risque */}
+        {/* Comptes de test */}
         <div
+          onClick={() => setActiveTab("test")}
           className={cn(
-            "rounded-lg border p-4 flex flex-col gap-2 transition-colors",
-            partnersAtRisk.length > 0
-              ? "border-destructive/40 bg-destructive/5"
+            "rounded-lg border p-4 flex flex-col gap-2 transition-colors cursor-pointer hover:border-accent/40",
+            activeTab === "test"
+              ? "border-amber-500/40 bg-amber-500/5"
               : "border-border bg-card"
           )}
         >
           <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-medium">Partenaires à risque de rupture</span>
+            <span className="text-xs font-medium">Comptes de test &amp; simulation</span>
             <div
               className={cn(
                 "h-7 w-7 rounded-md flex items-center justify-center",
-                partnersAtRisk.length > 0
-                  ? "bg-destructive/20 text-destructive"
+                testPartners.length > 0
+                  ? "bg-amber-500/20 text-amber-700 dark:text-amber-400"
                   : "bg-secondary text-foreground"
               )}
             >
-              <AlertTriangle className="h-4 w-4" />
+              <ShieldCheck className="h-4 w-4" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
             <span className="font-mono text-2xl font-bold tabular-nums text-foreground">
-              {partnersAtRisk.length}
+              {testPartners.length}
             </span>
-            <span className="text-xs text-muted-foreground">solde &lt; 5 crédits</span>
+            <span className="text-xs text-muted-foreground">comptes isolés</span>
           </div>
-          <span className="text-[11px] text-muted-foreground">
-            Incapables d&apos;acquérir un lead B2B sans recharge
+          <span className="text-[11px] text-muted-foreground font-mono tabular-nums">
+            {simulationPartners.length} simulation e-mails · {adminTestPartners.length} admin test
           </span>
         </div>
 
@@ -371,7 +445,7 @@ export default function AdminPartnersPage() {
             <span className="text-xs text-muted-foreground">crédits en réserve</span>
           </div>
           <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
-            Moyenne : {partners.length > 0 ? Math.round(totalCreditsCirculation / partners.length) : 0} cr. / installateur
+            Moyenne : {visibleInstallers.length > 0 ? Math.round(totalCreditsCirculation / visibleInstallers.length) : 0} cr. / installateur
           </span>
         </div>
 
@@ -400,17 +474,17 @@ export default function AdminPartnersPage() {
         <div className="flex items-center rounded-md border border-border bg-card p-0.5 text-xs overflow-x-auto">
           <button
             type="button"
-            onClick={() => setActiveTab("certified")}
+            onClick={() => setActiveTab("all")}
             className={cn(
-              "px-3 py-1.5 rounded-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5",
-              activeTab === "certified"
+              "px-3 py-1.5 rounded-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer",
+              activeTab === "all"
                 ? "bg-secondary text-foreground shadow-2xs font-semibold"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <span>Installateurs certifiés</span>
+            <span>Tous les installateurs</span>
             <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
-              ({realPartners.length})
+              ({visibleInstallers.length})
             </span>
           </button>
 
@@ -418,13 +492,13 @@ export default function AdminPartnersPage() {
             type="button"
             onClick={() => setActiveTab("test")}
             className={cn(
-              "px-3 py-1.5 rounded-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5",
+              "px-3 py-1.5 rounded-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer",
               activeTab === "test"
                 ? "bg-secondary text-foreground shadow-2xs font-semibold"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <span>Comptes de test</span>
+            <span>Installateurs de test</span>
             {testPartners.length > 0 && (
               <span className="rounded-full bg-amber-500/20 px-1.5 py-0.2 font-mono text-[10px] tabular-nums font-bold text-amber-700 dark:text-amber-400">
                 {testPartners.length}
@@ -434,17 +508,17 @@ export default function AdminPartnersPage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("all")}
+            onClick={() => setActiveTab("certified")}
             className={cn(
-              "px-3 py-1.5 rounded-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5",
-              activeTab === "all"
+              "px-3 py-1.5 rounded-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer",
+              activeTab === "certified"
                 ? "bg-secondary text-foreground shadow-2xs font-semibold"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <span>Tous</span>
+            <span>Installateurs certifiés réels</span>
             <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
-              ({partners.length})
+              ({realPartners.length})
             </span>
           </button>
 
@@ -452,7 +526,7 @@ export default function AdminPartnersPage() {
             type="button"
             onClick={() => setActiveTab("at_risk")}
             className={cn(
-              "px-3 py-1.5 rounded-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5",
+              "px-3 py-1.5 rounded-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer",
               activeTab === "at_risk"
                 ? "bg-secondary text-foreground shadow-2xs font-semibold"
                 : "text-muted-foreground hover:text-foreground"
@@ -470,7 +544,7 @@ export default function AdminPartnersPage() {
             type="button"
             onClick={() => setActiveTab("coverage")}
             className={cn(
-              "px-3 py-1.5 rounded-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5",
+              "px-3 py-1.5 rounded-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer",
               activeTab === "coverage"
                 ? "bg-secondary text-foreground shadow-2xs font-semibold"
                 : "text-muted-foreground hover:text-foreground"
@@ -493,6 +567,76 @@ export default function AdminPartnersPage() {
           </div>
         )}
       </div>
+
+      {/* Sous-barre dédiée aux comptes de test */}
+      {activeTab === "test" && (
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-secondary/30 rounded-lg p-3 border border-border">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-foreground">Comptes de test ({testPartners.length}) :</span>
+            <span className="text-xs text-muted-foreground">
+              Regroupe les 5 confrères liégeois en simulation d&apos;e-mails et les 2 comptes administrateurs de test.
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setTestSubTab("all")}
+              className={cn(
+                "px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer",
+                testSubTab === "all"
+                  ? "bg-primary text-primary-foreground font-semibold"
+                  : "bg-secondary text-muted-foreground hover:text-foreground border border-border"
+              )}
+            >
+              Tous les tests ({testPartners.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setTestSubTab("simulation")}
+              className={cn(
+                "px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer",
+                testSubTab === "simulation"
+                  ? "bg-amber-500 text-white font-semibold"
+                  : "bg-secondary text-muted-foreground hover:text-foreground border border-border"
+              )}
+            >
+              Simulation e-mails ({simulationPartners.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setTestSubTab("admin")}
+              className={cn(
+                "px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer",
+                testSubTab === "admin"
+                  ? "bg-purple-600 text-white font-semibold"
+                  : "bg-secondary text-muted-foreground hover:text-foreground border border-border"
+              )}
+            >
+              Comptes Admin Test ({adminTestPartners.length})
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Message informatif si installateurs certifiés réels vides */}
+      {activeTab === "certified" && realPartners.length === 0 && (
+        <div className="rounded-lg border border-border bg-card p-4 text-xs text-muted-foreground flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <ShieldCheck className="h-4 w-4 text-accent" />
+            <span>
+              <strong>Aucun installateur commercial certifié en production pour le moment.</strong> Les installateurs actifs sur la plateforme fonctionnent actuellement en mode simulation e-mails ou comptes admin de test.
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={() => setActiveTab("all")}
+          >
+            Voir tous les installateurs
+          </Button>
+        </div>
+      )}
 
       {/* 4. Affichage conditionnel : Matrice de Couverture OU Table Haute Densité */}
       {activeTab === "coverage" ? (
@@ -606,12 +750,31 @@ export default function AdminPartnersPage() {
                             <span className="font-medium text-foreground">
                               {partner.company_name}
                             </span>
-                            {isTestPartner(partner) && (
+                            {partner.company_name.toLowerCase().includes("high tech") && (
+                              <span className="text-[11px] text-muted-foreground font-normal">
+                                (alias Aitex Solar)
+                              </span>
+                            )}
+                            {isDevTestAdmin(partner) ? (
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] font-mono py-0 h-4 bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/30 font-semibold"
+                              >
+                                COMPTE ADMIN TEST
+                              </Badge>
+                            ) : isSimulationPartner(partner) ? (
                               <Badge
                                 variant="outline"
                                 className="text-[9px] font-mono py-0 h-4 bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 font-semibold"
                               >
-                                COMPTE TEST
+                                SIMULATION E-MAILS
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] font-mono py-0 h-4 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 font-semibold"
+                              >
+                                CERTIFIÉ
                               </Badge>
                             )}
                           </div>

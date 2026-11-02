@@ -225,7 +225,7 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
     }
   }
 
-  // Matching automatique des virements bancaires depuis le texte CSV/relevé
+  // Matching automatique des commandes en attente
   const matchedPendingOrders = useMemo(() => {
     if (!reconcileCsvText.trim()) return []
     const normalizedInput = reconcileCsvText.toUpperCase().replace(/\s+/g, "")
@@ -254,7 +254,7 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
           },
           body: JSON.stringify({
             action: "validate",
-            notes: "Rapprochement automatique relevé bancaire CSV",
+            notes: "Rapprochement automatique de commande Mollie",
           }),
         })
 
@@ -267,7 +267,7 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
                     ...o,
                     status: "paid",
                     validated_at: new Date().toISOString(),
-                    notes: "Rapprochement automatique relevé bancaire CSV",
+                    notes: "Rapprochement automatique de commande Mollie",
                   }
                 : o
             )
@@ -681,7 +681,7 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
                       </div>
                     </TableCell>
 
-                    {/* Référence de Virement SEPA ou Mollie */}
+                    {/* Référence de commande Mollie */}
                     <TableCell>
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
@@ -693,7 +693,7 @@ export function FinanceClient({ initialOrders, kpis, adminEmail }: FinanceClient
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6 text-muted-foreground hover:text-foreground shrink-0"
-                            title="Copier la référence de virement"
+                            title="Copier la référence de commande"
                             onClick={() => handleCopyRef(order.transfer_reference)}
                           >
                             {isCopied ? (

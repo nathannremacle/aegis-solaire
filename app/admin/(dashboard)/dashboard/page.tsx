@@ -118,7 +118,7 @@ async function AdminDashboardContent() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Tour de Contrôle : Actions Requises en 1 clic (Litiges, SEPA, Leads) */}
+      {/* Tour de Contrôle : Actions Requises en 1 clic (Litiges, Commandes de crédits, Leads) */}
       <ActionRequiredTray
         badges={data.badges}
         needsReviewLeads={data.lists.needs_review}

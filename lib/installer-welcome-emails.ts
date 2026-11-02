@@ -56,7 +56,7 @@ Nous avons bien enregistré votre demande d'adhésion au réseau des installateu
 
 Pour confirmer qu'il s'agit bien de votre adresse email et activer le traitement prioritaire de votre dossier, veuillez cliquer sur le lien sécurisé ci-dessous :
 
-👉 Confirmer mon adresse email :
+Confirmer mon adresse email :
 ${data.verificationUrl}
 
 Prochaines étapes de votre intégration :
@@ -65,10 +65,10 @@ Prochaines étapes de votre intégration :
 3. Déblocage de votre accès à la Marketplace des leads solaires qualifiés dans vos zones d'intervention.
 
 Aegis Solaire en bref :
-✅ Pas d'abonnement – 100% à la carte, aucun engagement mensuel ni frais cachés.
-✅ Fiches techniques complètes – surface de toiture, historique de consommation kWh, type de compteur et coordonnées vérifiées avant transmission.
-✅ Concurrence plafonnée – 3 installateurs maximum par projet résidentiel et exclusivité stricte (1 seul artisan) sur les chantiers professionnels B2B.
-✅ Vous gardez le contrôle – pas de chantiers sélectionnés ? Zéro coût.
+- Pas d'abonnement – 100% à la carte, aucun engagement mensuel ni frais cachés.
+- Fiches techniques complètes – surface de toiture, historique de consommation kWh, type de compteur et coordonnées vérifiées avant transmission.
+- Concurrence plafonnée – 3 installateurs maximum par projet résidentiel et exclusivité stricte (1 seul artisan) sur les chantiers professionnels B2B.
+- Vous gardez le contrôle – pas de chantiers sélectionnés ? Zéro coût.
 
 Des questions sur votre adhésion ?
 Notre équipe support partenaires est à votre disposition :
@@ -190,7 +190,7 @@ Conformément au RGPD, vous disposez d'un droit d'accès et d'opposition (dpo@ae
                 <tr>
                   <td style="padding-bottom: 12px;">
                     <p class="mono" style="margin: 0; font-size: 11px; font-weight: 700; color: #0F172A; text-transform: uppercase; letter-spacing: 0.06em;">
-                      ⚡ Prochaines étapes de votre activation :
+                      Prochaines étapes de votre activation :
                     </p>
                   </td>
                 </tr>
@@ -367,7 +367,7 @@ export function buildInstallerMarketplaceWelcomeEmail(data: InstallerMarketplace
       })
       .join("\n")
 
-    leadsTextSection = `\n🎯 DOSSIERS ACTUELLEMENT DISPONIBLES DANS VOS ZONES D'INTERVENTION :\nNous avons ${leads.length} projet(s) solaire(s) vérifié(s) actuellement en attente d'artisan partenaire :\n${listText}\n`
+    leadsTextSection = `\nDOSSIERS ACTUELLEMENT DISPONIBLES DANS VOS ZONES D'INTERVENTION :\nNous avons ${leads.length} projet(s) solaire(s) vérifié(s) actuellement en attente d'artisan partenaire :\n${listText}\n`
   }
 
   const text = `Cher ${firstName},
@@ -376,17 +376,17 @@ Excellente nouvelle : votre compte installateur pour ${company} a été validé 
 
 Vous avez désormais un accès direct à la Marketplace Aegis Solaire pour débloquer des demandes de devis solaires qualifiées dans votre région en Wallonie.
 ${leadsTextSection}
-👉 Accéder à la Marketplace maintenant :
+Accéder à la Marketplace maintenant :
 ${marketplaceUrl}
 
 La Marketplace Aegis Solaire en bref :
-✅ Pas d’abonnement – vous ne payez que pour les demandes de devis que vous choisissez d'acquérir.
-✅ Fiches techniques vérifiées – surface toiture, historique de facture kWh, raccordement ORES/RESA et coordonnées complètes à portée de main.
-✅ Concurrence saine & maîtrisée – maximum 3 installateurs par projet résidentiel et exclusivité totale (1 seul installateur) en B2B.
-✅ Facturation claire sans engagement et sans tracas.
-✅ Pas de chantiers sélectionnés ? Zéro frais ! Vous gardez le contrôle total.
+- Pas d’abonnement – vous ne payez que pour les demandes de devis que vous choisissez d'acquérir.
+- Fiches techniques vérifiées – surface toiture, historique de facture kWh, raccordement ORES/RESA et coordonnées complètes à portée de main.
+- Concurrence maîtrisée – maximum 3 installateurs par projet résidentiel et exclusivité totale (1 seul installateur) en B2B.
+- Facturation claire sans engagement.
+- Pas de chantiers sélectionnés ? Zéro frais.
 
-3 étapes rapides pour démarrer :
+3 étapes pour démarrer :
 1. Connectez-vous à votre espace Marketplace : ${marketplaceUrl}
 2. Définissez vos zones d'intervention favorites (Liège, Namur, Brabant wallon, Hainaut, Luxembourg).
 3. Débloquez vos premières fiches techniques et contactez directement les porteurs de projet.
@@ -397,7 +397,6 @@ Il vous suffit de répondre directement à cet email ou de nous écrire à conta
 
 Cordialement,
 L'équipe Aegis Solaire
-Aegis Solaire Wallonie
 
 --
 Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique`.trim()
@@ -410,7 +409,7 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                   <tr>
                     <td valign="middle">
                       <span class="mono" style="display: inline-block; background-color: #ECFDF5; border: 1px solid #A7F3D0; color: #047857; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 9999px; letter-spacing: 0.04em; text-transform: uppercase;">
-                        🎯 ${leads.length} opportunité${leads.length > 1 ? "s" : ""} immédiate${leads.length > 1 ? "s" : ""} dans votre zone
+                        ${leads.length} opportunité${leads.length > 1 ? "s" : ""} immédiate${leads.length > 1 ? "s" : ""} dans votre zone
                       </span>
                     </td>
                   </tr>
@@ -655,7 +654,7 @@ ${availableLeadsHtml}
                   L'équipe support et relation partenaires Aegis Solaire est à votre entière disposition pour vous assister. Il vous suffit de répondre directement à cet e-mail ou de nous écrire à :
                 </p>
                 <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #0F172A;">
-                  ✉️ <strong>Email d'assistance directe :</strong> <a href="mailto:contact@aegissolaire.com" style="color: #2563EB; font-weight: 600; text-decoration: underline;">contact@aegissolaire.com</a>
+                  <strong>Email d'assistance directe :</strong> <a href="mailto:contact@aegissolaire.com" style="color: #2563EB; font-weight: 600; text-decoration: underline;">contact@aegissolaire.com</a>
                 </p>
               </div>
 

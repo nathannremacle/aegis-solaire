@@ -20,6 +20,7 @@ async function getLeads(
     region: string
     segment: string
     view?: string
+    leadId?: string
   }
 ) {
   const user = await getAdminUser()
@@ -30,7 +31,8 @@ async function getLeads(
   const isTriage = filters.view === "triage"
 
   const hasActiveFilters = Boolean(
-    filters.search.trim() ||
+    filters.leadId ||
+      filters.search.trim() ||
       filters.status ||
       filters.segment ||
       filters.region ||
@@ -58,6 +60,10 @@ async function getLeads(
 
     q = q.range(from, from + limit - 1)
 
+    if (filters.leadId) {
+      q = q.eq("id", filters.leadId)
+    }
+
     if (filters.status && filters.status !== "all") {
       q = q.eq("status", filters.status)
     }
@@ -66,7 +72,10 @@ async function getLeads(
     }
     if (filters.search.trim()) {
       const term = filters.search.trim().toLowerCase()
-      if (useSearchText) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(term)
+      if (isUuid) {
+        q = q.eq("id", term)
+      } else if (useSearchText) {
         q = q.ilike("search_text", `%${term}%`)
       } else {
         const pattern = `%${filters.search.trim()}%`
@@ -171,6 +180,7 @@ export default async function AdminLeadsPage({
     region: regionParam ?? "",
     segment: params.segment ?? "",
     view: viewParam ?? "",
+    leadId: leadId ?? "",
   }
 
   const [leadsResult, partners] = await Promise.all([

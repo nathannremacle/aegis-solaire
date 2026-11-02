@@ -8,44 +8,70 @@
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 
 export const SURFACE_TYPE_LABELS: Record<string, string> = {
-  toiture: "Toiture inclinée / plate",
+  toiture: "Toiture",
+  toiture_inclinee: "Toiture inclinée",
+  toiture_plate: "Toiture plate",
   parking: "Ombrière de parking",
   terrain: "Sol / Terrain dégagé",
+  sol: "Sol / Terrain dégagé",
   friche: "Friche industrielle",
 }
 
 export const ROOF_MATERIAL_LABELS: Record<string, string> = {
-  tuiles: "Tuiles mécaniques / plates",
-  ardoises: "Ardoises naturelles / synthétiques",
+  tuiles: "Tuiles",
+  ardoises: "Ardoises",
   plat_epdm: "Toit plat (EPDM / Bitume)",
-  bac_acier: "Bac acier / Métallique",
-  zinc_autre: "Zinc / Autre alliage",
+  epdm: "Toit plat (EPDM)",
+  bitume: "Toit plat (Bitume)",
+  bac_acier: "Bac acier / Métal",
+  metal: "Bac acier / Métal",
+  zinc_autre: "Zinc",
+  zinc: "Zinc",
   fibrociment_amiante: "Fibrociment",
+  autre: "Autre revêtement",
 }
 
 export const TIMEFRAME_LABELS: Record<string, string> = {
-  immediat: "Immédiate",
-  immediate: "Immédiate",
-  immediat_3mois: "Immédiate (1 à 3 mois)",
-  "3_6mois": "À moyen terme (3 à 6 mois)",
-  plus_6mois: "Dans l'année (> 6 mois)",
+  immediat: "Immédiat (1 à 3 mois)",
+  immediate: "Immédiat (1 à 3 mois)",
+  "1_month": "Dès que possible",
+  "3_months": "Dans les 3 mois",
+  immediat_3mois: "Immédiat (1 à 3 mois)",
+  "3_6mois": "D'ici 3 à 6 mois",
+  "6_months": "D'ici 6 mois",
+  plus_6mois: "Plus de 6 mois",
+  "12_months": "Dans l'année",
   simple_renseignement: "Étude préalable & chiffrage",
 }
 
 export const OWNERSHIP_LABELS: Record<string, string> = {
-  owner: "Propriétaire Décisionnaire",
-  proprietaire: "Propriétaire Décisionnaire",
-  tenant_authorized: "Locataire (accord bailleur)",
+  owner: "Propriétaire occupant",
+  owner_occupied: "Propriétaire occupant",
+  proprietaire: "Propriétaire occupant",
+  proprietaire_occupant: "Propriétaire occupant",
+  proprietaire_bailleur: "Propriétaire bailleur",
+  tenant_authorized: "Locataire (avec accord bailleur)",
+  locataire_accord: "Locataire (avec accord bailleur)",
+  tenant: "Locataire",
   locataire: "Locataire",
+  tenant_unauthorized: "Locataire (en attente accord)",
   co_ownership: "Copropriété (syndic / ACP)",
+  copropriete: "Copropriété",
+  business_owner: "Chef d'entreprise / Dirigeant",
+  professionnel: "Professionnel / Dirigeant",
+  gestionnaire: "Gestionnaire de site",
 }
 
 export const PROJECT_DRIVER_LABELS: Record<string, string> = {
   reduire_facture: "Réduction des coûts énergétiques",
+  cost_reduction: "Réduction des factures d'électricité",
+  facture: "Réduction des factures d'électricité",
   peb_permis: "Conformité PEB & Décret Wallonie 2026",
-  flotte_irve: "Couplage bornes IRVE & autoconsommation",
+  flotte_irve: "Couplage bornes de recharge & solaire",
   tiers_invest: "Valorisation patrimoniale & décret PACE",
-  autoconsommation: "Autonomie électrique & effacement",
+  autoconsommation: "Autonomie électrique & autoconsommation",
+  esg_compliance: "Transition énergétique & conformité RSE",
+  ecologie: "Transition écologique",
 }
 
 export const CONSUMPTION_LABELS: Record<string, string> = {

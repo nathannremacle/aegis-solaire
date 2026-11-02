@@ -110,7 +110,7 @@ export async function POST(request: Request) {
   } catch (mollieError: any) {
     console.error("[Mollie Checkout] Erreur API Mollie:", mollieError)
 
-    // Nettoyage de la commande pending orpheline pour qu'elle n'apparaisse pas comme un faux virement SEPA dans /admin/finance
+    // Nettoyage de la commande pending orpheline pour qu'elle n'apparaisse pas comme une fausse commande en attente dans /admin/finance
     try {
       await admin.from("credit_orders").delete().eq("id", order.id).eq("status", "pending")
     } catch {

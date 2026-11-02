@@ -42,6 +42,7 @@ export type KpiModalType =
   | "active_partners"
   | "acquisition_flow"
   | "sepa_pending"
+  | "credit_orders_pending"
   | "media_commissions"
 
 interface AdminKpiGridProps {
@@ -324,7 +325,7 @@ export function AdminKpiGrid({
         {/* Commandes en attente */}
         <button
           type="button"
-          onClick={() => setSelectedKpi("sepa_pending")}
+          onClick={() => setSelectedKpi("credit_orders_pending")}
           className="group text-left rounded-xl border border-border bg-card p-4 shadow-xs hover:border-accent/40 hover:bg-muted/30 transition-all flex flex-col justify-between gap-3 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <div className="flex items-center justify-between">
@@ -345,7 +346,7 @@ export function AdminKpiGrid({
               <span className="font-mono tabular-nums font-semibold text-foreground">
                 {revenue.pending_orders_count}
               </span>{" "}
-              virement{revenue.pending_orders_count > 1 ? "s" : ""} à pointer (
+              commande{revenue.pending_orders_count > 1 ? "s" : ""} de crédits (
               <span className="font-mono tabular-nums">
                 {Number(revenue.pending_ttc || 0).toLocaleString("fr-BE")} € TTC
               </span>).
@@ -353,7 +354,7 @@ export function AdminKpiGrid({
           </div>
 
           <div className="pt-2 border-t border-border flex items-center justify-between text-[11px] font-semibold text-muted-foreground group-hover:text-accent transition-colors">
-            <span>Rapprochement bancaire</span>
+            <span>Gestion des commandes</span>
             <ArrowUpRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </div>
         </button>
@@ -441,9 +442,9 @@ export function AdminKpiGrid({
                   CA Validé = Σ (price_htva) WHERE credit_orders.status = 'paid'
                 </code>
                 <ul className="text-xs text-muted-foreground list-disc list-inside flex flex-col gap-1 leading-relaxed">
-                  <li>Seules les commandes ayant fait l'objet d'un virement SEPA rapproché ou d'un paiement en ligne confirmé sont comptabilisées.</li>
+                  <li>Seules les commandes ayant fait l&apos;objet d&apos;un paiement confirmé par Mollie (ou validées manuellement) sont comptabilisées.</li>
                   <li>
-                    Les commandes en attente de virement (<span className="font-mono tabular-nums font-semibold text-foreground">{Number(revenue.pending_htva || 0)} € HTVA</span>) en sont formellement exclues pour garantir une rigueur de trésorerie absolue.
+                    Les commandes en attente de paiement (<span className="font-mono tabular-nums font-semibold text-foreground">{Number(revenue.pending_htva || 0)} € HTVA</span>) en sont formellement exclues pour garantir une rigueur de trésorerie absolue.
                   </li>
                 </ul>
               </div>
@@ -909,7 +910,7 @@ export function AdminKpiGrid({
             </div>
           )}
 
-          {selectedKpi === "sepa_pending" && (
+          {(selectedKpi === "sepa_pending" || selectedKpi === "credit_orders_pending") && (
             <div className="flex flex-col gap-5">
               <DialogHeader>
                 <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-2.5 py-1 text-xs font-semibold text-foreground w-fit mb-1 border border-border">

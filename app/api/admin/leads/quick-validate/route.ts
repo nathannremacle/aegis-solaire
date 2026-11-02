@@ -32,15 +32,16 @@ function renderResponseHtml({
   leadId?: string
 }): string {
   const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.aegissolaire.com").replace(/\/$/, "")
-  const adminUrl = leadId ? `${baseUrl}/admin/leads?search=${encodeURIComponent(leadId)}` : `${baseUrl}/admin/leads`
+  const adminUrl = leadId ? `${baseUrl}/admin/leads?leadId=${encodeURIComponent(leadId)}` : `${baseUrl}/admin/leads`
   const triageUrl = `${baseUrl}/admin/leads?view=triage`
 
   const isSuccess = status === "success"
   const isAlready = status === "already_validated"
 
-  const icon = isSuccess ? "✅" : isAlready ? "ℹ️" : "❌"
-  const badgeColor = isSuccess ? "#16A34A" : isAlready ? "#2563EB" : "#DC2626"
-  const badgeBg = isSuccess ? "#DCFCE7" : isAlready ? "#DBEAFE" : "#FEE2E2"
+  const iconText = isSuccess ? "Dossier validé" : isAlready ? "Information" : "Erreur"
+  const badgeBg = isSuccess ? "#ECFDF5" : isAlready ? "#EFF6FF" : "#FEF2F2"
+  const badgeColor = isSuccess ? "#065F46" : isAlready ? "#1E40AF" : "#991B1B"
+  const badgeBorder = isSuccess ? "#A7F3D0" : isAlready ? "#BFDBFE" : "#FECACA"
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -49,75 +50,77 @@ function renderResponseHtml({
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(title)} — Aegis Solaire</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #0F172A; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center;">
-  <div style="max-width: 540px; width: 100%; margin: 24px auto; padding: 16px;">
+<body style="margin: 0; padding: 32px 16px; background-color: #F4F5F7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #111827; min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+  <div style="max-width: 520px; width: 100%; margin: 0 auto;">
     
-    <div style="background-color: #FFFFFF; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4); border: 1px solid #334155;">
+    <div style="background-color: #FFFFFF; border-radius: 8px; border: 1px solid #E5E7EB; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
       
-      <!-- Bandeau supérieur -->
-      <div style="background-color: #0F172A; padding: 20px 24px; border-bottom: 2px solid #F59E0B; text-align: center;">
-        <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #F59E0B;">
-          AEGIS SOLAIRE · MODÉRATION EXPRESS
+      <!-- En-tête -->
+      <div style="background-color: #FAFAFA; padding: 18px 24px; border-bottom: 1px solid #E5E7EB;">
+        <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #4B5563;">
+          Aegis Solaire · Modération des leads
         </span>
       </div>
 
-      <!-- Corps du message -->
-      <div style="padding: 32px 28px; text-align: center;">
+      <!-- Corps -->
+      <div style="padding: 28px 24px; text-align: left;">
         
-        <div style="width: 56px; height: 56px; line-height: 56px; background-color: ${badgeBg}; color: ${badgeColor}; border-radius: 50%; font-size: 26px; margin: 0 auto 16px auto; text-align: center;">
-          ${icon}
+        <div style="display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; background-color: ${badgeBg}; color: ${badgeColor}; border: 1px solid ${badgeBorder}; margin-bottom: 14px;">
+          ${escapeHtml(iconText)}
         </div>
 
-        <h1 style="color: #0F172A; font-size: 22px; font-weight: 700; margin: 0 0 8px 0;">
+        <h1 style="color: #111827; font-size: 20px; font-weight: 700; margin: 0 0 6px 0;">
           ${escapeHtml(title)}
         </h1>
         
-        <p style="color: #64748B; font-size: 14px; margin: 0 0 24px 0; line-height: 1.5;">
+        <p style="color: #4B5563; font-size: 14px; margin: 0 0 20px 0; line-height: 1.5;">
           ${escapeHtml(subtitle)}
         </p>
 
         ${
           leadSummary
-            ? `<div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 16px; margin-bottom: 24px; text-align: left; font-size: 13px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                  <span style="color: #64748B;">Contact</span>
-                  <span style="font-weight: 700; color: #0F172A;">${escapeHtml(leadSummary.name)}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                  <span style="color: #64748B;">Segment</span>
-                  <span style="font-weight: 600; color: #0F172A;">${escapeHtml(leadSummary.segment)}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                  <span style="color: #64748B;">Score de confiance</span>
-                  <span style="font-family: monospace; font-weight: 700; color: #16A34A;">${leadSummary.score != null ? `${leadSummary.score}/100` : "–"}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                  <span style="color: #64748B;">Valeur Marketplace</span>
-                  <span style="font-family: monospace; font-weight: 700; color: #0F172A;">${leadSummary.credits != null ? `${leadSummary.credits} crédits` : "–"}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="color: #64748B;">Localisation</span>
-                  <span style="color: #0F172A;">${escapeHtml(leadSummary.location)}</span>
-                </div>
+            ? `<div style="background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px; padding: 14px 16px; margin-bottom: 20px; font-size: 13px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size: 13px;">
+                  <tr>
+                    <td style="padding: 3px 0; color: #6B7280;">Contact</td>
+                    <td align="right" style="padding: 3px 0; font-weight: 600; color: #111827;">${escapeHtml(leadSummary.name)}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 3px 0; color: #6B7280;">Segment</td>
+                    <td align="right" style="padding: 3px 0; color: #111827;">${escapeHtml(leadSummary.segment)}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 3px 0; color: #6B7280;">Score de qualification</td>
+                    <td align="right" style="padding: 3px 0; font-family: monospace; font-weight: 600; color: #065F46;">${leadSummary.score != null ? `${leadSummary.score}/100` : "–"}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 3px 0; color: #6B7280;">Valeur marketplace</td>
+                    <td align="right" style="padding: 3px 0; font-family: monospace; font-weight: 600; color: #111827;">${leadSummary.credits != null ? `${leadSummary.credits} crédits` : "–"}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 3px 0; color: #6B7280;">Localisation</td>
+                    <td align="right" style="padding: 3px 0; color: #111827;">${escapeHtml(leadSummary.location)}</td>
+                  </tr>
+                </table>
               </div>`
             : ""
         }
 
         <!-- Actions -->
         <div>
-          <a href="${adminUrl}" style="display: block; background-color: #0F172A; color: #FFFFFF; font-weight: 600; font-size: 14px; padding: 12px 20px; border-radius: 6px; text-decoration: none; margin-bottom: 10px;">
-            Accéder à la fiche du dossier dans l'Admin →
+          <a href="${adminUrl}" style="display: block; background-color: #0F172A; color: #FFFFFF; font-weight: 600; font-size: 13px; padding: 11px 20px; border-radius: 6px; text-decoration: none; text-align: center; margin-bottom: 8px;">
+            Consulter le dossier dans le dashboard admin →
           </a>
-          <a href="${triageUrl}" style="display: inline-block; font-size: 13px; color: #64748B; text-decoration: underline;">
-            Voir toute la file de triage
+          <a href="${triageUrl}" style="display: block; font-size: 12px; color: #6B7280; text-align: center; text-decoration: underline;">
+            Accéder à la file de triage
           </a>
         </div>
 
       </div>
 
       <!-- Bas de page -->
-      <div style="background-color: #F8FAFC; border-top: 1px solid #E2E8F0; padding: 12px 24px; text-align: center; font-size: 11px; color: #94A3B8;">
-        Action horodatée et sécurisée par signature cryptographique HMAC-SHA256
+      <div style="background-color: #FAFAFA; border-top: 1px solid #E5E7EB; padding: 10px 24px; font-size: 11px; color: #9CA3AF; text-align: center;">
+        Signature cryptographique sécurisée HMAC-SHA256
       </div>
 
     </div>
@@ -143,7 +146,6 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  // 1. Contrôle cryptographique strict du jeton
   const isValidToken = verifyLeadValidationToken(id, token)
   if (!isValidToken) {
     return new NextResponse(
@@ -159,7 +161,6 @@ export async function GET(request: NextRequest) {
 
   const admin = createServiceRoleClient()
 
-  // 2. Récupération préalable du lead
   const { data: lead, error: fetchError } = await admin
     .from("leads")
     .select("id, province, surface_area, surface_type, annual_electricity_bill, segment, first_name, last_name, email, phone, company, marketplace_status, lead_score, credit_cost")
@@ -181,7 +182,6 @@ export async function GET(request: NextRequest) {
   const fullName = `${lead.first_name || ""} ${lead.last_name || ""}`.trim() || lead.company || "Dossier prospect"
   const location = lead.province || "Wallonie"
 
-  // 3. Déjà validé et disponible ?
   if (lead.marketplace_status === "available") {
     return new NextResponse(
       renderResponseHtml({
@@ -201,7 +201,6 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  // 4. Contrôle de qualité de publication
   const qualityCheck = evaluateLeadPublishability(lead)
   if (!qualityCheck.isPublishable) {
     return new NextResponse(
@@ -215,7 +214,6 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  // 5. Validation et passage en statut disponible
   const { error: updateError } = await admin
     .from("leads")
     .update({ marketplace_status: "available" })
@@ -234,7 +232,6 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  // 6. Audit Log immuable
   try {
     await admin.from("audit_log").insert({
       admin_email: "mrnathanrem@gmail.com",
@@ -252,7 +249,6 @@ export async function GET(request: NextRequest) {
     console.warn("[Quick Validate Email] Audit log insertion failed:", auditErr)
   }
 
-  // 7. Déclenchement automatique de la Vague 1 d'attribution
   try {
     void dispatchLeadWave(id, 1).catch((err) =>
       console.error("[Quick Validate Email] Échec dispatchLeadWave Vague 1:", err)
@@ -261,12 +257,11 @@ export async function GET(request: NextRequest) {
     console.warn("[Quick Validate Email] dispatchLeadWave exception:", waveErr)
   }
 
-  // 8. Retour confirmation de succès
   return new NextResponse(
     renderResponseHtml({
       status: "success",
-      title: "Dossier validé et publié !",
-      subtitle: `Le lead de ${fullName} a été publié avec succès sur la marketplace. La Vague 1 de notification aux installateurs certifiés partenaires a été immédiatement déclenchée.`,
+      title: "Dossier validé et publié",
+      subtitle: `Le lead de ${fullName} a été publié sur la marketplace. La Vague 1 d'attribution aux installateurs partenaires a été déclenchée.`,
       leadSummary: {
         name: fullName,
         segment: lead.segment === "B2B" ? "B2B Professionnel" : "B2C Résidentiel",

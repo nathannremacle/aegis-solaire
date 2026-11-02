@@ -75,7 +75,7 @@ export default async function AdminFinancePage() {
     created_at: o.created_at,
     validated_at: o.validated_at,
     notes: o.notes,
-    payment_provider: o.payment_provider || "bank_transfer",
+    payment_provider: o.payment_provider || "mollie",
     payment_id: o.payment_id || null,
     checkout_url: o.checkout_url || null,
     partners: o.partners || null,

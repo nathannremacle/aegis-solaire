@@ -8,6 +8,7 @@ import { checkRateLimit } from "@/lib/rate-limit"
 import { sendProspectConfirmationEmail } from "@/lib/prospect-confirmation-email"
 import { sendAdminNewLeadAlertEmail } from "@/lib/notify-admin-lead"
 import { sendMetaConversionApiLead } from "@/lib/meta-capi"
+import { enrichLeadVerifications } from "@/lib/lead-verification-engine"
 import { createHmac } from "crypto"
 
 function sanitizeString(input: string, maxLength = 255): string {
@@ -173,6 +174,24 @@ export async function POST(request: NextRequest) {
         ? extractedPostalCode
         : null
 
+    // Enrichissement & Contrôles automatiques (DNS MX, SPW Wallonie ICAR, BCE cbeapi.be)
+    const verifications = await enrichLeadVerifications({
+      email,
+      postalCode: safePostalCode,
+      city: data.city,
+      streetAddress: data.siteAddress,
+      companyVat: company_vat,
+      segment: data.segment,
+    })
+
+    const finalScore = Math.max(0, Math.min(100, score + verifications.globalTrustScoreDelta))
+    for (const badge of verifications.trustBadges) {
+      factors.push({ label: `Vérification certifiée : ${badge}`, delta: 5 })
+    }
+    for (const warn of verifications.warningFlags) {
+      factors.push({ label: `Alerte conformité : ${warn}`, delta: -30 })
+    }
+
     const validSourceForms = [
       "b2b_simulator",
       "b2c_simulator",
@@ -216,7 +235,7 @@ export async function POST(request: NextRequest) {
       data_retention_until: dataRetentionUntil.toISOString(),
       source: "simulator",
       status: safeStatus,
-      lead_score: score,
+      lead_score: finalScore,
       wants_irve: financials.includesEv,
 
       // --- Colonnes Canoniques Unifiées (Migration 024) ---
@@ -236,6 +255,13 @@ export async function POST(request: NextRequest) {
         estimatedPanelCount: financials.estimatedPanelCount,
         annualProductionKwh: financials.annualProductionKwh,
         usableSurfaceM2: financials.usableSurfaceM2,
+        verifications: {
+          emailMx: verifications.emailMx,
+          walloniaAddress: verifications.walloniaAddress,
+          cbeCompany: verifications.cbeCompany,
+          trustBadges: verifications.trustBadges,
+          warningFlags: verifications.warningFlags,
+        },
       },
 
       // --- Tarification V2 Officielle ---
@@ -330,7 +356,7 @@ export async function POST(request: NextRequest) {
       ownershipStatus: safeOwnership,
       timeframe: data.timeframe ?? null,
       roofMaterial: safeRoofMaterial,
-      leadScore: score,
+      leadScore: finalScore,
       scoreStatus: status,
       scoreFactors: factors,
       creditCost: credit_cost,
