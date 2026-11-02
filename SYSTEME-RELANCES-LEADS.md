@@ -119,7 +119,7 @@ L'e-mail produit par [`lib/email-templates/installer-lead-teaser.ts`](file:///c:
 ├─────────────────────────────────────────────────────────────┤
 │  [LOGO AEGIS SOLAIRE]            [⏳ PLUS QUE 2 PLACES]     │  (Fond Blanc Pur #FFFFFF)
 ├─────────────────────────────────────────────────────────────┤
-│  RELANCE VAGUE 2 · OPPORTUNITÉ LOCALE · #13427051           │  (Surtitre Mono Or Solaire)
+│  RAPPEL DISPONIBILITÉ · 2 PLACES RESTANTES · #13427051      │  (Surtitre Mono Or Solaire — AUCUNE mention de vague)
 │  Plus que 2 place(s) disponible(s) à Herstal (Liège)        │  (Titre Ardoise #0F172A)
 │                                                             │
 │  Bonjour Marc Dupont,                                       │
