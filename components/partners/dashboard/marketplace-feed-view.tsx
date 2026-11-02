@@ -55,6 +55,7 @@ import {
   getOwnershipLabel,
   getProjectDriverLabel,
   sanitizeLeadNotes,
+  getB2CSlotIndicator,
 } from "@/lib/lead-display-helpers"
 import { LeadInspectionDrawer } from "./lead-inspection-drawer"
 import { MarketplaceInteractiveTour } from "./marketplace-interactive-tour"
@@ -1302,7 +1303,7 @@ export function MarketplaceFeedView({
                       {/* Marge Estimée */}
                       <td className="px-4 py-3 text-foreground whitespace-nowrap">
                         <div className="font-mono font-bold text-accent tabular-nums">
-                          {formatRoundedCurrency(financials.estimatedInstallerMargin)} HT
+                          {formatRoundedCurrency(financials.estimatedInstallerMargin)}
                         </div>
                         <div className="font-mono text-[10px] text-muted-foreground tabular-nums">
                           {annualBill > 0 ? `${annualBill.toLocaleString("fr-BE")} €/an` : (isB2B ? "Facture pro" : "Résidentiel")}
@@ -1398,6 +1399,7 @@ function MarketplaceLeadCard({
   const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
   const remainingSlots = lead.remaining_slots ?? maxSlots
   const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
+  const slotIndicator = getB2CSlotIndicator(remainingSlots)
 
   const rawSurfaceArea = Math.max(0, Number(lead.surface_area || lead.surface_area_m2) || 0)
   const rawAnnualBill = Math.max(0, Number(lead.annual_electricity_bill || lead.annual_bill_eur) || 0)
@@ -1426,8 +1428,8 @@ function MarketplaceLeadCard({
   // Formatage financier précis (arrondi 50 €/100 € en B2C au lieu d'un arrondi grossier au millier)
   const minText = formatRoundedCurrency(financials.estimatedContractValueRange?.min || 0).replace("~", "")
   const maxText = formatRoundedCurrency(financials.estimatedContractValueRange?.max || 0).replace("~", "")
-  const rangeText = `${minText} HT à ${maxText} HT`
-  const marginText = `${formatRoundedCurrency(financials.estimatedInstallerMargin || 0)} HT`
+  const rangeText = `${minText} à ${maxText}`
+  const marginText = formatRoundedCurrency(financials.estimatedInstallerMargin || 0)
 
   const rawRoof = getRoofMaterialLabel(lead.roof_material)
   const roofDisplay = rawRoof === "Bac acier / Métallique" ? "Bac acier / Mét..." : rawRoof
@@ -1471,9 +1473,26 @@ function MarketplaceLeadCard({
           {/* Badges superposés en haut */}
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 pointer-events-none">
             {/* Badge Modèle */}
-            <span className="inline-flex items-center rounded-full bg-primary text-primary-foreground text-xs font-bold px-3.5 py-1.5 shadow-sm">
-              {isB2B ? "B2B • 100% Exclusif" : `B2C • ${remainingSlots}/${maxSlots} places dispo`}
-            </span>
+            {isB2B ? (
+              <span className="inline-flex items-center rounded-full bg-slate-900/80 backdrop-blur-xs text-white text-xs font-semibold px-3.5 py-1.5 shadow-sm">
+                B2B • 100% Exclusif
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-900/80 backdrop-blur-xs text-white text-xs font-medium px-3.5 py-1.5 shadow-sm">
+                <span className="font-semibold">B2C</span>
+                <span className="text-white/60" aria-hidden="true">•</span>
+                <span className="inline-flex items-center gap-1" aria-hidden="true">
+                  {slotIndicator.dots.map((color, i) => (
+                    <span
+                      key={i}
+                      className="h-2 w-2 rounded-full shrink-0"
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </span>
+                <span className="tabular-nums">{slotIndicator.text}</span>
+              </span>
+            )}
 
             {/* Badge Fraîcheur / Date */}
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white text-slate-800 text-xs font-semibold px-3 py-1.5 shadow-sm">

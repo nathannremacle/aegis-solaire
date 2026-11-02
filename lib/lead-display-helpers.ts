@@ -523,3 +523,41 @@ export function formatLeadUnlockDate(purchasedAt?: string | null): string {
   return `Débloqué le ${dateFormatted}`
 }
 
+export interface B2CSlotIndicator {
+  text: string
+  dots: [string, string, string]
+}
+
+/**
+ * Calcule l'état visuel et textuel des places disponibles pour un lead B2C (max 3 places)
+ * - 3/3 dispo : 3 ronds verts (#22C55E) + "3/3 places dispo"
+ * - 2/3 dispo : 2 ronds orange (#F97316) + 1 rond gris inactif (#4B5563) + "2/3 places dispo"
+ * - 1/3 dispo : 1 rond rouge (#EF4444) + 2 ronds gris inactifs (#4B5563) + "1/3 place dispo"
+ * - 0/3 dispo : 3 ronds gris (#4B5563) + "Complet"
+ */
+export function getB2CSlotIndicator(remainingSlots: number): B2CSlotIndicator {
+  if (remainingSlots >= 3) {
+    return {
+      text: "3/3 places dispo",
+      dots: ["#22C55E", "#22C55E", "#22C55E"],
+    }
+  }
+  if (remainingSlots === 2) {
+    return {
+      text: "2/3 places dispo",
+      dots: ["#F97316", "#F97316", "#4B5563"],
+    }
+  }
+  if (remainingSlots === 1) {
+    return {
+      text: "1/3 place dispo",
+      dots: ["#EF4444", "#4B5563", "#4B5563"],
+    }
+  }
+  return {
+    text: "Complet",
+    dots: ["#4B5563", "#4B5563", "#4B5563"],
+  }
+}
+
+

@@ -867,7 +867,7 @@ export function CrmPortfolioView({
                       {/* Marge Estimée */}
                       <td className="px-4 py-3 text-foreground whitespace-nowrap">
                         <div className="font-mono font-bold text-accent tabular-nums">
-                          {formatRoundedCurrency(financials.estimatedInstallerMargin)} HT
+                          {formatRoundedCurrency(financials.estimatedInstallerMargin)}
                         </div>
                         <div className="font-mono text-[10px] text-muted-foreground tabular-nums">
                           {annualBill > 0
@@ -1011,8 +1011,8 @@ function CrmPortfolioCard({
   // Calculs financiers précis (sans arrondi grossier au millier en B2C)
   const minText = formatRoundedCurrency(financials.estimatedContractValueRange?.min || 0).replace("~", "")
   const maxText = formatRoundedCurrency(financials.estimatedContractValueRange?.max || 0).replace("~", "")
-  const rangeText = `${minText} HT à ${maxText} HT`
-  const marginText = `${formatRoundedCurrency(financials.estimatedInstallerMargin || 0)} HT`
+  const rangeText = `${minText} à ${maxText}`
+  const marginText = formatRoundedCurrency(financials.estimatedInstallerMargin || 0)
 
   const rawRoof = getRoofMaterialLabel(item.roof_material)
   const roofDisplay = rawRoof === "Bac acier / Métallique" ? "Bac acier / Mét..." : rawRoof
