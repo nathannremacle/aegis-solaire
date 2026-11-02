@@ -15,11 +15,13 @@ process.env.RESEND_FROM_EMAIL = env.RESEND_FROM_EMAIL || "noreply@aegissolaire.c
 process.env.NEXT_PUBLIC_SITE_URL = env.NEXT_PUBLIC_SITE_URL || "https://www.aegissolaire.com"
 process.env.SUPABASE_SERVICE_ROLE_KEY = env.SUPABASE_SERVICE_ROLE_KEY
 process.env.ADMIN_ALERT_EMAIL = "mrnathanrem@gmail.com"
+process.env.CBE_API_KEY = env.CBE_API_KEY
 
 const { sendAdminNewLeadAlertEmail } = await import("../lib/notify-admin-lead.ts")
+const { enrichLeadVerifications } = await import("../lib/lead-verification-engine.ts")
 
 async function main() {
-  console.log("=== ENVOI DU NOUVEL E-MAIL INSTITUTIONNEL CLAIR À mrnathanrem@gmail.com ===")
+  console.log("=== ENVOI DU NOUVEAU MAIL D'ALERTE AVEC LES VIGILANCES & CBE/SPW/MX ===")
   
   const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
 
@@ -34,7 +36,25 @@ async function main() {
     return
   }
 
-  console.log(`Lead récupéré : ${lead.first_name} ${lead.last_name} (${lead.company})`)
+  console.log(`Lead récupéré : ${lead.first_name} ${lead.last_name} (${lead.company}) - TVA: ${lead.company_vat}`)
+
+  // Exécution réelle des 3 vérifications (MX, SPW, CBE)
+  const verifications = await enrichLeadVerifications({
+    email: lead.email,
+    postalCode: lead.postal_code,
+    city: lead.city,
+    streetAddress: lead.site_address,
+    companyVat: lead.company_vat,
+    segment: lead.segment,
+  })
+
+  console.log("Résultat des vérifications :", {
+    emailMxValid: verifications.emailMx.valid,
+    walloniaValid: verifications.walloniaAddress.validInWallonia,
+    cbeStatus: verifications.cbeCompany,
+    flags: verifications.warningFlags,
+    badges: verifications.trustBadges,
+  })
 
   const result = await sendAdminNewLeadAlertEmail({
     leadId: lead.id,
@@ -77,6 +97,7 @@ async function main() {
     sourceForm: lead.source_form,
     mediaPartnerCode: null,
     message: lead.message,
+    verifications,
   })
 
   console.log("Résultat de l'envoi :", result)

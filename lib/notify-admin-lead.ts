@@ -6,6 +6,51 @@ export type ScoreFactor = {
   delta: number
 }
 
+export type RiskFlag = {
+  code: string
+  label: string
+  severity: "critical" | "warning"
+  description: string
+}
+
+export type CbeCompanyData = {
+  verified: boolean
+  active: boolean
+  vatNumber?: string
+  officialName?: string
+  legalForm?: string
+  fullAddress?: string
+  postalCode?: string
+  city?: string
+  isWalloniaHeadquarters?: boolean
+  naceCode?: string
+  naceDescription?: string
+  error?: string
+}
+
+export type EmailMxData = {
+  valid: boolean
+  isDisposable: boolean
+  domain: string
+  mxServers: string[]
+  reason?: string
+}
+
+export type WalloniaAddressData = {
+  validInWallonia: boolean
+  officialCity?: string
+  officialPostalCode?: string
+  confidenceScore: number
+}
+
+export type LeadEnrichedData = {
+  emailMx?: EmailMxData | null
+  walloniaAddress?: WalloniaAddressData | null
+  cbeCompany?: CbeCompanyData | null
+  trustBadges?: string[]
+  warningFlags?: string[]
+}
+
 export type AdminLeadAlertPayload = {
   leadId: string
   firstName: string
@@ -41,6 +86,8 @@ export type AdminLeadAlertPayload = {
   sourceForm?: string | null
   mediaPartnerCode?: string | null
   message?: string | null
+  verifications?: LeadEnrichedData | null
+  riskFlags?: RiskFlag[] | null
 }
 
 export type AdminWebinarAlertPayload = {
@@ -53,12 +100,128 @@ export type AdminWebinarAlertPayload = {
   sourceForm?: string | null
 }
 
-function escapeHtml(s: string): string {
-  return s
+function escapeHtml(s: string | null | undefined): string {
+  if (!s) return ""
+  return String(s)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
+}
+
+/**
+ * Valide le format BE + 10 chiffres avec clé de contrôle Modulo 97 (BCE/TVA belge).
+ */
+export function checkBelgianVatModulo97(input?: string | null): boolean {
+  if (!input) return false
+  const n = input.replace(/[\s.]/g, "").toUpperCase()
+  if (!/^BE\d{9,10}$/.test(n)) return false
+  const digits = n.replace(/^BE/, "")
+  const padded = digits.length === 9 ? "0" + digits : digits
+  if (!/^[01]\d{9}$/.test(padded)) return false
+  const first8 = parseInt(padded.slice(0, 8), 10)
+  const checkDigits = parseInt(padded.slice(8, 10), 10)
+  const expectedCheck = 97 - (first8 % 97)
+  return checkDigits === expectedCheck
+}
+
+/**
+ * Valide un numéro belge ou français.
+ */
+export function checkBelgianOrFrPhone(phone?: string | null): boolean {
+  if (!phone) return false
+  const cleaned = phone.replace(/[\s.-]/g, "")
+  if (!/^(\+33|\+32|0)[1-9][0-9]{7,9}$/.test(cleaned)) return false
+  const digits = cleaned.replace(/\D/g, "")
+  if (new Set(digits.split("")).size <= 2) return false
+  return true
+}
+
+/**
+ * Détecte les signaux de risque et de vigilance pour un lead donné (aligné sur le cockpit admin).
+ */
+export function extractLeadRiskAlerts(payload: AdminLeadAlertPayload): RiskFlag[] {
+  const flags: RiskFlag[] = []
+
+  // 1. Contrôle Téléphone
+  if (!payload.phone || payload.phone.trim() === "") {
+    flags.push({
+      code: "NO_PHONE",
+      label: "Numéro absent",
+      severity: "critical",
+      description: "Aucun numéro de téléphone fourni par le prospect.",
+    })
+  } else if (!checkBelgianOrFrPhone(payload.phone)) {
+    flags.push({
+      code: "INVALID_PHONE",
+      label: "Numéro suspect / format non conforme",
+      severity: "critical",
+      description: "Le format du numéro de téléphone présente une anomalie ou des répétitions anormales.",
+    })
+  }
+
+  // 2. Contrôle B2B : TVA et Société
+  if (payload.segment === "B2B") {
+    if (!payload.company || payload.company.trim().length < 2) {
+      flags.push({
+        code: "B2B_MISSING_COMPANY",
+        label: "Entreprise non précisée",
+        severity: "critical",
+        description: "Nom d'entreprise manquant pour un dossier professionnel B2B.",
+      })
+    }
+    if (payload.companyVat) {
+      if (!checkBelgianVatModulo97(payload.companyVat)) {
+        flags.push({
+          code: "INVALID_VAT",
+          label: "TVA invalide",
+          severity: "warning",
+          description: "La clé de contrôle Modulo 97 de la TVA belge n'est pas conforme.",
+        })
+      }
+    } else {
+      flags.push({
+        code: "B2B_NO_VAT",
+        label: "TVA absente",
+        severity: "warning",
+        description: "Numéro d'entreprise / TVA non renseigné pour ce lead B2B.",
+      })
+    }
+  }
+
+  // 3. Statut d'occupation
+  if (payload.ownershipStatus === "tenant_unauthorized" || payload.ownershipStatus === "tenant") {
+    flags.push({
+      code: "TENANT_UNAUTHORIZED",
+      label: "Locataire sans accord bailleur",
+      severity: "warning",
+      description: "Le demandeur est locataire et n'a pas confirmé l'accord formel du propriétaire.",
+    })
+  }
+
+  // 4. Code postal hors Wallonie
+  if (payload.postalCode) {
+    const n = parseInt(payload.postalCode.replace(/\D/g, ""), 10)
+    if (!Number.isNaN(n)) {
+      const isWalloon =
+        (n >= 1300 && n <= 1499) ||
+        (n >= 4000 && n <= 4999) ||
+        (n >= 5000 && n <= 5999) ||
+        (n >= 6000 && n <= 6599) ||
+        (n >= 6600 && n <= 6999) ||
+        (n >= 7000 && n <= 7999)
+      if (!isWalloon) {
+        flags.push({
+          code: "OUT_OF_WALLONIA",
+          label: "Hors Wallonie",
+          severity: "critical",
+          description: `Code postal ${payload.postalCode} situé hors de la Région wallonne (Flandre ou Bruxelles).`,
+        })
+      }
+    }
+  }
+
+  return flags
 }
 
 /**
@@ -129,6 +292,86 @@ export function buildAdminLeadAlertEmail(payload: AdminLeadAlertPayload): {
   const fullName = `${payload.firstName || ""} ${payload.lastName || ""}`.trim() || "Contact non spécifié"
   const location = [payload.postalCode, payload.city, payload.province].filter(Boolean).join(" · ") || "Wallonie"
 
+  // 1. Détection des risques cockpit admin
+  const riskAlerts = payload.riskFlags ?? extractLeadRiskAlerts(payload)
+
+  const isVatValid = payload.companyVat ? checkBelgianVatModulo97(payload.companyVat) : null
+  const isPhoneValid = payload.phone ? checkBelgianOrFrPhone(payload.phone) : null
+
+  // 2. Vérifications externes (BCE, DNS MX, SPW)
+  const verifs = payload.verifications
+  const cbe = verifs?.cbeCompany
+  const mx = verifs?.emailMx
+  const spw = verifs?.walloniaAddress
+
+  // Consolidation de toutes les alertes (Cockpit + APIs)
+  const allAlerts: { label: string; detail: string; critical: boolean }[] = []
+
+  for (const rf of riskAlerts) {
+    allAlerts.push({
+      label: rf.label,
+      detail: rf.description,
+      critical: rf.severity === "critical",
+    })
+  }
+
+  // Alerte BCE si le numéro d'entreprise est introuvable ou inactif
+  if (isB2B && payload.companyVat) {
+    if (cbe && !cbe.verified && cbe.error) {
+      if (!allAlerts.some((a) => a.label.includes("TVA") || a.label.includes("BCE"))) {
+        allAlerts.push({
+          label: "BCE : Numéro introuvable",
+          detail: cbe.error,
+          critical: true,
+        })
+      }
+    } else if (cbe && cbe.verified && !cbe.active) {
+      allAlerts.push({
+        label: "BCE : Entreprise fermée ou radiée",
+        detail: "Le statut de cette société n'est plus actif à la Banque-Carrefour des Entreprises.",
+        critical: true,
+      })
+    }
+  }
+
+  // Alerte E-mail MX
+  if (mx && !mx.valid) {
+    allAlerts.push({
+      label: "E-mail : Serveur MX introuvable",
+      detail: mx.reason || "Le nom de domaine de l'e-mail ne possède pas de serveur pour recevoir des messages.",
+      critical: true,
+    })
+  }
+
+  // Alerte SPW Cadastre
+  if (spw && !spw.validInWallonia && spw.confidenceScore <= 10) {
+    allAlerts.push({
+      label: "SPW : Localisation non répertoriée",
+      detail: "L'adresse ou le code postal n'a pas été trouvé dans le registre officiel ICAR de Wallonie.",
+      critical: false,
+    })
+  }
+
+  // 3. Points certifiés positifs
+  const certifiedBadges: string[] = []
+  if (mx?.valid) {
+    certifiedBadges.push(`E-mail certifié : serveurs MX actifs (${mx.mxServers[0] || "valide"})`)
+  }
+  if (spw?.validInWallonia && spw.confidenceScore >= 70) {
+    certifiedBadges.push(`Localisation certifiée SPW Wallonie : ${spw.officialCity || payload.city || "ICAR"}`)
+  }
+  if (cbe?.verified && cbe.active) {
+    certifiedBadges.push(
+      `BCE certifiée : ${cbe.officialName} (${cbe.legalForm || "Active"})${cbe.isWalloniaHeadquarters ? " · Siège en Wallonie" : ""}`
+    )
+  }
+  if (isVatValid) {
+    certifiedBadges.push("Numéro TVA conforme (Modulo 97)")
+  }
+  if (isPhoneValid) {
+    certifiedBadges.push("Numéro de téléphone belge conforme")
+  }
+
   const scoreNum = payload.leadScore != null ? Math.round(Number(payload.leadScore)) : null
   const isHotLead = scoreNum != null && scoreNum >= 70
   const isReviewNeeded = scoreNum != null && scoreNum < 40
@@ -137,11 +380,12 @@ export function buildAdminLeadAlertEmail(payload: AdminLeadAlertPayload): {
   const scoreCategory = isHotLead
     ? "Priorité haute (HOT LEAD)"
     : isReviewNeeded
-    ? "À vérifier (score bas)"
+    ? "Vigilance requise (score faible)"
     : "Qualifié"
 
   const companyOrName = payload.company ? `${fullName} (${payload.company})` : fullName
-  const subject = `[Aegis Solaire] Nouveau dossier à valider : ${companyOrName} · Score ${scoreBadgeText}`
+  const subjectPrefix = allAlerts.length > 0 ? `[ATTENTION ${allAlerts.length} ALERTE${allAlerts.length > 1 ? "S" : ""}] ` : ""
+  const subject = `${subjectPrefix}[Aegis Solaire] Nouveau dossier : ${companyOrName} · Score ${scoreBadgeText}`
 
   const surfaceFormatted = payload.surfaceArea != null ? `${payload.surfaceArea.toLocaleString("fr-BE")} m²` : "–"
   const billFormatted = payload.annualBill != null ? `${payload.annualBill.toLocaleString("fr-BE")} € HT / an` : "–"
@@ -158,19 +402,17 @@ export function buildAdminLeadAlertEmail(payload: AdminLeadAlertPayload): {
 
   const ownershipLabel =
     payload.ownershipStatus === "owner"
-      ? "Propriétaire"
+      ? "Propriétaire occupant"
       : payload.ownershipStatus === "tenant_authorized"
       ? "Locataire (accord bailleur)"
       : payload.ownershipStatus === "tenant" || payload.ownershipStatus === "tenant_unauthorized"
-      ? "Locataire"
+      ? "Locataire (SANS accord)"
       : payload.ownershipStatus === "co_ownership"
       ? "Copropriété"
       : payload.ownershipStatus ?? "–"
 
-  const factorsText =
-    payload.scoreFactors && payload.scoreFactors.length > 0
-      ? payload.scoreFactors.map((f) => `  - ${f.label} (${f.delta > 0 ? "+" : ""}${f.delta} pts)`).join("\n")
-      : "  - Aucun facteur particulier"
+  const textAlerts = allAlerts.map((a) => `  [!] ${a.label} : ${a.detail}`).join("\n")
+  const textCertified = certifiedBadges.map((b) => `  [✓] ${b}`).join("\n")
 
   const text = `NOUVEAU DOSSIER LEAD EN ATTENTE DE VALIDATION
 ========================================================================
@@ -180,6 +422,8 @@ Segment : ${isB2B ? "Professionnel (B2B)" : "Résidentiel (B2C)"}
 Score de qualification : ${scoreBadgeText} (${scoreCategory})
 Valeur marketplace : ${creditsFormatted}
 
+${allAlerts.length > 0 ? `POINTS DE VIGILANCE ET ALERTES DE CONFORMITÉ :\n-----------------------------------------------\n${textAlerts}\n\n` : ""}
+${certifiedBadges.length > 0 ? `CONTRÔLES DE CONFORMITÉ VALIDÉS :\n---------------------------------\n${textCertified}\n\n` : ""}
 VALIDATION DIRECTE EN 1 CLIC :
 ------------------------------
 Pour valider et publier ce lead sans vous connecter, cliquez sur le lien suivant :
@@ -188,16 +432,13 @@ ${quickValidateUrl}
 Ou ouvrir dans le dashboard admin :
 ${directLeadDashboardUrl}
 
-FACTEURS DE QUALIFICATION :
----------------------------
-${factorsText}
-
 COORDONNÉES :
 -------------
 Nom : ${fullName}
-Téléphone : ${payload.phone || "Non renseigné"}
-Email : ${payload.email}
-${isB2B ? `Entreprise : ${payload.company || "–"}\nNuméro TVA : ${payload.companyVat || "–"}\nFonction : ${payload.jobTitle || "–"}\n` : ""}
+Téléphone : ${payload.phone || "Non renseigné"} ${isPhoneValid === false ? "(ATTENTION: format suspect)" : ""}
+Email : ${payload.email} ${mx?.valid === false ? "(ATTENTION: sans serveur MX)" : ""}
+${isB2B ? `Entreprise : ${payload.company || "–"}\nNuméro TVA : ${payload.companyVat || "–"} ${isVatValid === false ? "(ATTENTION: Clé Modulo 97 non valide)" : isVatValid === true ? "(TVA valide)" : ""}\nFonction : ${payload.jobTitle || "–"}\n` : ""}
+${cbe?.verified ? `Détails BCE officiels : ${cbe.officialName} (${cbe.legalForm || ""}) - NACE ${cbe.naceCode} : ${cbe.naceDescription}\n` : ""}
 Localisation : ${payload.siteAddress ? `${payload.siteAddress}, ` : ""}${payload.postalCode || ""} ${payload.city || ""} (${payload.province || "–"})
 GRD compétent : ${payload.grd || "–"}
 
@@ -238,13 +479,13 @@ Aegis Solaire · Notification interne`
             <tr>
               <td>
                 <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6B7280;">
-                  Aegis Solaire · Plateforme d'Arbitrage
+                  Aegis Solaire · Modération des leads
                 </span>
                 <h1 style="font-size: 20px; font-weight: 700; color: #111827; margin: 6px 0 2px 0;">
-                  Nouveau dossier lead à modérer
+                  Nouveau dossier à modérer
                 </h1>
                 <p style="font-size: 13px; color: #6B7280; margin: 0;">
-                  ${isB2B ? "Dossier Professionnel (B2B)" : "Dossier Résidentiel (B2C)"} · Reçu le ${new Date().toLocaleDateString("fr-BE", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  ${isB2B ? "Segment Professionnel (B2B)" : "Segment Résidentiel (B2C)"} · Reçu le ${new Date().toLocaleDateString("fr-BE", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                 </p>
               </td>
               <td align="right" valign="top" style="white-space: nowrap;">
@@ -256,7 +497,51 @@ Aegis Solaire · Notification interne`
           </table>
         </div>
 
-        <!-- Bloc d'action rapide sobre -->
+        <!-- 1. ENCADRÉ DES POINTS DE VIGILANCE (SI DES ALERTES EXISTENT) -->
+        ${
+          allAlerts.length > 0
+            ? `<div style="background-color: #FEF2F2; border: 1px solid #FECACA; border-left: 4px solid #DC2626; padding: 16px 24px;">
+                <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #991B1B; margin-bottom: 8px;">
+                  Signalements de vigilance (${allAlerts.length} alerte${allAlerts.length > 1 ? "s" : ""}) :
+                </div>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size: 13px; color: #7F1D1D;">
+                  ${allAlerts
+                    .map(
+                      (a) => `<tr>
+                        <td valign="top" style="padding: 3px 6px 3px 0; color: #DC2626; font-weight: bold; width: 14px;">•</td>
+                        <td style="padding: 3px 0; line-height: 1.4;">
+                          <strong style="color: #991B1B;">${escapeHtml(a.label)} :</strong> ${escapeHtml(a.detail)}
+                        </td>
+                      </tr>`
+                    )
+                    .join("")}
+                </table>
+              </div>`
+            : ""
+        }
+
+        <!-- 2. ENCADRÉ DES CONTRÔLES CERTIFIÉS POSITIFS -->
+        ${
+          certifiedBadges.length > 0
+            ? `<div style="background-color: #F0FDF4; border: 1px solid #BBF7D0; border-left: 4px solid #16A34A; padding: 14px 24px;">
+                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #166534; margin-bottom: 6px;">
+                  Contrôles de conformité certifiés :
+                </div>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size: 12px; color: #14532D;">
+                  ${certifiedBadges
+                    .map(
+                      (b) => `<tr>
+                        <td valign="top" style="padding: 2px 6px 2px 0; color: #16A34A; font-weight: bold; width: 14px;">✓</td>
+                        <td style="padding: 2px 0;">${escapeHtml(b)}</td>
+                      </tr>`
+                    )
+                    .join("")}
+                </table>
+              </div>`
+            : ""
+        }
+
+        <!-- Bloc d'action rapide -->
         <div style="background-color: #F9FAFB; border: 1px solid #E5E7EB; border-left: 3px solid #0F172A; padding: 18px 28px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
             <tr>
@@ -276,7 +561,7 @@ Aegis Solaire · Notification interne`
                     </td>
                     <td style="padding-left: 12px;">
                       <a href="${directLeadDashboardUrl}" style="font-size: 13px; color: #4B5563; text-decoration: underline;">
-                        Ouvrir dans l'admin
+                        Examiner sur le dashboard admin
                       </a>
                     </td>
                   </tr>
@@ -313,33 +598,10 @@ Aegis Solaire · Notification interne`
             </tr>
           </table>
 
-          <!-- Facteurs d'évaluation du score -->
-          ${
-            payload.scoreFactors && payload.scoreFactors.length > 0
-              ? `<div style="margin-bottom: 24px; padding: 12px 16px; background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px;">
-                  <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #6B7280; margin-bottom: 6px; letter-spacing: 0.05em;">
-                    Détail du calcul de score :
-                  </div>
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size: 12px;">
-                    ${payload.scoreFactors
-                      .map(
-                        (f) => `<tr>
-                          <td style="padding: 3px 0; color: #374151;">${escapeHtml(f.label)}</td>
-                          <td align="right" style="padding: 3px 0; font-family: monospace; font-weight: 600; color: ${f.delta > 0 ? "#047857" : "#DC2626"};">
-                            ${f.delta > 0 ? "+" : ""}${f.delta} pts
-                          </td>
-                        </tr>`
-                      )
-                      .join("")}
-                  </table>
-                </div>`
-              : ""
-          }
-
-          <!-- Coordonnées du contact -->
+          <!-- Coordonnées du contact avec statuts de vérification -->
           <div style="margin-bottom: 24px;">
             <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #4B5563; padding-bottom: 6px; border-bottom: 1px solid #E5E7EB; margin-bottom: 10px;">
-              Contact &amp; Identification
+              Contact &amp; Données d'identification
             </div>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size: 13px;">
               <tr>
@@ -347,12 +609,19 @@ Aegis Solaire · Notification interne`
                 <td style="padding: 5px 0; font-weight: 600; color: #111827;">${escapeHtml(fullName)}</td>
               </tr>
               <tr>
-                <td style="padding: 5px 0; color: #6B7280;">Téléphone direct</td>
+                <td style="padding: 5px 0; color: #6B7280;">Téléphone</td>
                 <td style="padding: 5px 0;">
                   ${
                     payload.phone
                       ? `<a href="tel:${escapeHtml(payload.phone)}" style="color: #111827; font-family: monospace; font-weight: 600; text-decoration: underline;">${escapeHtml(payload.phone)}</a>`
                       : '<span style="color: #9CA3AF;">Non renseigné</span>'
+                  }
+                  ${
+                    isPhoneValid === true
+                      ? `<span style="display: inline-block; font-size: 11px; color: #047857; background: #ECFDF5; border: 1px solid #A7F3D0; padding: 1px 6px; border-radius: 3px; margin-left: 6px;">Format BE valide</span>`
+                      : isPhoneValid === false
+                      ? `<span style="display: inline-block; font-size: 11px; color: #B91C1C; background: #FEF2F2; border: 1px solid #FECACA; padding: 1px 6px; border-radius: 3px; margin-left: 6px; font-weight: 600;">Format suspect</span>`
+                      : ""
                   }
                 </td>
               </tr>
@@ -360,6 +629,13 @@ Aegis Solaire · Notification interne`
                 <td style="padding: 5px 0; color: #6B7280;">Adresse e-mail</td>
                 <td style="padding: 5px 0;">
                   <a href="mailto:${escapeHtml(payload.email)}" style="color: #111827; text-decoration: underline;">${escapeHtml(payload.email)}</a>
+                  ${
+                    mx?.valid === true
+                      ? `<span style="display: inline-block; font-size: 11px; color: #047857; background: #ECFDF5; border: 1px solid #A7F3D0; padding: 1px 6px; border-radius: 3px; margin-left: 6px;">MX valide</span>`
+                      : mx?.valid === false
+                      ? `<span style="display: inline-block; font-size: 11px; color: #B91C1C; background: #FEF2F2; border: 1px solid #FECACA; padding: 1px 6px; border-radius: 3px; margin-left: 6px; font-weight: 600;">Sans serveur MX</span>`
+                      : ""
+                  }
                 </td>
               </tr>
               ${
@@ -370,7 +646,16 @@ Aegis Solaire · Notification interne`
                     </tr>
                     <tr>
                       <td style="padding: 5px 0; color: #6B7280;">Numéro de TVA</td>
-                      <td style="padding: 5px 0; font-family: monospace;">${escapeHtml(payload.companyVat || "–")}</td>
+                      <td style="padding: 5px 0;">
+                        <span style="font-family: monospace; font-weight: 600; color: #111827;">${escapeHtml(payload.companyVat || "–")}</span>
+                        ${
+                          isVatValid === true
+                            ? `<span style="display: inline-block; font-size: 11px; color: #047857; background: #ECFDF5; border: 1px solid #A7F3D0; padding: 1px 6px; border-radius: 3px; margin-left: 6px;">Modulo 97 conforme</span>`
+                            : isVatValid === false
+                            ? `<span style="display: inline-block; font-size: 11px; color: #B91C1C; background: #FEF2F2; border: 1px solid #FECACA; padding: 1px 6px; border-radius: 3px; margin-left: 6px; font-weight: 600;">Attention : TVA non valide</span>`
+                            : ""
+                        }
+                      </td>
                     </tr>
                     <tr>
                       <td style="padding: 5px 0; color: #6B7280;">Fonction</td>
@@ -378,9 +663,33 @@ Aegis Solaire · Notification interne`
                     </tr>`
                   : ""
               }
+              ${
+                cbe?.verified
+                  ? `<tr style="background-color: #F8FAFC;">
+                      <td style="padding: 8px 6px; color: #475569; font-size: 12px; font-weight: 600;" colspan="2">
+                        <div style="color: #0F172A; font-weight: 700; margin-bottom: 2px;">
+                          Registre officiel BCE (cbeapi.be) :
+                        </div>
+                        <div style="color: #334155; line-height: 1.4;">
+                          ${escapeHtml(cbe.officialName)} · <em>${escapeHtml(cbe.legalForm || "")}</em>
+                          ${cbe.active ? `<span style="color: #047857; font-weight: 600;">(Société active)</span>` : `<span style="color: #B91C1C; font-weight: 600;">(Non active)</span>`}<br/>
+                          Siège : ${escapeHtml(cbe.fullAddress || "–")}<br/>
+                          ${cbe.naceCode ? `Activité NACE ${escapeHtml(cbe.naceCode)} : ${escapeHtml(cbe.naceDescription || "–")}` : ""}
+                        </div>
+                      </td>
+                    </tr>`
+                  : ""
+              }
               <tr>
                 <td style="padding: 5px 0; color: #6B7280;">Localisation</td>
-                <td style="padding: 5px 0;">${escapeHtml(location)}</td>
+                <td style="padding: 5px 0;">
+                  ${escapeHtml(location)}
+                  ${
+                    spw?.validInWallonia
+                      ? `<span style="display: inline-block; font-size: 11px; color: #047857; background: #ECFDF5; border: 1px solid #A7F3D0; padding: 1px 6px; border-radius: 3px; margin-left: 6px;">Certifié SPW Wallonie</span>`
+                      : ""
+                  }
+                </td>
               </tr>
               ${
                 payload.siteAddress
@@ -441,7 +750,14 @@ Aegis Solaire · Notification interne`
               </tr>
               <tr>
                 <td style="padding: 5px 0; color: #6B7280;">Statut d'occupation</td>
-                <td style="padding: 5px 0;">${escapeHtml(ownershipLabel)}</td>
+                <td style="padding: 5px 0; font-weight: 600;">
+                  ${escapeHtml(ownershipLabel)}
+                  ${
+                    payload.ownershipStatus === "tenant_unauthorized" || payload.ownershipStatus === "tenant"
+                      ? `<span style="display: inline-block; font-size: 11px; color: #B91C1C; background: #FEF2F2; border: 1px solid #FECACA; padding: 1px 6px; border-radius: 3px; margin-left: 6px; font-weight: 600;">Attention : locataire</span>`
+                      : ""
+                  }
+                </td>
               </tr>
               <tr>
                 <td style="padding: 5px 0; color: #6B7280;">Délai envisagé</td>

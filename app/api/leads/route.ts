@@ -363,6 +363,7 @@ export async function POST(request: NextRequest) {
       sourceForm: safeSourceForm,
       mediaPartnerCode,
       message: projectDetailsText,
+      verifications,
     }).catch((err) => console.error("[Admin Lead Alert] Envoi non bloquant échoué:", err))
 
     const webhookUrl = process.env.LEAD_WEBHOOK_URL

@@ -1,4 +1,4 @@
-import { isValidFrBePhone, isValidBelgianVat, normalizeBelgianVat } from "@/lib/leads-validation"
+import { isValidFrBePhone, isValidBelgianVat, normalizeBelgianVat } from "../leads-validation"
 
 export type RiskSeverity = "critical" | "warning"
 
