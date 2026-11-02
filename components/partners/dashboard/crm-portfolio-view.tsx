@@ -344,24 +344,29 @@ export function CrmPortfolioView({
     result = [...result].sort((a, b) => {
       const aSurface = Math.max(0, Number(a.surface_area || a.surface_area_m2) || 0)
       const bSurface = Math.max(0, Number(b.surface_area || b.surface_area_m2) || 0)
-      const aPower = a.estimated_power_kwc ?? Math.round(aSurface * 0.17)
-      const bPower = b.estimated_power_kwc ?? Math.round(bSurface * 0.17)
+      const aFin = calculateMarketplaceFinancials({
+        segment: a.segment,
+        surfaceArea: aSurface,
+        surfaceType: a.surface_type,
+        roofMaterial: a.roof_material,
+        annualBill: Number(a.annual_electricity_bill || a.annual_bill_eur) || 0,
+        estimatedPowerKwc: a.estimated_power_kwc,
+        projectDetails: a.project_details ?? a.message,
+        qualificationMetadata: a.qualification_metadata,
+      })
+      const bFin = calculateMarketplaceFinancials({
+        segment: b.segment,
+        surfaceArea: bSurface,
+        surfaceType: b.surface_type,
+        roofMaterial: b.roof_material,
+        annualBill: Number(b.annual_electricity_bill || b.annual_bill_eur) || 0,
+        estimatedPowerKwc: b.estimated_power_kwc,
+        projectDetails: b.project_details ?? b.message,
+        qualificationMetadata: b.qualification_metadata,
+      })
 
-      if (sortBy === "power_desc") return bPower - aPower
-
-      if (sortBy === "margin_desc") {
-        const aFin = calculateMarketplaceFinancials({
-          segment: a.segment,
-          surfaceArea: aSurface,
-          annualBill: Number(a.annual_electricity_bill || a.annual_bill_eur) || 0,
-        })
-        const bFin = calculateMarketplaceFinancials({
-          segment: b.segment,
-          surfaceArea: bSurface,
-          annualBill: Number(b.annual_electricity_bill || b.annual_bill_eur) || 0,
-        })
-        return bFin.estimatedInstallerMargin - aFin.estimatedInstallerMargin
-      }
+      if (sortBy === "power_desc") return bFin.estimatedPowerKwc - aFin.estimatedPowerKwc
+      if (sortBy === "margin_desc") return bFin.estimatedInstallerMargin - aFin.estimatedInstallerMargin
 
       if (sortBy === "status") {
         const stageOrder: Record<string, number> = {
@@ -407,12 +412,15 @@ export function CrmPortfolioView({
         segment: item.segment,
         surfaceArea,
         surfaceType: item.surface_type,
+        roofMaterial: item.roof_material,
         annualBill,
         creditCost: cost,
+        estimatedPowerKwc: item.estimated_power_kwc,
+        projectDetails: item.project_details ?? item.message,
+        qualificationMetadata: item.qualification_metadata,
       })
 
-      const power = item.estimated_power_kwc ?? financials.estimatedPowerKwc
-      totalPower += power
+      totalPower += financials.estimatedPowerKwc
       totalContractValue += financials.estimatedContractValue || 0
 
       if (item.pipeline_status === "won") {
@@ -425,7 +433,7 @@ export function CrmPortfolioView({
 
     return {
       totalLeads: filteredPurchases.length,
-      totalPower,
+      totalPower: Math.round(totalPower * 10) / 10,
       wonCount,
       winRate,
       totalContractValue,
@@ -494,7 +502,7 @@ export function CrmPortfolioView({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       {/* ── 0. Visite Guidée Interactive de Mon CRM (Modal pas à pas) ── */}
       <CrmInteractiveTour
         isOpen={showTutorial}
@@ -503,7 +511,7 @@ export function CrmPortfolioView({
         hasPurchases={optimisticPurchases.length > 0}
       />
       {/* ── 1. Barre de Contrôle Unifiée (Identique à la Marketplace) ── */}
-      <div className="rounded-2xl border border-border bg-card p-3 sm:p-3.5 shadow-xs space-y-3">
+      <div className="rounded-2xl border border-border bg-card p-3 sm:p-3.5 shadow-xs flex flex-col gap-3">
         {/* Ligne 1 : Segments avec compteurs, Province, Statut Pipeline, Recherche, Tri et Switcher Grille/Tableau */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
           {/* Segments + Province + Statut Pipeline */}
@@ -515,7 +523,7 @@ export function CrmPortfolioView({
                 onClick={() => setSegmentFilter("ALL")}
                 className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
                   segmentFilter === "ALL"
-                    ? "bg-[#0F172A] text-white shadow-2xs"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
                     : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
                 }`}
               >
@@ -650,7 +658,7 @@ export function CrmPortfolioView({
                 onClick={() => setViewMode("grid")}
                 className={`rounded-lg p-1.5 transition-colors cursor-pointer ${
                   viewMode === "grid"
-                    ? "bg-[#0F172A] text-white shadow-2xs"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
                 title="Vue grille (Cartes)"
@@ -663,7 +671,7 @@ export function CrmPortfolioView({
                 onClick={() => setViewMode("table")}
                 className={`rounded-lg p-1.5 transition-colors cursor-pointer ${
                   viewMode === "table"
-                    ? "bg-[#0F172A] text-white shadow-2xs"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
                 title="Vue liste dense"
@@ -768,7 +776,7 @@ export function CrmPortfolioView({
         </div>
       ) : (
         /* ── Vue Liste Dense Haute-Productivité (Style Marketplace) ── */
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-1.5">
           <div className="block sm:hidden text-center text-[11px] font-mono text-muted-foreground py-0.5">
             ↔ Glisser horizontalement pour voir toutes les colonnes
           </div>
@@ -788,20 +796,25 @@ export function CrmPortfolioView({
               <tbody className="divide-y divide-border">
                 {filteredPurchases.map((item) => {
                   const isB2B = item.segment === "B2B"
-                  const surfaceArea = Math.max(0, Number(item.surface_area || item.surface_area_m2) || 0)
-                  const annualBill = Math.max(0, Number(item.annual_electricity_bill || item.annual_bill_eur) || 0)
+                  const rawSurfaceArea = Math.max(0, Number(item.surface_area || item.surface_area_m2) || 0)
+                  const rawAnnualBill = Math.max(0, Number(item.annual_electricity_bill || item.annual_bill_eur) || 0)
                   const cost = item.credits_spent ?? (isB2B ? 9 : 3)
 
                   const financials = calculateMarketplaceFinancials({
                     segment: item.segment,
-                    surfaceArea,
+                    surfaceArea: rawSurfaceArea,
                     surfaceType: item.surface_type,
-                    annualBill,
+                    roofMaterial: item.roof_material,
+                    annualBill: rawAnnualBill,
                     creditCost: cost,
+                    estimatedPowerKwc: item.estimated_power_kwc,
+                    projectDetails: item.project_details ?? item.message,
+                    qualificationMetadata: item.qualification_metadata,
                   })
 
                   const location = getLeadLocationInfo(item)
-                  const powerKwc = item.estimated_power_kwc ?? financials.estimatedPowerKwc
+                  const powerKwc = financials.estimatedPowerKwc
+                  const annualBill = financials.normalizedAnnualBill
 
                   return (
                     <tr
@@ -814,7 +827,7 @@ export function CrmPortfolioView({
                         <span
                           className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold ${
                             isB2B
-                              ? "bg-[#0F172A] text-white"
+                              ? "bg-primary text-primary-foreground"
                               : "bg-secondary text-foreground border border-border"
                           }`}
                         >
@@ -857,7 +870,9 @@ export function CrmPortfolioView({
                           {formatRoundedCurrency(financials.estimatedInstallerMargin)} HT
                         </div>
                         <div className="font-mono text-[10px] text-muted-foreground tabular-nums">
-                          {annualBill > 0 ? `${annualBill.toLocaleString("fr-BE")} €/an` : "Facture"}
+                          {annualBill > 0
+                            ? `${annualBill.toLocaleString("fr-BE")} €/an (≈ ${financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh)`
+                            : "Facture"}
                         </div>
                       </td>
 
@@ -888,7 +903,7 @@ export function CrmPortfolioView({
                           </Button>
                           <a
                             href={`tel:${item.phone}`}
-                            className="inline-flex h-8 items-center justify-center rounded-lg bg-[#0F172A] px-3 text-xs font-bold text-white hover:bg-[#0F172A]/90 transition-colors shadow-2xs gap-1"
+                            className="inline-flex h-8 items-center justify-center rounded-lg bg-primary px-3 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-colors shadow-2xs gap-1"
                             title="Appeler directement"
                           >
                             <Phone className="h-3.5 w-3.5 text-accent" />
@@ -968,32 +983,36 @@ function CrmPortfolioCard({
   onOpenExpertModal?: (lead: any) => void
 }) {
   const isB2B = item.segment === "B2B"
-  const surfaceArea = Math.max(0, Number(item.surface_area || item.surface_area_m2) || 0)
-  const annualBill = Math.max(0, Number(item.annual_electricity_bill || item.annual_bill_eur) || 0)
+  const rawSurfaceArea = Math.max(0, Number(item.surface_area || item.surface_area_m2) || 0)
+  const rawAnnualBill = Math.max(0, Number(item.annual_electricity_bill || item.annual_bill_eur) || 0)
   const cost = item.credits_spent ?? (isB2B ? 9 : 3)
 
   const financials = calculateMarketplaceFinancials({
     segment: item.segment,
-    surfaceArea,
+    surfaceArea: rawSurfaceArea,
     surfaceType: item.surface_type,
-    annualBill,
+    roofMaterial: item.roof_material,
+    annualBill: rawAnnualBill,
     creditCost: cost,
+    estimatedPowerKwc: item.estimated_power_kwc,
+    projectDetails: item.project_details ?? item.message,
+    qualificationMetadata: item.qualification_metadata,
   })
 
   const location = getLeadLocationInfo(item)
   const unlockedDateLabel = formatLeadUnlockDate(item.purchased_at || item.created_at)
-  const powerKwc = item.estimated_power_kwc ?? financials.estimatedPowerKwc
+  const powerKwc = financials.estimatedPowerKwc
+  const surfaceArea = financials.normalizedSurfaceAreaM2
+  const annualBill = financials.normalizedAnnualBill
 
   // Images dédiées cohérentes avec la marketplace
   const leadImage = isB2B ? B2B_SOLAR_IMAGE : B2C_SOLAR_IMAGE
 
-  // Calculs financiers cohérents
-  const contractMin = Math.round((financials.estimatedContractValueRange?.min || 0) / 1000) * 1000
-  const contractMax = Math.round((financials.estimatedContractValueRange?.max || 0) / 1000) * 1000
-  const marginEst = Math.round((financials.estimatedInstallerMargin || 0) / 1000) * 1000
-
-  const rangeText = `${contractMin.toLocaleString("fr-BE")} € HT à ${contractMax.toLocaleString("fr-BE")} € HT`
-  const marginText = `~${marginEst.toLocaleString("fr-BE")} € HT`
+  // Calculs financiers précis (sans arrondi grossier au millier en B2C)
+  const minText = formatRoundedCurrency(financials.estimatedContractValueRange?.min || 0).replace("~", "")
+  const maxText = formatRoundedCurrency(financials.estimatedContractValueRange?.max || 0).replace("~", "")
+  const rangeText = `${minText} HT à ${maxText} HT`
+  const marginText = `${formatRoundedCurrency(financials.estimatedInstallerMargin || 0)} HT`
 
   const rawRoof = getRoofMaterialLabel(item.roof_material)
   const roofDisplay = rawRoof === "Bac acier / Métallique" ? "Bac acier / Mét..." : rawRoof
@@ -1033,7 +1052,7 @@ function CrmPortfolioCard({
           {/* Badges superposés en haut */}
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 pointer-events-none">
             {/* Badge Modèle */}
-            <span className="inline-flex items-center rounded-full bg-[#0B1528] text-white text-xs font-bold px-3.5 py-1.5 shadow-sm">
+            <span className="inline-flex items-center rounded-full bg-primary text-primary-foreground text-xs font-bold px-3.5 py-1.5 shadow-sm">
               {isB2B ? "B2B • Client Direct" : "B2C • Débloqué"}
             </span>
 
@@ -1064,7 +1083,7 @@ function CrmPortfolioCard({
         </div>
 
         {/* ── B. Contenu de la Carte : Client, Puissance, Statut 1-Tap, Spécifications 2x2, Économie ── */}
-        <div className="p-4 sm:p-5 space-y-3">
+        <div className="p-4 sm:p-5 flex flex-col gap-3">
           {/* Ligne 1 : Nom du client à gauche & Puissance kWc à droite */}
           <div className="flex items-baseline justify-between gap-2">
             <h3 className="font-bold text-base sm:text-[17px] text-slate-900 dark:text-foreground tracking-tight leading-tight group-hover:text-blue-900 dark:group-hover:text-primary transition-colors truncate min-w-0">
@@ -1072,7 +1091,7 @@ function CrmPortfolioCard({
               {item.first_name} {item.last_name}
             </h3>
             <div className="text-right shrink-0 flex items-baseline justify-end gap-1 pl-1.5">
-              <span className="text-2xl sm:text-3xl font-extrabold text-[#0B1528] dark:text-foreground tracking-tight tabular-nums">
+              <span className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono tracking-tight tabular-nums">
                 {powerKwc > 0 ? powerKwc : "—"}
               </span>
               <span className="text-xs font-bold text-slate-500 lowercase">kWc</span>
@@ -1131,7 +1150,7 @@ function CrmPortfolioCard({
           </div>
 
           {/* Ligne 4 : Grille Technique & Contact Direct 2x2 dans un encart clair dédié */}
-          <div className="rounded-2xl bg-[#F8FAFD] dark:bg-secondary/40 border border-[#E9EFF7] dark:border-border p-3 sm:p-3.5 grid grid-cols-2 gap-2.5 sm:gap-3 text-xs">
+          <div className="rounded-2xl bg-muted border border-border p-3 sm:p-3.5 grid grid-cols-2 gap-2.5 sm:gap-3 text-xs">
             {/* 1. Téléphone direct */}
             <div className="flex items-start gap-2 min-w-0" onClick={(e) => e.stopPropagation()}>
               <Phone className="h-4 w-4 text-slate-700 dark:text-muted-foreground shrink-0 mt-0.5" />
@@ -1193,13 +1212,25 @@ function CrmPortfolioCard({
             <div className="flex items-start gap-2 min-w-0">
               <FileText className="h-4 w-4 text-slate-700 dark:text-muted-foreground shrink-0 mt-0.5" />
               <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block font-mono">
                   FACTURE ÉLEC.
                 </span>
-                <span className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-foreground leading-tight block truncate font-mono">
+                <span
+                  className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-foreground leading-tight block truncate font-mono"
+                  title={
+                    annualBill > 0 && financials.estimatedAnnualConsumptionKwh > 0
+                      ? `${annualBill.toLocaleString("fr-BE")} €/an (≈ ${financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh/an)`
+                      : undefined
+                  }
+                >
                   {annualBill > 0 ? (
                     <span className="tabular-nums">
                       {annualBill.toLocaleString("fr-BE")} €/an
+                      {financials.estimatedAnnualConsumptionKwh > 0 && (
+                        <span className="text-[10px] font-normal text-slate-500 dark:text-muted-foreground ml-1">
+                          (≈ {financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh)
+                        </span>
+                      )}
                     </span>
                   ) : (
                     <span>{isB2B ? "Facture pro" : "Tarif résidentiel"}</span>
@@ -1210,11 +1241,11 @@ function CrmPortfolioCard({
           </div>
 
           {/* Ligne 5 : Encadré d'Économie & Marge Indicative (Teinte bleue douce) */}
-          <div className="rounded-2xl bg-[#F3F7FF] dark:bg-secondary/60 border border-[#DCE7FD] dark:border-border/80 p-3 sm:p-3.5 flex items-center justify-between gap-2">
+          <div className="rounded-2xl bg-accent/10 border border-accent/20 p-3 sm:p-3.5 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="h-7 w-7 rounded-lg bg-blue-100/90 text-[#2563EB] flex items-center justify-center shrink-0">
+              <div className="h-7 w-7 rounded-lg bg-accent/15 text-accent flex items-center justify-center shrink-0">
                 <svg
-                  className="h-4 w-4 text-[#2563EB]"
+                  className="h-4 w-4 text-accent"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -1228,7 +1259,7 @@ function CrmPortfolioCard({
                 </svg>
               </div>
               <div className="min-w-0">
-                <span className="text-[11px] sm:text-xs font-semibold text-[#2563EB] block">
+                <span className="text-[11px] sm:text-xs font-semibold text-accent block">
                   Estimation du chantier
                 </span>
                 <span className="font-bold text-[11px] sm:text-xs text-slate-900 dark:text-foreground tabular-nums block whitespace-nowrap font-mono">
@@ -1241,7 +1272,7 @@ function CrmPortfolioCard({
               <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 block text-right">
                 MARGE INDICATIVE
               </span>
-              <span className="text-xs sm:text-sm font-extrabold text-[#2563EB] tabular-nums block text-right whitespace-nowrap font-mono">
+              <span className="text-xs sm:text-sm font-extrabold text-accent tabular-nums block text-right whitespace-nowrap font-mono">
                 {marginText}
               </span>
             </div>
@@ -1269,7 +1300,7 @@ function CrmPortfolioCard({
           {/* Appel direct */}
           <a
             href={`tel:${item.phone}`}
-            className="rounded-full bg-[#0B1528] hover:bg-[#1E293B] text-white px-3 sm:px-3.5 py-1.5 text-xs font-bold shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1 shrink-0"
+            className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-3 sm:px-3.5 py-1.5 text-xs font-bold shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1 shrink-0"
             title="Appeler directement le prospect"
           >
             <Phone className="h-3.5 w-3.5 text-accent" />
@@ -1306,7 +1337,7 @@ function CrmPortfolioCard({
             className="rounded-full border border-slate-200 dark:border-border bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-secondary px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-foreground shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-1 shrink-0"
             title="Ouvrir le dossier technique complet"
           >
-            <Eye className="h-3.5 w-3.5 text-[#2563EB]" />
+            <Eye className="h-3.5 w-3.5 text-accent" />
             <span className="hidden sm:inline">Fiche</span>
           </button>
 

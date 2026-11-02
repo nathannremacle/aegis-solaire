@@ -77,12 +77,12 @@ export function PartnerDashboardShell({
     <div className="min-h-screen bg-background">
       {/* ── 1. Topbar Applicative Unique (64px) — Gain de 220px utiles dès le chargement ── */}
       <header className="sticky top-0 z-40 w-full border-b border-border bg-card/95 backdrop-blur-md shadow-2xs">
-        <div className="mx-auto flex h-16 max-w-[1720px] items-center justify-between gap-2 sm:gap-3 px-2.5 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-16 max-w-[1720px] items-center justify-between gap-1 sm:gap-3 px-2 sm:px-6 lg:px-8">
           {/* Gauche : Logo Aegis + Navigation par Onglets Intégrés */}
-          <div className="flex items-center gap-2 sm:gap-6 min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-6 min-w-0">
             <Link
               href="/"
-              className="relative h-7 w-20 sm:h-9 sm:w-32 shrink-0 transition-opacity hover:opacity-90"
+              className="relative h-6 w-16 min-[380px]:h-7 min-[380px]:w-20 sm:h-9 sm:w-32 shrink-0 transition-opacity hover:opacity-90"
               title="Retour au site Aegis Solaire"
             >
               <Image
@@ -95,11 +95,11 @@ export function PartnerDashboardShell({
             </Link>
 
             {/* Navigation Tabs Intégrée */}
-            <nav aria-label="Espaces du portail" className="flex items-center gap-1">
+            <nav aria-label="Espaces du portail" className="flex items-center gap-1 sm:gap-1.5">
               <button
                 type="button"
                 onClick={() => setActiveTab("marketplace")}
-                className={`flex items-center gap-1 sm:gap-2 rounded-xl px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                className={`flex items-center gap-1 sm:gap-2 rounded-xl px-1.5 min-[380px]:px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                   activeTab === "marketplace"
                     ? "bg-primary text-primary-foreground font-bold shadow-2xs"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -107,9 +107,9 @@ export function PartnerDashboardShell({
               >
                 <Store className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-accent shrink-0" />
                 <span className="hidden sm:inline">Marketplace</span>
-                <span className="sm:hidden text-xs">Market</span>
+                <span className="sm:hidden text-[11px] min-[380px]:text-xs">Market</span>
                 <span
-                  className={`rounded-full px-1.5 py-0.2 text-[10px] sm:text-[11px] font-mono font-bold tabular-nums shrink-0 ${
+                  className={`rounded-full px-1 min-[380px]:px-1.5 py-0.2 text-[10px] sm:text-[11px] font-mono font-bold tabular-nums shrink-0 ${
                     activeTab === "marketplace"
                       ? "bg-primary-foreground/20 text-primary-foreground"
                       : "bg-secondary text-foreground"
@@ -122,7 +122,7 @@ export function PartnerDashboardShell({
               <button
                 type="button"
                 onClick={() => setActiveTab("portfolio")}
-                className={`flex items-center gap-1 sm:gap-2 rounded-xl px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                className={`flex items-center gap-1 sm:gap-2 rounded-xl px-1.5 min-[380px]:px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                   activeTab === "portfolio"
                     ? "bg-primary text-primary-foreground font-bold shadow-2xs"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -130,9 +130,9 @@ export function PartnerDashboardShell({
               >
                 <Briefcase className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-accent shrink-0" />
                 <span className="hidden sm:inline">Mon CRM</span>
-                <span className="sm:hidden text-xs">CRM</span>
+                <span className="sm:hidden text-[11px] min-[380px]:text-xs">CRM</span>
                 <span
-                  className={`rounded-full px-1.5 py-0.2 text-[10px] sm:text-[11px] font-mono font-bold tabular-nums shrink-0 ${
+                  className={`rounded-full px-1 min-[380px]:px-1.5 py-0.2 text-[10px] sm:text-[11px] font-mono font-bold tabular-nums shrink-0 ${
                     activeTab === "portfolio"
                       ? "bg-primary-foreground/20 text-primary-foreground"
                       : "bg-secondary text-foreground"
@@ -169,12 +169,13 @@ export function PartnerDashboardShell({
                   setSelectedLeadForExpert(null)
                   setIsExpertOpen(true)
                 }}
-                className="flex items-center gap-1 sm:gap-1.5 rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/20 px-2 sm:px-2.5 py-1.5 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs"
+                className="flex items-center gap-1 sm:gap-1.5 rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/20 px-1.5 min-[380px]:px-2 sm:px-2.5 py-1.5 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs"
                 title="Demander l'aide d'un expert Aegis Solaire (étude de marché, dimensionnement, rentabilité B2B)"
+                aria-label="Aide Expert"
               >
                 <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
                 <span className="hidden sm:inline">Aide Expert</span>
-                <span className="sm:hidden text-xs">Expert</span>
+                <span className="hidden min-[380px]:inline sm:hidden text-xs">Expert</span>
                 <span className="hidden md:inline rounded bg-accent/20 text-accent font-mono text-[9px] px-1 py-0.2 uppercase font-extrabold tracking-wider">
                   Inclus
                 </span>
@@ -183,7 +184,7 @@ export function PartnerDashboardShell({
           </div>
 
           {/* Droite : Badge Statut, Solde Portefeuille & Menu Profil */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
             {/* Badge de statut partenaire (cliquable vers le palier) */}
             <button
               type="button"
@@ -201,7 +202,7 @@ export function PartnerDashboardShell({
             <button
               type="button"
               onClick={() => setIsCreditsOpen(true)}
-              className="flex items-center gap-1.5 sm:gap-2 rounded-xl border border-accent/30 bg-accent/10 hover:bg-accent/15 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs"
+              className="flex items-center gap-1 sm:gap-2 rounded-xl border border-accent/30 bg-accent/10 hover:bg-accent/15 px-2 sm:px-3 py-1.5 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs"
               title="Gérer mes crédits de déblocage"
             >
               <Coins className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-accent shrink-0" />
@@ -234,7 +235,7 @@ export function PartnerDashboardShell({
       <main className="mx-auto max-w-[1720px] px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
         {/* En-tête Institutionnel avec H1 Unique et Bannière Énergie Propre */}
         <div className="mb-5 sm:mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-border/80 pb-4">
-          <div className="space-y-1">
+          <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <span className="font-mono text-[10px] sm:text-xs uppercase tracking-wider text-accent font-semibold">
                 RÉSEAU OFFICIEL · INSTALLATEURS WALLONIE

@@ -241,7 +241,7 @@ export default function AdminPartnersPage() {
             className="h-8 text-xs gap-1.5 font-bold bg-primary text-primary-foreground hover:bg-primary/90"
           >
             <UserPlus className="h-3.5 w-3.5" />
-            <span>{showInviteHub ? "Masquer Invites" : "Inviter Réseau Fabrice"}</span>
+            <span>{showInviteHub ? "Masquer Invites" : "Inviter Réseau Partenaires"}</span>
           </Button>
 
           <Button

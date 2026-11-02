@@ -5,16 +5,17 @@ import { chromium } from 'playwright';
 const OUT_DIR = 'C:/Users/mrnat/Documents/SaaS/Aegis Solaire/aegis-solaire-main/campagnes-meta/creatives-final';
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
-// Palette Bobex/Aegis officielle de la landing
+// Palette officielle Fintech Slate & Solar Trust
 const THEME = {
-  navy: '#002A45',
-  navyDark: '#001D3D',
-  yellow: '#F8C630',
-  yellowHover: '#F2BA1F',
-  yellowShadow: '#DEB12C',
-  bg: '#F6F9FC',
+  navy: '#0F172A',
+  navyDark: '#0F172A',
+  accent: '#2563EB',
+  yellow: '#F59E0B',
+  yellowHover: '#D97706',
+  yellowShadow: 'rgba(15, 23, 42, 0.08)',
+  bg: '#F8FAFC',
   cardBg: '#FFFFFF',
-  textMain: '#002A45',
+  textMain: '#0F172A',
   textMuted: '#64748B',
   emerald: '#059669',
   emeraldBg: '#ECFDF5',
@@ -106,7 +107,7 @@ function renderAngle1Html(aspectRatio = '1:1') {
     border: 2px solid ${THEME.border};
     border-radius: 28px;
     padding: ${isVertical ? '40px' : '32px'};
-    box-shadow: 0 20px 40px rgba(0, 42, 69, 0.08);
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
     margin-top: ${isVertical ? '35px' : '20px'};
   }
   .card-header {
@@ -241,7 +242,7 @@ function renderAngle1Html(aspectRatio = '1:1') {
       <div class="metric-box standard">
         <div class="metric-label">Facture sans panneaux</div>
         <div class="metric-val">2.400 €</div>
-        <div class="metric-sub">Achat réseau plein pot (0,35 €/kWh)</div>
+        <div class="metric-sub">Achat réseau plein pot (0,32 €/kWh)</div>
       </div>
       <div class="metric-box battery">
         <div class="metric-label">Facture avec solaire</div>
@@ -257,7 +258,7 @@ function renderAngle1Html(aspectRatio = '1:1') {
   </div>
 
   <div class="footer-bar">
-    <span class="footer-trust">Simulation neutre en 45 s · 1 seul artisan RESCERT local · 0 démarcheur</span>
+    <span class="footer-trust">Simulation neutre en 45 s · Jusqu'à 3 installateurs RESCERT locaux max · 0 démarcheur</span>
     <span class="cta-fake-btn">Calculer mes économies →</span>
   </div>
 </body>
@@ -340,7 +341,7 @@ function renderAngle2Html(aspectRatio = '1:1') {
     border: 2px solid ${THEME.border};
     border-radius: 28px;
     overflow: hidden;
-    box-shadow: 0 20px 40px rgba(0, 42, 69, 0.08);
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
     margin-top: ${isVertical ? '35px' : '20px'};
   }
   .table-row {
@@ -427,7 +428,7 @@ function renderAngle2Html(aspectRatio = '1:1') {
       </div>
       <div class="col-safe">
         <div class="col-header">✓ Aegis Solaire (Comparateur)</div>
-        <div class="col-body">Zéro appel intrusif. Vos coordonnées protégées et transmises uniquement à 3 pros certifiés max.</div>
+        <div class="col-body">Zéro appel intrusif. Vos coordonnées protégées et transmises à Jusqu'à 3 installateurs RESCERT locaux max.</div>
       </div>
     </div>
     <div class="table-row">
@@ -527,7 +528,7 @@ function renderAngle3Html(aspectRatio = '1:1') {
     border: 2px solid ${THEME.border};
     border-radius: 28px;
     padding: ${isVertical ? '35px' : '28px'};
-    box-shadow: 0 20px 40px rgba(0, 42, 69, 0.08);
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
     margin-top: ${isVertical ? '35px' : '20px'};
   }
   .table-subtitle {
@@ -744,7 +745,7 @@ function renderCarouselCard(cardIndex) {
     border: 2px solid ${THEME.border};
     border-radius: 28px;
     padding: 45px;
-    box-shadow: 0 20px 40px rgba(0, 42, 69, 0.08);
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
   }
   .card-num {
     font-size: 16px;

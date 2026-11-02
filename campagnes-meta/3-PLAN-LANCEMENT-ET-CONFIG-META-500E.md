@@ -14,8 +14,8 @@
 | **Taux de Conversion Landing (CVR)** | **8,5 % – 13 %** | Optimisé sur `/devis-panneaux-solaires` |
 | **Coût par Lead Cible (CPL)** | **20,00 € – 27,00 €** | Lead qualifié B2C propriétaire de maison |
 | **Volume de Leads Attendus** | **18 à 25 leads** | Coordonnées complètes + adresse toiture validée |
-| **Valeur Revente B2B Installateur** | **50 € – 65 € / lead** | Grille tarifaire Aegis Marketplace |
-| **Revenu Brut Estimé** | **900 € – 1 625 €** | **ROI attendu : 180 % à 325 %** |
+| **Valeur Revente B2B Installateur** | **75,90 € HTVA / lead en moyenne (Barème V2 : 34,50 € × 2,2 acheteurs)** | Grille tarifaire Aegis Marketplace |
+| **Revenu Brut Estimé** | **1 366 € – 1 897 €** | **ROI attendu : 273 % à 379 %** |
 
 ---
 
@@ -30,7 +30,7 @@ graph TD
     Campagne["Campagne Meta Ads : [AEGIS] B2C_SOLAIRE_WALLONIE_TEST_500E"]
     Campagne --> AdSet["Ad Set Unique : TOFU Wallonie Broad 30-64 ans (22,00 €/jour)"]
     
-    AdSet --> Ad1["Ad 1 : Vérité Batterie & Autoconsommation (Format 4:5)"]
+    AdSet --> Ad1["Ad 1 : Rentabilité Panneaux Solaires 2026 (Format 4:5)"]
     AdSet --> Ad2["Ad 2 : Anti-Démarchage & Artisans RESCERT (Format 4:5)"]
     AdSet --> Ad3["Ad 3 : Écart Réel 1.850 € sur même toiture (Format 4:5)"]
 ```
@@ -52,7 +52,7 @@ graph TD
 
 ### Niveau Ad Set Unique
 - **Nom de l'Ensemble** : `TOFU_Wallonie_Broad_Proprietaires_30-64`
-- **Lieu de Conversion** : **Site Web** (`https://aegissolaire.com/devis-panneaux-solaires`)
+- **Lieu de Conversion** : **Site Web** (`https://www.aegissolaire.com/devis-panneaux-solaires`)
 - **Pixel Meta** : Sélectionner le Pixel Aegis Solaire (`NEXT_PUBLIC_META_PIXEL_ID`)
 - **Événement de Conversion** : **Lead**
 - **Budget Quotidien** : **22,00 € / jour**
@@ -97,7 +97,7 @@ utm_source=meta&utm_medium=cpc&utm_campaign={{campaign.name}}&utm_content={{ad.n
 ```
 **URL finale de destination** :
 ```text
-https://aegissolaire.com/devis-panneaux-solaires
+https://www.aegissolaire.com/devis-panneaux-solaires
 ```
 
 ---
@@ -118,11 +118,11 @@ Tous les fichiers créatifs finaux ont été compilés en haute définition (PNG
 - **Primary Text Long (415 car.)** :  
   « Le photovoltaïque n'est plus rentable depuis la fin de l'ancien compteur » : c'est mathématiquement faux.  
   
-  Avec un dimensionnement adapté à votre toiture, vos panneaux solaires effacent jusqu'à 70 % de vos achats réseau au tarif fort (0,35 €/kWh). Pour une maison type (12 panneaux · 5,2 kWc), l'économie nette moyenne atteint 1 450 €/an avec un amortissement complet en 6 à 8 ans.  
+  Avec un dimensionnement adapté à votre toiture, vos panneaux solaires effacent jusqu'à 70 % de vos achats réseau au tarif fort (0,32 €/kWh). Pour une maison type (12 panneaux · 5,2 kWc), l'économie nette moyenne atteint 1 450 €/an avec un amortissement complet en 6 à 8 ans.  
   
-  Avant de signer un devis, calculez vos économies réelles en 45 secondes. 1 seul artisan RESCERT dédié, 0 démarcheur.
+  Avant de signer un devis, calculez vos économies réelles en 45 secondes. Jusqu'à 3 installateurs RESCERT locaux max, 0 démarcheur.
 - **Headline (Titre — max 40 car.)** : `Panneaux solaires 2026 : calculez vos économies`
-- **Description (max 30 car.)** : `100 % gratuit · 1 artisan RESCERT`
+- **Description (max 30 car.)** : `100 % gratuit · Jusqu'à 3 installateurs RESCERT locaux max`
 - **Bouton d'Action (CTA)** : `Obtenir un devis`
 
 ---
@@ -132,11 +132,11 @@ Tous les fichiers créatifs finaux ont été compilés en haute définition (PNG
 
 #### Textes Publicitaires
 - **Primary Text Court (112 car.)** :  
-  Marre des commerciaux solaires insistants ? Comparez 3 installateurs certifiés RESCERT près de chez vous, 0 pression.
+  Marre des commerciaux solaires insistants ? Comparez Jusqu'à 3 installateurs RESCERT locaux max près de chez vous, 0 pression.
 - **Primary Text Long (382 car.)** :  
   Vous avez déjà reçu ces appels de démarcheurs promettant des « panneaux solaires gratuits par la Région » ? C'est illégal et mensonger.  
   
-  Pour réussir votre transition en Wallonie : exigez le label officiel RESCERT et comparez 3 artisans locaux sur un pied d'égalité.  
+  Pour réussir votre transition en Wallonie : exigez le label officiel RESCERT et comparez Jusqu'à 3 installateurs RESCERT locaux max sur un pied d'égalité.  
   
   Aegis protège vos coordonnées et sélectionne les meilleurs professionnels de votre province. Devis sous 48 h, 100 % transparent.
 - **Headline** : `0 démarchage agressif. Comparez.`
@@ -156,7 +156,7 @@ Tous les fichiers créatifs finaux ont été compilés en haute définition (PNG
   
   Sur les chantiers audités par notre réseau, nous constatons jusqu'à 1 850 € de différence pour des panneaux et onduleurs équivalents.  
   
-  Ne payez pas la marge excessive d'intermédiaires. Obtenez 3 propositions chiffrées d'installateurs agréés de votre commune en 45 secondes. 100 % gratuit.
+  Ne payez pas la marge excessive d'intermédiaires. Obtenez jusqu'à 3 propositions chiffrées d'installateurs agréés de votre commune en 45 secondes. 100 % gratuit.
 - **Headline** : `1 850 € d'écart sur le même devis`
 - **Description** : `Simulation gratuite en 45 secondes`
 - **Bouton d'Action (CTA)** : `Obtenir un devis`
@@ -173,7 +173,7 @@ Tous les fichiers créatifs finaux ont été compilés en haute définition (PNG
   - Carte 2 : `Mythe #2 : Panneaux gratuits ? Faux.`
   - Carte 3 : `Conseil #3 : Économisez jusqu'à 1.850 €`
 - **URL de Destination de chaque Carte** :  
-  `https://aegissolaire.com/devis-panneaux-solaires?utm_source=meta&utm_medium=cpc&utm_campaign={{campaign.name}}&utm_content=carrousel_vrai_faux`
+  `https://www.aegissolaire.com/devis-panneaux-solaires?utm_source=meta&utm_medium=cpc&utm_campaign={{campaign.name}}&utm_content=carrousel_vrai_faux`
 
 ---
 

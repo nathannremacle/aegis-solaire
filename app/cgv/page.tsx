@@ -156,7 +156,7 @@ export default function CGV() {
             <a href="mailto:cgv@aegissolaire.com" className="text-primary font-medium hover:underline">
               cgv@aegissolaire.com
             </a>{" "}
-            dans un délai de <strong>sept (7) jours ouvrés</strong> suivant l&apos;achat. Après examen par la cellule technique, l&apos;Exploitant procède au remboursement intégral et automatique du nombre exact de crédits dépensés sur le dossier concerné.
+            dans un délai de <strong>sept (7) jours ouvrés</strong> suivant l&apos;acquisition, avec traitement et recrédit sous <strong>24h ouvrées</strong>. Après examen par la cellule technique, l&apos;Exploitant procède au remboursement intégral et automatique du nombre exact de crédits dépensés sur le dossier concerné.
           </p>
         </section>
 
@@ -214,8 +214,8 @@ export default function CGV() {
           <h3 className="mt-6 text-lg font-medium text-foreground">7.1. Rémunération</h3>
           <p className="mt-3 text-muted-foreground">
             Les Media Partners perçoivent une commission pour chaque lead validé, dont le montant est
-            défini lors de l&apos;accord initial (à titre indicatif : 100 € par lead B2B qualifié et
-            25 € par lead B2C qualifié). Ces montants peuvent être révisés d&apos;un commun accord.
+            défini lors de l&apos;accord initial : <strong className="font-mono tabular-nums">30 € HTVA</strong> par lead B2B qualifié et
+            <strong className="font-mono tabular-nums">10 € HTVA</strong> par lead B2C qualifié. Ces montants peuvent être révisés d&apos;un commun accord.
           </p>
 
           <h3 className="mt-6 text-lg font-medium text-foreground">7.2. Tracking et attribution</h3>
@@ -228,7 +228,7 @@ export default function CGV() {
 
           <h3 className="mt-6 text-lg font-medium text-foreground">7.3. Conditions de paiement</h3>
           <p className="mt-3 text-muted-foreground">
-            Les commissions sont versées sur base hebdomadaire, après validation définitive du lead par
+            Les commissions sont versées sur base <strong>mensuelle à terme échu</strong>, après validation définitive du lead par
             l&apos;Exploitant. Le paiement intervient par virement bancaire. L&apos;Exploitant se réserve
             le droit de suspendre ou révoquer un Media Partner en cas de trafic frauduleux (bots, faux
             leads, incentivized traffic).

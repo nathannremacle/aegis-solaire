@@ -112,11 +112,11 @@ const DEMO_LEADS: DemoLead[] = [
     province: "liege",
     postal_code: "4040",
     masked_postal_code: "40XX",
-    surface_area: 2400,
+    surface_area: 1800,
     surface_type: "toiture",
     roof_material: "bac_acier",
     annual_electricity_bill: 46000,
-    estimated_power_kwc: 408,
+    estimated_power_kwc: 152,
     credit_cost: 9,
     max_slots: 1,
     taken_slots: 0,
@@ -151,7 +151,7 @@ const DEMO_LEADS: DemoLead[] = [
     surface_type: "toiture",
     roof_material: "tuiles",
     annual_electricity_bill: 2100,
-    estimated_power_kwc: 9.6,
+    estimated_power_kwc: 5.7,
     credit_cost: 3,
     max_slots: 3,
     taken_slots: 1,
@@ -161,7 +161,7 @@ const DEMO_LEADS: DemoLead[] = [
     project_timeline: "immediat_3mois",
     project_driver: "autoconsommation",
     message: "Maison unifamiliale bien orientée Sud-Sud-Est. Compteur bidirectionnel déjà installé. Souhaite ajouter une batterie domestique 10 kWh.",
-    project_details: "Numéro de téléphone vérifié par appel manuel Aegis Solaire. Maison unifamiliale à Namur (5000), projet mature, budget alloué, attend 2 devis comparatifs maximum.",
+    project_details: "Batterie: oui | Numéro de téléphone vérifié par appel manuel Aegis Solaire. Maison unifamiliale à Namur (5000), projet mature, budget alloué, attend 2 devis comparatifs maximum.",
     grd: "ORES",
     created_at: "2026-03-01T09:40:00.000Z",
     freshness_label: "Vérifié il y a 32 min",
@@ -193,29 +193,32 @@ function MarketplaceLeadCardPreview({
   const remainingSlots = lead.remaining_slots ?? maxSlots
   const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
 
-  const surfaceArea = Math.max(0, Number(lead.surface_area) || 0)
-  const annualBill = Math.max(0, Number(lead.annual_electricity_bill) || 0)
+  const rawSurfaceArea = Math.max(0, Number(lead.surface_area) || 0)
+  const rawAnnualBill = Math.max(0, Number(lead.annual_electricity_bill) || 0)
 
   const financials = calculateMarketplaceFinancials({
     segment: lead.segment,
-    surfaceArea,
+    surfaceArea: rawSurfaceArea,
     surfaceType: lead.surface_type,
-    annualBill,
+    roofMaterial: lead.roof_material,
+    annualBill: rawAnnualBill,
     creditCost: cost,
+    estimatedPowerKwc: lead.estimated_power_kwc,
+    projectDetails: lead.project_details,
   })
 
   const location = getLeadLocationInfo(lead)
   const freshness = getLeadFreshness(lead.created_at, lead.freshness_label)
-  const powerKwc = lead.estimated_power_kwc ?? financials.estimatedPowerKwc
+  const powerKwc = financials.estimatedPowerKwc
+  const surfaceArea = financials.normalizedSurfaceAreaM2
+  const annualBill = financials.normalizedAnnualBill
 
   const leadImage = isB2B ? B2B_SOLAR_IMAGE : B2C_SOLAR_IMAGE
 
-  const contractMin = Math.round((financials.estimatedContractValueRange?.min || 0) / 1000) * 1000
-  const contractMax = Math.round((financials.estimatedContractValueRange?.max || 0) / 1000) * 1000
-  const marginEst = Math.round((financials.estimatedInstallerMargin || 0) / 1000) * 1000
-
-  const rangeText = `${contractMin.toLocaleString("fr-BE")} € HT à ${contractMax.toLocaleString("fr-BE")} € HT`
-  const marginText = `~${marginEst.toLocaleString("fr-BE")} € HT`
+  const minText = formatRoundedCurrency(financials.estimatedContractValueRange?.min || 0).replace("~", "")
+  const maxText = formatRoundedCurrency(financials.estimatedContractValueRange?.max || 0).replace("~", "")
+  const rangeText = `${minText} HT à ${maxText} HT`
+  const marginText = `${formatRoundedCurrency(financials.estimatedInstallerMargin || 0)} HT`
 
   const rawRoof = getRoofMaterialLabel(lead.roof_material)
   const roofDisplay = rawRoof === "Bac acier / Métallique" ? "Bac acier / Mét..." : rawRoof
@@ -254,7 +257,7 @@ function MarketplaceLeadCardPreview({
           {/* Badges superposés en haut */}
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 pointer-events-none">
             {/* Badge Modèle */}
-            <span className="inline-flex items-center rounded-full bg-[#0B1528] text-white text-xs font-bold px-3.5 py-1.5 shadow-sm">
+            <span className="inline-flex items-center rounded-full bg-primary text-primary-foreground text-xs font-bold px-3.5 py-1.5 shadow-sm">
               {isB2B ? "B2B • 100% Exclusif" : `B2C • ${remainingSlots}/${maxSlots} places dispo`}
             </span>
 
@@ -277,14 +280,14 @@ function MarketplaceLeadCardPreview({
         </div>
 
         {/* B. Contenu de la Carte : Titre, Puissance, Spécifications 2x2, Économie */}
-        <div className="p-4 sm:p-5 space-y-3">
+        <div className="p-4 sm:p-5 flex flex-col gap-3">
           {/* Ligne 1 : Titre à gauche & Puissance kWc à droite */}
           <div className="flex items-baseline justify-between gap-2">
             <h3 className="font-bold text-base sm:text-[17px] text-slate-900 tracking-tight leading-tight group-hover:text-blue-900 transition-colors truncate min-w-0">
               {location.fullTitle}
             </h3>
             <div className="text-right shrink-0 flex items-baseline justify-end gap-1 pl-1.5">
-              <span className="text-2xl sm:text-3xl font-extrabold text-[#0B1528] tracking-tight tabular-nums font-mono">
+              <span className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight tabular-nums font-mono">
                 {powerKwc > 0 ? powerKwc : "—"}
               </span>
               <span className="text-xs font-bold text-slate-500 lowercase">
@@ -302,7 +305,7 @@ function MarketplaceLeadCardPreview({
           {/* Ligne 3 : Badge Projet */}
           <div className="-mt-1">
             {isPremium ? (
-              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#EBFBF3] text-[#059669] text-xs font-semibold">
+              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-semibold">
                 <span className="text-emerald-500 font-bold">—</span>
                 <span>Projet premium</span>
               </div>
@@ -315,7 +318,7 @@ function MarketplaceLeadCardPreview({
           </div>
 
           {/* Ligne 4 : Grille Technique 2x2 dans un encart clair dédié */}
-          <div className="rounded-2xl bg-[#F8FAFD] border border-[#E9EFF7] p-3 sm:p-3.5 grid grid-cols-2 gap-2.5 sm:gap-3 text-xs">
+          <div className="rounded-2xl bg-muted border border-border p-3 sm:p-3.5 grid grid-cols-2 gap-2.5 sm:gap-3 text-xs">
             {/* 1. Toiture & Surface */}
             <div className="flex items-start gap-2 min-w-0">
               <Home className="h-4 w-4 text-slate-700 shrink-0 mt-0.5" />
@@ -345,10 +348,22 @@ function MarketplaceLeadCardPreview({
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block font-mono">
                   FACTURE ÉLEC.
                 </span>
-                <span className="text-[11px] sm:text-xs font-bold text-slate-900 leading-tight block truncate font-mono">
+                <span
+                  className="text-[11px] sm:text-xs font-bold text-slate-900 leading-tight block truncate font-mono"
+                  title={
+                    annualBill > 0 && financials.estimatedAnnualConsumptionKwh > 0
+                      ? `${annualBill.toLocaleString("fr-BE")} €/an (≈ ${financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh/an)`
+                      : undefined
+                  }
+                >
                   {annualBill > 0 ? (
                     <span className="tabular-nums font-mono">
                       {annualBill.toLocaleString("fr-BE")} €/an
+                      {financials.estimatedAnnualConsumptionKwh > 0 && (
+                        <span className="text-[10px] font-normal text-slate-500 ml-1">
+                          (≈ {financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh)
+                        </span>
+                      )}
                     </span>
                   ) : (
                     <span>{isB2B ? "Facture pro" : "Tarif résidentiel"}</span>
@@ -388,11 +403,11 @@ function MarketplaceLeadCardPreview({
           </div>
 
           {/* Ligne 5 : Encadré d'Économie & Marge Indicative (Teinte bleue douce) */}
-          <div className="rounded-2xl bg-[#F3F7FF] border border-[#DCE7FD] p-3 sm:p-3.5 flex items-center justify-between gap-2">
+          <div className="rounded-2xl bg-accent/10 border border-accent/20 p-3 sm:p-3.5 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="h-7 w-7 rounded-lg bg-blue-100/90 text-[#2563EB] flex items-center justify-center shrink-0">
+              <div className="h-7 w-7 rounded-lg bg-accent/15 text-accent flex items-center justify-center shrink-0">
                 <svg
-                  className="h-4 w-4 text-[#2563EB]"
+                  className="h-4 w-4 text-accent"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -406,7 +421,7 @@ function MarketplaceLeadCardPreview({
                 </svg>
               </div>
               <div className="min-w-0">
-                <span className="text-[11px] sm:text-xs font-semibold text-[#2563EB] block">
+                <span className="text-[11px] sm:text-xs font-semibold text-accent block">
                   Estimation du chantier
                 </span>
                 <span className="font-bold text-[11px] sm:text-xs text-slate-900 font-mono tabular-nums block whitespace-nowrap">
@@ -419,7 +434,7 @@ function MarketplaceLeadCardPreview({
               <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 block text-right font-mono">
                 MARGE INDICATIVE
               </span>
-              <span className="text-xs sm:text-sm font-extrabold text-[#2563EB] font-mono tabular-nums block text-right whitespace-nowrap">
+              <span className="text-xs sm:text-sm font-extrabold text-accent font-mono tabular-nums block text-right whitespace-nowrap">
                 {marginText}
               </span>
             </div>
@@ -463,14 +478,14 @@ function MarketplaceLeadCardPreview({
             className="rounded-full border border-slate-200 bg-white hover:bg-slate-50 px-3 sm:px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-1 shrink-0"
             title="Inspecter la fiche technique complète"
           >
-            <Eye className="h-3.5 w-3.5 text-[#2563EB]" />
+            <Eye className="h-3.5 w-3.5 text-accent" />
             <span>Inspecter</span>
           </button>
 
           <button
             type="button"
             onClick={onUnlock}
-            className="rounded-full bg-[#0B1528] hover:bg-[#1E293B] text-white px-3.5 sm:px-4 py-1.5 text-xs font-bold shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1 shrink-0"
+            className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-3.5 sm:px-4 py-1.5 text-xs font-bold shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1 shrink-0"
           >
             <Lock className="h-3.5 w-3.5 text-white" />
             <span>Débloquer</span>
@@ -521,31 +536,28 @@ export function MarketplaceLivePreview() {
 
     // Tri
     result = [...result].sort((a, b) => {
-      const aSurface = a.surface_area || 0
-      const bSurface = b.surface_area || 0
-      const aPower = a.estimated_power_kwc ?? Math.round(aSurface * 0.17)
-      const bPower = b.estimated_power_kwc ?? Math.round(bSurface * 0.17)
+      const aFin = calculateMarketplaceFinancials({
+        segment: a.segment,
+        surfaceArea: a.surface_area || 0,
+        surfaceType: a.surface_type,
+        roofMaterial: a.roof_material,
+        annualBill: a.annual_electricity_bill,
+        estimatedPowerKwc: a.estimated_power_kwc,
+        projectDetails: a.project_details,
+      })
+      const bFin = calculateMarketplaceFinancials({
+        segment: b.segment,
+        surfaceArea: b.surface_area || 0,
+        surfaceType: b.surface_type,
+        roofMaterial: b.roof_material,
+        annualBill: b.annual_electricity_bill,
+        estimatedPowerKwc: b.estimated_power_kwc,
+        projectDetails: b.project_details,
+      })
 
-      if (sortBy === "power_desc") return bPower - aPower
-
-      if (sortBy === "margin_desc") {
-        const aFin = calculateMarketplaceFinancials({
-          segment: a.segment,
-          surfaceArea: aSurface,
-          annualBill: a.annual_electricity_bill,
-        })
-        const bFin = calculateMarketplaceFinancials({
-          segment: b.segment,
-          surfaceArea: bSurface,
-          annualBill: b.annual_electricity_bill,
-        })
-        return bFin.estimatedInstallerMargin - aFin.estimatedInstallerMargin
-      }
-
-      if (sortBy === "cost_asc") {
-        return a.credit_cost - b.credit_cost
-      }
-
+      if (sortBy === "power_desc") return bFin.estimatedPowerKwc - aFin.estimatedPowerKwc
+      if (sortBy === "margin_desc") return bFin.estimatedInstallerMargin - aFin.estimatedInstallerMargin
+      if (sortBy === "cost_asc") return a.credit_cost - b.credit_cost
       return 0
     })
 
@@ -567,17 +579,20 @@ export function MarketplaceLivePreview() {
         segment: lead.segment,
         surfaceArea: lead.surface_area,
         surfaceType: lead.surface_type,
+        roofMaterial: lead.roof_material,
         annualBill: lead.annual_electricity_bill,
         creditCost: lead.credit_cost,
+        estimatedPowerKwc: lead.estimated_power_kwc,
+        projectDetails: lead.project_details,
       })
 
-      totalPower += lead.estimated_power_kwc ?? financials.estimatedPowerKwc
+      totalPower += financials.estimatedPowerKwc
       totalMargin += financials.estimatedInstallerMargin
     })
 
     return {
       totalLeads: filteredLeads.length,
-      totalPower,
+      totalPower: Math.round(totalPower * 10) / 10,
       totalMargin,
       b2bCount,
       b2cCount,
@@ -617,9 +632,9 @@ export function MarketplaceLivePreview() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       {/* ── 1. Barre de Contrôle Unifiée (Identique à la Marketplace Réelle) ── */}
-      <div className="rounded-2xl border border-border bg-card p-3 sm:p-3.5 shadow-xs space-y-3">
+      <div className="rounded-2xl border border-border bg-card p-3 sm:p-3.5 shadow-xs flex flex-col gap-3">
         {/* Ligne 1 : Segments, Province, Recherche, Tri et Toggle Grille/Tableau */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
           {/* Segments + Province */}
@@ -791,7 +806,7 @@ export function MarketplaceLivePreview() {
         </div>
       ) : (
         /* ── Vue Tableau Haute-Productivité (Exactement comme dans le Dashboard) ── */
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-1.5">
           <div className="block sm:hidden text-center text-[11px] font-mono text-muted-foreground py-0.5">
             ↔ Glisser horizontalement pour voir toutes les colonnes
           </div>
@@ -815,20 +830,25 @@ export function MarketplaceLivePreview() {
                   const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
                   const remainingSlots = lead.remaining_slots ?? maxSlots
                   const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
-                  const surfaceArea = Math.max(0, Number(lead.surface_area) || 0)
-                  const annualBill = Math.max(0, Number(lead.annual_electricity_bill) || 0)
+                  const rawSurfaceArea = Math.max(0, Number(lead.surface_area) || 0)
+                  const rawAnnualBill = Math.max(0, Number(lead.annual_electricity_bill) || 0)
 
                   const financials = calculateMarketplaceFinancials({
                     segment: lead.segment,
-                    surfaceArea,
+                    surfaceArea: rawSurfaceArea,
                     surfaceType: lead.surface_type,
-                    annualBill,
+                    roofMaterial: lead.roof_material,
+                    annualBill: rawAnnualBill,
                     creditCost: cost,
+                    estimatedPowerKwc: lead.estimated_power_kwc,
+                    projectDetails: lead.project_details,
                   })
 
                   const location = getLeadLocationInfo(lead)
                   const freshness = getLeadFreshness(lead.created_at, lead.freshness_label)
-                  const powerKwc = lead.estimated_power_kwc ?? financials.estimatedPowerKwc
+                  const powerKwc = financials.estimatedPowerKwc
+                  const surfaceArea = financials.normalizedSurfaceAreaM2
+                  const annualBill = financials.normalizedAnnualBill
 
                   return (
                     <tr
@@ -841,7 +861,7 @@ export function MarketplaceLivePreview() {
                         <span
                           className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold ${
                             isB2B
-                              ? "bg-[#0F172A] text-white"
+                              ? "bg-primary text-primary-foreground"
                               : "bg-secondary text-foreground border border-border"
                           }`}
                         >
@@ -883,7 +903,9 @@ export function MarketplaceLivePreview() {
                           {formatRoundedCurrency(financials.estimatedInstallerMargin)} HT
                         </div>
                         <div className="font-mono text-[10px] text-muted-foreground tabular-nums">
-                          {annualBill > 0 ? `${annualBill.toLocaleString("fr-BE")} €/an` : (isB2B ? "Facture pro" : "Résidentiel")}
+                          {annualBill > 0
+                            ? `${annualBill.toLocaleString("fr-BE")} €/an (≈ ${financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh)`
+                            : (isB2B ? "Facture pro" : "Résidentiel")}
                         </div>
                       </td>
 
@@ -918,7 +940,7 @@ export function MarketplaceLivePreview() {
                             size="sm"
                             variant="default"
                             onClick={() => handleUnlockAttempt(lead)}
-                            className="h-8 px-3 rounded-lg text-xs font-bold bg-[#0F172A] text-white hover:bg-[#0F172A]/90 cursor-pointer shadow-2xs active:scale-[0.99]"
+                            className="h-8 px-3 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-2xs active:scale-[0.99]"
                           >
                             Débloquer
                           </Button>
@@ -1023,6 +1045,8 @@ export function MarketplaceLivePreview() {
                       surfaceType: leadForSignupModal.surface_type,
                       annualBill: leadForSignupModal.annual_electricity_bill,
                       creditCost: leadForSignupModal.credit_cost,
+                      estimatedPowerKwc: leadForSignupModal.estimated_power_kwc,
+                      projectDetails: leadForSignupModal.project_details,
                     }).estimatedInstallerMargin
                   )}
                 </strong>
@@ -1030,11 +1054,11 @@ export function MarketplaceLivePreview() {
             </div>
 
             {/* Garanties Aegis Solaire */}
-            <div className="space-y-2 text-xs">
+            <div className="flex flex-col gap-2 text-xs">
               <span className="font-bold text-foreground block">
                 Pour accéder immédiatement aux coordonnées directes :
               </span>
-              <ul className="space-y-1.5 text-muted-foreground">
+              <ul className="flex flex-col gap-1.5 text-muted-foreground">
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-3.5 w-3.5 text-accent shrink-0" />
                   <span>Nom du décideur, numéro de téléphone vérifié, email et adresse exacte</span>
@@ -1045,7 +1069,7 @@ export function MarketplaceLivePreview() {
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-3.5 w-3.5 text-accent shrink-0" />
-                  <span>Recrédit sous 7 jours sans discussion si le contact est injoignable</span>
+                  <span>Réclamation sous <span className="font-mono tabular-nums">7 jours ouvrés</span> et recrédit sous <span className="font-mono tabular-nums">24h ouvrées</span> si injoignable</span>
                 </li>
               </ul>
             </div>

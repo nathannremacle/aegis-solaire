@@ -106,7 +106,7 @@ export default function PartenairesPage() {
                 <div className="flex flex-wrap gap-2 pt-4 border-t border-border text-xs font-mono text-foreground">
                   <span className="rounded-lg bg-secondary px-2.5 py-1 text-muted-foreground border border-border">Max 3 devis</span>
                   <span className="rounded-lg bg-secondary px-2.5 py-1 text-muted-foreground border border-border">Taux de closing 35%+</span>
-                  <span className="rounded-lg bg-secondary px-2.5 py-1 text-muted-foreground border border-border">Remplacement 7j</span>
+                  <span className="rounded-lg bg-secondary px-2.5 py-1 text-muted-foreground border border-border">Réclamation 7j ouvrés (recrédit 24h)</span>
                 </div>
               </div>
             </div>
@@ -241,7 +241,7 @@ export default function PartenairesPage() {
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="h-4 w-4 text-accent shrink-0" />
                         <span className="font-semibold text-foreground">
-                          Recrédit direct sous 7 jours sans discussion
+                          Réclamation sous <span className="font-mono tabular-nums">7 jours</span> ouvrés suivant l&apos;acquisition, traitement et recrédit sous <span className="font-mono tabular-nums">24h</span> ouvrées
                         </span>
                       </div>
                     </td>
@@ -314,7 +314,7 @@ export default function PartenairesPage() {
                 </div>
                 <h3 className="mt-4 text-base font-bold text-foreground font-heading">100% Qualité &amp; Remplacement</h3>
                 <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                  Filtrage strict anti-spam, agréments RESCERT vérifiés et engagement de remplacement immédiat si le contact est injoignable sous <span className="font-mono tabular-nums font-semibold text-foreground">7 jours</span>.
+                  Filtrage strict anti-spam, agréments RESCERT vérifiés et garantie de remplacement : réclamation sous <span className="font-mono tabular-nums font-semibold text-foreground">7 jours</span> ouvrés suivant l&apos;acquisition, avec traitement et recrédit sous <span className="font-mono tabular-nums font-semibold text-foreground">24h</span> ouvrées.
                 </p>
               </div>
             </div>
@@ -357,7 +357,7 @@ export default function PartenairesPage() {
                 Packs de crédits déductibles : zéro abonnement, rechargez selon vos besoins
               </h2>
               <p className="text-sm sm:text-base text-muted-foreground">
-                Débloquez les chantiers uniquement quand votre carnet de commandes a de la place. Factures officielles belges avec TVA 21 % déductible.
+                Débloquez les chantiers uniquement quand votre carnet de commandes a de la place. Le récapitulatif fiscal officiel (TVA <span className="font-mono tabular-nums">21 %</span> déductible) est transmis automatiquement par e-mail dès confirmation Mollie.
               </p>
             </div>
 
@@ -370,7 +370,7 @@ export default function PartenairesPage() {
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-xs font-bold text-accent uppercase tracking-wider">
-                      Recharge 10 Crédits
+                      Recharge Découverte (10 crédits)
                     </span>
                   </div>
                   <div>
@@ -412,7 +412,7 @@ export default function PartenairesPage() {
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                      Recharge 20 Crédits
+                      Recharge Croissance (20 crédits)
                     </span>
                   </div>
                   <div>
@@ -454,7 +454,7 @@ export default function PartenairesPage() {
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                      Recharge 50 Crédits
+                      Recharge Entreprise (50 crédits)
                     </span>
                   </div>
                   <div>
@@ -583,7 +583,7 @@ export default function PartenairesPage() {
                     ))}
                   </div>
                   <p className="text-xs sm:text-sm text-muted-foreground italic leading-relaxed">
-                    « Le remplacement automatique des prospects injoignables sous 7 jours est une vraie garantie de sérénité. Zéro mauvaise surprise sur notre solde de crédits, le support répond en 2 heures. »
+                    « La réclamation sous <span className="font-mono tabular-nums">7 jours</span> ouvrés suivant l&apos;acquisition avec traitement et recrédit sous <span className="font-mono tabular-nums">24h</span> ouvrées est une vraie garantie de sérénité. Zéro mauvaise surprise sur notre solde de crédits. »
                   </p>
                 </div>
                 <div className="pt-3 border-t border-border flex items-center justify-between">
@@ -709,14 +709,14 @@ export default function PartenairesPage() {
               <div className="p-5 rounded-2xl bg-secondary/40 border border-border flex flex-col gap-2">
                 <h3 className="font-bold text-foreground font-heading">Comment fonctionne la facturation des crédits ?</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Chaque recharge donne lieu à une facture fiscale belge conforme émise avec TVA à 21 % déductible. Vous recevez le PDF immédiatement par email dès la confirmation du paiement.
+                  Chaque recharge donne lieu à un récapitulatif fiscal officiel (TVA <span className="font-mono tabular-nums">21 %</span> déductible) transmis automatiquement par e-mail dès confirmation Mollie.
                 </p>
               </div>
 
               <div className="p-5 rounded-2xl bg-secondary/40 border border-border flex flex-col gap-2">
                 <h3 className="font-bold text-foreground font-heading">Que se passe-t-il si un prospect est injoignable ?</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Si un numéro est erroné ou si le prospect ne répond jamais après 3 tentatives sous 7 jours, vous signalez le lead dans votre tableau de bord et nos équipes vous le recréditent sans discussion.
+                  Si un numéro est erroné ou si le prospect ne répond pas après <span className="font-mono tabular-nums">3</span> tentatives documentées, la réclamation s&apos;effectue sous <span className="font-mono tabular-nums">7 jours</span> ouvrés suivant l&apos;acquisition depuis votre tableau de bord, avec traitement et recrédit sous <span className="font-mono tabular-nums">24h</span> ouvrées.
                 </p>
               </div>
 

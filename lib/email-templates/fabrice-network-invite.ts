@@ -1,10 +1,10 @@
 /**
- * Modèle et générateur d'invitation réseau grossiste de Fabrice Remacle
+ * Modèle et générateur d'invitation réseau partenaires Aegis Solaire
  * pour les installateurs photovoltaïques agréés en Wallonie.
- * Posture : Grossiste de confiance de longue date -> proposition de chantiers qualifiés sans guerre des prix.
+ * Posture : Tiers de confiance technique -> proposition de chantiers qualifiés sans guerre des prix.
  */
 
-export interface FabriceInviteData {
+export interface PartnerInviteData {
   installerName: string
   companyName?: string
   installerEmail?: string
@@ -70,9 +70,8 @@ export function substituteTemplateVariables(
 /**
  * Construit l'objet du mail
  */
-export function buildFabriceInviteSubject(data: FabriceInviteData): string {
+export function buildPartnerInviteSubject(data: PartnerInviteData): string {
   const company = data.companyName?.trim() ? ` pour ${data.companyName.trim()}` : ""
-  const name = data.installerName?.trim() || "partenaire"
 
   if (data.tone === "tutoiement") {
     return `Direction des Partenariats : chantiers photovoltaïques qualifiés en Wallonie${company}`
@@ -87,7 +86,7 @@ export function buildFabriceInviteSubject(data: FabriceInviteData): string {
  * Construit le texte brut par défaut selon l'angle et le ton choisi
  * avec tournure de phrase professionnelle et gestion de l'option de crédits.
  */
-export function buildFabriceInvitePlainText(data: FabriceInviteData): string {
+export function buildPartnerInvitePlainText(data: PartnerInviteData): string {
   const name = data.installerName?.trim() || (data.tone === "tutoiement" ? "{{prenom}}" : "Monsieur")
   const company = data.companyName?.trim() ? ` chez ${data.companyName.trim()}` : ""
   const showCredits = data.includeCreditsText !== false && data.freeCredits > 0
@@ -155,7 +154,7 @@ Email : contact@aegissolaire.com`.trim()
 /**
  * Génère un message WhatsApp optimisé et court
  */
-export function buildFabriceWhatsAppMessage(data: FabriceInviteData): string {
+export function buildPartnerWhatsAppMessage(data: PartnerInviteData): string {
   const name = data.installerName?.trim() || "Cher partenaire"
   const showCredits = data.includeCreditsText !== false && data.freeCredits > 0
   const bonus = showCredits ? ` (nous vous avons réservé ${data.freeCredits} crédits offerts pour votre 1er dossier B2C)` : ""
@@ -164,16 +163,14 @@ export function buildFabriceWhatsAppMessage(data: FabriceInviteData): string {
 }
 
 /**
- * Rendu HTML professionnel formaté Swiss Editorial avec logo officiel contrasté sur fond blanc
+ * Rendu HTML professionnel formaté Fintech Slate & Solar Trust avec logo officiel contrasté sur fond blanc
  */
-export function renderFabriceInviteHtml(data: FabriceInviteData, customBodyText?: string): string {
+export function renderPartnerInviteHtml(data: PartnerInviteData, customBodyText?: string): string {
   const baseUrl = getSiteBaseUrl()
   const logoUrl = `${baseUrl}/logo.png`
-  const subject = buildFabriceInviteSubject(data)
-  const name = escapeHtml(data.installerName?.trim() || (data.tone === "tutoiement" ? "Partenaire" : "Monsieur"))
-  const company = data.companyName?.trim() ? ` (${escapeHtml(data.companyName.trim())})` : ""
+  const subject = buildPartnerInviteSubject(data)
 
-  const rawText = customBodyText?.trim() || buildFabriceInvitePlainText(data)
+  const rawText = customBodyText?.trim() || buildPartnerInvitePlainText(data)
   
   // Formatage des paragraphes pour le HTML
   const formattedParagraphs = rawText
@@ -186,7 +183,7 @@ export function renderFabriceInviteHtml(data: FabriceInviteData, customBodyText?
           .split(/\n/)
           .map((item) => `<li style="margin-bottom: 6px; line-height: 1.5;">${item.replace(/^[0-9]+\.\s*/, "")}</li>`)
           .join("")
-        return `<ol style="margin: 14px 0 16px 20px; padding: 0; color: #111815; font-size: 14px;">${items}</ol>`
+        return `<ol style="margin: 14px 0 16px 20px; padding: 0; color: #0F172A; font-size: 14px;">${items}</ol>`
       }
       // Remplacement du lien brut par un bouton/lien stylisé s'il est isolé
       if (cleanP === escapeHtml(data.inviteUrl)) {
@@ -196,8 +193,8 @@ export function renderFabriceInviteHtml(data: FabriceInviteData, customBodyText?
               <td align="left">
                 <table border="0" cellspacing="0" cellpadding="0">
                   <tr>
-                    <td align="center" style="background-color: #0B2B22; border-radius: 4px; padding: 13px 26px;">
-                      <a href="${data.inviteUrl}" target="_blank" style="font-size: 14px; font-weight: 700; color: #FAF8F5; text-decoration: none; display: inline-block; letter-spacing: 0.02em;">
+                    <td align="center" style="background-color: #2563EB; border-radius: 8px; padding: 13px 26px;">
+                      <a href="${data.inviteUrl}" target="_blank" style="font-size: 14px; font-weight: 700; color: #FFFFFF; text-decoration: none; display: inline-block; letter-spacing: 0.02em;">
                         Activer mon accès privilégié &rarr;
                       </a>
                     </td>
@@ -208,7 +205,7 @@ export function renderFabriceInviteHtml(data: FabriceInviteData, customBodyText?
           </table>
         `
       }
-      return `<p style="margin: 0 0 14px 0; font-size: 14px; line-height: 1.65; color: #111815;">${cleanP.replace(/\n/g, "<br />")}</p>`
+      return `<p style="margin: 0 0 14px 0; font-size: 14px; line-height: 1.65; color: #0F172A;">${cleanP.replace(/\n/g, "<br />")}</p>`
     })
     .join("")
 
@@ -219,7 +216,7 @@ export function renderFabriceInviteHtml(data: FabriceInviteData, customBodyText?
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${escapeHtml(subject)}</title>
   <style type="text/css">
-    body { margin: 0; padding: 0; background-color: #FAF8F5; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    body { margin: 0; padding: 0; background-color: #F8FAFC; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
     table { border-collapse: collapse; }
     img { border: 0; outline: none; text-decoration: none; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important; font-variant-numeric: tabular-nums !important; }
@@ -228,24 +225,24 @@ export function renderFabriceInviteHtml(data: FabriceInviteData, customBodyText?
     }
   </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #FAF8F5; color: #111815;">
+<body style="margin: 0; padding: 0; background-color: #F8FAFC; color: #0F172A;">
 
-  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #FAF8F5;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #F8FAFC;">
     <tr>
       <td align="center" style="padding: 24px 12px 40px 12px;">
 
         <!-- Main Wrapper (600px) -->
-        <table class="container" width="600" border="0" cellspacing="0" cellpadding="0" style="width: 600px; max-width: 600px; background-color: #FFFFFF; border: 1px solid #E2DDD3; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 12px -4px rgba(17, 24, 21, 0.06);">
+        <table class="container" width="600" border="0" cellspacing="0" cellpadding="0" style="width: 600px; max-width: 600px; background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #2563EB; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px -4px rgba(15, 23, 42, 0.06);">
           
           <!-- Header Blanc Pur avec logo contrasté -->
           <tr>
-            <td style="background-color: #FFFFFF; padding: 20px 24px; border-bottom: 2px solid #0B2B22;">
+            <td style="background-color: #FFFFFF; padding: 20px 24px; border-bottom: 1px solid #E2E8F0;">
               <table width="100%" border="0" cellspacing="0" cellpadding="0">
                 <tr>
                   <td align="left" valign="middle">
                     <img src="${logoUrl}" alt="Aegis Solaire" height="34" style="display: block; max-height: 34px; width: auto;" />
                   </td>
-                  <td align="right" valign="middle" class="mono" style="font-family: ui-monospace, monospace; font-size: 11px; color: #0B2B22; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700;">
+                  <td align="right" valign="middle" class="mono" style="font-family: ui-monospace, monospace; font-size: 11px; color: #0F172A; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700;">
                     Réseau Partenaires · Wallonie
                   </td>
                 </tr>
@@ -255,13 +252,13 @@ export function renderFabriceInviteHtml(data: FabriceInviteData, customBodyText?
 
           <!-- Eyebrow Bar Privée -->
           <tr>
-            <td style="background-color: #F0ECE3; padding: 9px 24px; border-bottom: 1px solid #E2DDD3;">
+            <td style="background-color: #F1F5F9; padding: 9px 24px; border-bottom: 1px solid #E2E8F0;">
               <table width="100%" border="0" cellspacing="0" cellpadding="0">
                 <tr>
-                  <td align="left" class="mono" style="font-family: ui-monospace, monospace; font-size: 11px; font-weight: 600; color: #0B2B22; text-transform: uppercase; letter-spacing: 0.05em;">
+                  <td align="left" class="mono" style="font-family: ui-monospace, monospace; font-size: 11px; font-weight: 600; color: #2563EB; text-transform: uppercase; letter-spacing: 0.05em;">
                     INVITATION PROFESSIONNELLE · DIRECTION DES PARTENARIATS
                   </td>
-                  <td align="right" class="mono" style="font-family: ui-monospace, monospace; font-size: 11px; color: #525E59;">
+                  <td align="right" class="mono" style="font-family: ui-monospace, monospace; font-size: 11px; color: #64748B;">
                     ${escapeHtml(data.companyName || "Artisan Qualifié")}
                   </td>
                 </tr>
@@ -275,23 +272,23 @@ export function renderFabriceInviteHtml(data: FabriceInviteData, customBodyText?
               ${formattedParagraphs}
 
               <!-- Encadré réassurance réseau -->
-              <div style="margin-top: 24px; padding: 14px 18px; background-color: #FAF8F5; border-left: 3px solid #0B2B22; border-radius: 4px;">
-                <p style="margin: 0; font-size: 12px; color: #525E59; line-height: 1.5;">
+              <div style="margin-top: 24px; padding: 14px 18px; background-color: #F8FAFC; border-left: 3px solid #2563EB; border-radius: 6px;">
+                <p style="margin: 0; font-size: 12px; color: #475569; line-height: 1.5;">
                   <strong>Engagement qualité :</strong> Aegis Solaire est une initiative gérée en direct depuis la région liégeoise, dédiée exclusivement aux artisans RESCERT et entreprises d'installation en Wallonie.
                 </p>
               </div>
 
               <!-- Signature Direction des Partenariats -->
-              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top: 28px; border-top: 1px solid #E2DDD3; padding-top: 18px;">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top: 28px; border-top: 1px solid #E2E8F0; padding-top: 18px;">
                 <tr>
                   <td align="left" valign="middle">
-                    <p style="margin: 0; font-size: 14px; font-weight: 700; color: #111815;">
-                      La Direction des Partenariats
+                    <p style="margin: 0; font-size: 14px; font-weight: 700; color: #0F172A;">
+                      La Direction des Partenariats Aegis Solaire
                     </p>
-                    <p style="margin: 2px 0 0 0; font-size: 12px; color: #525E59;">
+                    <p style="margin: 2px 0 0 0; font-size: 12px; color: #64748B;">
                       Aegis Solaire · Réseau Professionnel Photovoltaïque Wallon
                     </p>
-                    <p style="margin: 2px 0 0 0; font-size: 12px; color: #525E59;" class="mono">
+                    <p style="margin: 2px 0 0 0; font-size: 12px; color: #64748B;" class="mono">
                       Email : contact@aegissolaire.com · Liège, Belgique
                     </p>
                   </td>
@@ -302,8 +299,8 @@ export function renderFabriceInviteHtml(data: FabriceInviteData, customBodyText?
 
           <!-- Footer institutionnel légal -->
           <tr>
-            <td style="background-color: #FAF8F5; padding: 14px 24px; border-top: 1px solid #E2DDD3; text-align: center;">
-              <p style="margin: 0; font-size: 11px; color: #8C827A;" class="mono">
+            <td style="background-color: #F8FAFC; padding: 14px 24px; border-top: 1px solid #E2E8F0; text-align: center;">
+              <p style="margin: 0; font-size: 11px; color: #64748B;" class="mono">
                 Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
               </p>
             </td>

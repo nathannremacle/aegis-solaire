@@ -87,11 +87,11 @@ Aegis Solaire possède un positionnement unique qui répond exactement aux point
 
 * **Opportunité 1 : Le Tiers de Confiance Impartial (Anti-Démarchage)**  
   *« Nous ne vendons pas de panneaux. Nous auditons votre toiture pour que vous ne signiez pas n'importe quoi. »*  
-  Zéro harcèlement téléphonique, coordonnées protégées. Transmission du dossier à **un seul** artisan local labellisé RESCERT soigneusement sélectionné.
+  Zéro harcèlement téléphonique, coordonnées protégées. Transmission du dossier à **Jusqu'à 3 installateurs RESCERT locaux max** soigneusement sélectionnés.
 
 * **Opportunité 2 : La Démystification Mathématique du Tarif Prosumer**  
   *« Le compteur qui tourne à l'envers est terminé en Wallonie. Voici le calcul exact pour rentabiliser votre toiture en 2026. »*  
   Utiliser les chiffres réels de la CWaPE, expliquer l'autoconsommation (30 % sans batterie vs 70 % avec batterie) et le dimensionnement optimal.
 
-* **Opportunité 3 : La Réassurance « Swiss Editorial & Trust »**  
-  Sortir des visuels criards jaunes/rouges de Bobex. Utiliser la palette institutionnelle (Ardoise, Pierre Chaude, Cuivre Solaire), typographie soignée (`font-mono` sur les chiffres d'économies) et clarté chirurgicale.
+* **Opportunité 3 : La Réassurance « Fintech Slate & Solar Trust »**  
+  Sortir des visuels criards jaunes/rouges de Bobex. Utiliser la palette institutionnelle Fintech Slate & Solar Trust (`#FFFFFF`, `#F8FAFC`, `#0F172A`, `#2563EB`, `#F59E0B`), typographie soignée (`font-mono tabular-nums` sur les chiffres d'économies) et clarté chirurgicale.

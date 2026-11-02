@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 export const metadata = {
   title: "Validation de compte installateur | Aegis Solaire",
   description: "Confirmation de votre adresse email et état d'avancement de votre dossier installateur partenaire en Région wallonne.",
+  robots: { index: false, follow: false },
 }
 
 interface VerificationPageProps {
@@ -100,13 +101,13 @@ export default async function PartnerVerificationPage({ searchParams }: Verifica
                   </span>
                 </div>
 
-                <div className="space-y-3 pt-1">
+                <div className="flex flex-col gap-3 pt-1">
                   <div className="flex items-start gap-3">
                     <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white text-xs font-bold">
                       ✓
                     </div>
                     <div className="text-sm">
-                      <p className="font-semibold text-foreground">01. Enregistrement de la candidature</p>
+                      <p className="font-semibold text-foreground"><span className="font-mono tabular-nums">01.</span> Enregistrement de la candidature</p>
                       <p className="text-xs text-muted-foreground">Dossier reçu et enregistré sur la plateforme.</p>
                     </div>
                   </div>
@@ -116,17 +117,17 @@ export default async function PartnerVerificationPage({ searchParams }: Verifica
                       ✓
                     </div>
                     <div className="text-sm">
-                      <p className="font-semibold text-foreground">02. Confirmation de l'adresse e-mail</p>
+                      <p className="font-semibold text-foreground"><span className="font-mono tabular-nums">02.</span> Confirmation de l'adresse e-mail</p>
                       <p className="text-xs text-muted-foreground">Canal de contact direct et sécurisé validé.</p>
                     </div>
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground text-xs font-bold">
+                    <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground text-xs font-bold font-mono tabular-nums">
                       03
                     </div>
                     <div className="text-sm">
-                      <p className="font-semibold text-foreground">03. Contrôle RESCERT & BCE (En cours)</p>
+                      <p className="font-semibold text-foreground"><span className="font-mono tabular-nums">03.</span> Contrôle RESCERT & BCE (En cours)</p>
                       <p className="text-xs text-muted-foreground">
                         Vérification de votre agrément photovoltaïque et assurances sous <span className="font-mono tabular-nums font-semibold text-foreground">24 à 48 h</span>.
                       </p>
@@ -134,11 +135,11 @@ export default async function PartnerVerificationPage({ searchParams }: Verifica
                   </div>
 
                   <div className="flex items-start gap-3 opacity-60">
-                    <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground text-xs font-bold">
+                    <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground text-xs font-bold font-mono tabular-nums">
                       04
                     </div>
                     <div className="text-sm">
-                      <p className="font-semibold text-foreground">04. Déblocage Marketplace des Leads</p>
+                      <p className="font-semibold text-foreground"><span className="font-mono tabular-nums">04.</span> Déblocage Marketplace des Leads</p>
                       <p className="text-xs text-muted-foreground">Notification par e-mail dès activation avec vos accès complets.</p>
                     </div>
                   </div>
@@ -207,8 +208,8 @@ export default async function PartnerVerificationPage({ searchParams }: Verifica
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-muted/30 py-6 text-center text-xs text-muted-foreground">
-        <p>Aegis Solaire · INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique</p>
+      <footer className="border-t border-border bg-muted/30 py-6 text-center text-xs text-muted-foreground font-mono tabular-nums">
+        <p>Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique</p>
       </footer>
     </div>
   )

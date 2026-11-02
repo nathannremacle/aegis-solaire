@@ -226,17 +226,17 @@ const ORIENTATIONS = [
 ]
 
 const ROOF_SIZES = [
-  { id: "small", label: "Petit (< 30 m²)", kWc: 3 },
-  { id: "medium", label: "Moyen (30 – 60 m²)", kWc: 6 },
-  { id: "large", label: "Grand (60 – 100 m²)", kWc: 9 },
-  { id: "xlarge", label: "Très grand (> 100 m²)", kWc: 12 },
+  { id: "small", label: "Petit (< 30 m²)", m2: 22, kWc: 3 },
+  { id: "medium", label: "Moyen (30 – 60 m²)", m2: 42, kWc: 5.5 },
+  { id: "large", label: "Grand (60 – 100 m²)", m2: 65, kWc: 8.5 },
+  { id: "xlarge", label: "Très grand (> 100 m²)", m2: 90, kWc: 10 },
 ]
 
 const BILL_BRACKETS = [
-  { id: "lt_1200", label: "Moins de 1 200 € / an", sublabel: "≈ 2 500 à 3 500 kWh", value: 1000 },
-  { id: "1200_2400", label: "1 200 € – 2 400 € / an", sublabel: "≈ 3 500 à 6 000 kWh", value: 1800 },
-  { id: "2400_4000", label: "2 400 € – 4 000 € / an", sublabel: "≈ 6 000 à 10 000 kWh", value: 3200 },
-  { id: "gt_4000", label: "Plus de 4 000 € / an", sublabel: "> 10 000 kWh", value: 5000 },
+  { id: "lt_1200", label: "Moins de 1 200 € / an", sublabel: "≈ 2 000 à 3 200 kWh", value: 980 },
+  { id: "1200_2400", label: "1 200 € – 2 400 € / an", sublabel: "≈ 3 300 à 6 500 kWh", value: 1650 },
+  { id: "2400_4000", label: "2 400 € – 4 000 € / an", sublabel: "≈ 6 500 à 10 000 kWh", value: 2900 },
+  { id: "gt_4000", label: "Plus de 4 000 € / an", sublabel: "> 10 000 kWh", value: 4200 },
 ]
 
 const HOUSEHOLD_SIZES = [
@@ -300,11 +300,15 @@ function calculateB2CROI(d: B2CFormData): B2CResults {
   const orient = ORIENTATIONS.find((o) => o.id === d.orientation)
   const bill = d.annualBillCustom
     ? Math.max(parseInt(d.annualBillCustom.replace(/\s/g, ""), 10) || 0, 500)
-    : BILL_BRACKETS.find((b) => b.id === d.annualBillBracket)?.value ?? 1800
+    : BILL_BRACKETS.find((b) => b.id === d.annualBillBracket)?.value ?? 1650
 
   const res = calculateB2CSolarROI({
-    roofKwc: roof?.kWc ?? 6,
-    orientationFactor: orient?.factor ?? 0.9,
+    surfaceAreaM2: roof?.m2 ?? 42,
+    roofKwc: roof?.kWc ?? 5.5,
+    roofMaterial: d.roofType || "tuiles",
+    orientation: d.orientation || "sud_est_ouest",
+    orientationFactor: orient?.factor ?? 0.92,
+    householdSize: d.householdSize || "3_4",
     annualBill: bill,
     hasBattery: (d.batteryInterest as "oui" | "hesite" | "non") || "non",
     hasEv: (d.evInterest as "oui" | "prevu" | "non") || "non",
@@ -336,6 +340,23 @@ export function B2CSimulator() {
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const openedAt = useRef(new Date().toISOString())
+  const [utmParams, setUtmParams] = useState<Record<string, string | undefined>>({})
+
+  useEffect(() => {
+    try {
+      const sp = new URLSearchParams(window.location.search)
+      setUtmParams({
+        utm_source: sp.get("utm_source") || undefined,
+        utm_medium: sp.get("utm_medium") || undefined,
+        utm_campaign: sp.get("utm_campaign") || undefined,
+        utm_content: sp.get("utm_content") || undefined,
+        utm_term: sp.get("utm_term") || undefined,
+        fbclid: sp.get("fbclid") || undefined,
+      })
+    } catch {
+      // ignore
+    }
+  }, [])
 
   const up = (k: keyof B2CFormData, v: string | boolean) =>
     setFd((p) => ({ ...p, [k]: v }))
@@ -427,11 +448,12 @@ export function B2CSimulator() {
     setError(null)
 
     try {
-      const roofKwc = ROOF_SIZES.find((r) => r.id === fd.roofSize)?.kWc ?? 6
-      const surfaceArea = Math.round(roofKwc * 6)
+      const roofOption = ROOF_SIZES.find((r) => r.id === fd.roofSize)
+      const roofKwc = roofOption?.kWc ?? 5.5
+      const surfaceArea = roofOption?.m2 ?? 42
       const annualBill = fd.annualBillCustom
         ? Math.max(parseInt(fd.annualBillCustom.replace(/\s/g, ""), 10) || 500, 500)
-        : BILL_BRACKETS.find((b) => b.id === fd.annualBillBracket)?.value ?? 1800
+        : BILL_BRACKETS.find((b) => b.id === fd.annualBillBracket)?.value ?? 1650
 
       const mappedRoofMaterial =
         fd.roofType === "tuiles"
@@ -466,7 +488,7 @@ export function B2CSimulator() {
         province: fd.province,
         annualElectricityBill: annualBill,
         annualBillEur: annualBill,
-        estimatedPowerKwc: roofKwc,
+        estimatedPowerKwc: results?.installedPower ?? roofKwc,
         projectDriver: "reduire_facture",
         timeframe: "immediat_3mois",
         qualificationMetadata: {
@@ -479,7 +501,9 @@ export function B2CSimulator() {
           b2c_battery_interest: fd.batteryInterest,
           b2c_postal_code: fd.postalCode.trim(),
           b2c_site_address: fd.siteAddress.trim() || undefined,
+          ...utmParams,
         },
+        sourceUrl: typeof window !== "undefined" ? window.location.href : undefined,
         projectDetails: [
           `Statut: ${fd.ownershipStatus}`,
           `Toiture: ${fd.roofType}`,
@@ -513,7 +537,9 @@ export function B2CSimulator() {
         throw new Error(data.error || "Erreur lors de l'envoi")
       }
       const resData = await res.json().catch(() => ({}))
-      trackLeadConversion({ segment: "B2C", leadId: resData?.leadId, value: 35 })
+      if (fd.ownershipStatus !== "locataire_sans_accord") {
+        trackLeadConversion({ segment: "B2C", leadId: resData?.leadId, value: 75.9 })
+      }
       setSubmitted(true)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Une erreur est survenue")
@@ -563,10 +589,10 @@ export function B2CSimulator() {
                 transition={{ delay: 0.4 + i * 0.1 }}
                 className="flex flex-col items-center rounded-2xl border border-accent/20 bg-accent/5 p-4 text-center"
               >
-                <span className="text-2xl font-extrabold text-accent sm:text-3xl">
+                <span className="text-2xl font-extrabold text-accent sm:text-3xl font-mono tabular-nums">
                   <AnimatedCounter value={d.v} format={(n) => d.u === "ans" ? n.toFixed(1) : n.toLocaleString("fr-BE")} />
                 </span>
-                <span className="text-xs font-medium text-muted-foreground">{d.u}</span>
+                <span className="text-xs font-medium text-muted-foreground font-mono tabular-nums">{d.u}</span>
                 <span className="mt-1 text-[11px] font-bold uppercase tracking-wider text-foreground/70">
                   {d.l}
                 </span>
@@ -631,7 +657,7 @@ export function B2CSimulator() {
           <>
             {step !== 5 && (
               <div className="mb-6">
-                <div className="mb-2 flex justify-between text-sm text-muted-foreground">
+                <div className="mb-2 flex justify-between text-sm text-muted-foreground font-mono tabular-nums">
                   <span>Étape {Math.min(step, 5)} sur {displayTotal}</span>
                   <span>{Math.round((Math.min(step, 5) / displayTotal) * 100)} %</span>
                 </div>
@@ -647,7 +673,7 @@ export function B2CSimulator() {
             <AnimatePresence mode="wait">
               {/* ── STEP 1 : Toiture ── */}
               {step === 1 && (
-                <motion.div key="s1" {...anim} className="space-y-7">
+                <motion.div key="s1" {...anim} className="flex flex-col gap-7">
                   <div>
                     <h3 className="text-xl font-semibold text-foreground sm:text-2xl">
                       Parlons de votre toiture
@@ -657,7 +683,7 @@ export function B2CSimulator() {
                     </p>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="flex flex-col gap-3">
                     <Label className="text-base font-semibold text-foreground">
                       Statut d&apos;occupation du logement
                     </Label>
@@ -679,7 +705,7 @@ export function B2CSimulator() {
                     </div>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="flex flex-col gap-3">
                     <Label className="text-base font-semibold text-foreground">
                       Type de toiture
                     </Label>
@@ -713,7 +739,7 @@ export function B2CSimulator() {
                     </div>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="flex flex-col gap-3">
                     <Label className="text-base font-semibold text-foreground">
                       <Compass className="mr-1.5 inline h-4 w-4 text-accent" />
                       Orientation principale
@@ -735,7 +761,7 @@ export function B2CSimulator() {
                     </RadioGroup>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="flex flex-col gap-3">
                     <Label className="text-base font-semibold text-foreground">
                       Surface de toiture exploitable
                     </Label>
@@ -752,7 +778,7 @@ export function B2CSimulator() {
                           }`}
                         >
                           {s.label}
-                          <span className="mt-0.5 block text-xs text-muted-foreground">≈ {s.kWc} kWc</span>
+                          <span className="mt-0.5 block text-xs text-muted-foreground font-mono tabular-nums">≈ {s.kWc} kWc</span>
                         </button>
                       ))}
                     </div>
@@ -762,7 +788,7 @@ export function B2CSimulator() {
 
               {/* ── STEP 2 : Consommation ── */}
               {step === 2 && (
-                <motion.div key="s2" {...anim} className="space-y-7">
+                <motion.div key="s2" {...anim} className="flex flex-col gap-7">
                   <div>
                     <h3 className="text-xl font-semibold text-foreground sm:text-2xl">
                       Votre consommation d&apos;énergie
@@ -772,7 +798,7 @@ export function B2CSimulator() {
                     </p>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="flex flex-col gap-3">
                     <Label className="text-base font-semibold text-foreground">
                       <Zap className="mr-1.5 inline h-4 w-4 text-accent" />
                       Facture d&apos;électricité annuelle
@@ -812,14 +838,14 @@ export function B2CSimulator() {
                             up("annualBillCustom", e.target.value.replace(/[^\d\s]/g, "").slice(0, 7))
                             up("annualBillBracket", "")
                           }}
-                          className="mt-1.5 h-11"
+                          className="mt-1.5 h-11 font-mono tabular-nums"
                         />
                       </div>
-                      <span className="pb-2.5 text-sm text-muted-foreground">€ / an</span>
+                      <span className="pb-2.5 text-sm text-muted-foreground font-mono tabular-nums">€ / an</span>
                     </div>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="flex flex-col gap-3">
                     <Label className="text-base font-semibold text-foreground">
                       <Users className="mr-1.5 inline h-4 w-4 text-accent" />
                       Taille du ménage
@@ -845,14 +871,14 @@ export function B2CSimulator() {
 
               {/* ── STEP 3 : Équipements & Localisation ── */}
               {step === 3 && (
-                <motion.div key="s3" {...anim} className="space-y-7">
+                <motion.div key="s3" {...anim} className="flex flex-col gap-7">
                   <div>
                     <h3 className="text-xl font-semibold text-foreground sm:text-2xl">
                       Équipements &amp; Localisation
                     </h3>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="flex flex-col gap-3">
                     <Label className="text-base font-semibold text-foreground">
                       <Car className="mr-1.5 inline h-4 w-4 text-accent" />
                       Véhicule électrique ?
@@ -874,7 +900,7 @@ export function B2CSimulator() {
                     </RadioGroup>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="flex flex-col gap-3">
                     <Label className="text-base font-semibold text-foreground flex items-center gap-2">
                       <BatteryCharging className="h-4 w-4 text-accent" />
                       Souhaitez-vous intégrer une batterie domestique ?
@@ -913,7 +939,7 @@ export function B2CSimulator() {
                     </div>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="flex flex-col gap-3">
                     <Label className="text-base font-semibold text-foreground">
                       <Home className="mr-1.5 inline h-4 w-4 text-accent" />
                       Province d&apos;installation
@@ -946,7 +972,7 @@ export function B2CSimulator() {
 
               {/* ── STEP 4 : Description libre ── */}
               {step === 4 && (
-                <motion.div key="s4" {...anim} className="space-y-6">
+                <motion.div key="s4" {...anim} className="flex flex-col gap-6">
                   <div>
                     <h3 className="text-xl font-semibold text-foreground sm:text-2xl">
                       Décrivez votre projet
@@ -966,14 +992,14 @@ export function B2CSimulator() {
                     className="min-h-[120px] resize-y"
                   />
                   <p className="text-xs text-muted-foreground">
-                    {fd.projectDetails.length} / 2 000 — optionnel mais très utile pour personnaliser votre dossier.
+                    <span className="font-mono tabular-nums">{fd.projectDetails.length} / 2 000</span> — optionnel mais très utile pour personnaliser votre dossier.
                   </p>
                 </motion.div>
               )}
 
               {/* ── STEP 6 : Résultats + Coordonnées ── */}
               {step === 6 && results && (
-                <motion.div key="s6" {...anim} className="space-y-6">
+                <motion.div key="s6" {...anim} className="flex flex-col gap-6">
                   {/* Results preview */}
                   <div className="rounded-2xl border border-accent/30 bg-accent/5 p-5 sm:p-6">
                     <h3 className="text-lg font-bold text-foreground sm:text-xl">
@@ -990,10 +1016,10 @@ export function B2CSimulator() {
                         { v: results.co2Avoided, u: "t CO₂/an", l: "CO₂ évité", fmt: (n: number) => n.toFixed(1) },
                       ].map((d) => (
                         <div key={d.l} className="text-center">
-                          <p className="text-xl font-extrabold text-accent sm:text-2xl">
+                          <p className="text-xl font-extrabold text-accent sm:text-2xl font-mono tabular-nums">
                             <AnimatedCounter value={d.v} format={d.fmt} />
                           </p>
-                          <p className="text-xs text-muted-foreground">{d.u}</p>
+                          <p className="text-xs text-muted-foreground font-mono tabular-nums">{d.u}</p>
                           <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-foreground/60">
                             {d.l}
                           </p>
@@ -1003,8 +1029,8 @@ export function B2CSimulator() {
                     <div className="mt-5 flex items-center gap-2 rounded-xl bg-accent/10 px-4 py-3">
                       <Leaf className="h-5 w-5 shrink-0 text-accent" />
                       <p className="text-sm text-foreground">
-                        Sur 25 ans, votre installation pourrait vous faire économiser{" "}
-                        <strong className="text-accent">
+                        Sur <span className="font-mono tabular-nums">25 ans</span>, votre installation pourrait vous faire économiser{" "}
+                        <strong className="text-accent font-mono tabular-nums">
                           {results.gain25Years.toLocaleString("fr-BE")} €
                         </strong>
                         .
@@ -1017,8 +1043,8 @@ export function B2CSimulator() {
                     Recevez votre dossier complet gratuitement :
                   </p>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5">
                       <Label htmlFor="b2c-fn">Prénom</Label>
                       <Input
                         id="b2c-fn"
@@ -1032,7 +1058,7 @@ export function B2CSimulator() {
                         <p className="text-xs text-destructive">{showFirstNameError}</p>
                       )}
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="flex flex-col gap-1.5">
                       <Label htmlFor="b2c-ln">Nom</Label>
                       <Input
                         id="b2c-ln"
@@ -1048,7 +1074,7 @@ export function B2CSimulator() {
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="flex flex-col gap-1.5">
                     <Label htmlFor="b2c-email">E-mail</Label>
                     <Input
                       id="b2c-email"
@@ -1064,7 +1090,7 @@ export function B2CSimulator() {
                     )}
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="flex flex-col gap-1.5">
                     <Label htmlFor="b2c-phone">Téléphone</Label>
                     <Input
                       id="b2c-phone"
@@ -1073,7 +1099,7 @@ export function B2CSimulator() {
                       value={fd.phone}
                       onBlur={() => markTouched("phone")}
                       onChange={(e) => up("phone", e.target.value)}
-                      className={`h-12 ${showPhoneError ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                      className={`h-12 font-mono tabular-nums ${showPhoneError ? "border-destructive focus-visible:ring-destructive" : ""}`}
                     />
                     {showPhoneError && (
                       <p className="text-xs text-destructive">{showPhoneError}</p>
@@ -1081,7 +1107,7 @@ export function B2CSimulator() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
+                    <div className="flex flex-col gap-1.5">
                       <div className="flex items-center justify-between">
                         <Label htmlFor="b2c-postal">Code postal (4 chiffres) <span className="text-accent">*</span></Label>
                         {(() => {
@@ -1111,7 +1137,7 @@ export function B2CSimulator() {
                             up("province", det.key)
                           }
                         }}
-                        className={`h-12 ${showPostalCodeError ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                        className={`h-12 font-mono tabular-nums ${showPostalCodeError ? "border-destructive focus-visible:ring-destructive" : ""}`}
                       />
                       {showPostalCodeError && (
                         <p className="text-xs text-destructive">{showPostalCodeError}</p>
@@ -1121,7 +1147,7 @@ export function B2CSimulator() {
                         Vérification automatique du réseau (Ores / Resa) et installateurs RESCERT.
                       </p>
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="flex flex-col gap-1.5">
                       <Label htmlFor="b2c-address">
                         Adresse / Rue et n° <span className="text-xs font-normal text-muted-foreground">(recommandé pour étude satellite)</span>
                       </Label>
@@ -1136,7 +1162,7 @@ export function B2CSimulator() {
                     </div>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="flex flex-col gap-3">
                     <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors hover:bg-muted/40 has-[[data-state=checked]]:border-accent/40 has-[[data-state=checked]]:bg-accent/5 ${showConsentError ? "border-destructive bg-destructive/5" : "border-border"}`}>
                       <Checkbox
                         checked={fd.marketingConsent}

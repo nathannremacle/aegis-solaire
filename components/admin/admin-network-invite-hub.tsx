@@ -27,12 +27,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import {
-  buildFabriceInviteSubject,
-  buildFabriceInvitePlainText,
-  buildFabriceWhatsAppMessage,
-  renderFabriceInviteHtml,
+  buildPartnerInviteSubject,
+  buildPartnerInvitePlainText,
+  buildPartnerWhatsAppMessage,
+  renderPartnerInviteHtml,
   substituteTemplateVariables,
-  type FabriceInviteData,
+  type PartnerInviteData,
 } from "@/lib/email-templates/fabrice-network-invite"
 
 export type ToneKey = "tutoiement" | "vouvoiement" | "court_whatsapp"
@@ -124,7 +124,7 @@ export function AdminNetworkInviteHub() {
   }, [firstName, companyName, freeCredits, includeCreditsText, provinces, origin])
 
   // Données de base pour la génération par défaut
-  const baseInviteData = useMemo<FabriceInviteData>(() => {
+  const baseInviteData = useMemo<PartnerInviteData>(() => {
     return {
       installerName: firstName,
       companyName,
@@ -144,18 +144,18 @@ export function AdminNetworkInviteHub() {
     // A) Charger depuis localStorage immédiatement
     const initialTemplates: Record<ToneKey, ToneData> = {
       tutoiement: {
-        subject: buildFabriceInviteSubject({ ...baseInviteData, tone: "tutoiement" }),
-        body: buildFabriceInvitePlainText({ ...baseInviteData, tone: "tutoiement" }),
+        subject: buildPartnerInviteSubject({ ...baseInviteData, tone: "tutoiement" }),
+        body: buildPartnerInvitePlainText({ ...baseInviteData, tone: "tutoiement" }),
         isCustom: false,
       },
       vouvoiement: {
-        subject: buildFabriceInviteSubject({ ...baseInviteData, tone: "vouvoiement" }),
-        body: buildFabriceInvitePlainText({ ...baseInviteData, tone: "vouvoiement" }),
+        subject: buildPartnerInviteSubject({ ...baseInviteData, tone: "vouvoiement" }),
+        body: buildPartnerInvitePlainText({ ...baseInviteData, tone: "vouvoiement" }),
         isCustom: false,
       },
       court_whatsapp: {
-        subject: buildFabriceInviteSubject({ ...baseInviteData, tone: "court_whatsapp" }),
-        body: buildFabriceInvitePlainText({ ...baseInviteData, tone: "court_whatsapp" }),
+        subject: buildPartnerInviteSubject({ ...baseInviteData, tone: "court_whatsapp" }),
+        body: buildPartnerInvitePlainText({ ...baseInviteData, tone: "court_whatsapp" }),
         isCustom: false,
       },
     }
@@ -163,7 +163,7 @@ export function AdminNetworkInviteHub() {
     const tones: ToneKey[] = ["tutoiement", "vouvoiement", "court_whatsapp"]
     for (const t of tones) {
       try {
-        const local = localStorage.getItem(`aegis_fabrice_custom_template_${t}`)
+        const local = localStorage.getItem(`aegis_network_custom_template_${t}`)
         if (local) {
           const parsed = JSON.parse(local)
           if (parsed && parsed.body) {
@@ -173,7 +173,7 @@ export function AdminNetworkInviteHub() {
               parsed.body.includes("Tu me connais pour le matériel") ||
               parsed.body.includes("leads de sorte à")
             if (isLegacy) {
-              localStorage.removeItem(`aegis_fabrice_custom_template_${t}`)
+              localStorage.removeItem(`aegis_network_custom_template_${t}`)
             } else {
               initialTemplates[t] = {
                 subject: parsed.subject || initialTemplates[t].subject,
@@ -213,7 +213,7 @@ export function AdminNetworkInviteHub() {
                   }
                   try {
                     localStorage.setItem(
-                      `aegis_fabrice_custom_template_${t}`,
+                      `aegis_network_custom_template_${t}`,
                       JSON.stringify(next[t])
                     )
                   } catch {
@@ -266,7 +266,7 @@ export function AdminNetworkInviteHub() {
     }))
 
     try {
-      localStorage.setItem(`aegis_fabrice_custom_template_${tone}`, JSON.stringify(updated))
+      localStorage.setItem(`aegis_network_custom_template_${tone}`, JSON.stringify(updated))
     } catch {
       // Ignore
     }
@@ -289,7 +289,7 @@ export function AdminNetworkInviteHub() {
     }))
 
     try {
-      localStorage.setItem(`aegis_fabrice_custom_template_${tone}`, JSON.stringify(updated))
+      localStorage.setItem(`aegis_network_custom_template_${tone}`, JSON.stringify(updated))
     } catch {
       // Ignore
     }
@@ -302,7 +302,7 @@ export function AdminNetworkInviteHub() {
     setIncludeCreditsText(include)
 
     // Récupérer le corps actuel ou celui par défaut
-    const currentBody = templatesByTone[tone].body || buildFabriceInvitePlainText({ ...baseInviteData, includeCreditsText: !include })
+    const currentBody = templatesByTone[tone].body || buildPartnerInvitePlainText({ ...baseInviteData, includeCreditsText: !include })
 
     if (!include) {
       // Retirer le paragraphe des crédits du texte
@@ -342,7 +342,7 @@ export function AdminNetworkInviteHub() {
           }
           handleBodyChange(updated.trim())
         } else if (tone === "court_whatsapp") {
-          const updated = buildFabriceInvitePlainText({
+          const updated = buildPartnerInvitePlainText({
             ...baseInviteData,
             tone: "court_whatsapp",
             includeCreditsText: true,
@@ -356,8 +356,8 @@ export function AdminNetworkInviteHub() {
 
   // ─── 7. Réinitialisation spécifique au ton actif ───
   const handleResetCurrentTone = async () => {
-    const defaultSubject = buildFabriceInviteSubject(baseInviteData)
-    const defaultBody = buildFabriceInvitePlainText(baseInviteData)
+    const defaultSubject = buildPartnerInviteSubject(baseInviteData)
+    const defaultBody = buildPartnerInvitePlainText(baseInviteData)
 
     const resetData: ToneData = {
       subject: defaultSubject,
@@ -371,7 +371,7 @@ export function AdminNetworkInviteHub() {
     }))
 
     try {
-      localStorage.removeItem(`aegis_fabrice_custom_template_${tone}`)
+      localStorage.removeItem(`aegis_network_custom_template_${tone}`)
     } catch {
       // Ignore
     }
@@ -412,7 +412,7 @@ export function AdminNetworkInviteHub() {
 
   // Sujet et corps avec remplacement automatique des tags {{...}} et fallback
   const resolvedSubject = useMemo(() => {
-    const raw = currentToneData.subject || buildFabriceInviteSubject(baseInviteData)
+    const raw = currentToneData.subject || buildPartnerInviteSubject(baseInviteData)
     return substituteTemplateVariables(raw, {
       installerName: firstName,
       companyName,
@@ -422,7 +422,7 @@ export function AdminNetworkInviteHub() {
   }, [currentToneData.subject, baseInviteData, firstName, companyName, generatedUrl, freeCredits])
 
   const resolvedBody = useMemo(() => {
-    let raw = currentToneData.body || buildFabriceInvitePlainText(baseInviteData)
+    let raw = currentToneData.body || buildPartnerInvitePlainText(baseInviteData)
     
     // Si le modèle contient des tags {{...}}, on substitue
     if (/\{\{\s*(prenom|nom|name|entreprise|societe|company|cie|lien|url|link|credits)\s*\}\}/i.test(raw)) {
@@ -445,7 +445,7 @@ export function AdminNetworkInviteHub() {
   // Historique local
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("aegis_fabrice_invite_history")
+      const saved = localStorage.getItem("aegis_network_invite_history")
       if (saved) setHistory(JSON.parse(saved))
     } catch {
       // Ignore
@@ -465,7 +465,7 @@ export function AdminNetworkInviteHub() {
     const updated = [entry, ...history.filter((h) => h.url !== generatedUrl)].slice(0, 8)
     setHistory(updated)
     try {
-      localStorage.setItem("aegis_fabrice_invite_history", JSON.stringify(updated))
+      localStorage.setItem("aegis_network_invite_history", JSON.stringify(updated))
     } catch {
       // Ignore
     }
@@ -509,7 +509,7 @@ export function AdminNetworkInviteHub() {
 
     setIsSendingEmail(true)
     try {
-      const renderedHtml = renderFabriceInviteHtml(baseInviteData, resolvedBody)
+      const renderedHtml = renderPartnerInviteHtml(baseInviteData, resolvedBody)
       const res = await fetch("/api/admin/invite-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -537,7 +537,7 @@ export function AdminNetworkInviteHub() {
   }
 
   // Message WhatsApp
-  const whatsAppMessage = tone === "court_whatsapp" ? resolvedBody : buildFabriceWhatsAppMessage(baseInviteData)
+  const whatsAppMessage = tone === "court_whatsapp" ? resolvedBody : buildPartnerWhatsAppMessage(baseInviteData)
   const whatsAppUrl = `https://wa.me/${installerPhone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(whatsAppMessage)}`
 
   // Lien mailto
@@ -564,7 +564,7 @@ export function AdminNetworkInviteHub() {
 
         <div className="shrink-0 flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground font-mono text-xs font-bold px-3 py-1.5 shadow-2xs">
-            ✓ Accès VIP Fabrice
+            ✓ Accès VIP Réseau
           </span>
         </div>
       </div>
@@ -737,10 +737,10 @@ export function AdminNetworkInviteHub() {
             </button>
           </div>
 
-          {/* Note personnelle optionnelle */}
-          <div className="space-y-1 pt-1">
+          {/* Note d'accompagnement optionnelle */}
+          <div className="flex flex-col gap-1 pt-1">
             <Label className="text-xs font-semibold text-muted-foreground">
-              Note personnelle de Fabrice (optionnelle)
+              Note d&apos;accompagnement (optionnelle)
             </Label>
             <Input
               value={customNote}
@@ -865,7 +865,7 @@ export function AdminNetworkInviteHub() {
                 <span className="text-[10px] text-muted-foreground">Modifiable en direct</span>
               </div>
               <Input
-                value={currentToneData.subject || buildFabriceInviteSubject(baseInviteData)}
+                value={currentToneData.subject || buildPartnerInviteSubject(baseInviteData)}
                 onChange={(e) => handleSubjectChange(e.target.value)}
                 className="h-9 text-xs font-semibold font-mono"
               />
@@ -933,7 +933,7 @@ export function AdminNetworkInviteHub() {
 
                 <Textarea
                   ref={textareaRef}
-                  value={currentToneData.body || buildFabriceInvitePlainText(baseInviteData)}
+                  value={currentToneData.body || buildPartnerInvitePlainText(baseInviteData)}
                   onChange={(e) => handleBodyChange(e.target.value)}
                   rows={13}
                   className="font-mono text-xs leading-relaxed resize-y min-h-[260px] bg-background/50"
@@ -1069,7 +1069,7 @@ export function AdminNetworkInviteHub() {
               type="button"
               onClick={() => {
                 setHistory([])
-                localStorage.removeItem("aegis_fabrice_invite_history")
+                localStorage.removeItem("aegis_network_invite_history")
               }}
               className="text-[11px] text-muted-foreground hover:underline"
             >

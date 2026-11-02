@@ -23,14 +23,15 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { getEmailError, getPhoneError } from "@/lib/leads-validation"
 import { getStoredMediaPartnerRef } from "@/components/media-partner-ref-tracker"
 import { trackLeadConversion, trackInitiateCheckout } from "@/components/analytics/ad-tracking"
+import { calculateB2CSolarROI } from "@/lib/solar-assumptions"
 
 // ── Options du formulaire B2C (Wallonie) ──
 const CONSUMPTION_OPTIONS = [
-  { id: "lt_3000", label: "Moins de 3.000 kWh", sublabel: "1 à 2 personnes (Facture < 85 € / mois)", billValue: 1000 },
-  { id: "3000_4000", label: "3.000 – 4.000 kWh", sublabel: "2 à 3 personnes (Facture ~85 à 115 € / mois)", billValue: 1800 },
-  { id: "4000_5000", label: "4.000 – 5.000 kWh", sublabel: "3 à 4 personnes (Facture ~115 à 145 € / mois)", billValue: 2400 },
-  { id: "5000_6000", label: "5.000 – 6.000 kWh", sublabel: "4 à 5 personnes (Facture ~145 à 175 € / mois)", billValue: 3100 },
-  { id: "gt_6000", label: "Plus de 6.000 kWh", sublabel: "Grand foyer, PAC ou borne VE (> 175 € / mois)", billValue: 4500 },
+  { id: "lt_3000", label: "Moins de 3.000 kWh", sublabel: "1 à 2 personnes (Facture < 85 € / mois)", billValue: 820, kwhValue: 2400 },
+  { id: "3000_4000", label: "3.000 – 4.000 kWh", sublabel: "2 à 3 personnes (Facture ~85 à 115 € / mois)", billValue: 1150, kwhValue: 3500 },
+  { id: "4000_5000", label: "4.000 – 5.000 kWh", sublabel: "3 à 4 personnes (Facture ~115 à 145 € / mois)", billValue: 1480, kwhValue: 4500 },
+  { id: "5000_6000", label: "5.000 – 6.000 kWh", sublabel: "4 à 5 personnes (Facture ~145 à 175 € / mois)", billValue: 1820, kwhValue: 5500 },
+  { id: "gt_6000", label: "Plus de 6.000 kWh", sublabel: "Grand foyer, PAC ou borne VE (> 175 € / mois)", billValue: 2300, kwhValue: 7000 },
 ]
 
 const PROPERTY_TYPES = [
@@ -53,9 +54,9 @@ const ROOF_OPTIONS = [
 ]
 
 const ROOF_SURFACES = [
-  { id: "small", label: "< 30 m²", sublabel: "≈ 3–4 kWc", m2: 25 },
-  { id: "medium", label: "30–60 m²", sublabel: "≈ 5–8 kWc", m2: 45 },
-  { id: "large", label: "> 60 m²", sublabel: "> 8 kWc", m2: 75 },
+  { id: "small", label: "< 30 m²", sublabel: "≈ 2,6–3,5 kWc", m2: 22 },
+  { id: "medium", label: "30–60 m²", sublabel: "≈ 4–6 kWc", m2: 42 },
+  { id: "large", label: "> 60 m²", sublabel: "≈ 6,5–9 kWc", m2: 65 },
 ]
 
 const STEP_TITLES = [
@@ -295,7 +296,9 @@ export function DevisLandingClient() {
     setIsSubmitting(true)
     setErrorMessage(null)
 
-    const selectedBill = CONSUMPTION_OPTIONS.find((c) => c.id === consumption)?.billValue ?? 2400
+    const selectedOption = CONSUMPTION_OPTIONS.find((c) => c.id === consumption)
+    const selectedBill = selectedOption?.billValue ?? 1480
+    const selectedKwh = selectedOption?.kwhValue ?? 4500
 
     const roofMaterialMap: Record<string, "tuiles" | "ardoises" | "plat_epdm" | "zinc_autre"> = {
       tuiles: "tuiles",
@@ -312,7 +315,19 @@ export function DevisLandingClient() {
 
     const calculatedSurface =
       ROOF_SURFACES.find((r) => r.id === roofSurface)?.m2 ??
-      (selectedBill >= 3100 ? 55 : selectedBill >= 2400 ? 45 : 35)
+      (selectedBill >= 1820 ? 55 : selectedBill >= 1480 ? 42 : 28)
+
+    const mappedRoofMaterial = roofMaterialMap[roofType] ?? "tuiles"
+
+    const b2cCalc = calculateB2CSolarROI({
+      annualBill: selectedBill,
+      consumptionKwh: selectedKwh,
+      surfaceAreaM2: calculatedSurface,
+      roofMaterial: mappedRoofMaterial,
+      propertyType,
+      hasBattery: false,
+      hasEv: false,
+    })
 
     const payload = {
       segment: "B2C",
@@ -323,12 +338,16 @@ export function DevisLandingClient() {
       phone: phone.trim(),
       surfaceType: "toiture",
       surfaceArea: calculatedSurface,
+      estimatedPowerKwc: b2cCalc.installedPowerKwc,
+      estimatedROIYears: b2cCalc.roiYears,
+      autoconsumptionRate: b2cCalc.autoconsumptionRate,
+      estimatedSavings: b2cCalc.annualSavings,
       province,
       provinceFreeText: `${postalCode.trim()}${city.trim() ? ` ${city.trim()}` : ""}`,
       postalCode: postalCode.trim(),
       city: city.trim() || undefined,
       siteAddress: address.trim(),
-      roofMaterial: roofMaterialMap[roofType] ?? "tuiles",
+      roofMaterial: mappedRoofMaterial,
       ownershipStatus: ownershipMap[ownership] ?? "owner",
       annualElectricityBill: selectedBill,
       marketingConsent: partnerConsent,
@@ -345,13 +364,17 @@ export function DevisLandingClient() {
         .join(" | "),
       qualificationMetadata: {
         consumptionKwh: consumption,
+        annualConsumptionKwh: selectedKwh,
         propertyType,
         ownershipChoice: ownership,
         roofType,
         roofSurface,
+        estimatedPanelCount: b2cCalc.estimatedPanelCount,
+        annualProductionKwh: b2cCalc.annualProductionKwh,
         remarks: remarks.trim() || null,
         ...utmData,
       },
+      sourceUrl: typeof window !== "undefined" ? window.location.href : undefined,
       fax_number,
       form_opened_at: formOpenedAt.current,
       mediaPartnerCode: getStoredMediaPartnerRef() ?? undefined,
@@ -374,7 +397,7 @@ export function DevisLandingClient() {
         trackLeadConversion({
           segment: "B2C",
           leadId: resData?.leadId,
-          value: 55,
+          value: 75.9,
         })
       }
       setSubmitted(true)
@@ -802,7 +825,7 @@ export function DevisLandingClient() {
                             <span className="text-xs sm:text-sm font-bold text-foreground">
                               Surface de toiture disponible :
                             </span>
-                            <div className="grid grid-cols-3 gap-2.5">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                               {ROOF_SURFACES.map((s) => {
                                 const isChecked = roofSurface === s.id
                                 return (

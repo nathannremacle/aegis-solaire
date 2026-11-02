@@ -129,10 +129,10 @@ const grdOptions = [
 ] as const
 
 const factureBrackets = [
-  { value: "6_15k", label: "De 6 000 € à 15 000 € HT / an", representative: 10_000 },
-  { value: "15_40k", label: "De 15 000 € à 40 000 € HT / an", representative: 25_000 },
-  { value: "40_100k", label: "De 40 000 € à 100 000 € HT / an", representative: 65_000 },
-  { value: "gt_100k", label: "Plus de 100 000 € HT / an", representative: 130_000 },
+  { value: "6_15k", label: "De 6 000 € à 15 000 € HT / an", representative: 9_500 },
+  { value: "15_40k", label: "De 15 000 € à 40 000 € HT / an", representative: 24_000 },
+  { value: "40_100k", label: "De 40 000 € à 100 000 € HT / an", representative: 62_000 },
+  { value: "gt_100k", label: "Plus de 100 000 € HT / an", representative: 120_000 },
 ] as const
 
 const jobTitles = ["Dirigeant", "DAF", "Resp. RSE ou Technique", "Autre"] as const
@@ -147,10 +147,10 @@ const TRANSITION_MESSAGES = [
 const MIN_ANNUAL_BILL = 3500
 
 function getSurfaceAreaFromChoices(surfaceType: string, surfaceRange: string): number {
-  if (surfaceRange === "lt_500") return 400
-  if (surfaceRange === "m500_1500") return 1000
-  if (surfaceRange === "gt_1500") return 2000
-  return 1000
+  if (surfaceRange === "lt_500") return 280
+  if (surfaceRange === "m500_1500") return 850
+  if (surfaceRange === "gt_1500") return 1800
+  return 850
 }
 
 function isCustomBillValid(value: string | undefined): boolean {
@@ -164,7 +164,7 @@ function getAnnualBillFromBracket(bracket: string, custom?: string): number {
     return parseInt(custom.replace(/\s/g, ""), 10)
   }
   const b = factureBrackets.find((x) => x.value === bracket)
-  return b ? b.representative : 25_000
+  return b ? b.representative : 24_000
 }
 
 function calculateROI(formData: FormData): ROIResults {
@@ -175,6 +175,7 @@ function calculateROI(formData: FormData): ROIResults {
     surfaceType: formData.surfaceType,
     surfaceRange: formData.surfaceRange,
     surfaceAreaM2: surfaceArea,
+    roofMaterial: formData.roofMaterial,
     annualElectricityBill: annualBill,
     grd: formData.grd,
   })
@@ -198,11 +199,25 @@ export function ROISimulator() {
   const [isCalculating, setIsCalculating] = useState(false)
   /** Horodatage début de parcours — l’API exige >4 s entre ce moment et la soumission ; ne pas le fixer à l’étape contact seule (sinon soumission rapide = erreur). */
   const formContactOpenedAtRef = useRef<string | null>(null)
+  const [utmParams, setUtmParams] = useState<Record<string, string | undefined>>({})
 
   const totalSteps = 5
 
   useEffect(() => {
     formContactOpenedAtRef.current = new Date().toISOString()
+    try {
+      const sp = new URLSearchParams(window.location.search)
+      setUtmParams({
+        utm_source: sp.get("utm_source") || undefined,
+        utm_medium: sp.get("utm_medium") || undefined,
+        utm_campaign: sp.get("utm_campaign") || undefined,
+        utm_content: sp.get("utm_content") || undefined,
+        utm_term: sp.get("utm_term") || undefined,
+        fbclid: sp.get("fbclid") || undefined,
+      })
+    } catch {
+      // ignore
+    }
   }, [])
 
   const updateFormData = (field: keyof FormData, value: string | boolean) => {
@@ -367,7 +382,9 @@ export function ROISimulator() {
           b2b_grd: grdValue,
           b2b_bill_bracket: formData.electricityBillBracket,
           b2b_custom_bill: formData.annualElectricityBillCustom || undefined,
+          ...utmParams,
         },
+        sourceUrl: typeof window !== "undefined" ? window.location.href : undefined,
         marketingConsent: formData.marketingConsent,
         newsletterConsent: formData.newsletterConsent,
         estimatedROIYears: roiResults.estimatedROIYears,
@@ -390,7 +407,7 @@ export function ROISimulator() {
       }
 
       const resData = await response.json().catch(() => ({}))
-      trackLeadConversion({ segment: "B2B", leadId: resData?.leadId, value: 120 })
+      trackLeadConversion({ segment: "B2B", leadId: resData?.leadId, value: 103.5 })
       setSubmitted(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue")
@@ -402,7 +419,7 @@ export function ROISimulator() {
   if (submitted && results) {
     const calendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL || "#"
     return (
-      <section id="simulator" className="scroll-mt-24 overflow-hidden relative bg-primary py-16 sm:py-32 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
+      <section id="simulateur" className="scroll-mt-24 overflow-hidden relative bg-primary py-16 sm:py-32 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1548618753-157945d81c4e?q=40&w=800&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay" />
         <div className="mx-auto max-w-4xl min-w-0 px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div 
@@ -498,7 +515,7 @@ export function ROISimulator() {
 
   return (
     <section
-      id="simulator"
+      id="simulateur"
       className="scroll-mt-24 overflow-x-hidden bg-primary py-12 sm:py-24 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]"
       aria-labelledby="simulator-title"
     >
@@ -534,7 +551,7 @@ export function ROISimulator() {
           {!isCalculating && (
             <>
               <div className="mb-8">
-                <div className="mb-2 flex justify-between text-sm text-muted-foreground">
+                <div className="mb-2 flex justify-between text-sm text-muted-foreground font-mono tabular-nums">
                   <span>
                     Étape {step} sur {totalSteps}
                   </span>
@@ -549,11 +566,11 @@ export function ROISimulator() {
               </div>
 
               {step === 1 && (
-                <div className="space-y-8">
+                <div className="flex flex-col gap-8">
                   <div>
-                    <h4 className="text-xl font-semibold text-foreground sm:text-2xl">
+                    <h3 className="text-xl font-semibold text-foreground sm:text-2xl">
                       Quel type de surface souhaitez-vous valoriser ?
-                    </h4>
+                    </h3>
                     <RadioGroup
                       value={formData.surfaceType}
                       onValueChange={(v) => {
@@ -637,7 +654,7 @@ export function ROISimulator() {
               )}
 
               {step === 2 && (
-                <div className="space-y-6">
+                <div className="flex flex-col gap-6">
                   <div>
                     <Label htmlFor="province" className="text-base font-semibold text-foreground">
                       Région ou province du projet
@@ -682,7 +699,7 @@ export function ROISimulator() {
                         placeholder="ex: 4000, 5000, 6000..."
                         value={formData.postalCode}
                         onChange={(e) => updateFormData("postalCode", e.target.value.replace(/\D/g, "").slice(0, 4))}
-                        className="mt-1.5 h-11"
+                        className="mt-1.5 h-11 font-mono tabular-nums"
                       />
                       {formData.postalCode.length > 0 && !/^[1-9][0-9]{3}$/.test(formData.postalCode) && (
                         <p className="mt-1 text-xs text-destructive">Code postal belge à 4 chiffres requis (ex : 4000).</p>
@@ -749,7 +766,7 @@ export function ROISimulator() {
                       aria-invalid={formData.province === "autre" && formData.provinceFreeText.trim().length < 2}
                     />
                     <p className="mt-1.5 text-xs text-muted-foreground">
-                      {formData.provinceFreeText.length}/400 — utile pour affiner le raccordement (GRD) et la zone CWaPE.
+                      <span className="font-mono tabular-nums">{formData.provinceFreeText.length}/400</span> — utile pour affiner le raccordement (GRD) et la zone CWaPE.
                     </p>
                   </div>
                   <div>
@@ -774,10 +791,10 @@ export function ROISimulator() {
               )}
 
               {step === 3 && (
-                <div className="space-y-6">
-                  <h4 className="text-xl font-semibold text-foreground sm:text-2xl">
+                <div className="flex flex-col gap-6">
+                  <h3 className="text-xl font-semibold text-foreground sm:text-2xl">
                     Montant estimé de votre facture d&apos;électricité annuelle ?
-                  </h4>
+                  </h3>
                   <p className="text-sm text-muted-foreground">
                     Cette donnée sert à estimer votre profil de consommation et le taux d&apos;autoconsommation plausible par rapport à la production — pilier de tout ROI wallon (réseau, pas de compensation nette pour les nouvelles installations).
                   </p>
@@ -822,12 +839,12 @@ export function ROISimulator() {
                           onChange={(e) =>
                             updateFormData("annualElectricityBillCustom", e.target.value.replace(/[^\d\s]/g, "").slice(0, 9))
                           }
-                          className="h-11"
+                          className="h-11 font-mono tabular-nums"
                         />
                       </div>
-                      <span className="text-sm text-muted-foreground sm:h-11 sm:flex sm:items-center">€ HT / an</span>
+                      <span className="text-sm text-muted-foreground font-mono tabular-nums sm:h-11 sm:flex sm:items-center">€ HT / an</span>
                     </div>
-                    <p className="mt-1.5 text-xs text-muted-foreground">Minimum {MIN_ANNUAL_BILL.toLocaleString("fr-BE")} € HT/an pour une étude B2B.</p>
+                    <p className="mt-1.5 text-xs text-muted-foreground">Minimum <span className="font-mono tabular-nums">{MIN_ANNUAL_BILL.toLocaleString("fr-BE")} € HT/an</span> pour une étude B2B.</p>
                   </div>
                 </div>
               )}
@@ -840,7 +857,7 @@ export function ROISimulator() {
                 )
 
                 return (
-                  <div className="space-y-6">
+                  <div className="flex flex-col gap-6">
                     <div className="sr-only" aria-hidden="true">
                       <Label htmlFor="fax_number">Ne pas remplir</Label>
                       <Input
@@ -899,7 +916,7 @@ export function ROISimulator() {
                     </div>
 
                     {/* Sélecteur rapide de fonction en 1 tap */}
-                    <div className="space-y-2">
+                    <div className="flex flex-col gap-2">
                       <Label className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
                         Votre fonction au sein de l&apos;entreprise
                       </Label>
@@ -983,7 +1000,7 @@ export function ROISimulator() {
                           value={formData.companyVat ?? ""}
                           onChange={(e) => updateFormData("companyVat", e.target.value)}
                           onBlur={() => markTouched("companyVat")}
-                          className={`h-12 w-full ${
+                          className={`h-12 w-full font-mono tabular-nums ${
                             showVatError
                               ? "border-destructive"
                               : formData.companyVat && isValidBelgianVat(formData.companyVat)
@@ -1084,7 +1101,7 @@ export function ROISimulator() {
                           value={formData.phone ?? ""}
                           onChange={(e) => updateFormData("phone", e.target.value)}
                           onBlur={() => markTouched("phone")}
-                          className={`h-12 w-full ${showPhoneError ? "border-destructive" : ""}`}
+                          className={`h-12 w-full font-mono tabular-nums ${showPhoneError ? "border-destructive" : ""}`}
                           aria-invalid={!!showPhoneError}
                           aria-describedby={showPhoneError ? "phone-error" : undefined}
                         />
@@ -1110,7 +1127,7 @@ export function ROISimulator() {
                         aria-describedby="projectDetails-hint"
                       />
                       <p id="projectDetails-hint" className="mt-1.5 text-xs text-muted-foreground">
-                        {formData.projectDetails.length}/2 000 caractères
+                        <span className="font-mono tabular-nums">{formData.projectDetails.length}/2 000</span> caractères
                       </p>
                     </div>
 
@@ -1120,7 +1137,7 @@ export function ROISimulator() {
                       </p>
                     )}
 
-                    <div className="space-y-3">
+                    <div className="flex flex-col gap-3">
                       <label
                         className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${
                           showConsentError ? "border-destructive bg-destructive/5" : "border-border hover:bg-muted/30"
@@ -1162,7 +1179,7 @@ export function ROISimulator() {
                       </label>
                     </div>
 
-                    <div className="rounded-lg border border-border bg-muted/50 p-4 text-xs text-muted-foreground space-y-2">
+                    <div className="rounded-lg border border-border bg-muted/50 p-4 text-xs text-muted-foreground flex flex-col gap-2">
                       <p className="font-medium text-foreground">Avertissement technique, réglementaire et fiscal</p>
                       <p>
                         Les résultats générés par ce simulateur reposent sur les données d&apos;irradiation moyennes PVGIS (930 kWh/kWc/an en Wallonie) et sur des hypothèses statistiques de profil de charge. Ils constituent une estimation préliminaire strictement indicative et non contractuelle. Ils ne remplacent ni une étude de stabilité de toiture, ni une étude de raccordement auprès de votre Gestionnaire de Réseau de Distribution (ORES, RESA, AIEG, REW, Fluvius), ni l&apos;avis d&apos;un expert-comptable concernant votre éligibilité effective à la Déduction pour Investissement (DPI).

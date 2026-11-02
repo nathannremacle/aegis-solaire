@@ -8,17 +8,17 @@ Ce document est la **seule source à jour** pour comprendre le site : **parcours
 
 ## 1. Vue d’ensemble métier & Gouvernance
 
-**Aegis Solaire** est une plateforme d'intermédiation et de qualification photovoltaïque en Wallonie (Belgique), exploitée sous l'entité individuelle **INIT42** (BCE `1039.899.980` · TVA `BE 1039.899.980` · Liège).
+**Aegis Solaire** est une plateforme d'intermédiation et de qualification photovoltaïque en Wallonie (Belgique) — Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique.
 
 Le projet repose sur la complémentarité entre :
-- **Nathan Remacle** : Fondateur & Architecte Logiciel (étudiant ingénieur civil à Liège, concepteur de la plateforme avec l'IA Antigravity / Gemini).
-- **Fabrice Remacle** : Chief Technical Advisor (expert photovoltaïque, onduleurs et batteries en Wallonie, formateur et consultant d'installateurs, en poste chez PhotonSolar à Fléron).
+- **L'équipe Aegis Solaire (Direction Générale & Ingénierie Logicielle)** : Conception de la plateforme, architecture logicielle fullstack et infrastructure cloud (`contact@aegissolaire.com`).
+- **La Cellule Technique & Ingénierie Aegis Solaire** : Expertise photovoltaïque, onduleurs et batteries en Wallonie, formation et conseil auprès d'installateurs partenaires.
 
 ### Missions clés :
 - **Attirer** décideurs B2B et particuliers via l'accueil (`/`), le segment résidentiel (`/particuliers`), le comparateur devis (`/devis-panneaux-solaires`), les simulateurs, le webinaire et la FAQ.
 - **Qualifier & Contrôler à la main** : Chaque demande fait l'objet d'un filtrage algorithmique (Zod, scoring, anti-bot) suivi obligatoirement d'une **vérification manuelle humaine par l'équipe (`pending_review`)** avant toute mise en vente (contrôle BCE/TVA, toiture Maps, cohérence du besoin).
-- **Distribuer avec friction concurrentielle réduite** : Distribution sélective sur la marketplace partenaire (**1 seul acheteur exclusif en B2B**, **maximum 3 installateurs en B2C**) via des packs de crédits prépayés sur facture INIT42.
-- **Accompagnement de chantier B2B** : Offre exclusive d'ingénierie et d'accompagnement client assurée par Fabrice Remacle pour épauler les installateurs partenaires sur les projets tertiaires et industriels d'envergure.
+- **Distribuer avec friction concurrentielle réduite** : Distribution sélective sur la marketplace partenaire (**1 seul acheteur exclusif en B2B**, **maximum 3 installateurs en B2C**) via des packs de crédits prépayés (Mollie ou facture INIT42).
+- **Accompagnement de chantier B2B** : Offre exclusive d'ingénierie et d'accompagnement client assurée par La Cellule Technique & Ingénierie Aegis Solaire pour épauler les installateurs partenaires sur les projets tertiaires et industriels d'envergure.
 
 ---
 
@@ -30,11 +30,11 @@ Le projet repose sur la complémentarité entre :
 | `/particuliers` | Segment résidentiel : arguments + **simulateur B2C** |
 | `/devis-panneaux-solaires` | Formulaire comparatif rapide (style Bobex) optimisé pour mobile et campagnes Meta/Google Ads |
 | `/partenaires` | Programme installateurs : présentation + **candidature** ; liens vers **connexion** et **dashboard marketplace** |
-| `/partenaires/invitation` | Landing page VIP d'invitation personnalisée pour les installateurs invités par Fabrice Remacle (`?nom=Christophe&cie=Coretec`) |
+| `/partenaires/invitation` | Landing page VIP d'invitation personnalisée pour les installateurs invités par La Cellule Technique & Ingénierie Aegis Solaire (`?nom=Christophe&cie=Coretec`) |
 | `/media-partners` | Programme marketeurs (affiliation) |
 | `/webinaire` | Inscription webinaire |
 | `/faq-technique` | Contenu technique (FAQ) |
-| `/mentions-legales`, `/politique-confidentialite`, `/cgv` | Légal (INIT42, Nathan Remacle, tribunal de Liège) |
+| `/mentions-legales`, `/politique-confidentialite`, `/cgv` | Légal (Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique) |
 
 Le **sitemap** (`app/sitemap.ts`) liste les URL **indexables**. Les zones **`/admin`**, **`/partenaires/dashboard`**, **`/media-partners/dashboard`** ne sont en général **pas** destinées au référencement (metadata `robots` sur certaines layouts). Le footer renvoie notamment vers **Devenir Partenaire** et **Media Partners**.
 
@@ -92,9 +92,9 @@ Le composant **`MediaPartnerRefTracker`** est monté dans **`app/layout.tsx`** (
 
 ### 7.2 Inscription VIP par Invitation Personnalisée (`/partenaires/invitation`)
 
-Pour les démarches directes menées par **Fabrice Remacle** auprès de son réseau d'installateurs (notamment via PhotonSolar), une landing page sur-mesure est disponible :
-- URL paramétrable : `https://aegissolaire.com/partenaires/invitation?nom=Christophe&cie=Coretec`.
-- Message d'accueil personnalisé avec photo/badge de Fabrice et promesses d'Aegis Solaire (vérifié à la main, assistance chantier B2B, concurrence ultra-limitée).
+Pour les démarches directes menées par **La Cellule Technique & Ingénierie Aegis Solaire** auprès du réseau d'installateurs, une landing page sur-mesure est disponible :
+- URL paramétrable : `https://www.aegissolaire.com/partenaires/invitation?nom=Christophe&cie=Coretec`.
+- Message d'accueil personnalisé avec le mot de La Cellule Technique & Ingénierie Aegis Solaire et promesses d'Aegis Solaire (vérifié à la main, assistance chantier B2B, concurrence ultra-limitée).
 - Aucun crédit gratuit offert : modèle strict basé sur la qualité et la certification RESCERT.
 - Pré-remplissage du prénom et de l'entreprise.
 - À la soumission : tag automatique `⭐ INVITATION VIP PAR: [Nom]` stocké dans `installer_applications.admin_notes`.
@@ -348,7 +348,7 @@ Pour fluidifier les acquisitions de dossiers et éliminer les risques d'impayés
    - Ou commande par virement bancaire sur facture proforma INIT42 (`/api/partners/credits/order`) :
      - **IBAN** : `BE84 0020 3534 7259`
      - **BIC** : `GEBABEBB`
-     - **Bénéficiaire** : INIT42 / Nathan Remacle
+     - **Bénéficiaire** : INIT42 (Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique)
 3. **Crédit sur le compte partenaire :**
    - Mollie crédite automatiquement via webhook (`settle_credit_order`).
    - Par virement, l'administration valide la commande dans `/admin/credits` qui exécute la RPC atomique `settle_credit_order`.

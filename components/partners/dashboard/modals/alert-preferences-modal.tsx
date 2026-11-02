@@ -239,7 +239,7 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
         {/* ── 1. En-tête de la Fenêtre ── */}
         <div className="shrink-0 px-6 pt-5 pb-4 border-b border-border bg-card">
           <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
+            <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 border border-accent/20 px-2.5 py-0.5 font-mono text-[11px] font-bold text-accent">
                   <Bell className="h-3.5 w-3.5" />
@@ -270,9 +270,9 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
         </div>
 
         {/* ── 2. Corps Formulaire Déroulant ── */}
-        <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+        <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-5 sm:p-6 flex flex-col gap-6">
           {/* ════════ Section A : Sélection des Provinces Wallonnes ════════ */}
-          <div className="space-y-3">
+          <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <label className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wider font-mono">
@@ -323,7 +323,7 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
                         : "border-border bg-card hover:bg-secondary/40 text-muted-foreground hover:border-slate-300 dark:hover:border-border/80"
                     }`}
                   >
-                    <div className="space-y-1 min-w-0 pr-2">
+                    <div className="flex flex-col gap-1 min-w-0 pr-2">
                       <div className="flex items-center gap-2">
                         <span
                           className={`font-bold text-sm leading-tight transition-colors ${
@@ -358,7 +358,7 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
           </div>
 
           {/* ════════ Section B : Types d'installations & Surfaces ════════ */}
-          <div className="space-y-3 pt-2 border-t border-border/80">
+          <div className="flex flex-col gap-3 pt-2 border-t border-border/80">
             <div className="flex items-center justify-between gap-2">
               <label className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wider font-mono">
                 <Layers className="h-3.5 w-3.5 text-accent shrink-0" />
@@ -384,7 +384,7 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
                         : "border-border bg-card hover:bg-secondary/40 text-muted-foreground"
                     }`}
                   >
-                    <div className="space-y-1.5">
+                    <div className="flex flex-col gap-1.5">
                       <div className="flex items-center justify-between">
                         <div
                           className={`flex h-8 w-8 items-center justify-center rounded-xl transition-colors ${
@@ -425,7 +425,7 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
           </div>
 
           {/* ════════ Section C : Envergure & Seuil minimal de facture ════════ */}
-          <div className="space-y-3 pt-2 border-t border-border/80">
+          <div className="flex flex-col gap-3 pt-2 border-t border-border/80">
             <div className="flex items-center justify-between gap-2">
               <label className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wider font-mono">
                 <Zap className="h-3.5 w-3.5 text-accent shrink-0" />
@@ -467,7 +467,7 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
             {/* Explication du seuil sélectionné */}
             <div className="rounded-xl bg-secondary/40 border border-border/70 p-3 text-xs text-muted-foreground flex items-start gap-2.5">
               <Sparkles className="h-4 w-4 text-accent shrink-0 mt-0.5" />
-              <div className="space-y-0.5">
+              <div className="flex flex-col gap-0.5">
                 <span className="font-semibold text-foreground block">
                   Filtrage actif : {currentPreset.label} ({currentPreset.powerHint})
                 </span>
@@ -479,7 +479,7 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
           </div>
 
           {/* ════════ Section D : Canal de Notification & Transparence ════════ */}
-          <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/5 p-3.5 sm:p-4 space-y-2.5 text-xs text-foreground">
+          <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/5 p-3.5 sm:p-4 flex flex-col gap-2.5 text-xs text-foreground">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600">
@@ -539,7 +539,7 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="rounded-xl text-xs font-bold bg-[#0F172A] hover:bg-[#1E293B] text-white shadow-xs cursor-pointer min-w-[140px]"
+              className="rounded-xl text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs cursor-pointer min-w-[140px]"
             >
               {saving ? (
                 <>

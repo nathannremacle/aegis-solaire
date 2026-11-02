@@ -66,7 +66,7 @@ Prochaines étapes de votre intégration :
 Aegis Solaire en bref :
 ✅ Pas d'abonnement – 100% à la carte, aucun engagement mensuel ni frais cachés.
 ✅ Fiches techniques complètes – surface de toiture, historique de consommation kWh, type de compteur et coordonnées vérifiées avant transmission.
-✅ Concurrence plafonnée – 2 installateurs maximum par projet résidentiel et exclusivité stricte (1 seul artisan) sur les chantiers professionnels B2B.
+✅ Concurrence plafonnée – 3 installateurs maximum par projet résidentiel et exclusivité stricte (1 seul artisan) sur les chantiers professionnels B2B.
 ✅ Vous gardez le contrôle – pas de chantiers sélectionnés ? Zéro coût.
 
 Des questions sur votre adhésion ?
@@ -77,7 +77,7 @@ Cordialement,
 L'équipe Aegis Solaire
 
 --
-Plateforme éditée par INIT42 (Nathan Remacle) · BCE / TVA BE 1039.899.980 · Liège, Belgique.
+Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
 Conformément au RGPD, vous disposez d'un droit d'accès et d'opposition (dpo@aegissolaire.com).`.trim()
 
   const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -257,7 +257,7 @@ Conformément au RGPD, vous disposez d'un droit d'accès et d'opposition (dpo@ae
                     &#10003;
                   </td>
                   <td valign="top" style="padding: 6px 0; font-size: 14px; line-height: 1.5; color: #334155;">
-                    <strong style="color: #0F172A;">Plafond strict de concurrence</strong> &mdash; 2 installateurs maximum en résidentiel, exclusivité 100% en tertiaire B2B.
+                    <strong style="color: #0F172A;">Plafond strict de concurrence</strong> &mdash; 3 installateurs maximum en résidentiel, exclusivité 100% en tertiaire B2B.
                   </td>
                 </tr>
                 <tr>
@@ -296,7 +296,7 @@ Conformément au RGPD, vous disposez d'un droit d'accès et d'opposition (dpo@ae
                 <strong>Aegis Solaire</strong> &mdash; Plateforme d'audit financier et de mise en relation photovoltaïque indépendante en Wallonie.
               </p>
               <p style="margin: 0 0 6px 0;">
-                Éditée par <strong>INIT42</strong> (Nathan Remacle, personne physique) · BCE/TVA <span class="mono">BE 1039.899.980</span> · Liège, Belgique.
+                Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
               </p>
               <p style="margin: 0;">
                 Vous recevez cet email car une candidature a été déposée pour votre société sur notre site. Conformément au RGPD, vous disposez d'un droit d'accès et d'opposition via <a href="mailto:dpo@aegissolaire.com" style="color: #475569;">dpo@aegissolaire.com</a>.
@@ -358,7 +358,7 @@ ${marketplaceUrl}
 La Marketplace Aegis Solaire en bref :
 ✅ Pas d’abonnement – vous ne payez que pour les demandes de devis que vous choisissez d'acquérir.
 ✅ Fiches techniques vérifiées – surface toiture, historique de facture kWh, raccordement ORES/RESA et coordonnées complètes à portée de main.
-✅ Concurrence saine & maîtrisée – maximum 2 installateurs par projet résidentiel et exclusivité totale (1 seul installateur) en B2B.
+✅ Concurrence saine & maîtrisée – maximum 3 installateurs par projet résidentiel et exclusivité totale (1 seul installateur) en B2B.
 ✅ Facturation claire sans engagement et sans tracas.
 ✅ Pas de chantiers sélectionnés ? Zéro frais ! Vous gardez le contrôle total.
 
@@ -376,7 +376,7 @@ L'équipe Aegis Solaire
 Aegis Solaire Wallonie
 
 --
-Plateforme éditée par INIT42 (Nathan Remacle) · BCE / TVA BE 1039.899.980 · Liège, Belgique.`.trim()
+Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique`.trim()
 
   const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="fr">
@@ -515,7 +515,7 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE / TVA BE 1039.899.980 · 
                       &#10003;
                     </td>
                     <td valign="top" style="padding: 6px 0; font-size: 14px; line-height: 1.5; color: #334155;">
-                      <strong style="color: #0F172A;">Plafond strict de concurrence</strong> &mdash; 2 installateurs maximum sur un dossier résidentiel (exclusivité 100% en B2B).
+                      <strong style="color: #0F172A;">Plafond strict de concurrence</strong> &mdash; 3 installateurs maximum sur un dossier résidentiel (exclusivité 100% en B2B).
                     </td>
                   </tr>
                   <tr>
@@ -574,7 +574,7 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE / TVA BE 1039.899.980 · 
                 <strong>Aegis Solaire</strong> &mdash; Plateforme d'audit financier et de mise en relation photovoltaïque indépendante en Wallonie.
               </p>
               <p style="margin: 0 0 6px 0;">
-                Éditée par <strong>INIT42</strong> (Nathan Remacle, personne physique) · BCE/TVA <span class="mono">BE 1039.899.980</span> · Liège, Belgique.
+                Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
               </p>
               <p style="margin: 0;">
                 Vous recevez cet email car votre entreprise est agréée en tant qu'installateur partenaire sur notre plateforme.

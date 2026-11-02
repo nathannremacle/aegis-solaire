@@ -1,7 +1,7 @@
 /**
- * Source unique de vérité pour la valorisation financière et les calculs de rentabilité
- * des leads sur la marketplace Aegis Solaire.
- * Garantit la cohérence entre l'API, les fiches projets et la page crédits.
+ * Source unique de vérité pour la valorisation financière, le dimensionnement physique
+ * et les calculs de rentabilité des leads sur la marketplace Aegis Solaire.
+ * Garantit la cohérence entre l'API, les fiches projets, le back-office admin et l'espace partenaire.
  */
 
 import {
@@ -10,12 +10,32 @@ import {
   B2C_CREDIT_COST,
   B2B_CREDIT_COST,
 } from "./credit-pricing"
+import {
+  calculateB2BSolarROI,
+  calculateB2CSolarROI,
+  SOLAR_CONSTANTS,
+} from "./solar-assumptions"
 
 // Prix de référence unitaire moyen constaté sur les recharges installateurs (1 crédit = 11,50 € HTVA)
 export const REFERENCE_CREDIT_PRICE_EUR = CREDIT_UNIT_PRICE_EUR
 
 export interface FinancialEstimates {
   estimatedPowerKwc: number
+  estimatedPanelCount: number
+  usableSurfaceM2: number
+  normalizedSurfaceAreaM2: number
+  normalizedAnnualBill: number
+  estimatedAnnualConsumptionKwh: number
+  annualProductionKwh: number
+  autoconsumptionRate: number // en % (ex: 36 pour 36 %)
+  selfConsumedKwh: number
+  injectedKwh: number
+  estimatedRoiYears: number
+  estimatedGainLongTerm: number // Gain net sur 25 ans (B2C) ou 20 ans (B2B)
+  co2AvoidedTonsPerYear: number
+  inverterType: string
+  sizingRationale: string
+  installerMarginPercent: number
   estimatedContractValue: number
   estimatedContractValueRange: { min: number; max: number }
   estimatedInstallerMargin: number
@@ -25,13 +45,14 @@ export interface FinancialEstimates {
   creditCostEur: number
   revenueEstimatePerYear: number
   dataQuality: "complete" | "partial"
+  includesBattery: boolean
+  includesEv: boolean
 }
 
 /**
  * Calcule dynamiquement le coût en crédits d'un dossier selon le barème fixe V2 :
  * - B2C (partagé max 3 installateurs) : 3 crédits / acheteur (34,50 € HTVA)
  * - B2B professionnel exclusif : 9 crédits en exclusivité (103,50 € HTVA)
- * Les anciens paliers B2B de 8, 12 et 18 crédits ont disparu au profit d'un tarif fixe unique.
  */
 export function calculateLeadCreditCost(lead: {
   segment: "B2B" | "B2C" | string
@@ -43,96 +64,355 @@ export function calculateLeadCreditCost(lead: {
   return B2B_CREDIT_COST
 }
 
+const B2C_CONSUMPTION_BRACKET_MAP: Record<string, { kwh: number; bill: number }> = {
+  lt_3000: { kwh: 2400, bill: 820 },
+  "3000_4000": { kwh: 3500, bill: 1150 },
+  "4000_5000": { kwh: 4500, bill: 1480 },
+  "5000_6000": { kwh: 5500, bill: 1820 },
+  gt_6000: { kwh: 7000, bill: 2300 },
+}
+
+const B2C_ROOF_SURFACE_MAP: Record<string, number> = {
+  small: 22,
+  medium: 42,
+  large: 65,
+  xlarge: 90,
+}
+
+const B2B_SURFACE_RANGE_MAP: Record<string, number> = {
+  lt_500: 280,
+  m500_1500: 850,
+  gt_1500: 1800,
+}
+
+interface ParsedLeadSignals {
+  consumptionBracket?: string
+  consumptionKwh?: number
+  roofSurfaceBracket?: string
+  b2bSurfaceBracket?: string
+  roofMaterial?: string
+  orientation?: string
+  propertyType?: string
+  householdSize?: string
+  hasBattery: boolean
+  hasEv: boolean
+}
+
+function parseProjectSignals(lead: {
+  hasBattery?: boolean | string | null
+  roofMaterial?: string | null
+  surfaceType?: string | null
+  projectDetails?: string | string[] | null
+  qualificationMetadata?: Record<string, unknown> | null
+}): ParsedLeadSignals {
+  const meta =
+    lead.qualificationMetadata && typeof lead.qualificationMetadata === "object"
+      ? lead.qualificationMetadata
+      : {}
+
+  const detailsText = Array.isArray(lead.projectDetails)
+    ? lead.projectDetails.join(" | ")
+    : typeof lead.projectDetails === "string"
+      ? lead.projectDetails
+      : ""
+
+  // 1. Tranche de consommation B2C
+  let consumptionBracket =
+    typeof meta.consumptionKwh === "string" ? meta.consumptionKwh.trim() : undefined
+  if (!consumptionBracket && detailsText) {
+    const match = detailsText.match(/Consommation annuelle:\s*(lt_3000|3000_4000|4000_5000|5000_6000|gt_6000)/i)
+    if (match) consumptionBracket = match[1].toLowerCase()
+  }
+
+  let consumptionKwh =
+    typeof meta.annualConsumptionKwh === "number" && meta.annualConsumptionKwh > 0
+      ? meta.annualConsumptionKwh
+      : undefined
+  if (!consumptionKwh && consumptionBracket && B2C_CONSUMPTION_BRACKET_MAP[consumptionBracket]) {
+    consumptionKwh = B2C_CONSUMPTION_BRACKET_MAP[consumptionBracket].kwh
+  }
+
+  // 2. Tranche de surface B2C / B2B
+  let roofSurfaceBracket =
+    typeof meta.roofSurface === "string"
+      ? meta.roofSurface.trim().toLowerCase()
+      : typeof meta.roofSize === "string"
+        ? meta.roofSize.trim().toLowerCase()
+        : undefined
+  if (!roofSurfaceBracket && detailsText) {
+    const match = detailsText.match(/Surface toiture:\s*(small|medium|large|xlarge)/i)
+    if (match) roofSurfaceBracket = match[1].toLowerCase()
+  }
+
+  let b2bSurfaceBracket =
+    typeof meta.b2b_surface_range === "string"
+      ? meta.b2b_surface_range.trim()
+      : undefined
+
+  // 3. Matériau / type de toiture
+  let roofMaterial =
+    lead.roofMaterial ||
+    (typeof meta.roofType === "string" ? meta.roofType : undefined) ||
+    (typeof meta.roofMaterial === "string" ? meta.roofMaterial : undefined)
+  if (!roofMaterial && detailsText) {
+    const match = detailsText.match(/Couverture:\s*([a-zA-Z0-9_-]+)/i)
+    if (match) roofMaterial = match[1].toLowerCase()
+  }
+
+  // 4. Orientation
+  let orientation = typeof meta.orientation === "string" ? meta.orientation : undefined
+  if (!orientation && detailsText) {
+    const match = detailsText.match(/Orientation(?:\s+toiture)?\s*:\s*([^|,;\n]+)/i)
+    if (match) orientation = match[1].trim()
+  }
+
+  // 5. Type de bien & Foyer
+  let propertyType = typeof meta.propertyType === "string" ? meta.propertyType : undefined
+  if (!propertyType && detailsText) {
+    if (/2\s*fa[çc]ades|mitoyen/i.test(detailsText)) propertyType = "house_2f"
+    else if (/3\s*fa[çc]ades|semi-mitoyen/i.test(detailsText)) propertyType = "house_3f"
+    else if (/4\s*fa[çc]ades/i.test(detailsText)) propertyType = "house_4f"
+  }
+
+  let householdSize = typeof meta.householdSize === "string" ? meta.householdSize : undefined
+  if (!householdSize && detailsText) {
+    const match = detailsText.match(/Foyer:\s*([0-9+]+)/i)
+    if (match) householdSize = match[1]
+  }
+
+  // 6. Batterie (uniquement "oui" explicite — exclure "hesite" et "non")
+  let hasBattery = false
+  if (lead.hasBattery === true || lead.hasBattery === "oui") {
+    hasBattery = true
+  } else if (meta.hasBattery === "oui" || meta.hasBattery === true || meta.batteryInterest === "oui") {
+    hasBattery = true
+  } else if (
+    meta.hasBattery === "non" ||
+    meta.hasBattery === "hesite" ||
+    meta.batteryInterest === "non" ||
+    meta.batteryInterest === "hesite"
+  ) {
+    hasBattery = false
+  } else if (detailsText) {
+    hasBattery =
+      /Batterie(?:\s+domestique)?\s*:\s*oui/i.test(detailsText) ||
+      /Intérêt batterie:\s*oui/i.test(detailsText)
+  }
+
+  // 7. Véhicule électrique / Borne
+  let hasEv = false
+  if (
+    meta.hasEv === "oui" ||
+    meta.hasEv === "prevu" ||
+    meta.hasEv === true ||
+    meta.evInterest === "oui" ||
+    meta.evInterest === "prevu"
+  ) {
+    hasEv = true
+  } else if (detailsText) {
+    hasEv =
+      /Borne\s+VE\s*:\s*(?:oui|prevu|prévu)/i.test(detailsText) ||
+      /Intérêt borne VE:\s*(?:oui|prevu|prévu)/i.test(detailsText)
+  }
+
+  return {
+    consumptionBracket,
+    consumptionKwh,
+    roofSurfaceBracket,
+    b2bSurfaceBracket,
+    roofMaterial,
+    orientation,
+    propertyType,
+    householdSize,
+    hasBattery,
+    hasEv,
+  }
+}
+
 /**
- * Calcule des estimations de marché crédibles et défendables pour un installateur photovoltaïque agréé en Wallonie.
+ * Calcule des estimations d'ingénierie et de marché réalistes, non sur-évaluées,
+ * pour un installateur photovoltaïque agréé en Wallonie (marché 2026).
  */
 export function calculateMarketplaceFinancials(lead: {
   segment: "B2B" | "B2C" | string
   surfaceArea: number | null | undefined
   surfaceType?: string | null | undefined
+  roofMaterial?: string | null | undefined
   annualBill?: number | null | undefined
   creditCost?: number | null | undefined
   estimatedPowerKwc?: number | null | undefined
+  hasBattery?: boolean | string | null | undefined
+  projectDetails?: string | string[] | null | undefined
+  qualificationMetadata?: Record<string, unknown> | null | undefined
 }): FinancialEstimates {
   const isB2C = lead.segment === "B2C"
   const rawArea = Math.max(0, Number(lead.surfaceArea) || 0)
-  const annualBill = Math.max(0, Number(lead.annualBill) || 0)
-  
-  // Plafonnement de cohérence B2C :
-  // En Wallonie, le résidentiel standard est capé à 10 kVA pour les démarches simplifiées.
-  // Une toiture résidentielle typique varie entre 30 et 120 m² (jamais 2 650 m² qui est une toiture industrielle).
-  const effectiveArea = isB2C && rawArea > 150 ? Math.min(rawArea, 80) : rawArea
+  const rawAnnualBill = Math.max(0, Number(lead.annualBill) || 0)
 
-  // Rendement standard : ~170 Wc / m² (soit ~0.17 kWc par m²)
-  let powerKwc = Number(lead.estimatedPowerKwc) || Math.round(effectiveArea * 0.17)
+  const signals = parseProjectSignals(lead)
 
-  // Si pas de surface mais facture présente, inférer la puissance équivalente
-  if (powerKwc <= 0 && annualBill > 0) {
-    powerKwc = Math.max(isB2C ? 6 : 20, Math.round(annualBill / 1000 * (isB2C ? 1.2 : 1.5)))
+  // Normalisation de la surface (corrige aussi les anciennes valeurs de paliers 30/50/80 ou 350/1000/2000)
+  let normalizedSurfaceAreaM2 = rawArea
+  if (isB2C) {
+    if (signals.roofSurfaceBracket && B2C_ROOF_SURFACE_MAP[signals.roofSurfaceBracket]) {
+      normalizedSurfaceAreaM2 = B2C_ROOF_SURFACE_MAP[signals.roofSurfaceBracket]
+    } else if (rawArea === 30) {
+      normalizedSurfaceAreaM2 = 22
+    } else if (rawArea === 50) {
+      normalizedSurfaceAreaM2 = 42
+    } else if (rawArea === 80) {
+      normalizedSurfaceAreaM2 = 65
+    } else if (rawArea > 150) {
+      normalizedSurfaceAreaM2 = 65
+    } else if (rawArea <= 0) {
+      normalizedSurfaceAreaM2 = 42
+    }
+  } else {
+    if (signals.b2bSurfaceBracket && B2B_SURFACE_RANGE_MAP[signals.b2bSurfaceBracket]) {
+      normalizedSurfaceAreaM2 = B2B_SURFACE_RANGE_MAP[signals.b2bSurfaceBracket]
+    } else if (rawArea === 350) {
+      normalizedSurfaceAreaM2 = 280
+    } else if (rawArea === 1000) {
+      normalizedSurfaceAreaM2 = 850
+    } else if (rawArea === 2000) {
+      normalizedSurfaceAreaM2 = 1800
+    } else if (rawArea <= 0) {
+      normalizedSurfaceAreaM2 = 450
+    }
   }
 
-  // Baseline par défaut pour éviter les dossiers à 0 kWc / 0 €
-  if (powerKwc <= 0) {
-    powerKwc = isB2C ? 8 : 35
+  // Normalisation de la facture annuelle (corrige le bug historique de sur-évaluation dans devis-landing-client)
+  let normalizedAnnualBill = rawAnnualBill
+  if (isB2C) {
+    if (signals.consumptionBracket && B2C_CONSUMPTION_BRACKET_MAP[signals.consumptionBracket]) {
+      const mapped = B2C_CONSUMPTION_BRACKET_MAP[signals.consumptionBracket]
+      // Si la facture stockée correspond aux anciennes valeurs gonflées (1000, 1800, 2400, 3100, 4500) ou est absente
+      if (
+        rawAnnualBill <= 0 ||
+        [1000, 1800, 2400, 3100, 4500].includes(Math.round(rawAnnualBill))
+      ) {
+        normalizedAnnualBill = mapped.bill
+      }
+    } else if (rawAnnualBill <= 0) {
+      normalizedAnnualBill = 1350
+    }
+  } else {
+    if (rawAnnualBill <= 0) {
+      normalizedAnnualBill = 12000
+    }
   }
 
-  // Plafonnement de cohérence B2C (en Wallonie résidentiel capé à 10 kVA / 10 kWc)
-  if (isB2C && powerKwc > 10) {
-    powerKwc = 10
-  }
-
-  // Fourchette de prix moyen du marché wallon par kWc installé (clé en main) :
-  // B2C : ~1 300 à 1 550 €/kWc
-  // B2B : ~950 à 1 200 €/kWc avec dégressivité sur grandes toitures (> 150 kWc)
-  let minPricePerKwc = isB2C ? 1300 : 950
-  let maxPricePerKwc = isB2C ? 1550 : 1200
-
-  if (!isB2C && powerKwc > 150) {
-    minPricePerKwc = 850
-    maxPricePerKwc = 1050
-  }
-
-  const minContract = Math.max(isB2C ? 6500 : 20000, Math.round(powerKwc * minPricePerKwc))
-  const maxContract = Math.max(isB2C ? 8500 : 25000, Math.round(powerKwc * maxPricePerKwc))
-  const avgContract = Math.round((minContract + maxContract) / 2)
-
-  // Marge brute indicative installateur (~22 % selon structure de coûts)
-  const estimatedInstallerMargin = Math.round(avgContract * 0.22)
-
-  // Coût d'acquisition du dossier en crédits et en euros (calcul exact en centimes sans arrondi entier)
-  const credits = lead.creditCost ?? calculateLeadCreditCost({
-    segment: lead.segment,
-    surfaceArea: effectiveArea,
-    surfaceType: lead.surfaceType,
-    annualBill: lead.annualBill,
-  })
+  // Coût d'acquisition du dossier en crédits et en euros
+  const credits =
+    lead.creditCost ??
+    calculateLeadCreditCost({
+      segment: lead.segment,
+      surfaceArea: normalizedSurfaceAreaM2,
+      surfaceType: lead.surfaceType,
+      annualBill: normalizedAnnualBill,
+    })
   const leadCostEuros = (credits * CREDIT_UNIT_PRICE_CENTIMES) / 100
 
-  // Économie annuelle brute estimée sur la facture d'électricité (~35 % d'autoconsommation/effacement)
-  // Wallonie : 930 kWh/kWc/an. L'économie réelle correspond à l'autoconsommation + revente surplus,
-  // et ne peut en aucun cas dépasser la facture ou excéder la production physique.
-  const maxPossibleSolarSavings = Math.round(powerKwc * 930 * 0.32)
-  const revenueEstimatePerYear = annualBill > 0 
-    ? Math.min(Math.round(annualBill * 0.35), maxPossibleSolarSavings) 
-    : Math.min(Math.round(powerKwc * 95), maxPossibleSolarSavings)
-
-  // Multiplicateur ROI crédible
-  const roiMultiplier = Math.max(1, Math.round(estimatedInstallerMargin / (leadCostEuros || 1)))
-  const roiDescription = `Marge brute estimée ≈ ${roiMultiplier}× le coût du lead`
-
   const dataQuality: "complete" | "partial" =
-    rawArea > 0 && annualBill > 0 ? "complete" : "partial"
+    rawArea > 0 && rawAnnualBill > 0 ? "complete" : "partial"
 
-  return {
-    estimatedPowerKwc: powerKwc,
-    estimatedContractValue: avgContract,
-    estimatedContractValueRange: { min: minContract, max: maxContract },
-    estimatedInstallerMargin,
-    roiMultiplier,
-    roiDescription,
-    leadCostEuros,
-    creditCostEur: leadCostEuros,
-    revenueEstimatePerYear,
-    dataQuality,
+  if (isB2C) {
+    const b2cCalc = calculateB2CSolarROI({
+      annualBill: normalizedAnnualBill,
+      consumptionKwh: signals.consumptionKwh,
+      surfaceAreaM2: normalizedSurfaceAreaM2,
+      roofMaterial: signals.roofMaterial,
+      orientation: signals.orientation,
+      propertyType: signals.propertyType,
+      householdSize: signals.householdSize,
+      hasBattery: signals.hasBattery,
+      hasEv: signals.hasEv,
+    })
+
+    // Marge brute réaliste installateur résidentiel en Wallonie (~20 % sur devis HTVA)
+    const installerMarginPercent = 20
+    const avgContract = b2cCalc.totalNetCostHT
+    const estimatedInstallerMargin = Math.round(avgContract * (installerMarginPercent / 100))
+    const roiMultiplier = Math.max(1, Math.round(estimatedInstallerMargin / (leadCostEuros || 1)))
+
+    return {
+      estimatedPowerKwc: b2cCalc.installedPowerKwc,
+      estimatedPanelCount: b2cCalc.estimatedPanelCount,
+      usableSurfaceM2: b2cCalc.usableSurfaceM2,
+      normalizedSurfaceAreaM2,
+      normalizedAnnualBill,
+      estimatedAnnualConsumptionKwh: b2cCalc.estimatedConsumptionKwh,
+      annualProductionKwh: b2cCalc.annualProductionKwh,
+      autoconsumptionRate: b2cCalc.autoconsumptionRate,
+      selfConsumedKwh: b2cCalc.selfConsumedKwh,
+      injectedKwh: b2cCalc.injectedKwh,
+      estimatedRoiYears: b2cCalc.roiYears,
+      estimatedGainLongTerm: b2cCalc.gain25Years,
+      co2AvoidedTonsPerYear: b2cCalc.co2AvoidedTons,
+      inverterType: b2cCalc.inverterType,
+      sizingRationale: b2cCalc.sizingRationale,
+      installerMarginPercent,
+      estimatedContractValue: avgContract,
+      estimatedContractValueRange: {
+        min: b2cCalc.contractRangeHT.min,
+        max: b2cCalc.contractRangeHT.max,
+      },
+      estimatedInstallerMargin,
+      roiMultiplier,
+      roiDescription: `Marge brute estimée ≈ ${roiMultiplier}× le coût du lead`,
+      leadCostEuros,
+      creditCostEur: leadCostEuros,
+      revenueEstimatePerYear: b2cCalc.annualSavings,
+      dataQuality,
+      includesBattery: signals.hasBattery,
+      includesEv: signals.hasEv,
+    }
+  } else {
+    const b2bCalc = calculateB2BSolarROI({
+      surfaceAreaM2: normalizedSurfaceAreaM2,
+      surfaceType: (lead.surfaceType as "toiture" | "parking" | "friche") || "toiture",
+      roofMaterial: signals.roofMaterial,
+      annualElectricityBill: normalizedAnnualBill,
+    })
+
+    // Marge brute installateur B2B dégressive selon la taille du chantier (appels d'offres B2B)
+    const installerMarginPercent =
+      b2bCalc.installedPowerKwc > 100 ? 14 : b2bCalc.installedPowerKwc > 35 ? 16 : 18
+    const avgContract = b2bCalc.totalCapexEstimate
+    const estimatedInstallerMargin = Math.round(avgContract * (installerMarginPercent / 100))
+    const roiMultiplier = Math.max(1, Math.round(estimatedInstallerMargin / (leadCostEuros || 1)))
+
+    return {
+      estimatedPowerKwc: b2bCalc.installedPowerKwc,
+      estimatedPanelCount: b2bCalc.estimatedPanelCount,
+      usableSurfaceM2: b2bCalc.usableSurfaceM2,
+      normalizedSurfaceAreaM2,
+      normalizedAnnualBill,
+      estimatedAnnualConsumptionKwh: b2bCalc.estimatedConsumptionKwh,
+      annualProductionKwh: b2bCalc.annualProductionKwh,
+      autoconsumptionRate: b2bCalc.autoconsumptionRate,
+      selfConsumedKwh: b2bCalc.selfConsumedKwh,
+      injectedKwh: b2bCalc.injectedKwh,
+      estimatedRoiYears: b2bCalc.estimatedRoiYears,
+      estimatedGainLongTerm: b2bCalc.gain20Years,
+      co2AvoidedTonsPerYear: b2bCalc.co2AvoidedTons,
+      inverterType: b2bCalc.inverterType,
+      sizingRationale: b2bCalc.sizingRationale,
+      installerMarginPercent,
+      estimatedContractValue: avgContract,
+      estimatedContractValueRange: {
+        min: b2bCalc.capexRangeHT.min,
+        max: b2bCalc.capexRangeHT.max,
+      },
+      estimatedInstallerMargin,
+      roiMultiplier,
+      roiDescription: `Marge brute estimée ≈ ${roiMultiplier}× le coût du lead`,
+      leadCostEuros,
+      creditCostEur: leadCostEuros,
+      revenueEstimatePerYear: b2bCalc.estimatedAnnualSavings,
+      dataQuality,
+      includesBattery: false,
+      includesEv: signals.hasEv,
+    }
   }
 }

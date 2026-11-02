@@ -15,7 +15,7 @@ Suite à la revue technique et mathématique approfondie du plan initial, la str
    * **Suppression du compartiment Retargeting séparé** : avec moins de 1 500 visiteurs uniques au démarrage et 40 % de refus cookies RGPD, un Ad Set BOFU à 4 €/j provoquerait une sur-fréquence toxique (4 à 6 vues/jour) sur un micro-bassin de ~55 personnes. Le retargeting est confié nativement à l'algorithme Advantage+.
 2. **Sélection Créative Resserrée (3 Statiques 4:5)** :
    * Retrait du carrousel au lancement (trop de swips de curiosité internes, faible CTR sortant vers la landing page).
-   * Test de **3 angles statiques au format vertical 4:5 (`1080x1350`)** : Angle 1 (Batterie 32 % vs 74 %), Angle 2 (Anti-Démarchage / 1 seul artisan RESCERT) et Angle 3 (Écart de 1 850 €).
+   * Test de **3 angles statiques au format vertical 4:5 (`1080x1350`)** : Angle 1 (Rentabilité Panneaux Solaires 2026), Angle 2 (Anti-Démarchage / Jusqu'à 3 installateurs RESCERT locaux max) et Angle 3 (Écart de 1 850 €).
 3. **Stratégie d'Enchères : Lowest Cost (Volume max)** :
    * Aucun Cost Cap (qui bloquerait la diffusion à 22 €/j sur un compte sans historique de conversion).
 4. **Règles de Coupure (KILL) Basées sur la Réalité Statistique** :
@@ -40,9 +40,9 @@ L'audit de plus de **530 publicités actives** sur la bibliothèque Meta en Belg
 
 **Le White Space exploité par Aegis Solaire :**
 * Tiers de confiance neutre (aucun matériel à vendre, audit impartial).
-* Charte anti-harcèlement (coordonnées protégées, transmission contrôlée à des artisans locaux labellisés RESCERT).
-* Démystification mathématique : Rentabilité prouvée avec batterie (autoconsommation portée de 32 % à 74 %, générant 1 480 €/an d'économies réseau).
-* Direction artistique sobre « Swiss Editorial & Trust » (cartes d'ingénierie minérales, typographie `font-mono tabular-nums`).
+* Charte anti-harcèlement (coordonnées protégées, transmission contrôlée à Jusqu'à 3 installateurs RESCERT locaux max).
+* Démystification mathématique : Rentabilité prouvée sur tarif réseau de 0,32 €/kWh (autoconsommation directe ou avec batterie, générant 1 480 €/an d'économies réseau).
+* Direction artistique sobre « Fintech Slate & Solar Trust » (`#FFFFFF`, `#F8FAFC`, `#0F172A`, `#2563EB`, `#F59E0B`, typographie `font-mono tabular-nums`).
 
 ---
 
@@ -88,7 +88,7 @@ graph TD
 ```
 
 ### 3.2. Configuration de l'Ensemble de Publicités (Ad Set)
-* **Lieu de conversion** : Site Web (`https://aegissolaire.com/devis-panneaux-solaires`).
+* **Lieu de conversion** : Site Web (`https://www.aegissolaire.com/devis-panneaux-solaires`).
 * **Événement d'optimisation** : `Lead`.
 * **Stratégie d'enchère** : Volume le plus élevé (*Lowest Cost*), aucun plafond d'enchère.
 * **Budget quotidien** : **22,00 € / jour**.

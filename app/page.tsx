@@ -16,24 +16,16 @@ export default function Home() {
         <Hero />
 
         {/* 2. Preuve sociale immédiate (Liège 2 000 m², Brabant wallon 3 000 m², Hainaut 5 000 m²) */}
-        <section id="preuve">
-          <Testimonials />
-        </section>
+        <Testimonials />
 
         {/* 3. Cœur de conversion : Simulateur ROI B2B placé haut dans le parcours */}
-        <section id="simulateur">
-          <ROISimulator />
-        </section>
+        <ROISimulator />
 
         {/* 4. Cadre réglementaire wallon (PACE 2030, PEB 2026, Easy'Green, Déduction 40%) */}
-        <section id="expert">
-          <Expert />
-        </section>
+        <Expert />
 
         {/* 5. Avantages économiques (PPA, Tiers-investissement, RSE) */}
-        <section id="benefits">
-          <Benefits />
-        </section>
+        <Benefits />
 
         {/* 6. Filet de conversion secondaire (Lead nurturing) */}
         <WebinairePromo />
@@ -45,7 +37,7 @@ export default function Home() {
 
       {/* Barre d'action tactile flottante Mobile */}
       <MobileStickyCta
-        targetId="simulator"
+        targetId="simulateur"
         label="Calculer le ROI de mon site"
         sublabel="Toitures & parkings > 500 m² • 2 min"
       />

@@ -70,17 +70,23 @@ export async function fulfillPaidCreditOrder(
     console.warn("[Mollie Fulfillment] Audit log warning:", e)
   }
 
-  // 6. E-mail de confirmation à l'installateur
+  // 6. E-mail de confirmation & justificatif comptable B2B à l'installateur
   const partnerEmail = order.partners?.email
   if (partnerEmail && process.env.RESEND_API_KEY) {
     try {
       const resend = new Resend(process.env.RESEND_API_KEY)
       const fromEmail = process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com"
+      const invoiceRef = order.transfer_reference || `AEGIS-${order.id.slice(0, 8).toUpperCase()}`
+      const issuedDate = new Date().toLocaleDateString("fr-BE")
+      const priceHtva = Number(order.price_htva ?? 0).toFixed(2)
+      const vatAmount = Number(order.vat_amount ?? 0).toFixed(2)
+      const priceTtc = Number(order.price_ttc ?? 0).toFixed(2)
+
       await resend.emails.send({
         from: fromEmail,
         to: partnerEmail,
-        subject: `[Aegis Solaire] Vos ${order.credits} crédits ont été activés immédiatement !`,
-        text: `Bonjour ${order.partners?.company_name || ""},\n\nVotre paiement pour le ${order.pack_name} a été validé avec succès.\n\n${order.credits} crédits viennent d'être ajoutés automatiquement à votre compte installateur.\nVotre nouveau solde est de : ${newCredits} crédits.\n\nVous pouvez dès maintenant débloquer vos chantiers prioritaires dans votre espace :\nhttps://www.aegissolaire.com/partenaires/dashboard\n\nBien cordialement,\nL'équipe Aegis Solaire`,
+        subject: `[Aegis Solaire] Confirmation & Justificatif TVA (${invoiceRef}) — +${order.credits} crédits activés`,
+        text: `Bonjour ${order.partners?.company_name || ""},\n\nVotre paiement pour le ${order.pack_name} a été validé avec succès.\n\n${order.credits} crédits viennent d'être ajoutés automatiquement à votre compte installateur.\nVotre nouveau solde est de : ${newCredits} crédits.\n\n--- RÉCAPITULATIF COMPTABLE B2B (ACQUITTÉ) ---\nRéférence pièce : ${invoiceRef}\nDate d'émission : ${issuedDate}\nPrestation : ${order.pack_name} (${order.credits} crédits leads photovoltaïques)\nMontant HTVA : ${priceHtva} €\nTVA belge (21 %) : ${vatAmount} €\nMontant Total TTC acquitté : ${priceTtc} €\nTransaction Mollie : ${payment.id}\n\nÉmetteur : INIT42 · BCE / TVA BE 1039.899.980 · Liège, Belgique\nClient B2B : ${order.partners?.company_name || "Partenaire Installateur"}\n----------------------------------------------\n\nVous pouvez dès maintenant débloquer vos chantiers prioritaires dans votre espace :\nhttps://www.aegissolaire.com/partenaires/dashboard\n\nBien cordialement,\nL'équipe Aegis Solaire\n\n--\nPlateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique`,
       })
     } catch (emailErr) {
       console.error("[Mollie Fulfillment] Erreur notification email installateur:", emailErr)

@@ -1,5 +1,5 @@
 -- Migration : Table de stockage des modèles d'e-mails d'invitation réseau personnalisés par ton
--- Permet à Fabrice Remacle et aux administrateurs de conserver leurs personnalisations (Tutoiement, Vouvoiement, WhatsApp)
+-- Permet à La Cellule Technique & Ingénierie Aegis Solaire et aux administrateurs de conserver leurs personnalisations (Tutoiement, Vouvoiement, WhatsApp)
 
 CREATE TABLE IF NOT EXISTS public.admin_invite_templates (
   tone text PRIMARY KEY,

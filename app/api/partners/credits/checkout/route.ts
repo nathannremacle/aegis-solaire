@@ -30,7 +30,8 @@ export async function POST(request: Request) {
   }
 
   const financials = calculateOrderFinancials(pack.credits)
-  const transferReference = `AEGIS-${randomUUID()}`
+  const shortHex = randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()
+  const transferReference = `AEGIS-${new Date().getFullYear()}-${shortHex}`
 
   const admin = createServiceRoleClient()
 
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
       transfer_reference: transferReference,
       status: "pending",
       pricing_version: PRICING_VERSION,
-      notes: "Paiement Bancontact en cours d'initialisation...",
+      notes: "Paiement Bancontact (Mollie) en cours d'initialisation...",
     })
     .select("id")
     .single()
@@ -108,6 +109,13 @@ export async function POST(request: Request) {
     })
   } catch (mollieError: any) {
     console.error("[Mollie Checkout] Erreur API Mollie:", mollieError)
+
+    // Nettoyage de la commande pending orpheline pour qu'elle n'apparaisse pas comme un faux virement SEPA dans /admin/finance
+    try {
+      await admin.from("credit_orders").delete().eq("id", order.id).eq("status", "pending")
+    } catch {
+      /* ignore cleanup error */
+    }
 
     // Si Mollie n'est pas encore configuré (ex: pas de clé API dans .env.local)
     const isApiKeyMissing =

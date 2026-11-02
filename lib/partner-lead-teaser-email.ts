@@ -245,7 +245,7 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                 <strong>Aegis Solaire</strong> &mdash; Plateforme d'audit financier et de mise en relation photovoltaïque indépendante en Wallonie.
               </p>
               <p style="margin: 0 0 6px 0;">
-                Éditée par <strong>INIT42</strong> (Nathan Remacle, personne physique) · BCE/TVA <span class="mono">BE 1039.899.980</span> · Liège, Belgique.
+                Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
               </p>
               <p style="margin: 0;">
                 Agrément RESCERT Photovoltaïque · Conformité CWaPE &amp; PACE 2030.

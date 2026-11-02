@@ -1,8 +1,7 @@
 # État du Site Aegis Solaire & Reste à Faire (Avant Lancement Publicitaire)
 
 > **Date de mise à jour** : Octobre 2026  
-> **Exploitant & Éditeur légal** : **INIT42** (Nathan Remacle, Personne physique)  
-> **Identifiants officiels** : BCE `1039.899.980` · TVA `BE 1039.899.980` · Siège d'exploitation : Liège, Belgique  
+> **Exploitant & Éditeur légal** : Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique  
 > **Compte bancaire professionnel** : IBAN `BE84 0020 3534 7259` · BIC `GEBABEBB`  
 
 ---
@@ -17,7 +16,7 @@ Le plan d'audit global a été **100% exécuté et validé**. Les 16 constats id
 | **2** | RGPD / Données | Inscrits au webinaire mis en vente sur la marketplace | ✅ **Résolu** : `marketplace_status = 'rejected'` forcé dès l'insertion API webinaire. |
 | **3** | Métier / Promesse | Leads vendus sans contrôle ni revue qualité préalable | ✅ **Résolu** : Tous les leads arrivent en `pending_review`. Panneau admin doté du contrôle explicite et validation vers `available`. |
 | **4** | Légal / RGPD | « Nous ne vendons jamais vos données » mensonger | ✅ **Résolu** : Politique de confidentialité clarifiée (transmission à 1 partenaire en B2B et jusqu'à 3 en B2C). |
-| **5** | Légal Belge | Mentions légales sans BCE, TVA ni forme juridique | ✅ **Résolu** : INIT42 (Nathan Remacle, PP), BCE `1039.899.980`, TVA `BE1039899980`, NACEBEL, juridiction Liège. |
+| **5** | Légal Belge | Mentions légales sans BCE, TVA ni forme juridique | ✅ **Résolu** : Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique, NACEBEL, juridiction Liège. |
 | **6** | Pratiques déloyales | 12 faux témoignages nominatifs avec photos IA et compteurs inventés | ✅ **Résolu** : Suppression des faux avis ; remplacement par 3 modélisations types indicatives (Liège 2 000 m², Brabant wallon 3 000 m², Hainaut 5 000 m²) avec hypothèses transparentes. |
 | **7** | Calculs solaires | TRI bridé artificiellement (5,2-6,9 ans) et prime B2C fictive (300 €) | ✅ **Résolu** : `lib/solar-assumptions.ts` avec rendement réaliste de 930 kWh/kWc/an, zéro bridage et suppression de la prime inexistante. |
 | **8** | Consentement RGPD | Consentement marketing obligatoire pour recevoir l'estimation | ✅ **Résolu** : 2 cases à cocher séparées (mise en relation obligatoire, actualités/newsletter optionnelle). |

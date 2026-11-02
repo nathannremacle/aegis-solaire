@@ -12,31 +12,32 @@ export function InstallerRoiCalculator() {
   const [conversionRate, setConversionRate] = useState<number>(33) // 33% = 1 chantier sur 3
 
   // Paramètres économiques par segment (Barème V2 : 11,50 € HTVA / crédit)
+  // Basé sur le marché wallon réel 2026 (sans sur-évaluation)
   const economics = useMemo(() => {
     switch (projectType) {
       case "b2c":
         return {
           avgCreditCost: 3,
           avgCreditEuro: 34.5, // 3 crédits x 11,50 €
-          avgContractValue: 14500, // 14 500 € par installation résidentielle
-          avgGrossMargin: 3600, // ~25% marge brute installateur
-          label: "Résidentiel B2C (8 à 20 kWc)",
+          avgContractValue: 6200, // panier moyen résidentiel réaliste (~4,8 kWc + options éventuelles)
+          avgGrossMargin: 1240, // ~20% marge brute installateur résidentiel
+          label: "Résidentiel B2C (2,6 à 10 kWc)",
         }
       case "b2b":
         return {
           avgCreditCost: 9,
           avgCreditEuro: 103.5, // 9 crédits x 11,50 €
-          avgContractValue: 160000, // toiture tertiaire PME
-          avgGrossMargin: 28000, // marge brute tertiaire
-          label: "Tertiaire & PME B2B (50 à 400 kWc)",
+          avgContractValue: 72000, // toiture tertiaire PME moyenne (~80 kWc)
+          avgGrossMargin: 11500, // ~16% marge brute tertiaire
+          label: "Tertiaire & PME B2B (25 à 250 kWc)",
         }
       case "mixed":
       default:
         return {
           avgCreditCost: 4.8, // 70% x 3 + 30% x 9 = 4,8 crédits
           avgCreditEuro: 55.2, // 70% x 34,50 € + 30% x 103,50 € = 55,20 €
-          avgContractValue: 48000,
-          avgGrossMargin: 9500,
+          avgContractValue: 26000, // moyenne pondérée 70% B2C (6 200 €) / 30% B2B (72 000 €)
+          avgGrossMargin: 4320, // marge brute pondérée (70% x 1 240 € + 30% x 11 500 €)
           label: "Mixte (70% Résidentiel / 30% Tertiaire)",
         }
     }

@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server"
 import { getPartner } from "@/lib/partner-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
+import { Resend } from "resend"
 
 export const dynamic = "force-dynamic"
+
+/** Fenêtre maximale de contestation : 7 jours ouvrés (~10 jours calendaires) */
+const MAX_DISPUTE_WINDOW_MS = 10 * 24 * 60 * 60 * 1000
 
 export async function GET() {
   const partner = await getPartner()
@@ -20,7 +24,6 @@ export async function GET() {
       .order("created_at", { ascending: false })
 
     if (error) {
-      // Table might not exist yet if migration hasn't been applied
       return NextResponse.json({ disputes: [] })
     }
 
@@ -73,6 +76,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Dossier ou achat introuvable." }, { status: 404 })
   }
 
+  // Vérifier le respect du délai contractuel de 7 jours ouvrés (Article 4.1 des CGV)
+  if (purchase.purchased_at) {
+    const purchasedTime = new Date(purchase.purchased_at).getTime()
+    if (!Number.isNaN(purchasedTime) && Date.now() - purchasedTime > MAX_DISPUTE_WINDOW_MS) {
+      return NextResponse.json(
+        {
+          error:
+            "Le délai contractuel de réclamation (7 jours ouvrés suivant l'acquisition du dossier) est dépassé.",
+        },
+        { status: 400 }
+      )
+    }
+  }
+
   // Vérifier si une réclamation est déjà en cours
   const { data: existing } = await admin
     .from("lead_disputes")
@@ -121,9 +138,26 @@ export async function POST(request: Request) {
     /* silent */
   }
 
+  // Notification email à l'administrateur pour traitement sous 24h ouvrées
+  if (process.env.RESEND_API_KEY) {
+    try {
+      const resend = new Resend(process.env.RESEND_API_KEY)
+      const adminEmail = process.env.ADMIN_ALERT_EMAIL || "contact@aegissolaire.com"
+      const fromEmail = process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com"
+      await resend.emails.send({
+        from: fromEmail,
+        to: adminEmail,
+        subject: `[Aegis Solaire - Litige] Nouvelle réclamation de ${partner.company_name} (Lead #${leadId.slice(0, 8)})`,
+        text: `Une nouvelle demande de Garantie Lead Conforme a été ouverte :\n\n- Installateur : ${partner.company_name} (${partner.email})\n- Lead ID : ${leadId}\n- Motif : ${reason}\n- Crédits engagés : ${purchase.credits_spent ?? 0}\n- Détails : ${details.trim()}\n\nTraiter sous 24h ouvrées dans l'interface d'administration :\nhttps://www.aegissolaire.com/admin/disputes`,
+      })
+    } catch {
+      /* silent */
+    }
+  }
+
   return NextResponse.json({
     success: true,
-    message: "Votre signalement a été transmis à l'équipe conformité Aegis Solaire. Examen sous 24h ouvrées.",
+    message: "Votre signalement a été transmis à l'équipe conformité Aegis Solaire. Examen et recrédit sous 24h ouvrées.",
     dispute,
   })
 }

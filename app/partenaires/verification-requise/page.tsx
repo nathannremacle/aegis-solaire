@@ -8,6 +8,7 @@ import { VerificationRequiseClient } from "./verification-requise-client"
 export const metadata = {
   title: "Validation d'e-mail requise | Aegis Solaire",
   description: "Accès restreint : confirmation de votre adresse e-mail professionnelle requise pour débloquer la Marketplace.",
+  robots: { index: false, follow: false },
 }
 
 interface PageProps {
@@ -74,32 +75,32 @@ export default async function VerificationRequisePage({ searchParams }: PageProp
 
             {/* Application Info Box */}
             <div className="rounded-xl border border-border bg-muted/40 p-4 sm:p-5 flex flex-col gap-3">
-              <div className="flex items-center justify-between border-b border-border pb-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-1 border-b border-border pb-2.5">
                 <span className="font-mono text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Société
                 </span>
-                <span className="font-semibold text-sm text-foreground">
+                <span className="font-semibold text-sm text-foreground break-words">
                   {company || "Votre entreprise"}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-1">
                 <span className="font-mono text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Adresse e-mail
                 </span>
-                <span className="font-mono text-xs font-bold text-foreground">
+                <span className="font-mono text-xs font-bold text-foreground break-all">
                   {email || "Non renseignée"}
                 </span>
               </div>
             </div>
 
             {/* Stepper Progression */}
-            <div className="space-y-3 pt-1">
+            <div className="flex flex-col gap-3 pt-1">
               <div className="flex items-start gap-3">
                 <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white text-xs font-bold">
                   ✓
                 </div>
                 <div className="text-sm">
-                  <p className="font-semibold text-foreground">01. Enregistrement de la candidature</p>
+                  <p className="font-semibold text-foreground"><span className="font-mono tabular-nums">01.</span> Enregistrement de la candidature</p>
                   <p className="text-xs text-muted-foreground">Votre dossier est bien reçu sur la plateforme.</p>
                 </div>
               </div>
@@ -109,7 +110,7 @@ export default async function VerificationRequisePage({ searchParams }: PageProp
                   !
                 </div>
                 <div className="text-sm">
-                  <p className="font-semibold text-amber-600">02. Confirmation de l'adresse e-mail (Action requise)</p>
+                  <p className="font-semibold text-amber-600"><span className="font-mono tabular-nums">02.</span> Confirmation de l'adresse e-mail (Action requise)</p>
                   <p className="text-xs text-muted-foreground">
                     Cliquez sur le lien reçu dans votre boîte de réception pour déverrouiller vos accès.
                   </p>
@@ -117,21 +118,21 @@ export default async function VerificationRequisePage({ searchParams }: PageProp
               </div>
 
               <div className="flex items-start gap-3 opacity-60">
-                <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground text-xs font-bold">
+                <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground text-xs font-bold font-mono tabular-nums">
                   03
                 </div>
                 <div className="text-sm">
-                  <p className="font-semibold text-foreground">03. Contrôle RESCERT & BCE</p>
-                  <p className="text-xs text-muted-foreground">Validation technique sous 24 à 48h.</p>
+                  <p className="font-semibold text-foreground"><span className="font-mono tabular-nums">03.</span> Contrôle RESCERT & BCE</p>
+                  <p className="text-xs text-muted-foreground">Validation technique sous <span className="font-mono tabular-nums">24 à 48 h</span>.</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3 opacity-60">
-                <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground text-xs font-bold">
+                <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground text-xs font-bold font-mono tabular-nums">
                   04
                 </div>
                 <div className="text-sm">
-                  <p className="font-semibold text-foreground">04. Accès Marketplace actif</p>
+                  <p className="font-semibold text-foreground"><span className="font-mono tabular-nums">04.</span> Accès Marketplace actif</p>
                   <p className="text-xs text-muted-foreground">Consultation et déblocage des demandes de devis.</p>
                 </div>
               </div>
@@ -145,8 +146,8 @@ export default async function VerificationRequisePage({ searchParams }: PageProp
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-muted/30 py-6 text-center text-xs text-muted-foreground">
-        <p>Aegis Solaire · INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique</p>
+      <footer className="border-t border-border bg-muted/30 py-6 text-center text-xs text-muted-foreground font-mono tabular-nums">
+        <p>Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique</p>
       </footer>
     </div>
   )

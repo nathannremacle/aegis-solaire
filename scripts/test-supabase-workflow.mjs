@@ -29,7 +29,7 @@ async function testWorkflow() {
     const { data: created, error: createErr } = await supabase.from('installer_applications').insert({
       company_name: 'Test Solaire SPRL',
       siret: '0123456789',
-      first_name: 'Nathan',
+      first_name: 'Marc',
       last_name: 'Test',
       job_title: 'Gérant',
       email: 'test@aegis-solaire.be',

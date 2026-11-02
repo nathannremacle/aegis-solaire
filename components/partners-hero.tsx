@@ -119,7 +119,7 @@ export function PartnersHero() {
             tabIndex={0}
             aria-label="Inspecter l'exemple de chantier B2C dans la marketplace"
             title="Cliquer pour inspecter ce chantier B2C dans la marketplace"
-            className="group/card relative z-10 flex items-center gap-3 rounded-[20px] border border-white/15 bg-[#161F2C]/80 p-3 backdrop-blur-md shadow-[0_12px_36px_rgba(0,0,0,0.38)] w-[275px] hover:border-blue-400/50 hover:bg-[#161F2C]/95 hover:shadow-[0_16px_40px_rgba(0,0,0,0.5),0_0_20px_rgba(59,130,246,0.25)] hover:scale-[1.03] active:scale-[0.98] transition-all duration-300 cursor-pointer text-left block"
+            className="group/card relative z-10 flex items-center gap-3 rounded-[20px] border border-white/15 bg-primary/80 p-3 backdrop-blur-md shadow-xs w-[275px] hover:border-blue-400/50 hover:bg-primary/95 hover:shadow-sm hover:scale-[1.03] active:scale-[0.98] transition-all duration-300 cursor-pointer text-left block"
           >
             {/* Vignette Photo Haute Résolution (200x200 crop retina) */}
             <div className="relative h-[68px] w-[68px] shrink-0 overflow-hidden rounded-xl border border-white/10 bg-slate-900 shadow-inner">
@@ -134,14 +134,14 @@ export function PartnersHero() {
             </div>
 
             {/* Données Métier du Chantier */}
-            <div className="flex flex-col justify-center min-w-0 pr-0.5 space-y-0.5">
+            <div className="flex flex-col justify-center min-w-0 pr-0.5 gap-0.5">
               {/* Badge Statut avec point vert pulsant */}
               <div className="flex items-center gap-1.5">
                 <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#52D68A] opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#52D68A] shadow-[0_0_6px_rgba(82,214,138,0.9)]" />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-2xs" />
                 </span>
-                <span className="text-[11px] font-semibold tracking-wide text-[#52D68A]">
+                <span className="text-[11px] font-semibold tracking-wide text-emerald-400">
                   Chantier en cours
                 </span>
               </div>
@@ -153,7 +153,7 @@ export function PartnersHero() {
 
               {/* Localisation & Code Postal */}
               <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-slate-300">
-                <MapPin className="h-3.5 w-3.5 text-[#60A5FA] fill-[#60A5FA]/25 shrink-0" />
+                <MapPin className="h-3.5 w-3.5 text-accent fill-accent/25 shrink-0" />
                 <span className="truncate">
                   Namur (<span className="font-mono tabular-nums">5000</span>)
                 </span>
@@ -161,7 +161,7 @@ export function PartnersHero() {
 
               {/* Puissance Nominale */}
               <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-slate-200">
-                <Zap className="h-3.5 w-3.5 text-[#60A5FA] fill-[#60A5FA] shrink-0" />
+                <Zap className="h-3.5 w-3.5 text-accent fill-accent shrink-0" />
                 <span className="font-mono tabular-nums font-bold text-white">
                   9,6
                 </span>
@@ -192,8 +192,8 @@ export function PartnersHero() {
           <div className="absolute left-[370px] top-[170px] -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10">
             <div className="relative flex h-7 w-7 items-center justify-center">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full border border-white/50 bg-white/20 opacity-60 duration-1000" />
-              <span className="relative flex h-6 w-6 items-center justify-center rounded-full border border-white/70 bg-white/20 backdrop-blur-xs shadow-md">
-                <span className="h-2 w-2 rounded-full bg-white shadow-[0_0_8px_#ffffff]" />
+              <span className="relative flex h-6 w-6 items-center justify-center rounded-full border border-white/70 bg-white/20 backdrop-blur-xs shadow-xs">
+                <span className="h-2 w-2 rounded-full bg-white shadow-2xs" />
               </span>
             </div>
           </div>
@@ -225,7 +225,7 @@ export function PartnersHero() {
           >
             La marketplace<br />
             photovoltaïque des<br />
-            <span className="text-[#3B82F6] whitespace-nowrap">professionnels en Wallonie.</span>
+            <span className="text-accent">professionnels en Wallonie.</span>
           </motion.h1>
 
           {/* Subheadline descriptive */}
@@ -249,7 +249,7 @@ export function PartnersHero() {
             {/* Primary CTA Button */}
             <Button
               onClick={scrollToCandidature}
-              className="h-12 sm:h-13 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold px-6 sm:px-7 text-sm sm:text-base shadow-lg shadow-blue-600/30 transition-all hover:shadow-blue-600/50 flex items-center justify-center gap-2 cursor-pointer border-0"
+              className="h-12 sm:h-13 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground font-bold px-6 sm:px-7 text-sm sm:text-base shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer border-0"
             >
               <ShieldCheck className="h-4 w-4 shrink-0" />
               <span>Postuler au réseau RESCERT (Gratuit)</span>
@@ -306,12 +306,12 @@ export function PartnersHero() {
           variants={itemVariants}
           initial="hidden"
           animate="visible"
-          className="mt-10 sm:mt-12 w-full rounded-2xl sm:rounded-3xl border border-neutral-200/90 bg-white/95 backdrop-blur-xl p-4 sm:p-5 lg:p-6 shadow-xl shadow-slate-950/25"
+          className="mt-10 sm:mt-12 w-full rounded-2xl sm:rounded-3xl border border-neutral-200/90 bg-white/95 backdrop-blur-xl p-4 sm:p-5 lg:p-6 shadow-sm"
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 2xl:gap-8 divide-y sm:divide-y-0 sm:divide-x divide-neutral-200/80">
             {/* Colonne 1 : 100% Exclusif */}
             <div className="flex items-center gap-3.5 sm:px-3 first:pl-0">
-              <Users2 className="h-7 w-7 sm:h-8 sm:w-8 text-[#2563EB] shrink-0" />
+              <Users2 className="h-7 w-7 sm:h-8 sm:w-8 text-accent shrink-0" />
               <div>
                 <p className="text-base sm:text-[17px] font-bold text-neutral-900 tracking-tight font-heading">
                   <span className="font-mono tabular-nums">100%</span> Exclusif
@@ -324,7 +324,7 @@ export function PartnersHero() {
 
             {/* Colonne 2 : Max 3 devis */}
             <div className="flex items-center gap-3.5 pt-3 sm:pt-0 sm:px-4">
-              <Home className="h-7 w-7 sm:h-8 sm:w-8 text-[#2563EB] shrink-0" />
+              <Home className="h-7 w-7 sm:h-8 sm:w-8 text-accent shrink-0" />
               <div>
                 <p className="text-base sm:text-[17px] font-bold text-neutral-900 tracking-tight font-heading">
                   Max <span className="font-mono tabular-nums">3</span> devis
@@ -337,7 +337,7 @@ export function PartnersHero() {
 
             {/* Colonne 3 : 524 kWc disponibles */}
             <div className="flex items-center gap-3.5 pt-3 sm:pt-0 sm:px-4">
-              <FileText className="h-7 w-7 sm:h-8 sm:w-8 text-[#2563EB] shrink-0" />
+              <FileText className="h-7 w-7 sm:h-8 sm:w-8 text-accent shrink-0" />
               <div>
                 <p className="text-base sm:text-[17px] font-bold text-neutral-900 tracking-tight font-heading">
                   <span className="font-mono tabular-nums">524 kWc</span> disponibles
@@ -350,7 +350,7 @@ export function PartnersHero() {
 
             {/* Colonne 4 : Couverture Wallonie */}
             <div className="flex items-center gap-3.5 pt-3 sm:pt-0 sm:px-4">
-              <MapPin className="h-7 w-7 sm:h-8 sm:w-8 text-[#2563EB] shrink-0" />
+              <MapPin className="h-7 w-7 sm:h-8 sm:w-8 text-accent shrink-0" />
               <div>
                 <p className="text-base sm:text-[17px] font-bold text-neutral-900 tracking-tight font-heading">
                   Couverture Wallonie

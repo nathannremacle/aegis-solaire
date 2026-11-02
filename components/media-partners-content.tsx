@@ -80,7 +80,7 @@ const payoutData = [
   {
     segment: "B2B",
     icon: Building2,
-    amount: "100 €",
+    amount: "30 €",
     per: "par lead qualifié",
     criteria: "Projets industriels, toitures > 500 m²",
     badge: "B2B",
@@ -89,7 +89,7 @@ const payoutData = [
   {
     segment: "B2C",
     icon: Home,
-    amount: "25 €",
+    amount: "10 €",
     per: "par lead qualifié",
     criteria: "Résidentiel, propriétaires en Wallonie",
     badge: "B2C",
@@ -120,7 +120,7 @@ const steps = [
     icon: Wallet,
     number: "04",
     title: "Paiement",
-    description: "Commissions récurrentes, virement hebdomadaire par SEPA.",
+    description: "Commissions récurrentes, paiement mensuel à terme échu par SEPA.",
   },
 ]
 
@@ -238,9 +238,9 @@ export function MediaPartnersContent() {
               className="mx-auto mt-12 grid max-w-lg grid-cols-3 gap-3 sm:mt-16 sm:max-w-xl sm:gap-5"
             >
               {[
-                { value: "100 €", label: "Par lead B2B" },
-                { value: "25 €", label: "Par lead B2C" },
-                { value: "7 j", label: "Cycle indicatif" },
+                { value: "30 €", label: "Par lead B2B" },
+                { value: "10 €", label: "Par lead B2C" },
+                { value: "Mensuel", label: "Terme échu" },
               ].map((s) => (
                 <HeroTrustCard key={s.label}>
                   <p className="font-mono text-2xl font-extrabold tabular-nums text-blue-400 sm:text-3xl">{s.value}</p>
@@ -379,7 +379,7 @@ export function MediaPartnersContent() {
             <LightCard className="flex items-center gap-3 px-6 py-4">
               <Euro className="h-5 w-5 shrink-0 text-accent" />
               <p className="text-sm text-slate-600">
-                <strong className="text-foreground">Paiement hebdomadaire</strong> — virement SEPA. Modalités
+                <strong className="text-foreground">Paiement mensuel à terme échu</strong> — virement SEPA (<span className="font-mono tabular-nums">30 €</span> / lead B2B qualifié, <span className="font-mono tabular-nums">10 €</span> / lead B2C qualifié). Modalités
                 précisées au contrat partenaire.
               </p>
             </LightCard>

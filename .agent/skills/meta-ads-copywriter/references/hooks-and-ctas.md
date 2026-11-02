@@ -8,7 +8,7 @@
 
 2. **L'Angle "Le Grand Nettoyage des Démarcheurs"** :
    - *Problématique* : Harcèlement téléphonique, numéros inconnus, installateurs qui font faillite après 2 ans.
-   - *Réponse Aegis* : Tiers de confiance neutre fondé par Fabrice Remacle (25 ans d'expérience). Uniquement des installateurs certifiés RESCERT, vérifiés et solvables.
+   - *Réponse Aegis* : Tiers de confiance neutre porté par la Cellule Technique & Ingénierie Aegis Solaire (25 ans d'expertise photovoltaïque). Uniquement des installateurs certifiés RESCERT, vérifiés et solvables.
 
 3. **L'Angle "L'Audit Préalable Sans Devis Gonflé"** :
    - *Problématique* : Les installateurs surdimensionnent les installations pour gonfler les factures.

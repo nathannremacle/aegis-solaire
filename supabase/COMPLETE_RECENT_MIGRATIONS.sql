@@ -159,7 +159,7 @@ $$;
 
 
 -- ------------------------------------------------------------------------------
--- 3. TABLE DES TEMPLATES D'INVITATION RÉSEAU PAR TON (FABRICE REMACLE)
+-- 3. TABLE DES TEMPLATES D'INVITATION RÉSEAU PAR TON (CELLULE TECHNIQUE & INGÉNIERIE AEGIS SOLAIRE)
 -- ------------------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS public.admin_invite_templates (
@@ -182,35 +182,35 @@ CREATE POLICY "Service role full access on invite templates"
 -- Seed initial des modèles par défaut s'ils n'existent pas encore
 INSERT INTO public.admin_invite_templates (tone, subject, body)
 VALUES
-  ('tutoiement', 'Des chantiers solaires qualifiés sur ta région via Fabrice', 'Salut {{prenom}},
+  ('tutoiement', 'Des chantiers solaires qualifiés sur ta région — Aegis Solaire', 'Salut {{prenom}},
 
-C''est Fabrice Remacle. Comme tu le sais, je côtoie au quotidien les professionnels du photovoltaïque en Wallonie.
+C''est La Cellule Technique & Ingénierie Aegis Solaire. Comme tu le sais, nous côtoyons au quotidien les professionnels du photovoltaïque en Wallonie.
 
-Avec mon équipe, nous avons lancé Aegis Solaire : une plateforme qui qualifie en amont des chantiers photovoltaïques pour les confier aux meilleurs installateurs de notre réseau.
+Nous avons lancé Aegis Solaire : une plateforme qui qualifie en amont des chantiers photovoltaïques pour les confier aux meilleurs installateurs de notre réseau.
 
-J''aimerais beaucoup te compter parmi nos partenaires privilégiés sur ta zone.
+Nous aimerions beaucoup te compter parmi nos partenaires privilégiés sur ta zone.
 
-J''ai activé pour toi un lien direct vers ton espace pro avec 1 crédit offert pour tester ton premier chantier sans engagement :
+Nous avons activé pour toi un lien direct vers ton espace pro :
 {{lien_inscription}}
 
-Prends le temps d''y jeter un œil et dis-moi ce que tu en penses.
+Prends le temps d''y jeter un œil et dis-nous ce que tu en penses à contact@aegissolaire.com.
 
 Bien à toi,
-Fabrice Remacle'),
-  ('vouvoiement', 'Opportunité chantiers photovoltaïques qualifiés — Fabrice Remacle', 'Bonjour {{prenom}},
+La Cellule Technique & Ingénierie Aegis Solaire'),
+  ('vouvoiement', 'Opportunité chantiers photovoltaïques qualifiés — Aegis Solaire', 'Bonjour {{prenom}},
 
-Je me permets de vous contacter personnellement suite à nos échanges réguliers dans le secteur photovoltaïque en Wallonie.
+Nous nous permettons de vous contacter suite à nos échanges dans le secteur photovoltaïque en Wallonie.
 
-Avec mon équipe, nous avons mis en place Aegis Solaire, une plateforme d''ingénierie et d''audit solaire qui sélectionne et qualifie rigoureusement les porteurs de projets résidentiels et tertiaires dans votre province.
+Nous avons mis en place Aegis Solaire, une plateforme d''ingénierie et d''audit solaire qui sélectionne et qualifie rigoureusement les porteurs de projets résidentiels et tertiaires dans votre province.
 
 Connaissant la qualité de vos réalisations, nous souhaiterions vous proposer un accès prioritaire aux demandes de devis sur votre zone.
 
 Vous pouvez accéder à votre espace partenaire et découvrir vos premiers projets via ce lien d''accès personnalisé :
 {{lien_inscription}}
 
-Je reste à votre entière disposition pour tout renseignement.
+Nous restons à votre entière disposition à contact@aegissolaire.com pour tout renseignement.
 
 Bien cordialement,
-Fabrice Remacle'),
-  ('court_whatsapp', 'Accès partenaire Aegis Solaire', 'Salut {{prenom}}, c''est Fabrice Remacle. On a lancé Aegis Solaire pour vous transmettre directement des chantiers solaires ultra-qualifiés sur ta province (Wallonie). Je t''ai ouvert un accès direct avec 1 chantier offert pour tester : {{lien_inscription}} Dis-moi quand tu as pu regarder !')
+La Direction des Partenariats Aegis Solaire'),
+  ('court_whatsapp', 'Accès partenaire Aegis Solaire', 'Salut {{prenom}}, c''est La Cellule Technique & Ingénierie Aegis Solaire. Nous avons lancé Aegis Solaire pour transmettre directement des chantiers solaires ultra-qualifiés sur ta province (Wallonie). Voici ton accès direct : {{lien_inscription}} Écris-nous à contact@aegissolaire.com quand tu as pu regarder !')
 ON CONFLICT (tone) DO NOTHING;

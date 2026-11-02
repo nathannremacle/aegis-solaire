@@ -69,7 +69,7 @@ export function LeadGeoRadarMap({
   const pillWidth = Math.max(68, Math.min(145, displayCity.length * 7.5 + 24))
 
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl border border-border bg-[#EDF4F8] shadow-xs select-none">
+    <div className="relative w-full overflow-hidden rounded-2xl border border-border bg-secondary shadow-xs select-none">
       <div className="relative w-full aspect-[16/10] sm:aspect-[16/9.5] flex items-center justify-center">
         <svg
           viewBox="60 220 860 550"

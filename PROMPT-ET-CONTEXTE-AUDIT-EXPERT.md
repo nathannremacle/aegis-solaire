@@ -34,7 +34,7 @@ Pour chaque domaine, tu dois identifier les failles résiduelles, les incohéren
 - Analyse de la procédure de litiges (`lead_disputes`) : la politique de recrédit sous 24h protège-t-elle suffisamment la marge contre les abus des installateurs tout en évitant le mécontentement ?
 
 #### 2. CONFORMITÉ LÉGALE, RÉGLEMENTAIRE & RGPD (BELGIQUE / WALLONIE)
-- Conformité de l'exploitant INIT42 (Nathan Remacle, personne physique en transition SRL, BCE 1039.899.980, TVA BE1039899980). Les mentions légales et CGV couvrent-elles parfaitement la juridiction de Liège ?
+- Conformité de l'exploitant : Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique. Les mentions légales et CGV couvrent-elles parfaitement la juridiction de Liège ?
 - Licéité de la transmission de données personnelles à titre onéreux (vente de leads) sous le RGPD et la jurisprudence de l'APD belge.
 - Articulation du double consentement : mise en relation obligatoire vs newsletter optionnelle. Les cookies et pixels de tracking (Meta Pixel `Lead`, Google Ads) respectent-ils la directive ePrivacy sans consentement préalable abusif ?
 - Risque de qualification en courtage non autorisé ou concurrence déloyale au sens du Livre VI du Code de droit économique belge.
@@ -99,20 +99,20 @@ Ton rapport d'audit doit être exhaustif, percutant et articulé selon la struct
 ## 1. Fiche d'Identité du Projet, Équipe & Cadre Légal
 
 - **Nom du projet :** Aegis Solaire
-- **Exploitant & Forme Juridique :** INIT42 (Nathan Remacle, personne physique en phase de transition SRL), immatriculé à Liège, Belgique.
+- **Exploitant & Forme Juridique :** Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique.
 - **Identifiants officiels :** BCE / KBO : `1039.899.980` · TVA : `BE 1039.899.980`.
-- **Compte bancaire pro :** IBAN `BE84 0020 3534 7259` · BIC `GEBABEBB` (INIT42 / Nathan Remacle).
+- **Compte bancaire pro :** IBAN `BE84 0020 3534 7259` · BIC `GEBABEBB` (INIT42).
 - **Codes NACEBEL :** `62100` (Programmation), `62200` (Conseil), `63100` (Traitement de données & portails), `73110` (Publicité), `82400` (Centres d'appels / intermédiation).
-- **Équipe fondatrice & gouvernance :**
-  - **Nathan Remacle** : 20 ans (né en janvier 2006 à Verviers), étudiant en 3e année de bachelier d'ingénieur civil (orientation informatique et génie civil) à Liège. Concepteur de la plateforme, architecte logiciel fullstack et développeur du produit en synergie avec l'IA avancée (Antigravity / Gemini).
-  - **Fabrice Remacle** : Père de Nathan, la cinquantaine, diplômé électricien, expert reconnu en Wallonie dans le photovoltaïque, les onduleurs et les batteries. Formateur et consultant d'installateurs solaires, employé chez PhotonSolar (grossiste à Fléron). Conseiller métier stratégique.
+- **Équipe & gouvernance :**
+  - **L'équipe Aegis Solaire (Direction Générale & Ingénierie Logicielle)** : Conception de la plateforme, architecture logicielle fullstack et développement du produit en synergie avec l'IA avancée (`contact@aegissolaire.com`).
+  - **La Cellule Technique & Ingénierie Aegis Solaire** : Expertise reconnue en Wallonie dans le photovoltaïque, les onduleurs et les batteries (plus de 25 ans d'expérience cumulée). Formation et conseil auprès d'installateurs solaires.
 - **Positionnement métier & Différenciation concurrentielle (vs Bobex, TrustUp, HomeDeal) :**
   1. **« Qualité contrôlée à la main »** : Chaque lead fait l'objet d'une vérification humaine (`pending_review`) avant mise en vente (zéro faux numéro, validation TVA/toiture).
-  2. **Moins d'installateurs par lead** : Exclusivité totale en B2B (1 seul acheteur unique à 5 crédits / ~60 €) et max 3 installateurs en B2C (2 crédits / slot), évitant la guerre des prix destructrice des plateformes traditionnelles.
+  2. **Moins d'installateurs par lead** : Exclusivité totale en B2B (1 seul acheteur unique à 9 crédits = 103,50 € HTVA) et max 3 installateurs en B2C (3 crédits = 34,50 € HTVA / slot), évitant la guerre des prix destructrice des plateformes traditionnelles.
   3. **Personnalisation et ciblage** : Matching fin et notification par e-mail aux installateurs adaptés aux spécificités techniques du chantier.
-  4. **Atout unique : L'assistance technique de chantier B2B par Fabrice Remacle** : Possibilité pour les installateurs partenaires de solliciter l'accompagnement de Fabrice (étude de faisabilité, dimensionnement complexe, présence aux rdv clients tertiaires) moyennant commission/pourcentage de chantier.
+  4. **Atout unique : L'assistance technique de chantier B2B par La Cellule Technique & Ingénierie Aegis Solaire** : Possibilité pour les installateurs partenaires de solliciter l'accompagnement de La Cellule Technique & Ingénierie Aegis Solaire (étude de faisabilité, dimensionnement complexe, présence aux rdv clients tertiaires) moyennant commission/pourcentage de chantier.
   5. **Sélection stricte des installateurs pour les clients** : Agrément manuel des installateurs (RESCERT obligatoire + charte de qualité Aegis Conform), garantissant au prospect l'absence de harcèlement commercial.
-- **Contraintes de démarrage :** Structure bootstrapped (trésorerie lean, pas de levée de fonds dilutive), optimisation de la dépense média (tests publicitaires prudents à petit budget sur la Wallonie), et exploitation hyper-automatisée pour convenir au temps partagé des fondateurs.
+- **Contraintes de démarrage :** Structure bootstrapped (trésorerie lean, pas de levée de fonds dilutive), optimisation de la dépense média (tests publicitaires prudents à petit budget sur la Wallonie), et exploitation hyper-automatisée.
 
 ---
 

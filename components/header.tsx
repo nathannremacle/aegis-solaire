@@ -93,12 +93,12 @@ export function Header() {
   }
 
   const scrollToSimulator = () => {
-    const targetId = isB2C ? "b2c-simulator" : "simulator"
+    const targetId = isB2C ? "b2c-simulator" : "simulateur"
     const el = document.getElementById(targetId)
     if (el) {
       el.scrollIntoView({ behavior: "smooth" })
     } else {
-      window.location.href = isB2C ? "/particuliers#b2c-simulator" : "/#simulator"
+      window.location.href = isB2C ? "/particuliers#b2c-simulator" : "/#simulateur"
     }
     setMobileMenuOpen(false)
   }
@@ -271,7 +271,7 @@ export function Header() {
               </Link>
               <Button
                 onClick={scrollToPartnerCandidature}
-                className="h-9 px-5 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold sm:text-sm cursor-pointer shadow-xs flex items-center gap-1.5 transition-all"
+                className="h-9 px-5 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground text-xs font-semibold sm:text-sm cursor-pointer shadow-xs flex items-center gap-1.5 transition-all"
               >
                 <span>Postuler</span>
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -385,7 +385,7 @@ export function Header() {
                   <>
                     <Button
                       onClick={scrollToPartnerCandidature}
-                      className="w-full h-11 font-bold rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white cursor-pointer shadow-md shadow-blue-600/30 flex items-center justify-center gap-1.5"
+                      className="w-full h-11 font-bold rounded-full bg-accent hover:bg-accent/90 text-accent-foreground cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
                     >
                       <span>Postuler</span>
                       <ArrowRight className="h-4 w-4" />

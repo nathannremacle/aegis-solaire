@@ -168,6 +168,7 @@ export const leadSubmitSchema = z
       }),
 
     // Estimations algorithmiques
+    estimatedPowerKwc: z.number().optional(),
     estimatedROIYears: z.number().optional(),
     autoconsumptionRate: z.number().optional(),
     estimatedSavings: z.number().optional(),

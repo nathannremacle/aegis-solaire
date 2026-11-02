@@ -608,13 +608,15 @@ export function LeadsTable({
                           {lead.segment ?? "B2B"}
                         </span>
                         {isB2C && (() => {
+                          const testEmailEnv = (process.env.NEXT_PUBLIC_TEST_PARTNER_EMAIL || "").toLowerCase().trim()
                           const realPurchases = (lead.lead_purchases || []).filter((p: any) => {
                             const partnerObj = Array.isArray(p.partners) ? p.partners[0] : p.partners
                             if (partnerObj?.is_test) return false
                             const cName = (partnerObj?.company_name || "").toLowerCase()
                             if (cName.includes("test") || cName.includes("dev test")) return false
                             const email = (partnerObj?.email || "").toLowerCase()
-                            if (email === "mrnathanrem@gmail.com") return false
+                            if (testEmailEnv && email === testEmailEnv) return false
+                            if (email.includes("+test") || email.startsWith("test@") || email.endsWith("@test.com")) return false
                             return true
                           })
                           if (realPurchases.length === 0) return null

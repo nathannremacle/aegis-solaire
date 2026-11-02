@@ -4,10 +4,10 @@ Plateforme de **génération et mise en relation de leads photovoltaïques quali
 
 Les opportunités vérifiées manuellement sont distribuées à un réseau d'installateurs certifiés RESCERT via une **marketplace privative avec système de crédits**.
 
-- **Exploitant légal :** INIT42 (Nathan Remacle, personne physique en transition SRL) · BCE `1039.899.980` · TVA `BE 1039.899.980` · Liège, Belgique.
+- **Exploitant légal :** Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique.
 - **Direction & Équipe :** 
-  - **Nathan Remacle** : Fondateur & Architecte Logiciel (étudiant ingénieur civil à Liège, concepteur de la plateforme avec l'IA Antigravity / Gemini).
-  - **Fabrice Remacle** : Chief Technical Advisor (expert photovoltaïque, onduleurs et batteries en Wallonie, formateur d'installateurs, en poste chez PhotonSolar à Fléron).
+  - **L'équipe Aegis Solaire (Direction Générale & Ingénierie Logicielle)** : Architecture logicielle, infrastructure cloud et marketing digital à la performance (`contact@aegissolaire.com`).
+  - **La Cellule Technique & Ingénierie Aegis Solaire** : Expertise photovoltaïque, onduleurs et stockage par batteries en Wallonie, formation et accompagnement technique des installateurs partenaires.
 
 ---
 
@@ -15,7 +15,7 @@ Les opportunités vérifiées manuellement sont distribuées à un réseau d'ins
 
 | Fichier | Contenu & Statut |
 |---|---|
-| **[BUSINESS-PLAN.md](./BUSINESS-PLAN.md)** | **Dossier d'évaluation stratégique & financière** — P&L prévisionnel à 3 ans, unit economics, modèle de crédits, gouvernance Nathan & Fabrice Remacle, consultance B2B. |
+| **[BUSINESS-PLAN.md](./BUSINESS-PLAN.md)** | **Dossier d'évaluation stratégique & financière** — P&L prévisionnel à 3 ans, unit economics, modèle de crédits, gouvernance institutionnelle, consultance B2B. |
 | **[FORMULAIRES.md](./FORMULAIRES.md)** | **Inventaire exhaustif des formulaires** — Analyse détaillée des 10+ tunnels de capture (accueil B2B, `/particuliers`, `/devis-panneaux-solaires`, candidatures, portails), schémas Zod et validation. |
 | **[docs/FONCTIONNEMENT-SITE.md](./docs/FONCTIONNEMENT-SITE.md)** | **Architecture & fonctionnement global** — Parcours utilisateurs, modèle de données Supabase, API, sécurité CSRF/RLS, packs de crédits par virement bancaire. |
 | **[docs/AUDIT-GLOBAL-SITE.md](./docs/AUDIT-GLOBAL-SITE.md)** | **Audit global & conformité légale** — Synthèse de l'audit d'octobre 2026 (légalité INIT42, compte pro, RGPD, suppression faux avis, moteur solaire). |

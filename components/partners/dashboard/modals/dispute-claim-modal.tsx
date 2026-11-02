@@ -110,18 +110,18 @@ export default function DisputeClaimModal({ purchase, onClose }: DisputeClaimMod
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+        <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-4">
           <div className="rounded-xl border border-accent/30 bg-accent/10 p-3 text-xs text-foreground flex items-start gap-2">
             <AlertCircle className="h-4 w-4 text-accent shrink-0 mt-0.5" />
             <span>
-              Les réclamations sont examinées sous 24h ouvrées. En cas de validation, les{" "}
+              Les réclamations sont examinées sous <span className="font-mono tabular-nums">24h</span> ouvrées. En cas de validation, les{" "}
               <strong className="font-mono tabular-nums">{purchase.credits_spent || 2} crédits</strong> vous seront automatiquement recrédités.
             </span>
           </div>
 
           <div>
             <label className="text-xs font-bold text-foreground">Motif de la réclamation</label>
-            <div className="mt-2 space-y-2">
+            <div className="mt-2 flex flex-col gap-2">
               {DISPUTE_REASONS.map((r) => (
                 <label
                   key={r.id}

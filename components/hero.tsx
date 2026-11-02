@@ -29,7 +29,7 @@ const itemVariants = {
 
 export function Hero() {
   const scrollToSimulator = () => {
-    const element = document.getElementById("simulator")
+    const element = document.getElementById("simulateur") || document.getElementById("simulator")
     if (element) {
       element.scrollIntoView({ behavior: "smooth" })
     }
@@ -127,7 +127,7 @@ export function Hero() {
           </motion.div>
 
           {/* Trust indicators */}
-          <motion.div variants={itemVariants} className="mt-10 grid grid-cols-3 gap-3 sm:mt-14 sm:gap-6">
+          <motion.div variants={itemVariants} className="mt-10 grid grid-cols-1 min-[400px]:grid-cols-3 gap-3 sm:mt-14 sm:gap-6">
             <div className="group flex flex-col items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-2 py-4 shadow-sm backdrop-blur-md transition-all hover:border-blue-400/30 hover:bg-white/10 sm:flex-row sm:gap-4 sm:px-5 sm:py-5">
               <TrendingUp className="h-6 w-6 shrink-0 text-blue-400 transition-transform group-hover:scale-110 sm:h-8 sm:w-8" />
               <div className="text-center sm:text-left">

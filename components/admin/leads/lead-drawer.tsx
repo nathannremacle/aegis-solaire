@@ -37,6 +37,7 @@ import { LeadScoreBreakdown } from "./lead-score-breakdown"
 import { DispatchPanel, type CompatiblePartner } from "./dispatch-panel"
 import { LeadRelanceStatus } from "./lead-relance-status"
 import { calculateLeadScore } from "@/lib/lead-score"
+import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
 import { detectLeadRiskFlags } from "@/lib/admin/lead-risk"
 import { formatBceNumber, BCE_PUBLIC_SEARCH_URL } from "@/lib/leads-schema"
 import {
@@ -57,8 +58,10 @@ export type LeadDetail = {
   company: string | null
   company_vat?: string | null
   message?: string | null
+  project_details?: string | null
   surface_type: string | null
   surface_area: number | null
+  estimated_power_kwc?: number | null
   roof_material?: string | null
   ownership_status?: string | null
   project_timeline?: string | null
@@ -66,6 +69,7 @@ export type LeadDetail = {
   estimated_roi_years: number | null
   autoconsumption_rate: number | null
   estimated_savings: number | null
+  qualification_metadata?: Record<string, unknown> | null
   status: string
   marketplace_status?: string | null
   credit_cost?: number | null
@@ -307,6 +311,18 @@ export function LeadDrawer({
   const shortId = lead.id.slice(0, 8).toUpperCase()
   const prospectTitle = lead.segment === "B2B" && lead.company ? lead.company : `${lead.first_name} ${lead.last_name || ""}`
 
+  const financials = calculateMarketplaceFinancials({
+    segment: lead.segment ?? "B2B",
+    surfaceArea: lead.surface_area,
+    surfaceType: lead.surface_type,
+    roofMaterial: lead.roof_material,
+    annualBill: lead.annual_electricity_bill,
+    creditCost: lead.credit_cost,
+    estimatedPowerKwc: lead.estimated_power_kwc,
+    projectDetails: lead.project_details ?? lead.message,
+    qualificationMetadata: lead.qualification_metadata ?? null,
+  })
+
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <SheetContent
@@ -481,29 +497,97 @@ export function LeadDrawer({
             </div>
           </div>
 
-          {/* Données Techniques du Projet Solaire */}
+          {/* Données Techniques & Rentabilité Estimée du Projet Solaire */}
           <div className="rounded-md border border-border bg-card p-3.5 flex flex-col gap-3">
-            <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
-              Spécifications Techniques
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+                Spécifications Techniques & Rentabilité Estimée
+              </span>
+              <span className="font-mono tabular-nums text-[10px] px-1.5 py-0.5 rounded bg-secondary text-foreground border border-border">
+                {financials.estimatedPowerKwc} kWc · {financials.estimatedPanelCount} panneaux
+              </span>
+            </div>
 
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
+            <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3 text-xs">
               <div className="flex flex-col">
-                <dt className="text-muted-foreground">Surface</dt>
+                <dt className="text-muted-foreground">Puissance & Modules</dt>
                 <dd className="font-mono tabular-nums font-semibold text-foreground">
-                  {lead.surface_area != null ? `${lead.surface_area} m²` : "–"}{" "}
-                  <span className="font-sans font-normal text-muted-foreground">
-                    ({lead.surface_type || "toiture"})
+                  {financials.estimatedPowerKwc} kWc{" "}
+                  <span className="font-normal text-muted-foreground">
+                    ({financials.estimatedPanelCount} × 435 Wc)
                   </span>
                 </dd>
               </div>
 
               <div className="flex flex-col">
-                <dt className="text-muted-foreground">Facture d'électricité</dt>
+                <dt className="text-muted-foreground">Surface (brute / utile)</dt>
                 <dd className="font-mono tabular-nums font-semibold text-foreground">
-                  {lead.annual_electricity_bill != null
-                    ? `${lead.annual_electricity_bill.toLocaleString("fr-BE")} € / an`
-                    : "–"}
+                  {financials.normalizedSurfaceAreaM2} m²{" "}
+                  <span className="font-normal text-muted-foreground">
+                    (utile ≈ {financials.usableSurfaceM2} m²)
+                  </span>
+                </dd>
+              </div>
+
+              <div className="flex flex-col">
+                <dt className="text-muted-foreground">Facture & Conso. annuelle</dt>
+                <dd className="font-mono tabular-nums font-semibold text-foreground">
+                  {financials.normalizedAnnualBill.toLocaleString("fr-BE")} € / an{" "}
+                  <span className="font-normal text-muted-foreground">
+                    (≈ {financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh)
+                  </span>
+                </dd>
+              </div>
+
+              <div className="flex flex-col">
+                <dt className="text-muted-foreground">Production estimée</dt>
+                <dd className="font-mono tabular-nums font-semibold text-foreground">
+                  {financials.annualProductionKwh.toLocaleString("fr-BE")} kWh / an
+                </dd>
+              </div>
+
+              <div className="flex flex-col">
+                <dt className="text-muted-foreground">Autoconsommation</dt>
+                <dd className="font-mono tabular-nums font-semibold text-foreground">
+                  {financials.autoconsumptionRate} %{" "}
+                  <span className="font-normal text-muted-foreground">
+                    ({financials.selfConsumedKwh.toLocaleString("fr-BE")} kWh)
+                  </span>
+                </dd>
+              </div>
+
+              <div className="flex flex-col">
+                <dt className="text-muted-foreground">Économies client / an</dt>
+                <dd className="font-mono tabular-nums font-semibold text-foreground">
+                  {financials.revenueEstimatePerYear.toLocaleString("fr-BE")} € / an
+                </dd>
+              </div>
+
+              <div className="flex flex-col">
+                <dt className="text-muted-foreground">ROI client & Gain LT</dt>
+                <dd className="font-mono tabular-nums font-semibold text-foreground">
+                  {financials.estimatedRoiYears} ans{" "}
+                  <span className="font-normal text-muted-foreground">
+                    (+{financials.estimatedGainLongTerm.toLocaleString("fr-BE")} €)
+                  </span>
+                </dd>
+              </div>
+
+              <div className="flex flex-col">
+                <dt className="text-muted-foreground">Devis HT estimé</dt>
+                <dd className="font-mono tabular-nums font-semibold text-foreground">
+                  {financials.estimatedContractValueRange.min.toLocaleString("fr-BE")} –{" "}
+                  {financials.estimatedContractValueRange.max.toLocaleString("fr-BE")} € HT
+                </dd>
+              </div>
+
+              <div className="flex flex-col">
+                <dt className="text-muted-foreground">Marge brute installateur</dt>
+                <dd className="font-mono tabular-nums font-semibold text-foreground">
+                  ≈ {financials.estimatedInstallerMargin.toLocaleString("fr-BE")} €{" "}
+                  <span className="font-normal text-muted-foreground">
+                    ({financials.installerMarginPercent} %)
+                  </span>
                 </dd>
               </div>
 
@@ -522,19 +606,20 @@ export function LeadDrawer({
               </div>
 
               <div className="flex flex-col">
-                <dt className="text-muted-foreground">GRD Réseau</dt>
-                <dd className="font-mono font-medium uppercase text-foreground">
-                  {lead.grd || "–"}
-                </dd>
-              </div>
-
-              <div className="flex flex-col">
-                <dt className="text-muted-foreground">ROI estimé</dt>
-                <dd className="font-mono tabular-nums font-medium text-foreground">
-                  {lead.estimated_roi_years != null ? `${lead.estimated_roi_years} ans` : "–"}
+                <dt className="text-muted-foreground">Topologie onduleur / GRD</dt>
+                <dd className="font-mono font-medium text-foreground">
+                  {financials.inverterType}
+                  {lead.grd ? ` · ${lead.grd.toUpperCase()}` : ""}
                 </dd>
               </div>
             </dl>
+
+            <div className="border-t border-border/80 pt-2 text-[11px] text-muted-foreground flex items-center justify-between">
+              <span>{financials.sizingRationale}</span>
+              <span className="font-mono tabular-nums">
+                CO₂ évité : {financials.co2AvoidedTonsPerYear} t/an
+              </span>
+            </div>
 
             {lead.message && (
               <div className="border-t border-border/80 pt-2.5 flex flex-col gap-1">

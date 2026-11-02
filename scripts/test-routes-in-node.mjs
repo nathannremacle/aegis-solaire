@@ -31,8 +31,8 @@ async function testFullWorkflow() {
     .insert({
       company_name: "Test Solar Energy Wallonie",
       siret: "0999.888.777",
-      first_name: "Nathan",
-      last_name: "Remacle",
+      first_name: "Marc",
+      last_name: "Dupont",
       job_title: "Directeur Technique",
       email: testEmail,
       phone: "+32470000000",

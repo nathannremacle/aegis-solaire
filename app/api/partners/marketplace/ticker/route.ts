@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getPartner } from "@/lib/partner-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
+import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
 
 export const dynamic = "force-dynamic"
 
@@ -36,7 +37,11 @@ export async function GET() {
         province,
         segment,
         surface_area,
-        surface_type
+        surface_type,
+        annual_electricity_bill,
+        project_details,
+        message,
+        qualification_metadata
       )
     `)
     .order("created_at", { ascending: false })
@@ -62,7 +67,14 @@ export async function GET() {
     for (const p of recentPurchases) {
       const l = (p as any).leads
       if (l) {
-        const kwc = Math.round((l.surface_area || 100) * 0.17)
+        const kwc = calculateMarketplaceFinancials({
+          segment: l.segment,
+          surfaceArea: l.surface_area,
+          surfaceType: l.surface_type,
+          annualBill: l.annual_electricity_bill,
+          projectDetails: l.project_details ?? l.message,
+          qualificationMetadata: l.qualification_metadata,
+        }).estimatedPowerKwc
         items.push({
           id: `purch-${p.id}`,
           type: "purchase",

@@ -91,7 +91,7 @@ export default function WebinairePage() {
               Replay masterclass
             </span>
             <h1 className="text-balance text-2xl font-extrabold tracking-tight text-white min-[480px]:text-3xl sm:text-4xl md:text-5xl">
-              Zéro CAPEX : financer 100&nbsp;% de votre solaire par le tiers-investissement
+              Zéro CAPEX : financer <span className="font-mono tabular-nums">100&nbsp;%</span> de votre solaire par le tiers-investissement
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-pretty text-sm font-medium leading-relaxed text-neutral-300 sm:text-base">
               Décryptage vidéo — bâtiments tertiaires et parkings en Wallonie : lecture transposable au cadre
@@ -122,7 +122,7 @@ export default function WebinairePage() {
                         Remplissez le formulaire de réservation pour visualiser le replay
                       </p>
                       <p className="inline-flex rounded-full bg-white/10 px-3 py-1 text-sm text-neutral-300 font-medium">
-                        ~ 30 secondes • Accès direct
+                        ~ <span className="font-mono tabular-nums">30 secondes</span> • Accès direct
                       </p>
                     </div>
                   </div>
@@ -131,7 +131,7 @@ export default function WebinairePage() {
                 {/* Formulaire (droite sur desktop) */}
                 <div className="order-1 lg:order-2 lg:sticky lg:top-24">
                   <div className="min-w-0 overflow-hidden rounded-xl bg-card p-5 shadow-2xl sm:rounded-2xl sm:p-8">
-                    <div className="mb-6 space-y-2">
+                    <div className="mb-6 flex flex-col gap-2">
                       <h3 className="text-xl font-semibold text-foreground sm:text-2xl">
                         Accès au replay (Gratuit)
                       </h3>
@@ -140,9 +140,9 @@ export default function WebinairePage() {
                       </p>
                     </div>
 
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-5">
                       <div className="grid grid-cols-1 gap-5">
-                        <div className="space-y-1.5">
+                        <div className="flex flex-col gap-1.5">
                           <Label htmlFor="firstName" className="font-medium text-foreground">
                             Prénom
                           </Label>
@@ -157,7 +157,7 @@ export default function WebinairePage() {
                           )}
                         </div>
 
-                        <div className="space-y-1.5">
+                        <div className="flex flex-col gap-1.5">
                           <Label htmlFor="jobTitle" className="font-medium text-foreground">
                             Fonction
                           </Label>
@@ -184,7 +184,7 @@ export default function WebinairePage() {
                           )}
                         </div>
 
-                        <div className="space-y-1.5">
+                        <div className="flex flex-col gap-1.5">
                           <Label htmlFor="email" className="font-medium text-foreground">
                             E-mail pro
                           </Label>
@@ -200,7 +200,7 @@ export default function WebinairePage() {
                           )}
                         </div>
 
-                        <div className="space-y-1.5">
+                        <div className="flex flex-col gap-1.5">
                           <Label htmlFor="companyName" className="font-medium text-foreground">
                             Nom de l&apos;entreprise <span className="text-accent">*</span>
                           </Label>
@@ -215,7 +215,7 @@ export default function WebinairePage() {
                           )}
                         </div>
 
-                        <div className="space-y-1.5">
+                        <div className="flex flex-col gap-1.5">
                           <Label htmlFor="surfaceRange" className="font-medium text-foreground">
                             Surface estimée (toiture ou parking) <span className="text-xs font-normal text-muted-foreground">(optionnel)</span>
                           </Label>
@@ -227,9 +227,9 @@ export default function WebinairePage() {
                               <SelectValue placeholder="Sélectionnez une fourchette de surface" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="lt_500">Moins de 500 m²</SelectItem>
-                              <SelectItem value="m500_1500">De 500 à 1 500 m²</SelectItem>
-                              <SelectItem value="gt_1500">Plus de 1 500 m²</SelectItem>
+                              <SelectItem value="lt_500">Moins de <span className="font-mono tabular-nums">500 m²</span></SelectItem>
+                              <SelectItem value="m500_1500">De <span className="font-mono tabular-nums">500 à 1 500 m²</span></SelectItem>
+                              <SelectItem value="gt_1500">Plus de <span className="font-mono tabular-nums">1 500 m²</span></SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -269,7 +269,7 @@ export default function WebinairePage() {
               </div>
             ) : (
               /* ——— État débloqué : vidéo + CTA simulateur ——— */
-              <div className="mx-auto max-w-4xl space-y-8">
+              <div className="mx-auto max-w-4xl flex flex-col gap-8">
                 <div className="overflow-hidden rounded-2xl border border-border bg-muted/30 shadow-lg">
                   <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
                     <iframe
@@ -295,50 +295,50 @@ export default function WebinairePage() {
                     Résumé de la Masterclass : Rénover ses bâtiments tertiaires sans investissement (Zéro CAPEX)
                   </h2>
                   <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-                    Ce replay décrypte des méthodes éprouvées (GTB connectée, tiers-investissement) pour aligner un parc immobilier sur les obligations PEB, le PACE 2030 et la performance énergétique — sans mobiliser votre trésorerie. Les intervenants illustrent des cas européens ; à transposer au cadre wallon (GRD, SPW Énergie, Certificats Verts).
+                    Ce replay décrypte des méthodes éprouvées (GTB connectée, tiers-investissement) pour aligner un parc immobilier sur les obligations PEB, le PACE <span className="font-mono tabular-nums">2030</span> et la performance énergétique — sans mobiliser votre trésorerie. Les intervenants illustrent des cas européens ; à transposer au cadre wallon (GRD, SPW Énergie, Certificats Verts).
                   </p>
-                  <p className="mt-3 text-sm font-medium text-foreground">Voici les 4 points clés à retenir :</p>
+                  <p className="mt-3 text-sm font-medium text-foreground">Voici les <span className="font-mono tabular-nums">4</span> points clés à retenir :</p>
 
-                  <ul className="mt-6 space-y-6 sm:mt-8">
+                  <ul className="mt-6 flex flex-col gap-6 sm:mt-8">
                     <li className="relative flex gap-4 rounded-xl border border-border bg-muted/30 p-5 pl-14 sm:gap-5 sm:p-6 sm:pl-16">
-                      <span className="absolute left-4 top-5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground sm:left-5 sm:top-6">
+                      <span className="absolute left-4 top-5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary font-mono tabular-nums text-sm font-bold text-primary-foreground sm:left-5 sm:top-6">
                         1
                       </span>
-                      <div className="min-w-0 space-y-2">
-                        <h3 className="font-semibold text-foreground">L’urgence réglementaire : PEB, PACE 2030 et performance des bâtiments</h3>
+                      <div className="min-w-0 flex flex-col gap-2">
+                        <h3 className="font-semibold text-foreground">L’urgence réglementaire : PEB, PACE <span className="font-mono tabular-nums">2030</span> et performance des bâtiments</h3>
                         <p className="text-sm leading-relaxed text-muted-foreground">
-                          En Wallonie comme ailleurs, la trajectoire climat-énergie resserre les exigences sur le parc tertiaire et industriel : performance énergétique des bâtiments, intégration d’énergies renouvelables et alignement avec le Plan PACE 2030.{" "}
+                          En Wallonie comme ailleurs, la trajectoire climat-énergie resserre les exigences sur le parc tertiaire et industriel : performance énergétique des bâtiments, intégration d’énergies renouvelables et alignement avec le Plan PACE <span className="font-mono tabular-nums">2030</span>.{" "}
                           <strong className="text-foreground">Un patrimoine mal aligné sur ces attentes peut impacter la valeur résiduelle et les conditions de refinancement</strong> lors d’une revente ou d’une transaction.
                         </p>
                       </div>
                     </li>
 
                     <li className="relative flex gap-4 rounded-xl border border-border bg-muted/30 p-5 pl-14 sm:gap-5 sm:p-6 sm:pl-16">
-                      <span className="absolute left-4 top-5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground sm:left-5 sm:top-6">
+                      <span className="absolute left-4 top-5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary font-mono tabular-nums text-sm font-bold text-primary-foreground sm:left-5 sm:top-6">
                         2
                       </span>
-                      <div className="min-w-0 space-y-3">
+                      <div className="min-w-0 flex flex-col gap-3">
                         <h3 className="font-semibold text-foreground">L’optimisation technique grâce à la GTB &quot;Light&quot; (IoT)</h3>
                         <p className="text-sm leading-relaxed text-muted-foreground">
                           Pour réduire vos factures, le replay présente une solution de rupture : la Gestion Technique du Bâtiment par objets connectés (IoT). Contrairement aux systèmes traditionnels impliquant de lourds travaux de câblage, la GTB sans fil est non intrusive et centralisée dans le Cloud.
                         </p>
-                        <ul className="list-disc space-y-1 pl-4 text-sm text-muted-foreground">
-                          <li><strong className="text-foreground">Le résultat :</strong> Une installation en moyenne jusqu’à 40 % moins chère, générant environ <strong className="text-foreground">20 % d’économies d’énergie</strong>.</li>
-                          <li><strong className="text-foreground">Le rendement :</strong> Un ROI ultra-rapide estimé entre 3 et 5 ans, idéal pour les bâtiments jusqu’à 3 000 ou 5 000 m².</li>
+                        <ul className="list-disc flex flex-col gap-1 pl-4 text-sm text-muted-foreground">
+                          <li><strong className="text-foreground">Le résultat :</strong> Une installation en moyenne jusqu’à <span className="font-mono tabular-nums">40 %</span> moins chère, générant environ <strong className="text-foreground"><span className="font-mono tabular-nums">20 %</span> d’économies d’énergie</strong>.</li>
+                          <li><strong className="text-foreground">Le rendement :</strong> Un ROI ultra-rapide estimé entre <span className="font-mono tabular-nums">3 et 5 ans</span>, idéal pour les bâtiments jusqu’à <span className="font-mono tabular-nums">3 000 ou 5 000 m²</span>.</li>
                         </ul>
                       </div>
                     </li>
 
                     <li className="relative flex gap-4 rounded-xl border border-border bg-muted/30 p-5 pl-14 sm:gap-5 sm:p-6 sm:pl-16">
-                      <span className="absolute left-4 top-5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground sm:left-5 sm:top-6">
+                      <span className="absolute left-4 top-5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary font-mono tabular-nums text-sm font-bold text-primary-foreground sm:left-5 sm:top-6">
                         3
                       </span>
-                      <div className="min-w-0 space-y-3">
+                      <div className="min-w-0 flex flex-col gap-3">
                         <h3 className="font-semibold text-foreground">Le levier financier : le tiers-investissement (ESCO)</h3>
                         <p className="text-sm leading-relaxed text-muted-foreground">
-                          Dans le cas d’étude présenté, le financeur investit <strong className="text-foreground">100 % du coût des travaux de rénovation</strong> (à partir d’un million d’euros) sur des durées allant jusqu’à 15 ans.
+                          Dans le cas d’étude présenté, le financeur investit <strong className="text-foreground"><span className="font-mono tabular-nums">100 %</span> du coût des travaux de rénovation</strong> (à partir d’un million d’euros) sur des durées allant jusqu’à <span className="font-mono tabular-nums">15 ans</span>.
                         </p>
-                        <ul className="list-disc space-y-1 pl-4 text-sm text-muted-foreground">
+                        <ul className="list-disc flex flex-col gap-1 pl-4 text-sm text-muted-foreground">
                           <li><strong className="text-foreground">Aucune garantie exigée et zéro avance de trésorerie.</strong></li>
                           <li>Remboursement via un partage des économies d’énergie, encadré par un <strong className="text-foreground">Contrat de Performance Énergétique (CPE)</strong> certifié (audit externe / référentiel reconnu).</li>
                           <li><strong className="text-foreground">Vous devenez propriétaire des équipements dès le premier jour</strong> des travaux.</li>
@@ -348,17 +348,17 @@ export default function WebinairePage() {
                     </li>
 
                     <li className="relative flex gap-4 rounded-xl border border-border bg-muted/30 p-5 pl-14 sm:gap-5 sm:p-6 sm:pl-16">
-                      <span className="absolute left-4 top-5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-foreground sm:left-5 sm:top-6">
+                      <span className="absolute left-4 top-5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent font-mono tabular-nums text-sm font-bold text-accent-foreground sm:left-5 sm:top-6">
                         4
                       </span>
-                      <div className="min-w-0 space-y-3">
+                      <div className="min-w-0 flex flex-col gap-3">
                         <h3 className="font-semibold text-foreground">Des preuves de rentabilité concrètes</h3>
                         <p className="text-sm leading-relaxed text-muted-foreground">
                           La méthode du tiers-investissement a déjà fait ses preuves sur des projets combinant solaire, GTB, relamping et pompes à chaleur :
                         </p>
-                        <ul className="list-disc space-y-2 pl-4 text-sm text-muted-foreground">
-                          <li><strong className="text-foreground">Complexe tertiaire (47 000 m²) :</strong> 2 M€ de travaux financés en tiers-investissement, <strong className="text-foreground">175 000 € d’économies de trésorerie annuelles</strong>, baisse de 34 % de la consommation sur 15 ans.</li>
-                          <li><strong className="text-foreground">Site R&amp;D (biotech) :</strong> 2,3 M€ investis sans avance, réduction d’environ 80 % de la consommation de gaz et 150 000 € d’économies par an.</li>
+                        <ul className="list-disc flex flex-col gap-2 pl-4 text-sm text-muted-foreground">
+                          <li><strong className="text-foreground">Complexe tertiaire (<span className="font-mono tabular-nums">47 000 m²</span>) :</strong> <span className="font-mono tabular-nums">2 M€</span> de travaux financés en tiers-investissement, <strong className="text-foreground"><span className="font-mono tabular-nums">175 000 €</span> d’économies de trésorerie annuelles</strong>, baisse de <span className="font-mono tabular-nums">34 %</span> de la consommation sur <span className="font-mono tabular-nums">15 ans</span>.</li>
+                          <li><strong className="text-foreground">Site R&amp;D (biotech) :</strong> <span className="font-mono tabular-nums">2,3 M€</span> investis sans avance, réduction d’environ <span className="font-mono tabular-nums">80 %</span> de la consommation de gaz et <span className="font-mono tabular-nums">150 000 €</span> d’économies par an.</li>
                         </ul>
                       </div>
                     </li>
@@ -367,17 +367,17 @@ export default function WebinairePage() {
 
                 <Card className="overflow-hidden border-2 border-accent/20 bg-gradient-to-br from-card to-accent/5">
                   <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-                    <div className="space-y-1 min-w-0">
+                    <div className="flex flex-col gap-1 min-w-0">
                       <CardTitle className="flex items-center gap-2 text-xl font-bold">
                         <Calculator className="h-6 w-6 shrink-0 text-accent" />
                         Vérifier l&apos;éligibilité de mon bâtiment au Tiers-Investissement Zéro CAPEX
                       </CardTitle>
                       <CardDescription className="text-base text-muted-foreground">
-                        Calculez gratuitement la faisabilité solaire et le TRI de vos toitures industrielles ou parkings en 2 minutes.
+                        Calculez gratuitement la faisabilité solaire et le TRI de vos toitures industrielles ou parkings en <span className="font-mono tabular-nums">2 minutes</span>.
                       </CardDescription>
                     </div>
                     <Button asChild size="lg" className="w-full shrink-0 rounded-xl bg-accent font-bold text-accent-foreground shadow-xs transition-all hover:bg-accent/90 sm:w-auto">
-                      <Link href="/#simulator">Lancer mon étude d&apos;éligibilité</Link>
+                      <Link href="/#simulateur">Lancer mon étude d&apos;éligibilité</Link>
                     </Button>
                   </CardHeader>
                 </Card>

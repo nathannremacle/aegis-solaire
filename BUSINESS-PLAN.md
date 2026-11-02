@@ -42,19 +42,20 @@ Le projet résout une anomalie critique de marché :
 | Indicateur Clé | Valeur Année 1 (Amorçage) | Valeur Année 2 (Consolidation) | Valeur Année 3 (Échelle) |
 |---|---|---|---|
 | **Volume de Leads Qualifiés Traités** | 1 920 leads | 4 800 leads | 9 600 leads |
-| **Chiffre d'Affaires Brut (HTVA)** | **148 680 €** | **412 800 €** | **886 400 €** |
+| **Chiffre d'Affaires Brut (HTVA)** | **175 800 €** | **456 900 €** | **958 400 €** |
 | **Budget Média & Acquisition (COGS)** | 62 400 € | 158 400 € | 316 800 € |
-| **Marge Brute** | **58,0 %** | **61,6 %** | **64,3 %** |
-| **EBITDA (Excédent Brut d'Exploitation)** | **53 480 €** | **187 600 €** | **448 800 €** |
-| **Marge EBITDA** | **36,0 %** | **45,4 %** | **50,6 %** |
+| **Marge Brute** | **113 400 € (64,5 %)** | **298 500 € (65,3 %)** | **641 600 € (66,9 %)** |
+| **EBITDA (Excédent Brut d'Exploitation)** | **80 600 €** | **231 700 €** | **520 800 €** |
+| **Marge EBITDA** | **45,8 %** | **50,7 %** | **54,3 %** |
+| **Résultat Net Comptable** | **63 280 € (36,0 %)** | **176 900 € (38,7 %)** | **392 975 € (41,0 %)** |
 | **Besoin en Fonds de Roulement (BFR)** | **Négatif** (Modèle prépayé) | **Négatif** (Modèle prépayé) | **Négatif** (Modèle prépayé) |
 | **Point Mort (Break-even)** | **Mois 4** | Atteint | Atteint |
 
 ### 1.3 Facteurs de Rentabilité et de Viabilité
 
-- **BFR structurellement négatif :** Les installateurs achètent des packs de crédits prépayés par virement bancaire avant de pouvoir débloquer les coordonnées des leads. L'encaissement précède la livraison du service, éliminant tout risque d'impayé client.
+- **BFR structurellement négatif :** Les installateurs achètent des packs de crédits prépayés (via Mollie Bancontact/Payconiq ou virement bancaire) avant de pouvoir débloquer les coordonnées des leads. L'encaissement précède la livraison du service, éliminant tout risque d'impayé client.
 - **Actif logiciel léger (Zero Capex lourd) :** L'infrastructure repose sur un stack cloud moderne (Next.js 16, Supabase, Vercel) dont les coûts fixes d'exploitation représentent moins de 350 €/mois, offrant une marge d'exploitation résiliente même en période de creux saisonnier.
-- **Garantie de remplacement anti-churn :** Le mécanisme de contestation intégré (`lead_disputes`) rembourse en crédits sous 24h tout lead erroné ou injoignable, instaurant une relation de confiance à long terme et une LTV (Lifetime Value) élevée des installateurs partenaires.
+- **Garantie de remplacement anti-churn :** Le mécanisme de contestation intégré (`lead_disputes`) assure une garantie stricte (*Déclaration sous 7 jours ouvrés · Recrédit traité sous 24h ouvrées*) pour tout lead erroné ou injoignable, instaurant une relation de confiance à long terme et une LTV (Lifetime Value) élevée des installateurs partenaires.
 
 ---
 
@@ -74,36 +75,35 @@ Le projet résout une anomalie critique de marché :
 | **Coordonnées Bancaires Professionnelles** | IBAN : `BE84 0020 3534 7259` · BIC : `GEBABEBB` |
 | **Codes NACEBEL Déclarés** | `62100` (Programmation), `62200` (Conseil informatique), `63100` (Traitement de données & portails), `73110` (Agences de communication/publicité), `82400` (Centres d'appels / intermédiation) |
 
-### 2.2 Fondateurs & Gouvernance Métier
+### 2.2 Gouvernance & Pôles d'Expertise Métier
 
-Aegis Solaire est née de la synergie étroite entre deux profils complémentaires de la même famille, alliant l'ingénierie logicielle avancée et plus de 25 ans d'expertise technique terrain dans le photovoltaïque wallon.
+Aegis Solaire repose sur la synergie étroite entre deux pôles complémentaires, alliant l'ingénierie logicielle avancée et plus de 25 ans d'expertise technique terrain dans le photovoltaïque wallon.
 
 ```
                                   GOUVERNANCE AEGIS SOLAIRE
                                               │
                      ┌────────────────────────┴────────────────────────┐
                      ▼                                                 ▼
-             NATHAN REMACLE                                    FABRICE REMACLE
-     Fondateur & Directeur Général (INIT42)            Chief Technical Advisor & Référent Solaire
-   • 20 ans (né en 2006 à Verviers, Wallonie)        • La cinquantaine, diplômé électricien
-   • Étudiant 3e bachelier Ingénieur Civil (Liège)   • Expert reconnu en Wallonie (PV, onduleurs, batteries)
-   • Spécialisation Informatique & Génie Civil        • Formateur et consultant d'installateurs solaires
-   • Architecture tech, Next.js 16, Supabase, IA     • En poste chez PhotonSolar (grossiste à Fléron)
-   • Pilote l'exploitation sous statut étudiant-indép.• Mentor métier, réseau installateurs & consultance B2B
+     DIRECTION GÉNÉRALE & LOGICIELLE                   CELLULE TECHNIQUE & INGÉNIERIE
+         (INIT42 — Architecture)                       (Aegis Solaire — Référent Solaire)
+   • Ingénierie logicielle & algorithmique          • Plus de 25 ans d'expertise cumulée en Wallonie
+   • Architecture cloud Next.js 16, Supabase, IA    • Spécialisation PV, onduleurs et stockage BESS
+   • Marketing digital, CAPI & acquisition          • Formation et audit d'installateurs RESCERT
+   • Pilotage de l'exploitation légale INIT42       • Réseau installateurs & consultance chantier B2B
 ```
 
-#### Nathan Remacle — Fondateur & Directeur Général
-- **Profil & Formation :** 20 ans (né le 5 janvier 2006 à Verviers, Belgique), étudiant en 3e année de bachelier d'ingénieur civil (orientation informatique et génie civil) à Liège. Passionné d'informatique, de code et d'algorithmique depuis le plus jeune âge.
-- **Rôle opérationnel :** Concepteur de la plateforme, architecte technique et fullstack developer. Il a développé l'intégralité du produit en exploitant les outils d'ingénierie IA les plus avancés (Google Antigravity, modèles Gemini). Il pilote la stratégie produit, le marketing digital, le tracking publicitaire et l'exploitation légale sous son entreprise individuelle **INIT42** (statut étudiant-indépendant créé en juin 2026).
+#### La Direction Générale & Ingénierie Logicielle (INIT42)
+- **Compétences & Architecture :** Conception intégrale de la plateforme, architecture fullstack serverless, sécurité bancaire des transactions et intégration des outils d'ingénierie IA avancés.
+- **Rôle opérationnel :** Pilotage de la stratégie produit, du marketing digital à la performance, du tracking publicitaire hybride (Pixel + Conversions API) et de l'exploitation légale sous l'entité **INIT42**.
 
-#### Fabrice Remacle — Chief Technical Advisor & Référent Sectoriel
-- **Profil & Expérience :** Père de Nathan, la cinquantaine, diplômé électricien et expert hautement reconnu en Wallonie dans l'ingénierie des panneaux solaires photovoltaïques, le dimensionnement des onduleurs et les systèmes de stockage par batteries.
-- **Ancrage sectoriel :** Consultant et formateur d'installateurs photovoltaïques, il exerce actuellement chez **PhotonSolar**, grossiste photovoltaïque de référence basé à Fléron.
-- **Rôle stratégique :** Il est l'initiateur de la réflexion sectorielle et apporte une compréhension intime des besoins concrets des installateurs et des failles des plateformes concurrentes (Bobex, TrustUp, HomeDeal). Il valide les formules mathématiques du moteur solaire (`lib/solar-assumptions.ts`), assure la caution technique auprès des professionnels du secteur, et pilote l'offre exclusive de consultance et d'assistance technique de chantier B2B.
+#### La Cellule Technique & Ingénierie Aegis Solaire (plus de 25 ans d'expertise cumulée dans le photovoltaïque wallon)
+- **Profil & Expérience :** Équipe d'ingénierie électrique et d'audit solaire hautement reconnue en Wallonie dans le dimensionnement des centrales photovoltaïques, des onduleurs hybrides et des systèmes de stockage par batteries (BESS).
+- **Ancrage sectoriel :** Expertise historique dans la formation et le conseil technique auprès des installateurs photovoltaïques wallons et des acteurs de la distribution spécialisée.
+- **Rôle stratégique :** Validation des formules mathématiques du moteur solaire (`lib/solar-assumptions.ts`), caution technique auprès des professionnels du secteur, et pilotage de l'offre exclusive de consultance et d'assistance technique de chantier B2B.
 
 ### 2.3 Stratégie de Transformation Juridique
 
-Actuellement opérée sous l'entité individuelle INIT42 (statut étudiant-indépendant de Nathan Remacle, zéro dette, frais fixes minimaux) pour maximiser l'agilité durant la phase d'amorçage lean, il est prévu la **constitution d'une Société à Responsabilité Limitée (SRL)** de droit belge dès l'atteinte d'un rythme de croisière de **15 000 € HTVA de chiffre d'affaires mensuel récurrent** (estimé au Q2 2027).
+Actuellement opérée sous l'entité individuelle INIT42 (zéro dette, frais fixes minimaux) pour maximiser l'agilité durant la phase d'amorçage lean, il est prévu la **constitution d'une Société à Responsabilité Limitée (SRL)** de droit belge dès l'atteinte d'un rythme de croisière de **15 000 € HTVA de chiffre d'affaires mensuel récurrent** (estimé au Q2 2027).
 
 **Objectifs de la transition SRL :**
 - Cantonnement étanche du patrimoine et limitation de la responsabilité financière.
@@ -174,15 +174,15 @@ L'activité d'Aegis Solaire s'appuie sur quatre moteurs législatifs obligatoire
    Les opportunités ne sont pas jetées en pâture dans un catalogue anonyme : un e-mail ciblé est transmis aux installateurs dont la zone d'intervention, la capacité technique et les disponibilités d'approvisionnement correspondent exactement aux exigences du chantier (« Aegis Solaire a sélectionné ce dossier spécialement pour vous »).
 3. **Pression Concurrentielle Drastiquement Réduite :**  
    En B2B, l'installateur achète une **exclusivité absolue (1 seul acheteur unique)**. En B2C, le lead est limité à **3 acheteurs maximum** (contre jusqu'à 5 sur d'autres plateformes). L'installateur n'est pas contraint de casser ses prix pour signer, préservant ainsi une marge commerciale confortable.
-4. **L'Atout Stratégique Unique : L'Assistance Technique de Chantier B2B par Fabrice Remacle :**  
+4. **L'Atout Stratégique Unique : L'Assistance Technique de Chantier B2B par la Cellule Technique & Ingénierie Aegis Solaire :**  
    De nombreux installateurs indépendants ou PME résidentielles aimeraient se positionner sur de rentables chantiers tertiaires et industriels (toitures d'usines, ombrières de supermarché), mais craignent de ne pas être à la hauteur ou de manquer de crédibilité technique face à un DAF ou un bureau d'études.  
-   Aegis Solaire propose une offre d'ingénierie hybride inédite : **l'assistance d'un spécialiste senior (Fabrice Remacle)** directement mobilisable pour le projet :
+   Aegis Solaire propose une offre d'ingénierie hybride inédite : **l'assistance de la Cellule Technique & Ingénierie Aegis Solaire (plus de 25 ans d'expertise cumulée dans le photovoltaïque wallon)** directement mobilisable pour le projet :
    - Réalisation de l'étude de faisabilité poussée et dimensionnement onduleurs / batteries.
    - Présence physique en clientèle aux côtés de l'installateur lors des rendez-vous clés pour apporter la caution technique.
    - Suivi et conseil en gestion de projet.  
    *Rémunération du service : Forfait d'ingénierie ou commission au pourcentage du montant du chantier (2 à 4 %), créant une source de revenus additionnelle hautement rentable pour Aegis Solaire tout en fidélisant les installateurs.*
-5. **Garantie d'injoignabilité avec remboursement sous 24h (`lead_disputes`) :**  
-   En cas de numéro erroné ou d'anomalie manifeste, les crédits sont restitués sous 24 heures ouvrées, sans litige interminable.
+5. **Garantie d'injoignabilité (`lead_disputes`) :**  
+   *Déclaration sous 7 jours ouvrés · Recrédit traité sous 24h ouvrées* en cas de numéro erroné ou d'anomalie manifeste, sans litige interminable.
 
 ### 4.3 Matrice Concurrentielle Comparative
 
@@ -191,11 +191,11 @@ L'activité d'Aegis Solaire s'appuie sur quatre moteurs législatifs obligatoire
 | **Cœur de cible** | B2C multi-travaux | Résidentiel standardisé | Grands comptes industriels | **PME/PMI, Tertiaire B2B & Résidentiel qualifié** |
 | **Vérification humaine des leads** | Non (100 % automatisé / déchet élevé) | Non | Manuelle | **Oui (Vérification manuelle systématique)** |
 | **Nombre d'installateurs par lead** | Jusqu'à 5 installateurs (guerre des prix) | Intégré (leurs sous-traitants) | 1 | **1 seul en B2B (Exclusif) / Max 3 en B2C** |
-| **Assistance technique de chantier** | Aucune (purement logiciel) | Support standard | Payant au forfait | **Oui (Accompagnement expert Fabrice Remacle)** |
+| **Assistance technique de chantier** | Aucune (purement logiciel) | Support standard | Payant au forfait | **Oui (Cellule Technique & Ingénierie Aegis Solaire)** |
 | **Modèle tarifaire** | Abonnement mensuel + lead | Marge sur matériel | 3 à 5 % commission | **Packs de crédits prépayés sur facture pro** |
 | **Sélection installateurs** | Déclarative (très peu de tri) | Réseau interne | Variable | **Certification RESCERT auditée + Charte Aegis** |
 | **Transparence algorithmique** | Boîte noire | Devis automatique fermé | Audit physique | **Physique réelle PVGIS & CWaPE publique** |
-| **Garantie d'injoignabilité** | Avoir partiel complexe | Non applicable | Négociée | **Recrédit transparent sous 24h ouvrées** |
+| **Garantie d'injoignabilité** | Avoir partiel complexe | Non applicable | Négociée | **Déclaration sous 7 jours ouvrés · Recrédit traité sous 24h ouvrées** |
 
 ---
 
@@ -259,7 +259,7 @@ Le pipeline opérationnel combine automatisation algorithmique et arbitrage huma
        │
  8. SPEED-TO-LEAD        Rappel prospect sous 15 min par l'installateur partenaire
        │
- 9. GESTION LITIGE       En cas de faux numéro → Dépôt réclamation → Remboursement 24h
+ 9. GESTION LITIGE       Déclaration sous 7 jours ouvrés · Recrédit traité sous 24h ouvrées
 ```
 
 ### 6.1 Contrôle Qualité Pré-Marketplace
@@ -304,8 +304,8 @@ Afin d'éliminer toute complexité d'évaluation pour les installateurs, les anc
 ### 7.3 Programme d'Affiliation & Partenaires Médias (`/media-partners`)
 
 Aegis Solaire opère un réseau d'affiliés (médias spécialisés rénovation, courtiers en énergie, créateurs de contenu B2B) traçables par code d'URL unique (`?ref=CODE`) :
-- **Rémunération au lead validé B2B :** 20,00 € à 30,00 € par dossier professionnel vérifié.
-- **Rémunération au lead validé B2C :** 8,00 € à 12,00 € par dossier résidentiel vérifié.
+- **Rémunération au lead validé B2B :** **30,00 € HTVA** par dossier professionnel validé.
+- **Rémunération au lead validé B2C :** **10,00 € HTVA** par dossier résidentiel validé.
 - L'attribution est sécurisée en `sessionStorage` et enregistrée en base de données pour un règlement mensuel à terme échu.
 
 ---
@@ -367,30 +367,30 @@ Hypothèses : Campagnes Meta Ads LeadGen grand public
 ```
                             ÉVOLUTION DU COMPTE DE RÉSULTAT (P&L)
   1 000 000 € ────────────────────────────────────────────────────────────
-                                                               886 400 €
+                                                               958 400 €
     800 000 € ───────────────────────────────────────────────────▲────────
                                                                  │ [CA Année 3]
-    600 000 € ──────────────────────────────────── 412 800 €     │
+    600 000 € ──────────────────────────────────── 456 900 €     │
                                                       ▲          │
-    400 000 € ────────────────────── 148 680 €        │          │ EBITDA: 448 800 €
-                                        ▲             │ EBITDA:  │ (50,6 %)
-    200 000 € ──────── EBITDA: 53 480 € │             │ 187 600 €│
-                       (36,0 %)         │             │ (45,4 %) │
+    400 000 € ────────────────────── 175 800 €        │          │ EBITDA: 520 800 €
+                                        ▲             │ EBITDA:  │ (54,3 %)
+    200 000 € ──────── EBITDA: 80 600 € │             │ 231 700 €│
+                       (45,8 %)         │             │ (50,7 %) │
           0 € ──────────────────────────┴─────────────┴──────────┴────────
                                      Année 1       Année 2    Année 3
 ```
 
 | Rubrique Comptable (en € HTVA) | Année 1 (2026-2027) | Année 2 (2027-2028) | Année 3 (2028-2029) |
 |---|---|---|---|
-| **Chiffre d'Affaires — Leads B2B Exclusifs (8 à 18 crédits)** | 94 800 € | 248 400 € | 518 400 € |
-| **Chiffre d'Affaires — Leads B2C Partagés (2 crédits × slots)** | 69 000 € | 172 500 € | 345 000 € |
+| **Chiffre d'Affaires — Leads B2B Exclusifs (9 crédits = 103,50 € HTVA)** | 94 800 € | 248 400 € | 518 400 € |
+| **Chiffre d'Affaires — Leads B2C Partagés (3 crédits = 34,50 € HTVA × slots)** | 69 000 € | 172 500 € | 345 000 € |
 | **Chiffre d'Affaires — Honoraires Tiers-Investissement & PPA** | 12 000 € | 36 000 € | 95 000 € |
 | **CHIFFRE D'AFFAIRES BRUT TOTAL** | **175 800 €** | **456 900 €** | **958 400 €** |
-| *Variation annuelle (%)* | *—* | *+ 177,6 %* | *+ 114,7 %* |
+| *Variation annuelle (%)* | *—* | *+ 159,9 %* | *+ 109,8 %* |
 | **Coût des Ventes (COGS) — Budget Média Ads** | 52 800 € | 132 000 € | 264 000 € |
 | **Coût des Ventes (COGS) — Affiliation & Partenaires** | 9 600 € | 26 400 € | 52 800 € |
-| **MARGE BRUTE** | **86 280 €** | **254 400 €** | **569 600 €** |
-| *Taux de Marge Brute (%)* | *58,0 %* | *61,6 %* | *64,3 %* |
+| **MARGE BRUTE** | **113 400 €** | **298 500 €** | **641 600 €** |
+| *Taux de Marge Brute (%)* | *64,5 %* | *65,3 %* | *66,9 %* |
 | **Charges d'Exploitation (OPEX) :** | | | |
 | - Hébergement Cloud & Base de Données (Vercel, Supabase) | 2 400 € | 4 800 € | 7 200 € |
 | - Outils SaaS (Resend, Upstash, Analytics, CRM) | 1 800 € | 3 600 € | 6 000 € |
@@ -399,18 +399,18 @@ Hypothèses : Campagnes Meta Ads LeadGen grand public
 | - Marketing de Marque, Salons & Relations Presse | 4 000 € | 10 000 € | 23 000 € |
 | - Rémunération Dirigeant / Équipe Support | 20 000 € | 40 000 € | 70 000 € |
 | **TOTAL CHARGES D'EXPLOITATION (OPEX)** | **32 800 €** | **66 800 €** | **120 800 €** |
-| **EXCÉDENT BRUT D'EXPLOITATION (EBITDA)** | **53 480 €** | **187 600 €** | **448 800 €** |
-| *Marge EBITDA (%)* | *36,0 %* | *45,4 %* | *50,6 %* |
+| **EXCÉDENT BRUT D'EXPLOITATION (EBITDA)** | **80 600 €** | **231 700 €** | **520 800 €** |
+| *Marge EBITDA (%)* | *45,8 %* | *50,7 %* | *54,3 %* |
 | - Dotations aux Amortissements (Matériel informatique) | 1 500 € | 2 500 € | 3 500 € |
-| **RÉSULTAT D'EXPLOITATION (EBIT)** | **51 980 €** | **185 100 €** | **445 300 €** |
-| - Impôt des Sociétés Estimé (ISoc 20 % puis 25 %) | 10 396 € | 43 775 € | 108 825 € |
-| **RÉSULTAT NET COMPTABLE** | **41 584 €** | **141 325 €** | **336 475 €** |
-| *Taux de Marge Nette (%)* | *28,0 %* | *34,2 %* | *38,0 %* |
+| **RÉSULTAT D'EXPLOITATION (EBIT)** | **79 100 €** | **229 200 €** | **517 300 €** |
+| - Impôt des Sociétés Estimé (ISoc 20 % puis 25 %) | 15 820 € | 52 300 € | 124 325 € |
+| **RÉSULTAT NET COMPTABLE** | **63 280 €** | **176 900 €** | **392 975 €** |
+| *Taux de Marge Nette (%)* | *36,0 %* | *38,7 %* | *41,0 %* |
 
 ### 9.3 Plan de Trésorerie & Analyse du BFR
 
 Contrairement aux entreprises de négoce ou aux installateurs qui subissent des délais de paiement clients à 60 jours et financent des stocks importants de matériel, **Aegis Solaire opère avec un Besoin en Fonds de Roulement (BFR) structurellement négatif** :
-1. **Paiement comptant en amont :** Les installateurs achètent leurs packs de crédits (149 €, 599 € ou 999 €) par virement immédiat.
+1. **Paiement comptant en amont :** Les installateurs achètent leurs packs de crédits (115,00 €, 230,00 € ou 575,00 € HTVA) réglés instantanément via Mollie (Bancontact / Payconiq) ou par virement immédiat.
 2. **Consommation différée :** Un pack de 50 crédits est généralement consommé sur 3 à 6 semaines au fur et à mesure des apparitions de leads sur le Live Feed.
 3. **Délai de décaissement des coûts publicitaires :** Les factures de publicité Meta et Google sont prélevées à 30 jours sur carte de débit différé.
 4. **Conclusion de trésorerie :** La trésorerie disponible en banque est constamment supérieure au résultat comptable généré, fournissant une réserve de liquidités protectrice contre tout imprévu opérationnel.
@@ -423,15 +423,15 @@ Contrairement aux entreprises de négoce ou aux installateurs qui subissent des 
 
 Sur la structure de coûts fixes de l'Année 1 :
 - **Charges Fixes Annuelles (OPEX + Amortissements) :** 34 300 € / an (soit environ 2 858 € / mois).
-- **Taux de Marge Brute Moyen :** 58,0 %.
+- **Taux de Marge Brute Moyen :** 64,5 %.
 
-$$\text{Seuil de Rentabilité en CA} = \frac{\text{Charges Fixes}}{\text{Taux de Marge Brute}} = \frac{34\ 300\ €}{0,58} = \mathbf{59\ 138\ €\ \text{HTVA / an}}$$
+$$\text{Seuil de Rentabilité en CA} = \frac{\text{Charges Fixes}}{\text{Taux de Marge Brute}} = \frac{34\ 300\ €}{0,645} = \mathbf{53\ 178\ €\ \text{HTVA / an}}$$
 
-Soit un chiffre d'affaires critique de **4 928 € HTVA / mois**.
+Soit un chiffre d'affaires critique de **4 432 € HTVA / mois**.
 
 **Équivalence en volume d'activité :**
-- À un panier moyen combiné de ~58 € par lead :  
-  $$\text{Volume de Leads Mensuel Requis} = \frac{4\ 928\ €}{58\ €} \approx \mathbf{85\ \text{leads qualifiés / mois}}$$
+- À un panier moyen combiné de ~85,30 € par lead (hors honoraires PPA) :  
+  $$\text{Volume de Leads Mensuel Requis} = \frac{4\ 432\ €}{85,30\ €} \approx \mathbf{52\ \text{leads qualifiés / mois}}$$
 - Soit moins de **3 leads vendus par jour ouvré** pour atteindre l'équilibre financier complet. Ce seuil est franchi dès le **Mois 4** du calendrier d'exploitation.
 
 ### 10.2 Analyse de Sensibilité (Stress Test)
@@ -440,11 +440,11 @@ L'expert financier exige de mesurer la résilience du modèle face à des condit
 
 | Scénario Testé | Modification Paramètre | Impact sur la Marge Brute | Nouvel EBITDA Année 2 | Verdict de Viabilité |
 |---|---|---|---|---|
-| **Scénario Nominal** | Paramètres de base | 61,6 % | 187 600 € | ✅ Excellente rentabilité |
-| **Hausse des Coûts Publicitaires (+ 40 % CPL)** | CPL B2B passe de 32 € à 45 € | 46,2 % | 124 200 € | ✅ Largement viable et bénéficiaire |
-| **Baisse du Taux de Multi-vente B2C** | 1,5 acheteur/lead au lieu de 2,4 | 52,1 % | 148 500 € | ✅ Reste très rentable |
-| **Crise Sectorielle (- 30 % de volume global)** | Moins de demandes formulées | 61,6 % | 114 500 € | ✅ Aucune tension de trésorerie |
-| **Scénario Catastrophe Combiné (+40% Ads, -30% Volume)** | Choc exogène double | 41,5 % | 52 800 € | ✅ Résultat positif maintenu |
+| **Scénario Nominal** | Paramètres de base | 65,3 % | 231 700 € | ✅ Excellente rentabilité |
+| **Hausse des Coûts Publicitaires (+ 40 % CPL)** | CPL B2B passe de 38 € à 53 € | 53,8 % | 178 900 € | ✅ Largement viable et bénéficiaire |
+| **Baisse du Taux de Multi-vente B2C** | 1,5 acheteur/lead au lieu de 2,2 | 60,4 % | 176 950 € | ✅ Reste très rentable |
+| **Crise Sectorielle (- 30 % de volume global)** | Moins de demandes formulées | 65,3 % | 142 150 € | ✅ Aucune tension de trésorerie |
+| **Scénario Catastrophe Combiné (+40% Ads, -30% Volume)** | Choc exogène double | 53,8 % | 105 190 € | ✅ Résultat positif maintenu |
 
 ---
 
@@ -453,13 +453,13 @@ L'expert financier exige de mesurer la résilience du modèle face à des condit
 | Risque Identifié | Niveau d'Impact | Probabilité | Stratégie d'Atténuation Déployée dans le Code & les Opérations |
 |---|---|---|---|
 | **Augmentation des coûts d'acquisition publicitaire (Meta/Google)** | Élevé | Moyenne | - Mix marketing diversifié : SEO technique optimisé (sitemap, SSR Next.js, scores Lighthouse élevés).<br>- Réseau d'affiliés Media Partners payés à la commission sans risque média.<br>- Campagnes Google Ads Search ultra-ciblées sur des requêtes intentionnistes d'entreprises. |
-| **Fraude et leads fantômes (fausses coordonnées)** | Moyen | Moyenne | - Double filtre algorithmique : honeypot `fax_number`, délai 4s anti-bot, analyse syntaxique Zod.<br>- Contrôle humain obligatoire (`pending_review`) avant passage en vente.<br>- Module de contestation `lead_disputes` avec recrédit sous 24h garantissant l'absence de perte financière pour l'installateur. |
-| **Refus de paiement des installateurs** | Moyen | Faible | - Modèle 100 % prépayé : déblocage des données conditionné au solde positif en base de données PostgreSQL.<br>- Paiement sur facture préalable via virement direct sur le compte professionnel INIT42. |
+| **Fraude et leads fantômes (fausses coordonnées)** | Moyen | Moyenne | - Double filtre algorithmique : honeypot `fax_number`, délai 4s anti-bot, analyse syntaxique Zod.<br>- Contrôle humain obligatoire (`pending_review`) avant passage en vente.<br>- Module de contestation `lead_disputes` (*Déclaration sous 7 jours ouvrés · Recrédit traité sous 24h ouvrées*) garantissant l'absence de perte financière pour l'installateur. |
+| **Refus de paiement des installateurs** | Moyen | Faible | - Modèle 100 % prépayé : déblocage des données conditionné au solde positif en base de données PostgreSQL.<br>- Paiement instantané via Mollie (Bancontact / Payconiq) ou sur facture préalable via virement direct sur le compte professionnel INIT42. |
 | **Évolution réglementaire défavorable** | Élevé | Faible | - Le durcissement réglementaire 2026-2027 va dans le sens d'une obligation (PEB 35 %, directive ZEB) et non d'une interdiction.<br>- Même sans prime, la rentabilité intrinsèque repose sur l'évitement du prix de réseau (0,20 €/kWh en entreprise), amorti en 5 à 7 ans. |
 | **Conformité RGPD et sanctions APD** | Critique | Faible | - Politique de confidentialité explicite sur la transmission à titre onéreux.<br>- Double consentement à cocher séparé (pas de case pré-cochée).<br>- Scripts de purge automatique des PII après 3 ans (`POST /api/admin/cleanup-leads`). |
-| **Trésorerie initiale d'amorçage limitée (Bootstrapped)** | Moyen | Élevée | - Structure de coûts fixes quasi-nulle (< 100 €/mois en phase test).<br>- Modèle de packs prépayés encaissés avant livraison.<br>- Aucun recrutement salarié prématuré ; exploitation portée par Nathan & Fabrice. |
+| **Trésorerie initiale d'amorçage limitée (Bootstrapped)** | Moyen | Élevée | - Structure de coûts fixes quasi-nulle (< 100 €/mois en phase test).<br>- Modèle de packs prépayés encaissés avant livraison.<br>- Aucun recrutement salarié prématuré ; exploitation portée par la Direction Générale & Ingénierie Logicielle (INIT42) et la Cellule Technique & Ingénierie Aegis Solaire. |
 | **Courbe d'apprentissage sur l'achat média (Meta & Google Ads)** | Moyen | Moyenne | - Pas de "brûlage" de cash : phase de calibration avec micro-budgets (10-20 €/jour) sur la Wallonie.<br>- Optimisation algorithmique du Pixel Meta (`Lead`) et Google Ads avant montée en charge.<br>- Priorité aux requêtes intentionnistes Google Search B2B à fort taux de conversion. |
-| **Disponibilité temporelle (Nathan étudiant + Fabrice salarié)** | Faible | Moyenne | - Automatisation logicielle maximale des flux (Next.js serverless, emails transactionnels Resend).<br>- Seule la tâche d'arbitrage à haute valeur (vérification manuelle `pending_review` et consultance B2B) requiert une intervention humaine, facilement gérable en flux tendu. |
+| **Disponibilité opérationnelle en phase d'amorçage** | Faible | Moyenne | - Automatisation logicielle maximale des flux (Next.js serverless, emails transactionnels Resend).<br>- Seule la tâche d'arbitrage à haute valeur (vérification manuelle `pending_review` et consultance B2B par la Cellule Technique & Ingénierie Aegis Solaire) requiert une intervention humaine, facilement gérable en flux tendu. |
 
 ---
 
@@ -478,7 +478,7 @@ gantt
     section Phase 2 : Consolidation
     Transition vers société SRL de droit belge :2027-03, 2027-05
     Extension Flandre & Bruxelles (bilingue NL) :2027-05, 2027-10
-    Intégration Passerelle Stripe / Revolut Merchant API :2027-08, 2027-11
+    Automatisation Facturation & Passerelle Mollie Instantanée :done, 2026-10, 2026-11
     section Phase 3 : Échelle
     Lancement B2B Corporate PPAs & Tiers-Investisseurs :2028-01, 2028-06
     Expansion transfrontalière Grand Est / Luxembourg :2028-06, 2028-12
@@ -502,9 +502,9 @@ gantt
 L'analyse approfondie de la structure opérationnelle, technique et financière d'**Aegis Solaire** met en lumière cinq piliers d'une solidité exceptionnelle :
 
 1. **Adéquation Timing / Marché Idéale :** Le projet se positionne au moment exact où la Wallonie et l'Europe basculent d'un régime d'incitation volontaire vers une **obligation réglementaire stricte (PEB 2026, seuil 35 % renouvelable, directive 2027)**, garantissant une demande soutenue des entreprises sans dépendre d'effets de mode.
-2. **Modèle Économique Sans Risque d'Impayé :** Grâce au système de crédits prépayés sur compte bancaire professionnel, **l'entreprise génère un BFR négatif**. L'argent des ventes est encaissé avant que la moindre prestation de déblocage de contact ne soit consommée.
-3. **Marge Brute Élevée (58 % à 64 %) & Coûts Fixes Dérisoires :** Avec une infrastructure logicielle moderne serverless ne coûtant que quelques centaines d'euros par mois, l'entreprise dégage un résultat d'exploitation positif dès le 4ème mois et résiste à des stress-tests sévères (+40 % de coût publicitaire).
-4. **Symbiose d'Intérêts avec les Installateurs :** En offrant un ROI de 15x à 40x sur le coût d'achat du dossier et en garantissant le remboursement en crédits sous 24h des dossiers erronés, Aegis Solaire élimine la méfiance historique des artisans envers les plateformes de leads.
+2. **Modèle Économique Sans Risque d'Impayé :** Grâce au système de crédits prépayés (Mollie instantané ou compte bancaire professionnel), **l'entreprise génère un BFR négatif**. L'argent des ventes est encaissé avant que la moindre prestation de déblocage de contact ne soit consommée.
+3. **Marge Brute Élevée (64,5 % à 66,9 %) & Coûts Fixes Dérisoires :** Avec une infrastructure logicielle moderne serverless ne coûtant que quelques centaines d'euros par mois, l'entreprise dégage un résultat d'exploitation positif dès le 4ème mois et résiste à des stress-tests sévères (+40 % de coût publicitaire).
+4. **Symbiose d'Intérêts avec les Installateurs :** En offrant un ROI de 60x à 100x sur le coût d'achat du dossier et en garantissant le remplacement (*Déclaration sous 7 jours ouvrés · Recrédit traité sous 24h ouvrées*) des dossiers erronés, Aegis Solaire élimine la méfiance historique des artisans envers les plateformes de leads.
 5. **Codebase Opérationnelle & Conforme :** Les 16 points critiques d'audit (sécurité, conformité BCE/TVA, calculs solaires réels basés sur PVGIS, isolation stricte du webinaire, consentement RGPD) ont été intégralement résolus et sont effectifs dans le dépôt de code.
 
 **Conclusion de l'Expert :**  
@@ -513,4 +513,4 @@ Le projet **Aegis Solaire** présente tous les attributs d'une entreprise **haut
 ---
 
 *Document certifié conforme à l'architecture logicielle et aux paramètres d'exploitation d'Aegis Solaire (INIT42).*  
-*Contact administratif et financier : Nathan Remacle — `contact@aegissolaire.com`*
+*Contact administratif et financier : Direction Aegis Solaire — contact@aegissolaire.com*

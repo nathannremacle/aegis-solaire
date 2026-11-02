@@ -9,7 +9,7 @@ const path = require('node:path')
 function load(file, mocks = {}, env = {}, globals = {}) {
   const context = { exports: {}, console: { ...console, warn() {}, error() {} },
     process: { env }, ...globals,
-    require: name => Object.hasOwn(mocks, name) ? mocks[name] : require(name) }
+    require: name => Object.hasOwn(mocks, name) ? mocks[name] : (name.startsWith('@/') ? load(name.slice(2) + '.ts', mocks, env, globals) : require(name)) }
   const source = fs.readFileSync(path.join(__dirname, '..', file), 'utf8')
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: {
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true,
@@ -142,3 +142,102 @@ test('Meta CAPI user_data includes fn, ln, zp, country, fbc, and fbp for EMQ >= 
 })
 
 
+
+test('B2C solar calculation engine does not over-evaluate 3000-4000 kWh residential projects', () => {
+  const solar = load('lib/solar-assumptions.ts')
+  const pricing = load('lib/marketplace-pricing.ts', {
+    './credit-pricing': load('lib/credit-pricing.ts'),
+    './solar-assumptions': solar,
+  })
+
+  // Un ménage wallon consommant 3 500 kWh/an (tranche 3000_4000, ~1 150 €/an TTC) sans batterie
+  const res = solar.calculateB2CSolarROI({
+    annualBill: 1150,
+    consumptionKwh: 3500,
+    surfaceAreaM2: 42,
+    roofMaterial: 'tuiles',
+    hasBattery: 'non',
+    hasEv: 'non',
+  })
+
+  // Doit recommander ~3.0 kWc (7 panneaux de 435 Wc), et jamais 5.6 kWc !
+  assert.equal(res.estimatedPanelCount, 7)
+  assert.equal(res.installedPowerKwc, 3)
+  assert.ok(res.autoconsumptionRate >= 30 && res.autoconsumptionRate <= 42)
+  // Wallonie post-2024 (sans compteur qui tourne à l'envers) : retour réaliste 8 à 11 ans sans batterie
+  assert.ok(res.roiYears >= 8.0 && res.roiYears <= 11.0)
+
+  // "hesite" sur la batterie ne doit pas facturer une batterie fantôme de 3 000 €
+  const resHesite = solar.calculateB2CSolarROI({
+    annualBill: 1480,
+    consumptionKwh: 4500,
+    surfaceAreaM2: 42,
+    roofMaterial: 'tuiles',
+    hasBattery: 'hesite',
+    hasEv: 'non',
+  })
+  const resNon = solar.calculateB2CSolarROI({
+    annualBill: 1480,
+    consumptionKwh: 4500,
+    surfaceAreaM2: 42,
+    roofMaterial: 'tuiles',
+    hasBattery: 'non',
+    hasEv: 'non',
+  })
+  assert.equal(resHesite.totalNetCostHT, resNon.totalNetCostHT)
+
+  // Normalisation rétroactive d'un lead existant en DB qui avait l'ancienne facture gonflée (1800 €) et 5.6 kWc
+  const legacyLeadFin = pricing.calculateMarketplaceFinancials({
+    segment: 'B2C',
+    surfaceArea: 45,
+    surfaceType: 'toiture',
+    roofMaterial: 'tuiles',
+    annualBill: 1800,
+    estimatedPowerKwc: 5.6,
+    projectDetails: 'Consommation annuelle: 3000_4000 | Type de bien: maison_4f | Couverture: tuiles | Surface toiture: medium',
+    qualificationMetadata: {
+      consumptionKwh: '3000_4000',
+      roofSurface: 'medium',
+      roofType: 'tuiles',
+    },
+  })
+
+  assert.equal(legacyLeadFin.normalizedAnnualBill, 1150)
+  assert.equal(legacyLeadFin.normalizedSurfaceAreaM2, 42)
+  assert.equal(legacyLeadFin.estimatedPowerKwc, 3)
+  assert.equal(legacyLeadFin.estimatedPanelCount, 7)
+  assert.ok(legacyLeadFin.estimatedInstallerMargin < 1100) // ~700 € HT (20%), loin des 2 000 € gonflés d'avant
+})
+
+test('B2B solar calculation engine sizes realistically on daytime load without 115% oversizing', () => {
+  const solar = load('lib/solar-assumptions.ts')
+  const pricing = load('lib/marketplace-pricing.ts', {
+    './credit-pricing': load('lib/credit-pricing.ts'),
+    './solar-assumptions': solar,
+  })
+
+  // PME avec facture de 10 000 € HT/an et petite toiture (< 500 m²)
+  const b2b = solar.calculateB2BSolarROI({
+    surfaceType: 'toiture',
+    surfaceRange: 'lt_500',
+    annualElectricityBill: 10000,
+    roofMaterial: 'bac_acier',
+  })
+
+  // Surface médiane 280 m² (et non 400 m²), puissance ~30 kWc (et non 55 kWc)
+  assert.equal(b2b.surfaceAreaM2, 280)
+  assert.ok(b2b.installedPowerKwc >= 25 && b2b.installedPowerKwc <= 35)
+  assert.ok(b2b.estimatedRoiYears >= 5.0 && b2b.estimatedRoiYears <= 8.5)
+
+  const fin = pricing.calculateMarketplaceFinancials({
+    segment: 'B2B',
+    surfaceArea: 350, // ancienne valeur par défaut lt_500
+    surfaceType: 'toiture',
+    roofMaterial: 'bac_acier',
+    annualBill: 10000,
+    estimatedPowerKwc: 55, // ancienne valeur sur-évaluée ignorée au profit du modèle physique
+    qualificationMetadata: { b2b_surface_range: 'lt_500' },
+  })
+  assert.equal(fin.normalizedSurfaceAreaM2, 280)
+  assert.equal(fin.estimatedPowerKwc, b2b.installedPowerKwc)
+})

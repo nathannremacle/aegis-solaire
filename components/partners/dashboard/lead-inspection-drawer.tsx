@@ -104,14 +104,20 @@ export function LeadInspectionDrawer({
     segment: lead.segment,
     surfaceArea,
     surfaceType: lead.surface_type,
+    roofMaterial: lead.roof_material,
     annualBill,
     creditCost: cost,
+    estimatedPowerKwc: lead.estimated_power_kwc,
+    projectDetails: lead.project_details ?? lead.message,
+    qualificationMetadata: lead.qualification_metadata,
   })
 
   const location = getLeadLocationInfo(lead)
   const freshness = getLeadFreshness(lead.created_at, (lead as { freshness_label?: string }).freshness_label)
   const sanitized = sanitizeLeadNotes(lead.project_details, lead.message)
-  const powerKwc = lead.estimated_power_kwc ?? financials.estimatedPowerKwc
+  const powerKwc = financials.estimatedPowerKwc
+  const displaySurfaceArea = financials.normalizedSurfaceAreaM2
+  const displayAnnualBill = financials.normalizedAnnualBill
   const roi = calculateLeadRoiRatio(financials.estimatedInstallerMargin, cost, financials.estimatedContractValue)
 
   return (
@@ -133,7 +139,7 @@ export function LeadInspectionDrawer({
       >
         {/* ── 1. En-tête Fixe Haute Densité ── */}
         <div className="shrink-0 flex items-start justify-between gap-3 p-4 sm:p-5 border-b border-border bg-card">
-          <div className="space-y-1 pr-2 min-w-0">
+          <div className="flex flex-col gap-1 pr-2 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span
                 className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold ${
@@ -176,7 +182,7 @@ export function LeadInspectionDrawer({
         </div>
 
         {/* ── 2. Corps Déroulant Haute Richesse Métier ── */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 overscroll-contain">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 flex flex-col gap-4 overscroll-contain">
           {/* A. Carte Tactique avec Cercle de Floutage 3 km */}
           <div>
             <LeadGeoRadarMap
@@ -189,7 +195,7 @@ export function LeadInspectionDrawer({
             />
           </div>
 
-          {/* B. Métriques Clés en Chasse Fixe (Puissance, Facture, Marge, ROI) */}
+          {/* B. Métriques Clés en Chasse Fixe (Puissance, Facture, Production, Rentabilité) */}
           <div className="grid grid-cols-2 gap-2.5">
             <div className="rounded-xl border border-border bg-secondary/30 p-3">
               <span className="text-[11px] text-muted-foreground uppercase tracking-wide block font-semibold">
@@ -202,9 +208,12 @@ export function LeadInspectionDrawer({
                 <span className="text-xs sm:text-sm font-semibold text-muted-foreground uppercase tracking-tight">
                   kWc
                 </span>
+                <span className="text-[11px] font-mono tabular-nums text-muted-foreground ml-1">
+                  ({financials.estimatedPanelCount} panneaux)
+                </span>
               </div>
-              <span className="text-[11px] text-muted-foreground font-mono">
-                {surfaceArea > 0 ? `~${surfaceArea} m² exploitables` : "Surface à dimensionner"}
+              <span className="text-[11px] text-muted-foreground font-mono tabular-nums">
+                {displaySurfaceArea > 0 ? `~${financials.usableSurfaceM2} m² utiles (${displaySurfaceArea} m² bruts)` : "Surface à dimensionner"}
               </span>
             </div>
 
@@ -214,33 +223,45 @@ export function LeadInspectionDrawer({
               </span>
               <div className="mt-1 flex items-baseline gap-1">
                 <span className="font-mono text-lg font-bold text-foreground tabular-nums whitespace-nowrap">
-                  {annualBill > 0 ? `${annualBill.toLocaleString("fr-BE")} €/an` : (isB2B ? "Facture pro" : "Non communiquée")}
+                  {displayAnnualBill > 0 ? `${displayAnnualBill.toLocaleString("fr-BE")} €/an` : (isB2B ? "Facture pro" : "Non communiquée")}
                 </span>
               </div>
-              <span className="text-[11px] text-muted-foreground font-mono">
-                {isB2B ? "Professionnel HT (Wallonie)" : "Résidentiel standard"}
+              <span className="text-[11px] text-muted-foreground font-mono tabular-nums">
+                ≈ {financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh/an ({isB2B ? "HT" : "TTC"})
               </span>
             </div>
           </div>
 
-          {/* C. Estimation Financière & Marge Installateur */}
-          <div className="rounded-xl border border-border bg-secondary/50 p-3.5 space-y-2">
+          {/* C. Estimation Financière, Rentabilité Client & Marge Installateur */}
+          <div className="rounded-xl border border-border bg-secondary/50 p-3.5 flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-foreground">Économie &amp; Marge Indicative</span>
-              <span className="text-[11px] font-mono text-muted-foreground">Marché Wallonie 2026</span>
+              <span className="text-xs font-bold text-foreground">Dimensionnement &amp; Rentabilité Estimée</span>
+              <span className="text-[11px] font-mono tabular-nums text-muted-foreground">Marché Wallonie 2026</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border text-xs">
+            <div className="grid grid-cols-2 gap-2.5 pt-1.5 border-t border-border text-xs">
               <div>
-                <span className="text-muted-foreground text-[11px] block">Montant du chantier</span>
+                <span className="text-muted-foreground text-[11px] block">Devis HT estimé</span>
                 <span className="font-mono font-bold text-foreground tabular-nums">
                   {formatRoundedCurrency(financials.estimatedContractValueRange.min).replace("~", "")} à {formatRoundedCurrency(financials.estimatedContractValueRange.max).replace("~", "")}
                 </span>
               </div>
               <div>
-                <span className="text-muted-foreground text-[11px] block">Marge brute estimée</span>
+                <span className="text-muted-foreground text-[11px] block">Marge brute installateur ({financials.installerMarginPercent} %)</span>
                 <span className="font-mono font-bold text-accent tabular-nums">
                   {formatRoundedCurrency(financials.estimatedInstallerMargin)}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-[11px] block">Production &amp; Autoconso.</span>
+                <span className="font-mono font-semibold text-foreground tabular-nums">
+                  {financials.annualProductionKwh.toLocaleString("fr-BE")} kWh/an · {financials.autoconsumptionRate} %
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-[11px] block">Économie &amp; ROI client</span>
+                <span className="font-mono font-semibold text-foreground tabular-nums">
+                  ≈ {financials.revenueEstimatePerYear.toLocaleString("fr-BE")} €/an · {financials.estimatedRoiYears} ans
                 </span>
               </div>
             </div>
@@ -248,7 +269,7 @@ export function LeadInspectionDrawer({
 
           {/* Attribution des places B2C */}
           {!isB2B && (
-            <div className="rounded-xl border border-border/80 bg-secondary/20 p-3.5 space-y-2">
+            <div className="rounded-xl border border-border/80 bg-secondary/20 p-3.5 flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-foreground block">
                   Créneaux B2C Aegis Solaire
@@ -291,7 +312,7 @@ export function LeadInspectionDrawer({
           )}
 
           {/* D. Fiche Technique Déduite & Normalisée */}
-          <div className="rounded-xl border border-border bg-secondary/20 p-3.5 space-y-2.5">
+          <div className="rounded-xl border border-border bg-secondary/20 p-3.5 flex flex-col gap-2.5">
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
               Spécifications du Dossier
             </span>
@@ -351,7 +372,7 @@ export function LeadInspectionDrawer({
           </div>
 
           {/* E. Checklist de ce qui est débloqué après achat */}
-          <div className="rounded-xl border border-border bg-card p-3.5 space-y-2.5">
+          <div className="rounded-xl border border-border bg-card p-3.5 flex flex-col gap-2.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
                 <FileCheck className="h-4 w-4 text-primary" />
@@ -360,7 +381,7 @@ export function LeadInspectionDrawer({
               <span className="text-[10px] font-mono text-muted-foreground uppercase">Garantie Aegis</span>
             </div>
 
-            <ul className="space-y-1.5 text-xs">
+            <ul className="flex flex-col gap-1.5 text-xs">
               <li className="flex items-center gap-2 text-foreground">
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
                 <span>Nom complet du décideur {isB2B ? "et raison sociale entreprise" : ""}</span>
@@ -392,7 +413,7 @@ export function LeadInspectionDrawer({
 
           {/* F. Section Débloquée si déjà acheté */}
           {isPurchased && (
-            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-3">
+            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
                   <CheckCircle2 className="h-4 w-4" />
@@ -409,7 +430,7 @@ export function LeadInspectionDrawer({
                 </Button>
               </div>
 
-              <div className="space-y-1.5 text-xs">
+              <div className="flex flex-col gap-1.5 text-xs">
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground w-16">Contact :</span>
                   <strong className="text-foreground">
@@ -440,7 +461,7 @@ export function LeadInspectionDrawer({
           )}
 
           {/* G. Accompagnement Cellule Technique & Étude Expert */}
-          <div className="rounded-xl border border-accent/30 bg-accent/5 p-3.5 space-y-2.5">
+          <div className="rounded-xl border border-accent/30 bg-accent/5 p-3.5 flex flex-col gap-2.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
                 <Sparkles className="h-4 w-4 text-accent" />

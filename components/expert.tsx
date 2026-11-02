@@ -50,7 +50,7 @@ function FounderVideoBlock() {
 
   if (embedUrl) {
     return (
-      <div className="relative aspect-video w-full min-w-0 overflow-hidden rounded-2xl bg-muted shadow-2xl transition-all hover:shadow-[0_0_30px_rgba(255,184,0,0.15)]" aria-label={VIDEO_TITLE}>
+      <div className="relative aspect-video w-full min-w-0 overflow-hidden rounded-2xl bg-muted shadow-sm transition-all" aria-label={VIDEO_TITLE}>
         <iframe
           src={embedUrl}
           title={VIDEO_TITLE}
@@ -76,7 +76,7 @@ function FounderVideoBlock() {
 
   return (
     <div
-      className="group relative aspect-video w-full min-w-0 cursor-pointer overflow-hidden rounded-2xl bg-slate-900 shadow-2xl transition-all hover:shadow-[0_0_40px_rgba(0,29,61,0.4)] sm:rounded-3xl"
+      className="group relative aspect-video w-full min-w-0 cursor-pointer overflow-hidden rounded-2xl bg-slate-900 shadow-sm transition-all sm:rounded-3xl"
       aria-label={VIDEO_TITLE}
       onClick={togglePlay}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), togglePlay())}
@@ -96,7 +96,7 @@ function FounderVideoBlock() {
         Votre navigateur ne prend pas en charge la lecture de vidéos.
       </video>
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-gradient-to-b from-transparent to-primary/40 transition-opacity duration-300" aria-hidden>
-        <span className={`flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-accent/90 text-primary shadow-[0_0_30px_rgba(255,184,0,0.5)] backdrop-blur-md transition-all duration-300 group-hover:scale-110 ${isPlaying ? "scale-90 opacity-0" : "scale-100 opacity-100"}`}>
+        <span className={`flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-accent/90 text-accent-foreground shadow-sm backdrop-blur-md transition-all duration-300 group-hover:scale-110 ${isPlaying ? "scale-90 opacity-0" : "scale-100 opacity-100"}`}>
           <Play className="h-8 w-8 sm:h-10 sm:w-10 translate-x-1" />
         </span>
         {isPlaying && (
@@ -155,7 +155,7 @@ export function Expert() {
             Notre expertise régionale
           </span>
           <h2 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl lg:text-5xl xl:leading-[1.1]">
-            Votre partenaire pour la <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">transition wallonne</span>
+            Votre partenaire pour la <span className="text-accent">transition wallonne</span>
           </h2>
           <p className="mt-6 text-pretty text-base font-medium leading-relaxed text-muted-foreground sm:text-lg lg:text-xl">
             Rentabilité, financement et conformité PEB en Wallonie : nous structurons vos dossiers <strong>Corporate PPA</strong> ou <strong>Tiers-Investissement</strong> et valorisons les <strong>Certificats Verts (CWaPE)</strong> dès que votre actif y est éligible.
@@ -174,11 +174,11 @@ export function Expert() {
             <motion.div
               key={i}
               variants={itemVariants}
-              className="group relative overflow-hidden rounded-2xl border border-primary/5 bg-background p-6 text-center shadow-lg transition-all hover:-translate-y-2 hover:shadow-[0_15px_30px_rgba(0,29,61,0.08)] sm:p-8"
+              className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 text-center shadow-xs transition-all hover:-translate-y-1 hover:shadow-sm sm:p-8"
             >
               <div className="absolute top-0 right-0 h-24 w-24 translate-x-12 -translate-y-12 rounded-full bg-accent/5 transition-transform duration-500 group-hover:scale-150" />
               <stat.icon className="mx-auto mb-4 h-8 w-8 text-accent drop-shadow-sm transition-transform duration-300 group-hover:scale-125 sm:h-10 sm:w-10" />
-              <p className="text-3xl font-extrabold tracking-tight text-primary sm:text-4xl">
+              <p className="font-mono tabular-nums text-3xl font-extrabold tracking-tight text-primary sm:text-4xl">
                 {stat.valueNum !== undefined ? (
                   <>
                     <AnimatedCounter value={stat.valueNum} />
@@ -260,8 +260,8 @@ export function Expert() {
           className="mt-16 lg:mt-24"
         >
           <div className="mb-8 flex items-center justify-center gap-4 sm:justify-start">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent shadow-[0_0_15px_rgba(255,184,0,0.4)]">
-              <Banknote className="h-6 w-6 text-primary" />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent shadow-xs">
+              <Banknote className="h-6 w-6 text-accent-foreground" />
             </div>
             <h3 className="text-2xl font-bold tracking-tight text-foreground">
               Structuration financière
@@ -269,25 +269,25 @@ export function Expert() {
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2">
-            <div className="group relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-xl transition-all duration-300 hover:-translate-y-2 hover:border-accent hover:shadow-[0_20px_40px_rgba(0,29,61,0.12)] sm:p-8">
+            <div className="group relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-accent hover:shadow-sm sm:p-8">
               <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-accent/10 transition-transform duration-500 group-hover:scale-150" />
-              <span className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-accent to-amber-600 text-lg font-bold text-black shadow-lg">
+              <span className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-accent font-mono tabular-nums text-lg font-bold text-accent-foreground shadow-xs">
                 0 €
               </span>
               <h4 className="text-xl font-bold text-foreground">Tiers-Investissement</h4>
               <p className="mt-4 text-base leading-relaxed text-muted-foreground group-hover:text-foreground/90 transition-colors">
-                Un investisseur prend en charge 100 % du CAPEX et la maintenance totale. Il se rémunère sur la revente et les <strong>Certificats Verts</strong>. Vous profitez d'une énergie locale sans alourdir votre bilan comptable.
+                Un investisseur prend en charge <span className="font-mono tabular-nums">100 %</span> du CAPEX et la maintenance totale. Il se rémunère sur la revente et les <strong>Certificats Verts</strong>. Vous profitez d'une énergie locale sans alourdir votre bilan comptable.
               </p>
             </div>
 
-            <div className="group relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-xl transition-all duration-300 hover:-translate-y-2 hover:border-primary hover:shadow-[0_20px_40px_rgba(0,29,61,0.12)] sm:p-8">
+            <div className="group relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-primary hover:shadow-sm sm:p-8">
               <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/10 transition-transform duration-500 group-hover:scale-150" />
-              <span className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-[#003366] text-sm font-bold tracking-wider text-white shadow-lg">
+              <span className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-sm font-bold tracking-wider text-primary-foreground shadow-xs">
                 PPA
               </span>
               <h4 className="text-xl font-bold text-foreground">Corporate PPA On-Site</h4>
               <p className="mt-4 text-base leading-relaxed text-muted-foreground group-hover:text-foreground/90 transition-colors">
-                Contrat de gré à gré (10-25 ans) sourçant l'énergie <strong className="font-semibold px-1 text-primary bg-primary/10 rounded">derrière le compteur</strong>. Vous figez un prix de l'électricité bas à long terme, vous couvrant contre toute la volatilité des marchés extérieurs.
+                Contrat de gré à gré (<span className="font-mono tabular-nums">10-25 ans</span>) sourçant l'énergie <strong className="font-semibold px-1 text-primary bg-primary/10 rounded">derrière le compteur</strong>. Vous figez un prix de l'électricité bas à long terme, vous couvrant contre toute la volatilité des marchés extérieurs.
               </p>
             </div>
           </div>

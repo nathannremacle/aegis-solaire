@@ -12,7 +12,7 @@ for (const line of envContent.split('\n')) {
 
 const secret = env.SUPABASE_SERVICE_ROLE_KEY;
 const id = '2faf2f84-d94f-4861-9f52-48c9e7181d76';
-const email = 'mrnathanrem@gmail.com';
+const email = 'contact@aegissolaire.com';
 const payload = id.toLowerCase().trim() + ':' + email.toLowerCase().trim();
 const token = createHmac('sha256', secret).update(payload).digest('hex');
 

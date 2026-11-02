@@ -16,9 +16,9 @@ export async function GET() {
 
   let leads: Array<Record<string, any>> | null = null
   const canonicalSelect =
-    "id, province, segment, surface_type, surface_area, annual_electricity_bill, credit_cost, marketplace_status, created_at, grd, estimated_roi_years, project_timeline, wants_irve, lead_score, first_name, last_name, company, postal_code, roof_material, ownership_status, project_driver, timeframe, qualification_metadata"
+    "id, province, city, segment, surface_type, surface_area, annual_electricity_bill, credit_cost, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate, estimated_power_kwc, project_timeline, project_details, message, wants_irve, lead_score, first_name, last_name, company, postal_code, roof_material, ownership_status, project_driver, timeframe, qualification_metadata"
   const legacySelect =
-    "id, province, segment, surface_type, surface_area, annual_electricity_bill, credit_cost, marketplace_status, created_at, grd, estimated_roi_years, project_timeline, wants_irve, lead_score, first_name, last_name, company"
+    "id, province, segment, surface_type, surface_area, annual_electricity_bill, credit_cost, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate, project_timeline, project_details, message, wants_irve, lead_score, first_name, last_name, company"
 
   const q1 = await admin
     .from("leads")
@@ -105,24 +105,33 @@ export async function GET() {
     const financials = calculateMarketplaceFinancials({
       segment: lead.segment,
       surfaceArea: lead.surface_area,
+      surfaceType: lead.surface_type,
+      roofMaterial: lead.roof_material,
       annualBill: lead.annual_electricity_bill,
       creditCost: cost,
+      estimatedPowerKwc: lead.estimated_power_kwc,
+      projectDetails: lead.project_details ?? lead.message,
+      qualificationMetadata: lead.qualification_metadata,
     })
 
     // Badges d'opportunité calculés sur données réelles
     const isUrgent = lead.project_timeline === "immediate" || lead.project_timeline === "within_3_months"
-    const isFastRoi = lead.estimated_roi_years && Number(lead.estimated_roi_years) <= 4.5
-    const isHighVolume = (lead.surface_area ?? 0) >= 400 || financials.estimatedPowerKwc >= 65
-    const hasIrve = Boolean(lead.wants_irve)
+    const isFastRoi = financials.estimatedRoiYears <= 5.5
+    const isHighVolume = financials.normalizedSurfaceAreaM2 >= 400 || financials.estimatedPowerKwc >= 65
+    const hasIrve = Boolean(lead.wants_irve) || financials.includesEv
 
     return {
       id: lead.id,
       province: lead.province,
+      city: lead.city ?? null,
       segment: lead.segment,
       surfaceType: lead.surface_type,
-      surfaceArea: lead.surface_area,
-      annualBill: lead.annual_electricity_bill,
+      surfaceArea: financials.normalizedSurfaceAreaM2,
+      annualBill: financials.normalizedAnnualBill,
       estimatedPowerKwc: financials.estimatedPowerKwc,
+      estimatedPanelCount: financials.estimatedPanelCount,
+      annualProductionKwh: financials.annualProductionKwh,
+      autoconsumptionRate: financials.autoconsumptionRate,
       estimatedRevenue: financials.revenueEstimatePerYear,
       estimatedContractValue: financials.estimatedContractValue,
       estimatedContractValueRange: financials.estimatedContractValueRange,
@@ -135,7 +144,7 @@ export async function GET() {
       createdAt: lead.created_at,
       grd: lead.grd,
       projectTimeline: lead.project_timeline,
-      estimatedRoiYears: lead.estimated_roi_years,
+      estimatedRoiYears: financials.estimatedRoiYears,
       postalCode: lead.postal_code ?? null,
       roofMaterial: lead.roof_material ?? null,
       ownershipStatus: lead.ownership_status ?? null,

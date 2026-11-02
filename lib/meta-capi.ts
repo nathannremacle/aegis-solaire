@@ -61,6 +61,7 @@ export interface MetaCapiLeadParams {
   email: string
   phone: string
   segment: "B2B" | "B2C" | string
+  sourceUrl?: string
   clientIp?: string
   userAgent?: string
   fbp?: string
@@ -116,6 +117,16 @@ export async function sendMetaConversionApiLead(params: MetaCapiLeadParams): Pro
       userData.fbc = formattedFbc
     }
 
+    const eventSourceUrl =
+      params.sourceUrl && params.sourceUrl.startsWith("http")
+        ? params.sourceUrl
+        : params.segment === "B2B"
+          ? "https://www.aegissolaire.com/"
+          : "https://www.aegissolaire.com/devis-panneaux-solaires"
+
+    // Barème V2 unifié : 103.50 € HTVA en B2B exclusif (9 cr), 75.90 € HTVA en moyenne B2C (2.2 × 34.50 €)
+    const leadValueEur = params.segment === "B2B" ? 103.5 : 75.9
+
     const response = await fetch(`https://graph.facebook.com/v22.0/${pixelId}/events?access_token=${accessToken}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -124,14 +135,14 @@ export async function sendMetaConversionApiLead(params: MetaCapiLeadParams): Pro
           {
             event_name: "Lead",
             event_time: Math.floor(Date.now() / 1000),
-            event_id: params.eventId,
+            event_id: params.eventId.startsWith("lead_") ? params.eventId : `lead_${params.eventId}`,
             action_source: "website",
-            event_source_url: "https://www.aegissolaire.com/devis-panneaux-solaires",
+            event_source_url: eventSourceUrl,
             user_data: userData,
             custom_data: {
               content_category: params.segment,
               currency: "EUR",
-              value: params.segment === "B2B" ? 110 : 55,
+              value: leadValueEur,
             },
           },
         ],
@@ -146,4 +157,3 @@ export async function sendMetaConversionApiLead(params: MetaCapiLeadParams): Pro
     console.error("[Meta CAPI Error]:", err)
   }
 }
-

@@ -183,21 +183,27 @@ export function MarketplaceFeedView({
   }, [focusedLeadId, leads])
 
   // Variables calculées pour le lead ciblé en mode isolé
-  const targetSurface = Math.max(0, Number(targetedLead?.surface_area || targetedLead?.surface_area_m2) || 0)
-  const targetAnnualBill = Math.max(0, Number(targetedLead?.annual_electricity_bill || targetedLead?.annual_bill_eur) || 0)
+  const rawTargetSurface = Math.max(0, Number(targetedLead?.surface_area || targetedLead?.surface_area_m2) || 0)
+  const rawTargetAnnualBill = Math.max(0, Number(targetedLead?.annual_electricity_bill || targetedLead?.annual_bill_eur) || 0)
   const targetCost = targetedLead?.credit_cost ?? (targetedLead?.segment === "B2B" ? 9 : 3)
   const targetFinancials = useMemo(() => {
     if (!targetedLead) return null
     return calculateMarketplaceFinancials({
       segment: targetedLead.segment,
-      surfaceArea: targetSurface,
+      surfaceArea: rawTargetSurface,
       surfaceType: targetedLead.surface_type,
-      annualBill: targetAnnualBill,
+      roofMaterial: targetedLead.roof_material,
+      annualBill: rawTargetAnnualBill,
       creditCost: targetCost,
+      estimatedPowerKwc: targetedLead.estimated_power_kwc,
+      projectDetails: targetedLead.project_details ?? targetedLead.message,
+      qualificationMetadata: targetedLead.qualification_metadata,
     })
-  }, [targetedLead, targetSurface, targetAnnualBill, targetCost])
+  }, [targetedLead, rawTargetSurface, rawTargetAnnualBill, targetCost])
 
-  const targetPower = targetedLead?.estimated_power_kwc ?? (targetFinancials ? targetFinancials.estimatedPowerKwc : 0)
+  const targetPower = targetFinancials ? targetFinancials.estimatedPowerKwc : 0
+  const targetSurface = targetFinancials ? targetFinancials.normalizedSurfaceAreaM2 : rawTargetSurface
+  const targetAnnualBill = targetFinancials ? targetFinancials.normalizedAnnualBill : rawTargetAnnualBill
   const targetIsB2B = targetedLead?.segment === "B2B"
   const targetMaxSlots = targetedLead?.max_slots ?? (targetIsB2B ? 1 : 3)
   const targetRemainingSlots = targetedLead?.remaining_slots ?? targetMaxSlots
@@ -215,12 +221,12 @@ export function MarketplaceFeedView({
   const targetFirstName = (targetedLead?.first_name?.trim() || "")
     .replace(/^(madame\s*,\s*monsieur|m\.|monsieur|mme|madame)\s+/i, "")
     .trim()
-  let targetMaskedName = "xxxx"
+  let targetMaskedName = "******"
   if (targetLastName) {
-    targetMaskedName = `xxxx ${targetLastName}`
+    targetMaskedName = `****** ${targetLastName}`
   } else if (targetFirstName) {
     const parts = targetFirstName.split(/\s+/)
-    targetMaskedName = parts.length > 1 ? `xxxx ${parts[parts.length - 1]}` : `xxxx ${targetFirstName}`
+    targetMaskedName = parts.length > 1 ? `****** ${parts[parts.length - 1]}` : `****** ${targetFirstName}`
   }
 
   // Comptages pour les filtres
@@ -280,19 +286,22 @@ export function MarketplaceFeedView({
         segment: lead.segment,
         surfaceArea,
         surfaceType: lead.surface_type,
+        roofMaterial: lead.roof_material,
         annualBill,
         creditCost: cost,
         estimatedPowerKwc: lead.estimated_power_kwc,
+        projectDetails: lead.project_details ?? lead.message,
+        qualificationMetadata: lead.qualification_metadata,
       })
 
-      const powerKwc = Number(lead.estimated_power_kwc) || financials.estimatedPowerKwc
+      const powerKwc = financials.estimatedPowerKwc
       const contractValue = financials.estimatedContractValue || 0
       const margin = financials.estimatedInstallerMargin || 0
 
       return {
         lead,
-        surfaceArea,
-        annualBill,
+        surfaceArea: financials.normalizedSurfaceAreaM2,
+        annualBill: financials.normalizedAnnualBill,
         cost,
         score,
         createdAtTime,
@@ -349,17 +358,20 @@ export function MarketplaceFeedView({
         segment: lead.segment,
         surfaceArea,
         surfaceType: lead.surface_type,
+        roofMaterial: lead.roof_material,
         annualBill,
         creditCost: cost,
+        estimatedPowerKwc: lead.estimated_power_kwc,
+        projectDetails: lead.project_details ?? lead.message,
+        qualificationMetadata: lead.qualification_metadata,
       })
 
-      const power = lead.estimated_power_kwc ?? financials.estimatedPowerKwc
-      totalPower += power
+      totalPower += financials.estimatedPowerKwc
     })
 
     return {
       totalLeads: filteredLeads.length,
-      totalPower,
+      totalPower: Math.round(totalPower * 10) / 10,
     }
   }, [filteredLeads])
 
@@ -436,7 +448,7 @@ export function MarketplaceFeedView({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       {/* ── 0. Visite Guidée Interactive (Modal pas à pas) ── */}
       {!focusedLeadId && (
         <MarketplaceInteractiveTour
@@ -482,7 +494,7 @@ export function MarketplaceFeedView({
 
       {/* ── MODE FOCUS EXCLUSIF (Deep-link e-mail de relance) : Affichage UNIQUEMENT de ce lead ── */}
       {focusedLeadId && targetedLead ? (
-        <div className="space-y-6 animate-in fade-in duration-300">
+        <div className="flex flex-col gap-6 animate-in fade-in duration-300">
           {/* Bannière de focus / isolation */}
           <div className="rounded-2xl border border-accent/40 bg-accent/5 p-4 sm:p-5 shadow-xs">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -542,6 +554,11 @@ export function MarketplaceFeedView({
               <span className="text-base sm:text-lg font-mono font-extrabold text-foreground tabular-nums mt-0.5 block">
                 {targetAnnualBill > 0 ? `${formatRoundedCurrency(targetAnnualBill)} / an` : "Sur devis"}
               </span>
+              {targetFinancials && targetFinancials.estimatedAnnualConsumptionKwh > 0 && (
+                <span className="text-[11px] text-muted-foreground font-mono tabular-nums block mt-0.5">
+                  ≈ {targetFinancials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh/an
+                </span>
+              )}
             </div>
 
             <div className="rounded-xl border border-border bg-card p-3.5 shadow-2xs">
@@ -562,9 +579,9 @@ export function MarketplaceFeedView({
           {/* Grille Principale 2 Colonnes */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Colonne Gauche (7 cols) : Fiche Technique & Radar Géographique */}
-            <div className="lg:col-span-7 space-y-6">
+            <div className="lg:col-span-7 flex flex-col gap-6">
               {/* Spécifications Techniques */}
-              <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs space-y-4">
+              <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs flex flex-col gap-4">
                 <div className="flex items-center justify-between border-b border-border/70 pb-3">
                   <h3 className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
                     <FileText className="h-4 w-4 text-accent" />
@@ -627,7 +644,7 @@ export function MarketplaceFeedView({
 
                 {/* Précisions & Remarques client */}
                 {targetSanitized?.cleanRemarks && (
-                  <div className="rounded-xl bg-card border border-border p-3.5 text-xs italic text-foreground/90 space-y-1">
+                  <div className="rounded-xl bg-card border border-border p-3.5 text-xs italic text-foreground/90 flex flex-col gap-1">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground not-italic block">
                       Précisions transmises par le client :
                     </span>
@@ -637,7 +654,7 @@ export function MarketplaceFeedView({
               </div>
 
               {/* Carte Radar Géographique */}
-              <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs space-y-3">
+              <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs flex flex-col gap-3">
                 <div className="flex items-center justify-between border-b border-border/70 pb-3">
                   <h3 className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-accent" />
@@ -661,9 +678,9 @@ export function MarketplaceFeedView({
             </div>
 
             {/* Colonne Droite (5 cols) : Coordonnées Masquées + Déblocage + Garantie */}
-            <div className="lg:col-span-5 space-y-6">
+            <div className="lg:col-span-5 flex flex-col gap-6">
               {/* Box Coordonnées Pré-déblocage */}
-              <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs space-y-4">
+              <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs flex flex-col gap-4">
                 <div className="flex items-center justify-between border-b border-border/70 pb-3">
                   <h3 className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4 text-emerald-600" />
@@ -674,7 +691,7 @@ export function MarketplaceFeedView({
                   </span>
                 </div>
 
-                <div className="space-y-3 text-xs">
+                <div className="flex flex-col gap-3 text-xs">
                   <div className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/30">
                     <span className="text-muted-foreground">Nom du contact :</span>
                     <strong className="font-mono text-foreground">{targetMaskedName}</strong>
@@ -709,7 +726,7 @@ export function MarketplaceFeedView({
                 </div>
 
                 {/* Règle de concurrence & Scarcity */}
-                <div className="rounded-xl border border-border/80 bg-secondary/20 p-3.5 space-y-2">
+                <div className="rounded-xl border border-border/80 bg-secondary/20 p-3.5 flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-foreground block">
                       Règle de concurrence Aegis Solaire
@@ -760,12 +777,12 @@ export function MarketplaceFeedView({
                 </div>
 
                 {/* Bloc d'action primaire : Déblocage immédiat */}
-                <div className="pt-2 space-y-3">
+                <div className="pt-2 flex flex-col gap-3">
                   <Button
                     size="lg"
                     onClick={() => handlePurchase(targetedLead)}
                     disabled={buyingId === targetedLead.id}
-                    className="w-full bg-[#0F172A] hover:bg-[#1E293B] text-white font-bold h-12 shadow-sm cursor-pointer text-sm"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-12 shadow-sm cursor-pointer text-sm"
                   >
                     {buyingId === targetedLead.id ? (
                       <>
@@ -798,7 +815,7 @@ export function MarketplaceFeedView({
               </div>
 
               {/* Cellule d'Assistance Ingénierie (Strict Anonymity) */}
-              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 sm:p-5 space-y-2 shadow-2xs">
+              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 sm:p-5 flex flex-col gap-2 shadow-2xs">
                 <h4 className="text-xs font-bold text-foreground">
                   Assistance Technique &amp; Étude de Dimensionnement (% Projet)
                 </h4>
@@ -826,7 +843,7 @@ export function MarketplaceFeedView({
           </div>
 
           {/* Escape Footer vers la marketplace globale */}
-          <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-3 shadow-2xs">
+          <div className="rounded-2xl border border-border bg-card p-6 text-center flex flex-col items-center gap-3 shadow-2xs">
             <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-foreground">
               <Store className="h-5 w-5 text-accent" />
             </div>
@@ -851,7 +868,7 @@ export function MarketplaceFeedView({
       ) : (
         <>
           {/* ── 1. Barre de Contrôle Unifiée : Filtres avec Badges de Comptage, Recherche, Tri & Visite ── */}
-          <div className="rounded-2xl border border-border bg-card p-3 sm:p-3.5 shadow-xs space-y-3">
+          <div className="rounded-2xl border border-border bg-card p-3 sm:p-3.5 shadow-xs flex flex-col gap-3">
         {/* Ligne 1 : Segments avec compteurs, Province, Recherche, Tri, Visite guidée et Toggle Grille/Tableau */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
           {/* Segments + Province */}
@@ -863,7 +880,7 @@ export function MarketplaceFeedView({
                 onClick={() => setSegmentFilter("ALL")}
                 className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
                   segmentFilter === "ALL"
-                    ? "bg-[#0F172A] text-white shadow-2xs"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
                     : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
                 }`}
               >
@@ -884,7 +901,7 @@ export function MarketplaceFeedView({
                 onClick={() => setSegmentFilter("B2B")}
                 className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
                   segmentFilter === "B2B"
-                    ? "bg-[#0F172A] text-white shadow-2xs"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
                     : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
                 }`}
               >
@@ -905,7 +922,7 @@ export function MarketplaceFeedView({
                 onClick={() => setSegmentFilter("B2C")}
                 className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
                   segmentFilter === "B2C"
-                    ? "bg-[#0F172A] text-white shadow-2xs"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
                     : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
                 }`}
               >
@@ -996,7 +1013,7 @@ export function MarketplaceFeedView({
                 onClick={() => setViewMode("grid")}
                 className={`rounded-lg p-1.5 transition-colors cursor-pointer ${
                   viewMode === "grid"
-                    ? "bg-[#0F172A] text-white shadow-2xs"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
                 title="Vue grille (Cartes)"
@@ -1009,7 +1026,7 @@ export function MarketplaceFeedView({
                 onClick={() => setViewMode("table")}
                 className={`rounded-lg p-1.5 transition-colors cursor-pointer ${
                   viewMode === "table"
-                    ? "bg-[#0F172A] text-white shadow-2xs"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
                 title="Vue liste dense"
@@ -1109,7 +1126,7 @@ export function MarketplaceFeedView({
         </div>
       ) : (
         /* ── Vue Liste Dense Haute-Productivité ── */
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-1.5">
           <div className="block sm:hidden text-center text-[11px] font-mono text-muted-foreground py-0.5">
             ↔ Glisser horizontalement pour voir toutes les colonnes
           </div>
@@ -1223,13 +1240,17 @@ export function MarketplaceFeedView({
                     segment: lead.segment,
                     surfaceArea,
                     surfaceType: lead.surface_type,
+                    roofMaterial: lead.roof_material,
                     annualBill,
                     creditCost: cost,
+                    estimatedPowerKwc: lead.estimated_power_kwc,
+                    projectDetails: lead.project_details ?? lead.message,
+                    qualificationMetadata: lead.qualification_metadata,
                   })
 
                   const location = getLeadLocationInfo(lead)
                   const freshness = getLeadFreshness(lead.created_at)
-                  const powerKwc = lead.estimated_power_kwc ?? financials.estimatedPowerKwc
+                  const powerKwc = financials.estimatedPowerKwc
 
                   return (
                     <tr
@@ -1242,7 +1263,7 @@ export function MarketplaceFeedView({
                         <span
                           className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold ${
                             isB2B
-                              ? "bg-[#0F172A] text-white"
+                              ? "bg-primary text-primary-foreground"
                               : "bg-secondary text-foreground border border-border"
                           }`}
                         >
@@ -1320,7 +1341,7 @@ export function MarketplaceFeedView({
                             variant="default"
                             disabled={isBuying}
                             onClick={() => handlePurchase(lead)}
-                            className="h-8 px-3 rounded-lg text-xs font-bold bg-[#0F172A] text-white hover:bg-[#0F172A]/90 cursor-pointer shadow-2xs active:scale-[0.99]"
+                            className="h-8 px-3 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-2xs active:scale-[0.99]"
                           >
                             {isBuying ? "..." : `Débloquer`}
                           </Button>
@@ -1378,31 +1399,35 @@ function MarketplaceLeadCard({
   const remainingSlots = lead.remaining_slots ?? maxSlots
   const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
 
-  const surfaceArea = Math.max(0, Number(lead.surface_area || lead.surface_area_m2) || 0)
-  const annualBill = Math.max(0, Number(lead.annual_electricity_bill || lead.annual_bill_eur) || 0)
+  const rawSurfaceArea = Math.max(0, Number(lead.surface_area || lead.surface_area_m2) || 0)
+  const rawAnnualBill = Math.max(0, Number(lead.annual_electricity_bill || lead.annual_bill_eur) || 0)
 
   const financials = calculateMarketplaceFinancials({
     segment: lead.segment,
-    surfaceArea,
+    surfaceArea: rawSurfaceArea,
     surfaceType: lead.surface_type,
-    annualBill,
+    roofMaterial: lead.roof_material,
+    annualBill: rawAnnualBill,
     creditCost: cost,
+    estimatedPowerKwc: lead.estimated_power_kwc,
+    projectDetails: lead.project_details ?? lead.message,
+    qualificationMetadata: lead.qualification_metadata,
   })
 
   const location = getLeadLocationInfo(lead)
   const freshness = getLeadFreshness(lead.created_at)
-  const powerKwc = lead.estimated_power_kwc ?? financials.estimatedPowerKwc
+  const powerKwc = financials.estimatedPowerKwc
+  const surfaceArea = financials.normalizedSurfaceAreaM2
+  const annualBill = financials.normalizedAnnualBill
 
   // 1 image dédiée non contractuelle : teinte froide/acier pour B2B, teinte chaude/terracotta pour B2C
   const leadImage = isB2B ? B2B_SOLAR_IMAGE : B2C_SOLAR_IMAGE
 
-  // Formatage financier propre et sans duplication de 'HT'
-  const contractMin = Math.round((financials.estimatedContractValueRange?.min || 0) / 1000) * 1000
-  const contractMax = Math.round((financials.estimatedContractValueRange?.max || 0) / 1000) * 1000
-  const marginEst = Math.round((financials.estimatedInstallerMargin || 0) / 1000) * 1000
-
-  const rangeText = `${contractMin.toLocaleString("fr-BE")} € HT à ${contractMax.toLocaleString("fr-BE")} € HT`
-  const marginText = `~${marginEst.toLocaleString("fr-BE")} € HT`
+  // Formatage financier précis (arrondi 50 €/100 € en B2C au lieu d'un arrondi grossier au millier)
+  const minText = formatRoundedCurrency(financials.estimatedContractValueRange?.min || 0).replace("~", "")
+  const maxText = formatRoundedCurrency(financials.estimatedContractValueRange?.max || 0).replace("~", "")
+  const rangeText = `${minText} HT à ${maxText} HT`
+  const marginText = `${formatRoundedCurrency(financials.estimatedInstallerMargin || 0)} HT`
 
   const rawRoof = getRoofMaterialLabel(lead.roof_material)
   const roofDisplay = rawRoof === "Bac acier / Métallique" ? "Bac acier / Mét..." : rawRoof
@@ -1446,7 +1471,7 @@ function MarketplaceLeadCard({
           {/* Badges superposés en haut */}
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 pointer-events-none">
             {/* Badge Modèle */}
-            <span className="inline-flex items-center rounded-full bg-[#0B1528] text-white text-xs font-bold px-3.5 py-1.5 shadow-sm">
+            <span className="inline-flex items-center rounded-full bg-primary text-primary-foreground text-xs font-bold px-3.5 py-1.5 shadow-sm">
               {isB2B ? "B2B • 100% Exclusif" : `B2C • ${remainingSlots}/${maxSlots} places dispo`}
             </span>
 
@@ -1469,14 +1494,14 @@ function MarketplaceLeadCard({
         </div>
 
         {/* ── B. Contenu de la Carte : Titre, Puissance, Spécifications 2x2, Économie ── */}
-        <div className="p-4 sm:p-5 space-y-3">
+        <div className="p-4 sm:p-5 flex flex-col gap-3">
           {/* Ligne 1 : Titre à gauche & Puissance kWc à droite */}
           <div className="flex items-baseline justify-between gap-2">
             <h3 className="font-bold text-base sm:text-[17px] text-slate-900 tracking-tight leading-tight group-hover:text-blue-900 transition-colors truncate min-w-0">
               {location.fullTitle}
             </h3>
             <div className="text-right shrink-0 flex items-baseline justify-end gap-1 pl-1.5">
-              <span className="text-2xl sm:text-3xl font-extrabold text-[#0B1528] tracking-tight tabular-nums">
+              <span className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono tracking-tight tabular-nums">
                 {powerKwc > 0 ? powerKwc : "—"}
               </span>
               <span className="text-xs font-bold text-slate-500 lowercase">
@@ -1494,7 +1519,7 @@ function MarketplaceLeadCard({
           {/* Ligne 3 : Badge Projet premium */}
           <div className="-mt-1">
             {isPremium ? (
-              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#EBFBF3] text-[#059669] text-xs font-semibold">
+              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-semibold">
                 <span className="text-emerald-500 font-bold">—</span>
                 <span>Projet premium</span>
               </div>
@@ -1507,7 +1532,7 @@ function MarketplaceLeadCard({
           </div>
 
           {/* Ligne 4 : Grille Technique 2x2 dans un encart clair dédié */}
-          <div className="rounded-2xl bg-[#F8FAFD] border border-[#E9EFF7] p-3 sm:p-3.5 grid grid-cols-2 gap-2.5 sm:gap-3 text-xs">
+          <div className="rounded-2xl bg-muted border border-border p-3 sm:p-3.5 grid grid-cols-2 gap-2.5 sm:gap-3 text-xs">
             {/* 1. Toiture & Surface */}
             <div className="flex items-start gap-2 min-w-0">
               <Home className="h-4 w-4 text-slate-700 shrink-0 mt-0.5" />
@@ -1535,13 +1560,25 @@ function MarketplaceLeadCard({
             <div className="flex items-start gap-2 min-w-0">
               <FileText className="h-4 w-4 text-slate-700 shrink-0 mt-0.5" />
               <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block font-mono">
                   FACTURE ÉLEC.
                 </span>
-                <span className="text-[11px] sm:text-xs font-bold text-slate-900 leading-tight block truncate">
+                <span
+                  className="text-[11px] sm:text-xs font-bold text-slate-900 leading-tight block truncate font-mono"
+                  title={
+                    annualBill > 0 && financials.estimatedAnnualConsumptionKwh > 0
+                      ? `${annualBill.toLocaleString("fr-BE")} €/an (≈ ${financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh/an)`
+                      : undefined
+                  }
+                >
                   {annualBill > 0 ? (
                     <span className="tabular-nums">
                       {annualBill.toLocaleString("fr-BE")} €/an
+                      {financials.estimatedAnnualConsumptionKwh > 0 && (
+                        <span className="text-[10px] font-normal text-slate-500 ml-1">
+                          (≈ {financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh)
+                        </span>
+                      )}
                     </span>
                   ) : (
                     <span>
@@ -1583,11 +1620,11 @@ function MarketplaceLeadCard({
           </div>
 
           {/* Ligne 3 : Encadré d'Économie & Marge Indicative (Teinte bleue douce) */}
-          <div className="rounded-2xl bg-[#F3F7FF] border border-[#DCE7FD] p-3 sm:p-3.5 flex items-center justify-between gap-2">
+          <div className="rounded-2xl bg-accent/10 border border-accent/20 p-3 sm:p-3.5 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="h-7 w-7 rounded-lg bg-blue-100/90 text-[#2563EB] flex items-center justify-center shrink-0">
+              <div className="h-7 w-7 rounded-lg bg-accent/15 text-accent flex items-center justify-center shrink-0">
                 <svg
-                  className="h-4 w-4 text-[#2563EB]"
+                  className="h-4 w-4 text-accent"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -1601,10 +1638,10 @@ function MarketplaceLeadCard({
                 </svg>
               </div>
               <div className="min-w-0">
-                <span className="text-[11px] sm:text-xs font-semibold text-[#2563EB] block">
+                <span className="text-[11px] sm:text-xs font-semibold text-accent block">
                   Estimation du chantier
                 </span>
-                <span className="font-bold text-[11px] sm:text-xs text-slate-900 tabular-nums block whitespace-nowrap">
+                <span className="font-bold text-[11px] sm:text-xs text-slate-900 font-mono tabular-nums block whitespace-nowrap">
                   {rangeText}
                 </span>
               </div>
@@ -1614,7 +1651,7 @@ function MarketplaceLeadCard({
               <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 block text-right">
                 MARGE INDICATIVE
               </span>
-              <span className="text-xs sm:text-sm font-extrabold text-[#2563EB] tabular-nums block text-right whitespace-nowrap">
+              <span className="text-xs sm:text-sm font-extrabold text-accent font-mono tabular-nums block text-right whitespace-nowrap">
                 {marginText}
               </span>
             </div>
@@ -1658,7 +1695,7 @@ function MarketplaceLeadCard({
             className="rounded-full border border-slate-200 bg-white hover:bg-slate-50 px-3 sm:px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-1 shrink-0"
             title="Inspecter la fiche technique complète"
           >
-            <Eye className="h-3.5 w-3.5 text-[#2563EB]" />
+            <Eye className="h-3.5 w-3.5 text-accent" />
             <span>Inspecter</span>
           </button>
 
@@ -1666,7 +1703,7 @@ function MarketplaceLeadCard({
             type="button"
             disabled={isBuying}
             onClick={onPurchase}
-            className="rounded-full bg-[#0B1528] hover:bg-[#1E293B] text-white px-3.5 sm:px-4 py-1.5 text-xs font-bold shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1 shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-3.5 sm:px-4 py-1.5 text-xs font-bold shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1 shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isBuying ? (
               <>

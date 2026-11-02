@@ -149,9 +149,12 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
   const ownershipLabel = data.lead.ownershipStatus ? (OWNERSHIP_LABELS[data.lead.ownershipStatus] ?? data.lead.ownershipStatus) : "Propriétaire occupant"
   const driverLabel = data.lead.projectDriver ? (PROJECT_DRIVER_LABELS[data.lead.projectDriver] ?? data.lead.projectDriver) : "Optimisation des coûts énergétiques"
 
-  const powerKwc = `${data.financials.estimatedPowerKwc} kWc`
-  const surfaceArea = `${data.lead.surfaceArea.toLocaleString("fr-BE")} m²`
-  const annualBill = `${data.lead.annualElectricityBill.toLocaleString("fr-BE")} € HT / an`
+  const panelInfo = data.financials.estimatedPanelCount ? ` (${data.financials.estimatedPanelCount} panneaux)` : ""
+  const powerKwc = `${data.financials.estimatedPowerKwc} kWc${panelInfo}`
+  const displaySurface = data.financials.normalizedSurfaceAreaM2 || data.lead.surfaceArea
+  const displayBill = data.financials.normalizedAnnualBill || data.lead.annualElectricityBill
+  const surfaceArea = `${displaySurface.toLocaleString("fr-BE")} m²`
+  const annualBill = `${displayBill.toLocaleString("fr-BE")} € ${isB2B ? "HT" : "TTC"} / an`
   const estimatedContract = `${data.financials.estimatedContractValueRange.min.toLocaleString("fr-BE")} € à ${data.financials.estimatedContractValueRange.max.toLocaleString("fr-BE")} € HT`
   const estimatedMargin = `~${data.financials.estimatedInstallerMargin.toLocaleString("fr-BE")} € HT`
   const creditCostEur = `${data.financials.leadCostEuros.toFixed(2)} € HT`
@@ -159,7 +162,7 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
   const partnerGreetingName = data.partner.contactName?.trim() || data.partner.companyName
   const hasEnoughCredits = data.partner.credits >= data.creditCost
 
-  // Masquage strict du contact : seul le nom de famille est affiché, le prénom est masqué par "xxxx"
+  // Masquage strict du contact : seul le nom de famille est affiché, le prénom est masqué par "******"
   const rawLeadLastName = (data.lead.lastName?.trim() || "")
     .replace(/^(madame\s*,\s*monsieur|m\.|monsieur|mme|madame)\s+/i, "")
     .trim()
@@ -167,15 +170,15 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
     .replace(/^(madame\s*,\s*monsieur|m\.|monsieur|mme|madame)\s+/i, "")
     .trim()
 
-  let leadMaskedName = "xxxx"
+  let leadMaskedName = "******"
   if (rawLeadLastName) {
-    leadMaskedName = `xxxx ${rawLeadLastName}`
+    leadMaskedName = `****** ${rawLeadLastName}`
   } else if (rawLeadFirstName) {
     const parts = rawLeadFirstName.split(/\s+/)
     if (parts.length > 1) {
-      leadMaskedName = `xxxx ${parts[parts.length - 1]}`
+      leadMaskedName = `****** ${parts[parts.length - 1]}`
     } else {
-      leadMaskedName = `xxxx ${rawLeadFirstName}`
+      leadMaskedName = "******"
     }
   }
 
@@ -266,7 +269,7 @@ ${!hasEnoughCredits ? `Note : Votre solde actuel (${data.partner.credits} crédi
 Une question technique ?
 Notre cellule technique et ingénierie se tient à votre entière disposition par e-mail à contact@aegissolaire.com.
 
-Aegis Solaire — Plateforme éditée par INIT42 (Nathan Remacle) · Liège, Belgique · BCE BE 1039.899.980
+Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
 `.trim()
 
   // Dynamic tokens depending on urgency stage (sans jamais mentionner le mot interne "vague")
@@ -510,16 +513,15 @@ Aegis Solaire — Plateforme éditée par INIT42 (Nathan Remacle) · Liège, Bel
                           ${escapeHtml(timeframeLabel)}
                         </td>
                       </tr>
-                      ${
-                        data.lead.projectDetails
-                          ? `<tr>
+                      ${data.lead.projectDetails
+      ? `<tr>
                         <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Précisions du client</td>
                         <td valign="top" style="padding: 10px 0; font-size: 13px; color: #0F172A; font-style: italic; border-bottom: 1px solid #F1F5F9;">
                           &laquo; ${escapeHtml(data.lead.projectDetails)} &raquo;
                         </td>
                       </tr>`
-                          : ""
-                      }
+      : ""
+    }
                     </table>
                   </td>
                 </tr>
@@ -566,11 +568,10 @@ Aegis Solaire — Plateforme éditée par INIT42 (Nathan Remacle) · Liège, Bel
                       Règle de concurrence Aegis Solaire :
                     </p>
                     <p style="margin: 0; font-size: 13px; color: #475569; line-height: 1.5;">
-                      ${
-                        isB2B
-                          ? "<strong>Exclusivité absolue garantie :</strong> Ce dossier est cédé à <strong>1 seul installateur unique</strong>. Aucune concurrence de plateforme ne sera admise."
-                          : "<strong>Attribution restreinte à 3 installateurs certifiés maximum :</strong> Pour protéger vos marges et éviter les enchères destructrices, ce lead est automatiquement verrouillé dès le 3ème déblocage."
-                      }
+                      ${isB2B
+      ? "<strong>Exclusivité absolue garantie :</strong> Ce dossier est cédé à <strong>1 seul installateur unique</strong>. Aucune concurrence de plateforme ne sera admise."
+      : "<strong>Attribution restreinte à 3 installateurs certifiés maximum :</strong> Pour protéger vos marges et éviter les enchères destructrices, ce lead est automatiquement verrouillé dès le 3ème déblocage."
+    }
                     </p>
                     ${slotsHtml}
                   </td>
@@ -614,11 +615,10 @@ Aegis Solaire — Plateforme éditée par INIT42 (Nathan Remacle) · Liège, Bel
                     </table>
                     <p class="mono" style="margin: 12px 0 0 0; font-size: 12px; color: #64748B;">
                       Votre solde actuel : <strong style="color: #0F172A;">${data.partner.credits} crédits</strong>
-                      ${
-                        !hasEnoughCredits
-                          ? ` &bull; <a href="${creditsOrderUrl}" style="color: #2563EB; text-decoration: underline; font-weight: 600;">Recharger votre pack de crédits</a>`
-                          : ""
-                      }
+                      ${!hasEnoughCredits
+      ? ` &bull; <a href="${creditsOrderUrl}" style="color: #2563EB; text-decoration: underline; font-weight: 600;">Recharger votre pack de crédits</a>`
+      : ""
+    }
                     </p>
                   </td>
                 </tr>
@@ -636,7 +636,7 @@ Aegis Solaire — Plateforme éditée par INIT42 (Nathan Remacle) · Liège, Bel
 
               <!-- Replacement Guarantee Note -->
               <p style="margin: 0 0 16px 0; font-size: 12px; color: #64748B; text-align: center; line-height: 1.5;">
-                🛡️ <strong>Garantie Sérénité Aegis Solaire :</strong> Tout numéro erroné ou dossier injoignable après 3 tentatives est recrédité sous 24h ouvrées via votre interface partenaire.
+                🛡️ <strong>Garantie Sérénité Aegis Solaire :</strong> Tout numéro erroné ou dossier injoignable signalé sous 7 jours ouvrés est recrédité sous 24h ouvrées via votre interface partenaire.
               </p>
 
             </td>
@@ -649,7 +649,7 @@ Aegis Solaire — Plateforme éditée par INIT42 (Nathan Remacle) · Liège, Bel
                 <strong>Aegis Solaire</strong> &mdash; Plateforme d'audit financier et de mise en relation photovoltaïque indépendante en Wallonie.
               </p>
               <p style="margin: 0 0 6px 0;">
-                Éditée par <strong>INIT42</strong> (Nathan Remacle, personne physique) · BCE/TVA <span class="mono">BE 1039.899.980</span> · Liège, Belgique.
+                Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
               </p>
               <p style="margin: 0 0 6px 0;">
                 Agrément RESCERT Photovoltaïque · Conformité CWaPE &amp; PACE 2030.

@@ -53,7 +53,7 @@ type CreditPack = {
 type Transaction = {
   id: string
   amount: number
-  type: "purchase" | "topup" | "adjustment"
+  type: "purchase" | "topup" | "adjustment" | "refund"
   reference: string | null
   created_at: string
 }
@@ -255,10 +255,15 @@ export default function CreditsPage() {
     fetchCredits()
   }, [fetchCredits])
 
-  // Vérification automatique au retour d'une session de paiement Mollie
+  // Vérification automatique au retour d'une session de paiement Mollie & lecture de ?pack=
   useEffect(() => {
     if (typeof window === "undefined") return
     const url = new URL(window.location.href)
+    const packParam = url.searchParams.get("pack")
+    if (packParam && PACKS.some((p) => p.id === packParam)) {
+      setSelectedPack(packParam)
+    }
+
     const payment = url.searchParams.get("payment")
     const orderId = url.searchParams.get("order_id")
 
@@ -360,7 +365,7 @@ export default function CreditsPage() {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="space-y-6"
+          className="flex flex-col gap-6"
         >
           {/* Bannière de chargement / vérification de paiement */}
           {verifyingPayment && (
@@ -563,10 +568,10 @@ export default function CreditsPage() {
                 <ShieldCheck className="h-6 w-6 text-primary shrink-0" />
                 <div>
                   <h4 className="text-sm font-bold text-foreground">
-                    Garantie Lead Conforme &amp; Remplacement 24h
+                    Garantie Lead Conforme &amp; Remplacement (Déclaration 7j · Recrédit 24h)
                   </h4>
                   <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                    Si un prospect s&apos;avère injoignable ou hors critères, vos crédits sont réintégrés sur votre compte sans délai sur simple signalement dans votre portail.
+                    Si un prospect s&apos;avère injoignable ou hors critères dans les <span className="font-mono tabular-nums">7 jours ouvrés</span> suivant l&apos;acquisition, vos crédits sont réintégrés sous <span className="font-mono tabular-nums">24h ouvrées</span> sur simple signalement dans votre portail.
                   </p>
                 </div>
               </div>
@@ -613,7 +618,9 @@ export default function CreditsPage() {
                               ? "Recharge crédits"
                               : tx.type === "purchase"
                                 ? "Déblocage lead"
-                                : "Ajustement de solde"}
+                                : tx.type === "refund"
+                                  ? "Remboursement garantie lead"
+                                  : "Ajustement de solde"}
                           </p>
                           <p className="text-[11px] font-mono text-muted-foreground tabular-nums">
                             {new Date(tx.created_at).toLocaleDateString("fr-BE", {

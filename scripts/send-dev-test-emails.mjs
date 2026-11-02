@@ -34,13 +34,13 @@ async function sendTestEmails() {
   const resend = new Resend(resendApiKey)
   const fromEmail = env.RESEND_FROM_EMAIL || "noreply@aegissolaire.com"
   const formattedFrom = `Aegis Solaire <${fromEmail}>`
-  const toEmail = "mrnathanrem@gmail.com"
+  const toEmail = "contact@aegissolaire.com"
 
   const devApp = {
     id: "2faf2f84-d94f-4861-9f52-48c9e7181d76",
     company_name: "DEV TEST",
-    first_name: "Nathan",
-    last_name: "DEV",
+    first_name: "L'équipe",
+    last_name: "Aegis Solaire",
     email: toEmail,
     rescert_ref: "012345678910",
   }
@@ -108,7 +108,7 @@ async function sendTestEmails() {
     console.log("✅ Email 2 envoyé avec succès ! ID Resend:", sendResult2.data?.id)
   }
 
-  console.log("\n🎉 LES DEUX EMAILS ONT ÉTÉ ENVOYÉS À MRNATHANREM@GMAIL.COM !")
+  console.log("\n🎉 LES DEUX EMAILS ONT ÉTÉ ENVOYÉS À CONTACT@AEGISSOLAIRE.COM !")
 }
 
 sendTestEmails()

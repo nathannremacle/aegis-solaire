@@ -130,8 +130,8 @@ async function PartnerDashboardLoader({
           id, segment, province, city, postal_code, site_address, surface_type, surface_area, surface_area_m2,
           annual_electricity_bill, annual_bill_eur, estimated_power_kwc, roof_material, ownership_status,
           timeframe, project_timeline, project_driver, project_details, message, first_name, last_name,
-          credit_cost, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings,
-          wants_irve, lead_score,
+          credit_cost, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate,
+          qualification_metadata, wants_irve, lead_score,
           lead_purchases(id, partner_id, purchased_at, partners(id, company_name, email, is_test))
         `)
         .eq("marketplace_status", "available")
@@ -139,7 +139,7 @@ async function PartnerDashboardLoader({
         .limit(60),
       admin
         .from("lead_purchases")
-        .select("id, credits_spent, purchased_at, pipeline_status, notes, next_action_at, leads(id, first_name, last_name, email, phone, company, company_vat, province, city, segment, surface_type, surface_area, annual_electricity_bill, postal_code, lead_score)")
+        .select("id, credits_spent, purchased_at, pipeline_status, notes, next_action_at, leads(id, first_name, last_name, email, phone, company, company_vat, province, city, segment, surface_type, surface_area, annual_electricity_bill, estimated_power_kwc, roof_material, ownership_status, project_details, message, qualification_metadata, estimated_roi_years, estimated_savings, autoconsumption_rate, postal_code, lead_score)")
         .eq("partner_id", partnerId)
         .order("purchased_at", { ascending: false }),
       admin
@@ -172,13 +172,15 @@ async function PartnerDashboardLoader({
       .filter((l: any) => !myPurchasedLeadIds.has(l.id))
       .map((l: any) => {
         const maxSlots = l.segment === "B2B" ? 1 : 3
+        const testEmailEnv = (process.env.TEST_PARTNER_EMAIL || "").toLowerCase().trim()
         const realPurchases = (Array.isArray(l.lead_purchases) ? l.lead_purchases : []).filter((p: any) => {
           const partnerObj = Array.isArray(p.partners) ? p.partners[0] : p.partners
           if (partnerObj?.is_test) return false
           const cName = (partnerObj?.company_name || "").toLowerCase()
           if (cName.includes("test") || cName.includes("dev test")) return false
           const email = (partnerObj?.email || "").toLowerCase()
-          if (email === "mrnathanrem@gmail.com") return false
+          if (testEmailEnv && email === testEmailEnv) return false
+          if (email.includes("+test") || email.startsWith("test@") || email.endsWith("@test.com")) return false
           return true
         })
         const takenSlots = realPurchases.length
@@ -211,8 +213,8 @@ async function PartnerDashboardLoader({
           id, segment, province, city, postal_code, site_address, surface_type, surface_area, surface_area_m2,
           annual_electricity_bill, annual_bill_eur, estimated_power_kwc, roof_material, ownership_status,
           timeframe, project_timeline, project_driver, project_details, message, first_name, last_name,
-          credit_cost, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings,
-          wants_irve, lead_score,
+          credit_cost, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate,
+          qualification_metadata, wants_irve, lead_score,
           lead_purchases(id, partner_id, purchased_at, partners(id, company_name, email, is_test))
         `)
         .eq("id", targetLeadId)
@@ -220,13 +222,15 @@ async function PartnerDashboardLoader({
 
       if (specificLead) {
         const maxSlots = specificLead.segment === "B2B" ? 1 : 3
+        const testEmailEnv = (process.env.TEST_PARTNER_EMAIL || "").toLowerCase().trim()
         const realPurchases = (Array.isArray(specificLead.lead_purchases) ? specificLead.lead_purchases : []).filter((p: any) => {
           const partnerObj = Array.isArray(p.partners) ? p.partners[0] : p.partners
           if (partnerObj?.is_test) return false
           const cName = (partnerObj?.company_name || "").toLowerCase()
           if (cName.includes("test") || cName.includes("dev test")) return false
           const email = (partnerObj?.email || "").toLowerCase()
-          if (email === "mrnathanrem@gmail.com") return false
+          if (testEmailEnv && email === testEmailEnv) return false
+          if (email.includes("+test") || email.startsWith("test@") || email.endsWith("@test.com")) return false
           return true
         })
         const takenSlots = realPurchases.length

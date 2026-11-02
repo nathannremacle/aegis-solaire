@@ -10,22 +10,6 @@ export type AdminProfile = {
 
 export function getAdminProfile(email?: string | null): AdminProfile {
   const clean = email?.trim().toLowerCase()
-  if (clean === "fabrice.remacle@gmail.com") {
-    return {
-      name: "Direction Partenariats",
-      initials: "DP",
-      role: "Administrateur",
-      email: clean,
-    }
-  }
-  if (clean === "mrnathanrem@gmail.com") {
-    return {
-      name: "Direction Technique",
-      initials: "DT",
-      role: "Super Admin",
-      email: clean,
-    }
-  }
   if (!clean) {
     return {
       name: "Administrateur",
@@ -34,18 +18,30 @@ export function getAdminProfile(email?: string | null): AdminProfile {
       email: "",
     }
   }
-  const prefix = clean.split("@")[0]
-  const parts = prefix.split(/[._-]/).filter(Boolean)
-  const name = parts.length >= 2 
-    ? parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(" ")
-    : prefix.charAt(0).toUpperCase() + prefix.slice(1)
-  const initials = parts.length >= 2
-    ? (parts[0][0] + parts[1][0]).toUpperCase()
-    : name.slice(0, 2).toUpperCase()
+
+  const primaryAdmin = process.env.SUPER_ADMIN_EMAIL?.trim().toLowerCase()
+  if (primaryAdmin && clean === primaryAdmin) {
+    return {
+      name: "Direction Technique",
+      initials: "DT",
+      role: "Super Admin",
+      email: clean,
+    }
+  }
+
+  const partnershipsAdmin = process.env.PARTNERSHIPS_ADMIN_EMAIL?.trim().toLowerCase()
+  if (partnershipsAdmin && clean === partnershipsAdmin) {
+    return {
+      name: "Direction Partenariats",
+      initials: "DP",
+      role: "Administrateur",
+      email: clean,
+    }
+  }
 
   return {
-    name,
-    initials,
+    name: "Direction Aegis Solaire",
+    initials: "AS",
     role: "Administrateur",
     email: clean,
   }
@@ -81,4 +77,3 @@ export async function getAdminUser() {
 
   return null
 }
-

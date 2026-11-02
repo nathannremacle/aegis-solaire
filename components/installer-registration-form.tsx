@@ -320,13 +320,13 @@ export function InstallerRegistrationForm() {
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-6 [padding-bottom:max(0.75rem,env(safe-area-inset-bottom))]"
+            className="flex flex-col gap-6 [padding-bottom:max(0.75rem,env(safe-area-inset-bottom))]"
             noValidate
           >
         {/* Progress — compact on mobile */}
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground sm:text-sm">
-            <span className="font-medium text-foreground">
+            <span className="font-medium text-foreground font-mono tabular-nums">
               Étape {step + 1} / {totalSteps}
             </span>
             <span className="hidden truncate text-right sm:inline">{STEP_META[step].title}</span>
@@ -346,9 +346,9 @@ export function InstallerRegistrationForm() {
           <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">{STEP_META[step].hint}</p>
         </div>
 
-        <div className="min-h-[12rem] space-y-4 sm:min-h-[10rem]">
+        <div className="min-h-[12rem] flex flex-col gap-4 sm:min-h-[10rem]">
           {step === 0 && (
-            <div className="space-y-4 animate-in fade-in-0 duration-200">
+            <div className="flex flex-col gap-4 animate-in fade-in-0 duration-200">
               <h3 className="text-sm font-semibold text-foreground sm:hidden">{STEP_META[0].title}</h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 <FormField
@@ -369,18 +369,18 @@ export function InstallerRegistrationForm() {
                   name="siret"
                   render={({ field }) => (
                     <FormItem id="reg-siret" className="sm:col-span-2">
-                      <FormLabel>Numéro d&apos;entreprise BCE / KBO (10 chiffres)</FormLabel>
+                      <FormLabel>Numéro d&apos;entreprise BCE / KBO (<span className="font-mono tabular-nums">10</span> chiffres)</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="0123.456.789 ou BE0123456789"
                           inputMode="numeric"
                           maxLength={20}
-                          className={inputClass}
+                          className={`${inputClass} font-mono tabular-nums`}
                           {...field}
                         />
                       </FormControl>
                       <p className="text-xs text-muted-foreground">
-                        Numéro d&apos;entreprise belge à 10 chiffres (la clé Modulo 97 sera vérifiée automatiquement).
+                        Numéro d&apos;entreprise belge à <span className="font-mono tabular-nums">10</span> chiffres (la clé Modulo <span className="font-mono tabular-nums">97</span> sera vérifiée automatiquement).
                       </p>
                       <FormMessage />
                     </FormItem>
@@ -445,7 +445,7 @@ export function InstallerRegistrationForm() {
           )}
 
           {step === 1 && (
-            <div className="space-y-4 animate-in fade-in-0 duration-200">
+            <div className="flex flex-col gap-4 animate-in fade-in-0 duration-200">
               <h3 className="text-sm font-semibold text-foreground sm:hidden">{STEP_META[1].title}</h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 <FormField
@@ -519,7 +519,7 @@ export function InstallerRegistrationForm() {
                           inputMode="tel"
                           autoComplete="tel"
                           placeholder="+32 475 12 34 56"
-                          className={inputClass}
+                          className={`${inputClass} font-mono tabular-nums`}
                           {...field}
                         />
                       </FormControl>
@@ -532,9 +532,9 @@ export function InstallerRegistrationForm() {
           )}
 
           {step === 2 && (
-            <div className="space-y-4 animate-in fade-in-0 duration-200">
+            <div className="flex flex-col gap-4 animate-in fade-in-0 duration-200">
               <h3 className="text-sm font-semibold text-foreground sm:hidden">{STEP_META[2].title}</h3>
-              <div className="space-y-4 rounded-xl border border-border bg-muted/30 p-4 sm:p-5">
+              <div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/30 p-4 sm:p-5">
                 <FormField
                   control={form.control}
                   name="rescertPhotovoltaicRef"
@@ -542,7 +542,7 @@ export function InstallerRegistrationForm() {
                     <FormItem id="reg-rescertRef">
                       <FormLabel>Référence RESCERT Photovoltaïque</FormLabel>
                       <FormControl>
-                        <Input placeholder="Numéro ou identifiant" className={inputClass} {...field} />
+                        <Input placeholder="Numéro ou identifiant" className={`${inputClass} font-mono tabular-nums`} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -552,7 +552,7 @@ export function InstallerRegistrationForm() {
                   control={form.control}
                   name="rescertPhotovoltaicConfirmed"
                   render={({ field }) => (
-                    <FormItem id="reg-rescertConfirmed" className="flex flex-row items-start gap-3 space-y-0 rounded-lg border border-border/60 bg-background/60 p-3">
+                    <FormItem id="reg-rescertConfirmed" className="flex flex-row items-start gap-3 rounded-lg border border-border/60 bg-background/60 p-3">
                       <FormControl>
                         <Checkbox
                           checked={field.value}
@@ -561,7 +561,7 @@ export function InstallerRegistrationForm() {
                           aria-describedby="rescert-error"
                         />
                       </FormControl>
-                      <div className="space-y-1 leading-snug">
+                      <div className="flex flex-col gap-1 leading-snug">
                         <FormLabel className="cursor-pointer text-sm font-normal leading-snug">
                           Je certifie que mon entreprise est couverte par une certification RESCERT Photovoltaïque à
                           jour (marché belge, RGIE et assurances).
@@ -576,7 +576,7 @@ export function InstallerRegistrationForm() {
           )}
 
           {step === 3 && (
-            <div className="space-y-3 animate-in fade-in-0 duration-200">
+            <div className="flex flex-col gap-3 animate-in fade-in-0 duration-200">
               <h3 className="text-sm font-semibold text-foreground sm:hidden">{STEP_META[3].title}</h3>
               <FormField
                 control={form.control}

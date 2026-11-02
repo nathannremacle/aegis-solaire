@@ -1,7 +1,7 @@
 # Système de Dispatch et de Relances Intelligentes des Leads — Aegis Solaire
 
 > **Dossier de Conception Stratégique, Modélisation Mathématique & Architecture Technique**  
-> **Auteur :** Antigravity pour Nathan Remacle (INIT42 / Aegis Solaire)  
+> **Auteur :** L'équipe Aegis Solaire — Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique (`contact@aegissolaire.com`)  
 > **Date :** Octobre 2026 · **Version :** 1.0 (Production-Ready)  
 > **Fichiers associés :** [`lib/lead-relance-engine.ts`](file:///c:/Users/mrnat/Documents/SaaS/Aegis%20Solaire/aegis-solaire-main/lib/lead-relance-engine.ts) · [`lib/email-templates/installer-lead-teaser.ts`](file:///c:/Users/mrnat/Documents/SaaS/Aegis%20Solaire/aegis-solaire-main/lib/email-templates/installer-lead-teaser.ts) · [`supabase/migrations/202610260001_lead_relances_system.sql`](file:///c:/Users/mrnat/Documents/SaaS/Aegis%20Solaire/aegis-solaire-main/supabase/migrations/202610260001_lead_relances_system.sql)
 
@@ -21,7 +21,7 @@ Aegis Solaire n'est pas un comparateur de masse ; c'est un **organe de sélectio
 - **En B2C (Résidentiel qualifié) :** Attribution strictement plafonnée à **3 installateurs certifiés maximum**.
 - **Audit préalable :** Aucun lead n'est poussé sans un pré-contrôle administratif (validité BCE/TVA, cadastre toiture Google Maps direct, cohérence facture électrique).
 - **Garantie d'injoignabilité :** Recrédit intégral sous 24h ouvrées en cas de numéro erroné via la table `lead_disputes`.
-- **Accompagnement Expert :** Présence de la caution d'ingénierie de **Fabrice Remacle** pour assister les installateurs sur les chantiers complexes.
+- **Accompagnement Expert :** Présence de la caution d'ingénierie de **La Cellule Technique & Ingénierie Aegis Solaire** pour assister les installateurs sur les chantiers complexes.
 
 ---
 
@@ -194,19 +194,19 @@ aegis-solaire-main/
 
 ---
 
-## 7. Plan des Questions Stratégiques pour Nathan Remacle
+## 7. Plan des Questions Stratégiques pour L'équipe Aegis Solaire
 
-Afin d'ajuster les curseurs fins du système selon tes préférences de déploiement, voici les **5 questions décisionnelles clés** :
+Afin d'ajuster les curseurs fins du système selon les préférences de déploiement, voici les **5 questions décisionnelles clés** :
 
 ### Axe 1 : Politique de Prix et Dégressivité sur la Vague 3
 > **Contexte :** Si un lead B2C n'a trouvé que 2 acheteurs après 24h (il reste 1 place invendue) ou si un lead B2B n'a pas été acheté après 36h :
-- **Option A (Recommandée - Rareté préservée) :** Le prix reste fixe (2 crédits en B2C, 8–18 crédits en B2B) pour ne jamais dévaloriser la perception de qualité du lead et ne pas créer d'attentisme chez les installateurs.
-- **Option B (Vente flash « Fin de série ») :** Réduction de -50 % sur le dernier slot disponible en Vague 3 (ex: 1 crédit au lieu de 2) pour liquider le lead à coup sûr.
+- **Option A (Recommandée - Rareté préservée) :** Le prix reste fixe (3 crédits en B2C, 9 crédits en B2B) pour ne jamais dévaloriser la perception de qualité du lead et ne pas créer d'attentisme chez les installateurs.
+- **Option B (Vente flash « Fin de série ») :** Réduction de -50 % sur le dernier slot disponible en Vague 3 pour liquider le lead à coup sûr.
 
 ### Axe 2 : Amorçage & Stratégie d'Activation (Onboarding)
 > **Contexte :** Un nouvel installateur qui s'inscrit sur la plateforme a un solde initial de 0 crédit.
-- **Option A (Offre d'essai 1 lead gratuit) :** Offrir automatiquement **2 crédits de bienvenue** dès la validation de sa certification RESCERT par l'admin, pour qu'il teste le déblocage d'un premier lead en 1 clic et constate la qualité du contact.
-- **Option B (Packs payants stricts sans gratuité) :** Exiger l'achat d'un premier Pack Découverte (10 crédits à 149 € HTVA) avant tout déblocage, pour filtrer immédiatement les artisans solvables.
+- **Option A (Offre d'essai 1 lead gratuit) :** Offrir automatiquement **3 crédits de bienvenue** dès la validation de sa certification RESCERT par l'admin, pour qu'il teste le déblocage d'un premier lead en 1 clic et constate la qualité du contact.
+- **Option B (Packs payants stricts sans gratuité) :** Exiger l'achat d'une première Recharge Démarrage (10 crédits à 115,00 € HTVA) avant tout déblocage, pour filtrer immédiatement les artisans solvables.
 
 ### Axe 3 : Canaux de Relance Additionnels (SMS / WhatsApp)
 > **Contexte :** Les installateurs solaires sont souvent sur les toits ou en déplacement et ne consultent leurs e-mails que le soir.
@@ -216,9 +216,9 @@ Afin d'ajuster les curseurs fins du système selon tes préférences de déploie
 ### Axe 4 : Automatisation du Cron vs Validation Admin
 > **Contexte :** Le cron automatisé (`/api/cron/lead-relances`) peut déclencher les Vagues 2 et 3 sans aucune intervention humaine.
 - **Option A (100 % Automatisé après publication) :** L'admin valide le lead une seule fois (passage en `available`), et le système gère seul les vagues H+4h et H+24h jusqu'à épuisement des 3 slots.
-- **Option B (Semi-automatisé avec contrôle admin) :** Le système notifie l'admin quand une vague est prête, mais Nathan clique sur le bouton « Déclencher Vague suivante » dans le dashboard pour garder le contrôle visuel total au début.
+- **Option B (Semi-automatisé avec contrôle admin) :** Le système notifie l'admin quand une vague est prête, mais l'équipe Aegis Solaire clique sur le bouton « Déclencher Vague suivante » dans le dashboard pour garder le contrôle visuel total au début.
 
-### Axe 5 : Monétisation de l'Assistance Technique de Fabrice Remacle
-> **Contexte :** Sur les leads B2B tertiaires (> 50 kWc ou toitures d'usines), l'e-mail propose l'accompagnement d'expert de Fabrice Remacle.
+### Axe 5 : Monétisation de l'Assistance Technique de La Cellule Technique & Ingénierie Aegis Solaire
+> **Contexte :** Sur les leads B2B tertiaires (> 50 kWc ou toitures d'usines), l'e-mail propose l'accompagnement d'expert de La Cellule Technique & Ingénierie Aegis Solaire.
 - **Option A (Pourcentage au succès) :** 2 % à 3 % du montant final du marché signé avec l'entreprise.
 - **Option B (Forfait d'ingénierie inclus dans le pack) :** Facturation forfaitaire (ex: 450 € HTVA pour l'étude de faisabilité et la présence au rendez-vous commercial).

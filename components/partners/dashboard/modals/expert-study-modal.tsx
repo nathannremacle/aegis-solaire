@@ -198,7 +198,7 @@ export default function ExpertStudyModal({
             <div className="h-10 w-10 rounded-xl bg-accent/15 text-accent border border-accent/25 flex items-center justify-center shrink-0">
               <Sparkles className="h-5 w-5" />
             </div>
-            <div className="space-y-0.5 min-w-0">
+            <div className="flex flex-col gap-0.5 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="font-mono text-[10px] uppercase tracking-wider text-accent font-bold">
                   CELLULE TECHNIQUE &amp; INGÉNIERIE
@@ -231,21 +231,21 @@ export default function ExpertStudyModal({
 
         {/* ── 2. Corps Formulaire ou Vue de Succès ── */}
         {isSuccess ? (
-          <div className="p-6 sm:p-8 space-y-5 text-center my-auto">
+          <div className="p-6 sm:p-8 flex flex-col gap-5 text-center my-auto">
             <div className="h-16 w-16 rounded-full bg-emerald-500/15 text-emerald-600 border border-emerald-500/30 flex items-center justify-center mx-auto animate-in zoom-in-50 duration-300">
               <CheckCircle2 className="h-8 w-8" />
             </div>
 
-            <div className="space-y-2 max-w-md mx-auto">
+            <div className="flex flex-col gap-2 max-w-md mx-auto">
               <h3 className="text-lg font-bold text-foreground">
                 Demande transmise avec succès !
               </h3>
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Notre Cellule Technique &amp; Ingénierie a bien reçu votre demande. Un ingénieur dédié analyse vos éléments et vous recontactera sous <strong>24 heures ouvrées</strong> pour convenir des modalités techniques et du pourcentage d&apos;honoraires applicable au succès du chantier.
+                Notre Cellule Technique &amp; Ingénierie a bien reçu votre demande. Un ingénieur dédié analyse vos éléments et vous recontactera sous <strong><span className="font-mono tabular-nums">24</span> heures ouvrées</strong> pour convenir des modalités techniques et du pourcentage d&apos;honoraires applicable au succès du chantier.
               </p>
             </div>
 
-            <div className="rounded-xl border border-border bg-secondary/30 p-3.5 max-w-md mx-auto text-left text-xs space-y-1.5">
+            <div className="rounded-xl border border-border bg-secondary/30 p-3.5 max-w-md mx-auto w-full text-left text-xs flex flex-col gap-1.5">
               <div className="flex items-center justify-between text-muted-foreground">
                 <span>Type d&apos;étude :</span>
                 <strong className="text-foreground">
@@ -277,9 +277,9 @@ export default function ExpertStudyModal({
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 sm:space-y-5">
+          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-5 flex flex-col gap-4 sm:gap-5">
             {/* A. Choix du type d'accompagnement */}
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
                 1. Type d&apos;expertise souhaitée
               </label>
@@ -328,19 +328,19 @@ export default function ExpertStudyModal({
             </div>
 
             {/* B. Rattachement à un dossier client / Chantier */}
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
                   2. Dossier rattaché (Optionnel)
                 </label>
-                <span className="text-[11px] font-mono text-muted-foreground">
+                <span className="text-[11px] font-mono text-muted-foreground tabular-nums">
                   {purchases.length} dossier(s) dans votre CRM
                 </span>
               </div>
 
               {activeLead ? (
                 <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 flex items-center justify-between gap-3">
-                  <div className="space-y-0.5 min-w-0">
+                  <div className="flex flex-col gap-0.5 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="inline-flex items-center rounded px-1.5 py-0.2 text-[10px] font-bold bg-primary text-primary-foreground">
                         {activeLead.segment || "B2B"}
@@ -385,7 +385,7 @@ export default function ExpertStudyModal({
             </div>
 
             {/* C. Précisions & Questions */}
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <label
                   htmlFor="expert-message"
@@ -429,7 +429,7 @@ export default function ExpertStudyModal({
             </div>
 
             {/* D. Coordonnées de contact pour le retour */}
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
                 4. Canal de retour privilégié
               </label>
@@ -495,7 +495,7 @@ export default function ExpertStudyModal({
             </div>
 
             {/* Note d'honoraires et engagement bilatéral */}
-            <div className="rounded-xl border border-accent/30 bg-accent/5 p-3.5 space-y-1.5 text-xs">
+            <div className="rounded-xl border border-accent/30 bg-accent/5 p-3.5 flex flex-col gap-1.5 text-xs">
               <div className="flex items-center gap-2 font-bold text-foreground">
                 <Handshake className="h-4 w-4 text-accent shrink-0" />
                 <span>Modalités d&apos;accompagnement : Pourcentage du projet à négocier</span>

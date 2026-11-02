@@ -26,3 +26,9 @@ Partout ailleurs, toute communication, interface ou signature doit obligatoireme
 - **Pour le support / la relation installateurs :** *"L'équipe Support Aegis Solaire"*, *"Notre équipe support partenaires"*, *"La Direction des Partenariats Aegis Solaire"*
 - **Pour la caution technique / ingénierie :** *"La Cellule Technique & Ingénierie Aegis Solaire"*, *"Nos auditeurs et ingénieurs solaires"*
 - **Pour le contact :** Exclusivement `contact@aegissolaire.com` (aucun numéro de téléphone personnel ou direct).
+
+## 4. MASQUAGE DES PRÉNOMS ET DONNÉES LEAD
+Lors du masquage des prénoms ou données sensibles des contacts/leads non débloqués (interface marketplace, emails de notification et teasers) :
+- Le prénom doit **toujours** être masqué par `******` (6 astérisques) et **jamais** par `xxxx`.
+- Exemple : `****** Dupont` (et non `xxxx Dupont`).
+

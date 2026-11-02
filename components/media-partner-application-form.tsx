@@ -125,7 +125,7 @@ export function MediaPartnerApplicationForm() {
               Candidature reçue.
             </p>
             <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">
-              Notre équipe vous recontactera sous 48h.
+              Notre équipe vous recontactera sous <span className="font-mono tabular-nums">48h</span>.
             </p>
           </motion.div>
         ) : (
@@ -151,7 +151,7 @@ export function MediaPartnerApplicationForm() {
             )}
 
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5" noValidate>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-5" noValidate>
                 <input
                   type="text"
                   name="fax_number"
@@ -163,7 +163,7 @@ export function MediaPartnerApplicationForm() {
                   aria-hidden
                 />
 
-                <div className="space-y-2.5">
+                <div className="flex flex-col gap-2.5">
                   <div className="flex items-center justify-between gap-2 text-xs text-slate-500 sm:text-sm">
                     <span className="font-semibold text-foreground font-mono tabular-nums">
                       Étape {step + 1} / {mpTotalSteps}
@@ -185,9 +185,9 @@ export function MediaPartnerApplicationForm() {
                   <p className="text-xs leading-relaxed text-slate-600 sm:text-sm">{MP_STEP_META[step].hint}</p>
                 </div>
 
-                <div className="min-h-[14rem] space-y-4 sm:min-h-[12rem]">
+                <div className="min-h-[14rem] flex flex-col gap-4 sm:min-h-[12rem]">
                   {step === 0 && (
-                    <div className="animate-in fade-in-0 space-y-4 duration-200">
+                    <div className="animate-in fade-in-0 flex flex-col gap-4 duration-200">
                       <h3 className="text-sm font-semibold text-foreground sm:hidden">{MP_STEP_META[0].title}</h3>
                       <div className="grid gap-4 sm:grid-cols-2">
                         <FormField
@@ -266,7 +266,7 @@ export function MediaPartnerApplicationForm() {
                   )}
 
                   {step === 1 && (
-                    <div className="animate-in fade-in-0 space-y-4 duration-200">
+                    <div className="animate-in fade-in-0 flex flex-col gap-4 duration-200">
                       <h3 className="text-sm font-semibold text-foreground sm:hidden">{MP_STEP_META[1].title}</h3>
                       <FormField
                         control={form.control}
@@ -298,7 +298,7 @@ export function MediaPartnerApplicationForm() {
                                 min={1}
                                 step={1}
                                 placeholder="ex. 20"
-                                className={fieldClass}
+                                className={`${fieldClass} font-mono tabular-nums`}
                                 value={field.value === undefined || Number.isNaN(field.value) ? "" : field.value}
                                 onChange={(e) => {
                                   const v = e.target.value

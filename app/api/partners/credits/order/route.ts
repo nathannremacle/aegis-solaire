@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic"
 import { CREDIT_PACKS, PRICING_VERSION, calculateOrderFinancials } from "@/lib/credit-pricing"
 
 const BANK_DETAILS = {
-  beneficiary: "INIT42 (Nathan Remacle)",
+  beneficiary: "INIT42",
   iban: "BE84 0020 3534 7259",
   bic: "GEBABEBB",
   vatNumber: "BE 1039.899.980",
@@ -34,7 +34,8 @@ export async function POST(request: Request) {
   }
 
   const financials = calculateOrderFinancials(pack.credits)
-  const transferReference = `AEGIS-${randomUUID()}`
+  const shortHex = randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()
+  const transferReference = `AEGIS-${new Date().getFullYear()}-${shortHex}`
 
   // Enregistrement de la commande en base de données
   try {
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
       const resend = new Resend(resendApiKey)
       const adminEmail = process.env.ADMIN_ALERT_EMAIL || "contact@aegissolaire.com"
       await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
+        from: process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com",
         to: adminEmail,
         subject: `[Aegis Solaire] Nouvelle commande de crédits : ${partner.company_name} (${pack.credits} crédits)`,
         text: `Nouvelle commande de crédits partenaires :\n\n- Entreprise : ${partner.company_name}\n- Email : ${partner.email}\n- Pack : ${pack.name} (${pack.credits} crédits)\n- Montant HTVA : ${financials.priceHtva.toFixed(2)} €\n- Montant TTC (21%) : ${financials.priceTtc.toFixed(2)} €\n- Référence virement : ${transferReference}\n\nActiver les crédits dans le panel admin une fois le virement reçu sur le compte INIT42 (BE84 0020 3534 7259).`,

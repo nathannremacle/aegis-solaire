@@ -132,6 +132,8 @@ export async function POST(request: NextRequest) {
         surfaceType: lead.surface_type,
         annualBill: lead.annual_bill_eur || lead.annual_electricity_bill,
         creditCost,
+        estimatedPowerKwc: lead.estimated_power_kwc,
+        projectDetails: lead.project_details,
       })
 
       const emailData = {

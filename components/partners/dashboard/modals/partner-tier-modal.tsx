@@ -69,9 +69,9 @@ export default function PartnerTierModal({ partner, onClose }: PartnerTierModalP
               <Shield className="h-4 w-4 text-muted-foreground" />
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">Dès l'inscription validée</p>
-            <ul className="mt-3 space-y-2 text-xs text-muted-foreground">
+            <ul className="mt-3 flex flex-col gap-2 text-xs text-muted-foreground">
               <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-primary shrink-0" /> Accès feed standard</li>
-              <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-primary shrink-0" /> Garantie litige 24h</li>
+              <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-primary shrink-0" /> Garantie litige <span className="font-mono tabular-nums">24h</span></li>
               <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-primary shrink-0" /> Mini-CRM Pipeline</li>
             </ul>
           </div>
@@ -83,7 +83,7 @@ export default function PartnerTierModal({ partner, onClose }: PartnerTierModalP
               <Sparkles className="h-4 w-4 text-accent" />
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">Dès <span className="font-mono tabular-nums">5</span> dossiers achetés</p>
-            <ul className="mt-3 space-y-2 text-xs text-muted-foreground">
+            <ul className="mt-3 flex flex-col gap-2 text-xs text-muted-foreground">
               <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-primary shrink-0" /> <strong><span className="font-mono tabular-nums">+15 min</span> d'avance</strong> sur les leads</li>
               <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-primary shrink-0" /> Support prioritaire</li>
               <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-primary shrink-0" /> Badge Certifié Silver</li>
@@ -97,7 +97,7 @@ export default function PartnerTierModal({ partner, onClose }: PartnerTierModalP
               <Crown className="h-4 w-4 text-accent" />
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">Dès <span className="font-mono tabular-nums">15</span> dossiers achetés</p>
-            <ul className="mt-3 space-y-2 text-xs text-muted-foreground">
+            <ul className="mt-3 flex flex-col gap-2 text-xs text-muted-foreground">
               <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-accent shrink-0" /> <strong><span className="font-mono tabular-nums">+30 min</span> d'avance</strong> exclusive</li>
               <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-accent shrink-0" /> Interlocuteur dédié</li>
               <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-accent shrink-0" /> Remises volume sur les packs</li>

@@ -42,7 +42,29 @@ export async function POST(request: NextRequest) {
 
     const supabase = createServiceRoleClient()
 
-    // 1. Gestion du paiement réussi
+    // 1. Détection de rétrofacturation (chargeback) ou remboursement Mollie
+    const refundedVal = Number((payment.amountRefunded as any)?.value || 0)
+    const chargedBackVal = Number((payment.amountChargedBack as any)?.value || 0)
+    if (refundedVal > 0 || chargedBackVal > 0) {
+      try {
+        await supabase.from("audit_log").insert({
+          admin_email: "system:mollie",
+          action: chargedBackVal > 0 ? "credit_order_chargedback_mollie" : "credit_order_refunded_mollie",
+          entity_type: "credit_order",
+          entity_id: orderId,
+          details: {
+            mollie_payment_id: payment.id,
+            refunded_eur: refundedVal,
+            chargedback_eur: chargedBackVal,
+          },
+        })
+      } catch {
+        /* ignore */
+      }
+      return NextResponse.json({ received: true, status: "refund_or_chargeback_logged" }, { status: 200 })
+    }
+
+    // 2. Gestion du paiement réussi
     if (payment.status === "paid") {
       const result = await fulfillPaidCreditOrder(orderId, payment)
       if (!result.success) {
@@ -51,7 +73,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true, status: "paid", already_paid: result.alreadyPaid }, { status: 200 })
     }
 
-    // 2. Paiement échoué, annulé ou expiré
+    // 3. Paiement échoué, annulé ou expiré
     if (["canceled", "failed", "expired"].includes(payment.status)) {
       const { data: order } = await supabase
         .from("credit_orders")

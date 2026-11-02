@@ -26,10 +26,10 @@ export function Footer() {
 
           {/* Navigation */}
           <div>
-            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">
               Navigation
-            </h4>
-            <ul className="space-y-2">
+            </h2>
+            <ul className="flex flex-col gap-2">
               <li>
                 <Link
                   href="/#preuve"
@@ -64,7 +64,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/#simulator"
+                  href="/#simulateur"
                   className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   Simulateur ROI B2B
@@ -91,10 +91,10 @@ export function Footer() {
 
           {/* Ressources (Content Marketing / SEO) */}
           <div>
-            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">
               Ressources
-            </h4>
-            <ul className="space-y-2">
+            </h2>
+            <ul className="flex flex-col gap-2">
               <li>
                 <Link
                   href="/#preuve"
@@ -132,10 +132,10 @@ export function Footer() {
 
           {/* Legal */}
           <div>
-            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">
               Informations légales
-            </h4>
-            <ul className="space-y-2">
+            </h2>
+            <ul className="flex flex-col gap-2">
               <li>
                 <Link
                   href="/mentions-legales"
@@ -173,21 +173,21 @@ export function Footer() {
 
           {/* Contact */}
           <div className="min-w-0">
-            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">
               Contact
-            </h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+            </h2>
+            <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
               <li className="break-all">contact@aegissolaire.com</li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-10 border-t border-neutral-200 pt-6 sm:mt-12 sm:pt-8 text-center text-xs text-neutral-400 sm:text-sm space-y-1">
+        <div className="mt-10 border-t border-neutral-200 pt-6 sm:mt-12 sm:pt-8 text-center text-xs text-neutral-400 sm:text-sm flex flex-col gap-1">
           <p>
             &copy; {new Date().getFullYear()} Aegis Solaire — Tous droits réservés.
           </p>
-          <p className="text-[11px] text-neutral-400">
-            Plateforme éditée par <strong className="text-neutral-500 font-medium">INIT42</strong> · BCE n° 1039.899.980 · TVA BE 1039.899.980
+          <p className="text-[11px] text-neutral-400 font-mono tabular-nums">
+            Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
           </p>
         </div>
       </div>

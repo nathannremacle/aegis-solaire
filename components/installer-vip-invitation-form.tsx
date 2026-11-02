@@ -426,7 +426,7 @@ export function InstallerVipInvitationForm({
                   <div className="flex flex-col gap-1">
                     <p className="font-medium text-foreground">Exigence de qualification technique :</p>
                     <p className="text-muted-foreground leading-relaxed">
-                      Aegis Solaire garantit aux maîtres d'ouvrage que seuls des installateurs certifiés interviennent sur leurs toitures. Si vous n'avez pas votre numéro sous la main, inscrivez simplement <em className="text-foreground">« En cours avec Fabrice »</em>.
+                      Aegis Solaire garantit aux maîtres d'ouvrage que seuls des installateurs certifiés interviennent sur leurs toitures. Si vous n'avez pas votre numéro sous la main, inscrivez simplement <em className="text-foreground">« En cours d'homologation »</em>.
                     </p>
                   </div>
                 </div>
@@ -441,8 +441,8 @@ export function InstallerVipInvitationForm({
                       </FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="Ex. 03/XXXX ou En cours"
-                          className={`${inputClass} font-mono`}
+                          placeholder="Ex. 03/1234 ou En cours"
+                          className={`${inputClass} font-mono tabular-nums`}
                           {...field}
                         />
                       </FormControl>

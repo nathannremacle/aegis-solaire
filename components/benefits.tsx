@@ -47,8 +47,7 @@ const itemVariants = {
 
 export function Benefits() {
   return (
-    <section id="benefits" className="scroll-mt-24 overflow-hidden relative bg-[radial-gradient(circle_at_bottom,rgba(0,29,61,0.4)_0%,rgba(0,10,25,1)_100%)] text-white py-16 sm:py-24 lg:py-32 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
-      <div className="absolute inset-0 bg-black/40 mix-blend-multiply" />
+    <section id="benefits" className="scroll-mt-24 overflow-hidden relative bg-primary text-primary-foreground py-16 sm:py-24 lg:py-32 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
       <div className="mx-auto max-w-7xl min-w-0 px-4 sm:px-6 lg:px-8 relative z-10">
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
@@ -60,9 +59,9 @@ export function Benefits() {
           <span className="mb-4 inline-block rounded-full bg-accent/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-accent sm:text-sm">
             Vos avantages Wallonie
           </span>
-          <h4 className="text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl">
-            Pourquoi passer au <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-[#FFE066]">solaire B2B</span> ?
-          </h4>
+          <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl">
+            Pourquoi passer au <span className="text-accent-solar">solaire B2B</span> ?
+          </h2>
           <p className="mt-6 text-base text-neutral-300 sm:text-lg lg:text-xl leading-relaxed">
             Aegis Solaire accompagne les directions financières et techniques sur le marché wallon : rentabilité, conformité et valeur d’actif, sans sous-estimer le raccordement.
           </p>
@@ -79,16 +78,15 @@ export function Benefits() {
             <motion.div
               key={index}
               variants={itemVariants}
-              className="group relative min-w-0 rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl transition-all duration-300 hover:-translate-y-2 hover:border-accent/40 hover:bg-white/10 hover:shadow-[0_15px_30px_rgba(255,184,0,0.15)] sm:p-8"
+              className="group relative min-w-0 rounded-3xl border border-border bg-card text-card-foreground p-6 shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 sm:p-8"
             >
-              <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-accent/20 blur-2xl transition-all group-hover:bg-accent/40" />
-              <div className="mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 ring-1 ring-accent/30 shadow-inner">
+              <div className="mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10 ring-1 ring-accent/20 shadow-2xs">
                 <benefit.icon className="h-7 w-7 text-accent" />
               </div>
-              <h4 className="text-xl font-bold text-white mb-3">
+              <h3 className="text-xl font-bold text-foreground mb-3">
                 {benefit.title}
-              </h4>
-              <p className="text-sm leading-relaxed text-neutral-400 group-hover:text-neutral-300 transition-colors">
+              </h3>
+              <p className="text-sm leading-relaxed text-muted-foreground transition-colors">
                 {benefit.description}
               </p>
             </motion.div>

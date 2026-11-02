@@ -29,8 +29,8 @@ import {
 // Données de test
 const sampleApp = {
   applicationId: "a1b2c3d4-e5f6-47a8-b9c0-123456789abc",
-  firstName: "Nathan",
-  lastName: "Remacle",
+  firstName: "Marc",
+  lastName: "Dupont",
   companyName: "Watt & Solutions Solaire SRL",
   email: "contact@watt-solutions.be",
   rescertRef: "RESCERT-PV-2026-4412",

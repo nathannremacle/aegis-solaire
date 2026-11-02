@@ -88,8 +88,6 @@ const itemVariants = {
 export function Testimonials() {
   return (
     <section id="preuve" className="relative scroll-mt-24 overflow-x-hidden bg-background py-16 sm:py-28 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
-      <div className="pointer-events-none absolute left-1/2 top-0 h-[600px] w-full max-w-7xl -translate-x-1/2 bg-[radial-gradient(ellipse_at_top,rgba(0,29,61,0.05)_0%,transparent_70%)]" />
-
       <div className="relative mx-auto max-w-7xl min-w-0 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
           <motion.div
@@ -101,7 +99,7 @@ export function Testimonials() {
           >
             Modélisations indicatives B2B
           </motion.div>
-          <motion.h3
+          <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
@@ -109,7 +107,7 @@ export function Testimonials() {
             className="text-2xl font-bold tracking-tight text-primary sm:text-3xl md:text-4xl"
           >
             Études de cas & <span className="text-accent">modèles économiques types</span>
-          </motion.h3>
+          </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -117,7 +115,7 @@ export function Testimonials() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="mt-4 text-base leading-relaxed text-muted-foreground sm:mt-5 sm:text-lg"
           >
-            Simulations calculées selon le gisement solaire wallon (930 kWh/kWc/an), les coûts de réseau actuels et les exigences de conformité du <strong className="font-semibold text-foreground">Plan PACE 2030</strong>.
+            Simulations calculées selon le gisement solaire wallon (<span className="font-mono tabular-nums">930 kWh/kWc/an</span>), les coûts de réseau actuels et les exigences de conformité du <strong className="font-semibold text-foreground">Plan PACE 2030</strong>.
           </motion.p>
         </div>
 
@@ -133,11 +131,11 @@ export function Testimonials() {
             <motion.div
               key={index}
               variants={itemVariants}
-              className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-primary/10 bg-card/60 p-6 shadow-lg shadow-black/5 backdrop-blur-xl transition-all hover:-translate-y-1 hover:border-accent/30 hover:shadow-xl sm:p-7"
+              className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-xs transition-all hover:-translate-y-1 hover:border-accent/30 hover:shadow-sm sm:p-7"
             >
               <div className="flex items-center justify-between gap-3">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 transition-transform group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(255,184,0,0.2)]">
-                  <study.icon className="h-6 w-6 text-accent drop-shadow-sm" />
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 shadow-xs transition-transform group-hover:scale-105">
+                  <study.icon className="h-6 w-6 text-accent" />
                 </div>
                 <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                   {study.location}
@@ -148,21 +146,21 @@ export function Testimonials() {
                 <span className="text-xs font-semibold uppercase tracking-wider text-accent">
                   {study.badge}
                 </span>
-                <h4 className="mt-1 text-lg font-bold tracking-tight text-foreground sm:text-xl">
+                <h3 className="mt-1 text-lg font-bold tracking-tight text-foreground sm:text-xl">
                   {study.title}
-                </h4>
+                </h3>
               </div>
 
               <div className="mt-4 rounded-xl bg-accent/10 p-3.5">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-extrabold tracking-tight text-accent drop-shadow-sm sm:text-3xl">
+                  <span className="font-mono tabular-nums text-2xl font-extrabold tracking-tight text-accent sm:text-3xl">
                     − <AnimatedCounter value={study.figure} /> €
                   </span>
                   <span className="text-xs font-medium text-foreground/80">
                     / an
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">{study.specs}</p>
+                <p className="mt-1 font-mono tabular-nums text-xs text-muted-foreground">{study.specs}</p>
               </div>
 
               <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
@@ -184,9 +182,9 @@ export function Testimonials() {
             <span className="inline-block rounded-full bg-accent/10 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-accent">
               Sélection rigoureuse
             </span>
-            <h4 className="mt-3 text-xl font-bold tracking-tight text-foreground sm:text-2xl md:text-3xl">
+            <h3 className="mt-3 text-xl font-bold tracking-tight text-foreground sm:text-2xl md:text-3xl">
               Notre charte d&apos;engagement pour les installateurs partenaires
-            </h4>
+            </h3>
             <p className="mt-3 text-sm text-muted-foreground sm:text-base">
               Aegis Solaire agit en intermédiaire indépendant : nous sélectionnons exclusivement des professionnels qualifiés répondant à des critères stricts de conformité technique et juridique.
             </p>
@@ -201,9 +199,9 @@ export function Testimonials() {
                 <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-accent/10 text-accent">
                   <pillar.icon className="h-5 w-5" />
                 </div>
-                <h5 className="text-base font-semibold text-foreground">
+                <h4 className="text-base font-semibold text-foreground">
                   {pillar.title}
-                </h5>
+                </h4>
                 <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
                   {pillar.description}
                 </p>

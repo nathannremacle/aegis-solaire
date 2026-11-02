@@ -278,12 +278,8 @@ export async function getEligiblePartnersForWave(
     return []
   }
 
-  const realPartners = allPartners.filter(
-    (p) => !p.is_test && !p.company_name?.toLowerCase().includes("test") && p.email !== "mrnathanrem@gmail.com"
-  )
-  const devTestPartner = allPartners.find(
-    (p) => p.is_test || p.company_name?.toLowerCase().includes("test") || p.email === "mrnathanrem@gmail.com"
-  )
+  const realPartners = allPartners.filter((p) => !isDevTestPartner(p))
+  const devTestPartner = allPartners.find((p) => isDevTestPartner(p))
 
   // 4. Calculer le score et filtrer les candidats réels
   const scoredCandidates: EligiblePartnerForDispatch[] = []
@@ -466,8 +462,12 @@ export async function dispatchLeadWave(
     segment: lead.segment,
     surfaceArea: lead.surface_area_m2 || lead.surface_area,
     surfaceType: lead.surface_type,
+    roofMaterial: lead.roof_material,
     annualBill: lead.annual_bill_eur || lead.annual_electricity_bill,
     creditCost,
+    estimatedPowerKwc: lead.estimated_power_kwc,
+    projectDetails: lead.project_details || lead.message,
+    qualificationMetadata: lead.qualification_metadata,
   })
 
   // 5. Sélectionner les partenaires éligibles
@@ -717,8 +717,9 @@ export function isDevTestPartner(p: {
   const company = (p.company_name || p.companyName || "").toLowerCase().trim()
   if (company.includes("test") || company.includes("dev test") || company.startsWith("dev-")) return true
   const email = (p.email || p.emailTo || "").toLowerCase().trim()
+  const testEmailEnv = (process.env.TEST_PARTNER_EMAIL || "").toLowerCase().trim()
   if (
-    email === "mrnathanrem@gmail.com" ||
+    (testEmailEnv && email === testEmailEnv) ||
     email.includes("+test") ||
     email.startsWith("test@") ||
     email.endsWith("@test.com")
@@ -1007,8 +1008,12 @@ export async function getUpcomingRelancesSchedule(): Promise<UpcomingRelanceItem
       segment: lead.segment,
       surfaceArea: lead.surface_area_m2 || lead.surface_area,
       surfaceType: lead.surface_type,
+      roofMaterial: lead.roof_material,
       annualBill: lead.annual_bill_eur || lead.annual_electricity_bill,
       creditCost,
+      estimatedPowerKwc: lead.estimated_power_kwc,
+      projectDetails: lead.project_details || lead.message,
+      qualificationMetadata: lead.qualification_metadata,
     })
 
     // Obtenir la liste des installateurs cibles éligibles
@@ -1188,8 +1193,13 @@ export async function getSentRelancesHistory(limit = 100): Promise<SentRelanceIt
     const financials = calculateMarketplaceFinancials({
       segment: lead?.segment || "B2C",
       surfaceArea: lead?.surface_area || 0,
+      surfaceType: lead?.surface_type,
+      roofMaterial: lead?.roof_material,
       annualBill: lead?.annual_electricity_bill || 0,
-      creditCost: lead?.credit_cost || 2,
+      creditCost: lead?.credit_cost || 3,
+      estimatedPowerKwc: lead?.estimated_power_kwc,
+      projectDetails: lead?.project_details || lead?.message,
+      qualificationMetadata: lead?.qualification_metadata,
     })
 
     return {
@@ -1258,10 +1268,11 @@ export async function getRelancesOverviewStats(): Promise<RelancesOverviewStats>
     if (allDispatches) {
       // Exclure les envois de test des calculs statistiques de conversion et de volume
       const realDispatches = allDispatches.filter((d: any) => {
-        const isTest =
-          d.partners?.is_test ||
-          d.partners?.company_name?.toLowerCase().includes("test") ||
-          d.email_to === "mrnathanrem@gmail.com"
+        const isTest = isDevTestPartner({
+          is_test: d.partners?.is_test,
+          company_name: d.partners?.company_name,
+          emailTo: d.email_to,
+        })
         return !isTest
       })
 

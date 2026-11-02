@@ -8,7 +8,7 @@
 ## 1. Objectif & Expérience Utilisateur (Cockpit Admin)
 
 Le dashboard d'administration d'Aegis Solaire est la **tour de contrôle opérationnelle et financière** du tiers de confiance photovoltaïque en Wallonie.
-- **Rôle principal :** Arbitrage en temps réel des leads entrants, validation instantanée des virements bancaires SEPA, supervision de la liquidité du catalogue marketplace (sell-through rate), et gestion des invitations d'installateurs signées Fabrice Remacle.
+- **Rôle principal :** Arbitrage en temps réel des leads entrants, validation instantanée des virements bancaires SEPA, supervision de la liquidité du catalogue marketplace (sell-through rate), et gestion des invitations d'installateurs signées par La Cellule Technique & Ingénierie Aegis Solaire.
 - **Inspirations :** Qonto Business Cockpit, Stripe Dashboard, Linear Triage, Supabase Platform.
 - **Densité d'information :** Élevée (Tier 9/10 `ui-ux-pro-max`), typographie chirurgicale, chiffres à chasse fixe (`font-mono tabular-nums`), zero latence perçue avec Streaming SSR (`Suspense`).
 
@@ -45,7 +45,7 @@ Le dashboard d'administration d'Aegis Solaire est la **tour de contrôle opérat
    - Ligne 1 (4 métriques majeures) : CA Validé HTVA, Taux d'Écoulement Catalogue, Stock de Leads en Vente, Réseau Partenaires & Crédits en circulation
    - Ligne 2 (3 métriques stratégiques) : Flux d'Acquisition (B2B vs B2C avec jauge), Trésorerie SEPA en Cours, Commissions Partenaires Média
    - Modales d'inspection transparente : Décomposition mathématique et échantillon de données réelles pour chaque KPI
-4. **Hub d'Invitation Réseau Grossiste — Fabrice Remacle (`AdminNetworkInviteHub`) :**
+4. **Hub d'Invitation Réseau Partenaires — La Cellule Technique & Ingénierie Aegis Solaire (`AdminNetworkInviteHub`) :**
    - Outil de prospection personnalisé avec modèles persistants (Tutoiement, Vouvoiement, WhatsApp)
    - Liens tracés avec attribution automatique de crédits de découverte
 5. **Dernières Activités & Journal d'Audit (`AdminRecentActivity`) :**

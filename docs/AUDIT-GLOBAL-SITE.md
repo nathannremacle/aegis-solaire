@@ -2,7 +2,7 @@
 
 > **Statut du document** : Audit complet validé et archivé en local dans le projet.  
 > **Dernière mise à jour** : Octobre 2026  
-> **Auteur** : Antigravity IDE (Pair-programming avec Nathan Remacle / INIT42)
+> **Auteur** : L'équipe Aegis Solaire (`contact@aegissolaire.com`)
 
 ---
 
@@ -12,7 +12,7 @@ L'objectif de cet audit est de fiabiliser intégralement la plateforme **Aegis S
 
 ### Informations légales & bancaires arrêtées (INIT42)
 - **Dénomination commerciale** : Aegis Solaire
-- **Exploitant & Forme juridique** : Entreprise individuelle / Personne physique (PP) — Nathan Remacle
+- **Exploitant & Forme juridique** : Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
 - **Nom de l'entreprise** : INIT42
 - **Numéro d'entreprise (BCE / KBO)** : `1039.899.980`
 - **Numéro de TVA** : `BE 1039.899.980` (Assujetti à la TVA)
@@ -21,7 +21,7 @@ L'objectif de cet audit est de fiabiliser intégralement la plateforme **Aegis S
 - **Coordonnées bancaires professionnelles** (Paiement packs partenaires sur facture) :  
   - **IBAN** : `BE84 0020 3534 7259`  
   - **BIC** : `GEBABEBB`  
-  - **Bénéficiaire** : INIT42 / Nathan Remacle
+  - **Bénéficiaire** : INIT42
 
 ### Choix stratégiques & opérationnels validés
 1. **Chiffres & Preuves sociales (Option A)** :  
@@ -73,9 +73,9 @@ L'objectif de cet audit est de fiabiliser intégralement la plateforme **Aegis S
    - Mettre à jour `app/api/leads/webinaire/route.ts` pour enregistrer `marketplace_status: 'rejected'` dès la création.
    - Ajouter dans l'interface admin (`app/admin/(dashboard)/leads/lead-detail-sheet.tsx`) le bouton explicite pour approuver la mise en vente d'un lead vers la marketplace.
 3. **Mise en conformité légale belge complète** :
-   - **`app/mentions-legales/page.tsx`** : Inscrire l'éditeur complet : INIT42 (Nathan Remacle, personne physique), n° BCE `1039.899.980`, TVA `BE1039899980`, coordonnées de contact, hébergeurs Vercel et Supabase.
+   - **`app/mentions-legales/page.tsx`** : Inscrire l'éditeur complet : Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique, coordonnées de contact (`contact@aegissolaire.com`), hébergeurs Vercel et Supabase.
    - **`app/politique-confidentialite/page.tsx`** : Clarifier le modèle de transmission des données (« Vos données sont transmises à titre onéreux à 1 installateur partenaire en B2B ou jusqu'à 3 installateurs en B2C »), supprimer la mention trompeuse « Nous ne vendons jamais vos données », et détailler les droits de rétractation/opposition.
-   - **`app/cgv/page.tsx`** : Aligner l'exploitant INIT42 / Nathan Remacle, formaliser les modalités de facturation des crédits et la juridiction compétente (Tribunaux de Liège / Belgique).
+   - **`app/cgv/page.tsx`** : Aligner l'exploitant INIT42, formaliser les modalités de facturation des crédits et la juridiction compétente (Tribunaux de Liège / Belgique).
 4. **Correction du consentement RGPD dans les formulaires** :
    - Séparer distinctement 2 cases à cocher :
      1. *(Obligatoire)* « J'accepte d'être mis en relation avec des installateurs partenaires certifiés RESCERT pour recevoir mon étude et des devis comparatifs » (avec lien vers la politique de confidentialité).
@@ -179,7 +179,7 @@ L'objectif de cet audit est de fiabiliser intégralement la plateforme **Aegis S
 ## 5. Journal des Réalisations (Mise à jour Octobre 2026)
 
 ### ✅ Phase 0 — Sécurité, Cadre Légal INIT42 & Build (COMPLÉTÉ)
-- **Entité juridique INIT42** : Mentions légales (`app/mentions-legales/page.tsx`), politique de confidentialité (`app/politique-confidentialite/page.tsx`) et CGV (`app/cgv/page.tsx`) alignées sur Nathan Remacle (PP), BCE `1039.899.980`, TVA `BE 1039.899.980`, codes NACEBEL et compte professionnel `BE84 0020 3534 7259`. Compétence juridictionnelle : tribunaux francophones de l'arrondissement judiciaire de Liège.
+- **Entité juridique INIT42** : Mentions légales (`app/mentions-legales/page.tsx`), politique de confidentialité (`app/politique-confidentialite/page.tsx`) et CGV (`app/cgv/page.tsx`) alignées sur la formule légale : Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique, codes NACEBEL et compte professionnel `BE84 0020 3534 7259`. Compétence juridictionnelle : tribunaux francophones de l'arrondissement judiciaire de Liège.
 - **Sécurisation des paiements & marketplace** :
   - Endpoint Revolut direct neutralisé (`503 Service Unavailable`).
   - Nouveau système de commande de crédits sur facture proforma par virement bancaire (`app/api/partners/credits/order/route.ts` & dashboard partenaires).
@@ -229,7 +229,7 @@ L'objectif de cet audit est de fiabiliser intégralement la plateforme **Aegis S
   - Mise à jour de `app/sitemap.ts` avec les nouvelles routes publiques et priorités ajustées.
 - **Navigation & Liens Footer** :
   - Liens d'ancres du footer convertis en liens absolus (`/#preuve`, `/#expert`, `/#simulator`) pour fonctionner depuis n'importe quelle sous-page.
-  - Ajout des mentions légales de l'éditeur INIT42 (Nathan Remacle, BCE `1039.899.980`) dans le footer.
+  - Ajout des mentions légales de l'éditeur (Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique) dans le footer.
 - **Synchronisation Admin ↔ Marketplace** :
   - Contrôle et affichage de `marketplace_status` dans le panneau d'administration (`app/admin/(dashboard)/leads/lead-detail-sheet.tsx`).
   - Validation automatique vers la marketplace (`available`) lors de la validation d'un lead (`qualified`).
@@ -253,4 +253,4 @@ L'objectif de cet audit est de fiabiliser intégralement la plateforme **Aegis S
 ---
 *Ce document fait foi de feuille de route officielle et d'état d'exécution de la plateforme Aegis Solaire.*  
 *Taux de complétion des actions d'audit : 100% (16/16 constats résolus et audités en code).*  
-*Dernière revue d'assurance qualité : Octobre 2026 — Antigravity IDE & Nathan Remacle.*
+*Dernière revue d'assurance qualité : Octobre 2026 — L'équipe Aegis Solaire (`contact@aegissolaire.com`).*

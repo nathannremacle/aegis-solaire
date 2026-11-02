@@ -17,7 +17,7 @@ export default function PolitiqueConfidentialite() {
       badge="RGPD & protection des données"
       description="Traitement transparent de vos données personnelles, finalités de mise en relation et exercice de vos droits (RGPD / APD)."
     >
-      <div className="prose prose-gray max-w-none space-y-8">
+      <div className="prose prose-gray max-w-none flex flex-col gap-8">
         <p className="text-sm text-muted-foreground">Dernière mise à jour : Octobre 2026</p>
 
         <section>
@@ -34,7 +34,7 @@ export default function PolitiqueConfidentialite() {
           <p className="mt-4 text-muted-foreground">
             Dans le cadre de l&apos;utilisation de nos simulateurs photovoltaïques et de nos formulaires, nous collectons :
           </p>
-          <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
+          <ul className="mt-2 list-disc flex flex-col gap-1 pl-6 text-muted-foreground">
             <li><strong>Identité & contact :</strong> Nom, prénom, adresse e-mail professionnelle ou personnelle, numéro de téléphone.</li>
             <li><strong>Données professionnelles (B2B) :</strong> Dénomination sociale, fonction du déclarant, numéro d&apos;entreprise / TVA.</li>
             <li><strong>Caractéristiques du site & de l&apos;infrastructure :</strong> Type de surface (toiture, parking, sol, friche), superficie estimée, localisation (province wallonne ou commune), gestionnaire de réseau (GRD).</li>
@@ -48,7 +48,7 @@ export default function PolitiqueConfidentialite() {
           <p className="mt-4 text-muted-foreground leading-relaxed">
             Vos données personnelles sont traitées pour les finalités suivantes :
           </p>
-          <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
+          <ul className="mt-2 list-disc flex flex-col gap-1 pl-6 text-muted-foreground">
             <li><strong>Calcul et délivrance de votre estimation :</strong> Génération de la modélisation indicative de rentabilité, du TRI estimé et des économies annuelles projetées.</li>
             <li><strong>Mise en relation avec des installateurs certifiés :</strong> Transmission de votre dossier technique et de vos coordonnées à des professionnels photovoltaïques rigoureusement sélectionnés détenteurs de la certification RESCERT ou équivalente. Dans le segment <strong>B2B</strong>, votre demande est transmise à un installateur unique en exclusivité. Dans le segment <strong>B2C</strong>, votre demande peut être transmise à un maximum de 3 installateurs pour vous permettre de comparer les offres.</li>
             <li><strong>Envoi du récapitulatif par e-mail :</strong> Transmission instantanée de votre dossier complet d&apos;estimation via notre infrastructure d&apos;e-mails.</li>
@@ -59,7 +59,7 @@ export default function PolitiqueConfidentialite() {
         <section>
           <h2 className="text-xl font-semibold text-foreground">4. Base légale des traitements</h2>
           <p className="mt-4 text-muted-foreground">Nos traitements reposent sur :</p>
-          <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
+          <ul className="mt-2 list-disc flex flex-col gap-1 pl-6 text-muted-foreground">
             <li><strong>L&apos;exécution de mesures précontractuelles :</strong> Réalisation de la simulation de rentabilité et transmission de votre demande de devis aux installateurs sélectionnés.</li>
             <li><strong>Votre consentement explicite :</strong> Recueilli au moyen de cases à cocher libres et distinctes pour la transmission des coordonnées et la réception d&apos;informations ultérieures.</li>
             <li><strong>Notre intérêt légitime :</strong> Prévention de la fraude, détection des soumissions automatisées par robots et sécurité de nos serveurs.</li>
@@ -69,7 +69,7 @@ export default function PolitiqueConfidentialite() {
         <section>
           <h2 className="text-xl font-semibold text-foreground">5. Destinataires et sous-traitants</h2>
           <p className="mt-4 text-muted-foreground">Vos données sont strictement réservées aux destinataires suivants :</p>
-          <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
+          <ul className="mt-2 list-disc flex flex-col gap-1 pl-6 text-muted-foreground">
             <li><strong>Les installateurs partenaires agréés :</strong> Destinataires directs habilités à vous recontacter pour finaliser l&apos;étude de faisabilité sur site.</li>
             <li><strong>Supabase Inc. :</strong> Hébergement de la base de données sécurisée (serveurs chiffrés situés dans l&apos;UE, AWS Francfort).</li>
             <li><strong>Vercel Inc. :</strong> Hébergement technique de l&apos;application web.</li>
@@ -87,16 +87,16 @@ export default function PolitiqueConfidentialite() {
           </p>
         </section>
 
-        <section>
-          <h2 className="text-xl font-semibold text-foreground">7. Vos droits et modalités d&apos;exercice</h2>
+        <section id="desinscription" className="scroll-mt-24">
+          <h2 className="text-xl font-semibold text-foreground">7. Vos droits et modalités d&apos;exercice (Désinscription / Opposition)</h2>
           <p className="mt-4 text-muted-foreground">
             Conformément au RGPD (Règlement UE 2016/679), vous bénéficiez des droits suivants :
           </p>
-          <ul className="mt-2 list-disc space-y-1 pl-6 text-muted-foreground">
+          <ul className="mt-2 list-disc flex flex-col gap-1 pl-6 text-muted-foreground">
             <li><strong>Droit d&apos;accès et de copie :</strong> Connaître les données que nous détenons à votre sujet.</li>
             <li><strong>Droit de rectification :</strong> Mettre à jour des coordonnées erronées.</li>
             <li><strong>Droit à l&apos;effacement (&quot;droit à l&apos;oubli&quot;) :</strong> Demander la suppression immédiate de votre fiche prospect.</li>
-            <li><strong>Droit d&apos;opposition :</strong> Vous opposer à tout moment au recontact commercial.</li>
+            <li><strong>Droit d&apos;opposition et de désinscription :</strong> Vous opposer à tout moment au recontact commercial ou aux communications d&apos;information.</li>
             <li><strong>Droit de retirer votre consentement :</strong> Sans affecter la licéité des traitements préalables.</li>
           </ul>
           <p className="mt-4 text-muted-foreground">
