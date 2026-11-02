@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
         .filter(Boolean)
         .join("\n\n") || null
 
-    const { score, status } = calculateLeadScore({
+    const { score, status, factors } = calculateLeadScore({
       firstName: first_name,
       lastName: last_name,
       jobTitle: job_title ?? "",
@@ -301,7 +301,7 @@ export async function POST(request: NextRequest) {
       province: data.province,
     }).catch((err) => console.error("[Prospect confirmation] envoi non bloquant échoué:", err))
 
-    // Alerte immédiate à l'administrateur pour modération / validation ultra-rapide
+    // Alerte immédiate à l'administrateur avec lien de validation 1-clic direct
     void sendAdminNewLeadAlertEmail({
       leadId: inserted.id,
       firstName: first_name,
@@ -318,6 +318,10 @@ export async function POST(request: NextRequest) {
       estimatedSavings: computedSavings,
       estimatedROIYears: computedRoiYears,
       estimatedPowerKwc,
+      annualProductionKwh: financials.annualProductionKwh,
+      estimatedPanelCount: financials.estimatedPanelCount,
+      autoconsumptionRate: computedAutoconsumption,
+      wantsIrve: financials.includesEv,
       province: data.province,
       postalCode: safePostalCode,
       city: data.city ? sanitizeString(data.city, 100) : null,
@@ -327,6 +331,8 @@ export async function POST(request: NextRequest) {
       timeframe: data.timeframe ?? null,
       roofMaterial: safeRoofMaterial,
       leadScore: score,
+      scoreStatus: status,
+      scoreFactors: factors,
       creditCost: credit_cost,
       sourceForm: safeSourceForm,
       mediaPartnerCode,
