@@ -25,18 +25,46 @@ async function main() {
   
   const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
 
-  const { data: lead, error: fetchErr } = await supabase
+  const { data: dbLead } = await supabase
     .from("leads")
     .select("*")
-    .eq("id", "5b4db5f5-4e3d-493e-9e05-ebb063381466")
-    .single()
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
 
-  if (fetchErr || !lead) {
-    console.error("❌ Lead introuvable:", fetchErr)
-    return
+  const lead = dbLead || {
+    id: "sample-demo-b2b",
+    first_name: "Marc",
+    last_name: "Vandamme",
+    email: "m.vandamme@amw-industrie.be",
+    phone: "+32 475 88 92 14",
+    company: "Ateliers Mécaniques de Wallonie SA",
+    company_vat: "BE 0478.963.210",
+    job_title: "Directeur des Opérations",
+    segment: "B2B",
+    surface_type: "toiture",
+    surface_area: 1250,
+    annual_electricity_bill: 48500,
+    estimated_savings: 23400,
+    estimated_roi_years: 4.3,
+    estimated_power_kwc: 185,
+    autoconsumption_rate: 72,
+    wants_irve: true,
+    province: "Liège",
+    postal_code: "4040",
+    city: "Herstal",
+    site_address: "Rue de l'Avancée 14",
+    grd: "ores",
+    ownership_status: "owner",
+    timeframe: "< 3 mois",
+    roof_material: "bac_acier",
+    lead_score: 88,
+    credit_cost: 3,
+    source_form: "b2b_simulator",
+    message: "Bâtiment industriel récent en bac acier isolé (2022). Compteur cabine MT existant. Nous souhaitons dimensionner une installation en autoconsommation maximale avec ajout d'une borne double 22 kW pour la flotte commerciale.",
   }
 
-  console.log(`Lead récupéré : ${lead.first_name} ${lead.last_name} (${lead.company}) - TVA: ${lead.company_vat}`)
+  console.log(`Lead utilisé (${dbLead ? "DB" : "In-Memory Sample"}) : ${lead.first_name} ${lead.last_name} (${lead.company}) - TVA: ${lead.company_vat}`)
 
   // Exécution réelle des 3 vérifications (MX, SPW, CBE)
   const verifications = await enrichLeadVerifications({
