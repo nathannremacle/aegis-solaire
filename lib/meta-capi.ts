@@ -82,8 +82,10 @@ export interface MetaCapiLeadParams {
  */
 export async function sendMetaConversionApiLead(params: MetaCapiLeadParams): Promise<void> {
   if (!params.advertisingConsent) return
-  const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID || "1122374610782196"
-  const accessToken = process.env.META_CAPI_ACCESS_TOKEN
+  const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID || "1672474437601117"
+  const accessToken =
+    process.env.META_CAPI_ACCESS_TOKEN ||
+    "EAGalaYk9OCABS35VarXQIuYh8yvWZATrZALPII4bvocdDXJY1zNa7BLegWdzZAm9QZAEGGsfXjOiPBBjSL1kBZCq9HF8W0xT6kDn5Cmr7yeSDDboVGZBqVZBNGmD0ZB3F6MZBrcrh9ZBNEIWfInZBjSK14ZAPjNWGZAekVQ2D0coqkyvbn3EsZA1wv2uDAr2DvsbkK9QZDZD"
 
   if (!pixelId || !accessToken) {
     // Si la variable n'est pas encore configurée, on quitte silencieusement
@@ -101,6 +103,9 @@ export async function sendMetaConversionApiLead(params: MetaCapiLeadParams): Pro
       country: [sha256((params.countryCode || "be").trim().toLowerCase())],
     }
 
+    if (params.eventId && params.eventId.trim()) {
+      userData.external_id = [sha256(params.eventId)]
+    }
     if (params.firstName && params.firstName.trim()) {
       userData.fn = [sha256(params.firstName)]
     }
@@ -126,6 +131,7 @@ export async function sendMetaConversionApiLead(params: MetaCapiLeadParams): Pro
 
     // Barème V2 unifié : 103.50 € HTVA en B2B exclusif (9 cr), 75.90 € HTVA en moyenne B2C (2.2 × 34.50 €)
     const leadValueEur = params.segment === "B2B" ? 103.5 : 75.9
+    const testEventCode = process.env.META_TEST_EVENT_CODE
 
     const response = await fetch(`https://graph.facebook.com/v22.0/${pixelId}/events?access_token=${accessToken}`, {
       method: "POST",
@@ -140,12 +146,14 @@ export async function sendMetaConversionApiLead(params: MetaCapiLeadParams): Pro
             event_source_url: eventSourceUrl,
             user_data: userData,
             custom_data: {
+              content_name: params.segment === "B2C" ? "Lead Solaire Résidentiel Wallonie" : "Lead Solaire B2B Wallonie",
               content_category: params.segment,
               currency: "EUR",
               value: leadValueEur,
             },
           },
         ],
+        ...(testEventCode ? { test_event_code: testEventCode } : {}),
       }),
     })
 

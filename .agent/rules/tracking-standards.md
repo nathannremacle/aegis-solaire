@@ -13,3 +13,4 @@
   1. API Conversions (Serveur) comme colonne vertébrale infaillible.
   2. Pixel Web (Client) en redondance.
   3. Déduplication systématique via un `event_id` unique partagé entre les deux flux.
+

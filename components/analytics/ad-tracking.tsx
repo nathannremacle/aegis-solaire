@@ -11,7 +11,7 @@ declare global {
   }
 }
 
-const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID || "1122374610782196"
+const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID || "1672474437601117"
 const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID
 
@@ -38,7 +38,8 @@ export function trackLeadConversion(params?: {
   if (typeof window.fbq === "function") {
     try {
       if (params?.leadId) {
-        window.fbq("track", "Lead", eventData, { eventID: params.leadId })
+        const deduplicationId = params.leadId.startsWith("lead_") ? params.leadId : `lead_${params.leadId}`
+        window.fbq("track", "Lead", eventData, { eventID: deduplicationId })
       } else {
         window.fbq("track", "Lead", eventData)
       }
