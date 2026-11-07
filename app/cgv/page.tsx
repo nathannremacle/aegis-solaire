@@ -162,7 +162,7 @@ export default function CGV() {
 
           <h3 className="mt-6 text-lg font-medium text-foreground">5.3. Motifs exhaustifs admissibles au titre de la garantie Lead</h3>
           <p className="mt-3 leading-relaxed">
-            Seules les trois (3) situations objectives suivantes peuvent donner lieu à l&apos;attribution d&apos;un recrédit de compensation après validation par la Cellule Technique & Ingénierie d&apos;Aegis Solaire :
+            Seules les trois (3) situations objectives suivantes peuvent donner lieu à l&apos;attribution d&apos;un recrédit de compensation après validation par la Cellule Technique d&apos;Aegis Solaire :
           </p>
           <ol className="mt-3 list-decimal space-y-2 pl-6">
             <li>

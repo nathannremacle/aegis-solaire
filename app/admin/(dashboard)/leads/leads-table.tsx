@@ -39,6 +39,9 @@ import {
   Flame,
   ArrowUpDown,
   MoreHorizontal,
+  ShoppingCart,
+  CheckCircle2,
+  Users,
 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -59,6 +62,7 @@ import { useAdminHotkeys } from "@/hooks/use-admin-hotkeys"
 
 type LeadFilters = {
   status: string
+  marketplaceStatus?: string
   search: string
   installateurId: string
   dateFrom: string
@@ -102,6 +106,7 @@ export function LeadsTable({
   filters,
   leadId = null,
   currentLeadFromList = null,
+  tabCounts,
 }: {
   leads: LeadDetail[]
   total: number
@@ -111,6 +116,12 @@ export function LeadsTable({
   filters: LeadFilters
   leadId?: string | null
   currentLeadFromList?: LeadDetail | null
+  tabCounts?: {
+    triage: number
+    marketplace: number
+    assigned: number
+    total: number
+  }
 }) {
   const router = useRouter()
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -138,10 +149,12 @@ export function LeadsTable({
       const p = { ...filters, ...updates }
       const q = new URLSearchParams()
       if (updates.page && updates.page > 1) q.set("page", String(updates.page))
-      if (p.view) q.set("view", p.view)
+      if (p.view && p.view !== "all") q.set("view", p.view)
       if (p.status && p.status !== "all") q.set("status", p.status)
+      if (p.marketplaceStatus && p.marketplaceStatus !== "all") q.set("marketplace_status", p.marketplaceStatus)
       if (p.segment && p.segment !== "all") q.set("segment", p.segment)
       if (p.region && p.region !== "all") q.set("region", p.region)
+      if (p.installateurId && p.installateurId !== "all") q.set("installateur", p.installateurId)
       if (p.search) q.set("search", p.search)
       if (updates.leadId) q.set("leadId", updates.leadId)
       const str = q.toString()
@@ -369,46 +382,135 @@ export function LeadsTable({
     },
   })
 
+  const currentView = filters.view || "all"
+
   return (
     <div className="flex flex-col gap-4 relative">
       {/* Page Header Opérationnel */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
         <div className="flex items-center gap-3">
           <h1 className="font-heading text-xl font-semibold tracking-tight text-foreground">
-            {isTriageMode ? "File de Triage des Leads" : "Contrôle des Leads"}
+            {currentView === "triage"
+              ? "File de Triage des Leads"
+              : currentView === "marketplace"
+              ? "Vivier Marketplace Live"
+              : currentView === "assigned"
+              ? "Leads Attribués & Vendus"
+              : "Contrôle des Leads"}
           </h1>
           <span className="font-mono text-xs tabular-nums text-muted-foreground bg-secondary px-2 py-0.5 rounded-sm border border-border">
-            {total} leads
+            {total} lead{total > 1 ? "s" : ""}
           </span>
         </div>
 
-        {/* Tabs de Vue & CTA Primaire Unique */}
-        <div className="flex items-center gap-2">
+        {/* Tabs de Vue Complète & CTA Primaire */}
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center rounded-md border border-border bg-card p-0.5 text-xs">
             <button
               type="button"
               onClick={() => applyFilters({ view: "triage", page: 1 })}
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1 rounded-sm font-medium transition-colors",
-                isTriageMode
+                currentView === "triage"
                   ? "bg-primary text-primary-foreground font-semibold"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
               <Flame className="h-3.5 w-3.5" />
               <span>Triage</span>
+              {tabCounts?.triage !== undefined && (
+                <span
+                  className={cn(
+                    "font-mono text-[10px] tabular-nums px-1.5 py-0.2 rounded-full",
+                    currentView === "triage"
+                      ? "bg-primary-foreground/20 text-primary-foreground"
+                      : tabCounts.triage > 0
+                      ? "bg-accent/20 text-accent font-bold"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {tabCounts.triage}
+                </span>
+              )}
             </button>
+
             <button
               type="button"
-              onClick={() => applyFilters({ view: undefined, page: 1 })}
+              onClick={() => applyFilters({ view: "marketplace", page: 1 })}
               className={cn(
-                "px-3 py-1 rounded-sm font-medium transition-colors",
-                !isTriageMode
+                "flex items-center gap-1.5 px-3 py-1 rounded-sm font-medium transition-colors",
+                currentView === "marketplace"
                   ? "bg-primary text-primary-foreground font-semibold"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              Tous les leads
+              <ShoppingCart className="h-3.5 w-3.5" />
+              <span>Marketplace</span>
+              {tabCounts?.marketplace !== undefined && (
+                <span
+                  className={cn(
+                    "font-mono text-[10px] tabular-nums px-1.5 py-0.2 rounded-full",
+                    currentView === "marketplace"
+                      ? "bg-primary-foreground/20 text-primary-foreground"
+                      : tabCounts.marketplace > 0
+                      ? "bg-primary/10 text-primary font-bold"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {tabCounts.marketplace}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => applyFilters({ view: "assigned", page: 1 })}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1 rounded-sm font-medium transition-colors",
+                currentView === "assigned"
+                  ? "bg-primary text-primary-foreground font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              <span>Attribués / Vendus</span>
+              {tabCounts?.assigned !== undefined && (
+                <span
+                  className={cn(
+                    "font-mono text-[10px] tabular-nums px-1.5 py-0.2 rounded-full",
+                    currentView === "assigned"
+                      ? "bg-primary-foreground/20 text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {tabCounts.assigned}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => applyFilters({ view: "all", page: 1 })}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1 rounded-sm font-medium transition-colors",
+                currentView === "all" || !filters.view
+                  ? "bg-primary text-primary-foreground font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <span>Tous les leads</span>
+              {tabCounts?.total !== undefined && (
+                <span
+                  className={cn(
+                    "font-mono text-[10px] tabular-nums px-1.5 py-0.2 rounded-full",
+                    currentView === "all" || !filters.view
+                      ? "bg-primary-foreground/20 text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {tabCounts.total}
+                </span>
+              )}
             </button>
           </div>
 
@@ -419,7 +521,7 @@ export function LeadsTable({
             }}
             className="h-8 gap-1.5 text-xs font-medium"
           >
-            <span>{isTriageMode ? "Traiter la file" : "Démarrer le triage"}</span>
+            <span>{isTriageMode ? "Traiter la file" : "Ouvrir dossier"}</span>
             <Kbd className="font-mono text-[10px] opacity-70">⏎</Kbd>
           </Button>
         </div>
@@ -427,9 +529,9 @@ export function LeadsTable({
 
       {/* Toolbar & Faceted Filters */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2 flex-1 max-w-2xl">
+        <div className="flex flex-wrap items-center gap-2 flex-1 max-w-4xl">
           {/* Recherche rapide */}
-          <div className="relative flex-1 min-w-[220px]">
+          <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               ref={searchInputRef}
@@ -458,7 +560,7 @@ export function LeadsTable({
             </SelectContent>
           </Select>
 
-          {/* Filtre Statut */}
+          {/* Filtre Statut Opérationnel */}
           <Select
             value={filters.status || "all"}
             onValueChange={(val) => applyFilters({ status: val, page: 1 })}
@@ -475,6 +577,42 @@ export function LeadsTable({
               <SelectItem value="lost">Rejeté / Spam</SelectItem>
             </SelectContent>
           </Select>
+
+          {/* Filtre Marketplace Statut */}
+          <Select
+            value={filters.marketplaceStatus || "all"}
+            onValueChange={(val) => applyFilters({ marketplaceStatus: val, page: 1 })}
+          >
+            <SelectTrigger className="w-36 h-8 text-xs bg-card">
+              <SelectValue placeholder="Marketplace" />
+            </SelectTrigger>
+            <SelectContent className="text-xs">
+              <SelectItem value="all">Tous marketplace</SelectItem>
+              <SelectItem value="available">En ligne (dispo)</SelectItem>
+              <SelectItem value="sold_out">Complet (sold out)</SelectItem>
+              <SelectItem value="pending_review">En attente modération</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Filtre Installateur / Partenaire */}
+          {partners.length > 0 && (
+            <Select
+              value={filters.installateurId || "all"}
+              onValueChange={(val) => applyFilters({ installateurId: val, page: 1 })}
+            >
+              <SelectTrigger className="w-36 h-8 text-xs bg-card">
+                <SelectValue placeholder="Installateur" />
+              </SelectTrigger>
+              <SelectContent className="text-xs">
+                <SelectItem value="all">Tous installateurs</SelectItem>
+                {partners.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.company_name} ({p.credits} cr.)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
 
           {/* Filtre Province Wallonne */}
           <Select
@@ -611,25 +749,32 @@ export function LeadsTable({
                         <span className="font-mono text-[10px] uppercase tracking-wider px-1 py-0.5 rounded-sm bg-secondary text-secondary-foreground border border-border">
                           {lead.segment ?? "B2B"}
                         </span>
-                        {isB2C && (() => {
-                          const testEmailEnv = (process.env.NEXT_PUBLIC_TEST_PARTNER_EMAIL || "").toLowerCase().trim()
-                          const realPurchases = (lead.lead_purchases || []).filter((p: any) => {
-                            const partnerObj = Array.isArray(p.partners) ? p.partners[0] : p.partners
-                            if (partnerObj?.is_test) return false
-                            const cName = (partnerObj?.company_name || "").toLowerCase()
-                            if (cName.includes("test") || cName.includes("dev test")) return false
-                            const email = (partnerObj?.email || "").toLowerCase()
-                            if (testEmailEnv && email === testEmailEnv) return false
-                            if (email.includes("+test") || email.startsWith("test@") || email.endsWith("@test.com")) return false
-                            return true
-                          })
-                          if (realPurchases.length === 0) return null
+                        {(() => {
+                          const purchases = lead.lead_purchases || []
+                          const maxSlots = lead.segment === "B2B" ? 1 : 3
+                          if (purchases.length === 0) {
+                            if (lead.marketplace_status === "available") {
+                              return (
+                                <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-accent/10 text-accent border border-accent/25 font-semibold whitespace-nowrap">
+                                  En vente
+                                </span>
+                              )
+                            }
+                            return null
+                          }
+                          const partnerNames = purchases
+                            .map((p: any) => {
+                              const partnerObj = Array.isArray(p.partners) ? p.partners[0] : p.partners
+                              return partnerObj?.company_name || "Installateur"
+                            })
+                            .join(", ")
+
                           return (
                             <span
-                              className="font-mono text-[9px] px-1.5 py-0.2 rounded bg-primary/10 text-primary border border-primary/25 font-bold tabular-nums whitespace-nowrap"
-                              title={`Places réservées par : ${realPurchases.map((p: any) => p.partners?.company_name || "Installateur").join(", ")}`}
+                              className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/25 font-bold tabular-nums whitespace-nowrap"
+                              title={`Attribué à : ${partnerNames}`}
                             >
-                              {realPurchases.length}/3 pris
+                              {purchases.length}/{maxSlots} {lead.segment === "B2B" ? "attribué" : "pris"}
                             </span>
                           )
                         })()}

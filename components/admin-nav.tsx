@@ -15,6 +15,7 @@ import {
   ShieldAlert,
   Flame,
   SendHorizonal,
+  ShoppingCart,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AdminLogoutButton } from "@/components/admin-logout-button"
@@ -77,6 +78,11 @@ export function AdminNav({
           icon: Flame,
           badgeCount: liveNeedsReview,
           badgeVariant: liveNeedsReview > 0 ? "destructive" : "neutral",
+        },
+        {
+          href: "/admin/leads?view=marketplace",
+          label: "Vivier Marketplace",
+          icon: ShoppingCart,
         },
         {
           href: "/admin/leads",

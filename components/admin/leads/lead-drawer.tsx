@@ -136,15 +136,13 @@ export function LeadDrawer({
     lead?.credit_cost ?? (lead?.segment === "B2B" ? 5 : 2)
   )
   const [dispatchMode, setDispatchMode] = useState<"marketplace" | "direct">("marketplace")
-  const [selectedPartnerIds, setSelectedPartnerIds] = useState<string[]>(
-    lead?.installateur_id ? [lead.installateur_id] : []
-  )
+  const [selectedPartnerIds, setSelectedPartnerIds] = useState<string[]>([])
 
   useEffect(() => {
     if (lead) {
       setNotes(lead.admin_notes ?? "")
-      setCreditCost(lead.credit_cost ?? (lead.segment === "B2B" ? 5 : 2))
-      setSelectedPartnerIds(lead.installateur_id ? [lead.installateur_id] : [])
+      setCreditCost(lead.credit_cost ?? (lead.segment === "B2B" ? 9 : 3))
+      setSelectedPartnerIds([])
     }
   }, [lead])
 
@@ -649,6 +647,7 @@ export function LeadDrawer({
             onSelectionChange={setSelectedPartnerIds}
             dispatchMode={dispatchMode}
             onDispatchModeChange={setDispatchMode}
+            existingPurchases={lead.lead_purchases as any}
           />
 
           {/* Notes Internes Admin */}

@@ -46,7 +46,7 @@ const STUDY_TYPES = [
     label: "Dimensionnement & Faisabilité",
     shortDesc: "Calepinage estimatif, puissance kWc, toitures, onduleurs & batteries",
     icon: Cpu,
-    badge: "Ingénierie & GRD",
+    badge: "Technique & GRD",
   },
   {
     id: "financial_roi",
@@ -129,7 +129,7 @@ export default function ExpertStudyModal({
     e.preventDefault()
 
     if (!message.trim() || message.trim().length < 5) {
-      toast.error("Veuillez préciser votre demande ou vos questions pour nos ingénieurs.")
+      toast.error("Veuillez préciser votre demande ou vos questions pour nos experts.")
       return
     }
 
@@ -169,7 +169,7 @@ export default function ExpertStudyModal({
 
       setIsSuccess(true)
       toast.success("Demande d'étude envoyée à la Cellule Technique !", {
-        description: "Un ingénieur Aegis Solaire traitera votre dossier sous 24h ouvrées.",
+        description: "Un expert Aegis Solaire traitera votre dossier sous 24h ouvrées.",
       })
     } catch (err: any) {
       toast.error(err.message || "Impossible d'envoyer votre demande.")
@@ -201,7 +201,7 @@ export default function ExpertStudyModal({
             <div className="flex flex-col gap-0.5 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="font-mono text-[10px] uppercase tracking-wider text-accent font-bold">
-                  CELLULE TECHNIQUE &amp; INGÉNIERIE
+                  CELLULE TECHNIQUE
                 </span>
                 <span className="inline-flex items-center gap-1 rounded bg-accent/10 border border-accent/20 px-1.5 py-0.2 text-[10px] font-mono font-bold text-foreground">
                   % Projet · À négocier
@@ -214,7 +214,7 @@ export default function ExpertStudyModal({
                 Aide d&apos;un Expert &amp; Étude de Marché
               </h2>
               <p className="text-xs text-muted-foreground">
-                Accompagnement expert et ingénierie : dimensionnement, marché Wallonie et closing B2B en échange d&apos;un pourcentage du projet, à négocier selon son envergure.
+                Accompagnement expert et audit technique : dimensionnement, marché Wallonie et closing B2B en échange d&apos;un pourcentage du projet, à négocier selon son envergure.
               </p>
             </div>
           </div>
@@ -241,7 +241,7 @@ export default function ExpertStudyModal({
                 Demande transmise avec succès !
               </h3>
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Notre Cellule Technique &amp; Ingénierie a bien reçu votre demande. Un ingénieur dédié analyse vos éléments et vous recontactera sous <strong><span className="font-mono tabular-nums">24</span> heures ouvrées</strong> pour convenir des modalités techniques et du pourcentage d&apos;honoraires applicable au succès du chantier.
+                Notre Cellule Technique a bien reçu votre demande. Un expert dédié analyse vos éléments et vous recontactera sous <strong><span className="font-mono tabular-nums">24</span> heures ouvrées</strong> pour convenir des modalités techniques et du pourcentage d&apos;honoraires applicable au succès du chantier.
               </p>
             </div>
 
@@ -391,7 +391,7 @@ export default function ExpertStudyModal({
                   htmlFor="expert-message"
                   className="text-xs font-bold uppercase tracking-wider text-muted-foreground block"
                 >
-                  3. Vos questions précises pour nos ingénieurs *
+                  3. Vos questions précises pour nos experts *
                 </label>
                 <span className="text-[11px] text-muted-foreground">Minimum 5 caractères</span>
               </div>

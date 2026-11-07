@@ -228,7 +228,7 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
               <!-- Support Box -->
               <div style="background-color: #F1F5F9; border-left: 3px solid #2563EB; padding: 16px 18px; border-radius: 0 8px 8px 0; margin-bottom: 20px;">
                 <p style="margin: 0 0 4px 0; font-size: 13px; font-weight: 700; color: #0F172A;">
-                  Une question technique ou d'ingénierie sur ce dossier ?
+                  Une question technique ou d'expertise sur ce dossier ?
                 </p>
                 <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #475569;">
                   Notre cellule technique et support partenaires est à votre écoute : <a href="mailto:contact@aegissolaire.com" style="color: #2563EB; font-weight: 600; text-decoration: underline;">contact@aegissolaire.com</a>.

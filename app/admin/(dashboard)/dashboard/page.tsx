@@ -13,6 +13,7 @@ import {
   ExternalLink,
   ShieldCheck,
   SendHorizonal,
+  ShoppingCart,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -70,6 +71,12 @@ export default async function AdminDashboardPage() {
               <Link href="/admin/leads?view=triage">
                 <Flame className="h-3.5 w-3.5 text-accent" />
                 <span>Triage Leads</span>
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1.5 border-border">
+              <Link href="/admin/leads?view=marketplace">
+                <ShoppingCart className="h-3.5 w-3.5 text-accent" />
+                <span>Vivier Marketplace</span>
               </Link>
             </Button>
             <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1.5 border-border">

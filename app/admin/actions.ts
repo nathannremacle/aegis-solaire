@@ -5,6 +5,7 @@ import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { getAdminUser } from "@/lib/admin-auth"
 import { dispatchLeadWave } from "@/lib/lead-relance-engine"
 import { B2C_CREDIT_COST, B2B_CREDIT_COST } from "@/lib/credit-pricing"
+import { sendLeadAssignedEmail } from "@/lib/notify-installateur"
 
 export async function validateCreditOrderAction(orderId: string, adminEmail?: string) {
   const adminUser = await getAdminUser()
@@ -295,7 +296,9 @@ export async function assignLeadAction(
   // 1. Récupérer le lead
   const { data: lead, error: leadErr } = await supabase
     .from("leads")
-    .select("id, segment, credit_cost, status, marketplace_status")
+    .select(
+      "id, first_name, last_name, email, phone, job_title, company, segment, surface_type, surface_area, annual_electricity_bill, estimated_roi_years, estimated_savings, message, credit_cost, status, marketplace_status"
+    )
     .eq("id", leadId)
     .single()
 
@@ -304,61 +307,126 @@ export async function assignLeadAction(
   }
 
   const maxSlots = lead.segment === "B2B" ? 1 : 3
-  if (partnerIds.length > maxSlots) {
-    throw new Error(`Ce lead ne peut être attribué qu'à ${maxSlots} installateur(s) maximum.`)
+
+  // Vérifier les attributions déjà existantes pour ce lead dans lead_purchases
+  const { data: existingPurchases, error: purCheckErr } = await supabase
+    .from("lead_purchases")
+    .select("id, partner_id")
+    .eq("lead_id", leadId)
+
+  if (purCheckErr) {
+    console.error("[assignLeadAction] Error fetching existing purchases:", purCheckErr)
+  }
+
+  const existingPartnerIds = new Set((existingPurchases || []).map((p) => p.partner_id))
+  const newPartnerIds = partnerIds.filter((id) => !existingPartnerIds.has(id))
+
+  const totalSlotsTaken = existingPartnerIds.size + newPartnerIds.length
+  if (totalSlotsTaken > maxSlots) {
+    throw new Error(
+      `Ce lead ne peut être attribué qu'à ${maxSlots} installateur(s) maximum (${existingPartnerIds.size} déjà attribué(s), tentative d'ajout de ${newPartnerIds.length}).`
+    )
   }
 
   const costPerPartner =
-    lead.credit_cost ?? (lead.segment === "B2B" ? B2B_CREDIT_COST : B2C_CREDIT_COST)
+    lead.credit_cost && lead.credit_cost > 0
+      ? lead.credit_cost
+      : lead.segment === "B2B"
+        ? B2B_CREDIT_COST
+        : B2C_CREDIT_COST
 
-  // 2. Traiter chaque installateur
-  for (const partnerId of partnerIds) {
+  // 2. Traiter chaque nouvel installateur
+  for (const partnerId of newPartnerIds) {
+    const { data: partner, error: pErr } = await supabase
+      .from("partners")
+      .select("id, credits, company_name, email")
+      .eq("id", partnerId)
+      .single()
+
+    if (pErr || !partner) {
+      throw new Error(`Installateur partenaire introuvable (${partnerId}).`)
+    }
+
     if (chargeCredits) {
-      const { data: partner } = await supabase
-        .from("partners")
-        .select("id, credits, company_name")
-        .eq("id", partnerId)
-        .single()
-
-      if (partner && (partner.credits || 0) < costPerPartner) {
+      if ((partner.credits || 0) < costPerPartner) {
         throw new Error(
-          `Solde insuffisant pour ${partner.company_name} (${partner.credits || 0} < ${costPerPartner} crédits).`
+          `Solde insuffisant pour ${partner.company_name} (${partner.credits || 0} < ${costPerPartner} crédits requis).`
         )
       }
 
+      // Débiter les crédits du partenaire
+      const newBalance = Math.max(0, (partner.credits || 0) - costPerPartner)
+      const { error: debitErr } = await supabase
+        .from("partners")
+        .update({ credits: newBalance })
+        .eq("id", partnerId)
+
+      if (debitErr) {
+        throw new Error(
+          `Échec du débit des crédits pour ${partner.company_name}: ${debitErr.message}`
+        )
+      }
+
+      // Journaliser dans credit_transactions (type 'purchase')
       try {
-        await supabase.rpc("add_credits", {
-          p_partner_id: partnerId,
-          p_amount: -costPerPartner,
-          p_type: "spend",
-          p_reference: `ASSIGN:${leadId.slice(0, 8)}`,
+        await supabase.from("credit_transactions").insert({
+          partner_id: partnerId,
+          amount: -costPerPartner,
+          type: "purchase",
+          reference: `ASSIGN:${leadId.slice(0, 8)}`,
+          created_at: new Date().toISOString(),
         })
-      } catch {
-        if (partner) {
-          await supabase
-            .from("partners")
-            .update({ credits: Math.max(0, (partner.credits || 0) - costPerPartner) })
-            .eq("id", partnerId)
-        }
+      } catch (tErr) {
+        console.warn("[assignLeadAction] credit_transactions insert warning:", tErr)
       }
     }
 
     // Enregistrer l'achat dans lead_purchases
-    await supabase.from("lead_purchases").insert({
+    const { error: insErr } = await supabase.from("lead_purchases").insert({
       lead_id: leadId,
       partner_id: partnerId,
       credits_spent: chargeCredits ? costPerPartner : 0,
       purchased_at: new Date().toISOString(),
     })
+
+    if (insErr) {
+      console.error("[assignLeadAction] Error inserting lead_purchases:", insErr)
+      throw new Error(`Échec de l'attribution: ${insErr.message}`)
+    }
+
+    // Notification email non-bloquante du partenaire
+    if (partner.email) {
+      void sendLeadAssignedEmail(partner.email, {
+        first_name: lead.first_name,
+        last_name: lead.last_name,
+        email: lead.email,
+        phone: lead.phone,
+        job_title: lead.job_title,
+        company: lead.company ?? null,
+        surface_type: lead.surface_type,
+        surface_area: lead.surface_area,
+        annual_electricity_bill: lead.annual_electricity_bill,
+        estimated_roi_years: lead.estimated_roi_years ?? null,
+        estimated_savings: lead.estimated_savings ?? null,
+        message: lead.message ?? null,
+      }).catch((emailErr) => {
+        console.error("[assignLeadAction] Notification email failed:", emailErr)
+      })
+    }
   }
 
   // 3. Mettre à jour le statut du lead
+  // Utilise le statut valide 'qualified' conforme à leads_status_check
+  // Pas d'écriture dans installateur_id qui possède une FK stricte sur la table installateurs legacy
+  const isSoldOut = totalSlotsTaken >= maxSlots
   const { error: updateErr } = await supabase
     .from("leads")
     .update({
-      status: "distributed",
-      marketplace_status: partnerIds.length >= maxSlots ? "sold_out" : "available",
-      installateur_id: partnerIds[0],
+      status: "qualified",
+      marketplace_status: isSoldOut ? "sold_out" : "available",
+      credit_cost: costPerPartner,
+      pricing_version: "v2",
+      updated_at: new Date().toISOString(),
     })
     .eq("id", leadId)
 
@@ -373,8 +441,11 @@ export async function assignLeadAction(
       entity_id: leadId,
       details: {
         partner_ids: partnerIds,
+        new_partner_ids: newPartnerIds,
         charge_credits: chargeCredits,
         credits_per_partner: costPerPartner,
+        total_slots_taken: totalSlotsTaken,
+        marketplace_status: isSoldOut ? "sold_out" : "available",
       },
       created_at: new Date().toISOString(),
     })

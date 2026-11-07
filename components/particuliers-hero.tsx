@@ -96,7 +96,7 @@ export function ParticuliersHero() {
             variants={itemVariants}
             className="mx-auto mt-5 max-w-2xl text-pretty text-sm leading-relaxed text-neutral-300 sm:mt-6 sm:text-lg md:text-xl"
           >
-            Nos ingénieurs déploient chez vous des panneaux certifiés{" "}
+            Nos experts et installateurs certifiés déploient chez vous des panneaux certifiés{" "}
             <strong className="font-semibold text-white">RESCERT</strong> et{" "}
             <strong className="font-semibold text-white">RGIE</strong>. Matériel Premium,
             primes habitation wallonnes et autoconsommation maximisée avec une batterie

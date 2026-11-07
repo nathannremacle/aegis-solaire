@@ -24,7 +24,7 @@ La seule et unique mention autorisée par la loi belge concerne l'identification
 ## 3. SUBSTITUTIONS INSTITUTIONNELLES OBLIGATOIRES
 Partout ailleurs, toute communication, interface ou signature doit obligatoirement utiliser des désignations collectives et anonymes :
 - **Pour le support / la relation installateurs :** *"L'équipe Support Aegis Solaire"*, *"Notre équipe support partenaires"*, *"La Direction des Partenariats Aegis Solaire"*
-- **Pour la caution technique / ingénierie :** *"La Cellule Technique & Ingénierie Aegis Solaire"*, *"Nos auditeurs et ingénieurs solaires"*
+- **Pour la caution technique :** *"La Cellule Technique Aegis Solaire"*, *"Nos auditeurs et experts solaires"*
 - **Pour le contact :** Exclusivement `contact@aegissolaire.com` (aucun numéro de téléphone personnel ou direct).
 
 ## 4. MASQUAGE DES PRÉNOMS ET DONNÉES LEAD

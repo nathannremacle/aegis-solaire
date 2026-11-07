@@ -66,9 +66,17 @@ export function ActionRequiredTray({
           </div>
           <span>Tour de contrôle à jour : aucune action urgente en attente (SLAs 24h respectés).</span>
         </div>
-        <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-secondary border border-border px-3 py-1 text-xs font-semibold text-foreground">
-          <Sparkles className="h-3.5 w-3.5 text-accent" /> Tout est en ordre
-        </span>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild className="h-7 text-xs gap-1 border-border">
+            <Link href="/admin/leads?view=marketplace">
+              <span>Voir le vivier marketplace</span>
+              <ArrowUpRight className="h-3 w-3" />
+            </Link>
+          </Button>
+          <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-secondary border border-border px-3 py-1 text-xs font-semibold text-foreground">
+            <Sparkles className="h-3.5 w-3.5 text-accent" /> Tout est en ordre
+          </span>
+        </div>
       </div>
     )
   }

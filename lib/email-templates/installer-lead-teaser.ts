@@ -316,7 +316,7 @@ ${dashboardLeadUrl}
 
 ${!hasEnoughCredits ? `Note : Votre solde actuel (${data.partner.credits} crédits) est insuffisant pour ce dossier (${data.creditCost} crédits). Vous pouvez recharger votre compte ici : ${creditsOrderUrl}\n` : ""}
 Une question technique sur ce dossier ?
-Notre cellule technique et ingénierie se tient à votre entière disposition par e-mail à contact@aegissolaire.com.
+Notre cellule technique se tient à votre entière disposition par e-mail à contact@aegissolaire.com.
 
 Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
 `.trim()
@@ -674,7 +674,7 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                   Assistance technique &amp; dimensionnement :
                 </p>
                 <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #475569;">
-                  Notre cellule technique et ingénierie se tient à votre disposition pour vos questions d'implantation ou de matériel : <a href="mailto:contact@aegissolaire.com" style="color: #2563EB; font-weight: 600; text-decoration: underline;">contact@aegissolaire.com</a>.
+                  Notre cellule technique se tient à votre disposition pour vos questions d'implantation ou de matériel : <a href="mailto:contact@aegissolaire.com" style="color: #2563EB; font-weight: 600; text-decoration: underline;">contact@aegissolaire.com</a>.
                 </p>
               </div>
 

@@ -472,7 +472,7 @@ export function LeadInspectionDrawer({
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Notre Cellule Technique &amp; Ingénierie vous accompagne sur ce dossier (étude de marché locale, dimensionnement onduleurs/batteries, contraintes GRD Wallonie et rentabilité B2B) en échange d&apos;un pourcentage d&apos;honoraires sur le projet, à convenir et négocier selon son envergure.
+              Notre Cellule Technique vous accompagne sur ce dossier (étude de marché locale, dimensionnement onduleurs/batteries, contraintes GRD Wallonie et rentabilité B2B) en échange d&apos;un pourcentage d&apos;honoraires sur le projet, à convenir et négocier selon son envergure.
             </p>
             {onRequestExpert && (
               <Button

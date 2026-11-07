@@ -43,7 +43,7 @@ export async function POST(request: Request) {
 
   if (!message || message.trim().length < 5) {
     return NextResponse.json(
-      { error: "Veuillez préciser votre demande ou vos questions pour nos ingénieurs." },
+      { error: "Veuillez préciser votre demande ou vos questions pour nos experts." },
       { status: 400 }
     )
   }
@@ -146,7 +146,7 @@ export async function POST(request: Request) {
           </div>
 
           <div style="padding-top: 16px; border-top: 1px solid #E2E8F0; font-size: 12px; color: #64748B;">
-            Engagement de prise en charge sous 24h ouvrées · Cellule Technique &amp; Ingénierie Aegis Solaire.
+            Engagement de prise en charge sous 24h ouvrées · Cellule Technique Aegis Solaire.
           </div>
         </div>
       `
@@ -164,7 +164,7 @@ export async function POST(request: Request) {
       const partnerAckHtml = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #0F172A; line-height: 1.5;">
           <div style="padding: 20px 0; border-bottom: 2px solid #0F172A;">
-            <h2 style="margin: 0; font-size: 18px; color: #0F172A;">Cellule Technique &amp; Ingénierie Aegis Solaire</h2>
+            <h2 style="margin: 0; font-size: 18px; color: #0F172A;">Cellule Technique Aegis Solaire</h2>
             <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748B;">Accusé de réception de votre demande d'étude</p>
           </div>
 
@@ -183,7 +183,7 @@ export async function POST(request: Request) {
               <p style="margin: 0; font-size: 13px; font-style: italic;">"${escapeHtml(message.trim())}"</p>
             </div>
             <p style="font-size: 13px; color: #334155;">
-              Un ingénieur de notre cellule technique analyse les spécificités de votre dossier (raccordement GRD, faisabilité PEB/PACE 2030, dimensionnement et rentabilité) et vous recontactera sous <strong>24 heures ouvrées</strong> par ${preferredContact === "phone" ? "téléphone" : preferredContact === "email" ? "e-mail" : "téléphone ou e-mail"} pour échanger sur le projet et convenir ensemble du pourcentage d'honoraires au succès.
+              Un expert de notre cellule technique analyse les spécificités de votre dossier (raccordement GRD, faisabilité PEB/PACE 2030, dimensionnement et rentabilité) et vous recontactera sous <strong>24 heures ouvrées</strong> par ${preferredContact === "phone" ? "téléphone" : preferredContact === "email" ? "e-mail" : "téléphone ou e-mail"} pour échanger sur le projet et convenir ensemble du pourcentage d'honoraires au succès.
             </p>
           </div>
 
@@ -207,7 +207,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     success: true,
-    message: "Votre demande d'étude a été transmise à notre Cellule Technique & Ingénierie. Examen sous 24h ouvrées.",
+    message: "Votre demande d'étude a été transmise à notre Cellule Technique. Examen sous 24h ouvrées.",
     studyType,
     studyLabel,
   })

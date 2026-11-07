@@ -490,7 +490,7 @@ export function ROISimulator() {
               <div className="flex items-start gap-2.5">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-blue-400" />
                 <p>
-                  <strong className="text-white">Méthodologie Aegis Solaire :</strong> Cette estimation repose sur une approche prudente intégrant les tarifs des gestionnaires de réseau wallons (Ores, Resa, AIEG) et une dégradation linéaire constructeur garantie sur 25 ans. Un audit technique sur site par un ingénieur certifié <strong className="text-white">RESCERT</strong> permettra de figer votre offre financière définitive.
+                  <strong className="text-white">Méthodologie Aegis Solaire :</strong> Cette estimation repose sur une approche prudente intégrant les tarifs des gestionnaires de réseau wallons (Ores, Resa, AIEG) et une dégradation linéaire constructeur garantie sur 25 ans. Un audit technique sur site par un expert certifié <strong className="text-white">RESCERT</strong> permettra de figer votre offre financière définitive.
                 </p>
               </div>
             </motion.div>

@@ -56,7 +56,7 @@ const CRM_TOUR_STEPS = [
     badge: "PRODUCTIVITÉ TERRAIN & AUDIT EXPERT",
     title: "Boutons « vCard », « Fiche » & « Expert »",
     subtitle:
-      "Synchronisez votre carnet d'adresses en un tap, consultez l'audit technique complet et sollicitez en 1 clic l'assistance de notre Cellule Technique & Ingénierie (rémunération au pourcentage du projet à négocier).",
+      "Synchronisez votre carnet d'adresses en un tap, consultez l'audit technique complet et sollicitez en 1 clic l'assistance de notre Cellule Technique (rémunération au pourcentage du projet à négocier).",
   },
   {
     stepNumber: "04",

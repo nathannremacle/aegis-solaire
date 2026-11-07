@@ -226,7 +226,7 @@ export function InvitationClient({
                     CT
                   </div>
                   <div className="mt-3 text-center md:text-left">
-                    <div className="font-heading font-semibold text-sm text-foreground">Cellule Technique &amp; Ingénierie</div>
+                    <div className="font-heading font-semibold text-sm text-foreground">Cellule Technique</div>
                     <div className="text-xs text-muted-foreground font-sans">Audit Solaire &amp; Accompagnement Partenaires</div>
                     <div className="mt-2 inline-flex items-center gap-1 rounded-sm bg-primary/[0.06] border border-primary/20 px-2 py-0.5 font-mono text-[11px] text-primary">
                       <span>20 ans d'expertise cumulée en Wallonie</span>
@@ -248,7 +248,7 @@ export function InvitationClient({
                     )}
                   </p>
                   <p>
-                    En tant qu'auditeurs et ingénieurs de terrain, nous soutenons pleinement la démarche d'<strong>Aegis Solaire</strong> et leur apportons notre appui technique, car leur plateforme répond aux exigences rigoureuses que les professionnels attendaient :
+                    En tant qu'auditeurs et experts de terrain, nous soutenons pleinement la démarche d'<strong>Aegis Solaire</strong> et leur apportons notre appui technique, car leur plateforme répond aux exigences rigoureuses que les professionnels attendaient :
                   </p>
                   <ul className="flex flex-col gap-2.5 my-1 pl-4 border-l-2 border-primary/30">
                     <li className="flex items-start gap-2 text-sm">
@@ -273,7 +273,7 @@ export function InvitationClient({
                   </p>
 
                   <div className="mt-2 pt-4 border-t border-border flex items-center justify-between text-xs text-muted-foreground font-mono">
-                    <span>La Cellule Technique &amp; Ingénierie Aegis Solaire</span>
+                    <span>La Cellule Technique Aegis Solaire</span>
                     <span>Wallonie</span>
                   </div>
                 </div>

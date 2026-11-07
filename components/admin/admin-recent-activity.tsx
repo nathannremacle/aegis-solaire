@@ -182,7 +182,7 @@ export function AdminRecentActivity({
                             asChild
                             title="Inspecter le dossier du lead"
                           >
-                            <Link href={`/admin/leads?focus=${lead.id}`}>
+                            <Link href={`/admin/leads?leadId=${lead.id}`}>
                               <Eye className="h-3.5 w-3.5" />
                               <span className="sr-only">Inspecter</span>
                             </Link>

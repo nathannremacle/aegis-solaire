@@ -6,11 +6,40 @@ import { LeadsTable } from "./leads-table"
 export const dynamic = "force-dynamic"
 export const revalidate = 0
 
+async function getLeadCounts() {
+  const supabase = createServiceRoleClient()
+  const [triageRes, marketplaceRes, soldOutRes, totalRes] = await Promise.all([
+    supabase
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .or("status.eq.NEEDS_HUMAN_REVIEW,marketplace_status.eq.pending_review,status.eq.new"),
+    supabase
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .eq("marketplace_status", "available"),
+    supabase
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .eq("marketplace_status", "sold_out"),
+    supabase
+      .from("leads")
+      .select("id", { count: "exact", head: true }),
+  ])
+
+  return {
+    triage: triageRes.count ?? 0,
+    marketplace: marketplaceRes.count ?? 0,
+    assigned: soldOutRes.count ?? 0,
+    total: totalRes.count ?? 0,
+  }
+}
+
 async function getLeads(
   page: number,
   limit: number,
   filters: {
     status: string
+    marketplaceStatus?: string
     search: string
     installateurId: string
     dateFrom: string
@@ -28,32 +57,48 @@ async function getLeads(
 
   const supabase = createServiceRoleClient()
   const from = (page - 1) * limit
-  const isTriage = filters.view === "triage"
+  const view = filters.view || "all"
+
+  let purchasedLeadIdsForPartner: string[] | null = null
+  if (filters.installateurId && filters.installateurId !== "all") {
+    const { data: lp } = await supabase
+      .from("lead_purchases")
+      .select("lead_id")
+      .eq("partner_id", filters.installateurId)
+    purchasedLeadIdsForPartner = (lp || []).map((p) => p.lead_id)
+  }
 
   const hasActiveFilters = Boolean(
     filters.leadId ||
       filters.search.trim() ||
       filters.status ||
+      filters.marketplaceStatus ||
       filters.segment ||
       filters.region ||
       filters.installateurId ||
       filters.surfaceMin ||
       filters.surfaceType ||
-      isTriage
+      (view && view !== "all")
   )
 
   const buildQuery = (useSearchText: boolean) => {
     let q = supabase
       .from("leads")
       .select(
-        "id, first_name, last_name, email, phone, job_title, company, company_vat, message, surface_type, surface_area, roof_material, ownership_status, project_timeline, annual_electricity_bill, estimated_roi_years, autoconsumption_rate, estimated_savings, status, lead_score, installateur_id, wants_irve, segment, province, postal_code, city, site_address, grd, media_partner_code, marketplace_status, credit_cost, admin_notes, created_at, lead_purchases(id, partner_id, purchased_at, partners(id, company_name, email, is_test))",
+        "id, first_name, last_name, email, phone, job_title, company, company_vat, message, surface_type, surface_area, roof_material, ownership_status, project_timeline, annual_electricity_bill, estimated_roi_years, autoconsumption_rate, estimated_savings, status, lead_score, installateur_id, wants_irve, segment, province, postal_code, city, site_address, grd, media_partner_code, marketplace_status, credit_cost, admin_notes, created_at, lead_purchases(id, partner_id, credits_spent, purchased_at, partners(id, company_name, email, is_test))",
         { count: hasActiveFilters ? "exact" : "planned" }
       )
 
-    // En mode Triage, ordonnancement FIFO (du plus ancien au plus récent)
-    if (isTriage) {
+    // Vues principales : Triage, Marketplace live, Attribués / Vendus, ou Tous
+    if (view === "triage") {
       q = q.or("status.eq.NEEDS_HUMAN_REVIEW,marketplace_status.eq.pending_review,status.eq.new")
       q = q.order("created_at", { ascending: true })
+    } else if (view === "marketplace") {
+      q = q.eq("marketplace_status", "available")
+      q = q.order("created_at", { ascending: false })
+    } else if (view === "assigned") {
+      q = q.or("marketplace_status.eq.sold_out,status.eq.converted")
+      q = q.order("created_at", { ascending: false })
     } else {
       q = q.order("created_at", { ascending: false })
     }
@@ -67,9 +112,15 @@ async function getLeads(
     if (filters.status && filters.status !== "all") {
       q = q.eq("status", filters.status)
     }
+
+    if (filters.marketplaceStatus && filters.marketplaceStatus !== "all") {
+      q = q.eq("marketplace_status", filters.marketplaceStatus)
+    }
+
     if (filters.segment && filters.segment !== "all") {
       q = q.eq("segment", filters.segment)
     }
+
     if (filters.search.trim()) {
       const term = filters.search.trim().toLowerCase()
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(term)
@@ -82,9 +133,15 @@ async function getLeads(
         q = q.or(`email.ilike.${pattern},first_name.ilike.${pattern},last_name.ilike.${pattern},company.ilike.${pattern},company_vat.ilike.${pattern}`)
       }
     }
-    if (filters.installateurId && filters.installateurId !== "all") {
-      q = q.eq("installateur_id", filters.installateurId)
+
+    if (purchasedLeadIdsForPartner !== null) {
+      if (purchasedLeadIdsForPartner.length > 0) {
+        q = q.in("id", purchasedLeadIdsForPartner)
+      } else {
+        q = q.eq("id", "00000000-0000-0000-0000-000000000000")
+      }
     }
+
     if (filters.dateFrom) {
       q = q.gte("created_at", filters.dateFrom)
     }
@@ -139,9 +196,13 @@ export default async function AdminLeadsPage({
   searchParams: Promise<{
     page?: string
     status?: string
+    marketplace_status?: string
+    marketplaceStatus?: string
     search?: string
     installateur?: string
+    installateurId?: string
     leadId?: string
+    focus?: string
     date_from?: string
     date_to?: string
     surface_min?: string
@@ -155,9 +216,13 @@ export default async function AdminLeadsPage({
   const {
     page: pageParam,
     status,
+    marketplace_status: mStatus1,
+    marketplaceStatus: mStatus2,
     search: searchParam,
-    installateur: installateurParam,
-    leadId,
+    installateur: installateurParam1,
+    installateurId: installateurParam2,
+    leadId: leadIdParam,
+    focus: focusParam,
     date_from: dateFromParam,
     date_to: dateToParam,
     surface_min: surfaceMinParam,
@@ -169,10 +234,15 @@ export default async function AdminLeadsPage({
   const page = Math.max(1, parseInt(pageParam ?? "1", 10))
   const limit = 20
 
+  const resolvedLeadId = leadIdParam || focusParam || ""
+  const resolvedInstallateur = installateurParam1 || installateurParam2 || ""
+  const resolvedMarketplaceStatus = mStatus1 || mStatus2 || ""
+
   const filters = {
     status: status ?? "",
+    marketplaceStatus: resolvedMarketplaceStatus,
     search: searchParam ?? "",
-    installateurId: installateurParam ?? "",
+    installateurId: resolvedInstallateur,
     dateFrom: dateFromParam ?? "",
     dateTo: dateToParam ?? "",
     surfaceMin: surfaceMinParam ?? "",
@@ -180,16 +250,17 @@ export default async function AdminLeadsPage({
     region: regionParam ?? "",
     segment: params.segment ?? "",
     view: viewParam ?? "",
-    leadId: leadId ?? "",
+    leadId: resolvedLeadId,
   }
 
-  const [leadsResult, partners] = await Promise.all([
+  const [leadsResult, partners, tabCounts] = await Promise.all([
     getLeads(page, limit, filters),
     getPartners(),
+    getLeadCounts(),
   ])
 
   const { leads, total, page: currentPage } = leadsResult
-  const currentLeadFromList = leadId ? leads.find((l) => l.id === leadId) ?? null : null
+  const currentLeadFromList = resolvedLeadId ? leads.find((l) => l.id === resolvedLeadId) ?? null : null
 
   return (
     <div className="flex flex-col gap-6">
@@ -200,8 +271,9 @@ export default async function AdminLeadsPage({
         limit={limit}
         partners={partners}
         filters={filters}
-        leadId={leadId ?? null}
+        leadId={resolvedLeadId || null}
         currentLeadFromList={currentLeadFromList as any}
+        tabCounts={tabCounts}
       />
     </div>
   )
