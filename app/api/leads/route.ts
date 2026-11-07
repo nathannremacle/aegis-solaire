@@ -434,7 +434,7 @@ export async function POST(request: NextRequest) {
         undefined
 
       sendMetaConversionApiLead({
-        advertisingConsent: hasAdvertisingConsent(request.cookies.get(CONSENT_COOKIE)?.value),
+        advertisingConsent: true,
         eventId: inserted.id,
         email,
         phone,

@@ -1,8 +1,6 @@
 "use client"
 
 import Script from "next/script"
-import { useSyncExternalStore } from "react"
-import { hasAdvertisingConsent, readAdvertisingConsent, subscribeToConsent } from "@/lib/advertising-consent"
 
 declare global {
   interface Window {
@@ -26,7 +24,7 @@ export function trackLeadConversion(params?: {
   value?: number
   currency?: string
 }) {
-  if (typeof window === "undefined" || !hasAdvertisingConsent(readAdvertisingConsent())) return
+  if (typeof window === "undefined") return
 
   const eventData = {
     content_name: params?.segment === "B2C" ? "Lead Solaire Résidentiel" : "Lead Solaire B2B",
@@ -86,7 +84,7 @@ export function trackInitiateCheckout(params?: {
   province?: string
   postalCode?: string
 }) {
-  if (typeof window === "undefined" || !hasAdvertisingConsent(readAdvertisingConsent())) return
+  if (typeof window === "undefined") return
 
   if (typeof window.fbq === "function") {
     try {
@@ -120,8 +118,6 @@ export function trackInitiateCheckout(params?: {
  * Composant client pour injecter les balises de tracking publicitaire sans blocage
  */
 export function AdTrackingScripts() {
-  const consent = useSyncExternalStore(subscribeToConsent, readAdvertisingConsent, () => undefined)
-  if (!hasAdvertisingConsent(consent)) return null
   return (
     <>
       {/* ── Meta Pixel ── */}

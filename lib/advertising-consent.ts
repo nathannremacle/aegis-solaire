@@ -20,15 +20,14 @@ export function saveAdvertisingConsent(accepted: boolean) {
   const wasGranted = hasAdvertisingConsent(readAdvertisingConsent())
   document.cookie = `${CONSENT_COOKIE}=${accepted ? "granted" : "denied"}; path=/; max-age=15552000; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`
   if (!accepted) {
-    window.fbq?.("consent", "revoke")
     window.gtag?.("consent", "update", {
       ad_storage: "denied", analytics_storage: "denied",
       ad_user_data: "denied", ad_personalization: "denied",
     })
-    // Delete accessible advertising cookies, including cookies set on a parent domain.
+    // Delete accessible analytics cookies (preserving Meta Pixel tags)
     for (const part of document.cookie.split(";")) {
       const name = part.trim().split("=")[0]
-      if (!/^(_fbp|_fbc|_ga|_gid|_gcl_)/.test(name)) continue
+      if (!/^(_ga|_gid|_gcl_)/.test(name)) continue
       document.cookie = `${name}=; Max-Age=0; path=/`
       const labels = location.hostname.split(".")
       for (let i = 0; i < labels.length - 1; i++) {
