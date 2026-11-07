@@ -82,7 +82,7 @@ export interface MetaCapiLeadParams {
  */
 export async function sendMetaConversionApiLead(params: MetaCapiLeadParams): Promise<void> {
   if (!params.advertisingConsent) return
-  const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID
+  const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID || "1122374610782196"
   const accessToken = process.env.META_CAPI_ACCESS_TOKEN
 
   if (!pixelId || !accessToken) {

@@ -13,7 +13,7 @@ declare global {
   }
 }
 
-const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID
+const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID || "1122374610782196"
 const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID
 
@@ -146,7 +146,15 @@ export function AdTrackingScripts() {
               `,
             }}
           />
-
+          <noscript>
+            <img
+              height="1"
+              width="1"
+              style={{ display: "none" }}
+              src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`}
+              alt=""
+            />
+          </noscript>
         </>
       )}
 
