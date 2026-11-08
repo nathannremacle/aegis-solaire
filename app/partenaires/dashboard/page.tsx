@@ -56,6 +56,24 @@ export default async function PartnerDashboardPage({ searchParams }: PartnerDash
     }
   }
 
+  // En environnement de développement, si aucun partenaire n'est connecté, simuler un partenaire de test
+  if (process.env.NODE_ENV === "development" && !partner) {
+    partner = {
+      id: "mock-partner-dev",
+      company_name: "Artisan Solaire Wallonie SRL",
+      email: "partenaire@aegissolaire.com",
+      phone: "0499000000",
+      credits: 7,
+      segment: "BOTH",
+      target_provinces: ["Liège", "Namur", "Hainaut"],
+      target_surfaces: null,
+      min_facture: 0,
+      auth_user_id: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as any
+  }
+
   if (!partner) {
     const returnUrl = targetLeadId
       ? `/partenaires/dashboard?lead=${encodeURIComponent(targetLeadId)}`
@@ -64,7 +82,8 @@ export default async function PartnerDashboardPage({ searchParams }: PartnerDash
   }
 
   // Contrôle d'accès strict : accès marketplace bloqué tant que l'email n'est pas validé
-  const emailVerified = await isPartnerEmailVerified(partner.email)
+  const emailVerified =
+    partner.id === "mock-partner-dev" ? true : await isPartnerEmailVerified(partner.email)
   if (!emailVerified) {
     redirect(
       `/partenaires/verification-requise?email=${encodeURIComponent(

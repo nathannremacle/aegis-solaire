@@ -869,18 +869,18 @@ export function MarketplaceFeedView({
         </div>
       ) : (
         <>
-          {/* ── 1. Barre de Contrôle Unifiée : Filtres avec Badges de Comptage, Recherche, Tri & Visite ── */}
-          <div className="rounded-2xl border border-border bg-card p-3 sm:p-3.5 shadow-xs flex flex-col gap-3">
-            {/* Ligne 1 : Segments avec compteurs, Province, Recherche, Tri, Visite guidée et Toggle Grille/Tableau */}
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+          {/* ── 1. Barre de Contrôle Unifiée : Structure Délibérée 2 Niveaux (Anti-Escalier & 100% Responsive) ── */}
+          <div className="rounded-2xl border border-border bg-card p-3 sm:p-4 shadow-xs flex flex-col gap-3">
+            {/* Rangée 1 : Segments, Province & Recherche Directe */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2.5">
               {/* Segments + Province */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:w-auto">
-                {/* Segment switch 3 colonnes responsive */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full md:w-auto">
+                {/* Segment switch 3 colonnes sur mobile, inline sur tablette/desktop */}
                 <div className="grid grid-cols-3 gap-1.5 w-full sm:w-auto sm:inline-flex sm:items-center">
                   <button
                     type="button"
                     onClick={() => setSegmentFilter("ALL")}
-                    className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                    className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                       segmentFilter === "ALL"
                         ? "bg-primary text-primary-foreground shadow-2xs"
                         : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
@@ -901,7 +901,7 @@ export function MarketplaceFeedView({
                   <button
                     type="button"
                     onClick={() => setSegmentFilter("B2B")}
-                    className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                    className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                       segmentFilter === "B2B"
                         ? "bg-primary text-primary-foreground shadow-2xs"
                         : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
@@ -923,14 +923,14 @@ export function MarketplaceFeedView({
                   <button
                     type="button"
                     onClick={() => setSegmentFilter("B2C")}
-                    className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                    className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                       segmentFilter === "B2C"
                         ? "bg-primary text-primary-foreground shadow-2xs"
                         : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
                     }`}
                   >
                     <span className="sm:hidden">B2C</span>
-                    <span className="hidden sm:inline">B2C Partagé (max 3)</span>
+                    <span className="hidden sm:inline">B2C Partagé</span>
                     <span
                       className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${
                         segmentFilter === "B2C"
@@ -943,8 +943,8 @@ export function MarketplaceFeedView({
                   </button>
                 </div>
 
-                {/* Province Select sur Desktop (ou masqué ici et placé avec le Tri sur mobile) */}
-                <div className="hidden sm:block">
+                {/* Province CustomSelect */}
+                <div className="w-full sm:w-auto">
                   <CustomSelect
                     value={selectedProvince}
                     onChange={(val) => setSelectedProvince(val)}
@@ -955,125 +955,107 @@ export function MarketplaceFeedView({
                 </div>
               </div>
 
-              {/* Recherche, Tri, Visite guidée & Switcher Grille / Tableau */}
-              <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 flex-1 lg:max-w-2xl justify-end">
-                {/* Recherche textuelle compacte */}
-                <div className="relative flex-1 min-w-0 sm:min-w-[180px]">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Commune, code postal..."
-                    className="w-full rounded-xl border border-border bg-card pl-8.5 pr-8 py-2 sm:py-1.5 text-xs text-foreground placeholder:text-muted-foreground outline-hidden focus:border-primary focus:ring-1 focus:ring-primary h-10 sm:h-9 transition-all"
-                    aria-label="Rechercher un chantier"
-                  />
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchQuery("")}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground cursor-pointer"
-                      title="Effacer"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
+              {/* Recherche textuelle fluide */}
+              <div className="relative w-full md:w-64 lg:w-80 shrink-0">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Commune, code postal..."
+                  className="w-full rounded-xl border border-border bg-card pl-8.5 pr-8 py-2 sm:py-1.5 text-xs text-foreground placeholder:text-muted-foreground outline-hidden focus:border-primary focus:ring-1 focus:ring-primary h-10 sm:h-9 transition-all"
+                  aria-label="Rechercher un chantier"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground cursor-pointer"
+                    title="Effacer"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
 
-                {/* Rangee Mobile 2 Colonnes : Province + Tri */}
-                <div className="grid grid-cols-2 gap-2 sm:hidden w-full">
-                  <CustomSelect
-                    value={selectedProvince}
-                    onChange={(val) => setSelectedProvince(val)}
-                    options={PROVINCE_OPTIONS}
-                    icon={MapPin}
-                    ariaLabel="Filtrer par province"
-                  />
+            {/* Rangée 2 : Tri, Visite guidée, Aide Expert & Switcher Grille/Tableau (Équilibrée sur toute la largeur) */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 pt-2.5 border-t border-border/60">
+              {/* Gauche : Tri des chantiers & Visite guidée */}
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="flex-1 sm:flex-none">
                   <CustomSelect
                     value={sortBy}
                     onChange={(val) => setSortBy(val as any)}
                     options={SORT_OPTIONS}
                     icon={ArrowUpDown}
                     ariaLabel="Trier les chantiers"
-                    contentClassName="min-w-[280px]"
-                  />
-                </div>
-
-                {/* Tri Select sur Desktop */}
-                <div className="hidden sm:block">
-                  <CustomSelect
-                    value={sortBy}
-                    onChange={(val) => setSortBy(val as any)}
-                    options={SORT_OPTIONS}
-                    icon={ArrowUpDown}
-                    ariaLabel="Trier les chantiers"
+                    className="w-full sm:w-auto"
+                    triggerClassName="w-full sm:w-auto justify-between"
                     contentClassName="min-w-[280px] sm:min-w-[300px]"
                   />
                 </div>
 
-                {/* Boutons d'Action & Toggle Grille / Tableau */}
-                <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
-                  <div className="flex items-center gap-1.5">
-                    {/* Bouton Visite guidée */}
-                    <button
-                      type="button"
-                      onClick={() => setShowTutorial(true)}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card hover:bg-secondary px-2.5 sm:px-3 h-9 text-xs font-semibold text-foreground transition-all cursor-pointer shadow-2xs hover:border-accent/40"
-                      title="Lancer la visite guidée interactive de la marketplace"
-                    >
-                      <Compass className="h-3.5 w-3.5 text-accent shrink-0" />
-                      <span className="hidden sm:inline">Visite guidée</span>
-                    </button>
+                <button
+                  type="button"
+                  onClick={() => setShowTutorial(true)}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-border bg-card hover:bg-secondary h-9 px-2.5 sm:px-3 text-xs font-semibold text-foreground transition-all cursor-pointer shadow-2xs hover:border-accent/40 shrink-0"
+                  title="Lancer la visite guidée interactive de la marketplace"
+                  aria-label="Visite guidée"
+                >
+                  <Compass className="h-3.5 w-3.5 text-accent shrink-0" />
+                  <span className="hidden sm:inline">Visite guidée</span>
+                </button>
+              </div>
 
-                    {/* Bouton Aide Expert & Étude */}
-                    <button
-                      type="button"
-                      onClick={() => onOpenExpertModal?.(null)}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/20 px-2.5 sm:px-3 h-9 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs"
-                      title="Demander l'aide d'un expert Aegis Solaire (% projet à négocier selon l'envergure)"
-                    >
-                      <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
-                      <span className="hidden min-[400px]:inline">Aide Expert</span>
-                    </button>
-                  </div>
+              {/* Droite : Aide Expert & Toggle Grille / Tableau */}
+              <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => onOpenExpertModal?.(null)}
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/20 px-3 h-9 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs whitespace-nowrap"
+                  title="Demander l'aide d'un expert Aegis Solaire (% projet à négocier selon l'envergure)"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
+                  <span>Aide Expert &amp; Étude</span>
+                </button>
 
-                  {/* Switcher Grille / Tableau */}
-                  <div className="inline-flex items-center rounded-xl border border-border bg-secondary p-0.5 h-9 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setViewMode("grid")}
-                      className={`rounded-lg p-1.5 transition-colors cursor-pointer ${
-                        viewMode === "grid"
-                          ? "bg-primary text-primary-foreground shadow-2xs"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                      title="Vue grille (Cartes)"
-                      aria-label="Vue grille"
-                    >
-                      <LayoutGrid className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setViewMode("table")}
-                      className={`rounded-lg p-1.5 transition-colors cursor-pointer ${
-                        viewMode === "table"
-                          ? "bg-primary text-primary-foreground shadow-2xs"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                      title="Vue liste dense"
-                      aria-label="Vue liste dense"
-                    >
-                      <List className="h-4 w-4" />
-                    </button>
-                  </div>
+                {/* Switcher Grille / Tableau */}
+                <div className="inline-flex items-center rounded-xl border border-border bg-secondary p-0.5 h-9 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("grid")}
+                    className={`rounded-lg p-1.5 transition-colors cursor-pointer ${
+                      viewMode === "grid"
+                        ? "bg-primary text-primary-foreground shadow-2xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    title="Vue grille (Cartes)"
+                    aria-label="Vue grille"
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("table")}
+                    className={`rounded-lg p-1.5 transition-colors cursor-pointer ${
+                      viewMode === "table"
+                        ? "bg-primary text-primary-foreground shadow-2xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    title="Vue liste dense"
+                    aria-label="Vue liste dense"
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Ligne 2 : Statut opérationnel épuré sans débordement */}
+            {/* Rangée 3 : Statut opérationnel épuré (Indicateurs clés et Reset filtres) */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-border/70 text-xs">
-              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-muted-foreground font-medium">
-                <span className="flex items-center gap-1.5 text-foreground">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-muted-foreground font-medium">
+                <span className="flex items-center gap-1.5 text-foreground whitespace-nowrap">
                   <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                   <strong className="font-mono text-foreground font-bold tabular-nums">{kpis.totalLeads}</strong> chantiers
                   disponibles
@@ -1081,7 +1063,7 @@ export function MarketplaceFeedView({
 
                 <span className="text-border">•</span>
 
-                <span className="flex items-center gap-1 font-mono text-foreground">
+                <span className="flex items-center gap-1 font-mono text-foreground whitespace-nowrap">
                   <Zap className="h-3.5 w-3.5 text-foreground shrink-0" />
                   <strong className="text-foreground font-bold tabular-nums">
                     {Math.round(kpis.totalPower).toLocaleString("fr-BE")}
@@ -1091,7 +1073,7 @@ export function MarketplaceFeedView({
 
                 <span className="text-border">•</span>
 
-                <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-bold">
+                <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-bold whitespace-nowrap">
                   <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
                   Garantie anti-fake 100% remboursé
                 </span>
@@ -1101,7 +1083,7 @@ export function MarketplaceFeedView({
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold text-accent hover:underline cursor-pointer self-start sm:self-auto"
+                  className="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold text-accent hover:underline cursor-pointer self-start sm:self-auto whitespace-nowrap"
                 >
                   <RotateCcw className="h-3 w-3" />
                   <span>Réinitialiser les filtres</span>

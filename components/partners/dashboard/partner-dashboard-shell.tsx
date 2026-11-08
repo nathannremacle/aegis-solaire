@@ -94,19 +94,19 @@ export function PartnerDashboardShell({
               />
             </Link>
 
-            {/* Navigation Tabs Intégrée (Visible sur Desktop md+, déportée en Bottom Bar sur mobile) */}
-            <nav aria-label="Espaces du portail" className="hidden md:flex items-center gap-1 sm:gap-1.5">
+            {/* Navigation Tabs Intégrée (Hiérarchie chirurgicale anti-collision : Market & CRM dès md, Expert dès xl, Outils dès 2xl) */}
+            <nav aria-label="Espaces du portail" className="hidden md:flex items-center gap-1.5 sm:gap-2">
               <button
                 type="button"
                 onClick={() => setActiveTab("marketplace")}
-                className={`flex items-center gap-1.5 sm:gap-2 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 sm:gap-2 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                   activeTab === "marketplace"
                     ? "bg-primary text-primary-foreground font-bold shadow-2xs"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                 }`}
               >
                 <Store className="h-4 w-4 text-accent shrink-0" />
-                <span>Marketplace</span>
+                <span className="whitespace-nowrap font-bold">Marketplace</span>
                 <span
                   className={`rounded-full px-1.5 py-0.2 text-[10px] sm:text-[11px] font-mono font-bold tabular-nums shrink-0 ${
                     activeTab === "marketplace"
@@ -121,14 +121,14 @@ export function PartnerDashboardShell({
               <button
                 type="button"
                 onClick={() => setActiveTab("portfolio")}
-                className={`flex items-center gap-1.5 sm:gap-2 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 sm:gap-2 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                   activeTab === "portfolio"
                     ? "bg-primary text-primary-foreground font-bold shadow-2xs"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                 }`}
               >
                 <Briefcase className="h-4 w-4 text-accent shrink-0" />
-                <span>Mon CRM</span>
+                <span className="whitespace-nowrap font-bold">Mon CRM</span>
                 <span
                   className={`rounded-full px-1.5 py-0.2 text-[10px] sm:text-[11px] font-mono font-bold tabular-nums shrink-0 ${
                     activeTab === "portfolio"
@@ -140,11 +140,29 @@ export function PartnerDashboardShell({
                 </span>
               </button>
 
-              {/* Raccourcis Outils */}
+              {/* Raccourci Aide Expert & Étude (Visible uniquement dès xl >= 1280px pour garantir 0 collision à 768-1200px) */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedLeadForExpert(null)
+                  setIsExpertOpen(true)
+                }}
+                className="hidden xl:inline-flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/20 px-2 sm:px-2.5 py-1.5 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs whitespace-nowrap shrink-0"
+                title="Demander l'aide d'un expert Aegis Solaire (étude de marché, dimensionnement, rentabilité B2B)"
+                aria-label="Aide Expert"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
+                <span className="whitespace-nowrap">Aide Expert</span>
+                <span className="hidden 2xl:inline rounded bg-accent/20 text-accent font-mono text-[9px] px-1 py-0.2 uppercase font-extrabold tracking-wider">
+                  Inclus
+                </span>
+              </button>
+
+              {/* Raccourcis Outils Complémentaires (Visible dès 2xl >= 1536px sur très grands écrans) */}
               <button
                 type="button"
                 onClick={() => setIsPrefsOpen(true)}
-                className="hidden lg:inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer"
+                className="hidden 2xl:inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer whitespace-nowrap shrink-0"
                 title="Gérer mes alertes e-mail et SMS"
               >
                 <Bell className="h-3.5 w-3.5 text-accent shrink-0" />
@@ -153,40 +171,22 @@ export function PartnerDashboardShell({
 
               <Link
                 href="/partenaires/dashboard/credits"
-                className="hidden lg:inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all"
+                className="hidden 2xl:inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all whitespace-nowrap shrink-0"
                 title="Historique des factures et achats de packs"
               >
                 <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 <span>Factures</span>
               </Link>
-
-              {/* Raccourci Aide Expert & Étude */}
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedLeadForExpert(null)
-                  setIsExpertOpen(true)
-                }}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/20 px-2 sm:px-2.5 py-1.5 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs"
-                title="Demander l'aide d'un expert Aegis Solaire (étude de marché, dimensionnement, rentabilité B2B)"
-                aria-label="Aide Expert"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
-                <span>Aide Expert</span>
-                <span className="hidden xl:inline rounded bg-accent/20 text-accent font-mono text-[9px] px-1 py-0.2 uppercase font-extrabold tracking-wider">
-                  Inclus
-                </span>
-              </button>
             </nav>
           </div>
 
           {/* Droite : Badge Statut, Solde Portefeuille & Menu Profil */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-            {/* Badge de statut partenaire (cliquable vers le palier) */}
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+            {/* Badge de statut partenaire (Affiché dès xl >= 1280px pour protéger l'espace des onglets) */}
             <button
               type="button"
               onClick={() => setIsTierOpen(true)}
-              className="hidden lg:inline-flex items-center gap-1.5 rounded-xl border border-border bg-secondary/50 hover:bg-secondary px-2.5 py-1 text-xs font-medium text-foreground transition-all cursor-pointer"
+              className="hidden xl:inline-flex items-center gap-1.5 rounded-xl border border-border bg-secondary/50 hover:bg-secondary px-2.5 py-1 text-xs font-medium text-foreground transition-all cursor-pointer whitespace-nowrap shrink-0"
               title="Consulter mon palier et mes avantages installateur"
             >
               <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />
@@ -199,7 +199,7 @@ export function PartnerDashboardShell({
             <button
               type="button"
               onClick={() => setIsCreditsOpen(true)}
-              className="flex items-center gap-1.5 sm:gap-2 rounded-xl border border-accent/30 bg-accent/10 hover:bg-accent/15 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs"
+              className="flex items-center gap-1.5 sm:gap-2 rounded-xl border border-accent/30 bg-accent/10 hover:bg-accent/15 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs whitespace-nowrap shrink-0"
               title="Gérer mes crédits de déblocage"
             >
               <Coins className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-accent shrink-0" />
@@ -217,7 +217,7 @@ export function PartnerDashboardShell({
                 variant="ghost"
                 size="sm"
                 type="submit"
-                className="h-8 w-8 sm:w-auto p-0 sm:px-2.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                className="h-8 w-8 sm:w-auto p-0 sm:px-2.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer whitespace-nowrap shrink-0"
                 title="Déconnexion de l'espace partenaire"
               >
                 <LogOut className="h-4 w-4 sm:mr-1.5" />
@@ -259,7 +259,7 @@ export function PartnerDashboardShell({
           </div>
 
           {activeTab === "marketplace" && !activeTargetLeadId && (
-            <div className="hidden md:flex relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-r from-emerald-50/70 via-card to-card p-3 sm:p-3.5 shadow-xs items-center gap-3.5 max-w-md shrink-0">
+            <div className="hidden xl:flex relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-r from-emerald-50/70 via-card to-card p-3 sm:p-3.5 shadow-xs items-center gap-3.5 max-w-md shrink-0">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600">
                 <Leaf className="h-5 w-5" />
               </div>
