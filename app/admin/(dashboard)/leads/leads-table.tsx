@@ -142,7 +142,8 @@ export function LeadsTable({
 
   const isTriageMode = filters.view === "triage"
   const activeLead = leadId ? activeLeads.find((l) => l.id === leadId) ?? currentLeadFromList : null
-  const totalPages = Math.ceil(total / limit) || 1
+  const currentTotal = Math.max(0, total - removedLeadIds.size)
+  const totalPages = Math.max(1, Math.ceil(currentTotal / limit))
 
   const buildUrl = useCallback(
     (updates: Partial<LeadFilters> & { page?: number; leadId?: string | null }) => {
@@ -207,6 +208,25 @@ export function LeadsTable({
     return () => clearTimeout(timer)
   }, [searchTerm, filters.search, applyFilters])
 
+  // Synchronisation des leads supprimés avec les données serveur fraîches
+  useEffect(() => {
+    if (removedLeadIds.size > 0) {
+      const serverLeadIds = new Set(leads.map((l) => l.id))
+      setRemovedLeadIds((prev) => {
+        let changed = false
+        const next = new Set<string>()
+        for (const id of prev) {
+          if (serverLeadIds.has(id)) {
+            next.add(id)
+          } else {
+            changed = true
+          }
+        }
+        return changed ? next : prev
+      })
+    }
+  }, [leads])
+
   function toggleAll() {
     if (selectedIds.size === activeLeads.length && activeLeads.length > 0) {
       setSelectedIds(new Set())
@@ -252,6 +272,7 @@ export function LeadsTable({
     } else {
       closeLeadDetail()
     }
+    router.refresh()
   }
 
   // Actions groupées
@@ -399,7 +420,7 @@ export function LeadsTable({
               : "Contrôle des Leads"}
           </h1>
           <span className="font-mono text-xs tabular-nums text-muted-foreground bg-secondary px-2 py-0.5 rounded-sm border border-border">
-            {total} lead{total > 1 ? "s" : ""}
+            {currentTotal} lead{currentTotal > 1 ? "s" : ""}
           </span>
         </div>
 
@@ -508,7 +529,7 @@ export function LeadsTable({
                       : "bg-muted text-muted-foreground"
                   )}
                 >
-                  {tabCounts.total}
+                  {Math.max(0, tabCounts.total - (currentView === "all" || !filters.view ? removedLeadIds.size : 0))}
                 </span>
               )}
             </button>
@@ -674,7 +695,21 @@ export function LeadsTable({
             {activeLeads.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={10} className="py-12 text-center text-muted-foreground italic">
-                  Aucun lead ne correspond aux filtres actuels.
+                  {page > 1 ? (
+                    <div className="flex flex-col items-center justify-center gap-2 not-italic">
+                      <span>Aucun lead sur cette page.</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => applyFilters({ page: 1 })}
+                        className="h-7 text-xs"
+                      >
+                        Revenir à la page 1
+                      </Button>
+                    </div>
+                  ) : (
+                    "Aucun lead ne correspond aux filtres actuels."
+                  )}
                 </TableCell>
               </TableRow>
             ) : (
@@ -866,10 +901,10 @@ export function LeadsTable({
       </div>
 
       {/* Pagination & Compteur */}
-      {totalPages > 1 && (
+      {totalPages > 1 && activeLeads.length > 0 && (
         <div className="flex items-center justify-between py-2 text-xs text-muted-foreground">
           <span className="font-mono tabular-nums">
-            Page {page} sur {totalPages} ({total} leads)
+            Page {page} sur {totalPages} ({currentTotal} lead{currentTotal > 1 ? "s" : ""})
           </span>
           <div className="flex items-center gap-2">
             <Button
