@@ -490,11 +490,11 @@ export function LeadInspectionDrawer({
           </div>
         </div>
 
-        {/* ── 3. Pied Fixe avec CTA Unique et Tarif Transparent ── */}
-        <div className="shrink-0 border-t border-border bg-card p-4 sm:p-5 flex items-center justify-between gap-3 shadow-lg">
-          <div>
+        {/* ── 3. Pied Fixe avec CTA Unique et Tarif Transparent (Sticky Bottom Bar Adaptatif) ── */}
+        <div className="shrink-0 border-t border-border bg-card p-3.5 sm:p-5 [padding-bottom:max(1rem,env(safe-area-inset-bottom))] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+          <div className="flex items-center justify-between sm:flex-col sm:items-start gap-1">
             {!isPurchased ? (
-              <div>
+              <div className="flex sm:flex-col items-baseline sm:items-start justify-between w-full sm:w-auto gap-2">
                 <div className="flex items-baseline gap-1.5">
                   <span className="font-mono text-2xl font-black text-foreground tabular-nums">{cost}</span>
                   <span className="text-xs font-bold text-muted-foreground">crédits</span>
@@ -502,14 +502,14 @@ export function LeadInspectionDrawer({
                     ({formatEurWithDecimals(financials.leadCostEuros)})
                   </span>
                 </div>
-                <div className="text-[11px] text-muted-foreground">
+                <div className="text-[11px] text-muted-foreground text-right sm:text-left">
                   {isDemo ? (
                     <span className="font-semibold text-accent flex items-center gap-1">
                       <ShieldCheck className="h-3.5 w-3.5" /> Réservé aux partenaires RESCERT
                     </span>
                   ) : (
                     <>
-                      Solde actuel : <strong className="font-mono text-foreground tabular-nums">{partnerCredits} crédits</strong>
+                      Solde : <strong className="font-mono text-foreground tabular-nums">{partnerCredits} crédits</strong>
                     </>
                   )}
                 </div>
@@ -521,13 +521,13 @@ export function LeadInspectionDrawer({
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             {!isPurchased && (
               isDemo ? (
                 <Button
                   variant="default"
                   onClick={() => onPurchase(lead)}
-                  className="font-bold h-11 px-5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm"
+                  className="font-bold h-11 px-5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm w-full sm:w-auto"
                 >
                   <Unlock className="h-4 w-4 mr-1.5" />
                   <span>Débloquer ce dossier ({cost} crédits)</span>
@@ -536,7 +536,7 @@ export function LeadInspectionDrawer({
                 <Button
                   variant="default"
                   onClick={onRequestTopUp}
-                  className="font-bold h-11 px-4 text-xs bg-accent text-accent-foreground hover:bg-accent/90 cursor-pointer"
+                  className="font-bold h-11 px-4 text-xs bg-accent text-accent-foreground hover:bg-accent/90 cursor-pointer w-full sm:w-auto"
                 >
                   <Coins className="h-4 w-4 mr-1.5" />
                   Recharger mes crédits
@@ -546,7 +546,7 @@ export function LeadInspectionDrawer({
                   variant="default"
                   disabled={isBuying}
                   onClick={() => onPurchase(lead)}
-                  className="font-bold h-11 px-5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm"
+                  className="font-bold h-11 px-5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm w-full sm:w-auto"
                 >
                   {isBuying ? (
                     <>

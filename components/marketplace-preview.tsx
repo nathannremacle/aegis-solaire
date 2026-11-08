@@ -463,11 +463,11 @@ function MarketplaceLeadCardPreview({
       </div>
 
       {/* C. Pied de Carte : Coût en Crédits & Boutons Pilules (Inspecter & Débloquer) */}
-      <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+      <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-3 border-t border-border flex flex-wrap items-center justify-between gap-2">
         {/* Crédits avec icône pile de pièces */}
         <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
           <svg
-            className="h-4 w-4 sm:h-5 sm:w-5 text-slate-700 shrink-0"
+            className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -481,21 +481,21 @@ function MarketplaceLeadCardPreview({
             <path d="M4 11v5c0 1.66 3.58 3 8 3s8-1.34 8-3v-5" />
           </svg>
           <div className="flex items-baseline gap-1">
-            <span className="font-bold text-xs sm:text-sm text-slate-900 font-mono tabular-nums">
+            <span className="font-bold text-xs sm:text-sm text-foreground font-mono tabular-nums">
               {cost} crédits
             </span>
-            <span className="text-[11px] text-slate-400 font-mono tabular-nums">
+            <span className="text-[11px] text-muted-foreground font-mono tabular-nums">
               ({formatEurWithDecimals(financials.leadCostEuros)})
             </span>
           </div>
         </div>
 
         {/* Boutons d'action pilules compacts */}
-        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
             onClick={onInspect}
-            className="rounded-full border border-slate-200 bg-white hover:bg-slate-50 px-3 sm:px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-1 shrink-0"
+            className="rounded-full border border-border bg-card hover:bg-secondary px-3 sm:px-3.5 py-1.5 text-xs font-semibold text-foreground shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-1 shrink-0"
             title="Inspecter la fiche technique complète"
           >
             <Eye className="h-3.5 w-3.5 text-accent" />
@@ -507,7 +507,7 @@ function MarketplaceLeadCardPreview({
             onClick={onUnlock}
             className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-3.5 sm:px-4 py-1.5 text-xs font-bold shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1 shrink-0"
           >
-            <Lock className="h-3.5 w-3.5 text-white" />
+            <Lock className="h-3.5 w-3.5 text-primary-foreground" />
             <span>Débloquer</span>
           </button>
         </div>
@@ -658,54 +658,57 @@ export function MarketplaceLivePreview() {
         {/* Ligne 1 : Segments, Province, Recherche, Tri et Toggle Grille/Tableau */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
           {/* Segments + Province */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Segment switch */}
-            <div className="inline-flex items-center rounded-xl border border-border bg-secondary p-1">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:w-auto">
+            {/* Segment switch 3 colonnes responsive */}
+            <div className="grid grid-cols-3 gap-1.5 w-full sm:w-auto sm:inline-flex sm:items-center">
               {(["ALL", "B2B", "B2C"] as const).map((seg) => (
                 <button
                   key={seg}
                   type="button"
                   onClick={() => setSegmentFilter(seg)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                  className={`inline-flex items-center justify-center rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-xs font-bold transition-all cursor-pointer ${
                     segmentFilter === seg
-                      ? "bg-primary text-primary-foreground font-bold shadow-2xs"
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "bg-primary text-primary-foreground shadow-2xs font-bold"
+                      : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
                   }`}
                 >
-                  {seg === "ALL" ? "Tous" : seg === "B2B" ? "B2B Exclusif" : "B2C Partagé"}
+                  <span className="sm:hidden">{seg === "ALL" ? "Tous" : seg}</span>
+                  <span className="hidden sm:inline">{seg === "ALL" ? "Tous" : seg === "B2B" ? "B2B Exclusif" : "B2C Partagé"}</span>
                 </button>
               ))}
             </div>
 
-            {/* Province select via CustomSelect */}
-            <CustomSelect
-              id="marketplace-filter-province"
-              name="province"
-              value={selectedProvince}
-              onChange={setSelectedProvince}
-              options={PROVINCE_OPTIONS}
-              ariaLabel="Filtrer par province"
-            />
+            {/* Province select via CustomSelect sur Desktop */}
+            <div className="hidden sm:block">
+              <CustomSelect
+                id="marketplace-filter-province"
+                name="province"
+                value={selectedProvince}
+                onChange={setSelectedProvince}
+                options={PROVINCE_OPTIONS}
+                ariaLabel="Filtrer par province"
+              />
+            </div>
           </div>
 
           {/* Recherche, Tri et Switcher Grille / Tableau */}
-          <div className="flex flex-wrap items-center gap-2 flex-1 lg:max-w-xl justify-end">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 flex-1 lg:max-w-xl justify-end">
             {/* Recherche textuelle compacte */}
-            <div className="relative flex-1 min-w-[200px]">
+            <div className="relative flex-1 min-w-0 sm:min-w-[180px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Commune, CP, mot-clé..."
-                className="w-full rounded-xl border border-border bg-card pl-8.5 pr-8 py-1.5 text-xs text-foreground placeholder:text-muted-foreground outline-hidden focus:border-primary focus:ring-1 focus:ring-primary h-9 transition-all"
+                className="w-full rounded-xl border border-border bg-card pl-8.5 pr-8 py-2 sm:py-1.5 text-xs text-foreground placeholder:text-muted-foreground outline-hidden focus:border-primary focus:ring-1 focus:ring-primary h-10 sm:h-9 transition-all"
                 aria-label="Rechercher dans la marketplace"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground cursor-pointer"
                   title="Effacer"
                 >
                   <X className="h-3.5 w-3.5" />
@@ -713,45 +716,71 @@ export function MarketplaceLivePreview() {
               )}
             </div>
 
-            {/* Tri select via CustomSelect */}
-            <CustomSelect
-              id="marketplace-filter-sort"
-              name="sort"
-              value={sortBy}
-              onChange={setSortBy}
-              options={SORT_OPTIONS}
-              icon={ArrowUpDown}
-              ariaLabel="Trier les opportunités"
-            />
+            {/* Rangee Mobile 2 Colonnes : Province + Tri */}
+            <div className="grid grid-cols-2 gap-2 sm:hidden w-full">
+              <CustomSelect
+                id="marketplace-filter-province-mobile"
+                name="province"
+                value={selectedProvince}
+                onChange={setSelectedProvince}
+                options={PROVINCE_OPTIONS}
+                ariaLabel="Filtrer par province"
+              />
+              <CustomSelect
+                id="marketplace-filter-sort-mobile"
+                name="sort"
+                value={sortBy}
+                onChange={setSortBy}
+                options={SORT_OPTIONS}
+                icon={ArrowUpDown}
+                ariaLabel="Trier les opportunités"
+                contentClassName="min-w-[280px]"
+              />
+            </div>
+
+            {/* Tri select sur Desktop */}
+            <div className="hidden sm:block">
+              <CustomSelect
+                id="marketplace-filter-sort"
+                name="sort"
+                value={sortBy}
+                onChange={setSortBy}
+                options={SORT_OPTIONS}
+                icon={ArrowUpDown}
+                ariaLabel="Trier les opportunités"
+              />
+            </div>
 
             {/* Switcher Grille / Tableau */}
-            <div className="inline-flex items-center rounded-xl border border-border bg-secondary p-0.5 h-9">
-              <button
-                type="button"
-                onClick={() => setViewMode("grid")}
-                className={`rounded-lg p-1.5 transition-colors cursor-pointer ${
-                  viewMode === "grid"
-                    ? "bg-primary text-primary-foreground shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                title="Vue grille (Cartes)"
-                aria-label="Vue grille"
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("table")}
-                className={`rounded-lg p-1.5 transition-colors cursor-pointer ${
-                  viewMode === "table"
-                    ? "bg-primary text-primary-foreground shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                title="Vue tableau (Dense / Linear)"
-                aria-label="Vue tableau"
-              >
-                <List className="h-4 w-4" />
-              </button>
+            <div className="flex items-center justify-end">
+              <div className="inline-flex items-center rounded-xl border border-border bg-secondary p-0.5 h-9 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("grid")}
+                  className={`rounded-lg p-1.5 transition-colors cursor-pointer ${
+                    viewMode === "grid"
+                      ? "bg-primary text-primary-foreground shadow-2xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  title="Vue grille (Cartes)"
+                  aria-label="Vue grille"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("table")}
+                  className={`rounded-lg p-1.5 transition-colors cursor-pointer ${
+                    viewMode === "table"
+                      ? "bg-primary text-primary-foreground shadow-2xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  title="Vue tableau (Dense / Linear)"
+                  aria-label="Vue tableau"
+                >
+                  <List className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -825,12 +854,116 @@ export function MarketplaceLivePreview() {
           ))}
         </div>
       ) : (
-        /* ── Vue Tableau Haute-Productivité (Exactement comme dans le Dashboard) ── */
-        <div className="flex flex-col gap-1.5">
-          <div className="block sm:hidden text-center text-[11px] font-mono text-muted-foreground py-0.5">
-            ↔ Glisser horizontalement pour voir toutes les colonnes
+        /* ── Vue Tableau Haute-Productivité (Mobile Card-List + Desktop 8-Col Table) ── */
+        <div className="flex flex-col gap-3">
+          {/* Version Mobile (< md) : Fiches denses ultra-lisibles */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {filteredLeads.map((lead) => {
+              const isB2B = lead.segment === "B2B"
+              const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
+              const remainingSlots = lead.remaining_slots ?? maxSlots
+              const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
+              const rawSurfaceArea = Math.max(0, Number(lead.surface_area) || 0)
+              const rawAnnualBill = Math.max(0, Number(lead.annual_electricity_bill) || 0)
+
+              const financials = calculateMarketplaceFinancials({
+                segment: lead.segment,
+                surfaceArea: rawSurfaceArea,
+                surfaceType: lead.surface_type,
+                roofMaterial: lead.roof_material,
+                annualBill: rawAnnualBill,
+                creditCost: cost,
+                estimatedPowerKwc: lead.estimated_power_kwc,
+                projectDetails: lead.project_details,
+              })
+
+              const location = getLeadLocationInfo(lead)
+              const freshness = getLeadFreshness(lead.created_at, lead.freshness_label)
+              const powerKwc = financials.estimatedPowerKwc
+              const marginText = formatRoundedCurrency(financials.estimatedInstallerMargin || 0)
+
+              return (
+                <div
+                  key={lead.id}
+                  onClick={() => setSelectedLeadForDrawer(lead)}
+                  className="rounded-2xl border border-border bg-card p-3.5 shadow-xs flex flex-col gap-2.5 cursor-pointer hover:border-accent/40 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span
+                          className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                            isB2B
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-secondary text-foreground border border-border"
+                          }`}
+                        >
+                          {isB2B ? "B2B Exclusif" : `B2C (${remainingSlots}/${maxSlots})`}
+                        </span>
+                        <span className="font-mono text-[10px] text-muted-foreground flex items-center gap-1">
+                          <span className={`h-1.5 w-1.5 rounded-full ${freshness.dotClass}`} />
+                          {freshness.label}
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-sm text-foreground truncate mt-1">
+                        {location.fullTitle}
+                      </h3>
+                      <p className="text-xs text-muted-foreground truncate">{location.provinceLabel}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-xl font-extrabold font-mono text-foreground tabular-nums">
+                        {powerKwc > 0 ? powerKwc : "—"}
+                      </span>
+                      <span className="text-[10px] font-bold text-muted-foreground ml-1">kWc</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs py-2 border-y border-border/60">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block font-mono">TOITURE</span>
+                      <span className="font-medium text-foreground truncate block">
+                        {rawSurfaceArea > 0 ? `${rawSurfaceArea} m² · ` : ""}{getRoofMaterialLabel(lead.roof_material)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block font-mono">MARGE ESTIMÉE</span>
+                      <span className="font-bold font-mono text-accent tabular-nums block">
+                        {marginText}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-0.5">
+                    <div className="flex items-baseline gap-1 font-mono text-xs">
+                      <span className="font-bold text-foreground">{cost} crédits</span>
+                      <span className="text-[10px] text-muted-foreground">({formatEurWithDecimals(financials.leadCostEuros)})</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedLeadForDrawer(lead)}
+                        className="rounded-lg border border-border bg-secondary hover:bg-secondary/80 px-2.5 py-1.5 text-xs font-semibold text-foreground cursor-pointer flex items-center gap-1"
+                      >
+                        <Eye className="h-3.5 w-3.5 text-accent" />
+                        <span>Voir</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleUnlockAttempt(lead)}
+                        className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1.5 text-xs font-bold cursor-pointer flex items-center gap-1"
+                      >
+                        <Lock className="h-3.5 w-3.5" />
+                        <span>Débloquer</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
-          <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-xs overscroll-x-contain">
+
+          {/* Version Desktop (md+) : Tableau 8 colonnes dense haute productivité */}
+          <div className="hidden md:block overflow-x-auto rounded-2xl border border-border bg-card shadow-xs overscroll-x-contain">
             <table className="w-full min-w-[840px] text-left text-xs">
               <thead className="border-b border-border bg-secondary/60 text-[11px] font-bold uppercase text-muted-foreground sticky top-0">
                 <tr>

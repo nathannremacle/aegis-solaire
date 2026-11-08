@@ -871,226 +871,244 @@ export function MarketplaceFeedView({
         <>
           {/* ── 1. Barre de Contrôle Unifiée : Filtres avec Badges de Comptage, Recherche, Tri & Visite ── */}
           <div className="rounded-2xl border border-border bg-card p-3 sm:p-3.5 shadow-xs flex flex-col gap-3">
-        {/* Ligne 1 : Segments avec compteurs, Province, Recherche, Tri, Visite guidée et Toggle Grille/Tableau */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-          {/* Segments + Province */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Segment switch avec bulles de comptage comme sur la capture */}
-            <div className="inline-flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setSegmentFilter("ALL")}
-                className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                  segmentFilter === "ALL"
-                    ? "bg-primary text-primary-foreground shadow-2xs"
-                    : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
-                }`}
-              >
-                <span>Tous</span>
-                <span
-                  className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${
-                    segmentFilter === "ALL"
-                      ? "bg-white/20 text-white"
-                      : "bg-secondary text-muted-foreground"
-                  }`}
-                >
-                  {counts.all}
-                </span>
-              </button>
+            {/* Ligne 1 : Segments avec compteurs, Province, Recherche, Tri, Visite guidée et Toggle Grille/Tableau */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+              {/* Segments + Province */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:w-auto">
+                {/* Segment switch 3 colonnes responsive */}
+                <div className="grid grid-cols-3 gap-1.5 w-full sm:w-auto sm:inline-flex sm:items-center">
+                  <button
+                    type="button"
+                    onClick={() => setSegmentFilter("ALL")}
+                    className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                      segmentFilter === "ALL"
+                        ? "bg-primary text-primary-foreground shadow-2xs"
+                        : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
+                    }`}
+                  >
+                    <span>Tous</span>
+                    <span
+                      className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${
+                        segmentFilter === "ALL"
+                          ? "bg-white/20 text-white"
+                          : "bg-secondary text-muted-foreground"
+                      }`}
+                    >
+                      {counts.all}
+                    </span>
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => setSegmentFilter("B2B")}
-                className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                  segmentFilter === "B2B"
-                    ? "bg-primary text-primary-foreground shadow-2xs"
-                    : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
-                }`}
-              >
-                <span>B2B Exclusif</span>
-                <span
-                  className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${
-                    segmentFilter === "B2B"
-                      ? "bg-white/20 text-white"
-                      : "bg-secondary text-muted-foreground"
-                  }`}
-                >
-                  {counts.b2b}
-                </span>
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => setSegmentFilter("B2B")}
+                    className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                      segmentFilter === "B2B"
+                        ? "bg-primary text-primary-foreground shadow-2xs"
+                        : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
+                    }`}
+                  >
+                    <span className="sm:hidden">B2B</span>
+                    <span className="hidden sm:inline">B2B Exclusif</span>
+                    <span
+                      className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${
+                        segmentFilter === "B2B"
+                          ? "bg-white/20 text-white"
+                          : "bg-secondary text-muted-foreground"
+                      }`}
+                    >
+                      {counts.b2b}
+                    </span>
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => setSegmentFilter("B2C")}
-                className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                  segmentFilter === "B2C"
-                    ? "bg-primary text-primary-foreground shadow-2xs"
-                    : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
-                }`}
-              >
-                <span>B2C Partagé (max 3)</span>
-                <span
-                  className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${
-                    segmentFilter === "B2C"
-                      ? "bg-white/20 text-white"
-                      : "bg-secondary text-muted-foreground"
-                  }`}
-                >
-                  {counts.b2c}
-                </span>
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => setSegmentFilter("B2C")}
+                    className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                      segmentFilter === "B2C"
+                        ? "bg-primary text-primary-foreground shadow-2xs"
+                        : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
+                    }`}
+                  >
+                    <span className="sm:hidden">B2C</span>
+                    <span className="hidden sm:inline">B2C Partagé (max 3)</span>
+                    <span
+                      className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${
+                        segmentFilter === "B2C"
+                          ? "bg-white/20 text-white"
+                          : "bg-secondary text-muted-foreground"
+                      }`}
+                    >
+                      {counts.b2c}
+                    </span>
+                  </button>
+                </div>
+
+                {/* Province Select sur Desktop (ou masqué ici et placé avec le Tri sur mobile) */}
+                <div className="hidden sm:block">
+                  <CustomSelect
+                    value={selectedProvince}
+                    onChange={(val) => setSelectedProvince(val)}
+                    options={PROVINCE_OPTIONS}
+                    icon={MapPin}
+                    ariaLabel="Filtrer par province"
+                  />
+                </div>
+              </div>
+
+              {/* Recherche, Tri, Visite guidée & Switcher Grille / Tableau */}
+              <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 flex-1 lg:max-w-2xl justify-end">
+                {/* Recherche textuelle compacte */}
+                <div className="relative flex-1 min-w-0 sm:min-w-[180px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Commune, code postal..."
+                    className="w-full rounded-xl border border-border bg-card pl-8.5 pr-8 py-2 sm:py-1.5 text-xs text-foreground placeholder:text-muted-foreground outline-hidden focus:border-primary focus:ring-1 focus:ring-primary h-10 sm:h-9 transition-all"
+                    aria-label="Rechercher un chantier"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground cursor-pointer"
+                      title="Effacer"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Rangee Mobile 2 Colonnes : Province + Tri */}
+                <div className="grid grid-cols-2 gap-2 sm:hidden w-full">
+                  <CustomSelect
+                    value={selectedProvince}
+                    onChange={(val) => setSelectedProvince(val)}
+                    options={PROVINCE_OPTIONS}
+                    icon={MapPin}
+                    ariaLabel="Filtrer par province"
+                  />
+                  <CustomSelect
+                    value={sortBy}
+                    onChange={(val) => setSortBy(val as any)}
+                    options={SORT_OPTIONS}
+                    icon={ArrowUpDown}
+                    ariaLabel="Trier les chantiers"
+                    contentClassName="min-w-[280px]"
+                  />
+                </div>
+
+                {/* Tri Select sur Desktop */}
+                <div className="hidden sm:block">
+                  <CustomSelect
+                    value={sortBy}
+                    onChange={(val) => setSortBy(val as any)}
+                    options={SORT_OPTIONS}
+                    icon={ArrowUpDown}
+                    ariaLabel="Trier les chantiers"
+                    contentClassName="min-w-[280px] sm:min-w-[300px]"
+                  />
+                </div>
+
+                {/* Boutons d'Action & Toggle Grille / Tableau */}
+                <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
+                  <div className="flex items-center gap-1.5">
+                    {/* Bouton Visite guidée */}
+                    <button
+                      type="button"
+                      onClick={() => setShowTutorial(true)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card hover:bg-secondary px-2.5 sm:px-3 h-9 text-xs font-semibold text-foreground transition-all cursor-pointer shadow-2xs hover:border-accent/40"
+                      title="Lancer la visite guidée interactive de la marketplace"
+                    >
+                      <Compass className="h-3.5 w-3.5 text-accent shrink-0" />
+                      <span className="hidden sm:inline">Visite guidée</span>
+                    </button>
+
+                    {/* Bouton Aide Expert & Étude */}
+                    <button
+                      type="button"
+                      onClick={() => onOpenExpertModal?.(null)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/20 px-2.5 sm:px-3 h-9 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs"
+                      title="Demander l'aide d'un expert Aegis Solaire (% projet à négocier selon l'envergure)"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
+                      <span className="hidden min-[400px]:inline">Aide Expert</span>
+                    </button>
+                  </div>
+
+                  {/* Switcher Grille / Tableau */}
+                  <div className="inline-flex items-center rounded-xl border border-border bg-secondary p-0.5 h-9 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("grid")}
+                      className={`rounded-lg p-1.5 transition-colors cursor-pointer ${
+                        viewMode === "grid"
+                          ? "bg-primary text-primary-foreground shadow-2xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      title="Vue grille (Cartes)"
+                      aria-label="Vue grille"
+                    >
+                      <LayoutGrid className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("table")}
+                      className={`rounded-lg p-1.5 transition-colors cursor-pointer ${
+                        viewMode === "table"
+                          ? "bg-primary text-primary-foreground shadow-2xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      title="Vue liste dense"
+                      aria-label="Vue liste dense"
+                    >
+                      <List className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Province CustomSelect stylisé comme le bouton */}
-            <CustomSelect
-              value={selectedProvince}
-              onChange={(val) => setSelectedProvince(val)}
-              options={PROVINCE_OPTIONS}
-              icon={MapPin}
-              ariaLabel="Filtrer par province"
-            />
-          </div>
+            {/* Ligne 2 : Statut opérationnel épuré sans débordement */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-border/70 text-xs">
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-muted-foreground font-medium">
+                <span className="flex items-center gap-1.5 text-foreground">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <strong className="font-mono text-foreground font-bold tabular-nums">{kpis.totalLeads}</strong> chantiers
+                  disponibles
+                </span>
 
-          {/* Recherche, Tri, Visite guidée & Switcher Grille / Tableau */}
-          <div className="flex flex-wrap items-center gap-2 flex-1 lg:max-w-2xl justify-end">
-            {/* Recherche textuelle compacte */}
-            <div className="relative flex-1 min-w-[180px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Commune, code postal..."
-                className="w-full rounded-xl border border-border bg-card pl-8.5 pr-8 py-1.5 text-xs text-foreground placeholder:text-muted-foreground outline-hidden focus:border-primary focus:ring-1 focus:ring-primary h-9 transition-all"
-                aria-label="Rechercher un chantier"
-              />
-              {searchQuery && (
+                <span className="text-border">•</span>
+
+                <span className="flex items-center gap-1 font-mono text-foreground">
+                  <Zap className="h-3.5 w-3.5 text-foreground shrink-0" />
+                  <strong className="text-foreground font-bold tabular-nums">
+                    {Math.round(kpis.totalPower).toLocaleString("fr-BE")}
+                  </strong>{" "}
+                  kWc cumulés
+                </span>
+
+                <span className="text-border">•</span>
+
+                <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-bold">
+                  <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+                  Garantie anti-fake 100% remboursé
+                </span>
+              </div>
+
+              {hasActiveFilters && (
                 <button
                   type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground cursor-pointer"
-                  title="Effacer"
+                  onClick={resetFilters}
+                  className="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold text-accent hover:underline cursor-pointer self-start sm:self-auto"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <RotateCcw className="h-3 w-3" />
+                  <span>Réinitialiser les filtres</span>
                 </button>
               )}
             </div>
-
-            {/* Tri CustomSelect au style identique au bouton */}
-            <CustomSelect
-              value={sortBy}
-              onChange={(val) => setSortBy(val as any)}
-              options={SORT_OPTIONS}
-              icon={ArrowUpDown}
-              ariaLabel="Trier les chantiers"
-              contentClassName="min-w-[280px] sm:min-w-[300px]"
-            />
-
-            {/* Bouton Visite guidée */}
-            <button
-              type="button"
-              onClick={() => setShowTutorial(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card hover:bg-secondary px-3 h-9 text-xs font-semibold text-foreground transition-all cursor-pointer shadow-2xs hover:border-accent/40"
-              title="Lancer la visite guidée interactive de la marketplace"
-            >
-              <Compass className="h-3.5 w-3.5 text-accent shrink-0" />
-              <span className="hidden sm:inline">Visite guidée</span>
-            </button>
-
-            {/* Bouton Aide Expert & Étude */}
-            <button
-              type="button"
-              onClick={() => onOpenExpertModal?.(null)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/20 px-3 h-9 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs"
-              title="Demander l'aide d'un expert Aegis Solaire (% projet à négocier selon l'envergure)"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
-              <span>Aide Expert &amp; Étude</span>
-            </button>
-
-            {/* Switcher Grille / Tableau */}
-            <div className="inline-flex items-center rounded-xl border border-border bg-secondary p-0.5 h-9">
-              <button
-                type="button"
-                onClick={() => setViewMode("grid")}
-                className={`rounded-lg p-1.5 transition-colors cursor-pointer ${
-                  viewMode === "grid"
-                    ? "bg-primary text-primary-foreground shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                title="Vue grille (Cartes)"
-                aria-label="Vue grille"
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("table")}
-                className={`rounded-lg p-1.5 transition-colors cursor-pointer ${
-                  viewMode === "table"
-                    ? "bg-primary text-primary-foreground shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                title="Vue liste dense"
-                aria-label="Vue liste dense"
-              >
-                <List className="h-4 w-4" />
-              </button>
-            </div>
           </div>
-        </div>
-
-        {/* Ligne 2 : Statut opérationnel épuré avec séparateurs verticaux comme sur l'image */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-border/70 text-xs">
-          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 text-muted-foreground font-medium">
-            <span className="flex items-center gap-1.5 text-foreground">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              <strong className="font-mono text-foreground font-bold tabular-nums">{kpis.totalLeads}</strong> chantiers
-              disponibles
-            </span>
-
-            <span className="text-border">|</span>
-
-            <span className="flex items-center gap-1 font-mono text-foreground">
-              <Zap className="h-3.5 w-3.5 text-foreground shrink-0" />
-              <strong className="text-foreground font-bold tabular-nums">
-                {Math.round(kpis.totalPower).toLocaleString("fr-BE")}
-              </strong>{" "}
-              kWc cumulés
-            </span>
-
-            <span className="text-border">|</span>
-
-            <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-bold">
-              <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
-              Garantie anti-fake 100% remboursé
-            </span>
-
-            <span className="text-border hidden md:inline">|</span>
-
-            <button
-              type="button"
-              onClick={() => onOpenExpertModal?.(null)}
-              className="inline-flex items-center gap-1 text-accent hover:underline font-semibold cursor-pointer text-xs"
-              title="Demander une étude de marché ou de dimensionnement (% projet à négocier)"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
-              <span>Étude expert &amp; Dimensionnement (% projet à négocier)</span>
-            </button>
-          </div>
-
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold text-accent hover:underline cursor-pointer self-start sm:self-auto"
-            >
-              <RotateCcw className="h-3 w-3" />
-              <span>Réinitialiser les filtres</span>
-            </button>
-          )}
-        </div>
-      </div>
 
       {/* ── 2. Rendu des Opportunités : Grille de Cartes Réalistes ou Tableau ── */}
       {filteredLeads.length === 0 ? (
@@ -1127,12 +1145,119 @@ export function MarketplaceFeedView({
           ))}
         </div>
       ) : (
-        /* ── Vue Liste Dense Haute-Productivité ── */
-        <div className="flex flex-col gap-1.5">
-          <div className="block sm:hidden text-center text-[11px] font-mono text-muted-foreground py-0.5">
-            ↔ Glisser horizontalement pour voir toutes les colonnes
+        /* ── Vue Liste Dense Haute-Productivité (Mobile Card-List + Desktop 8-Col Table) ── */
+        <div className="flex flex-col gap-3">
+          {/* Version Mobile (< md) : Fiches denses ultra-lisibles */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {filteredLeads.map((lead) => {
+              const isB2B = lead.segment === "B2B"
+              const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
+              const remainingSlots = lead.remaining_slots ?? maxSlots
+              const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
+              const isBuying = buyingId === lead.id
+              const surfaceArea = Math.max(0, Number(lead.surface_area || lead.surface_area_m2) || 0)
+              const annualBill = Math.max(0, Number(lead.annual_electricity_bill || lead.annual_bill_eur) || 0)
+
+              const financials = calculateMarketplaceFinancials({
+                segment: lead.segment,
+                surfaceArea,
+                surfaceType: lead.surface_type,
+                roofMaterial: lead.roof_material,
+                annualBill,
+                creditCost: cost,
+                estimatedPowerKwc: lead.estimated_power_kwc,
+                projectDetails: lead.project_details ?? lead.message,
+                qualificationMetadata: lead.qualification_metadata,
+              })
+
+              const location = getLeadLocationInfo(lead)
+              const freshness = getLeadFreshness(lead.created_at)
+              const powerKwc = financials.estimatedPowerKwc
+              const marginText = formatRoundedCurrency(financials.estimatedInstallerMargin || 0)
+
+              return (
+                <div
+                  key={lead.id}
+                  onClick={() => setSelectedLeadForDrawer(lead)}
+                  className="rounded-2xl border border-border bg-card p-3.5 shadow-xs flex flex-col gap-2.5 cursor-pointer hover:border-accent/40 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span
+                          className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                            isB2B
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-secondary text-foreground border border-border"
+                          }`}
+                        >
+                          {isB2B ? "B2B Exclusif" : `B2C (${remainingSlots}/${maxSlots})`}
+                        </span>
+                        <span className="font-mono text-[10px] text-muted-foreground flex items-center gap-1">
+                          <span className={`h-1.5 w-1.5 rounded-full ${freshness.dotClass}`} />
+                          {freshness.label}
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-sm text-foreground truncate mt-1">
+                        {location.fullTitle}
+                      </h3>
+                      <p className="text-xs text-muted-foreground truncate">{location.provinceLabel}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-xl font-extrabold font-mono text-foreground tabular-nums">
+                        {powerKwc > 0 ? powerKwc : "—"}
+                      </span>
+                      <span className="text-[10px] font-bold text-muted-foreground ml-1">kWc</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs py-2 border-y border-border/60">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block font-mono">TOITURE</span>
+                      <span className="font-medium text-foreground truncate block">
+                        {surfaceArea > 0 ? `${surfaceArea} m² · ` : ""}{getRoofMaterialLabel(lead.roof_material)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block font-mono">MARGE ESTIMÉE</span>
+                      <span className="font-bold font-mono text-accent tabular-nums block">
+                        {marginText}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-0.5">
+                    <div className="flex items-baseline gap-1 font-mono text-xs">
+                      <span className="font-bold text-foreground">{cost} crédits</span>
+                      <span className="text-[10px] text-muted-foreground">({formatEurWithDecimals(financials.leadCostEuros)})</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedLeadForDrawer(lead)}
+                        className="rounded-lg border border-border bg-secondary hover:bg-secondary/80 px-2.5 py-1.5 text-xs font-semibold text-foreground cursor-pointer flex items-center gap-1"
+                      >
+                        <Eye className="h-3.5 w-3.5 text-accent" />
+                        <span>Voir</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isBuying}
+                        onClick={() => handlePurchase(lead)}
+                        className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1.5 text-xs font-bold cursor-pointer flex items-center gap-1 disabled:opacity-60"
+                      >
+                        {isBuying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
+                        <span>Débloquer</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
-          <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-xs overscroll-x-contain">
+
+          {/* Version Desktop (md+) : Tableau 8 colonnes dense haute productivité */}
+          <div className="hidden md:block overflow-x-auto rounded-2xl border border-border bg-card shadow-xs overscroll-x-contain">
             <table className="w-full min-w-[840px] text-left text-xs">
               <thead className="border-b border-border bg-secondary/60 text-[11px] font-bold uppercase text-muted-foreground sticky top-0">
                 <tr>
@@ -1450,15 +1575,15 @@ function MarketplaceLeadCard({
           onInspect()
         }
       }}
-      className={`group relative flex flex-col justify-between rounded-3xl border bg-white shadow-xs hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden text-left ${
+      className={`group relative flex flex-col justify-between rounded-3xl border bg-card shadow-xs hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden text-left ${
         isTargeted
-          ? "border-blue-500 ring-2 ring-blue-500/30 shadow-md"
-          : "border-slate-200/90 hover:border-slate-300"
+          ? "border-accent ring-2 ring-accent/30 shadow-md"
+          : "border-border hover:border-accent/40"
       }`}
     >
       <div className="flex flex-col">
         {/* ── A. Photo de toiture avec badges superposés et mention non contractuelle ── */}
-        <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-slate-100">
+        <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-muted">
           <Image
             src={leadImage}
             alt={`Chantier solaire ${location.city}`}
@@ -1475,11 +1600,11 @@ function MarketplaceLeadCard({
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 pointer-events-none">
             {/* Badge Modèle */}
             {isB2B ? (
-              <span className="inline-flex items-center rounded-full bg-slate-900/80 backdrop-blur-xs text-white text-xs font-semibold px-3.5 py-1.5 shadow-sm">
+              <span className="inline-flex items-center rounded-full bg-black/75 backdrop-blur-xs text-white text-xs font-semibold px-3 py-1.5 shadow-sm">
                 B2B • 100% Exclusif
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-900/80 backdrop-blur-xs text-white text-xs font-medium px-3.5 py-1.5 shadow-sm">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-black/75 backdrop-blur-xs text-white text-xs font-medium px-3 py-1.5 shadow-sm">
                 <span className="font-semibold">B2C</span>
                 <span className="text-white/60" aria-hidden="true">•</span>
                 <span className="inline-flex items-center gap-1" aria-hidden="true">
@@ -1491,13 +1616,13 @@ function MarketplaceLeadCard({
                     />
                   ))}
                 </span>
-                <span className="tabular-nums">{slotIndicator.text}</span>
+                <span className="tabular-nums font-mono">{slotIndicator.text}</span>
               </span>
             )}
 
             {/* Badge Fraîcheur / Date */}
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white text-slate-800 text-xs font-semibold px-3 py-1.5 shadow-sm">
-              <Calendar className="h-3.5 w-3.5 text-slate-500" />
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-card/95 text-foreground text-xs font-semibold px-3 py-1.5 shadow-sm">
+              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
               <span suppressHydrationWarning>{freshness.label}</span>
             </span>
           </div>
@@ -1517,56 +1642,56 @@ function MarketplaceLeadCard({
         <div className="p-4 sm:p-5 flex flex-col gap-3">
           {/* Ligne 1 : Titre à gauche & Puissance kWc à droite */}
           <div className="flex items-baseline justify-between gap-2">
-            <h3 className="font-bold text-base sm:text-[17px] text-slate-900 tracking-tight leading-tight group-hover:text-blue-900 transition-colors truncate min-w-0">
+            <h3 className="font-bold text-base sm:text-[17px] text-foreground tracking-tight leading-tight group-hover:text-accent transition-colors truncate min-w-0">
               {location.fullTitle}
             </h3>
             <div className="text-right shrink-0 flex items-baseline justify-end gap-1 pl-1.5">
               <span className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono tracking-tight tabular-nums">
                 {powerKwc > 0 ? powerKwc : "—"}
               </span>
-              <span className="text-xs font-bold text-slate-500 lowercase">
+              <span className="text-xs font-bold text-muted-foreground lowercase">
                 kWc
               </span>
             </div>
           </div>
 
           {/* Ligne 2 : Localisation & Bâtiment sur toute la largeur (Garanti sans coupure) */}
-          <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5 -mt-1">
-            <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+          <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5 -mt-1">
+            <MapPin className="h-3.5 w-3.5 text-muted-foreground/80 shrink-0" />
             <span className="truncate">{location.subtitle}</span>
           </p>
 
           {/* Ligne 3 : Badge Projet premium */}
           <div className="-mt-1">
             {isPremium ? (
-              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-semibold">
+              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
                 <span className="text-emerald-500 font-bold">—</span>
                 <span>Projet premium</span>
               </div>
             ) : (
-              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold">
-                <span className="text-slate-400 font-bold">—</span>
+              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground text-xs font-semibold">
+                <span className="text-muted-foreground font-bold">—</span>
                 <span>Projet qualifié</span>
               </div>
             )}
           </div>
 
           {/* Ligne 4 : Grille Technique 2x2 dans un encart clair dédié */}
-          <div className="rounded-2xl bg-muted border border-border p-3 sm:p-3.5 grid grid-cols-2 gap-2.5 sm:gap-3 text-xs">
+          <div className="rounded-2xl bg-secondary/40 border border-border p-3 sm:p-3.5 grid grid-cols-2 gap-2.5 sm:gap-3 text-xs">
             {/* 1. Toiture & Surface */}
             <div className="flex items-start gap-2 min-w-0">
-              <Home className="h-4 w-4 text-slate-700 shrink-0 mt-0.5" />
+              <Home className="h-4 w-4 text-foreground/80 shrink-0 mt-0.5" />
               <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block font-mono">
                   TOITURE &amp; SURFACE
                 </span>
                 <span
-                  className="font-bold text-[11px] sm:text-xs text-slate-900 leading-tight block truncate"
+                  className="font-bold text-[11px] sm:text-xs text-foreground leading-tight block truncate"
                   title={surfaceArea > 0 ? `${surfaceArea} m² · ${rawRoof}` : "Toiture standard"}
                 >
                   {surfaceArea > 0 ? (
                     <>
-                      <span className="tabular-nums">{surfaceArea} m²</span> ·{" "}
+                      <span className="tabular-nums font-mono">{surfaceArea} m²</span> ·{" "}
                       <span>{roofDisplay}</span>
                     </>
                   ) : (
@@ -1578,13 +1703,13 @@ function MarketplaceLeadCard({
 
             {/* 2. Facture Élec */}
             <div className="flex items-start gap-2 min-w-0">
-              <FileText className="h-4 w-4 text-slate-700 shrink-0 mt-0.5" />
+              <FileText className="h-4 w-4 text-foreground/80 shrink-0 mt-0.5" />
               <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block font-mono">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block font-mono">
                   FACTURE ÉLEC.
                 </span>
                 <span
-                  className="text-[11px] sm:text-xs font-bold text-slate-900 leading-tight block truncate font-mono"
+                  className="text-[11px] sm:text-xs font-bold text-foreground leading-tight block truncate font-mono"
                   title={
                     annualBill > 0 && financials.estimatedAnnualConsumptionKwh > 0
                       ? `${annualBill.toLocaleString("fr-BE")} €/an (≈ ${financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh/an)`
@@ -1592,10 +1717,10 @@ function MarketplaceLeadCard({
                   }
                 >
                   {annualBill > 0 ? (
-                    <span className="tabular-nums">
+                    <span className="tabular-nums font-mono">
                       {annualBill.toLocaleString("fr-BE")} €/an
                       {financials.estimatedAnnualConsumptionKwh > 0 && (
-                        <span className="text-[10px] font-normal text-slate-500 ml-1">
+                        <span className="text-[10px] font-normal text-muted-foreground ml-1">
                           (≈ {financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh)
                         </span>
                       )}
@@ -1611,12 +1736,12 @@ function MarketplaceLeadCard({
 
             {/* 3. Échéance */}
             <div className="flex items-start gap-2 min-w-0">
-              <Calendar className="h-4 w-4 text-slate-700 shrink-0 mt-0.5" />
+              <Calendar className="h-4 w-4 text-foreground/80 shrink-0 mt-0.5" />
               <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block font-mono">
                   ÉCHÉANCE
                 </span>
-                <span className="font-bold text-[11px] sm:text-xs text-slate-900 leading-tight block truncate">
+                <span className="font-bold text-[11px] sm:text-xs text-foreground leading-tight block truncate">
                   {getTimeframeLabel(lead.timeframe || lead.project_timeline)}
                 </span>
               </div>
@@ -1624,13 +1749,13 @@ function MarketplaceLeadCard({
 
             {/* 4. Décisionnaire */}
             <div className="flex items-start gap-2 min-w-0">
-              <User className="h-4 w-4 text-slate-700 shrink-0 mt-0.5" />
+              <User className="h-4 w-4 text-foreground/80 shrink-0 mt-0.5" />
               <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block font-mono">
                   DÉCISIONNAIRE
                 </span>
                 <span
-                  className="font-bold text-[11px] sm:text-xs text-slate-900 leading-tight block truncate"
+                  className="font-bold text-[11px] sm:text-xs text-foreground leading-tight block truncate"
                   title={getOwnershipLabel(lead.ownership_status)}
                 >
                   {getOwnershipLabel(lead.ownership_status)}
@@ -1639,7 +1764,7 @@ function MarketplaceLeadCard({
             </div>
           </div>
 
-          {/* Ligne 3 : Encadré d'Économie & Marge Indicative (Teinte bleue douce) */}
+          {/* Ligne 5 : Encadré d'Économie & Marge Indicative (Teinte bleue douce) */}
           <div className="rounded-2xl bg-accent/10 border border-accent/20 p-3 sm:p-3.5 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <div className="h-7 w-7 rounded-lg bg-accent/15 text-accent flex items-center justify-center shrink-0">
@@ -1661,14 +1786,14 @@ function MarketplaceLeadCard({
                 <span className="text-[11px] sm:text-xs font-semibold text-accent block">
                   Estimation du chantier
                 </span>
-                <span className="font-bold text-[11px] sm:text-xs text-slate-900 font-mono tabular-nums block whitespace-nowrap">
+                <span className="font-bold text-[11px] sm:text-xs text-foreground font-mono tabular-nums block whitespace-nowrap">
                   {rangeText}
                 </span>
               </div>
             </div>
 
             <div className="text-right shrink-0 pl-1.5">
-              <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 block text-right">
+              <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground block text-right font-mono">
                 MARGE INDICATIVE
               </span>
               <span className="text-xs sm:text-sm font-extrabold text-accent font-mono tabular-nums block text-right whitespace-nowrap">
@@ -1680,11 +1805,11 @@ function MarketplaceLeadCard({
       </div>
 
       {/* ── C. Pied de Carte : Coût en Crédits & Boutons Pilules (Inspecter & Débloquer) ── */}
-      <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+      <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-3 border-t border-border flex flex-wrap items-center justify-between gap-2">
         {/* Crédits avec icône pile de pièces - Garanti sans retour à la ligne */}
         <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
           <svg
-            className="h-4 w-4 sm:h-5 sm:w-5 text-slate-700 shrink-0"
+            className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -1698,21 +1823,21 @@ function MarketplaceLeadCard({
             <path d="M4 11v5c0 1.66 3.58 3 8 3s8-1.34 8-3v-5" />
           </svg>
           <div className="flex items-baseline gap-1">
-            <span className="font-bold text-xs sm:text-sm text-slate-900 font-mono tabular-nums">
+            <span className="font-bold text-xs sm:text-sm text-foreground font-mono tabular-nums">
               {cost} crédits
             </span>
-            <span className="text-[11px] text-slate-400 font-mono tabular-nums">
+            <span className="text-[11px] text-muted-foreground font-mono tabular-nums">
               ({formatEurWithDecimals(financials.leadCostEuros)})
             </span>
           </div>
         </div>
 
         {/* Boutons d'action pilules compacts */}
-        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
             onClick={onInspect}
-            className="rounded-full border border-slate-200 bg-white hover:bg-slate-50 px-3 sm:px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-1 shrink-0"
+            className="rounded-full border border-border bg-card hover:bg-secondary px-3 sm:px-3.5 py-1.5 text-xs font-semibold text-foreground shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-1 shrink-0"
             title="Inspecter la fiche technique complète"
           >
             <Eye className="h-3.5 w-3.5 text-accent" />
@@ -1732,7 +1857,7 @@ function MarketplaceLeadCard({
               </>
             ) : (
               <>
-                <Lock className="h-3.5 w-3.5 text-white" />
+                <Lock className="h-3.5 w-3.5 text-primary-foreground" />
                 <span>Débloquer</span>
               </>
             )}

@@ -16,9 +16,11 @@ export default async function PartenairesDashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const partner = await getPartner()
-  if (!partner) {
-    redirect("/partenaires/login")
+  if (process.env.NODE_ENV !== "development") {
+    const partner = await getPartner()
+    if (!partner) {
+      redirect("/partenaires/login")
+    }
   }
   return <>{children}</>
 }

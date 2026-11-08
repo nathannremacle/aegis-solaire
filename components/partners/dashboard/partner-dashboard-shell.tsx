@@ -77,12 +77,12 @@ export function PartnerDashboardShell({
     <div className="min-h-screen bg-background">
       {/* ── 1. Topbar Applicative Unique (64px) — Gain de 220px utiles dès le chargement ── */}
       <header className="sticky top-0 z-40 w-full border-b border-border bg-card/95 backdrop-blur-md shadow-2xs">
-        <div className="mx-auto flex h-16 max-w-[1720px] items-center justify-between gap-1 sm:gap-3 px-2 sm:px-6 lg:px-8">
-          {/* Gauche : Logo Aegis + Navigation par Onglets Intégrés */}
-          <div className="flex items-center gap-1.5 sm:gap-6 min-w-0">
+        <div className="mx-auto flex h-14 sm:h-16 max-w-[1720px] items-center justify-between gap-2 px-3 sm:px-6 lg:px-8">
+          {/* Gauche : Logo Aegis + Navigation par Onglets Intégrés (Desktop) */}
+          <div className="flex items-center gap-3 sm:gap-6 min-w-0">
             <Link
               href="/"
-              className="relative h-6 w-16 min-[380px]:h-7 min-[380px]:w-20 sm:h-9 sm:w-32 shrink-0 transition-opacity hover:opacity-90"
+              className="relative h-7 w-24 sm:h-9 sm:w-32 shrink-0 transition-opacity hover:opacity-90"
               title="Retour au site Aegis Solaire"
             >
               <Image
@@ -94,22 +94,21 @@ export function PartnerDashboardShell({
               />
             </Link>
 
-            {/* Navigation Tabs Intégrée */}
-            <nav aria-label="Espaces du portail" className="flex items-center gap-1 sm:gap-1.5">
+            {/* Navigation Tabs Intégrée (Visible sur Desktop md+, déportée en Bottom Bar sur mobile) */}
+            <nav aria-label="Espaces du portail" className="hidden md:flex items-center gap-1 sm:gap-1.5">
               <button
                 type="button"
                 onClick={() => setActiveTab("marketplace")}
-                className={`flex items-center gap-1 sm:gap-2 rounded-xl px-1.5 min-[380px]:px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 sm:gap-2 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                   activeTab === "marketplace"
                     ? "bg-primary text-primary-foreground font-bold shadow-2xs"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                 }`}
               >
-                <Store className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-accent shrink-0" />
-                <span className="hidden sm:inline">Marketplace</span>
-                <span className="sm:hidden text-[11px] min-[380px]:text-xs">Market</span>
+                <Store className="h-4 w-4 text-accent shrink-0" />
+                <span>Marketplace</span>
                 <span
-                  className={`rounded-full px-1 min-[380px]:px-1.5 py-0.2 text-[10px] sm:text-[11px] font-mono font-bold tabular-nums shrink-0 ${
+                  className={`rounded-full px-1.5 py-0.2 text-[10px] sm:text-[11px] font-mono font-bold tabular-nums shrink-0 ${
                     activeTab === "marketplace"
                       ? "bg-primary-foreground/20 text-primary-foreground"
                       : "bg-secondary text-foreground"
@@ -122,17 +121,16 @@ export function PartnerDashboardShell({
               <button
                 type="button"
                 onClick={() => setActiveTab("portfolio")}
-                className={`flex items-center gap-1 sm:gap-2 rounded-xl px-1.5 min-[380px]:px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 sm:gap-2 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                   activeTab === "portfolio"
                     ? "bg-primary text-primary-foreground font-bold shadow-2xs"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                 }`}
               >
-                <Briefcase className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-accent shrink-0" />
-                <span className="hidden sm:inline">Mon CRM</span>
-                <span className="sm:hidden text-[11px] min-[380px]:text-xs">CRM</span>
+                <Briefcase className="h-4 w-4 text-accent shrink-0" />
+                <span>Mon CRM</span>
                 <span
-                  className={`rounded-full px-1 min-[380px]:px-1.5 py-0.2 text-[10px] sm:text-[11px] font-mono font-bold tabular-nums shrink-0 ${
+                  className={`rounded-full px-1.5 py-0.2 text-[10px] sm:text-[11px] font-mono font-bold tabular-nums shrink-0 ${
                     activeTab === "portfolio"
                       ? "bg-primary-foreground/20 text-primary-foreground"
                       : "bg-secondary text-foreground"
@@ -146,7 +144,7 @@ export function PartnerDashboardShell({
               <button
                 type="button"
                 onClick={() => setIsPrefsOpen(true)}
-                className="hidden md:inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer"
+                className="hidden lg:inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer"
                 title="Gérer mes alertes e-mail et SMS"
               >
                 <Bell className="h-3.5 w-3.5 text-accent shrink-0" />
@@ -155,7 +153,7 @@ export function PartnerDashboardShell({
 
               <Link
                 href="/partenaires/dashboard/credits"
-                className="hidden md:inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all"
+                className="hidden lg:inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all"
                 title="Historique des factures et achats de packs"
               >
                 <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -169,14 +167,13 @@ export function PartnerDashboardShell({
                   setSelectedLeadForExpert(null)
                   setIsExpertOpen(true)
                 }}
-                className="flex items-center gap-1 sm:gap-1.5 rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/20 px-1.5 min-[380px]:px-2 sm:px-2.5 py-1.5 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/20 px-2 sm:px-2.5 py-1.5 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs"
                 title="Demander l'aide d'un expert Aegis Solaire (étude de marché, dimensionnement, rentabilité B2B)"
                 aria-label="Aide Expert"
               >
                 <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
-                <span className="hidden sm:inline">Aide Expert</span>
-                <span className="hidden min-[380px]:inline sm:hidden text-xs">Expert</span>
-                <span className="hidden md:inline rounded bg-accent/20 text-accent font-mono text-[9px] px-1 py-0.2 uppercase font-extrabold tracking-wider">
+                <span>Aide Expert</span>
+                <span className="hidden xl:inline rounded bg-accent/20 text-accent font-mono text-[9px] px-1 py-0.2 uppercase font-extrabold tracking-wider">
                   Inclus
                 </span>
               </button>
@@ -184,7 +181,7 @@ export function PartnerDashboardShell({
           </div>
 
           {/* Droite : Badge Statut, Solde Portefeuille & Menu Profil */}
-          <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {/* Badge de statut partenaire (cliquable vers le palier) */}
             <button
               type="button"
@@ -202,13 +199,13 @@ export function PartnerDashboardShell({
             <button
               type="button"
               onClick={() => setIsCreditsOpen(true)}
-              className="flex items-center gap-1 sm:gap-2 rounded-xl border border-accent/30 bg-accent/10 hover:bg-accent/15 px-2 sm:px-3 py-1.5 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs"
+              className="flex items-center gap-1.5 sm:gap-2 rounded-xl border border-accent/30 bg-accent/10 hover:bg-accent/15 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs"
               title="Gérer mes crédits de déblocage"
             >
               <Coins className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-accent shrink-0" />
               <span className="font-mono tabular-nums text-foreground">{credits}</span>
               <span className="hidden sm:inline text-muted-foreground font-normal">crédits</span>
-              <span className="rounded-md bg-accent text-accent-foreground px-1 sm:px-1.5 py-0.5 text-[10px] font-bold tracking-tight">
+              <span className="rounded-md bg-accent text-accent-foreground px-1.5 py-0.5 text-[10px] font-bold tracking-tight">
                 <span className="hidden sm:inline">+ Recharger</span>
                 <span className="sm:hidden">+</span>
               </span>
@@ -223,7 +220,7 @@ export function PartnerDashboardShell({
                 className="h-8 w-8 sm:w-auto p-0 sm:px-2.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
                 title="Déconnexion de l'espace partenaire"
               >
-                <LogOut className="h-3.5 w-3.5 sm:mr-1.5" />
+                <LogOut className="h-4 w-4 sm:mr-1.5" />
                 <span className="hidden sm:inline">Quitter</span>
               </Button>
             </form>
@@ -232,10 +229,10 @@ export function PartnerDashboardShell({
       </header>
 
       {/* ── 2. Contenu Principal ── */}
-      <main className="mx-auto max-w-[1720px] px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
+      <main className="mx-auto max-w-[1720px] px-3 py-4 sm:px-6 sm:py-6 lg:px-8 pb-24 md:pb-8">
         {/* En-tête Institutionnel avec H1 Unique et Bannière Énergie Propre */}
-        <div className="mb-5 sm:mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-border/80 pb-4">
-          <div className="flex flex-col gap-1">
+        <div className="mb-4 sm:mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4 border-b border-border/80 pb-3 sm:pb-4">
+          <div className="flex flex-col gap-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-mono text-[10px] sm:text-xs uppercase tracking-wider text-accent font-semibold">
                 RÉSEAU OFFICIEL · INSTALLATEURS WALLONIE
@@ -262,7 +259,7 @@ export function PartnerDashboardShell({
           </div>
 
           {activeTab === "marketplace" && !activeTargetLeadId && (
-            <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-r from-emerald-50/70 via-card to-card p-3 sm:p-3.5 shadow-xs flex items-center gap-3.5 max-w-md shrink-0">
+            <div className="hidden md:flex relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-r from-emerald-50/70 via-card to-card p-3 sm:p-3.5 shadow-xs items-center gap-3.5 max-w-md shrink-0">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600">
                 <Leaf className="h-5 w-5" />
               </div>
@@ -315,7 +312,82 @@ export function PartnerDashboardShell({
         )}
       </main>
 
-      {/* ── 3. Modales chargées à la demande uniquement ── */}
+      {/* ── 3. Barre de Navigation Basse Mobile (Mobile Bottom Navigation Bar) ── */}
+      <nav
+        aria-label="Navigation mobile"
+        className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-card/95 backdrop-blur-md border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.05)] [padding-bottom:max(0.5rem,env(safe-area-inset-bottom))]"
+      >
+        <div className="grid grid-cols-4 h-14 max-w-lg mx-auto">
+          {/* Tab 1: Marketplace */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("marketplace")}
+            className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${
+              activeTab === "marketplace"
+                ? "text-primary font-bold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <div className="relative">
+              <Store className={`h-5 w-5 ${activeTab === "marketplace" ? "text-primary" : "text-muted-foreground"}`} />
+              {marketplace.length > 0 && (
+                <span className="absolute -top-1 -right-2.5 rounded-full bg-accent text-accent-foreground px-1 py-0.2 text-[9px] font-mono font-bold tabular-nums shadow-2xs">
+                  {marketplace.length}
+                </span>
+              )}
+            </div>
+            <span>Marketplace</span>
+          </button>
+
+          {/* Tab 2: Mon CRM */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("portfolio")}
+            className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${
+              activeTab === "portfolio"
+                ? "text-primary font-bold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <div className="relative">
+              <Briefcase className={`h-5 w-5 ${activeTab === "portfolio" ? "text-primary" : "text-muted-foreground"}`} />
+              {portfolio.length > 0 && (
+                <span className="absolute -top-1 -right-2.5 rounded-full bg-primary text-primary-foreground px-1 py-0.2 text-[9px] font-mono font-bold tabular-nums shadow-2xs">
+                  {portfolio.length}
+                </span>
+              )}
+            </div>
+            <span>Mon CRM</span>
+          </button>
+
+          {/* Tab 3: Recharger */}
+          <button
+            type="button"
+            onClick={() => setIsCreditsOpen(true)}
+            className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          >
+            <div className="relative">
+              <Coins className="h-5 w-5 text-accent" />
+            </div>
+            <span>Recharger</span>
+          </button>
+
+          {/* Tab 4: Aide Expert */}
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedLeadForExpert(null)
+              setIsExpertOpen(true)
+            }}
+            className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          >
+            <Sparkles className="h-5 w-5 text-accent" />
+            <span>Aide Expert</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* ── 4. Modales chargées à la demande uniquement ── */}
       {disputePurchase && (
         <DisputeClaimModal
           purchase={disputePurchase}
