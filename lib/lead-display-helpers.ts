@@ -365,8 +365,15 @@ export function formatRoundedCurrency(amount: number): string {
   } else if (amount >= 1_000) {
     // Arrondi aux 100 € pour les petits montants
     rounded = Math.round(amount / 100) * 100
+  } else if (amount >= 100) {
+    // Arrondi aux 10 € pour les montants intermédiaires
+    rounded = Math.round(amount / 10) * 10
   } else {
-    rounded = Math.round(amount / 50) * 50
+    // Pour les montants inférieurs à 100 €, ne jamais arrondir à 50 €
+    return `~${amount.toLocaleString("fr-BE", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })} € HT`
   }
 
   return `~${rounded.toLocaleString("fr-BE")} € HT`

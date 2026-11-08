@@ -26,6 +26,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
+import { formatEurWithDecimals } from "@/lib/credit-pricing"
 import {
   getLeadLocationInfo,
   sanitizeLeadNotes,
@@ -498,7 +499,7 @@ export function LeadInspectionDrawer({
                   <span className="font-mono text-2xl font-black text-foreground tabular-nums">{cost}</span>
                   <span className="text-xs font-bold text-muted-foreground">crédits</span>
                   <span className="font-mono text-xs text-muted-foreground tabular-nums ml-1">
-                    ({financials.leadCostEuros.toFixed(2)} € HT)
+                    ({formatEurWithDecimals(financials.leadCostEuros)})
                   </span>
                 </div>
                 <div className="text-[11px] text-muted-foreground">

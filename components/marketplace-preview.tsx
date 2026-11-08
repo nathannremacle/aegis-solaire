@@ -35,6 +35,7 @@ import {
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
+import { formatEurWithDecimals } from "@/lib/credit-pricing"
 import {
   getLeadLocationInfo,
   formatRoundedCurrency,
@@ -484,7 +485,7 @@ function MarketplaceLeadCardPreview({
               {cost} crédits
             </span>
             <span className="text-[11px] text-slate-400 font-mono tabular-nums">
-              ({financials.leadCostEuros.toFixed(2)} € HT)
+              ({formatEurWithDecimals(financials.leadCostEuros)})
             </span>
           </div>
         </div>
@@ -940,7 +941,7 @@ export function MarketplaceLivePreview() {
                       <td className="px-4 py-3 whitespace-nowrap font-mono text-foreground font-bold tabular-nums">
                         <div>{cost} crédits</div>
                         <div className="text-[10px] text-muted-foreground font-normal">
-                          {financials.leadCostEuros.toFixed(2)} € HT
+                          {formatEurWithDecimals(financials.leadCostEuros)}
                         </div>
                       </td>
 

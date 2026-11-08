@@ -44,6 +44,7 @@ import {
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
+import { formatEurWithDecimals } from "@/lib/credit-pricing"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 import {
   getLeadLocationInfo,
@@ -565,14 +566,14 @@ export function MarketplaceFeedView({
             <div className="rounded-xl border border-border bg-card p-3.5 shadow-2xs">
               <span className="text-[11px] text-muted-foreground block font-medium">Marge brute indicative</span>
               <span className="text-base sm:text-lg font-mono font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums mt-0.5 block">
-                {targetFinancials ? `~${formatRoundedCurrency(targetFinancials.estimatedInstallerMargin)}` : "—"}
+                {targetFinancials ? formatRoundedCurrency(targetFinancials.estimatedInstallerMargin) : "—"}
               </span>
             </div>
 
             <div className="col-span-2 sm:col-span-1 rounded-xl border border-accent/40 bg-accent/10 p-3.5 shadow-2xs">
               <span className="text-[11px] text-muted-foreground block font-medium">Coût d'acquisition</span>
               <span className="text-base sm:text-lg font-mono font-extrabold text-foreground tabular-nums mt-0.5 block">
-                {targetCost} crédits <span className="text-xs font-normal text-muted-foreground">(~{targetFinancials ? formatRoundedCurrency(targetFinancials.leadCostEuros) : "—"})</span>
+                {targetCost} crédits <span className="text-xs font-normal text-muted-foreground font-mono tabular-nums">({targetFinancials ? formatEurWithDecimals(targetFinancials.leadCostEuros) : "—"})</span>
               </span>
             </div>
           </div>
@@ -1322,7 +1323,7 @@ export function MarketplaceFeedView({
                       <td className="px-4 py-3 whitespace-nowrap font-mono text-foreground font-bold tabular-nums">
                         <div>{cost} crédits</div>
                         <div className="text-[10px] text-muted-foreground font-normal">
-                          ~{financials.leadCostEuros} € HT
+                          {formatEurWithDecimals(financials.leadCostEuros)}
                         </div>
                       </td>
 
@@ -1697,11 +1698,11 @@ function MarketplaceLeadCard({
             <path d="M4 11v5c0 1.66 3.58 3 8 3s8-1.34 8-3v-5" />
           </svg>
           <div className="flex items-baseline gap-1">
-            <span className="font-bold text-xs sm:text-sm text-slate-900 tabular-nums">
+            <span className="font-bold text-xs sm:text-sm text-slate-900 font-mono tabular-nums">
               {cost} crédits
             </span>
-            <span className="text-[11px] text-slate-400 tabular-nums">
-              ({financials.leadCostEuros.toFixed(2)} € HT)
+            <span className="text-[11px] text-slate-400 font-mono tabular-nums">
+              ({formatEurWithDecimals(financials.leadCostEuros)})
             </span>
           </div>
         </div>
