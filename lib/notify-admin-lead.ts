@@ -83,6 +83,7 @@ export type AdminLeadAlertPayload = {
   scoreStatus?: "HOT_LEAD" | "new" | "NEEDS_HUMAN_REVIEW" | string | null
   scoreFactors?: ScoreFactor[]
   creditCost?: number | null
+  contactPreference?: "written_first" | "direct_call" | string | null
   sourceForm?: string | null
   mediaPartnerCode?: string | null
   message?: string | null
@@ -436,6 +437,7 @@ COORDONNÉES :
 -------------
 Nom : ${fullName}
 Téléphone : ${payload.phone || "Non renseigné"} ${isPhoneValid === false ? "(ATTENTION: format suspect)" : ""}
+${payload.contactPreference === "direct_call" ? "RÈGLE CLIENT : [APPEL DIRECT AUTORISÉ (9H-18H)]" : payload.contactPreference === "written_first" ? "RÈGLE CLIENT : [APPROCHE ÉCRITE (E-MAIL / SMS) D'ABORD — PAS D'APPEL À FROID]" : ""}
 Email : ${payload.email} ${mx?.valid === false ? "(ATTENTION: sans serveur MX)" : ""}
 ${isB2B ? `Entreprise : ${payload.company || "–"}\nNuméro TVA : ${payload.companyVat || "–"} ${isVatValid === false ? "(ATTENTION: Clé Modulo 97 non valide)" : isVatValid === true ? "(TVA valide)" : ""}\nFonction : ${payload.jobTitle || "–"}\n` : ""}
 ${cbe?.verified ? `Détails BCE officiels : ${cbe.officialName} (${cbe.legalForm || ""}) - NACE ${cbe.naceCode} : ${cbe.naceDescription}\n` : ""}
@@ -625,6 +627,20 @@ Aegis Solaire · Notification interne`
                   }
                 </td>
               </tr>
+              ${
+                payload.contactPreference
+                  ? `<tr>
+                <td style="padding: 5px 0; color: #6B7280;">Règle de contact</td>
+                <td style="padding: 5px 0;">
+                  ${
+                    payload.contactPreference === "direct_call"
+                      ? `<span style="display: inline-block; font-size: 11px; font-weight: 700; color: #1E40AF; background: #EFF6FF; border: 1px solid #BFDBFE; padding: 2px 8px; border-radius: 4px;">APPEL DIRECT AUTORISÉ (9H-18H)</span>`
+                      : `<span style="display: inline-block; font-size: 11px; font-weight: 700; color: #065F46; background: #ECFDF5; border: 1px solid #A7F3D0; padding: 2px 8px; border-radius: 4px;">APPROCHE ÉCRITE (E-MAIL / SMS) D'ABORD</span>`
+                  }
+                </td>
+              </tr>`
+                  : ""
+              }
               <tr>
                 <td style="padding: 5px 0; color: #6B7280;">Adresse e-mail</td>
                 <td style="padding: 5px 0;">

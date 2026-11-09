@@ -9,6 +9,7 @@ import { sendProspectConfirmationEmail } from "@/lib/prospect-confirmation-email
 import { sendAdminNewLeadAlertEmail } from "@/lib/notify-admin-lead"
 import { sendMetaConversionApiLead } from "@/lib/meta-capi"
 import { enrichLeadVerifications } from "@/lib/lead-verification-engine"
+import { formatAndValidateBelgianPhone } from "@/lib/leads-validation"
 import { createHmac } from "crypto"
 
 function sanitizeString(input: string, maxLength = 255): string {
@@ -91,7 +92,19 @@ export async function POST(request: NextRequest) {
     const first_name = sanitizeString(data.firstName)
     const last_name = sanitizeString(data.lastName)
     const email = data.email.toLowerCase().trim()
-    const phone = data.phone.replace(/[\s.-]/g, "")
+
+    // Validation stricte du téléphone belge pour l'appel d'offres résidentiel
+    let phone = data.phone.replace(/[\s.-]/g, "")
+    if (data.segment === "B2C" || (data.postalCode && /^[1-9][0-9]{3}$/.test(data.postalCode))) {
+      const phoneCheck = formatAndValidateBelgianPhone(data.phone)
+      if (!phoneCheck.isValid) {
+        return NextResponse.json(
+          { error: phoneCheck.errorMessage || "Numéro de téléphone belge invalide." },
+          { status: 400 }
+        )
+      }
+      phone = phoneCheck.normalized
+    }
     const job_title = data.jobTitle
       ? sanitizeString(data.jobTitle)
       : data.segment === "B2C"
@@ -266,9 +279,29 @@ export async function POST(request: NextRequest) {
 
       // --- Tarification V2 Officielle ---
       pricing_version: "v2",
+
+      // --- Colonnes Mise en Concurrence (Migration 202611090001) ---
+      session_id: data.sessionId || null,
+      contact_preference: data.contactPreference === "direct_call" ? "direct_call" : "written_first",
+      matched_province: data.province,
     }
 
-    let { data: inserted, error } = await supabase.from("leads").insert(insertPayload).select().single()
+    let inserted: any = null
+    let error: any = null
+
+    if (data.sessionId) {
+      const upsertRes = await supabase
+        .from("leads")
+        .upsert(insertPayload, { onConflict: "session_id" })
+        .select()
+        .single()
+      inserted = upsertRes.data
+      error = upsertRes.error
+    } else {
+      const insertRes = await supabase.from("leads").insert(insertPayload).select().single()
+      inserted = insertRes.data
+      error = insertRes.error
+    }
 
     // Mécanisme de tolérance si la base de données n'a pas encore exécuté la migration 024
     if (error && (error.message?.includes("column") || error.code === "42703")) {
@@ -364,7 +397,22 @@ export async function POST(request: NextRequest) {
       mediaPartnerCode,
       message: projectDetailsText,
       verifications,
+      contactPreference: data.contactPreference || "written_first",
     }).catch((err) => console.error("[Admin Lead Alert] Envoi non bloquant échoué:", err))
+
+    // Télémétrie d'entonnoir final (Step 6 submitted)
+    if (data.sessionId) {
+      void supabase.from("funnel_step_events").insert({
+        session_id: data.sessionId,
+        step_number: 6,
+        step_name: "STEP_6_SUBMITTED",
+        province: data.province,
+        utm_source: ((data.qualificationMetadata as Record<string, unknown>)?.utm_source as string) || null,
+        utm_campaign: ((data.qualificationMetadata as Record<string, unknown>)?.utm_campaign as string) || null,
+        utm_content: ((data.qualificationMetadata as Record<string, unknown>)?.utm_content as string) || null,
+        utm_term: ((data.qualificationMetadata as Record<string, unknown>)?.utm_term as string) || null,
+      }).then(() => {}, (err: unknown) => console.error("[Funnel Step] Step 6 event failed:", err))
+    }
 
     const webhookUrl = process.env.LEAD_WEBHOOK_URL
     const webhookSecret = process.env.LEAD_WEBHOOK_SECRET

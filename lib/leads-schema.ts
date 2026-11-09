@@ -177,6 +177,8 @@ export const leadSubmitSchema = z
     fax_number: z.string().optional(),
     form_opened_at: z.string().optional(),
     mediaPartnerCode: z.string().max(50).optional(),
+    sessionId: z.string().optional(),
+    contactPreference: z.enum(["written_first", "direct_call"]).default("written_first").optional(),
   })
   .superRefine((data, ctx) => {
     // 1. Validation stricte du segment B2B

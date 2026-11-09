@@ -97,3 +97,82 @@ export function getFactureError(annualElectricityBill: string): string | null {
 export function isValidBelgianPostalCode(postalCode: string): boolean {
   return /^[1-9][0-9]{3}$/.test(postalCode.trim())
 }
+
+/**
+ * Validation stricte et normalisation d'un numéro de GSM ou téléphone belge.
+ * Rejette les séquences fictives évidentes (123456, 000000, etc.) pour protéger l'appel d'offres.
+ */
+export function formatAndValidateBelgianPhone(input: string): {
+  isValid: boolean
+  normalized: string
+  errorMessage?: string
+} {
+  // 1. Nettoyage des espaces, points, tirets, parenthèses
+  let cleaned = input.replace(/[\s.\-()/]/g, "")
+
+  // 2. Normalisation du préfixe international belge (+32 ou 0032 -> 0)
+  if (cleaned.startsWith("+32")) {
+    cleaned = "0" + cleaned.slice(3)
+  } else if (cleaned.startsWith("0032")) {
+    cleaned = "0" + cleaned.slice(4)
+  }
+
+  // 3. Vérification de la longueur et du préfixe (Mobile 04xx à 10 chiffres ou Fixe à 9 chiffres)
+  const isMobile = /^04[56789]\d{7}$/.test(cleaned)
+  const isLandline = /^0[12356789]\d{7}$/.test(cleaned)
+
+  if (!isMobile && !isLandline) {
+    return {
+      isValid: false,
+      normalized: cleaned,
+      errorMessage: "Veuillez saisir un numéro belge valide (ex. 0470 12 34 56).",
+    }
+  }
+
+  // 4. Détection des faux numéros évidents (Séquences répétitives ou suites évidentes)
+  const subscriberDigits = isMobile ? cleaned.slice(4) : cleaned.slice(3)
+  const isAllSameDigits = /^(\d)\1{5,}$/.test(subscriberDigits)
+  const blockedPatterns = [
+    "123456",
+    "654321",
+    "010203",
+    "112233",
+    "000000",
+    "111111",
+    "222222",
+    "333333",
+    "444444",
+    "555555",
+    "666666",
+    "777777",
+    "888888",
+    "999999",
+  ]
+
+  if (isAllSameDigits || blockedPatterns.some((pattern) => subscriberDigits.includes(pattern))) {
+    return {
+      isValid: false,
+      normalized: cleaned,
+      errorMessage: "Ce numéro semble incomplet ou invalide. Un numéro réel est requis pour certifier l'appel d'offres.",
+    }
+  }
+
+  // 5. Normalisation finale E.164 (+32...)
+  const e164 = "+32" + cleaned.slice(1)
+  return { isValid: true, normalized: e164 }
+}
+
+/**
+ * Déduit la province wallonne à partir du code postal belge à 4 chiffres.
+ */
+export function getProvinceFromPostalCode(cp: string): string {
+  const code = parseInt(cp.trim(), 10)
+  if (isNaN(code)) return "Wallonie"
+  if (code >= 1300 && code <= 1499) return "Brabant wallon"
+  if (code >= 4000 && code <= 4999) return "Liège"
+  if (code >= 5000 && code <= 5999) return "Namur"
+  if ((code >= 6000 && code <= 6599) || (code >= 7000 && code <= 7999)) return "Hainaut"
+  if (code >= 6600 && code <= 6999) return "Luxembourg"
+  return "Wallonie"
+}
+

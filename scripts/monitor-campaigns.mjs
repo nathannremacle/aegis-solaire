@@ -79,9 +79,11 @@ async function monitor() {
 
   const pub1Events = (funnelEvents || []).filter(e => e.utm_content === 'visuel1_table_devis')
   const pub2Events = (funnelEvents || []).filter(e => e.utm_content === 'visuel2_maison_comparez')
+  const pub3Events = (funnelEvents || []).filter(e => e.utm_content === 'visuel3_audit_comparer' || e.utm_content === 'PUB_3_VISUEL_AUDIT_COMPARER')
 
-  console.log(`   • Pub 1 (Visuel Devis - visuel1_table_devis)  : ${pub1Events.length} étape(s) franchie(s)`)
-  console.log(`   • Pub 2 (Visuel Maison - visuel2_maison_comparez) : ${pub2Events.length} étape(s) franchie(s)`)
+  console.log(`   • Pub 1 (Visuel Devis - visuel1_table_devis)       : ${pub1Events.length} étape(s) franchie(s)`)
+  console.log(`   • Pub 2 (Visuel Maison - visuel2_maison_comparez)  : ${pub2Events.length} étape(s) franchie(s)`)
+  console.log(`   • Pub 3 (Visuel Comparer - visuel3_audit_comparer) : ${pub3Events.length} étape(s) franchie(s)`)
 
   // 3. Fiches Prospects complètes (Leads)
   console.log('\n📋 3. PROSPECTS (LEADS) QUALIFIÉS REÇUS')

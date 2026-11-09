@@ -9,6 +9,7 @@ next.user-config.*
 
 # Local tooling / caches
 tmp-lh/
+*.tsbuildinfo
 
 # Common ignores
 node_modules/

@@ -21,6 +21,10 @@ Ce dossier centralise la recherche concurrentielle, les créations publicitaires
 2. **Pub 2** : `PUB_2_VISUEL_MAISON_COMPAREZ`
    * *Visuel* : Maison en briques avec toiture solaire (« Panneaux solaires ? Comparez avant de signer »)
    * *UTM Tracking* : `utm_content=visuel2_maison_comparez`
+3. **Pub 3** : `PUB_3_VISUEL_AUDIT_COMPARER`
+   * *Visuel* : Devis & Checklist à comparer (« Un devis solaire ? Comparez avant de signer »)
+   * *Fichier* : `campagnes-meta/creatives-final/pub3_visuel_audit_comparer.jpg`
+   * *UTM Tracking* : `utm_content=visuel3_audit_comparer`
 
 ---
 
