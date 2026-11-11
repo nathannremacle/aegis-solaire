@@ -6,6 +6,12 @@ import {
   TIMEFRAME_LABELS,
   OWNERSHIP_LABELS,
   PROJECT_DRIVER_LABELS,
+  sanitizeLeadNotes,
+  getPropertyTypeLabel,
+  getRoofSurfaceLabel,
+  getRoofMaterialLabel,
+  getOwnershipLabel,
+  getConsumptionLabel,
 } from "@/lib/lead-display-helpers"
 
 export interface InstallerLeadTeaserData {
@@ -71,14 +77,16 @@ function getSafeOwnershipLabel(val?: string | null): string {
   return "Propriétaire occupant"
 }
 
-function getSafeTimeframeLabel(val?: string | null): string {
-  if (!val) return "Dans les 3 mois"
+function getExplicitTimeframeLabel(val?: string | null): string | null {
+  if (!val || !val.trim()) return null
   const clean = val.toLowerCase().trim()
+  if (clean === "non_specifie" || clean === "null" || clean === "undefined") return null
   if (TIMEFRAME_LABELS[clean]) return TIMEFRAME_LABELS[clean]
-  if (clean.includes("immed") || clean.includes("urgent")) return "Immédiat (1 à 3 mois)"
-  if (clean.includes("3")) return "Dans les 3 mois"
-  if (clean.includes("6")) return "D'ici 3 à 6 mois"
-  return "Dans les 3 mois"
+  if (clean.includes("immed") || clean.includes("urgent") || clean.includes("1_month")) return "Immédiat (1 à 3 mois)"
+  if (clean.includes("3_months") || clean.includes("3 mois") || clean.includes("dans_les_3_mois")) return "Dans les 3 mois"
+  if (clean.includes("6_months") || clean.includes("6 mois") || clean.includes("3_6mois")) return "D'ici 3 à 6 mois"
+  if (clean.includes("12_months") || clean.includes("annee")) return "Dans l'année"
+  return val.replace(/_/g, " ")
 }
 
 function getSafeDriverLabel(val?: string | null): string {
@@ -188,17 +196,35 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
   const remainingSlots = Math.max(0, data.maxSlots - data.takenSlots)
 
   const surfaceTypeLabel = getSafeSurfaceTypeLabel(data.lead.surfaceType)
-  const roofMaterialLabel = getSafeRoofMaterialLabel(data.lead.roofMaterial)
-  const timeframeLabel = getSafeTimeframeLabel(data.lead.timeframe)
-  const ownershipLabel = getSafeOwnershipLabel(data.lead.ownershipStatus)
+
+  // Nettoyage et extraction chirurgicale des critères saisis par le prospect
+  const sanitized = sanitizeLeadNotes(data.lead.projectDetails)
+  const specs = sanitized.specs
+  const cleanRemarks = sanitized.cleanRemarks
+
+  const propertyTypeDisplay =
+    specs.propertyType ||
+    (data.lead.surfaceType ? getPropertyTypeLabel(data.lead.surfaceType) : null)
+
+  const roofMaterialLabel = specs.roofMaterial || getSafeRoofMaterialLabel(data.lead.roofMaterial)
+  const timeframeLabel = getExplicitTimeframeLabel(data.lead.timeframe)
+  const ownershipLabel = specs.ownership || getSafeOwnershipLabel(data.lead.ownershipStatus)
   const driverLabel = getSafeDriverLabel(data.lead.projectDriver)
+
+  const roofSurfaceDisplay =
+    specs.roofSurface ||
+    (data.lead.surfaceArea > 0 ? `${data.lead.surfaceArea.toLocaleString("fr-BE")} m² (${surfaceTypeLabel})` : null) ||
+    `${data.financials.normalizedSurfaceAreaM2.toLocaleString("fr-BE")} m² (${surfaceTypeLabel})`
+
+  const contactPreferenceDisplay = specs.contactPreference || null
 
   const panelInfo = data.financials.estimatedPanelCount ? ` (${data.financials.estimatedPanelCount} panneaux)` : ""
   const powerKwc = `${data.financials.estimatedPowerKwc} kWc${panelInfo}`
-  const displaySurface = data.financials.normalizedSurfaceAreaM2 || data.lead.surfaceArea
   const displayBill = data.financials.normalizedAnnualBill || data.lead.annualElectricityBill
-  const surfaceArea = `${displaySurface.toLocaleString("fr-BE")} m²`
   const annualBill = `${displayBill.toLocaleString("fr-BE")} € ${isB2B ? "HT" : "TTC"} / an`
+  const billWithConsumption = specs.consumption
+    ? `${annualBill} (Conso : ${specs.consumption})`
+    : annualBill
   const estimatedContract = `${data.financials.estimatedContractValueRange.min.toLocaleString("fr-BE")} € à ${data.financials.estimatedContractValueRange.max.toLocaleString("fr-BE")} € HT`
   const estimatedMargin = `~${data.financials.estimatedInstallerMargin.toLocaleString("fr-BE")} € HT`
   const creditCostEur = `${data.financials.leadCostEuros.toFixed(2)} € HT`
@@ -290,14 +316,13 @@ ${dashboardLeadUrl}
 RÉSUMÉ DU PROJET : Installation Solaire ${locPhrase}
 ============================================================
 • Segment : ${isB2B ? "Professionnel / B2B (Exclusivité 100%)" : "Résidentiel / B2C (3 artisans maximum)"}
-• Puissance estimée : ${powerKwc}
-• Surface disponible : ${surfaceArea} (${surfaceTypeLabel})
+${propertyTypeDisplay ? `• Type de bien : ${propertyTypeDisplay}\n` : ""}• Puissance estimée : ${powerKwc}
+• Surface toiture : ${roofSurfaceDisplay}
 • Couverture toiture : ${roofMaterialLabel}
-• Facture annuelle : ${annualBill}
+• Facture annuelle : ${billWithConsumption}
 • Profil du demandeur : ${ownershipLabel}
 • Objectif du projet : ${driverLabel}
-• Échéance souhaitée : ${timeframeLabel}
-${data.lead.roofImageUrl ? `• Visuel bâtiment : Photo Street View de la toiture et façade disponible sur le dossier\n` : ""}
+${timeframeLabel ? `• Échéance souhaitée : ${timeframeLabel}\n` : ""}${contactPreferenceDisplay ? `• Consigne de contact : ${contactPreferenceDisplay}\n` : ""}${cleanRemarks ? `• Remarque du demandeur : « ${cleanRemarks} »\n` : ""}${data.lead.roofImageUrl ? `• Visuel bâtiment : Photo Street View de la toiture et façade disponible sur le dossier\n` : ""}
 
 COORDONNÉES CLIENT :
 • Nom : ${leadMaskedName}
@@ -510,7 +535,7 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                     <div style="margin-top: 14px; border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; background-color: #0F172A;">
                       <img src="${data.lead.roofImageUrl}" alt="Visuel de la maison et toiture" width="560" style="width: 100%; max-height: 250px; object-fit: cover; display: block; border: 0;" />
                       <div style="padding: 7px 12px; background-color: #F8FAFC; border-top: 1px solid #E2E8F0; font-size: 11px; color: #475569;" class="mono">
-                        📷 <strong style="color: #0F172A;">Visuel de toiture &amp; façade :</strong> Inspection Street View pour pré-dimensionnement visuel (pente, couverture, obstacles).
+                        <strong style="color: #0F172A;">Visuel de toiture &amp; façade :</strong> Inspection Street View pour pré-dimensionnement visuel (pente, couverture, obstacles).
                       </div>
                     </div>
                     ` : ""}
@@ -527,6 +552,14 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                           ${isB2B ? "Professionnel / B2B (Exclusivité 100%)" : "Résidentiel / B2C (Partagé max 3)"}
                         </td>
                       </tr>
+                      ${propertyTypeDisplay ? `
+                      <tr>
+                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Type de bien</td>
+                        <td valign="top" style="padding: 10px 0; font-size: 13px; font-weight: 600; color: #0F172A; border-bottom: 1px solid #F1F5F9;">
+                          ${escapeHtml(propertyTypeDisplay)}
+                        </td>
+                      </tr>
+                      ` : ""}
                       <tr>
                         <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Puissance estimée</td>
                         <td valign="top" class="mono" style="padding: 10px 0; font-size: 13px; font-weight: 700; color: #2563EB; border-bottom: 1px solid #F1F5F9;">
@@ -534,21 +567,21 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                         </td>
                       </tr>
                       <tr>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Surface toiture / terrain</td>
+                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Surface toiture</td>
                         <td valign="top" class="mono" style="padding: 10px 0; font-size: 13px; font-weight: 600; color: #0F172A; border-bottom: 1px solid #F1F5F9;">
-                          ${surfaceArea} (${escapeHtml(surfaceTypeLabel)})
+                          ${escapeHtml(roofSurfaceDisplay)}
                         </td>
                       </tr>
                       <tr>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Type de couverture toiture</td>
+                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Couverture toiture</td>
                         <td valign="top" style="padding: 10px 0; font-size: 13px; font-weight: 600; color: #0F172A; border-bottom: 1px solid #F1F5F9;">
                           ${escapeHtml(roofMaterialLabel)}
                         </td>
                       </tr>
                       <tr>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Facture d'électricité actuelle</td>
+                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Facture &amp; Consommation</td>
                         <td valign="top" class="mono" style="padding: 10px 0; font-size: 13px; font-weight: 600; color: #0F172A; border-bottom: 1px solid #F1F5F9;">
-                          ${annualBill}
+                          ${escapeHtml(billWithConsumption)}
                         </td>
                       </tr>
                       <tr>
@@ -557,27 +590,38 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                           ${escapeHtml(ownershipLabel)}
                         </td>
                       </tr>
+                      ${driverLabel ? `
                       <tr>
                         <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Objectif prioritaire</td>
                         <td valign="top" style="padding: 10px 0; font-size: 13px; font-weight: 600; color: #0F172A; border-bottom: 1px solid #F1F5F9;">
                           ${escapeHtml(driverLabel)}
                         </td>
                       </tr>
+                      ` : ""}
+                      ${timeframeLabel ? `
                       <tr>
                         <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Échéance souhaitée</td>
                         <td valign="top" style="padding: 10px 0; font-size: 13px; font-weight: 600; color: #0F172A; border-bottom: 1px solid #F1F5F9;">
                           ${escapeHtml(timeframeLabel)}
                         </td>
                       </tr>
-                      ${data.lead.projectDetails
-      ? `<tr>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Précisions du client</td>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #0F172A; font-style: italic; border-bottom: 1px solid #F1F5F9;">
-                          &laquo; ${escapeHtml(data.lead.projectDetails)} &raquo;
+                      ` : ""}
+                      ${contactPreferenceDisplay ? `
+                      <tr>
+                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Consigne de contact</td>
+                        <td valign="top" style="padding: 10px 0; font-size: 13px; font-weight: 600; color: #0F172A; border-bottom: 1px solid #F1F5F9;">
+                          ${escapeHtml(contactPreferenceDisplay)}
                         </td>
-                      </tr>`
-      : ""
-    }
+                      </tr>
+                      ` : ""}
+                      ${cleanRemarks ? `
+                      <tr>
+                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Remarque du demandeur</td>
+                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #0F172A; font-style: italic; border-bottom: 1px solid #F1F5F9;">
+                          &laquo; ${escapeHtml(cleanRemarks)} &raquo;
+                        </td>
+                      </tr>
+                      ` : ""}
                     </table>
                   </td>
                 </tr>
