@@ -107,7 +107,7 @@ export default function CreditPacksModal({ partner, onClose }: CreditPacksModalP
         <div className="mt-5 rounded-xl border border-border bg-secondary/40 p-3.5 text-xs text-muted-foreground flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
-            <span>Facturation conforme avec TVA 21% déductible (SPRL / SA / Indépendant).</span>
+            <span>Facturation conforme avec TVA 21% déductible. Vous pouvez aussi payer directement par lead en euros (€) depuis la marketplace sans pack préalable.</span>
           </div>
           <Button variant="ghost" size="sm" className="text-xs font-bold text-foreground shrink-0" asChild>
             <Link href="/partenaires/dashboard/credits">

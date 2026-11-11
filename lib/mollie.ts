@@ -91,3 +91,83 @@ export async function createCreditOrderPayment(params: CreateCreditOrderPaymentP
     status: payment.status,
   }
 }
+
+export type CreateLeadDirectPaymentParams = {
+  leadId: string
+  leadSegment: string
+  leadLocation?: string | null
+  priceTtc: number
+  priceHtva: number
+  vatAmount: number
+  credits: number
+  partnerId: string
+  partnerEmail: string
+  partnerCompany: string
+  siteUrl: string
+}
+
+/**
+ * Crée un paiement Mollie pré-configuré pour l'achat direct d'un dossier lead (Bancontact / Payconiq / Carte).
+ */
+export async function createLeadDirectPayment(params: CreateLeadDirectPaymentParams) {
+  const mollie = getMollieClient()
+  const {
+    leadId,
+    leadSegment,
+    leadLocation,
+    priceTtc,
+    priceHtva,
+    vatAmount,
+    credits,
+    partnerId,
+    partnerEmail,
+    partnerCompany,
+    siteUrl,
+  } = params
+
+  const cleanSiteUrl = siteUrl.replace(/\/$/, "")
+  const amountValue = priceTtc.toFixed(2)
+
+  const isLocalhost =
+    cleanSiteUrl.includes("localhost") || cleanSiteUrl.includes("127.0.0.1")
+  const webhookUrl = isLocalhost
+    ? undefined
+    : `${cleanSiteUrl}/api/webhooks/mollie`
+
+  const locationSuffix = leadLocation ? ` (${leadLocation})` : ""
+  const redirectUrl = `${cleanSiteUrl}/partenaires/dashboard?lead_payment=return&lead_id=${encodeURIComponent(leadId)}`
+
+  const payment = await mollie.payments.create({
+    amount: {
+      currency: "EUR",
+      value: amountValue,
+    },
+    description: `Aegis Solaire - Déblocage Dossier ${leadSegment} #${leadId.slice(0, 8)}${locationSuffix}`,
+    redirectUrl,
+    webhookUrl,
+    method: [
+      PaymentMethod.bancontact,
+      PaymentMethod.creditcard,
+      PaymentMethod.kbc,
+      PaymentMethod.belfius,
+    ],
+    metadata: {
+      type: "lead_direct_purchase",
+      leadId,
+      partnerId,
+      credits,
+      priceHtva,
+      vatAmount,
+      priceTtc,
+      leadSegment,
+      partnerEmail,
+      partnerCompany,
+    },
+  })
+
+  return {
+    paymentId: payment.id,
+    checkoutUrl: payment.getCheckoutUrl(),
+    status: payment.status,
+  }
+}

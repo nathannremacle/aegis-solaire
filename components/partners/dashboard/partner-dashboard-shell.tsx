@@ -6,6 +6,7 @@ import Image from "next/image"
 import dynamic from "next/dynamic"
 import { Coins, Store, Briefcase, Bell, Award, LogOut, FileText, ShieldCheck, Leaf, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 import { MarketplaceFeedView } from "./marketplace-feed-view"
 import { CrmPortfolioView } from "./crm-portfolio-view"
 
@@ -72,6 +73,66 @@ export function PartnerDashboardShell({
     },
     []
   )
+
+  // Gestion du retour d'une session de paiement direct par lead en euros via Mollie
+  React.useEffect(() => {
+    if (typeof window === "undefined") return
+    const url = new URL(window.location.href)
+    const isLeadReturn = url.searchParams.get("lead_payment") === "return"
+    const leadId = url.searchParams.get("lead_id")
+
+    if (isLeadReturn && leadId) {
+      const toastId = toast.loading("Vérification du paiement direct et déblocage du dossier...")
+
+      fetch(`/api/partners/leads/${encodeURIComponent(leadId)}/check-payment`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.status === "paid" && data.lead) {
+            toast.success("Dossier débloqué avec succès par paiement direct ! Coordonnées ajoutées à votre CRM.", { id: toastId })
+            const purchaseRecord = {
+              id: data.lead.id,
+              lead_id: data.lead.id,
+              purchase_id: data.purchaseId || data.purchase?.id || `purch_${Date.now()}`,
+              purchased_at: data.purchase?.purchased_at || new Date().toISOString(),
+              credits_spent: data.purchase?.credits_spent || (data.lead.segment === "B2B" ? 9 : 3),
+              pipeline_status: data.purchase?.pipeline_status || "to_contact",
+              first_name: data.lead.first_name || "Prospect",
+              last_name: data.lead.last_name || "",
+              company: data.lead.company || null,
+              email: data.lead.email || "—",
+              phone: data.lead.phone || "—",
+              site_address: data.lead.site_address || `${data.lead.city || ""} (${data.lead.postal_code || ""})`,
+              segment: data.lead.segment,
+              province: data.lead.province,
+              city: data.lead.city,
+              postal_code: data.lead.postal_code,
+              surface_area: data.lead.surface_area,
+              annual_electricity_bill: data.lead.annual_electricity_bill,
+            }
+            setMarketplace((prev) => prev.filter((item) => item.id !== leadId))
+            setPortfolio((prev) => [purchaseRecord, ...prev])
+            setActiveTab("portfolio")
+          } else if (data.status === "cancelled") {
+            toast.error("Le paiement direct a été interrompu ou refusé.", { id: toastId })
+          } else {
+            toast.info("Paiement direct en cours de confirmation bancaire. Votre dossier sera activé automatiquement sous peu.", { id: toastId })
+          }
+        })
+        .catch((err) => {
+          console.error("Check lead payment error:", err)
+          toast.dismiss(toastId)
+        })
+        .finally(() => {
+          try {
+            url.searchParams.delete("lead_payment")
+            url.searchParams.delete("lead_id")
+            window.history.replaceState({}, "", url.pathname)
+          } catch {
+            /* ignore */
+          }
+        })
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-background">

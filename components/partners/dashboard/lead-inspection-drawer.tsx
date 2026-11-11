@@ -30,10 +30,11 @@ import {
   Ruler,
   Layers,
   MessageSquare,
+  CreditCard,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
-import { formatEurWithDecimals } from "@/lib/credit-pricing"
+import { formatEurWithDecimals, calculateLeadDirectFinancials } from "@/lib/credit-pricing"
 import {
   getLeadLocationInfo,
   sanitizeLeadNotes,
@@ -51,6 +52,7 @@ import {
 } from "@/lib/lead-display-helpers"
 import { LeadGeoRadarMap } from "./lead-geo-radar-map"
 import { downloadLeadVCard } from "./lib/vcard-export"
+import { DirectLeadPaymentModal } from "./modals/direct-lead-payment-modal"
 
 interface LeadInspectionDrawerProps {
   lead: any
@@ -98,6 +100,12 @@ export function LeadInspectionDrawer({
   const takenSlots = lead.taken_slots ?? Math.max(0, maxSlots - remainingSlots)
   const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
   const hasEnoughCredits = partnerCredits >= cost
+
+  const [isDirectPayOpen, setIsDirectPayOpen] = React.useState(false)
+  const directFinancials = calculateLeadDirectFinancials({
+    segment: lead.segment,
+    credit_cost: cost,
+  })
 
   const isDemo = Boolean(lead.is_demo_preview)
   const isPurchased = isDemo
@@ -727,11 +735,17 @@ export function LeadInspectionDrawer({
           <div className="flex items-center justify-between sm:flex-col sm:items-start gap-1">
             {!isPurchased ? (
               <div className="flex sm:flex-col items-baseline sm:items-start justify-between w-full sm:w-auto gap-2">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="font-mono text-2xl font-black text-foreground tabular-nums">{cost}</span>
-                  <span className="text-xs font-bold text-muted-foreground">crédits</span>
-                  <span className="font-mono text-xs text-muted-foreground tabular-nums ml-1">
-                    ({formatEurWithDecimals(financials.leadCostEuros)})
+                <div className="flex flex-col">
+                  <div className="flex items-baseline gap-1.5 flex-wrap">
+                    <span className="font-mono text-2xl font-black text-foreground tabular-nums">{cost}</span>
+                    <span className="text-xs font-bold text-muted-foreground">crédits</span>
+                    <span className="text-xs text-muted-foreground font-medium">ou</span>
+                    <span className="font-mono text-base sm:text-lg font-black text-foreground tabular-nums">
+                      {directFinancials.priceHtva.toFixed(2)} € <span className="text-xs font-normal text-muted-foreground">HT</span>
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground font-mono tabular-nums">
+                    ({directFinancials.priceTtc.toFixed(2)} € TTC · TVA 21% comprise)
                   </span>
                 </div>
                 <div className="text-[11px] text-muted-foreground text-right sm:text-left">
@@ -753,7 +767,7 @@ export function LeadInspectionDrawer({
             )}
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             {!isPurchased && (
               isDemo ? (
                 <Button
@@ -764,38 +778,78 @@ export function LeadInspectionDrawer({
                   <Unlock className="h-4 w-4 mr-1.5" />
                   <span>Débloquer ce dossier ({cost} crédits)</span>
                 </Button>
-              ) : !hasEnoughCredits ? (
-                <Button
-                  variant="default"
-                  onClick={onRequestTopUp}
-                  className="font-bold h-11 px-4 text-xs bg-accent text-accent-foreground hover:bg-accent/90 cursor-pointer w-full sm:w-auto"
-                >
-                  <Coins className="h-4 w-4 mr-1.5" />
-                  Recharger mes crédits
-                </Button>
+              ) : hasEnoughCredits ? (
+                <>
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={() => setIsDirectPayOpen(true)}
+                    className="font-bold h-11 px-3.5 text-xs border-border hover:bg-secondary cursor-pointer w-full sm:w-auto shadow-2xs"
+                    title="Payer directement en euros par Bancontact/Carte sans débiter vos crédits"
+                  >
+                    <CreditCard className="h-4 w-4 mr-1.5 text-accent" />
+                    <span>Payer {directFinancials.priceHtva.toFixed(2)} € HT</span>
+                  </Button>
+                  <Button
+                    variant="default"
+                    disabled={isBuying}
+                    onClick={() => onPurchase(lead)}
+                    className="font-bold h-11 px-5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm w-full sm:w-auto"
+                  >
+                    {isBuying ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                        Déblocage...
+                      </>
+                    ) : (
+                      <>
+                        <Unlock className="h-4 w-4 mr-1.5" />
+                        <span>Débloquer ({cost} crédits)</span>
+                      </>
+                    )}
+                  </Button>
+                </>
               ) : (
-                <Button
-                  variant="default"
-                  disabled={isBuying}
-                  onClick={() => onPurchase(lead)}
-                  className="font-bold h-11 px-5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm w-full sm:w-auto"
-                >
-                  {isBuying ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                      Déblocage en cours...
-                    </>
-                  ) : (
-                    <>
-                      <Unlock className="h-4 w-4 mr-1.5" />
-                      <span>Débloquer ce dossier ({cost} crédits)</span>
-                    </>
-                  )}
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={onRequestTopUp}
+                    className="font-bold h-11 px-3.5 text-xs border-border hover:bg-secondary cursor-pointer w-full sm:w-auto"
+                  >
+                    <Coins className="h-4 w-4 mr-1.5 text-accent" />
+                    Recharger des crédits
+                  </Button>
+                  <Button
+                    variant="default"
+                    type="button"
+                    onClick={() => setIsDirectPayOpen(true)}
+                    className="font-bold h-11 px-5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm w-full sm:w-auto gap-1.5"
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    <span>Payer {directFinancials.priceHtva.toFixed(2)} € HT en direct</span>
+                  </Button>
+                </>
               )
             )}
           </div>
         </div>
+
+        {/* Modal de confirmation de paiement direct en € */}
+        <DirectLeadPaymentModal
+          lead={lead}
+          isOpen={isDirectPayOpen}
+          onClose={() => setIsDirectPayOpen(false)}
+          onSwitchToCredits={() => {
+            setIsDirectPayOpen(false)
+            if (hasEnoughCredits) {
+              onPurchase(lead)
+            } else {
+              onRequestTopUp()
+            }
+          }}
+          partnerCredits={partnerCredits}
+        />
       </div>
     </div>
   )

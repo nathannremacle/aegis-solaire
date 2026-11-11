@@ -125,6 +125,22 @@ export function calculateOrderFinancials(credits: number) {
 }
 
 /**
+ * Calcule avec exactitude comptable en centimes les montants d'un achat direct de lead en euros.
+ */
+export function calculateLeadDirectFinancials(lead: {
+  segment?: "B2B" | "B2C" | string | null
+  credit_cost?: number | null
+  creditCost?: number | null
+}) {
+  const credits =
+    lead.credit_cost ??
+    lead.creditCost ??
+    (lead.segment === "B2B" ? B2B_CREDIT_COST : B2C_CREDIT_COST)
+
+  return calculateOrderFinancials(credits)
+}
+
+/**
  * Formate un montant en euros avec 2 décimales fixes (ex: 34,50 € HTVA).
  */
 export function formatEurWithDecimals(amount: number): string {

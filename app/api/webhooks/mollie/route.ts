@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getMollieClient } from "@/lib/mollie"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
-import { fulfillPaidCreditOrder } from "@/lib/mollie-fulfillment"
+import { fulfillPaidCreditOrder, fulfillPaidLeadDirectPurchase } from "@/lib/mollie-fulfillment"
 
 export const dynamic = "force-dynamic"
 
@@ -34,6 +34,28 @@ export async function POST(request: NextRequest) {
     const payment = await mollie.payments.get(paymentId)
 
     const metadata = (payment.metadata as any) || {}
+    const isLeadPurchase = metadata.type === "lead_direct_purchase" || Boolean(metadata.leadId)
+
+    // A. Cas d'un achat direct de dossier lead
+    if (isLeadPurchase && metadata.leadId && metadata.partnerId) {
+      if (payment.status === "paid") {
+        const result = await fulfillPaidLeadDirectPurchase(metadata.leadId, metadata.partnerId, payment)
+        if (!result.success) {
+          return NextResponse.json({ error: result.error || "Lead fulfillment failed" }, { status: 500 })
+        }
+        return NextResponse.json({
+          received: true,
+          status: "paid",
+          type: "lead_direct",
+          lead_id: metadata.leadId,
+          already_paid: result.alreadyPaid,
+        }, { status: 200 })
+      }
+
+      return NextResponse.json({ received: true, status: payment.status, type: "lead_direct" }, { status: 200 })
+    }
+
+    // B. Cas d'une commande de pack de crédits
     const orderId = (metadata.orderId as string | undefined) || undefined
     if (!orderId) {
       console.warn("[Mollie Webhook] Aucune commande associée dans payment.metadata:", paymentId)

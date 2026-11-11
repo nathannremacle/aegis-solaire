@@ -8,6 +8,7 @@ import {
   Zap,
   CreditCard,
   ArrowLeft,
+  ArrowRight,
   CheckCircle2,
   Loader2,
   TrendingUp,
@@ -559,6 +560,29 @@ export default function CreditsPage() {
           {/* Formulaire de commande */}
           <motion.div variants={itemVariants}>
             <OrderPackSection pack={currentPack} />
+          </motion.div>
+
+          {/* Option alternative : Payer par lead à l'unité en euros */}
+          <motion.div variants={itemVariants}>
+            <div className="rounded-2xl border border-accent/30 bg-accent/5 p-4 sm:p-5 shadow-2xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5">
+              <div className="flex items-center gap-3">
+                <CreditCard className="h-6 w-6 text-accent shrink-0" />
+                <div>
+                  <h4 className="text-sm font-bold text-foreground">
+                    Vous préférez payer à l&apos;unité sans pack ?
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                    Sur la marketplace, vous pouvez également débloquer chaque chantier individuellement en euros par Bancontact ou Carte bancaire (34,50 € HT pour un B2C, 103,50 € HT pour un B2B exclusif).
+                  </p>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" className="shrink-0 text-xs font-bold border-accent/40 bg-card hover:bg-accent/10 text-foreground cursor-pointer" asChild>
+                <Link href="/partenaires/dashboard">
+                  <span>Accéder à la marketplace</span>
+                  <ArrowRight className="h-3.5 w-3.5 ml-1.5 text-accent" />
+                </Link>
+              </Button>
+            </div>
           </motion.div>
 
           {/* Réassurance & Charte Qualité */}

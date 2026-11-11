@@ -41,11 +41,12 @@ import {
   Mail,
   FileCheck,
   Download,
+  CreditCard,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
-import { formatEurWithDecimals } from "@/lib/credit-pricing"
+import { formatEurWithDecimals, calculateLeadDirectFinancials } from "@/lib/credit-pricing"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 import {
   getLeadLocationInfo,
@@ -62,6 +63,7 @@ import {
 import { LeadInspectionDrawer } from "./lead-inspection-drawer"
 import { MarketplaceInteractiveTour } from "./marketplace-interactive-tour"
 import { LeadGeoRadarMap } from "./lead-geo-radar-map"
+import { DirectLeadPaymentModal } from "./modals/direct-lead-payment-modal"
 
 interface MarketplaceFeedViewProps {
   leads: any[]
@@ -136,6 +138,7 @@ export function MarketplaceFeedView({
   const [buyingId, setBuyingId] = useState<string | null>(null)
   const [selectedLeadForDrawer, setSelectedLeadForDrawer] = useState<any | null>(null)
   const [showTutorial, setShowTutorial] = useState(false)
+  const [directPayLead, setDirectPayLead] = useState<any | null>(null)
 
   // État de focus exclusif sur un lead ciblé (Deep-linking direct depuis e-mail de relance)
   const [focusedLeadId, setFocusedLeadId] = useState<string | null>(targetLeadId || null)
@@ -212,6 +215,10 @@ export function MarketplaceFeedView({
   const targetRemainingSlots = targetedLead?.remaining_slots ?? targetMaxSlots
   const targetTakenSlots = targetedLead?.taken_slots ?? Math.max(0, targetMaxSlots - targetRemainingSlots)
   const targetHasEnoughCredits = partnerCredits >= targetCost
+  const targetDirectFinancials = useMemo(
+    () => (targetedLead ? calculateLeadDirectFinancials({ segment: targetedLead.segment, credit_cost: targetCost }) : null),
+    [targetedLead, targetCost]
+  )
   const targetLocation = useMemo(() => (targetedLead ? getLeadLocationInfo(targetedLead) : null), [targetedLead])
   const targetSanitized = useMemo(
     () => (targetedLead ? sanitizeLeadNotes(targetedLead.project_details || targetedLead.message) : null),
@@ -390,10 +397,10 @@ export function MarketplaceFeedView({
 
   const handlePurchase = async (lead: any) => {
     const isB2B = lead.segment === "B2B"
-    const cost = lead.credit_cost ?? (isB2B ? 8 : 2)
+    const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
     if (partnerCredits < cost) {
-      toast.error(`Solde insuffisant (${cost} crédits requis, ${partnerCredits} disponibles).`)
-      onRequestTopUp()
+      toast.info(`Solde insuffisant (${cost} crédits requis, ${partnerCredits} disponibles). Vous pouvez régler ce dossier directement par Bancontact / Carte.`)
+      setDirectPayLead(lead)
       return
     }
 
@@ -780,39 +787,63 @@ export function MarketplaceFeedView({
                 </div>
 
                 {/* Bloc d'action primaire : Déblocage immédiat */}
-                <div className="pt-2 flex flex-col gap-3">
-                  <Button
-                    size="lg"
-                    onClick={() => handlePurchase(targetedLead)}
-                    disabled={buyingId === targetedLead.id}
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-12 shadow-sm cursor-pointer text-sm"
-                  >
-                    {buyingId === targetedLead.id ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Déblocage en cours...
-                      </>
-                    ) : (
-                      <>
-                        <Unlock className="h-4 w-4 mr-2 text-accent" />
-                        Débloquer ce dossier ({targetCost} crédits) &rarr;
-                      </>
-                    )}
-                  </Button>
+                <div className="pt-2 flex flex-col gap-2.5">
+                  {targetHasEnoughCredits ? (
+                    <>
+                      <Button
+                        size="lg"
+                        onClick={() => handlePurchase(targetedLead)}
+                        disabled={buyingId === targetedLead.id}
+                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-12 shadow-sm cursor-pointer text-sm"
+                      >
+                        {buyingId === targetedLead.id ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Déblocage en cours...
+                          </>
+                        ) : (
+                          <>
+                            <Unlock className="h-4 w-4 mr-2 text-accent" />
+                            Débloquer avec {targetCost} crédits &rarr;
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        size="default"
+                        variant="outline"
+                        type="button"
+                        onClick={() => setDirectPayLead(targetedLead)}
+                        className="w-full border-border hover:bg-secondary font-bold h-11 text-xs sm:text-sm cursor-pointer gap-2"
+                      >
+                        <CreditCard className="h-4 w-4 text-accent" />
+                        <span>Payer {targetDirectFinancials?.priceHtva.toFixed(2)} € HT en direct (Bancontact / Carte)</span>
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        size="lg"
+                        type="button"
+                        onClick={() => setDirectPayLead(targetedLead)}
+                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-12 shadow-sm cursor-pointer text-sm gap-2"
+                      >
+                        <CreditCard className="h-4 w-4" />
+                        <span>Payer {targetDirectFinancials?.priceHtva.toFixed(2)} € HT en direct (Bancontact / Carte)</span>
+                      </Button>
+                    </>
+                  )}
 
                   <div className="flex items-center justify-between text-xs px-1">
                     <span className="text-muted-foreground">
                       Votre solde : <strong className="font-mono text-foreground">{partnerCredits} crédits</strong>
                     </span>
-                    {!targetHasEnoughCredits && (
-                      <button
-                        type="button"
-                        onClick={onRequestTopUp}
-                        className="text-xs font-bold text-accent hover:underline cursor-pointer"
-                      >
-                        + Recharger des crédits
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={onRequestTopUp}
+                      className="text-xs font-bold text-accent hover:underline cursor-pointer"
+                    >
+                      + Recharger des crédits
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1124,6 +1155,7 @@ export function MarketplaceFeedView({
               isTargeted={targetLeadId === lead.id}
               onInspect={() => setSelectedLeadForDrawer(lead)}
               onPurchase={() => handlePurchase(lead)}
+              onDirectPay={() => setDirectPayLead(lead)}
             />
           ))}
         </div>
@@ -1137,6 +1169,8 @@ export function MarketplaceFeedView({
               const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
               const remainingSlots = lead.remaining_slots ?? maxSlots
               const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
+              const hasEnoughCredits = partnerCredits >= cost
+              const directFinancials = calculateLeadDirectFinancials({ segment: lead.segment, credit_cost: cost })
               const isBuying = buyingId === lead.id
               const surfaceArea = Math.max(0, Number(lead.surface_area || lead.surface_area_m2) || 0)
               const annualBill = Math.max(0, Number(lead.annual_electricity_bill || lead.annual_bill_eur) || 0)
@@ -1216,9 +1250,12 @@ export function MarketplaceFeedView({
                   </div>
 
                   <div className="flex items-center justify-between gap-2 pt-0.5">
-                    <div className="flex items-baseline gap-1 font-mono text-xs">
-                      <span className="font-bold text-foreground">{cost} crédits</span>
-                      <span className="text-[10px] text-muted-foreground">({formatEurWithDecimals(financials.leadCostEuros)})</span>
+                    <div className="flex flex-col font-mono text-xs">
+                      <div className="flex items-baseline gap-1">
+                        <span className="font-bold text-foreground">{cost} crédits</span>
+                        <span className="text-[10px] text-muted-foreground font-medium">ou {directFinancials.priceHtva.toFixed(2)} € HT</span>
+                      </div>
+                      <span className="text-[9px] text-muted-foreground">({directFinancials.priceTtc.toFixed(2)} € TTC)</span>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                       <button
@@ -1229,15 +1266,27 @@ export function MarketplaceFeedView({
                         <Eye className="h-3.5 w-3.5 text-accent" />
                         <span>Voir</span>
                       </button>
-                      <button
-                        type="button"
-                        disabled={isBuying}
-                        onClick={() => handlePurchase(lead)}
-                        className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1.5 text-xs font-bold cursor-pointer flex items-center gap-1 disabled:opacity-60"
-                      >
-                        {isBuying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
-                        <span>Débloquer</span>
-                      </button>
+                      {hasEnoughCredits ? (
+                        <button
+                          type="button"
+                          disabled={isBuying}
+                          onClick={() => handlePurchase(lead)}
+                          className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1.5 text-xs font-bold cursor-pointer flex items-center gap-1 disabled:opacity-60"
+                        >
+                          {isBuying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
+                          <span>Débloquer</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setDirectPayLead(lead)}
+                          className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-2.5 py-1.5 text-xs font-bold cursor-pointer flex items-center gap-1"
+                          title="Payer directement ce lead par Bancontact / Carte"
+                        >
+                          <CreditCard className="h-3.5 w-3.5" />
+                          <span>Payer en €</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1436,8 +1485,8 @@ export function MarketplaceFeedView({
                       {/* Tarif */}
                       <td className="px-4 py-3 whitespace-nowrap font-mono text-foreground font-bold tabular-nums">
                         <div>{cost} crédits</div>
-                        <div className="text-[10px] text-muted-foreground font-normal">
-                          {formatEurWithDecimals(financials.leadCostEuros)}
+                        <div className="text-[10px] text-muted-foreground font-medium">
+                          ou {formatEurWithDecimals(financials.leadCostEuros)}
                         </div>
                       </td>
 
@@ -1452,15 +1501,40 @@ export function MarketplaceFeedView({
                           >
                             Inspecter
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="default"
-                            disabled={isBuying}
-                            onClick={() => handlePurchase(lead)}
-                            className="h-8 px-3 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-2xs active:scale-[0.99]"
-                          >
-                            {isBuying ? "..." : `Débloquer`}
-                          </Button>
+                          {partnerCredits >= cost ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setDirectPayLead(lead)}
+                                className="h-8 px-2.5 rounded-lg text-xs font-semibold cursor-pointer border-border hover:bg-secondary text-foreground"
+                                title="Payer directement ce lead par Bancontact / Carte sans débiter vos crédits"
+                              >
+                                <CreditCard className="h-3.5 w-3.5 text-accent mr-1" />
+                                <span>Payer en €</span>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                disabled={isBuying}
+                                onClick={() => handlePurchase(lead)}
+                                className="h-8 px-3 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-2xs active:scale-[0.99]"
+                              >
+                                {isBuying ? "..." : `Débloquer (${cost} cr)`}
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => setDirectPayLead(lead)}
+                              className="h-8 px-3 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-2xs active:scale-[0.99] gap-1"
+                              title="Payer directement ce lead par Bancontact / Carte"
+                            >
+                              <CreditCard className="h-3.5 w-3.5" />
+                              <span>Payer {financials.leadCostEuros.toFixed(2)} € HT</span>
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1486,6 +1560,23 @@ export function MarketplaceFeedView({
           onRequestExpert={(lead) => onOpenExpertModal?.(lead)}
         />
       )}
+
+      {/* ── 4. Modal de Paiement Direct par Dossier (€) ── */}
+      <DirectLeadPaymentModal
+        lead={directPayLead}
+        isOpen={Boolean(directPayLead)}
+        onClose={() => setDirectPayLead(null)}
+        onSwitchToCredits={() => {
+          const target = directPayLead
+          setDirectPayLead(null)
+          if (target && partnerCredits >= (target.credit_cost ?? (target.segment === "B2B" ? 9 : 3))) {
+            handlePurchase(target)
+          } else {
+            onRequestTopUp()
+          }
+        }}
+        partnerCredits={partnerCredits}
+      />
     </div>
   )
 }
@@ -1501,6 +1592,7 @@ function MarketplaceLeadCard({
   isTargeted,
   onInspect,
   onPurchase,
+  onDirectPay,
 }: {
   lead: any
   index: number
@@ -1509,11 +1601,14 @@ function MarketplaceLeadCard({
   isTargeted: boolean
   onInspect: () => void
   onPurchase: () => void
+  onDirectPay: () => void
 }) {
   const isB2B = lead.segment === "B2B"
   const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
   const remainingSlots = lead.remaining_slots ?? maxSlots
   const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
+  const hasEnoughCredits = partnerCredits >= cost
+  const directFinancials = calculateLeadDirectFinancials({ segment: lead.segment, credit_cost: cost })
   const slotIndicator = getB2CSlotIndicator(remainingSlots)
 
   const rawSurfaceArea = Math.max(0, Number(lead.surface_area || lead.surface_area_m2) || 0)
@@ -1795,28 +1890,21 @@ function MarketplaceLeadCard({
 
       {/* ── C. Pied de Carte : Coût en Crédits & Boutons Pilules (Inspecter & Débloquer) ── */}
       <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-3 border-t border-border flex flex-wrap items-center justify-between gap-2">
-        {/* Crédits avec icône pile de pièces - Garanti sans retour à la ligne */}
+        {/* Crédits ou Euros */}
         <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
-          <svg
-            className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <ellipse cx="12" cy="6" rx="8" ry="3" />
-            <path d="M4 6v5c0 1.66 3.58 3 8 3s8-1.34 8-3V6" />
-            <path d="M4 11v5c0 1.66 3.58 3 8 3s8-1.34 8-3v-5" />
-          </svg>
-          <div className="flex items-baseline gap-1">
-            <span className="font-bold text-xs sm:text-sm text-foreground font-mono tabular-nums">
-              {cost} crédits
-            </span>
-            <span className="text-[11px] text-muted-foreground font-mono tabular-nums">
-              ({formatEurWithDecimals(financials.leadCostEuros)})
+          <Coins className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div className="flex flex-col">
+            <div className="flex items-baseline gap-1">
+              <span className="font-bold text-xs sm:text-sm text-foreground font-mono tabular-nums">
+                {cost} crédits
+              </span>
+              <span className="text-[11px] text-muted-foreground font-medium">ou</span>
+              <span className="font-bold text-xs sm:text-sm text-foreground font-mono tabular-nums">
+                {directFinancials.priceHtva.toFixed(2)} € <span className="text-[10px] text-muted-foreground font-normal">HT</span>
+              </span>
+            </div>
+            <span className="text-[10px] text-muted-foreground font-mono tabular-nums">
+              ({directFinancials.priceTtc.toFixed(2)} € TTC)
             </span>
           </div>
         </div>
@@ -1833,24 +1921,49 @@ function MarketplaceLeadCard({
             <span>Inspecter</span>
           </button>
 
-          <button
-            type="button"
-            disabled={isBuying}
-            onClick={onPurchase}
-            className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-3.5 sm:px-4 py-1.5 text-xs font-bold shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1 shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {isBuying ? (
-              <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                <span>...</span>
-              </>
-            ) : (
-              <>
-                <Lock className="h-3.5 w-3.5 text-primary-foreground" />
-                <span>Débloquer</span>
-              </>
-            )}
-          </button>
+          {hasEnoughCredits ? (
+            <>
+              <button
+                type="button"
+                onClick={onDirectPay}
+                className="rounded-full border border-border bg-secondary hover:bg-secondary/80 px-2.5 py-1.5 text-xs font-semibold text-foreground transition-all cursor-pointer flex items-center gap-1 shrink-0"
+                title="Payer directement ce lead par Bancontact / Carte sans utiliser vos crédits"
+              >
+                <CreditCard className="h-3.5 w-3.5 text-accent" />
+                <span className="hidden sm:inline">Payer en €</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isBuying}
+                onClick={onPurchase}
+                className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-3.5 sm:px-4 py-1.5 text-xs font-bold shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1 shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
+                title="Débloquer immédiatement avec vos crédits"
+              >
+                {isBuying ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span>...</span>
+                  </>
+                ) : (
+                  <>
+                    <Unlock className="h-3.5 w-3.5 text-primary-foreground" />
+                    <span>Débloquer</span>
+                  </>
+                )}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={onDirectPay}
+              className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-3.5 sm:px-4 py-1.5 text-xs font-bold shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1 shrink-0"
+              title="Payer directement ce lead par Bancontact / Carte"
+            >
+              <CreditCard className="h-3.5 w-3.5 text-primary-foreground" />
+              <span>Payer {directFinancials.priceHtva.toFixed(2)} € HT</span>
+            </button>
+          )}
         </div>
       </div>
     </div>
