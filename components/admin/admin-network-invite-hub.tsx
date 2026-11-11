@@ -380,7 +380,10 @@ export function AdminNetworkInviteHub() {
     setSaveStatus("default")
 
     try {
-      await fetch(`/api/admin/invite-templates?tone=${tone}`, { method: "DELETE" })
+      await fetch(`/api/admin/invite-templates?tone=${tone}`, {
+        method: "DELETE",
+        headers: { "x-admin-request": "true" },
+      })
     } catch {
       // Ignore
     }

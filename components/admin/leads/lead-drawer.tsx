@@ -187,6 +187,9 @@ export function LeadDrawer({
     try {
       const res = await fetch(`/api/admin/leads/${lead.id}/image`, {
         method: "POST",
+        headers: {
+          "x-admin-request": "true",
+        },
         body: formData,
       })
       const data = await res.json()
@@ -214,7 +217,10 @@ export function LeadDrawer({
     try {
       const res = await fetch(`/api/admin/leads/${lead.id}/image`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-request": "true",
+        },
         body: JSON.stringify({ imageUrl: customUrlInput.trim() }),
       })
       const data = await res.json()
@@ -245,6 +251,9 @@ export function LeadDrawer({
     try {
       const res = await fetch(`/api/admin/leads/${lead.id}/image`, {
         method: "DELETE",
+        headers: {
+          "x-admin-request": "true",
+        },
       })
       if (!res.ok) {
         throw new Error("Erreur lors de la suppression")
