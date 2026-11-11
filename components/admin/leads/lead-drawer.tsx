@@ -1034,6 +1034,7 @@ export function LeadDrawer({
 
           {/* Module de Sélection et Routage Installateurs */}
           <DispatchPanel
+            leadId={lead.id}
             segment={lead.segment ?? "B2B"}
             province={lead.province}
             creditCost={creditCost}

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
-import { dispatchLeadWave, MAX_SLOTS_B2C, MAX_SLOTS_B2B, isDevTestPartner } from "@/lib/lead-relance-engine"
+import { dispatchLeadWave, dispatchLeadToSpecificPartners, MAX_SLOTS_B2C, MAX_SLOTS_B2B, isDevTestPartner } from "@/lib/lead-relance-engine"
 
 export async function GET(
   _request: NextRequest,
@@ -43,12 +43,24 @@ export async function GET(
 
   // 3. Récupérer l'historique des relances envoyées (hors comptes de test DEV)
   let realDispatches: any[] = []
+  const sentHistoryByPartner: Record<string, { lastSentAt: string; count: number }> = {}
+
   try {
     const { data: dispatchRows } = await supabase
       .from("lead_relance_dispatches")
       .select("id, wave_number, email_to, sent_at, matching_score, matching_tier, credits_at_send, partner_id, partners(id, company_name, email, is_test)")
       .eq("lead_id", id)
       .order("sent_at", { ascending: false })
+
+    for (const d of dispatchRows || []) {
+      if (d.partner_id) {
+        if (!sentHistoryByPartner[d.partner_id]) {
+          sentHistoryByPartner[d.partner_id] = { lastSentAt: d.sent_at, count: 1 }
+        } else {
+          sentHistoryByPartner[d.partner_id].count += 1
+        }
+      }
+    }
 
     realDispatches = (dispatchRows || []).filter((d: any) => {
       const partnerObj = Array.isArray(d.partners) ? d.partners[0] : d.partners
@@ -70,6 +82,7 @@ export async function GET(
     isFullySold: takenSlots >= maxSlots,
     dispatches: realDispatches,
     purchases: realPurchases,
+    sentHistoryByPartner,
   })
 }
 
@@ -85,6 +98,7 @@ export async function POST(
   const { id } = await params
   let waveNumber = 1
   let force = false
+  let partnerIds: string[] | null = null
 
   try {
     const body = await request.json()
@@ -94,11 +108,19 @@ export async function POST(
     if (body.force === true) {
       force = true
     }
+    if (Array.isArray(body.partnerIds) && body.partnerIds.length > 0) {
+      partnerIds = body.partnerIds.filter((p: any) => typeof p === "string")
+    }
   } catch {
     // Pas de body json, prend la vague 1 par défaut
   }
 
   try {
+    if (partnerIds && partnerIds.length > 0) {
+      const result = await dispatchLeadToSpecificPartners(id, partnerIds, waveNumber)
+      return NextResponse.json(result)
+    }
+
     const result = await dispatchLeadWave(id, waveNumber, force)
     return NextResponse.json(result)
   } catch (err: any) {

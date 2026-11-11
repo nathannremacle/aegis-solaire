@@ -614,6 +614,188 @@ export async function dispatchLeadWave(
   }
 }
 
+/**
+ * Envoie un lead par e-mail à une sélection manuelle d'installateurs partenaires
+ */
+export async function dispatchLeadToSpecificPartners(
+  leadId: string,
+  partnerIds: string[],
+  waveNumber: number = 1
+): Promise<DispatchWaveResult> {
+  if (!partnerIds || partnerIds.length === 0) {
+    throw new Error("Aucun installateur sélectionné.")
+  }
+
+  const supabase = createServiceRoleClient()
+
+  // 1. Récupérer le lead
+  const { data: lead, error: leadErr } = await supabase
+    .from("leads")
+    .select("*")
+    .eq("id", leadId)
+    .single()
+
+  if (leadErr || !lead) {
+    throw new Error(`Lead introuvable (#${leadId})`)
+  }
+
+  const isB2B = lead.segment === "B2B"
+  const maxSlots = isB2B ? MAX_SLOTS_B2B : MAX_SLOTS_B2C
+
+  // 2. Vérifier les achats existants
+  const { data: purchases } = await supabase
+    .from("lead_purchases")
+    .select("id, partner_id, partners(is_test, company_name)")
+    .eq("lead_id", leadId)
+
+  const realPurchases = (purchases || []).filter(
+    (p: any) => !p.partners?.is_test && !p.partners?.company_name?.toLowerCase().includes("test")
+  )
+  const takenSlots = realPurchases.length
+
+  // 3. Récupérer les partenaires cibles
+  const { data: selectedPartners, error: partnersErr } = await supabase
+    .from("partners")
+    .select("id, company_name, email, phone, credits, segment, target_provinces, target_surfaces, min_facture, is_test")
+    .in("id", partnerIds)
+
+  if (partnersErr || !selectedPartners || selectedPartners.length === 0) {
+    throw new Error("Les installateurs sélectionnés sont introuvables.")
+  }
+
+  // 4. Calculer les estimations financières du projet
+  const creditCost = lead.credit_cost || calculateLeadCreditCost(lead)
+  const financials = calculateMarketplaceFinancials({
+    segment: lead.segment,
+    surfaceArea: lead.surface_area_m2 || lead.surface_area,
+    surfaceType: lead.surface_type,
+    roofMaterial: lead.roof_material,
+    annualBill: lead.annual_bill_eur || lead.annual_electricity_bill,
+    creditCost,
+    estimatedPowerKwc: lead.estimated_power_kwc,
+    projectDetails: lead.project_details || lead.message,
+    qualificationMetadata: lead.qualification_metadata,
+  })
+
+  // 5. Envoi des e-mails via Resend et journalisation
+  const resend = resendApiKey ? new Resend(resendApiKey) : null
+  const dispatchedRecipients: { email: string; companyName: string; score: number; tier: string; isTest?: boolean }[] = []
+
+  for (const partner of selectedPartners) {
+    if (!partner.email || !partner.email.includes("@")) continue
+
+    const emailData = {
+      partner: {
+        id: partner.id,
+        companyName: partner.company_name,
+        contactName: null,
+        credits: partner.credits || 0,
+      },
+      lead: {
+        id: lead.id,
+        segment: lead.segment,
+        province: lead.province,
+        provinceFreeText: lead.province_free_text,
+        postalCode: lead.postal_code,
+        city: lead.city,
+        surfaceType: lead.surface_type,
+        surfaceArea: lead.surface_area_m2 || lead.surface_area || 0,
+        roofMaterial: lead.roof_material,
+        annualElectricityBill: lead.annual_bill_eur || lead.annual_electricity_bill || 0,
+        estimatedPowerKwc: financials.estimatedPowerKwc,
+        timeframe: lead.timeframe,
+        ownershipStatus: lead.ownership_status,
+        projectDriver: lead.project_driver,
+        projectDetails: lead.project_details || lead.message,
+        firstName: lead.first_name,
+        lastName: lead.last_name,
+        grd: lead.grd,
+        roofImageUrl: (lead.qualification_metadata?.roof_image_url || lead.qualification_metadata?.site_image_url || null) as string | null,
+        createdAt: lead.created_at,
+      },
+      waveNumber,
+      takenSlots,
+      maxSlots,
+      creditCost,
+      financials,
+    }
+
+    const { subject, text, html } = renderInstallerLeadTeaserEmail(emailData)
+
+    if (resend) {
+      try {
+        const { error: sendErr } = await resend.emails.send({
+          from: fromEmail,
+          to: partner.email,
+          replyTo: replyToEmail,
+          subject,
+          text,
+          html,
+        })
+        if (sendErr) {
+          console.error(`[Manual Dispatch] Échec d'envoi à ${partner.email}:`, sendErr)
+          continue
+        }
+      } catch (sendException) {
+        console.error(`[Manual Dispatch] Exception d'envoi à ${partner.email}:`, sendException)
+        continue
+      }
+    } else {
+      console.log(`[Manual Dispatch DEV] Envoi simulé à ${partner.email} — Objet: ${subject}`)
+    }
+
+    // Journalisation dans lead_relance_dispatches
+    try {
+      await supabase.from("lead_relance_dispatches").insert({
+        lead_id: lead.id,
+        partner_id: partner.id,
+        wave_number: waveNumber,
+        email_to: partner.email,
+        email_subject: subject,
+        matching_score: 100,
+        matching_tier: "manual_selection",
+        credits_at_send: partner.credits || 0,
+        sent_at: new Date().toISOString(),
+      })
+    } catch (insertErr) {
+      console.warn("[Manual Dispatch] log dispatch warning:", insertErr)
+    }
+
+    dispatchedRecipients.push({
+      email: partner.email,
+      companyName: partner.company_name,
+      score: 100,
+      tier: "manual_selection",
+      isTest: Boolean(partner.is_test || partner.company_name?.toLowerCase().includes("test")),
+    })
+  }
+
+  // Mettre à jour l'état de relance sur le lead
+  try {
+    await supabase
+      .from("leads")
+      .update({
+        relance_wave: Math.max(lead.relance_wave || 0, waveNumber),
+        last_relance_at: new Date().toISOString(),
+      })
+      .eq("id", lead.id)
+  } catch (updateErr) {
+    // Non bloquant
+  }
+
+  return {
+    success: true,
+    leadId,
+    waveNumber,
+    sentCount: dispatchedRecipients.length,
+    recipients: dispatchedRecipients,
+    takenSlots,
+    maxSlots,
+    isFullySold: takenSlots >= maxSlots,
+    message: `${dispatchedRecipients.length} e-mail(s) envoyé(s) avec succès !`,
+  }
+}
+
 // ==============================================================================
 // 6. PROCESSUS DE RELANCES AUTOMATIQUES EN TÂCHE DE FOND (CRON / WORKER)
 // ==============================================================================
