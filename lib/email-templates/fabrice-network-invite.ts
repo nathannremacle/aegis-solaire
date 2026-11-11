@@ -107,11 +107,11 @@ export function buildPartnerInvitePlainText(data: PartnerInviteData): string {
   const creditsCount = data.freeCredits > 0 ? data.freeCredits : 3
 
   const creditsBlockTutoiement = showCredits
-    ? `\nPour vous permettre de tester la qualité de nos dossiers, nous vous avons crédité ${creditsCount} crédits d'accueil sur votre espace (soit votre 1er dossier B2C offert, valeur 34,50 € HTVA) sans aucun engagement financier.\n`
+    ? `\nPour vous permettre de tester la qualité de nos dossiers, nous vous avons crédité ${creditsCount} crédits d'accueil sur votre espace (soit votre 1er dossier B2C offert, valeur 29,50 € HTVA) sans aucun engagement financier.\n`
     : `\n`
 
   const creditsBlockVouvoiement = showCredits
-    ? `\nAfin de vous permettre de constater la précision de nos dossiers techniques, la Direction des Partenariats vous alloue ${creditsCount} crédits d'accueil (valeur 34,50 € HTVA, correspondant à votre 1er dossier B2C offert) sans aucun engagement financier.\n`
+    ? `\nAfin de vous permettre de constater la précision de nos dossiers techniques, la Direction des Partenariats vous alloue ${creditsCount} crédits d'accueil (valeur 29,50 € HTVA, correspondant à votre 1er dossier B2C offert) sans aucun engagement financier.\n`
     : `\n`
 
   const noteBlock = data.customNote?.trim() ? `\nNote de l'équipe : ${data.customNote.trim()}\n` : ""

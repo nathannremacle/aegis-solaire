@@ -16,7 +16,7 @@ import {
   SOLAR_CONSTANTS,
 } from "./solar-assumptions"
 
-// Prix de référence unitaire moyen constaté sur les recharges installateurs (1 crédit = 11,50 € HTVA)
+// Prix de référence unitaire moyen constaté sur les recharges installateurs (3 crédits = 29,50 € HTVA)
 export const REFERENCE_CREDIT_PRICE_EUR = CREDIT_UNIT_PRICE_EUR
 
 export interface FinancialEstimates {
@@ -51,8 +51,8 @@ export interface FinancialEstimates {
 
 /**
  * Calcule dynamiquement le coût en crédits d'un dossier selon le barème fixe V2 :
- * - B2C (partagé max 3 installateurs) : 3 crédits / acheteur (34,50 € HTVA)
- * - B2B professionnel exclusif : 9 crédits en exclusivité (103,50 € HTVA)
+ * - B2C (partagé max 3 installateurs) : 3 crédits / acheteur (29,50 € HTVA)
+ * - B2B professionnel exclusif : 9 crédits en exclusivité (88,50 € HTVA)
  */
 export function calculateLeadCreditCost(lead: {
   segment: "B2B" | "B2C" | string
@@ -311,7 +311,12 @@ export function calculateMarketplaceFinancials(lead: {
       surfaceType: lead.surfaceType,
       annualBill: normalizedAnnualBill,
     })
-  const leadCostEuros = (credits * CREDIT_UNIT_PRICE_CENTIMES) / 100
+  const leadCostEuros =
+    credits === 3
+      ? 29.5
+      : credits === 9
+      ? 88.5
+      : Math.round((credits * 2950) / 3) / 100
 
   const dataQuality: "complete" | "partial" =
     rawArea > 0 && rawAnnualBill > 0 ? "complete" : "partial"

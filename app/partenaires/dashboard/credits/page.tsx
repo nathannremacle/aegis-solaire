@@ -444,8 +444,8 @@ export default function CreditsPage() {
                   </h4>
                   <p className="text-muted-foreground mt-0.5">
                     {(partner?.credits ?? 0) < 3
-                      ? "Solde insuffisant pour débloquer un nouveau dossier. Un dossier B2C requiert 3 crédits (34,50 € HTVA) et un B2B exclusif requiert 9 crédits (103,50 € HTVA)."
-                      : "Votre solde permet de débloquer un dossier B2C (3 crédits = 34,50 € HTVA), mais est insuffisant pour un dossier B2B exclusif (9 crédits = 103,50 € HTVA)."}
+                      ? "Solde insuffisant pour débloquer un nouveau dossier. Un dossier B2C requiert 3 crédits (29,50 € HTVA) et un B2B exclusif requiert 9 crédits (88,50 € HTVA)."
+                      : "Votre solde permet de débloquer un dossier B2C (3 crédits = 29,50 € HTVA), mais est insuffisant pour un dossier B2B exclusif (9 crédits = 88,50 € HTVA)."}
                   </p>
                 </div>
               </div>
@@ -572,7 +572,7 @@ export default function CreditsPage() {
                     Vous préférez payer à l&apos;unité sans pack ?
                   </h4>
                   <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                    Sur la marketplace, vous pouvez également débloquer chaque chantier individuellement en euros par Bancontact ou Carte bancaire (34,50 € HT pour un B2C, 103,50 € HT pour un B2B exclusif).
+                    Sur la marketplace, vous pouvez également débloquer chaque chantier individuellement en euros par Bancontact ou Carte bancaire (29,50 € HT pour un B2C, 88,50 € HT pour un B2B exclusif).
                   </p>
                 </div>
               </div>

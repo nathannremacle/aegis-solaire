@@ -18,7 +18,7 @@ export function InstallerRoiCalculator() {
       case "b2c":
         return {
           avgCreditCost: 3,
-          avgCreditEuro: 34.5, // 3 crédits x 11,50 €
+          avgCreditEuro: 29.5, // 3 crédits = 29,50 €
           avgContractValue: 6200, // panier moyen résidentiel réaliste (~4,8 kWc + options éventuelles)
           avgGrossMargin: 1240, // ~20% marge brute installateur résidentiel
           label: "Résidentiel B2C (2,6 à 10 kWc)",
@@ -26,7 +26,7 @@ export function InstallerRoiCalculator() {
       case "b2b":
         return {
           avgCreditCost: 9,
-          avgCreditEuro: 103.5, // 9 crédits x 11,50 €
+          avgCreditEuro: 88.5, // 9 crédits = 88,50 €
           avgContractValue: 72000, // toiture tertiaire PME moyenne (~80 kWc)
           avgGrossMargin: 11500, // ~16% marge brute tertiaire
           label: "Tertiaire & PME B2B (25 à 250 kWc)",
@@ -35,7 +35,7 @@ export function InstallerRoiCalculator() {
       default:
         return {
           avgCreditCost: 4.8, // 70% x 3 + 30% x 9 = 4,8 crédits
-          avgCreditEuro: 55.2, // 70% x 34,50 € + 30% x 103,50 € = 55,20 €
+          avgCreditEuro: 47.2, // 70% x 29,50 € + 30% x 88,50 € = 47,20 €
           avgContractValue: 26000, // moyenne pondérée 70% B2C (6 200 €) / 30% B2B (72 000 €)
           avgGrossMargin: 4320, // marge brute pondérée (70% x 1 240 € + 30% x 11 500 €)
           label: "Mixte (70% Résidentiel / 30% Tertiaire)",

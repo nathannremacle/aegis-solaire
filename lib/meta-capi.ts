@@ -129,8 +129,8 @@ export async function sendMetaConversionApiLead(params: MetaCapiLeadParams): Pro
           ? "https://www.aegissolaire.com/"
           : "https://www.aegissolaire.com/devis-panneaux-solaires"
 
-    // Barème V2 unifié : 103.50 € HTVA en B2B exclusif (9 cr), 75.90 € HTVA en moyenne B2C (2.2 × 34.50 €)
-    const leadValueEur = params.segment === "B2B" ? 103.5 : 75.9
+    // Barème V2 unifié : 88.50 € HTVA en B2B exclusif (9 cr), 64.90 € HTVA en moyenne B2C (2.2 × 29.50 €)
+    const leadValueEur = params.segment === "B2B" ? 88.5 : 64.9
     const testEventCode = process.env.META_TEST_EVENT_CODE
 
     const response = await fetch(`https://graph.facebook.com/v22.0/${pixelId}/events?access_token=${accessToken}`, {

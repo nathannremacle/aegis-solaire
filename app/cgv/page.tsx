@@ -113,8 +113,8 @@ export default function CGV() {
             <li>
               <strong className="text-foreground">Coût unitaire d&apos;acquisition d&apos;un lead :</strong>
               <ul className="mt-1 list-disc pl-5 space-y-1">
-                <li><strong className="text-foreground">Lead B2C (résidentiel) :</strong> 3 crédits par Partenaire acheteur (soit <span className="font-mono tabular-nums">34,50 € HTVA</span>), dans la limite stricte de 3 acheteurs.</li>
-                <li><strong className="text-foreground">Lead B2B (professionnel / industriel) :</strong> 9 crédits (soit <span className="font-mono tabular-nums">103,50 € HTVA</span>), réservé en exclusivité absolue à un acheteur unique.</li>
+                <li><strong className="text-foreground">Lead B2C (résidentiel) :</strong> 3 crédits par Partenaire acheteur (soit <span className="font-mono tabular-nums">29,50 € HTVA</span>), dans la limite stricte de 3 acheteurs.</li>
+                <li><strong className="text-foreground">Lead B2B (professionnel / industriel) :</strong> 9 crédits (soit <span className="font-mono tabular-nums">88,50 € HTVA</span>), réservé en exclusivité absolue à un acheteur unique.</li>
               </ul>
             </li>
           </ul>

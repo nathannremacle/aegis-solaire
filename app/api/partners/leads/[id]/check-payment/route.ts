@@ -89,3 +89,4 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
     message: "En attente de confirmation bancaire.",
   })
 }
+

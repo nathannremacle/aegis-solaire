@@ -30,7 +30,7 @@ const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.aegissolaire.co
 export const metadata = {
   title: "Devenir Partenaire Installateur RESCERT | Marketplace Photovoltaïque Wallonie",
   description:
-    "Marketplace de chantiers solaires qualifiés pour installateurs certifiés RESCERT en Wallonie. B2B exclusif (1 seul acheteur à 9 crédits = 103,50 € HTVA) et B2C transparent (max 3 installateurs à 3 crédits = 34,50 € HTVA). Zéro abonnement, déblocage direct aux crédits.",
+    "Marketplace de chantiers solaires qualifiés pour installateurs certifiés RESCERT en Wallonie. B2B exclusif (1 seul acheteur à 9 crédits = 88,50 € HTVA) et B2C transparent (max 3 installateurs à 3 crédits = 29,50 € HTVA). Zéro abonnement, déblocage direct aux crédits.",
   alternates: {
     canonical: `${baseUrl}/partenaires`,
   },
@@ -93,7 +93,7 @@ export default function PartenairesPage() {
                       SEGMENT B2C · TRANSPARENCE TOTALE
                     </span>
                     <span className="font-mono text-xs font-bold text-accent tabular-nums">
-                      3 crédits (34,50 € HT)
+                      3 crédits (29,50 € HT)
                     </span>
                   </div>
                   <h3 className="text-lg sm:text-xl font-bold text-foreground font-heading">

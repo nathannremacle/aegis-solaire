@@ -341,7 +341,7 @@ export function DispatchPanel({
             {segment === "B2B" ? 9 : 3} cr.
           </span>
           <span className="text-[11px] text-muted-foreground tabular-nums">
-            ({segment === "B2B" ? "103,50" : "34,50"} € HT)
+            ({segment === "B2B" ? "88,50" : "29,50"} € HT)
           </span>
         </div>
       </div>

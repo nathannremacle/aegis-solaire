@@ -686,8 +686,8 @@ export function AdminNetworkInviteHub() {
                 }}
                 className="w-full h-9 rounded-md border border-border bg-card px-2.5 text-xs font-semibold text-foreground"
               >
-                <option value={3}>🎁 3 crédits (1er dossier B2C offert · 34,50 € HT)</option>
-                <option value={9}>⭐ 9 crédits (1er dossier B2B exclusif offert · 103,50 € HT)</option>
+                <option value={3}>🎁 3 crédits (1er dossier B2C offert · 29,50 € HT)</option>
+                <option value={9}>⭐ 9 crédits (1er dossier B2B exclusif offert · 88,50 € HT)</option>
                 <option value={0}>⚪ Aucun crédit offert</option>
               </select>
             </div>
