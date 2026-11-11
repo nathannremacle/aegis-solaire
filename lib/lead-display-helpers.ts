@@ -86,13 +86,24 @@ export const CONSUMPTION_LABELS: Record<string, string> = {
 export const PROPERTY_TYPE_LABELS: Record<string, string> = {
   "maison mitoyenne": "Maison mitoyenne (2 ou 3 façades)",
   "maison_mitoyenne": "Maison mitoyenne (2 ou 3 façades)",
+  mitoyenne: "Maison mitoyenne (2 ou 3 façades)",
   "maison 4 facades": "Maison 4 façades (Isolée)",
+  "maison 4 façades": "Maison 4 façades (Isolée)",
   "maison_4f": "Maison 4 façades (Isolée)",
+  "maison_4_facades": "Maison 4 façades (Isolée)",
+  "maison individuelle": "Maison 4 façades (Isolée)",
+  "maison_individuelle": "Maison 4 façades (Isolée)",
+  individuelle: "Maison 4 façades (Isolée)",
   "maison 3 facades": "Maison 3 façades",
+  "maison 3 façades": "Maison 3 façades",
   "maison_3f": "Maison 3 façades",
+  "maison_3_facades": "Maison 3 façades",
   appartement: "Appartement / Copropriété",
+  copropriete: "Copropriété (syndic)",
   batiment_industriel: "Bâtiment industriel / Hangar",
   hangar: "Hangar / Entrepôt",
+  entrepot: "Hangar / Entrepôt",
+  entrepôt: "Hangar / Entrepôt",
   bureaux: "Immeuble de bureaux",
   commerce: "Surface commerciale",
   agricole: "Bâtiment agricole",
@@ -107,6 +118,7 @@ export const ROOF_SURFACE_LABELS: Record<string, string> = {
   grande: "Grande (~60 à 100 m²)",
   xlarge: "Très grande (> 100 m²)",
   tres_grande: "Très grande (> 100 m²)",
+  "très grande": "Très grande (> 100 m²)",
 }
 
 /**
@@ -194,6 +206,36 @@ export const WALLONIA_POSTAL_LOOKUP: Record<string, { city: string; province: st
 export function getSurfaceTypeLabel(key?: string | null): string {
   if (!key) return "Toiture standard"
   return SURFACE_TYPE_LABELS[key] ?? key
+}
+
+export function getPropertyTypeLabel(key?: string | null): string {
+  if (!key) return "Maison d'habitation"
+  const normalized = key.toLowerCase().trim()
+  if (PROPERTY_TYPE_LABELS[normalized]) return PROPERTY_TYPE_LABELS[normalized]
+  return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+export function getRoofSurfaceLabel(key?: string | null): string {
+  if (!key) return "Surface standard (~35 à 60 m²)"
+  const normalized = key.toLowerCase().trim()
+  if (ROOF_SURFACE_LABELS[normalized]) return ROOF_SURFACE_LABELS[normalized]
+  if (normalized.includes("m²") || normalized.includes("m2")) {
+    return normalized.replace("m2", "m²")
+  }
+  if (/^\d+$/.test(normalized)) {
+    return `${normalized} m²`
+  }
+  return key.replace(/_/g, " ")
+}
+
+export function getConsumptionLabel(key?: string | null): string {
+  if (!key) return "Non précisée"
+  const normalized = key.toLowerCase().trim()
+  if (CONSUMPTION_LABELS[normalized]) return CONSUMPTION_LABELS[normalized]
+  const clean = normalized.replace(/_/g, " à ")
+  if (clean.includes("kwh")) return clean
+  if (/^\d+(\s*à\s*\d+)?$/.test(clean)) return `${clean} kWh/an`
+  return key.replace(/_/g, " ")
 }
 
 export function getRoofMaterialLabel(key?: string | null): string {
@@ -383,6 +425,7 @@ export function parseLeadProjectDetails(text?: string | null): ParsedLeadDetails
 
   const badges: ParsedLeadBadge[] = []
   let remarks: string | null = null
+  const seenBadgeKeys = new Set<string>()
 
   for (let i = 0; i < filtered.length; i++) {
     const curr = filtered[i]
@@ -397,22 +440,28 @@ export function parseLeadProjectDetails(text?: string | null): ParsedLeadDetails
       continue
     }
 
+    // Éviter strictement les clés en double
+    if (seenBadgeKeys.has(curr.def.key)) {
+      continue
+    }
+    seenBadgeKeys.add(curr.def.key)
+
     let cleanVal = rawVal
     let variant: ParsedLeadBadge["variant"] = "default"
 
     if (curr.def.key === "location") {
       variant = "accent"
     } else if (curr.def.key === "consumption") {
-      cleanVal = CONSUMPTION_LABELS[rawVal.toLowerCase()] || rawVal.replace("_", " à ") + " kWh/an"
+      cleanVal = getConsumptionLabel(rawVal)
       variant = "solar"
     } else if (curr.def.key === "propertyType") {
-      cleanVal = PROPERTY_TYPE_LABELS[rawVal.toLowerCase()] || rawVal
+      cleanVal = getPropertyTypeLabel(rawVal)
     } else if (curr.def.key === "ownership") {
-      cleanVal = OWNERSHIP_LABELS[rawVal.toLowerCase()] || rawVal
+      cleanVal = getOwnershipLabel(rawVal)
     } else if (curr.def.key === "roofSurface") {
-      cleanVal = ROOF_SURFACE_LABELS[rawVal.toLowerCase()] || (rawVal.includes("m²") ? rawVal : `${rawVal} m²`)
+      cleanVal = getRoofSurfaceLabel(rawVal)
     } else if (curr.def.key === "roofMaterial") {
-      cleanVal = ROOF_MATERIAL_LABELS[rawVal.toLowerCase()] || rawVal
+      cleanVal = getRoofMaterialLabel(rawVal)
     } else if (curr.def.key === "contact") {
       const isCall = rawVal.toLowerCase().includes("appel")
       variant = isCall ? "success" : "highlight"
@@ -430,23 +479,67 @@ export function parseLeadProjectDetails(text?: string | null): ParsedLeadDetails
   return { badges, remarks, rawFallback: null }
 }
 
+export interface LeadProjectSpecs {
+  propertyType?: string
+  roofMaterial?: string
+  roofSurface?: string
+  ownership?: string
+  consumption?: string
+  contactPreference?: string
+  locationDetail?: string
+  hasBattery?: boolean
+  hasIrve?: boolean
+}
+
 /**
  * Nettoie chirurgicalement les métadonnées internes des leads
  * Supprime "Source: Landing Bobex-Style", "UTM...", et traduit les chaînes brutes en français net.
+ * Évite à 100% les dédoublements de texte entre details et message.
  */
 export function sanitizeLeadNotes(details?: string | null, message?: string | null): {
   cleanRemarks: string | null
-  cleanBadges: { label: string; value: string }[]
+  cleanBadges: { label: string; value: string; key: string }[]
+  specs: LeadProjectSpecs
 } {
-  const combined = [details, message].filter(Boolean).join(" | ")
-  if (!combined.trim()) {
-    return { cleanRemarks: null, cleanBadges: [] }
+  let sourceText = ""
+  const d = (details || "").trim()
+  const m = (message || "").trim()
+
+  if (d && m) {
+    if (d === m || d.includes(m)) {
+      sourceText = d
+    } else if (m.includes(d)) {
+      sourceText = m
+    } else {
+      sourceText = `${d} | ${m}`
+    }
+  } else {
+    sourceText = d || m
   }
 
-  const parsed = parseLeadProjectDetails(combined)
+  if (!sourceText.trim()) {
+    return { cleanRemarks: null, cleanBadges: [], specs: {} }
+  }
+
+  const parsed = parseLeadProjectDetails(sourceText)
+  const specs: LeadProjectSpecs = {}
+
+  for (const b of parsed.badges) {
+    if (b.id === "propertyType") specs.propertyType = b.value
+    else if (b.id === "roofMaterial") specs.roofMaterial = b.value
+    else if (b.id === "roofSurface") specs.roofSurface = b.value
+    else if (b.id === "ownership") specs.ownership = b.value
+    else if (b.id === "consumption") specs.consumption = b.value
+    else if (b.id === "contact") specs.contactPreference = b.value
+    else if (b.id === "location") specs.locationDetail = b.value
+    else if (b.id === "battery") specs.hasBattery = true
+    else if (b.id === "irve") specs.hasIrve = true
+  }
+
   return {
     cleanRemarks: parsed.remarks,
-    cleanBadges: parsed.badges.map((b) => ({ label: b.label, value: b.value })),
+    cleanBadges: parsed.badges.map((b) => ({ label: b.label, value: b.value, key: b.id })),
+    specs,
   }
 }
 

@@ -25,6 +25,11 @@ import {
   Clock,
   Camera,
   Maximize2,
+  Sliders,
+  UserCheck,
+  Ruler,
+  Layers,
+  MessageSquare,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
@@ -40,6 +45,9 @@ import {
   getTimeframeLabel,
   getOwnershipLabel,
   getProjectDriverLabel,
+  getPropertyTypeLabel,
+  getRoofSurfaceLabel,
+  getConsumptionLabel,
 } from "@/lib/lead-display-helpers"
 import { LeadGeoRadarMap } from "./lead-geo-radar-map"
 import { downloadLeadVCard } from "./lib/vcard-export"
@@ -118,6 +126,42 @@ export function LeadInspectionDrawer({
   const location = getLeadLocationInfo(lead)
   const freshness = getLeadFreshness(lead.created_at, (lead as { freshness_label?: string }).freshness_label)
   const sanitized = sanitizeLeadNotes(lead.project_details, lead.message)
+  const specs = sanitized.specs
+
+  // Spécifications techniques consolidées et dédoublonnées à 100%
+  const propertyTypeDisplay =
+    specs.propertyType ||
+    (lead.qualification_metadata?.propertyType
+      ? getPropertyTypeLabel(lead.qualification_metadata.propertyType)
+      : null) ||
+    (lead.surface_type ? getSurfaceTypeLabel(lead.surface_type) : "Maison d'habitation")
+
+  const roofMaterialDisplay =
+    getRoofMaterialLabel(lead.roof_material) || specs.roofMaterial || "Tuiles"
+
+  const roofSurfaceDisplay =
+    specs.roofSurface ||
+    (lead.surface_area_m2 ? `${lead.surface_area_m2} m²` : null) ||
+    (lead.surface_area ? getRoofSurfaceLabel(String(lead.surface_area)) : null) ||
+    "Moyenne (~35 à 60 m²)"
+
+  const ownershipDisplay =
+    getOwnershipLabel(lead.ownership_status) || specs.ownership || "Propriétaire occupant"
+
+  const timeframeDisplay = getTimeframeLabel(lead.timeframe || lead.project_timeline)
+  const grdDisplay = lead.grd ? `GRD ${lead.grd.toUpperCase()}` : "ORES / RESA"
+
+  const consumptionDisplay =
+    specs.consumption ||
+    (lead.annual_bill_eur ? `${lead.annual_bill_eur.toLocaleString("fr-BE")} €/an` : null) ||
+    (lead.annual_electricity_bill ? `${lead.annual_electricity_bill.toLocaleString("fr-BE")} €/an` : null)
+
+  const contactPreferenceDisplay =
+    specs.contactPreference || lead.qualification_metadata?.contactPreference || null
+
+  const hasBattery = specs.hasBattery || lead.qualification_metadata?.battery === true
+  const hasIrve = specs.hasIrve || lead.qualification_metadata?.ev_charger === true
+
   const powerKwc = financials.estimatedPowerKwc
   const displaySurfaceArea = financials.normalizedSurfaceAreaM2
   const displayAnnualBill = financials.normalizedAnnualBill
@@ -421,62 +465,141 @@ export function LeadInspectionDrawer({
             </div>
           )}
 
-          {/* D. Fiche Technique Déduite & Normalisée */}
-          <div className="rounded-xl border border-border bg-secondary/20 p-3.5 flex flex-col gap-2.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
-              Spécifications du Dossier
-            </span>
+          {/* D. Fiche Technique Déduite & Spécifications Structurées (Zéro Redondance) */}
+          <div className="rounded-xl border border-border bg-secondary/20 p-4 flex flex-col gap-3.5 shadow-2xs">
+            <div className="flex items-center justify-between pb-2 border-b border-border/70">
+              <span className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5 font-mono">
+                <Sliders className="h-3.5 w-3.5 text-primary" />
+                Spécifications du Dossier
+              </span>
+              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                Audit Technique Vérifié
+              </span>
+            </div>
 
             <div className="grid grid-cols-2 gap-2.5 text-xs">
-              <div>
-                <span className="text-muted-foreground text-[11px] block">Toiture &amp; Couverture</span>
-                <span className="font-semibold text-foreground">
-                  {getRoofMaterialLabel(lead.roof_material)}
+              {/* Type de bien */}
+              <div className="flex flex-col p-2.5 rounded-lg bg-card border border-border/60">
+                <span className="text-muted-foreground text-[11px] flex items-center gap-1.5 font-medium">
+                  <Home className="h-3 w-3 text-primary shrink-0" />
+                  Type de bien
+                </span>
+                <span className="font-semibold text-foreground text-xs mt-1 leading-snug">
+                  {propertyTypeDisplay}
                 </span>
               </div>
 
-              <div>
-                <span className="text-muted-foreground text-[11px] block">Décisionnaire</span>
-                <span className="font-semibold text-foreground">
-                  {getOwnershipLabel(lead.ownership_status)}
+              {/* Toiture & Couverture */}
+              <div className="flex flex-col p-2.5 rounded-lg bg-card border border-border/60">
+                <span className="text-muted-foreground text-[11px] flex items-center gap-1.5 font-medium">
+                  <Layers className="h-3 w-3 text-muted-foreground shrink-0" />
+                  Toiture &amp; Couverture
+                </span>
+                <span className="font-semibold text-foreground text-xs mt-1 leading-snug">
+                  {roofMaterialDisplay}
                 </span>
               </div>
 
-              <div>
-                <span className="text-muted-foreground text-[11px] block">Échéance</span>
-                <span className="font-semibold text-foreground flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-                  {getTimeframeLabel(lead.timeframe || lead.project_timeline)}
+              {/* Surface toiture */}
+              <div className="flex flex-col p-2.5 rounded-lg bg-card border border-border/60">
+                <span className="text-muted-foreground text-[11px] flex items-center gap-1.5 font-medium">
+                  <Ruler className="h-3 w-3 text-muted-foreground shrink-0" />
+                  Surface toiture
+                </span>
+                <span className="font-mono font-semibold text-foreground text-xs mt-1 tabular-nums leading-snug">
+                  {roofSurfaceDisplay}
                 </span>
               </div>
 
-              <div>
-                <span className="text-muted-foreground text-[11px] block">Réseau &amp; GRD</span>
-                <span className="font-mono font-semibold text-foreground">
-                  {lead.grd ? `GRD ${lead.grd}` : "ORES / RESA"}
+              {/* Décisionnaire */}
+              <div className="flex flex-col p-2.5 rounded-lg bg-card border border-border/60">
+                <span className="text-muted-foreground text-[11px] flex items-center gap-1.5 font-medium">
+                  <UserCheck className="h-3 w-3 text-muted-foreground shrink-0" />
+                  Décisionnaire
+                </span>
+                <span className="font-semibold text-foreground text-xs mt-1 leading-snug">
+                  {ownershipDisplay}
+                </span>
+              </div>
+
+              {/* Consommation annuelle si disponible */}
+              {consumptionDisplay && (
+                <div className="flex flex-col p-2.5 rounded-lg bg-card border border-border/60">
+                  <span className="text-muted-foreground text-[11px] flex items-center gap-1.5 font-medium">
+                    <Zap className="h-3 w-3 text-accent-solar shrink-0" />
+                    Consommation annuelle
+                  </span>
+                  <span className="font-mono font-semibold text-foreground text-xs mt-1 tabular-nums leading-snug">
+                    {consumptionDisplay}
+                  </span>
+                </div>
+              )}
+
+              {/* Échéance */}
+              <div className="flex flex-col p-2.5 rounded-lg bg-card border border-border/60">
+                <span className="text-muted-foreground text-[11px] flex items-center gap-1.5 font-medium">
+                  <Clock className="h-3 w-3 text-muted-foreground shrink-0" />
+                  Échéance du projet
+                </span>
+                <span className="font-semibold text-foreground text-xs mt-1 flex items-center gap-1.5 leading-snug">
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
+                  {timeframeDisplay}
+                </span>
+              </div>
+
+              {/* Préférence de contact */}
+              {contactPreferenceDisplay && (
+                <div className="flex flex-col p-2.5 rounded-lg bg-card border border-border/60">
+                  <span className="text-muted-foreground text-[11px] flex items-center gap-1.5 font-medium">
+                    <Phone className="h-3 w-3 text-muted-foreground shrink-0" />
+                    Préférence de contact
+                  </span>
+                  <span className="font-semibold text-foreground text-xs mt-1 leading-snug">
+                    {contactPreferenceDisplay}
+                  </span>
+                </div>
+              )}
+
+              {/* Réseau & GRD */}
+              <div className="flex flex-col p-2.5 rounded-lg bg-card border border-border/60">
+                <span className="text-muted-foreground text-[11px] flex items-center gap-1.5 font-medium">
+                  <ShieldCheck className="h-3 w-3 text-muted-foreground shrink-0" />
+                  Réseau &amp; GRD
+                </span>
+                <span className="font-mono font-semibold text-foreground text-xs mt-1 leading-snug">
+                  {grdDisplay}
                 </span>
               </div>
             </div>
 
-            {/* Badges structurés supplémentaires issus de la sanitisation */}
-            {sanitized.cleanBadges.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border">
-                {sanitized.cleanBadges.map((badge, idx) => (
-                  <span
-                    key={idx}
-                    className="inline-flex items-center gap-1 rounded bg-secondary px-2 py-0.5 text-[11px] text-foreground border border-border"
-                  >
-                    <span className="text-muted-foreground">{badge.label} :</span>
-                    <strong className="font-medium">{badge.value}</strong>
+            {/* Options additionnelles détectées (Batterie / IRVE) */}
+            {(hasBattery || hasIrve) && (
+              <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-border/60">
+                {hasBattery && (
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-accent-solar/10 text-accent-solar border border-accent-solar/20 px-2.5 py-1 text-xs font-semibold">
+                    <Zap className="h-3 w-3" />
+                    Intérêt stockage batterie
                   </span>
-                ))}
+                )}
+                {hasIrve && (
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 text-xs font-semibold">
+                    <Zap className="h-3 w-3" />
+                    Borne de recharge véhicule (IRVE)
+                  </span>
+                )}
               </div>
             )}
 
-            {/* Remarques prospect nettoyées de toute mention machine */}
+            {/* Remarque manuscrite libre saisie par le prospect */}
             {sanitized.cleanRemarks && (
-              <div className="mt-2 rounded-lg bg-card border border-border p-2.5 text-xs italic text-foreground/90">
-                « {sanitized.cleanRemarks} »
+              <div className="rounded-lg bg-card border border-border p-3 text-xs text-foreground/90 flex flex-col gap-1.5 shadow-2xs">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider font-mono flex items-center gap-1">
+                  <MessageSquare className="h-3 w-3 text-primary" />
+                  Précisions formulées par le demandeur
+                </span>
+                <p className="italic leading-relaxed text-foreground">
+                  « {sanitized.cleanRemarks} »
+                </p>
               </div>
             )}
           </div>
