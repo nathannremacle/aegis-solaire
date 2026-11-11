@@ -43,6 +43,7 @@ import {
   Trash2,
   ImageIcon,
   Home,
+  CheckCircle2,
   Ruler,
   BatteryCharging,
   MessageSquare,
@@ -419,11 +420,31 @@ export function LeadDrawer({
     })
   }
 
+  const isAlreadyPublished = Boolean(
+    lead &&
+      (lead.marketplace_status === "available" ||
+        lead.marketplace_status === "sold_out" ||
+        lead.marketplace_status === "distributed" ||
+        lead.status === "qualified" ||
+        lead.status === "assigned" ||
+        lead.status === "converted")
+  )
+
   // Raccourcis clavier contextuels dans le Drawer
   useAdminHotkeys(
     {
-      "cmd+enter": () => handleQualifyAndPublish(),
-      q: () => handleQualifyAndPublish(),
+      "cmd+enter": () => {
+        if (!isAlreadyPublished || dispatchMode === "direct") {
+          handleQualifyAndPublish()
+        } else if (hasNext && onNext) {
+          onNext()
+        }
+      },
+      q: () => {
+        if (!isAlreadyPublished || dispatchMode === "direct") {
+          handleQualifyAndPublish()
+        }
+      },
       e: () => handleArchive(),
       c: () => lead?.phone && copyToClipboard(lead.phone, "Numéro de téléphone"),
     },
@@ -1119,24 +1140,58 @@ export function LeadDrawer({
             </Button>
           </div>
 
-          <Button
-            size="sm"
-            onClick={handleQualifyAndPublish}
-            disabled={isPending}
-            className="h-8 gap-1.5 text-xs font-medium"
-          >
-            {isPending ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          <div className="flex items-center gap-2">
+            {dispatchMode === "direct" ? (
+              <Button
+                size="sm"
+                onClick={handleQualifyAndPublish}
+                disabled={isPending || selectedPartnerIds.length === 0}
+                className="h-8 gap-1.5 text-xs font-medium"
+              >
+                {isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Check className="h-3.5 w-3.5" />
+                )}
+                <span>Attribuer ({selectedPartnerIds.length})</span>
+                <span className="font-mono text-[10px] opacity-70 ml-1">⌘⏎</span>
+              </Button>
+            ) : isAlreadyPublished ? (
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-xs font-semibold">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>Publié sur la Marketplace</span>
+                </span>
+                {hasNext && onNext && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={onNext}
+                    className="h-8 gap-1 text-xs font-medium"
+                    title="Passer au lead suivant (J)"
+                  >
+                    <span>Suivant</span>
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
             ) : (
-              <Check className="h-3.5 w-3.5" />
+              <Button
+                size="sm"
+                onClick={handleQualifyAndPublish}
+                disabled={isPending}
+                className="h-8 gap-1.5 text-xs font-medium"
+              >
+                {isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Check className="h-3.5 w-3.5" />
+                )}
+                <span>Qualifier &amp; publier</span>
+                <span className="font-mono text-[10px] opacity-70 ml-1">⌘⏎</span>
+              </Button>
             )}
-            <span>
-              {dispatchMode === "marketplace"
-                ? "Qualifier & publier"
-                : `Attribuer (${selectedPartnerIds.length})`}
-            </span>
-            <span className="font-mono text-[10px] opacity-70 ml-1">⌘⏎</span>
-          </Button>
+          </div>
         </div>
       </SheetContent>
     </Sheet>
