@@ -816,15 +816,21 @@ export function LeadsTable({
                       </div>
                     </TableCell>
 
-                    {/* Localité */}
+                    {/* Localité & Adresse */}
                     <TableCell>
-                      <div className="flex flex-col font-mono text-[11px] tabular-nums">
-                        <span className="text-foreground truncate">
+                      <div className="flex flex-col text-[11px]">
+                        <span className="font-mono tabular-nums text-foreground font-semibold truncate">
                           {lead.postal_code || "–"} {lead.city || ""}
                         </span>
-                        <span className="text-[10px] text-muted-foreground capitalize">
-                          {lead.province ? lead.province.replace("_", " ") : "Wallonie"}
-                        </span>
+                        {lead.site_address ? (
+                          <span className="text-[10px] text-muted-foreground truncate" title={lead.site_address}>
+                            {lead.site_address}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground/80 capitalize">
+                            {lead.province ? `Prov. ${lead.province.replace("_", " ")}` : "Wallonie"}
+                          </span>
+                        )}
                       </div>
                     </TableCell>
 

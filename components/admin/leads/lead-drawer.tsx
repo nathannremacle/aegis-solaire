@@ -28,6 +28,16 @@ import {
   X,
   Archive,
   Loader2,
+  MapPin,
+  User,
+  Zap,
+  Building2,
+  Calendar,
+  Euro,
+  TrendingUp,
+  FileText,
+  ShieldAlert,
+  Percent,
 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -404,59 +414,78 @@ export function LeadDrawer({
           />
 
           {/* Carte Coordonnées & Contact */}
-          <div className="rounded-md border border-border bg-card p-3.5 flex flex-col gap-3">
-            <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
-              Contact & Entreprise
-            </span>
+          <div className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3.5 shadow-2xs">
+            <div className="flex items-center justify-between pb-2 border-b border-border">
+              <span className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-foreground uppercase tracking-wider">
+                <User className="h-3.5 w-3.5 text-primary" />
+                Contact & Coordonnées Prospect
+              </span>
+              <span className="text-[10px] font-mono text-muted-foreground bg-secondary px-2 py-0.5 rounded border border-border">
+                {lead.segment === "B2B" ? "Dossier Professionnel" : "Particulier Résidentiel"}
+              </span>
+            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div className="flex flex-col gap-1">
-                <span className="text-muted-foreground">Interlocuteur</span>
-                <span className="font-medium text-foreground">
-                  {lead.first_name} {lead.last_name || ""}
-                  {lead.job_title ? ` · ${lead.job_title}` : ""}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+              <div className="flex flex-col gap-1 p-2 rounded-lg bg-secondary/30 border border-border/50">
+                <span className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+                  <User className="h-3 w-3 text-muted-foreground" />
+                  Interlocuteur
                 </span>
+                <span className="font-semibold text-foreground text-sm">
+                  {lead.first_name} {lead.last_name || ""}
+                </span>
+                {lead.job_title && (
+                  <span className="text-[11px] text-muted-foreground">
+                    {lead.job_title}
+                  </span>
+                )}
               </div>
 
-              <div className="flex flex-col gap-1">
-                <span className="text-muted-foreground">Téléphone</span>
-                <div className="flex items-center gap-1.5 font-mono tabular-nums">
+              <div className="flex flex-col gap-1 p-2 rounded-lg bg-secondary/30 border border-border/50">
+                <span className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+                  <Phone className="h-3 w-3 text-muted-foreground" />
+                  Téléphone
+                </span>
+                <div className="flex items-center gap-2 font-mono tabular-nums">
                   {lead.phone ? (
                     <>
                       <a
                         href={`tel:${lead.phone}`}
-                        className="font-medium text-foreground hover:text-primary transition-colors"
+                        className="font-bold text-foreground hover:text-primary transition-colors text-sm"
                       >
                         {lead.phone}
                       </a>
                       <button
                         type="button"
                         onClick={() => copyToClipboard(lead.phone!, "Téléphone")}
-                        className="text-muted-foreground hover:text-foreground p-0.5"
+                        className="p-1 rounded bg-secondary hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         title="Copier le numéro (C)"
                       >
                         <Copy className="h-3 w-3" />
                       </button>
                     </>
                   ) : (
-                    <span className="text-muted-foreground italic">Non renseigné</span>
+                    <span className="text-muted-foreground italic text-xs">Non renseigné</span>
                   )}
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1">
-                <span className="text-muted-foreground">Adresse e-mail</span>
-                <div className="flex items-center gap-1.5 font-mono">
+              <div className="flex flex-col gap-1 p-2 rounded-lg bg-secondary/30 border border-border/50 sm:col-span-2">
+                <span className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+                  <Mail className="h-3 w-3 text-muted-foreground" />
+                  Adresse e-mail
+                </span>
+                <div className="flex items-center justify-between gap-2 font-mono">
                   <a
                     href={`mailto:${lead.email}`}
-                    className="font-medium text-foreground hover:text-primary transition-colors truncate"
+                    className="font-semibold text-foreground hover:text-primary transition-colors text-xs truncate"
                   >
                     {lead.email}
                   </a>
                   <button
                     type="button"
                     onClick={() => copyToClipboard(lead.email, "E-mail")}
-                    className="text-muted-foreground hover:text-foreground p-0.5 shrink-0"
+                    className="p-1 rounded bg-secondary hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
                     title="Copier l'e-mail"
                   >
                     <Copy className="h-3 w-3" />
@@ -465,165 +494,221 @@ export function LeadDrawer({
               </div>
 
               {lead.company_vat && (
-                <div className="flex flex-col gap-1">
-                  <span className="text-muted-foreground">Numéro TVA / BCE</span>
-                  <div className="flex items-center gap-1.5 font-mono tabular-nums">
-                    <span className="font-medium text-foreground">{lead.company_vat}</span>
+                <div className="flex flex-col gap-1 p-2 rounded-lg bg-secondary/30 border border-border/50 sm:col-span-2">
+                  <span className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+                    <Building2 className="h-3 w-3 text-muted-foreground" />
+                    Numéro TVA / BCE
+                  </span>
+                  <div className="flex items-center justify-between gap-2 font-mono tabular-nums">
+                    <span className="font-bold text-foreground">{lead.company_vat}</span>
                     <a
                       href={`${BCE_PUBLIC_SEARCH_URL}?action=search&zoekWaarde=${formatBceNumber(lead.company_vat)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-primary underline underline-offset-2"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline bg-primary/10 px-2 py-0.5 rounded"
                       title="Vérifier sur la BCE"
                     >
-                      <span>BCE</span>
-                      <ExternalLink className="h-2.5 w-2.5" />
+                      <span>Vérifier BCE</span>
+                      <ExternalLink className="h-3 w-3" />
                     </a>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Localisation */}
-            <div className="border-t border-border/80 pt-2.5 flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Localisation :</span>
-              <span className="font-mono tabular-nums font-medium text-foreground">
-                {lead.postal_code ? `${lead.postal_code} ` : ""}
-                {lead.city || ""}
-                {lead.province ? ` (${lead.province.replace("_", " ")})` : ""}
-              </span>
+            {/* Localisation & Adresse exacte */}
+            <div className="rounded-lg bg-secondary/50 border border-border p-3 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-[11px] font-bold text-foreground uppercase tracking-wider font-mono">
+                  <MapPin className="h-3.5 w-3.5 text-accent" />
+                  Adresse du Chantier & Localisation
+                </span>
+                {lead.site_address && (
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(
+                      `${lead.site_address}, ${lead.postal_code || ""} ${lead.city || ""}`.trim(),
+                      "Adresse complète"
+                    )}
+                    className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground font-mono"
+                  >
+                    <Copy className="h-2.5 w-2.5" />
+                    Copier
+                  </button>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1 text-xs">
+                {lead.site_address ? (
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-muted-foreground text-[11px] shrink-0 font-medium">Adresse exacte :</span>
+                    <span className="font-semibold text-foreground text-sm select-all">
+                      {lead.site_address}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-muted-foreground italic">
+                    Adresse exacte de voirie non renseignée (uniquement commune & CP)
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 pt-1 border-t border-border/60">
+                  <span className="text-muted-foreground text-[11px] shrink-0">Ville & Province :</span>
+                  <span className="font-mono tabular-nums font-bold text-foreground">
+                    {lead.postal_code ? `${lead.postal_code} ` : ""}
+                    {lead.city || "Non précisée"}
+                    {lead.province ? ` · Province de ${lead.province.replace("_", " ")}` : ""}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Données Techniques & Rentabilité Estimée du Projet Solaire */}
-          <div className="rounded-md border border-border bg-card p-3.5 flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
-                Spécifications Techniques & Rentabilité Estimée
+          <div className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3.5 shadow-2xs">
+            <div className="flex items-center justify-between pb-2 border-b border-border">
+              <span className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-foreground uppercase tracking-wider">
+                <Zap className="h-3.5 w-3.5 text-accent-solar" />
+                Spécifications Techniques & Rentabilité
               </span>
-              <span className="font-mono tabular-nums text-[10px] px-1.5 py-0.5 rounded bg-secondary text-foreground border border-border">
+              <span className="font-mono tabular-nums text-xs px-2 py-0.5 rounded-md bg-secondary text-foreground font-bold border border-border">
                 {financials.estimatedPowerKwc} kWc · {financials.estimatedPanelCount} panneaux
               </span>
             </div>
 
-            <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3 text-xs">
-              <div className="flex flex-col">
-                <dt className="text-muted-foreground">Puissance & Modules</dt>
-                <dd className="font-mono tabular-nums font-semibold text-foreground">
+            <dl className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+              <div className="flex flex-col p-2 rounded-lg bg-secondary/30 border border-border/50">
+                <dt className="text-muted-foreground text-[11px] flex items-center gap-1">
+                  <Zap className="h-2.5 w-2.5" />
+                  Puissance & Modules
+                </dt>
+                <dd className="font-mono tabular-nums font-bold text-foreground text-sm mt-0.5">
                   {financials.estimatedPowerKwc} kWc{" "}
-                  <span className="font-normal text-muted-foreground">
-                    ({financials.estimatedPanelCount} × 435 Wc)
+                  <span className="font-normal text-muted-foreground text-[11px]">
+                    ({financials.estimatedPanelCount} mod.)
                   </span>
                 </dd>
               </div>
 
-              <div className="flex flex-col">
-                <dt className="text-muted-foreground">Surface (brute / utile)</dt>
-                <dd className="font-mono tabular-nums font-semibold text-foreground">
+              <div className="flex flex-col p-2 rounded-lg bg-secondary/30 border border-border/50">
+                <dt className="text-muted-foreground text-[11px] flex items-center gap-1">
+                  <Building2 className="h-2.5 w-2.5" />
+                  Surface Toiture
+                </dt>
+                <dd className="font-mono tabular-nums font-bold text-foreground text-sm mt-0.5">
                   {financials.normalizedSurfaceAreaM2} m²{" "}
-                  <span className="font-normal text-muted-foreground">
+                  <span className="font-normal text-muted-foreground text-[11px]">
                     (utile ≈ {financials.usableSurfaceM2} m²)
                   </span>
                 </dd>
               </div>
 
-              <div className="flex flex-col">
-                <dt className="text-muted-foreground">Facture & Conso. annuelle</dt>
-                <dd className="font-mono tabular-nums font-semibold text-foreground">
-                  {financials.normalizedAnnualBill.toLocaleString("fr-BE")} € / an{" "}
-                  <span className="font-normal text-muted-foreground">
+              <div className="flex flex-col p-2 rounded-lg bg-secondary/30 border border-border/50">
+                <dt className="text-muted-foreground text-[11px] flex items-center gap-1">
+                  <Euro className="h-2.5 w-2.5" />
+                  Facture & Conso
+                </dt>
+                <dd className="font-mono tabular-nums font-bold text-foreground text-sm mt-0.5">
+                  {financials.normalizedAnnualBill.toLocaleString("fr-BE")} €/an{" "}
+                  <span className="font-normal text-muted-foreground text-[11px]">
                     (≈ {financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh)
                   </span>
                 </dd>
               </div>
 
-              <div className="flex flex-col">
-                <dt className="text-muted-foreground">Production estimée</dt>
-                <dd className="font-mono tabular-nums font-semibold text-foreground">
+              <div className="flex flex-col p-2 rounded-lg bg-secondary/30 border border-border/50">
+                <dt className="text-muted-foreground text-[11px] flex items-center gap-1">
+                  <TrendingUp className="h-2.5 w-2.5" />
+                  Production attendue
+                </dt>
+                <dd className="font-mono tabular-nums font-bold text-foreground mt-0.5">
                   {financials.annualProductionKwh.toLocaleString("fr-BE")} kWh / an
                 </dd>
               </div>
 
-              <div className="flex flex-col">
-                <dt className="text-muted-foreground">Autoconsommation</dt>
-                <dd className="font-mono tabular-nums font-semibold text-foreground">
+              <div className="flex flex-col p-2 rounded-lg bg-secondary/30 border border-border/50">
+                <dt className="text-muted-foreground text-[11px] flex items-center gap-1">
+                  <Percent className="h-2.5 w-2.5" />
+                  Autoconsommation
+                </dt>
+                <dd className="font-mono tabular-nums font-bold text-foreground mt-0.5">
                   {financials.autoconsumptionRate} %{" "}
-                  <span className="font-normal text-muted-foreground">
+                  <span className="font-normal text-muted-foreground text-[11px]">
                     ({financials.selfConsumedKwh.toLocaleString("fr-BE")} kWh)
                   </span>
                 </dd>
               </div>
 
-              <div className="flex flex-col">
-                <dt className="text-muted-foreground">Économies client / an</dt>
-                <dd className="font-mono tabular-nums font-semibold text-foreground">
-                  {financials.revenueEstimatePerYear.toLocaleString("fr-BE")} € / an
+              <div className="flex flex-col p-2 rounded-lg bg-secondary/30 border border-border/50">
+                <dt className="text-muted-foreground text-[11px] flex items-center gap-1">
+                  <Euro className="h-2.5 w-2.5" />
+                  Économies client
+                </dt>
+                <dd className="font-mono tabular-nums font-bold text-primary mt-0.5">
+                  +{financials.revenueEstimatePerYear.toLocaleString("fr-BE")} € / an
                 </dd>
               </div>
 
-              <div className="flex flex-col">
-                <dt className="text-muted-foreground">ROI client & Gain LT</dt>
-                <dd className="font-mono tabular-nums font-semibold text-foreground">
-                  {financials.estimatedRoiYears} ans{" "}
-                  <span className="font-normal text-muted-foreground">
-                    (+{financials.estimatedGainLongTerm.toLocaleString("fr-BE")} €)
-                  </span>
+              <div className="flex flex-col p-2 rounded-lg bg-secondary/30 border border-border/50">
+                <dt className="text-muted-foreground text-[11px] flex items-center gap-1">
+                  <Calendar className="h-2.5 w-2.5" />
+                  ROI Client
+                </dt>
+                <dd className="font-mono tabular-nums font-bold text-foreground mt-0.5">
+                  {financials.estimatedRoiYears} ans
                 </dd>
               </div>
 
-              <div className="flex flex-col">
-                <dt className="text-muted-foreground">Devis HT estimé</dt>
-                <dd className="font-mono tabular-nums font-semibold text-foreground">
-                  {financials.estimatedContractValueRange.min.toLocaleString("fr-BE")} –{" "}
-                  {financials.estimatedContractValueRange.max.toLocaleString("fr-BE")} € HT
+              <div className="flex flex-col p-2 rounded-lg bg-secondary/30 border border-border/50">
+                <dt className="text-muted-foreground text-[11px] flex items-center gap-1">
+                  <FileText className="h-2.5 w-2.5" />
+                  Devis marché estimé
+                </dt>
+                <dd className="font-mono tabular-nums font-bold text-foreground mt-0.5">
+                  {financials.estimatedContractValueRange.min.toLocaleString("fr-BE")} – {financials.estimatedContractValueRange.max.toLocaleString("fr-BE")} € HT
                 </dd>
               </div>
 
-              <div className="flex flex-col">
-                <dt className="text-muted-foreground">Marge brute installateur</dt>
-                <dd className="font-mono tabular-nums font-semibold text-foreground">
-                  ≈ {financials.estimatedInstallerMargin.toLocaleString("fr-BE")} €{" "}
-                  <span className="font-normal text-muted-foreground">
-                    ({financials.installerMarginPercent} %)
-                  </span>
-                </dd>
-              </div>
-
-              <div className="flex flex-col">
-                <dt className="text-muted-foreground">Revêtement toiture</dt>
-                <dd className="font-medium text-foreground capitalize">
-                  {lead.roof_material ? lead.roof_material.replace("_", " ") : "–"}
-                </dd>
-              </div>
-
-              <div className="flex flex-col">
-                <dt className="text-muted-foreground">Statut d'occupation</dt>
-                <dd className="font-medium text-foreground">
-                  {lead.ownership_status === "owner" ? "Propriétaire" : lead.ownership_status === "tenant_unauthorized" ? "Locataire (sans accord)" : lead.ownership_status || "–"}
-                </dd>
-              </div>
-
-              <div className="flex flex-col">
-                <dt className="text-muted-foreground">Topologie onduleur / GRD</dt>
-                <dd className="font-mono font-medium text-foreground">
-                  {financials.inverterType}
-                  {lead.grd ? ` · ${lead.grd.toUpperCase()}` : ""}
+              <div className="flex flex-col p-2 rounded-lg bg-secondary/30 border border-border/50">
+                <dt className="text-muted-foreground text-[11px] flex items-center gap-1">
+                  <TrendingUp className="h-2.5 w-2.5" />
+                  Marge installateur
+                </dt>
+                <dd className="font-mono tabular-nums font-bold text-primary mt-0.5">
+                  ≈ {financials.estimatedInstallerMargin.toLocaleString("fr-BE")} € ({financials.installerMarginPercent}%)
                 </dd>
               </div>
             </dl>
 
-            <div className="border-t border-border/80 pt-2 text-[11px] text-muted-foreground flex items-center justify-between">
-              <span>{financials.sizingRationale}</span>
-              <span className="font-mono tabular-nums">
-                CO₂ évité : {financials.co2AvoidedTonsPerYear} t/an
-              </span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-border/60 text-xs">
+              <div>
+                <span className="text-muted-foreground text-[11px] block">Couverture toiture :</span>
+                <span className="font-semibold text-foreground capitalize">
+                  {lead.roof_material ? lead.roof_material.replace("_", " ") : "Non spécifié"}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-[11px] block">Statut d'occupation :</span>
+                <span className="font-semibold text-foreground">
+                  {lead.ownership_status === "owner" ? "Propriétaire occupant" : lead.ownership_status === "tenant_unauthorized" ? "Locataire (sans accord)" : lead.ownership_status || "Non renseigné"}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-[11px] block">Topologie onduleur / GRD :</span>
+                <span className="font-mono font-semibold text-foreground">
+                  {financials.inverterType} {lead.grd ? `(${lead.grd.toUpperCase()})` : ""}
+                </span>
+              </div>
             </div>
 
             {lead.message && (
               <div className="border-t border-border/80 pt-2.5 flex flex-col gap-1">
-                <span className="text-[11px] text-muted-foreground font-medium">Notes du client :</span>
-                <p className="text-xs text-foreground bg-secondary/40 rounded p-2 italic leading-relaxed">
-                  "{lead.message}"
+                <span className="text-[11px] text-muted-foreground font-semibold flex items-center gap-1.5">
+                  <FileText className="h-3 w-3 text-muted-foreground" />
+                  Notes & Détails du projet (saisis par le prospect) :
+                </span>
+                <p className="text-xs text-foreground bg-secondary/60 rounded-lg p-2.5 border border-border/80 leading-relaxed font-mono">
+                  {lead.message}
                 </p>
               </div>
             )}
