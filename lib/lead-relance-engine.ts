@@ -524,6 +524,7 @@ export async function dispatchLeadWave(
         firstName: lead.first_name,
         lastName: lead.last_name,
         grd: lead.grd,
+        roofImageUrl: (lead.qualification_metadata?.roof_image_url || lead.qualification_metadata?.site_image_url || null) as string | null,
         createdAt: lead.created_at,
       },
       waveNumber,

@@ -23,6 +23,8 @@ import {
   FileCheck,
   Sparkles,
   Clock,
+  Camera,
+  Maximize2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
@@ -120,6 +122,13 @@ export function LeadInspectionDrawer({
   const displaySurfaceArea = financials.normalizedSurfaceAreaM2
   const displayAnnualBill = financials.normalizedAnnualBill
   const roi = calculateLeadRoiRatio(financials.estimatedInstallerMargin, cost, financials.estimatedContractValue)
+  const roofImageUrl = (lead.qualification_metadata?.roof_image_url ||
+    lead.qualification_metadata?.site_image_url ||
+    lead.qualificationMetadata?.roof_image_url ||
+    lead.qualificationMetadata?.site_image_url ||
+    lead.roof_image_url ||
+    lead.site_image_url) as string | undefined
+  const [isImageModalOpen, setIsImageModalOpen] = React.useState(false)
 
   return (
     <div
@@ -195,6 +204,106 @@ export function LeadInspectionDrawer({
               coords={location.coords}
             />
           </div>
+
+          {/* Visuel Street View du Bâtiment & Toiture (si disponible) */}
+          {roofImageUrl && (
+            <div className="rounded-xl border border-border bg-card p-3 flex flex-col gap-2 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-foreground uppercase tracking-wider">
+                  <Camera className="h-3.5 w-3.5 text-primary" />
+                  Visuel Façade &amp; Toiture (Street View)
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Dossier inspecté
+                </span>
+              </div>
+
+              <div
+                className="relative rounded-lg overflow-hidden border border-border bg-secondary/30 group cursor-pointer"
+                onClick={() => setIsImageModalOpen(true)}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={roofImageUrl}
+                  alt="Aperçu Street View de la toiture et façade"
+                  className="w-full h-48 sm:h-56 object-cover object-center transition-transform duration-300 group-hover:scale-[1.02]"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between p-3">
+                  <span className="text-xs font-semibold text-white drop-shadow-sm flex items-center gap-1.5">
+                    <Maximize2 className="h-3.5 w-3.5" />
+                    Cliquer pour agrandir
+                  </span>
+                  <span className="text-[10px] font-mono text-white/80">
+                    Aperçu géolocalisé
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-muted-foreground flex items-center justify-between">
+                <span>Vérification technique préalable : pente, couverture &amp; orientation visibles.</span>
+                <button
+                  type="button"
+                  onClick={() => setIsImageModalOpen(true)}
+                  className="text-xs font-semibold text-primary hover:underline shrink-0"
+                >
+                  Voir en grand &rarr;
+                </button>
+              </p>
+            </div>
+          )}
+
+          {/* Modal Lightbox Agrandie */}
+          {isImageModalOpen && roofImageUrl && (
+            <div
+              className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+              onClick={() => setIsImageModalOpen(false)}
+            >
+              <div
+                className="relative max-w-4xl w-full max-h-[90vh] bg-card rounded-xl border border-border shadow-2xl overflow-hidden flex flex-col"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between p-3.5 border-b border-border bg-secondary/50">
+                  <div className="flex items-center gap-2">
+                    <Camera className="h-4 w-4 text-primary" />
+                    <span className="font-bold text-sm text-foreground">
+                      Visuel de la maison &amp; toiture — {location.city || "Chantier"}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsImageModalOpen(false)}
+                    className="p-1 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+                <div className="p-2 overflow-auto flex items-center justify-center bg-black/10">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={roofImageUrl}
+                    alt="Visuel agrandi"
+                    className="max-h-[75vh] w-auto max-w-full object-contain rounded-lg"
+                  />
+                </div>
+                <div className="p-3 border-t border-border bg-card flex items-center justify-between text-xs text-muted-foreground">
+                  <span className="font-mono text-[11px]">
+                    Réf #{lead.id ? lead.id.slice(0, 8).toUpperCase() : ""} · Google Street View
+                  </span>
+                  <a
+                    href={roofImageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
+                  >
+                    <span>Ouvrir l&apos;image originale</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* B. Métriques Clés en Chasse Fixe (Puissance, Facture, Production, Rentabilité) */}
           <div className="grid grid-cols-2 gap-2.5">

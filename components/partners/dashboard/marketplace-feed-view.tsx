@@ -32,6 +32,7 @@ import {
   ChevronDown,
   Compass,
   Eye,
+  Camera,
   Home,
   FileText,
   User,
@@ -1179,6 +1180,12 @@ export function MarketplaceFeedView({
                           <span className={`h-1.5 w-1.5 rounded-full ${freshness.dotClass}`} />
                           {freshness.label}
                         </span>
+                        {(lead.qualification_metadata?.roof_image_url || lead.qualificationMetadata?.roof_image_url) && (
+                          <span className="inline-flex items-center gap-1 font-mono text-[10px] text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded font-semibold">
+                            <Camera className="h-2.5 w-2.5" />
+                            Photo
+                          </span>
+                        )}
                       </div>
                       <h3 className="font-bold text-sm text-foreground truncate mt-1">
                         {location.fullTitle}

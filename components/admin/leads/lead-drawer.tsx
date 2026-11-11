@@ -38,6 +38,10 @@ import {
   FileText,
   ShieldAlert,
   Percent,
+  Camera,
+  UploadCloud,
+  Trash2,
+  ImageIcon,
 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -147,14 +151,111 @@ export function LeadDrawer({
   )
   const [dispatchMode, setDispatchMode] = useState<"marketplace" | "direct">("marketplace")
   const [selectedPartnerIds, setSelectedPartnerIds] = useState<string[]>([])
+  const [roofImageUrl, setRoofImageUrl] = useState<string | null>(
+    ((lead?.qualification_metadata?.roof_image_url || lead?.qualification_metadata?.site_image_url) as string) ?? null
+  )
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const [urlInputOpen, setUrlInputOpen] = useState(false)
+  const [customUrlInput, setCustomUrlInput] = useState("")
 
   useEffect(() => {
     if (lead) {
       setNotes(lead.admin_notes ?? "")
       setCreditCost(lead.credit_cost ?? (lead.segment === "B2B" ? 9 : 3))
       setSelectedPartnerIds([])
+      const currentImg = ((lead.qualification_metadata?.roof_image_url || lead.qualification_metadata?.site_image_url) as string) ?? null
+      setRoofImageUrl(currentImg)
+      setCustomUrlInput("")
+      setUrlInputOpen(false)
     }
   }, [lead])
+
+  const handleUploadImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !lead) return
+
+    setIsUploadingImage(true)
+    const formData = new FormData()
+    formData.append("file", file)
+
+    try {
+      const res = await fetch(`/api/admin/leads/${lead.id}/image`, {
+        method: "POST",
+        body: formData,
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || "Erreur lors de l'upload")
+      }
+      setRoofImageUrl(data.imageUrl)
+      if (lead.qualification_metadata) {
+        lead.qualification_metadata.roof_image_url = data.imageUrl
+        lead.qualification_metadata.site_image_url = data.imageUrl
+      }
+      toast.success("Photo de toiture / façade enregistrée avec succès")
+      router.refresh()
+    } catch (err: any) {
+      toast.error(err.message || "Impossible de télécharger l'image")
+    } finally {
+      setIsUploadingImage(false)
+      e.target.value = ""
+    }
+  }
+
+  const handleAttachImageUrl = async () => {
+    if (!customUrlInput.trim() || !lead) return
+    setIsUploadingImage(true)
+    try {
+      const res = await fetch(`/api/admin/leads/${lead.id}/image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: customUrlInput.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || "Erreur lors de l'enregistrement de l'URL")
+      }
+      setRoofImageUrl(data.imageUrl)
+      if (lead.qualification_metadata) {
+        lead.qualification_metadata.roof_image_url = data.imageUrl
+        lead.qualification_metadata.site_image_url = data.imageUrl
+      }
+      setUrlInputOpen(false)
+      setCustomUrlInput("")
+      toast.success("URL de photo enregistrée avec succès")
+      router.refresh()
+    } catch (err: any) {
+      toast.error(err.message || "Erreur lors de l'enregistrement de l'URL")
+    } finally {
+      setIsUploadingImage(false)
+    }
+  }
+
+  const handleDeleteImage = async () => {
+    if (!lead || !roofImageUrl) return
+    if (!confirm("Voulez-vous vraiment retirer cette photo du lead ?")) return
+
+    setIsUploadingImage(true)
+    try {
+      const res = await fetch(`/api/admin/leads/${lead.id}/image`, {
+        method: "DELETE",
+      })
+      if (!res.ok) {
+        throw new Error("Erreur lors de la suppression")
+      }
+      setRoofImageUrl(null)
+      if (lead.qualification_metadata) {
+        delete lead.qualification_metadata.roof_image_url
+        delete lead.qualification_metadata.site_image_url
+      }
+      toast.success("Photo retirée du dossier")
+      router.refresh()
+    } catch (err: any) {
+      toast.error(err.message || "Impossible de supprimer la photo")
+    } finally {
+      setIsUploadingImage(false)
+    }
+  }
 
   // Sauvegarde des notes avec debounce
   useEffect(() => {
@@ -561,6 +662,136 @@ export function LeadDrawer({
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* Visuel du Bâtiment & Toiture (Street View) */}
+            <div className="rounded-lg bg-secondary/50 border border-border p-3 flex flex-col gap-2.5">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-[11px] font-bold text-foreground uppercase tracking-wider font-mono">
+                  <Camera className="h-3.5 w-3.5 text-primary" />
+                  Visuel Façade & Toiture (Street View)
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 font-semibold">
+                  Marketplace &amp; E-mails
+                </span>
+              </div>
+
+              {roofImageUrl ? (
+                <div className="flex flex-col gap-2">
+                  <div className="relative rounded-lg overflow-hidden border border-border bg-card group">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={roofImageUrl}
+                      alt="Visuel Street View du bâtiment"
+                      className="w-full h-44 object-cover object-center transition-transform duration-300 group-hover:scale-[1.02]"
+                    />
+                    <div className="absolute top-2 right-2 flex items-center gap-1.5">
+                      <a
+                        href={roofImageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold bg-foreground/80 hover:bg-foreground text-background shadow-xs transition-colors backdrop-blur-xs"
+                        title="Ouvrir l'image originale en grand"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        <span>Agrandir</span>
+                      </a>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    <label className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border border-border bg-card hover:bg-muted text-foreground cursor-pointer transition-colors">
+                      {isUploadingImage ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                      ) : (
+                        <UploadCloud className="h-3.5 w-3.5 text-primary" />
+                      )}
+                      <span>{isUploadingImage ? "Mise à jour..." : "Remplacer l'image"}</span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/jpg"
+                        onChange={handleUploadImageFile}
+                        disabled={isUploadingImage}
+                        className="sr-only"
+                      />
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={handleDeleteImage}
+                      disabled={isUploadingImage}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-destructive hover:bg-destructive/10 border border-transparent transition-colors"
+                      title="Retirer la photo du lead"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>Retirer</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <div className="border border-dashed border-border rounded-lg p-3 text-center bg-card/50 flex flex-col items-center justify-center gap-2">
+                    <div className="p-2 rounded-full bg-secondary text-muted-foreground">
+                      <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      <p className="text-xs font-semibold text-foreground">
+                        Aucun visuel associé
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Capturez la maison sur Google Street View et ajoutez-la pour rassurer les installateurs.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                      <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs transition-colors">
+                        {isUploadingImage ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <UploadCloud className="h-3.5 w-3.5" />
+                        )}
+                        <span>{isUploadingImage ? "Envoi en cours..." : "Télécharger une photo"}</span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/jpg"
+                          onChange={handleUploadImageFile}
+                          disabled={isUploadingImage}
+                          className="sr-only"
+                        />
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={() => setUrlInputOpen(!urlInputOpen)}
+                        className="text-xs font-medium text-muted-foreground hover:text-foreground underline decoration-dotted"
+                      >
+                        {urlInputOpen ? "Annuler" : "Ou coller une URL"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {urlInputOpen && (
+                    <div className="flex items-center gap-1.5 pt-1">
+                      <input
+                        type="url"
+                        value={customUrlInput}
+                        onChange={(e) => setCustomUrlInput(e.target.value)}
+                        placeholder="https://.../photo.jpg"
+                        className="flex-1 text-xs px-2.5 py-1.5 rounded-md border border-input bg-card text-foreground font-mono focus:outline-hidden focus:ring-1 focus:ring-ring"
+                      />
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={handleAttachImageUrl}
+                        disabled={isUploadingImage || !customUrlInput.trim()}
+                        className="text-xs h-8"
+                      >
+                        {isUploadingImage ? <Loader2 className="h-3 w-3 animate-spin" /> : "Associer"}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

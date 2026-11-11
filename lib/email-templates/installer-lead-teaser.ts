@@ -34,6 +34,7 @@ export interface InstallerLeadTeaserData {
     firstName: string
     lastName?: string | null
     grd?: string | null
+    roofImageUrl?: string | null
     createdAt: string
   }
   waveNumber: 1 | 2 | 3 | number
@@ -296,6 +297,7 @@ RÉSUMÉ DU PROJET : Installation Solaire ${locPhrase}
 • Profil du demandeur : ${ownershipLabel}
 • Objectif du projet : ${driverLabel}
 • Échéance souhaitée : ${timeframeLabel}
+${data.lead.roofImageUrl ? `• Visuel bâtiment : Photo Street View de la toiture et façade disponible sur le dossier\n` : ""}
 
 COORDONNÉES CLIENT :
 • Nom : ${leadMaskedName}
@@ -502,6 +504,16 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                         Cadastre toiture vérifié
                       </span>
                     </div>
+
+                    ${data.lead.roofImageUrl ? `
+                    <!-- Visuel Street View du Bâtiment & Toiture -->
+                    <div style="margin-top: 14px; border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; background-color: #0F172A;">
+                      <img src="${data.lead.roofImageUrl}" alt="Visuel de la maison et toiture" width="560" style="width: 100%; max-height: 250px; object-fit: cover; display: block; border: 0;" />
+                      <div style="padding: 7px 12px; background-color: #F8FAFC; border-top: 1px solid #E2E8F0; font-size: 11px; color: #475569;" class="mono">
+                        📷 <strong style="color: #0F172A;">Visuel de toiture &amp; façade :</strong> Inspection Street View pour pré-dimensionnement visuel (pente, couverture, obstacles).
+                      </div>
+                    </div>
+                    ` : ""}
                   </td>
                 </tr>
 

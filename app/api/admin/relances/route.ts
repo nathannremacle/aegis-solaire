@@ -162,6 +162,7 @@ export async function POST(request: NextRequest) {
           firstName: lead.first_name || "Client",
           lastName: lead.last_name || "",
           grd: lead.grd || null,
+          roofImageUrl: (lead.qualification_metadata?.roof_image_url || lead.qualification_metadata?.site_image_url || null) as string | null,
           createdAt: lead.created_at || new Date().toISOString(),
         },
         waveNumber,

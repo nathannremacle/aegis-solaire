@@ -5,7 +5,7 @@ import { sendLeadAssignedEmail } from "@/lib/notify-installateur"
 import { logAudit } from "@/lib/audit-log"
 
 const LEAD_SELECT =
-  "id, first_name, last_name, email, phone, job_title, company, message, surface_type, surface_area, annual_electricity_bill, project_timeline, estimated_roi_years, autoconsumption_rate, estimated_savings, status, marketplace_status, lead_score, installateur_id, segment, province, admin_notes, created_at"
+  "id, first_name, last_name, email, phone, job_title, company, message, surface_type, surface_area, annual_electricity_bill, project_timeline, estimated_roi_years, autoconsumption_rate, estimated_savings, status, marketplace_status, lead_score, installateur_id, segment, province, admin_notes, qualification_metadata, created_at"
 
 const VALID_STATUSES = [
   "new",
@@ -147,6 +147,7 @@ export async function PATCH(
         project_timeline: data.project_timeline ?? null,
         estimated_roi_years: data.estimated_roi_years ?? null,
         estimated_savings: data.estimated_savings ?? null,
+        roof_image_url: ((data as any).qualification_metadata?.roof_image_url || (data as any).qualification_metadata?.site_image_url || null),
         message: data.message ?? null,
       })
       installateur_notified = true

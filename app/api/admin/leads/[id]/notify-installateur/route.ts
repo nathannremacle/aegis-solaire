@@ -22,7 +22,7 @@ export async function POST(
 
   const { data: lead, error: leadError } = await supabase
     .from("leads")
-    .select("id, first_name, last_name, email, phone, job_title, company, message, surface_type, surface_area, project_timeline, annual_electricity_bill, estimated_roi_years, estimated_savings, installateur_id")
+    .select("id, first_name, last_name, email, phone, job_title, company, message, surface_type, surface_area, project_timeline, annual_electricity_bill, estimated_roi_years, estimated_savings, installateur_id, qualification_metadata")
     .eq("id", id)
     .single()
 
@@ -63,6 +63,7 @@ export async function POST(
       project_timeline: lead.project_timeline ?? null,
       estimated_roi_years: lead.estimated_roi_years ?? null,
       estimated_savings: lead.estimated_savings ?? null,
+      roof_image_url: ((lead.qualification_metadata as any)?.roof_image_url || (lead.qualification_metadata as any)?.site_image_url || null),
       message: lead.message ?? null,
     })
   } catch (err) {

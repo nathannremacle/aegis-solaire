@@ -44,6 +44,7 @@ export type PartnerLeadTeaserPayload = {
   surfaceArea: number
   annualElectricityBill: number
   grd: string | null | undefined
+  roofImageUrl?: string | null
   /** Texte déjà sanitizé côté appelant ; ne pas repasser d’identifiants. */
   projectDetails: string | null
 }
@@ -172,6 +173,14 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
 
               <!-- Bento Project Card -->
               <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px; margin-bottom: 28px;">
+                ${payload.roofImageUrl ? `
+                <div style="margin-bottom: 16px; border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; background-color: #0F172A;">
+                  <img src="${payload.roofImageUrl}" alt="Visuel de la toiture et façade" width="560" style="width: 100%; max-height: 240px; object-fit: cover; display: block; border: 0;" />
+                  <div style="padding: 7px 12px; background-color: #F8FAFC; border-top: 1px solid #E2E8F0; font-size: 11px; color: #475569;" class="mono">
+                    📷 <strong style="color: #0F172A;">Visuel de toiture :</strong> Inspection Street View pour audit d'implantation (surface et obstacles).
+                  </div>
+                </div>
+                ` : ""}
                 <p class="mono" style="margin: 0 0 12px 0; font-size: 11px; font-weight: 700; color: #0F172A; text-transform: uppercase; letter-spacing: 0.06em;">
                   📋 Spécifications du projet :
                 </p>

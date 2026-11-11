@@ -13,6 +13,7 @@ export type LeadDetailsForEmail = {
   project_timeline?: string | null
   estimated_roi_years?: number | null
   estimated_savings?: number | null
+  roof_image_url?: string | null
   message?: string | null
 }
 
@@ -39,6 +40,14 @@ function buildLeadAssignedHtml(lead: LeadDetailsForEmail): string {
 <body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
   <h2 style="color: #0F172A;">Nouveau lead assigné – Aegis Solaire</h2>
   <p>Un lead vous a été assigné. Coordonnées et résumé ci-dessous.</p>
+  ${lead.roof_image_url ? `
+  <div style="margin: 16px 0; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+    <img src="${lead.roof_image_url}" alt="Photo de la toiture / façade" style="width: 100%; max-height: 240px; object-fit: cover; display: block;" />
+    <div style="padding: 6px 10px; background-color: #f8fafc; font-size: 11px; color: #64748b; font-family: monospace;">
+      📷 Visuel Street View du bâtiment & toiture
+    </div>
+  </div>
+  ` : ""}
   <table style="border-collapse: collapse; width: 100%;">
     <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Contact</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${contactName}</td></tr>
     <tr><td style="padding: 8px; border: 1px solid #ddd;">Fonction</td><td style="padding: 8px; border: 1px solid #ddd;">${lead.job_title}</td></tr>
