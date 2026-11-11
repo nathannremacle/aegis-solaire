@@ -150,6 +150,30 @@ export const WALLONIA_POSTAL_LOOKUP: Record<string, { city: string; province: st
   "1400": { city: "Nivelles", province: "Brabant Wallon", coords: [50.5977, 4.3236] },
   "1410": { city: "Waterloo", province: "Brabant Wallon", coords: [50.7172, 4.3986] },
   "1420": { city: "Braine-l'Alleud", province: "Brabant Wallon", coords: [50.6833, 4.3667] },
+
+  // Région de Bruxelles-Capitale & Périphérie
+  "1000": { city: "Bruxelles", province: "Bruxelles", coords: [50.8503, 4.3517] },
+  "1020": { city: "Laeken", province: "Bruxelles", coords: [50.8800, 4.3500] },
+  "1030": { city: "Schaerbeek", province: "Bruxelles", coords: [50.8676, 4.3737] },
+  "1040": { city: "Etterbeek", province: "Bruxelles", coords: [50.8333, 4.3833] },
+  "1050": { city: "Ixelles", province: "Bruxelles", coords: [50.8222, 4.3667] },
+  "1060": { city: "Saint-Gilles", province: "Bruxelles", coords: [50.8250, 4.3417] },
+  "1070": { city: "Anderlecht", province: "Bruxelles", coords: [50.8333, 4.3000] },
+  "1080": { city: "Molenbeek-Saint-Jean", province: "Bruxelles", coords: [50.8500, 4.3167] },
+  "1081": { city: "Koekelberg", province: "Bruxelles", coords: [50.8600, 4.3200] },
+  "1082": { city: "Berchem-Sainte-Agathe", province: "Bruxelles", coords: [50.8650, 4.2900] },
+  "1083": { city: "Ganshoren", province: "Bruxelles", coords: [50.8700, 4.3100] },
+  "1090": { city: "Jette", province: "Bruxelles", coords: [50.8750, 4.3300] },
+  "1140": { city: "Evere", province: "Bruxelles", coords: [50.8700, 4.4000] },
+  "1150": { city: "Woluwe-Saint-Pierre", province: "Bruxelles", coords: [50.8333, 4.4333] },
+  "1160": { city: "Auderghem", province: "Bruxelles", coords: [50.8167, 4.4333] },
+  "1170": { city: "Watermael-Boitsfort", province: "Bruxelles", coords: [50.8000, 4.4167] },
+  "1180": { city: "Uccle", province: "Bruxelles", coords: [50.8000, 4.3333] },
+  "1190": { city: "Forest", province: "Bruxelles", coords: [50.8167, 4.3167] },
+  "1200": { city: "Woluwe-Saint-Lambert", province: "Bruxelles", coords: [50.8400, 4.4250] },
+  "1780": { city: "Wemmel", province: "Bruxelles", coords: [50.9080, 4.3120] },
+  "1950": { city: "Kraainem", province: "Bruxelles", coords: [50.8600, 4.4600] },
+  "1970": { city: "Wezembeek-Oppem", province: "Bruxelles", coords: [50.8400, 4.4900] },
 }
 
 export function getSurfaceTypeLabel(key?: string | null): string {
