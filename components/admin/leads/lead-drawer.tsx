@@ -714,12 +714,12 @@ export function LeadDrawer({
 
               {roofImageUrl ? (
                 <div className="flex flex-col gap-2">
-                  <div className="relative rounded-lg overflow-hidden border border-border bg-card group">
+                  <div className="relative rounded-lg overflow-hidden border border-border bg-card group aspect-[4/5] max-h-[500px]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={roofImageUrl}
                       alt="Visuel Street View du bâtiment"
-                      className="w-full h-44 object-cover object-center transition-transform duration-300 group-hover:scale-[1.02]"
+                      className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.02]"
                     />
                     <div className="absolute top-2 right-2 flex items-center gap-1.5">
                       <a

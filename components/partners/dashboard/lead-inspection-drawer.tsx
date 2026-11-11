@@ -264,14 +264,14 @@ export function LeadInspectionDrawer({
               </div>
 
               <div
-                className="relative rounded-lg overflow-hidden border border-border bg-secondary/30 group cursor-pointer"
+                className="relative rounded-lg overflow-hidden border border-border bg-secondary/30 group cursor-pointer aspect-[4/5] max-h-[500px]"
                 onClick={() => setIsImageModalOpen(true)}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={roofImageUrl}
                   alt="Aperçu Street View de la toiture et façade"
-                  className="w-full h-48 sm:h-56 object-cover object-center transition-transform duration-300 group-hover:scale-[1.02]"
+                  className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.02]"
                   loading="lazy"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between p-3">
