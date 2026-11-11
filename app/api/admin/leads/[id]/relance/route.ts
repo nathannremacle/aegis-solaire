@@ -98,6 +98,7 @@ export async function POST(
   const { id } = await params
   let waveNumber = 1
   let force = false
+  let touchWave = false // Par défaut, un envoi ciblé manuel n'affecte jamais le cycle des vagues
   let partnerIds: string[] | null = null
 
   try {
@@ -108,6 +109,9 @@ export async function POST(
     if (body.force === true) {
       force = true
     }
+    if (body.touchWave === true) {
+      touchWave = true
+    }
     if (Array.isArray(body.partnerIds) && body.partnerIds.length > 0) {
       partnerIds = body.partnerIds.filter((p: any) => typeof p === "string")
     }
@@ -117,7 +121,10 @@ export async function POST(
 
   try {
     if (partnerIds && partnerIds.length > 0) {
-      const result = await dispatchLeadToSpecificPartners(id, partnerIds, waveNumber)
+      const result = await dispatchLeadToSpecificPartners(id, partnerIds, {
+        waveNumber,
+        touchWave,
+      })
       return NextResponse.json(result)
     }
 

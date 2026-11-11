@@ -614,17 +614,31 @@ export async function dispatchLeadWave(
   }
 }
 
+export interface DispatchSpecificOptions {
+  waveNumber?: number
+  touchWave?: boolean // Par défaut false : n'altère pas la vague du lead (Vague 1, 2, 3)
+}
+
 /**
  * Envoie un lead par e-mail à une sélection manuelle d'installateurs partenaires
+ * Par défaut (touchWave = false), cet envoi direct n'affecte pas le cycle de vagues du lead.
  */
 export async function dispatchLeadToSpecificPartners(
   leadId: string,
   partnerIds: string[],
-  waveNumber: number = 1
+  optionsOrWaveNumber: number | DispatchSpecificOptions = { touchWave: false }
 ): Promise<DispatchWaveResult> {
   if (!partnerIds || partnerIds.length === 0) {
     throw new Error("Aucun installateur sélectionné.")
   }
+
+  const options: DispatchSpecificOptions =
+    typeof optionsOrWaveNumber === "number"
+      ? { waveNumber: optionsOrWaveNumber, touchWave: false }
+      : optionsOrWaveNumber
+
+  const waveNumber = options.waveNumber ?? 1
+  const touchWave = options.touchWave === true
 
   const supabase = createServiceRoleClient()
 
@@ -749,7 +763,7 @@ export async function dispatchLeadToSpecificPartners(
       await supabase.from("lead_relance_dispatches").insert({
         lead_id: lead.id,
         partner_id: partner.id,
-        wave_number: waveNumber,
+        wave_number: touchWave ? waveNumber : (lead.relance_wave || 0),
         email_to: partner.email,
         email_subject: subject,
         matching_score: 100,
@@ -770,17 +784,19 @@ export async function dispatchLeadToSpecificPartners(
     })
   }
 
-  // Mettre à jour l'état de relance sur le lead
-  try {
-    await supabase
-      .from("leads")
-      .update({
-        relance_wave: Math.max(lead.relance_wave || 0, waveNumber),
-        last_relance_at: new Date().toISOString(),
-      })
-      .eq("id", lead.id)
-  } catch (updateErr) {
-    // Non bloquant
+  // Mettre à jour l'état de relance sur le lead UNIQUEMENT si touchWave === true
+  if (touchWave) {
+    try {
+      await supabase
+        .from("leads")
+        .update({
+          relance_wave: Math.max(lead.relance_wave || 0, waveNumber),
+          last_relance_at: new Date().toISOString(),
+        })
+        .eq("id", lead.id)
+    } catch (updateErr) {
+      // Non bloquant
+    }
   }
 
   return {

@@ -16,6 +16,7 @@ import {
   Loader2,
   Sparkles,
   MapPin,
+  ShieldCheck,
 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -70,6 +71,7 @@ export function DispatchPanel({
   const [selectedEmailPartnerIds, setSelectedEmailPartnerIds] = useState<string[]>([])
   const [sentHistory, setSentHistory] = useState<Record<string, { lastSentAt: string; count: number }>>({})
   const [isSendingEmails, setIsSendingEmails] = useState(false)
+  const [sendingSinglePartnerId, setSendingSinglePartnerId] = useState<string | null>(null)
   const [, startTransition] = useTransition()
 
   // Charger l'historique des envois pour ce lead précis
@@ -150,6 +152,7 @@ export function DispatchPanel({
     setSelectedEmailPartnerIds([])
   }
 
+  // Envoi groupé à la sélection sans toucher aux vagues
   async function handleSendTeaserEmails() {
     if (!leadId) {
       toast.error("Identifiant du lead manquant")
@@ -168,7 +171,7 @@ export function DispatchPanel({
           headers: { "Content-Type": "application/json", "x-admin-request": "true" },
           body: JSON.stringify({
             partnerIds: selectedEmailPartnerIds,
-            waveNumber: 1,
+            touchWave: false, // Ne modifie pas la vague du lead
             force: true,
           }),
         })
@@ -179,7 +182,7 @@ export function DispatchPanel({
         }
 
         toast.success(
-          `Lead envoyé avec succès par e-mail à ${data.sentCount} installateur(s) !`
+          `Lead envoyé avec succès par e-mail à ${data.sentCount} installateur(s) (sans toucher aux vagues) !`
         )
         await loadHistory()
       } catch (err: any) {
@@ -188,6 +191,35 @@ export function DispatchPanel({
         setIsSendingEmails(false)
       }
     })
+  }
+
+  // Envoi individuel direct en 1 clic sans toucher aux vagues
+  async function handleSendSinglePartner(partnerId: string, partnerName: string) {
+    if (!leadId) return
+    setSendingSinglePartnerId(partnerId)
+    try {
+      const res = await fetch(`/api/admin/leads/${leadId}/relance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
+        body: JSON.stringify({
+          partnerIds: [partnerId],
+          touchWave: false, // Ne modifie pas la vague du lead
+          force: true,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Échec de l'envoi")
+      }
+
+      toast.success(`E-mail envoyé avec succès à ${partnerName} (vague inchangée) !`)
+      await loadHistory()
+    } catch (err: any) {
+      toast.error(err.message || "Erreur lors de l'envoi de l'e-mail")
+    } finally {
+      setSendingSinglePartnerId(null)
+    }
   }
 
   return (
@@ -449,10 +481,33 @@ export function DispatchPanel({
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
-                    <span className="font-mono text-xs tabular-nums font-bold text-foreground">
-                      {partner.credits} cr.
-                    </span>
+                  <div className="flex flex-col items-end gap-1.5 shrink-0 ml-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs tabular-nums font-bold text-foreground">
+                        {partner.credits} cr.
+                      </span>
+
+                      {/* Bouton d'envoi individuel rapide (1 clic, sans toucher aux vagues) */}
+                      {dispatchMode === "marketplace" && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleSendSinglePartner(partner.id, partner.company_name)
+                          }}
+                          disabled={isSendingEmails || sendingSinglePartnerId === partner.id}
+                          className="inline-flex items-center gap-1 h-6 px-2 rounded-md text-[10px] font-semibold bg-secondary hover:bg-primary hover:text-primary-foreground border border-border transition-colors cursor-pointer disabled:opacity-50"
+                          title={`Envoyer directement ce dossier à ${partner.company_name} (sans toucher aux vagues)`}
+                        >
+                          {sendingSinglePartnerId === partner.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Send className="h-2.5 w-2.5" />
+                          )}
+                          <span>{sendingSinglePartnerId === partner.id ? "Envoi..." : "Envoyer"}</span>
+                        </button>
+                      )}
+                    </div>
 
                     {/* Statut d'envoi de mail pour ce lead */}
                     {hasBeenNotified ? (
@@ -477,7 +532,7 @@ export function DispatchPanel({
 
         {/* Bouton d'action d'envoi e-mail (en mode Marketplace) */}
         {dispatchMode === "marketplace" && (
-          <div className="pt-2 flex flex-col gap-1.5">
+          <div className="pt-2 flex flex-col gap-2">
             <Button
               type="button"
               onClick={handleSendTeaserEmails}
@@ -494,9 +549,10 @@ export function DispatchPanel({
                 {selectedEmailPartnerIds.length > 1 ? "s" : ""}
               </span>
             </Button>
-            <p className="text-[10px] text-muted-foreground text-center font-mono">
-              Envoie la fiche technique avec le visuel Street View et le lien d&apos;accès direct.
-            </p>
+            <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground text-center font-mono">
+              <ShieldCheck className="h-3 w-3 text-primary shrink-0" />
+              <span>Envoi indépendant : n&apos;impacte pas le cycle des vagues automatiques (vague actuelle conservée).</span>
+            </div>
           </div>
         )}
       </div>
