@@ -15,7 +15,7 @@ description: Audite et optimise une campagne Meta Ads active pour Aegis Solaire 
 | **Taux de Conversion Landing (CVR)** | < 6 % | 8 % à 14 % | > 16 % |
 | **CPL (Coût par Lead Qualifié)** | > 45 € | 22 € à 32 € | < 18 € |
 
-*Note sur le CPL solaire wallon : Un lead qualifié vérifié au téléphone se revend entre 45 € et 75 € à un installateur. Tout CPL sous 30 € offre une marge brute très confortable.*
+*Note sur le CPL solaire wallon : Selon le barème V2 officiel Aegis Solaire (1 crédit = 11,50 € HTVA), un lead B2C résidentiel qualifié coûte 3 crédits (34,50 € HTVA par installateur, max 3 créneaux soit jusqu'à 103,50 € HTVA de recette brute totale). Tout CPL d'acquisition sous 30 € offre donc une rentabilité immédiate et saine.*
 
 ---
 

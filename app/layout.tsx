@@ -69,6 +69,9 @@ export const metadata: Metadata = {
     icon: '/logo-square.png',
     apple: '/logo-square.png',
   },
+  other: {
+    'darkreader-lock': 'darkreader-lock',
+  },
 }
 
 export const viewport: Viewport = {
@@ -86,14 +89,15 @@ export default function RootLayout({
   return (
     <html lang="fr-BE" suppressHydrationWarning>
       <head>
-        {/* Ignore browser extension errors & hydration warnings (e.g. Bitdefender Anti-Tracker/TrafficLight injecting bis_skin_checked="1") from triggering the Next.js dev overlay */}
+        <meta name="darkreader-lock" />
+        {/* Ignore browser extension errors & hydration warnings (e.g. Dark Reader, Bitdefender bis_skin_checked) from triggering Next.js dev overlay */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
                 if (typeof window === 'undefined') return;
 
-                // 1. Intercept console.error to filter out extension-injected hydration mismatches (bis_skin_checked)
+                // 1. Intercept console.error to filter out extension-injected hydration mismatches
                 try {
                   var origError = console.error;
                   var filterExtHydration = function(fn) {
@@ -101,12 +105,23 @@ export default function RootLayout({
                       for (var i = 0; i < arguments.length; i++) {
                         var arg = arguments[i];
                         var str = typeof arg === 'string' ? arg : (arg && arg.message ? arg.message : '');
-                        if (str && str.indexOf('bis_skin_checked') !== -1) {
+                        if (str && (
+                          str.indexOf('bis_skin_checked') !== -1 ||
+                          str.indexOf('darkreader') !== -1 ||
+                          str.indexOf('--darkreader') !== -1 ||
+                          str.indexOf('data-darkreader') !== -1
+                        )) {
                           return;
                         }
                         if (typeof arg === 'object' && arg !== null) {
                           try {
-                            if (JSON.stringify(arg).indexOf('bis_skin_checked') !== -1) return;
+                            var json = JSON.stringify(arg);
+                            if (
+                              json.indexOf('bis_skin_checked') !== -1 ||
+                              json.indexOf('darkreader') !== -1 ||
+                              json.indexOf('--darkreader') !== -1 ||
+                              json.indexOf('data-darkreader') !== -1
+                            ) return;
                           } catch(err) {}
                         }
                       }
@@ -127,21 +142,27 @@ export default function RootLayout({
                   });
                 } catch(e) {}
 
-                // 2. Strip bis_skin_checked attributes injected by Bitdefender or VPN extensions before hydration
+                // 2. Strip bis_skin_checked & darkreader attributes injected by extensions before hydration
                 try {
-                  var cleanBis = function() {
-                    var elms = document.querySelectorAll('[bis_skin_checked]');
+                  var cleanExtAttrs = function() {
+                    var elms = document.querySelectorAll('[bis_skin_checked], [data-darkreader-inline-color], [data-darkreader-inline-stroke]');
                     for (var i = 0; i < elms.length; i++) {
                       elms[i].removeAttribute('bis_skin_checked');
+                      elms[i].removeAttribute('data-darkreader-inline-color');
+                      elms[i].removeAttribute('data-darkreader-inline-stroke');
                     }
                   };
 
                   var observer = new MutationObserver(function(mutations) {
                     for (var i = 0; i < mutations.length; i++) {
                       var m = mutations[i];
-                      if (m.type === 'attributes' && m.attributeName === 'bis_skin_checked') {
+                      if (m.type === 'attributes' && (
+                        m.attributeName === 'bis_skin_checked' ||
+                        m.attributeName === 'data-darkreader-inline-color' ||
+                        m.attributeName === 'data-darkreader-inline-stroke'
+                      )) {
                         if (m.target && m.target.removeAttribute) {
-                          m.target.removeAttribute('bis_skin_checked');
+                          m.target.removeAttribute(m.attributeName);
                         }
                       }
                     }
@@ -151,14 +172,14 @@ export default function RootLayout({
                     observer.observe(document.documentElement, {
                       attributes: true,
                       subtree: true,
-                      attributeFilter: ['bis_skin_checked']
+                      attributeFilter: ['bis_skin_checked', 'data-darkreader-inline-color', 'data-darkreader-inline-stroke']
                     });
                   }
 
                   if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', cleanBis, { once: true });
+                    document.addEventListener('DOMContentLoaded', cleanExtAttrs, { once: true });
                   } else {
-                    cleanBis();
+                    cleanExtAttrs();
                   }
                 } catch(e) {}
 

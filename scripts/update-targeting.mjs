@@ -33,7 +33,11 @@ async function run() {
     age_max: 64,
     targeting_automation: {
       advantage_audience: 0
-    }
+    },
+    publisher_platforms: [
+      'facebook',
+      'instagram'
+    ]
   }
 
   console.log('\n🚀 Application du verrouillage strict 30-64 ans (Audience d’origine sans élargissement)...')

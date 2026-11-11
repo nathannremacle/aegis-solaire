@@ -347,72 +347,92 @@ export async function POST(request: NextRequest) {
 
     // Le lead est créé en 'pending_review' : aucune alerte partenaire n'est émise tant qu'un administrateur n'a pas audité et publié le dossier vers la marketplace.
 
-    void sendProspectConfirmationEmail({
-      email: data.email,
-      firstName: first_name,
-      lastName: last_name,
-      segment: data.segment,
-      surfaceType: data.surfaceType,
-      surfaceArea: financials.normalizedSurfaceAreaM2,
-      annualElectricityBill: financials.normalizedAnnualBill,
-      estimatedSavings: computedSavings,
-      estimatedROIYears: computedRoiYears,
-      province: data.province,
-    }).catch((err) => console.error("[Prospect confirmation] envoi non bloquant échoué:", err))
+    // Notifications transactionnelles critiques avec attente (garantit l'envoi sous serverless Vercel)
+    const emailTasks: Promise<unknown>[] = []
+
+    emailTasks.push(
+      sendProspectConfirmationEmail({
+        email: data.email,
+        firstName: first_name,
+        lastName: last_name,
+        segment: data.segment,
+        surfaceType: data.surfaceType,
+        surfaceArea: financials.normalizedSurfaceAreaM2,
+        annualElectricityBill: financials.normalizedAnnualBill,
+        estimatedSavings: computedSavings,
+        estimatedROIYears: computedRoiYears,
+        province: data.province,
+      }).catch((err) => {
+        console.error("[Prospect confirmation] Envoi échoué:", err)
+      })
+    )
 
     // Alerte immédiate à l'administrateur avec lien de validation 1-clic direct
-    void sendAdminNewLeadAlertEmail({
-      leadId: inserted.id,
-      firstName: first_name,
-      lastName: last_name,
-      email,
-      phone,
-      company,
-      companyVat: company_vat,
-      jobTitle: job_title,
-      segment: data.segment,
-      surfaceType: data.surfaceType,
-      surfaceArea: financials.normalizedSurfaceAreaM2,
-      annualBill: financials.normalizedAnnualBill,
-      estimatedSavings: computedSavings,
-      estimatedROIYears: computedRoiYears,
-      estimatedPowerKwc,
-      annualProductionKwh: financials.annualProductionKwh,
-      estimatedPanelCount: financials.estimatedPanelCount,
-      autoconsumptionRate: computedAutoconsumption,
-      wantsIrve: financials.includesEv,
-      province: data.province,
-      postalCode: safePostalCode,
-      city: data.city ? sanitizeString(data.city, 100) : null,
-      siteAddress: data.siteAddress ? sanitizeString(data.siteAddress, 255) : null,
-      grd: data.grd ?? null,
-      ownershipStatus: safeOwnership,
-      timeframe: data.timeframe ?? null,
-      roofMaterial: safeRoofMaterial,
-      leadScore: finalScore,
-      scoreStatus: status,
-      scoreFactors: factors,
-      creditCost: credit_cost,
-      sourceForm: safeSourceForm,
-      mediaPartnerCode,
-      message: projectDetailsText,
-      verifications,
-      contactPreference: data.contactPreference || "written_first",
-    }).catch((err) => console.error("[Admin Lead Alert] Envoi non bloquant échoué:", err))
+    emailTasks.push(
+      sendAdminNewLeadAlertEmail({
+        leadId: inserted.id,
+        firstName: first_name,
+        lastName: last_name,
+        email,
+        phone,
+        company,
+        companyVat: company_vat,
+        jobTitle: job_title,
+        segment: data.segment,
+        surfaceType: data.surfaceType,
+        surfaceArea: financials.normalizedSurfaceAreaM2,
+        annualBill: financials.normalizedAnnualBill,
+        estimatedSavings: computedSavings,
+        estimatedROIYears: computedRoiYears,
+        estimatedPowerKwc,
+        annualProductionKwh: financials.annualProductionKwh,
+        estimatedPanelCount: financials.estimatedPanelCount,
+        autoconsumptionRate: computedAutoconsumption,
+        wantsIrve: financials.includesEv,
+        province: data.province,
+        postalCode: safePostalCode,
+        city: data.city ? sanitizeString(data.city, 100) : null,
+        siteAddress: data.siteAddress ? sanitizeString(data.siteAddress, 255) : null,
+        grd: data.grd ?? null,
+        ownershipStatus: safeOwnership,
+        timeframe: data.timeframe ?? null,
+        roofMaterial: safeRoofMaterial,
+        leadScore: finalScore,
+        scoreStatus: status,
+        scoreFactors: factors,
+        creditCost: credit_cost,
+        sourceForm: safeSourceForm,
+        mediaPartnerCode,
+        message: projectDetailsText,
+        verifications,
+        contactPreference: data.contactPreference || "written_first",
+      }).catch((err) => {
+        console.error("[Admin Lead Alert] Envoi échoué:", err)
+      })
+    )
 
     // Télémétrie d'entonnoir final (Step 6 submitted)
     if (data.sessionId) {
-      void supabase.from("funnel_step_events").insert({
-        session_id: data.sessionId,
-        step_number: 6,
-        step_name: "STEP_6_SUBMITTED",
-        province: data.province,
-        utm_source: ((data.qualificationMetadata as Record<string, unknown>)?.utm_source as string) || null,
-        utm_campaign: ((data.qualificationMetadata as Record<string, unknown>)?.utm_campaign as string) || null,
-        utm_content: ((data.qualificationMetadata as Record<string, unknown>)?.utm_content as string) || null,
-        utm_term: ((data.qualificationMetadata as Record<string, unknown>)?.utm_term as string) || null,
-      }).then(() => {}, (err: unknown) => console.error("[Funnel Step] Step 6 event failed:", err))
+      emailTasks.push(
+        Promise.resolve(
+          supabase.from("funnel_step_events").insert({
+            session_id: data.sessionId,
+            step_number: 6,
+            step_name: "STEP_6_SUBMITTED",
+            province: data.province,
+            utm_source: ((data.qualificationMetadata as Record<string, unknown>)?.utm_source as string) || null,
+            utm_campaign: ((data.qualificationMetadata as Record<string, unknown>)?.utm_campaign as string) || null,
+            utm_content: ((data.qualificationMetadata as Record<string, unknown>)?.utm_content as string) || null,
+            utm_term: ((data.qualificationMetadata as Record<string, unknown>)?.utm_term as string) || null,
+          })
+        ).catch((err) => {
+          console.error("[Funnel Step] Step 6 event failed:", err)
+        })
+      )
     }
+
+    // On attend que les notifications et la télémétrie se finalisent avant de fermer la réponse HTTP
+    await Promise.allSettled(emailTasks)
 
     const webhookUrl = process.env.LEAD_WEBHOOK_URL
     const webhookSecret = process.env.LEAD_WEBHOOK_SECRET

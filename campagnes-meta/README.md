@@ -13,6 +13,7 @@ Ce dossier centralise la recherche concurrentielle, les créations publicitaires
 * **Budget Quotidien** : `20,00 € / jour`
 * **Plafond Strict de Sécurité** : `500,00 €` (fixé dans les paramètres de paiement)
 * **Ciblage** : Wallonie (Liège, Namur, Hainaut, Brabant wallon, Luxembourg), 30–64 ans, langue Français.
+* **Placements** : Exclusifs Facebook & Instagram (Audience Network et Messenger exclus le 10/11/2026).
 
 ### Annonces Actives en Test Dynamique :
 1. **Pub 1** : `PUB_1_VISUEL_ANALYSE_DEVIS`
