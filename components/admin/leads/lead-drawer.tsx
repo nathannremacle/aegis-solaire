@@ -42,6 +42,11 @@ import {
   UploadCloud,
   Trash2,
   ImageIcon,
+  Home,
+  Ruler,
+  BatteryCharging,
+  MessageSquare,
+  Sparkles,
 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -52,6 +57,7 @@ import { DispatchPanel, type CompatiblePartner } from "./dispatch-panel"
 import { LeadRelanceStatus } from "./lead-relance-status"
 import { calculateLeadScore } from "@/lib/lead-score"
 import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
+import { parseLeadProjectDetails } from "@/lib/lead-display-helpers"
 import { detectLeadRiskFlags } from "@/lib/admin/lead-risk"
 import { formatBceNumber, BCE_PUBLIC_SEARCH_URL } from "@/lib/leads-schema"
 import {
@@ -932,17 +938,91 @@ export function LeadDrawer({
               </div>
             </div>
 
-            {lead.message && (
-              <div className="border-t border-border/80 pt-2.5 flex flex-col gap-1">
-                <span className="text-[11px] text-muted-foreground font-semibold flex items-center gap-1.5">
-                  <FileText className="h-3 w-3 text-muted-foreground" />
-                  Notes & Détails du projet (saisis par le prospect) :
-                </span>
-                <p className="text-xs text-foreground bg-secondary/60 rounded-lg p-2.5 border border-border/80 leading-relaxed font-mono">
-                  {lead.message}
-                </p>
-              </div>
-            )}
+            {/* Notes & Détails du projet (saisis par le prospect) */}
+            {(() => {
+              const notesText = lead.project_details || lead.message
+              if (!notesText) return null
+
+              const parsed = parseLeadProjectDetails(notesText)
+
+              const getBadgeIcon = (iconName: string) => {
+                switch (iconName) {
+                  case "MapPin":
+                    return <MapPin className="h-3.5 w-3.5 text-accent" />
+                  case "Zap":
+                    return <Zap className="h-3.5 w-3.5 text-accent-solar" />
+                  case "Home":
+                    return <Home className="h-3.5 w-3.5 text-primary" />
+                  case "User":
+                    return <User className="h-3.5 w-3.5 text-foreground" />
+                  case "Building2":
+                    return <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                  case "Ruler":
+                    return <Ruler className="h-3.5 w-3.5 text-primary" />
+                  case "Phone":
+                    return <Phone className="h-3.5 w-3.5 text-emerald-600" />
+                  case "BatteryCharging":
+                    return <BatteryCharging className="h-3.5 w-3.5 text-amber-500" />
+                  default:
+                    return <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                }
+              }
+
+              return (
+                <div className="border-t border-border/80 pt-3 flex flex-col gap-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-foreground font-bold font-mono uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-primary" />
+                      Critères Saisis par le Prospect
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 font-semibold">
+                      Formulaire Devis
+                    </span>
+                  </div>
+
+                  {parsed.badges.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {parsed.badges.map((b) => (
+                        <div
+                          key={b.id}
+                          className="flex items-center gap-2.5 p-2 rounded-lg bg-secondary/40 border border-border/60 hover:bg-secondary/60 transition-colors"
+                        >
+                          <div className="p-1.5 rounded-md bg-card border border-border/70 shrink-0">
+                            {getBadgeIcon(b.icon)}
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-[10px] uppercase font-mono font-semibold tracking-wider text-muted-foreground truncate">
+                              {b.label}
+                            </span>
+                            <span className="text-xs font-bold text-foreground truncate">
+                              {b.value}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {parsed.remarks && (
+                    <div className="rounded-lg bg-primary/5 border border-primary/20 p-2.5 flex flex-col gap-1">
+                      <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-primary flex items-center gap-1">
+                        <MessageSquare className="h-3 w-3" />
+                        Remarque libre du prospect :
+                      </span>
+                      <p className="text-xs italic text-foreground leading-relaxed">
+                        &laquo; {parsed.remarks} &raquo;
+                      </p>
+                    </div>
+                  )}
+
+                  {parsed.badges.length === 0 && !parsed.remarks && (
+                    <p className="text-xs text-foreground bg-secondary/60 rounded-lg p-2.5 border border-border/80 leading-relaxed font-sans">
+                      {notesText}
+                    </p>
+                  )}
+                </div>
+              )
+            })()}
           </div>
 
           {/* Module de Suivi des Relances & Vagues de Vente */}

@@ -84,14 +84,29 @@ export const CONSUMPTION_LABELS: Record<string, string> = {
 }
 
 export const PROPERTY_TYPE_LABELS: Record<string, string> = {
-  "maison mitoyenne": "Maison mitoyenne",
-  "maison 4 facades": "Maison 4 façades",
+  "maison mitoyenne": "Maison mitoyenne (2 ou 3 façades)",
+  "maison_mitoyenne": "Maison mitoyenne (2 ou 3 façades)",
+  "maison 4 facades": "Maison 4 façades (Isolée)",
+  "maison_4f": "Maison 4 façades (Isolée)",
   "maison 3 facades": "Maison 3 façades",
-  "batiment_industriel": "Bâtiment industriel / Hangar",
-  "hangar": "Hangar / Entrepôt",
-  "bureaux": "Immeuble de bureaux",
-  "commerce": "Surface commerciale",
-  "agricole": "Bâtiment agricole",
+  "maison_3f": "Maison 3 façades",
+  appartement: "Appartement / Copropriété",
+  batiment_industriel: "Bâtiment industriel / Hangar",
+  hangar: "Hangar / Entrepôt",
+  bureaux: "Immeuble de bureaux",
+  commerce: "Surface commerciale",
+  agricole: "Bâtiment agricole",
+}
+
+export const ROOF_SURFACE_LABELS: Record<string, string> = {
+  small: "Petite (~20 à 35 m²)",
+  petite: "Petite (~20 à 35 m²)",
+  medium: "Moyenne (~35 à 60 m²)",
+  moyenne: "Moyenne (~35 à 60 m²)",
+  large: "Grande (~60 à 100 m²)",
+  grande: "Grande (~60 à 100 m²)",
+  xlarge: "Très grande (> 100 m²)",
+  tres_grande: "Très grande (> 100 m²)",
 }
 
 /**
@@ -274,6 +289,147 @@ export function getLeadLocationInfo(lead: any): {
   }
 }
 
+export interface ParsedLeadBadge {
+  id: string
+  label: string
+  value: string
+  icon: "MapPin" | "Zap" | "Home" | "User" | "Building2" | "Ruler" | "Phone" | "BatteryCharging" | "Info"
+  variant?: "default" | "accent" | "solar" | "highlight" | "success"
+}
+
+export interface ParsedLeadDetails {
+  badges: ParsedLeadBadge[]
+  remarks: string | null
+  rawFallback: string | null
+}
+
+const KEY_DEFINITIONS: Array<{
+  key: string
+  match: string[]
+  label: string
+  icon: ParsedLeadBadge["icon"]
+}> = [
+  { key: "location", match: ["précision localisation", "precision localisation", "localisation"], label: "Localisation indiquée", icon: "MapPin" },
+  { key: "consumption", match: ["consommation annuelle", "consommation"], label: "Consommation annuelle", icon: "Zap" },
+  { key: "propertyType", match: ["type de bien", "type bien"], label: "Type de bien", icon: "Home" },
+  { key: "ownership", match: ["statut", "décisionnaire", "decisionnaire"], label: "Statut d'occupation", icon: "User" },
+  { key: "roofSurface", match: ["surface toiture", "surface"], label: "Surface toiture", icon: "Ruler" },
+  { key: "roofMaterial", match: ["couverture toiture", "couverture", "toiture"], label: "Couverture toiture", icon: "Building2" },
+  { key: "contact", match: ["règle contact client", "regle contact client", "règle contact", "contact client", "contact"], label: "Préférence contact", icon: "Phone" },
+  { key: "battery", match: ["batterie"], label: "Batterie", icon: "BatteryCharging" },
+  { key: "irve", match: ["borne ve", "borne irve", "borne"], label: "Borne de recharge", icon: "Zap" },
+  { key: "remarks", match: ["précisions", "precisions", "remarques", "remarque", "précision", "precision"], label: "Remarques", icon: "Info" },
+]
+
+/**
+ * Analyse chirurgicalement les notes et détails saisis par le prospect
+ * Transforme les chaînes concaténées avec pipes ou sauts de ligne en badges d'ingénierie soignés.
+ */
+export function parseLeadProjectDetails(text?: string | null): ParsedLeadDetails {
+  if (!text || typeof text !== "string" || !text.trim()) {
+    return { badges: [], remarks: null, rawFallback: null }
+  }
+
+  // Nettoyer les espaces superflus avant les deux-points pour uniformiser
+  const normalizedText = text.replace(/\s+:/g, ":").trim()
+  const lowerText = normalizedText.toLowerCase()
+
+  const occurrences: Array<{
+    def: (typeof KEY_DEFINITIONS)[number]
+    phrase: string
+    start: number
+    valueStart: number
+  }> = []
+
+  for (const def of KEY_DEFINITIONS) {
+    for (const phrase of def.match) {
+      const searchTarget = phrase + ":"
+      let startIdx = 0
+      while ((startIdx = lowerText.indexOf(searchTarget, startIdx)) !== -1) {
+        occurrences.push({
+          def,
+          phrase,
+          start: startIdx,
+          valueStart: startIdx + searchTarget.length,
+        })
+        startIdx += searchTarget.length
+      }
+    }
+  }
+
+  // Si aucune clé formelle n'a été trouvée
+  if (occurrences.length === 0) {
+    // Si c'est du texte libre
+    const clean = text.replace(/^[|\s]+|[|\s]+$/g, "").trim()
+    return {
+      badges: [],
+      remarks: clean.length > 5 ? clean : null,
+      rawFallback: null,
+    }
+  }
+
+  // Trier par position chronologique
+  occurrences.sort((a, b) => a.start - b.start)
+
+  // Éliminer les sous-clés redondantes
+  const filtered: typeof occurrences = []
+  let lastEnd = -1
+  for (const occ of occurrences) {
+    if (occ.start >= lastEnd) {
+      filtered.push(occ)
+      lastEnd = occ.valueStart
+    }
+  }
+
+  const badges: ParsedLeadBadge[] = []
+  let remarks: string | null = null
+
+  for (let i = 0; i < filtered.length; i++) {
+    const curr = filtered[i]
+    const nextStart = i + 1 < filtered.length ? filtered[i + 1].start : normalizedText.length
+    let rawVal = normalizedText.slice(curr.valueStart, nextStart).trim()
+    rawVal = rawVal.replace(/^[:|\s]+|[:|\s]+$/g, "").trim()
+
+    if (!rawVal) continue
+
+    if (curr.def.key === "remarks") {
+      remarks = rawVal
+      continue
+    }
+
+    let cleanVal = rawVal
+    let variant: ParsedLeadBadge["variant"] = "default"
+
+    if (curr.def.key === "location") {
+      variant = "accent"
+    } else if (curr.def.key === "consumption") {
+      cleanVal = CONSUMPTION_LABELS[rawVal.toLowerCase()] || rawVal.replace("_", " à ") + " kWh/an"
+      variant = "solar"
+    } else if (curr.def.key === "propertyType") {
+      cleanVal = PROPERTY_TYPE_LABELS[rawVal.toLowerCase()] || rawVal
+    } else if (curr.def.key === "ownership") {
+      cleanVal = OWNERSHIP_LABELS[rawVal.toLowerCase()] || rawVal
+    } else if (curr.def.key === "roofSurface") {
+      cleanVal = ROOF_SURFACE_LABELS[rawVal.toLowerCase()] || (rawVal.includes("m²") ? rawVal : `${rawVal} m²`)
+    } else if (curr.def.key === "roofMaterial") {
+      cleanVal = ROOF_MATERIAL_LABELS[rawVal.toLowerCase()] || rawVal
+    } else if (curr.def.key === "contact") {
+      const isCall = rawVal.toLowerCase().includes("appel")
+      variant = isCall ? "success" : "highlight"
+    }
+
+    badges.push({
+      id: curr.def.key,
+      icon: curr.def.icon,
+      label: curr.def.label,
+      value: cleanVal,
+      variant,
+    })
+  }
+
+  return { badges, remarks, rawFallback: null }
+}
+
 /**
  * Nettoie chirurgicalement les métadonnées internes des leads
  * Supprime "Source: Landing Bobex-Style", "UTM...", et traduit les chaînes brutes en français net.
@@ -287,89 +443,11 @@ export function sanitizeLeadNotes(details?: string | null, message?: string | nu
     return { cleanRemarks: null, cleanBadges: [] }
   }
 
-  const parts = combined.split("|").map((p) => p.trim()).filter(Boolean)
-  const cleanBadges: { label: string; value: string }[] = []
-  let humanRemark: string | null = null
-
-  for (const part of parts) {
-    // 1. Bannir les sources et métadonnées d'acquisition
-    if (/source\s*:/i.test(part)) continue
-    if (/utm_/i.test(part) || /utm\s*source/i.test(part)) continue
-    if (/campagne\s*:/i.test(part)) continue
-    if (/créatif\s*:/i.test(part) || /creatif\s*:/i.test(part)) continue
-    if (/bobex/i.test(part)) continue
-    if (/précision\s*localisation\s*:/i.test(part)) continue
-
-    // 2. Extraire et traduire les champs structurés
-    const lower = part.toLowerCase()
-
-    if (lower.startsWith("consommation annuelle:") || lower.startsWith("consommation:")) {
-      const val = part.split(":")[1]?.trim() || ""
-      const cleanVal = CONSUMPTION_LABELS[val] || val.replace("_", " à ") + " kWh/an"
-      cleanBadges.push({ label: "Consommation", value: cleanVal })
-      continue
-    }
-
-    if (lower.startsWith("type de bien:") || lower.startsWith("type bien:")) {
-      const val = part.split(":")[1]?.trim().toLowerCase() || ""
-      const cleanVal = PROPERTY_TYPE_LABELS[val] || val
-      cleanBadges.push({ label: "Type de bien", value: cleanVal })
-      continue
-    }
-
-    if (lower.startsWith("statut:") || lower.startsWith("décisionnaire:")) {
-      const val = part.split(":")[1]?.trim().toLowerCase() || ""
-      const cleanVal = OWNERSHIP_LABELS[val] || "Propriétaire occupant"
-      cleanBadges.push({ label: "Statut", value: cleanVal })
-      continue
-    }
-
-    if (lower.startsWith("couverture:") || lower.startsWith("toiture:")) {
-      const val = part.split(":")[1]?.trim().toLowerCase() || ""
-      const cleanVal = ROOF_MATERIAL_LABELS[val] || val
-      cleanBadges.push({ label: "Couverture", value: cleanVal })
-      continue
-    }
-
-    if (lower.startsWith("surface toiture:") || lower.startsWith("surface:")) {
-      const val = part.split(":")[1]?.trim() || ""
-      cleanBadges.push({ label: "Surface", value: val.includes("m²") ? val : `${val} m²` })
-      continue
-    }
-
-    if (lower.startsWith("batterie:")) {
-      const val = part.split(":")[1]?.trim().toLowerCase() || ""
-      const isInterested = val === "oui" || val === "true" || val.includes("interesse")
-      if (isInterested) {
-        cleanBadges.push({ label: "Option", value: "Intérêt Batterie" })
-      }
-      continue
-    }
-
-    if (lower.startsWith("borne ve:") || lower.startsWith("borne:")) {
-      const val = part.split(":")[1]?.trim().toLowerCase() || ""
-      const isInterested = val === "oui" || val === "true" || val.includes("interesse")
-      if (isInterested) {
-        cleanBadges.push({ label: "Option", value: "Borne IRVE" })
-      }
-      continue
-    }
-
-    if (lower.startsWith("précisions:") || lower.startsWith("precisions:") || lower.startsWith("remarques:")) {
-      const text = part.split(":").slice(1).join(":").trim()
-      if (text.length > 3) {
-        humanRemark = text
-      }
-      continue
-    }
-
-    // Si c'est une phrase libre sans clé technique
-    if (!part.includes(":") && part.length > 5 && !humanRemark) {
-      humanRemark = part
-    }
+  const parsed = parseLeadProjectDetails(combined)
+  return {
+    cleanRemarks: parsed.remarks,
+    cleanBadges: parsed.badges.map((b) => ({ label: b.label, value: b.value })),
   }
-
-  return { cleanRemarks: humanRemark, cleanBadges }
 }
 
 /**
