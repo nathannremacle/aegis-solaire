@@ -98,14 +98,17 @@ export default function CGV() {
         <section className="mb-8">
           <h2 className="text-xl font-semibold text-foreground">4. Système de crédits : Nature juridique, absence de droit de rétractation et péremption</h2>
           <p className="mt-4 leading-relaxed">
-            Pour acquérir des Leads sur la marketplace, le Partenaire doit préfinancer un solde de Crédits selon les modalités tarifaires suivantes :
+            Pour acquérir des Leads sur la marketplace, le Partenaire peut débloquer les chantiers à l&apos;unité directement en euros ou préfinancer un solde de Crédits selon les modalités tarifaires suivantes :
           </p>
           <ul className="mt-3 list-disc space-y-2 pl-6">
             <li>
-              <strong className="text-foreground">Valeur faciale contractuelle :</strong> Un (1) Crédit équivaut à <strong className="font-mono tabular-nums text-foreground">11,50 € HTVA</strong>.
+              <strong className="text-foreground">Valeur faciale contractuelle :</strong> Un (1) Crédit équivaut à <strong className="font-mono tabular-nums text-foreground">9,83 € HTVA</strong> (calculé sur la base de 29,50 € HTVA pour 3 crédits).
             </li>
             <li>
-              <strong className="text-foreground">Packs de recharges :</strong> Les Crédits sont acquis sous forme de packs (10 crédits pour <span className="font-mono tabular-nums">115,00 € HTVA</span> / <span className="font-mono tabular-nums">139,15 € TTC</span> ; 20 crédits pour <span className="font-mono tabular-nums">230,00 € HTVA</span> / <span className="font-mono tabular-nums">278,30 € TTC</span> ; 50 crédits pour <span className="font-mono tabular-nums">575,00 € HTVA</span> / <span className="font-mono tabular-nums">695,75 € TTC</span>). La TVA belge au taux légal de <span className="font-mono tabular-nums">21 %</span> s&apos;applique à toute transaction facturée à un assujetti établi en Belgique.
+              <strong className="text-foreground">Packs de recharges :</strong> Les Crédits sont acquis sous forme de packs (10 crédits pour <span className="font-mono tabular-nums">98,33 € HTVA</span> / <span className="font-mono tabular-nums">118,98 € TTC</span> ; 20 crédits pour <span className="font-mono tabular-nums">196,67 € HTVA</span> / <span className="font-mono tabular-nums">237,97 € TTC</span> ; 50 crédits pour <span className="font-mono tabular-nums">491,67 € HTVA</span> / <span className="font-mono tabular-nums">594,92 € TTC</span>). La TVA belge au taux légal de <span className="font-mono tabular-nums">21 %</span> s&apos;applique à toute transaction facturée à un assujetti établi en Belgique.
+            </li>
+            <li>
+              <strong className="text-foreground">Achat direct à l&apos;unité en euros :</strong> Le Partenaire a également la faculté d&apos;acquérir chaque Lead à l&apos;unité sans souscrire de pack préalable, par règlement immédiat en euros via Bancontact ou carte bancaire (<strong className="font-mono tabular-nums text-foreground">29,50 € HTVA</strong> pour un Lead B2C, <strong className="font-mono tabular-nums text-foreground">88,50 € HTVA</strong> pour un Lead B2B exclusif).
             </li>
             <li>
               <strong className="text-foreground">Modalités de règlement :</strong> Les règlements sont effectués par carte bancaire / Bancontact via le prestataire de paiement sécurisé agréé Mollie, ou par virement bancaire sur le compte professionnel de l&apos;Exploitant (IBAN : <strong className="font-mono tabular-nums text-foreground">BE84 0020 3534 7259</strong>, BIC : <strong className="font-mono text-foreground">GEBABEBB</strong>, titulaire : <strong className="text-foreground">INIT42</strong>). En cas de virement, les crédits ne sont crédités sur le Dashboard qu&apos;après encaissement effectif et rapprochement bancaire.
@@ -113,8 +116,8 @@ export default function CGV() {
             <li>
               <strong className="text-foreground">Coût unitaire d&apos;acquisition d&apos;un lead :</strong>
               <ul className="mt-1 list-disc pl-5 space-y-1">
-                <li><strong className="text-foreground">Lead B2C (résidentiel) :</strong> 3 crédits par Partenaire acheteur (soit <span className="font-mono tabular-nums">29,50 € HTVA</span>), dans la limite stricte de 3 acheteurs.</li>
-                <li><strong className="text-foreground">Lead B2B (professionnel / industriel) :</strong> 9 crédits (soit <span className="font-mono tabular-nums">88,50 € HTVA</span>), réservé en exclusivité absolue à un acheteur unique.</li>
+                <li><strong className="text-foreground">Lead B2C (résidentiel) :</strong> 3 crédits (ou <span className="font-mono tabular-nums">29,50 € HTVA</span> à l&apos;unité) par Partenaire acheteur, dans la limite stricte de 3 acheteurs.</li>
+                <li><strong className="text-foreground">Lead B2B (professionnel / industriel) :</strong> 9 crédits (ou <span className="font-mono tabular-nums">88,50 € HTVA</span> à l&apos;unité), réservé en exclusivité absolue à un acheteur unique.</li>
               </ul>
             </li>
           </ul>

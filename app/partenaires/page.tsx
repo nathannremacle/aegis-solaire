@@ -23,6 +23,7 @@ import {
   Clock,
   Sparkles,
   ArrowUpRight,
+  CreditCard,
 } from "lucide-react"
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.aegissolaire.com"
@@ -30,7 +31,7 @@ const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.aegissolaire.co
 export const metadata = {
   title: "Devenir Partenaire Installateur RESCERT | Marketplace Photovoltaïque Wallonie",
   description:
-    "Marketplace de chantiers solaires qualifiés pour installateurs certifiés RESCERT en Wallonie. B2B exclusif (1 seul acheteur à 9 crédits = 88,50 € HTVA) et B2C transparent (max 3 installateurs à 3 crédits = 29,50 € HTVA). Zéro abonnement, déblocage direct aux crédits.",
+    "Marketplace de chantiers solaires qualifiés pour installateurs certifiés RESCERT en Wallonie. B2B exclusif (1 seul acheteur à 9 crédits ou 88,50 € HTVA) et B2C transparent (max 3 installateurs à 3 crédits ou 29,50 € HTVA). Achat direct à l'unité en euros ou packs de crédits. Zéro abonnement forcé.",
   alternates: {
     canonical: `${baseUrl}/partenaires`,
   },
@@ -68,7 +69,7 @@ export default function PartenairesPage() {
                       SEGMENT B2B · 100% EXCLUSIF
                     </span>
                     <span className="font-mono text-xs font-bold text-accent tabular-nums">
-                      9 crédits (103,50 € HT)
+                      9 crédits (ou 88,50 € HT à l&apos;unité)
                     </span>
                   </div>
                   <h3 className="text-lg sm:text-xl font-bold text-foreground font-heading">
@@ -93,7 +94,7 @@ export default function PartenairesPage() {
                       SEGMENT B2C · TRANSPARENCE TOTALE
                     </span>
                     <span className="font-mono text-xs font-bold text-accent tabular-nums">
-                      3 crédits (29,50 € HT)
+                      3 crédits (ou 29,50 € HT à l&apos;unité)
                     </span>
                   </div>
                   <h3 className="text-lg sm:text-xl font-bold text-foreground font-heading">
@@ -201,7 +202,7 @@ export default function PartenairesPage() {
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="h-4 w-4 text-accent shrink-0" />
                         <span className="font-semibold text-foreground">
-                          Packs de crédits à la demande · Zéro abonnement forcé
+                          Achat direct en € à l&apos;unité ou packs de crédits · Zéro abonnement forcé
                         </span>
                       </div>
                     </td>
@@ -302,9 +303,9 @@ export default function PartenairesPage() {
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-primary border border-border shadow-2xs">
                   <Coins className="h-5 w-5 text-accent" />
                 </div>
-                <h3 className="mt-4 text-base font-bold text-foreground font-heading">Packs de crédits sans engagement</h3>
+                <h3 className="mt-4 text-base font-bold text-foreground font-heading">À l&apos;unité ou en packs · 0 abonnement</h3>
                 <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                  Rechargez votre solde sur facture officielle avec TVA déductible à <span className="font-mono tabular-nums font-semibold text-foreground">21 %</span>. Vos crédits n&apos;expirent pas.
+                  Achetez à l&apos;unité en euros par Bancontact/CB ou rechargez par packs de crédits déductibles (TVA <span className="font-mono tabular-nums font-semibold text-foreground">21 %</span>). Zéro frais mensuels récurrents.
                 </p>
               </div>
 
@@ -351,14 +352,74 @@ export default function PartenairesPage() {
           <div className="mx-auto max-w-6xl min-w-0 px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-12 flex flex-col gap-2">
               <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">
-                Transparence Économique
+                Transparence Économique &amp; Zéro Engagement
               </span>
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground font-heading">
-                Packs de crédits déductibles : zéro abonnement, rechargez selon vos besoins
+                Zéro abonnement forcé : débloquez à l&apos;unité en euros ou par packs de crédits
               </h2>
               <p className="text-sm sm:text-base text-muted-foreground">
-                Débloquez les chantiers uniquement quand votre carnet de commandes a de la place. Le récapitulatif fiscal officiel (TVA <span className="font-mono tabular-nums">21 %</span> déductible) est transmis automatiquement par e-mail dès confirmation Mollie.
+                Aucun abonnement mensuel imposé, zéro prélèvement récurrent. Débloquez les chantiers uniquement quand votre carnet de commandes a de la place. Choisissez le paiement direct à l&apos;unité en euros (Bancontact / CB) ou nos recharges de crédits sans date de péremption. Facture avec TVA <span className="font-mono tabular-nums">21 %</span> déductible transmise automatiquement par e-mail.
               </p>
+            </div>
+
+            {/* Option Achat à l'unité directement en EURO */}
+            <div className="mb-10 max-w-5xl mx-auto rounded-3xl border-2 border-accent/40 bg-accent/[0.03] p-6 sm:p-8 shadow-xs hover:border-accent/60 transition-colors">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                <div className="flex flex-col sm:flex-row items-start gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-accent/15 border border-accent/25 flex items-center justify-center text-accent shrink-0">
+                    <CreditCard className="h-6 w-6 text-accent" />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2.5 py-0.5 rounded-md border border-accent/20">
+                        Option 1 · Achat direct à l&apos;unité en EUROS
+                      </span>
+                      <span className="font-mono text-[11px] font-bold text-muted-foreground bg-secondary px-2 py-0.5 rounded-md border border-border">
+                        Bancontact &amp; Cartes bancaires
+                      </span>
+                      <span className="font-mono text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                        Zéro abonnement
+                      </span>
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-bold text-foreground font-heading">
+                      Vous préférez acheter vos chantiers à l&apos;unité sans pack ?
+                    </h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-2xl">
+                      Sur notre marketplace, vous n&apos;avez aucune obligation d&apos;acheter un pack de crédits. Vous pouvez débloquer chaque chantier individuellement en euros par Bancontact ou Carte bancaire au moment précis où vous en avez besoin :
+                    </p>
+                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-border">
+                      <div className="flex items-center gap-2 text-xs">
+                        <Check className="h-4 w-4 text-accent shrink-0 stroke-[2.5]" />
+                        <span>Chantier résidentiel B2C : <strong className="font-mono tabular-nums text-foreground">29,50 € HT</strong> (35,70 € TTC · max 3 devis)</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <Check className="h-4 w-4 text-accent shrink-0 stroke-[2.5]" />
+                        <span>Dossier tertiaire / PME B2B : <strong className="font-mono tabular-nums text-foreground">88,50 € HT</strong> (107,09 € TTC · 100% exclusif)</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0 lg:w-48">
+                  <a href="#candidature" className="w-full">
+                    <Button className="w-full rounded-xl text-xs font-bold bg-accent text-accent-foreground hover:bg-accent/90 cursor-pointer shadow-2xs">
+                      Postuler &amp; Débloquer à l&apos;unité
+                    </Button>
+                  </a>
+                  <span className="text-[11px] text-center text-muted-foreground font-mono">
+                    0 € / mois · Zéro engagement
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Sous-titre des Packs de Crédits */}
+            <div className="text-center max-w-2xl mx-auto mb-8">
+              <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground font-semibold">
+                Option 2 · Packs de crédits déductibles
+              </span>
+              <h3 className="text-base sm:text-lg font-bold text-foreground font-heading mt-0.5">
+                Pour débloquer en 1 clic sans validation bancaire à chaque lead
+              </h3>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
@@ -375,20 +436,20 @@ export default function PartenairesPage() {
                   </div>
                   <div>
                     <span className="text-3xl font-extrabold font-mono tabular-nums text-foreground">
-                      115,00 €
+                      98,33 €
                     </span>
                     <span className="text-xs text-muted-foreground ml-1.5 font-mono">HT</span>
                     <span className="block text-[11px] text-muted-foreground font-mono mt-0.5 tabular-nums">
-                      139,15 € TTC (TVA 21%)
+                      118,98 € TTC (TVA 21%)
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Idéal pour démarrer : permet <span className="font-mono tabular-nums font-semibold text-foreground">3 déblocages B2C</span> (reste 1 crédit) ou <span className="font-mono tabular-nums font-semibold text-foreground">1 B2B exclusif</span>.
+                    Idéal pour démarrer : permet <span className="font-mono tabular-nums font-semibold text-foreground">3 déblocages B2C</span> ou <span className="font-mono tabular-nums font-semibold text-foreground">1 B2B exclusif</span> (avec 1 crédit restant).
                   </p>
                   <ul className="flex flex-col gap-2 pt-2 border-t border-border text-xs text-foreground font-medium">
                     <li className="flex items-center gap-2">
                       <Check className="h-3.5 w-3.5 text-accent shrink-0 stroke-[3]" />
-                      <span><strong className="font-mono tabular-nums">10 crédits</strong> (11,50 € HT / crédit)</span>
+                      <span><strong className="font-mono tabular-nums">10 crédits</strong> (9,83 € HT / crédit)</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="h-3.5 w-3.5 text-accent shrink-0 stroke-[3]" />
@@ -397,6 +458,10 @@ export default function PartenairesPage() {
                     <li className="flex items-center gap-2">
                       <Check className="h-3.5 w-3.5 text-accent shrink-0 stroke-[3]" />
                       <span>Crédits sans date de péremption</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-3.5 w-3.5 text-accent shrink-0 stroke-[3]" />
+                      <span>Zéro abonnement forcé</span>
                     </li>
                   </ul>
                 </div>
@@ -417,20 +482,20 @@ export default function PartenairesPage() {
                   </div>
                   <div>
                     <span className="text-3xl font-extrabold font-mono tabular-nums text-foreground">
-                      230,00 €
+                      196,67 €
                     </span>
                     <span className="text-xs text-muted-foreground ml-1.5 font-mono">HT</span>
                     <span className="block text-[11px] text-muted-foreground font-mono mt-0.5 tabular-nums">
-                      278,30 € TTC (TVA 21%)
+                      237,97 € TTC (TVA 21%)
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Alimentez régulièrement <span className="font-mono tabular-nums font-semibold text-foreground">1 équipe de pose</span> : permet 6 chantiers B2C ou 2 dossiers B2B exclusifs.
+                    Alimentez régulièrement <span className="font-mono tabular-nums font-semibold text-foreground">1 équipe de pose</span> : permet 6 chantiers B2C ou 2 dossiers B2B exclusifs (avec 2 crédits restants).
                   </p>
                   <ul className="flex flex-col gap-2 pt-2 border-t border-border text-xs text-muted-foreground">
                     <li className="flex items-center gap-2">
                       <Check className="h-3.5 w-3.5 text-accent shrink-0" />
-                      <span><strong className="font-mono tabular-nums">20 crédits</strong> (11,50 € HT / crédit)</span>
+                      <span><strong className="font-mono tabular-nums">20 crédits</strong> (9,83 € HT / crédit)</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="h-3.5 w-3.5 text-accent shrink-0" />
@@ -439,6 +504,10 @@ export default function PartenairesPage() {
                     <li className="flex items-center gap-2">
                       <Check className="h-3.5 w-3.5 text-accent shrink-0" />
                       <span>Alertes chantiers par email</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-3.5 w-3.5 text-accent shrink-0" />
+                      <span>Zéro abonnement forcé</span>
                     </li>
                   </ul>
                 </div>
@@ -459,11 +528,11 @@ export default function PartenairesPage() {
                   </div>
                   <div>
                     <span className="text-3xl font-extrabold font-mono tabular-nums text-foreground">
-                      575,00 €
+                      491,67 €
                     </span>
                     <span className="text-xs text-muted-foreground ml-1.5 font-mono">HT</span>
                     <span className="block text-[11px] text-muted-foreground font-mono mt-0.5 tabular-nums">
-                      695,75 € TTC (TVA 21%)
+                      594,92 € TTC (TVA 21%)
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -472,7 +541,7 @@ export default function PartenairesPage() {
                   <ul className="flex flex-col gap-2 pt-2 border-t border-border text-xs text-muted-foreground">
                     <li className="flex items-center gap-2">
                       <Check className="h-3.5 w-3.5 text-accent shrink-0" />
-                      <span><strong className="font-mono tabular-nums">50 crédits</strong> (11,50 € HT / crédit)</span>
+                      <span><strong className="font-mono tabular-nums">50 crédits</strong> (9,83 € HT / crédit)</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="h-3.5 w-3.5 text-accent shrink-0" />
@@ -481,6 +550,10 @@ export default function PartenairesPage() {
                     <li className="flex items-center gap-2">
                       <Check className="h-3.5 w-3.5 text-accent shrink-0" />
                       <span>Support prioritaire par email</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-3.5 w-3.5 text-accent shrink-0" />
+                      <span>Zéro abonnement forcé</span>
                     </li>
                   </ul>
                 </div>
@@ -502,7 +575,7 @@ export default function PartenairesPage() {
                   Exemple concret d&apos;exploitation (Chantier B2B toiture PME)
                 </span>
                 <p className="text-xs sm:text-sm text-foreground leading-relaxed">
-                  Débloquez 1 dossier B2B toiture industrielle à <strong className="font-mono tabular-nums">9 crédits</strong> (soit <span className="font-mono tabular-nums font-semibold">103,50 € HT</span>). Signez un chantier de <span className="font-mono tabular-nums font-semibold">60 kWc</span> (~54 000 € HT). Votre marge brute moyenne réalisée dépasse <strong className="font-mono tabular-nums font-bold text-accent">9 000 € HT</strong>. Le retour sur investissement est immédiat dès le premier dossier transformé.
+                  Débloquez 1 dossier B2B toiture industrielle à <strong className="font-mono tabular-nums">9 crédits</strong> (soit <span className="font-mono tabular-nums font-semibold">88,50 € HT</span> à l&apos;unité). Signez un chantier de <span className="font-mono tabular-nums font-semibold">60 kWc</span> (~54 000 € HT). Votre marge brute moyenne réalisée dépasse <strong className="font-mono tabular-nums font-bold text-accent">9 000 € HT</strong>. Le retour sur investissement est immédiat dès le premier dossier transformé.
                 </p>
               </div>
             </div>
@@ -707,9 +780,23 @@ export default function PartenairesPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs sm:text-sm">
               <div className="p-5 rounded-2xl bg-secondary/40 border border-border flex flex-col gap-2">
-                <h3 className="font-bold text-foreground font-heading">Comment fonctionne la facturation des crédits ?</h3>
+                <h3 className="font-bold text-foreground font-heading">Puis-je acheter des chantiers à l&apos;unité sans pack de crédits ?</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Chaque recharge donne lieu à un récapitulatif fiscal officiel (TVA <span className="font-mono tabular-nums">21 %</span> déductible) transmis automatiquement par e-mail dès confirmation Mollie.
+                  Oui, absolument. L&apos;achat d&apos;un pack de crédits n&apos;est jamais obligatoire. Vous pouvez débloquer chaque chantier individuellement directement en euros par Bancontact ou Carte bancaire (<strong className="font-mono tabular-nums">29,50 € HT</strong> en B2C, <strong className="font-mono tabular-nums">88,50 € HT</strong> en B2B exclusif). Les packs de crédits servent uniquement de confort pour débloquer en 1 clic sans validation bancaire à chaque lead.
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-secondary/40 border border-border flex flex-col gap-2">
+                <h3 className="font-bold text-foreground font-heading">Y a-t-il un abonnement ou des frais récurrents ?</h3>
+                <p className="text-muted-foreground leading-relaxed">
+                  Zéro abonnement forcé, zéro frais de gestion mensuel. Vous gardez un contrôle total sur votre trésorerie : vous n&apos;investissez que lorsque vos équipes de pose ont des disponibilités dans leur carnet de commandes.
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-secondary/40 border border-border flex flex-col gap-2">
+                <h3 className="font-bold text-foreground font-heading">Comment fonctionne la facturation des crédits et des achats ?</h3>
+                <p className="text-muted-foreground leading-relaxed">
+                  Chaque achat (à l&apos;unité en euros ou recharge de pack) donne lieu à un récapitulatif fiscal officiel avec TVA <span className="font-mono tabular-nums">21 %</span> déductible, transmis automatiquement par e-mail dès confirmation du paiement.
                 </p>
               </div>
 
@@ -731,20 +818,6 @@ export default function PartenairesPage() {
                 <h3 className="font-bold text-foreground font-heading">Mes crédits ont-ils une date limite ?</h3>
                 <p className="text-muted-foreground leading-relaxed">
                   Non. Vos crédits acquis restent valables sans limitation de durée. Vous pouvez les consommer en une semaine ou sur plusieurs mois selon votre carnet de commandes.
-                </p>
-              </div>
-
-              <div className="p-5 rounded-2xl bg-secondary/40 border border-border flex flex-col gap-2">
-                <h3 className="font-bold text-foreground font-heading">Aegis Solaire prend-il une commission sur les chantiers ?</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  Non, absolument aucune. Vous payez uniquement le coût forfaitaire de déblocage en crédits. 100 % de la marge et du chiffre d&apos;affaires générés vous reviennent.
-                </p>
-              </div>
-
-              <div className="p-5 rounded-2xl bg-secondary/40 border border-border flex flex-col gap-2">
-                <h3 className="font-bold text-foreground font-heading">Pourquoi la certification RESCERT est-elle obligatoire ?</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  Pour garantir la confiance des propriétaires wallons et le respect des normes CWaPE / RGIE. Seuls les professionnels agréés peuvent garantir la conformité des installations.
                 </p>
               </div>
             </div>
