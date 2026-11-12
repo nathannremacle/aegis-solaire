@@ -1,4 +1,11 @@
-import { isValidFrBePhone, isValidBelgianVat, normalizeBelgianVat } from "../leads-validation"
+import {
+  isValidFrBePhone,
+  isValidBelgianVat,
+  normalizeBelgianVat,
+  isWalloonPostalCode,
+} from "../leads-validation"
+
+export { isWalloonPostalCode }
 
 export type RiskSeverity = "critical" | "warning"
 
@@ -25,26 +32,13 @@ export type LeadRiskInput = {
 }
 
 /**
- * Plages des codes postaux wallons :
+ * Plages des codes postaux wallons (définies de façon canonique dans lib/leads-validation.ts) :
  * - Brabant wallon : 1300 - 1499
  * - Liège : 4000 - 4999
  * - Namur : 5000 - 5999
  * - Hainaut : 6000 - 6599 et 7000 - 7999
  * - Luxembourg : 6600 - 6999
  */
-export function isWalloonPostalCode(postalCode: string): boolean {
-  const digits = postalCode.replace(/\D/g, "")
-  if (digits.length !== 4) return false
-  const n = parseInt(digits, 10)
-  return (
-    (n >= 1300 && n <= 1499) ||
-    (n >= 4000 && n <= 4999) ||
-    (n >= 5000 && n <= 5999) ||
-    (n >= 6000 && n <= 6599) ||
-    (n >= 6600 && n <= 6999) ||
-    (n >= 7000 && n <= 7999)
-  )
-}
 
 function hasSuspiciousName(name: string): boolean {
   const cleaned = name.trim().toLowerCase()

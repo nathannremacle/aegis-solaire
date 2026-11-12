@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { checkRateLimit } from "@/lib/rate-limit"
-import { getEmailError } from "@/lib/leads-validation"
+import { getEmailError, getWalloonProvinceKeyFromPostalCode } from "@/lib/leads-validation"
 import { sendMetaConversionApiEvent } from "@/lib/meta-capi"
 
 export async function POST(request: NextRequest) {
@@ -31,6 +31,9 @@ export async function POST(request: NextRequest) {
       utmCampaign,
       utmContent,
       utmTerm,
+      eventId,
+      fbclid,
+      sourceUrl,
     } = body
 
     if (!sessionId || typeof sessionId !== "string") {
@@ -65,9 +68,21 @@ export async function POST(request: NextRequest) {
     const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "Incomplet"
 
     const cleanEmail = email.trim().toLowerCase()
-    const safePostalCode = postalCode ? String(postalCode).trim().slice(0, 4) : null
+    const rawPostalDigits = postalCode ? String(postalCode).replace(/\D/g, "").slice(0, 4) : ""
+    const safePostalCode = rawPostalDigits.length === 4 ? rawPostalDigits : null
+    const derivedWalloonProvince = safePostalCode
+      ? getWalloonProvinceKeyFromPostalCode(safePostalCode)
+      : null
+
+    if (safePostalCode && !derivedWalloonProvince) {
+      return NextResponse.json(
+        { error: "Zone non couverte : service réservé à la Wallonie." },
+        { status: 400 }
+      )
+    }
+
     const safeCity = city ? String(city).trim().slice(0, 100) : null
-    const safeProvince = province || "liege"
+    const safeProvince = derivedWalloonProvince || province || "liege"
     const parsedKwc = estimatedKwc ? Number(estimatedKwc) : null
 
     // 3. Payload brouillon sécurisé (non visible sur la marketplace des installateurs)
@@ -124,16 +139,27 @@ export async function POST(request: NextRequest) {
       utm_term: utmTerm || null,
     })
 
-    // 5. Transmission micro-conversion CAPI Meta (Événement 'Contact' enrichi)
+    // 5. Transmission micro-conversion CAPI Meta (Événement 'Contact' enrichi avec await borné)
     try {
-      const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || undefined
+      const clientIp =
+        request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+        request.headers.get("x-real-ip")?.trim() ||
+        undefined
       const userAgent = request.headers.get("user-agent") || undefined
       const fbp = request.cookies.get("_fbp")?.value
       const fbc = request.cookies.get("_fbc")?.value
+      const resolvedEventId =
+        typeof eventId === "string" && eventId.trim() !== ""
+          ? eventId.trim()
+          : `event_contact_${sessionId}`
+      const resolvedSourceUrl =
+        (typeof sourceUrl === "string" && sourceUrl.startsWith("http") ? sourceUrl : undefined) ||
+        request.headers.get("referer") ||
+        "https://www.aegissolaire.com/devis-panneaux-solaires"
 
-      void sendMetaConversionApiEvent({
+      await sendMetaConversionApiEvent({
         eventName: "Contact",
-        eventId: `draft_${upserted.id}`,
+        eventId: resolvedEventId,
         email: cleanEmail,
         firstName: firstName !== "Prospect" ? firstName : undefined,
         lastName: lastName !== "Incomplet" ? lastName : undefined,
@@ -142,6 +168,8 @@ export async function POST(request: NextRequest) {
         userAgent,
         fbp,
         fbc,
+        fbclid: typeof fbclid === "string" && fbclid.trim() !== "" ? fbclid.trim() : undefined,
+        sourceUrl: resolvedSourceUrl,
         segment: "B2C",
         value: 20,
         contentName: "Audit Solaire - Contact E-mail Saisi",

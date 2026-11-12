@@ -9,7 +9,11 @@ import { sendProspectConfirmationEmail } from "@/lib/prospect-confirmation-email
 import { sendAdminNewLeadAlertEmail } from "@/lib/notify-admin-lead"
 import { sendMetaConversionApiLead } from "@/lib/meta-capi"
 import { enrichLeadVerifications } from "@/lib/lead-verification-engine"
-import { formatAndValidateBelgianPhone } from "@/lib/leads-validation"
+import {
+  formatAndValidateBelgianPhone,
+  getWalloonProvinceKeyFromPostalCode,
+  isWalloonPostalCode,
+} from "@/lib/leads-validation"
 import { createHmac } from "crypto"
 
 function sanitizeString(input: string, maxLength = 255): string {
@@ -22,7 +26,9 @@ const MIN_FORM_FILL_TIME_MS = 4000
 export function getClientIp(request: Request): string {
   // En environnement Next.js / Vercel, l'IP est injectée sur l'objet de requête
   const nextRequest = request as any
-  return nextRequest.ip || nextRequest.headers.get("x-forwarded-for") || "unknown"
+  const forwardedIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+  const realIp = request.headers.get("x-real-ip")?.trim()
+  return nextRequest.ip || forwardedIp || realIp || "unknown"
 }
 
 export async function POST(request: NextRequest) {
@@ -182,10 +188,37 @@ export async function POST(request: NextRequest) {
       data.provinceFreeText?.match(/\b[1-9][0-9]{3}\b/)?.[0] ??
       null
 
+    const validSourceForms = [
+      "b2b_simulator",
+      "b2c_simulator",
+      "b2c_devis_landing",
+      "webinar_upsell",
+      "manual_admin",
+      "api_partner",
+    ]
+    const defaultSourceForm = data.segment === "B2B" ? "b2b_simulator" : "b2c_simulator"
+    const safeSourceForm =
+      data.sourceForm && validSourceForms.includes(data.sourceForm)
+        ? data.sourceForm
+        : defaultSourceForm
+
     const safePostalCode =
       extractedPostalCode && /^[0-9]{4}$/.test(extractedPostalCode)
         ? extractedPostalCode
         : null
+
+    if (safeSourceForm === "b2c_devis_landing" && (!safePostalCode || !isWalloonPostalCode(safePostalCode))) {
+      return NextResponse.json(
+        {
+          error:
+            "Zone non couverte : notre comparateur RESCERT intervient exclusivement en Wallonie (codes postaux 1300-1499 et 4000-7999).",
+        },
+        { status: 400 }
+      )
+    }
+
+    const canonicalProvince =
+      (safePostalCode && getWalloonProvinceKeyFromPostalCode(safePostalCode)) || data.province
 
     // Enrichissement & Contrôles automatiques (DNS MX, SPW Wallonie ICAR, BCE cbeapi.be)
     const verifications = await enrichLeadVerifications({
@@ -205,20 +238,6 @@ export async function POST(request: NextRequest) {
       factors.push({ label: `Alerte conformité : ${warn}`, delta: -30 })
     }
 
-    const validSourceForms = [
-      "b2b_simulator",
-      "b2c_simulator",
-      "b2c_devis_landing",
-      "webinar_upsell",
-      "manual_admin",
-      "api_partner",
-    ]
-    const defaultSourceForm = data.segment === "B2B" ? "b2b_simulator" : "b2c_simulator"
-    const safeSourceForm =
-      data.sourceForm && validSourceForms.includes(data.sourceForm)
-        ? data.sourceForm
-        : defaultSourceForm
-
     const insertPayload: Record<string, unknown> = {
       segment: data.segment,
       marketplace_status: "pending_review",
@@ -235,7 +254,7 @@ export async function POST(request: NextRequest) {
       objective: null,
       surface_type: data.surfaceType,
       surface_area: financials.normalizedSurfaceAreaM2,
-      province: data.province,
+      province: canonicalProvince,
       grd: data.grd ?? null,
       company_vat,
       project_timeline: data.timeframe ?? null,
@@ -283,7 +302,7 @@ export async function POST(request: NextRequest) {
       // --- Colonnes Mise en Concurrence (Migration 202611090001) ---
       session_id: data.sessionId || null,
       contact_preference: data.contactPreference === "direct_call" ? "direct_call" : "written_first",
-      matched_province: data.province,
+      matched_province: canonicalProvince,
     }
 
     let inserted: any = null
@@ -501,23 +520,27 @@ export async function POST(request: NextRequest) {
         request.headers.get("referer") ||
         undefined
 
-      sendMetaConversionApiLead({
-        advertisingConsent: true,
-        eventId: inserted.id,
-        email,
-        phone,
-        firstName: first_name,
-        lastName: last_name,
-        postalCode: safePostalCode || undefined,
-        countryCode: "be",
-        segment: data.segment,
-        sourceUrl,
-        clientIp: getClientIp(request),
-        userAgent: request.headers.get("user-agent") || undefined,
-        fbp: request.cookies.get("_fbp")?.value,
-        fbc: request.cookies.get("_fbc")?.value,
-        fbclid: rawFbclid,
-      }).catch((e) => console.warn("[Meta CAPI trigger error]", e))
+      try {
+        await sendMetaConversionApiLead({
+          advertisingConsent: true,
+          eventId: inserted.id,
+          email,
+          phone,
+          firstName: first_name,
+          lastName: last_name,
+          postalCode: safePostalCode || undefined,
+          countryCode: "be",
+          segment: data.segment,
+          sourceUrl,
+          clientIp: getClientIp(request),
+          userAgent: request.headers.get("user-agent") || undefined,
+          fbp: request.cookies.get("_fbp")?.value,
+          fbc: request.cookies.get("_fbc")?.value,
+          fbclid: rawFbclid,
+        })
+      } catch (e) {
+        console.warn("[Meta CAPI trigger error]", e)
+      }
     }
 
     return NextResponse.json({

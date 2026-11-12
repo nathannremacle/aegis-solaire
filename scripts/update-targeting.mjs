@@ -1,82 +1,124 @@
-import { setTimeout } from 'timers/promises'
+import fs from "node:fs"
+import path from "node:path"
 
-const token = process.env.META_MARKETING_TOKEN
-const adsetId = '120251604763100465'
-
-if (!token) {
-  console.error('❌ Token manquant dans .env.local')
-  process.exit(1)
-}
-
-async function run() {
-  console.log('📡 1. Récupération des codes postaux de la Province de Luxembourg (66xx, 67xx, 68xx, 69xx)...')
-  const qList = ['66', '67', '68', '69']
-  const luxZips = []
-  for (const q of qList) {
-    const res = await fetch(`https://graph.facebook.com/v22.0/search?type=adgeolocation&q=${q}&country_code=BE&access_token=${token}`)
-    const data = await res.json()
-    for (const item of data.data || []) {
-      if (item.type === 'zip' && item.name.startsWith(q)) {
-        luxZips.push({ key: item.key })
+function loadEnv() {
+  for (const file of [".env.local", ".env"]) {
+    const p = path.resolve(process.cwd(), file)
+    if (!fs.existsSync(p)) continue
+    for (const line of fs.readFileSync(p, "utf8").split(/\r?\n/)) {
+      const m = line.match(/^\s*([^#=\s]+)\s*=\s*(.*)\s*$/)
+      if (m && !process.env[m[1]]) {
+        process.env[m[1]] = m[2].replace(/^['"]|['"]$/g, "")
       }
     }
   }
-  console.log(`   ✓ ${luxZips.length} codes postaux du Luxembourg belge identifiés.`)
-
-  const newTargeting = {
-    geo_locations: {
-      regions: [
-        { key: '4137', name: 'Wallonia' }
-      ],
-      location_types: ['home']
-    },
-    excluded_geo_locations: {
-      regions: [
-        { key: '296', name: 'région de Bruxelles-Capitale' },
-        { key: '4136', name: 'Région flamande' }
-      ],
-      zips: luxZips,
-      countries: ['LU']
-    },
-    age_min: 30,
-    age_max: 64,
-    brand_safety_content_filter_levels: [
-      'FACEBOOK_RELAXED',
-      'AN_RELAXED'
-    ],
-    targeting_relaxation_types: {
-      lookalike: 0,
-      custom_audience: 0
-    },
-    targeting_automation: {
-      advantage_audience: 0
-    },
-    publisher_platforms: [
-      'facebook',
-      'instagram'
-    ]
-  }
-
-  console.log('\n🚀 2. Envoi du ciblage géographique strict à Meta Marketing API v22.0...')
-  const updateRes = await fetch(`https://graph.facebook.com/v22.0/${adsetId}?access_token=${token}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      targeting: newTargeting
-    })
-  })
-
-  const updateData = await updateRes.json()
-  console.log('Résultat Meta:', JSON.stringify(updateData, null, 2))
-
-  if (updateData.success) {
-    console.log('\n✅ 3. Vérification immédiate du ciblage actif...')
-    const checkRes = await fetch(`https://graph.facebook.com/v22.0/${adsetId}?access_token=${token}&fields=targeting,name`)
-    const checkData = await checkRes.json()
-    console.log(`Ensemble de publicités : ${checkData.name}`)
-    console.log('Inclusions actives :', JSON.stringify(checkData.targeting?.geo_locations, null, 2))
-    console.log('Exclusions actives :', JSON.stringify(checkData.targeting?.excluded_geo_locations, null, 2))
-  }
 }
 
-run().catch(console.error)
+loadEnv()
+
+const ACCESS_TOKEN = process.env.META_MARKETING_TOKEN
+const AD_ACCOUNT_ID = "act_1596485538374624"
+const ADSET_ID = "120251604763100465"
+
+if (!ACCESS_TOKEN) {
+  console.error("META_MARKETING_TOKEN manquant dans .env.local")
+  process.exit(1)
+}
+
+const isDryRun = process.argv.includes("--dry-run")
+
+/**
+ * Ciblage optimal V2 Wallonie 5 provinces (y compris Luxembourg belge 66xx-69xx) :
+ * - Inclusion : Région Wallonne ("4137", BE) uniquement pour les personnes résidant sur place (location_types: ["home"])
+ * - Exclusions strictes : Région de Bruxelles-Capitale ("296"), Région flamande ("4136"), Grand-Duché de Luxembourg ("LU")
+ * - Placements Feed-only tant que les annonces statiques tournent (coupe le gaspillage Reels 0.27% CTR)
+ * - Advantage+ Audience désactivé (advantage_audience: 0) pour empêcher l'expansion hors Wallonie
+ */
+const targetSpecV2 = {
+  age_min: 30,
+  age_max: 64,
+  geo_locations: {
+    regions: [{ key: "4137" }],
+    location_types: ["home"],
+  },
+  excluded_geo_locations: {
+    regions: [{ key: "296" }, { key: "4136" }],
+    countries: ["LU"],
+  },
+  publisher_platforms: ["facebook", "instagram"],
+  facebook_positions: ["feed"],
+  instagram_positions: ["stream"],
+  targeting_automation: {
+    advantage_audience: 0,
+  },
+}
+
+async function main() {
+  console.log("═══ MISE À JOUR CIBLAGE & PLACEMENTS V2 (WALLONIE 5 PROVINCES · FEED ONLY) ═══\n")
+
+  // 1. Vérification d'estimation de portée avant application
+  const reachUrl = new URL(`https://graph.facebook.com/v22.0/${AD_ACCOUNT_ID}/reachestimate`)
+  reachUrl.searchParams.set("access_token", ACCESS_TOKEN)
+  reachUrl.searchParams.set("targeting_spec", JSON.stringify(targetSpecV2))
+
+  const reachRes = await fetch(reachUrl)
+  const reachJson = await reachRes.json()
+  if (reachJson.error) {
+    console.error("Erreur reachestimate:", JSON.stringify(reachJson.error, null, 2))
+    process.exit(1)
+  }
+
+  console.log(
+    `Portée estimée V2 (Wallonie 5 provinces résidents, 30-64 ans, Feed FB+IG) : ${reachJson.data?.users_lower_bound?.toLocaleString("fr-BE")} - ${reachJson.data?.users_upper_bound?.toLocaleString("fr-BE")} utilisateurs (estimate_ready=${reachJson.data?.estimate_ready})`
+  )
+
+  if (isDryRun) {
+    console.log("\n[DRY-RUN] Ciblage prêt (aucune mutation appliquée) :")
+    console.log(JSON.stringify(targetSpecV2, null, 2))
+    return
+  }
+
+  // 2. Application sur l'AdSet actif
+  const body = new URLSearchParams({
+    access_token: ACCESS_TOKEN,
+    targeting: JSON.stringify(targetSpecV2),
+  })
+
+  const updateRes = await fetch(`https://graph.facebook.com/v22.0/${ADSET_ID}`, {
+    method: "POST",
+    body,
+  })
+  const updateJson = await updateRes.json()
+  if (updateJson.error || !updateJson.success) {
+    console.error("Erreur mise à jour AdSet:", JSON.stringify(updateJson, null, 2))
+    process.exit(1)
+  }
+
+  console.log(`AdSet ${ADSET_ID} mis à jour avec succès (Luxembourg BE restauré, Reels/Stories désactivés).`)
+
+  // 3. Relecture de vérification depuis l'API Graph
+  const verifyRes = await fetch(
+    `https://graph.facebook.com/v22.0/${ADSET_ID}?fields=name,status,targeting&access_token=${ACCESS_TOKEN}`
+  )
+  const verifyJson = await verifyRes.json()
+  const t = verifyJson.targeting ?? {}
+
+  console.log("\nVérification post-écriture :", JSON.stringify({
+    name: verifyJson.name,
+    status: verifyJson.status,
+    age: `${t.age_min}-${t.age_max}`,
+    regions_included: t.geo_locations?.regions?.map((r) => `${r.name} (${r.key})`),
+    location_types: t.geo_locations?.location_types,
+    regions_excluded: t.excluded_geo_locations?.regions?.map((r) => `${r.name} (${r.key})`),
+    countries_excluded: t.excluded_geo_locations?.countries,
+    excluded_zips_count: t.excluded_geo_locations?.zips?.length ?? 0,
+    facebook_positions: t.facebook_positions,
+    instagram_positions: t.instagram_positions,
+    advantage_audience: t.targeting_automation?.advantage_audience,
+  }, null, 2))
+}
+
+main().catch((err) => {
+  console.error(err)
+  process.exit(1)
+})

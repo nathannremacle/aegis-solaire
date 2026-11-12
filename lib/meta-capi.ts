@@ -121,8 +121,15 @@ export async function sendMetaConversionApiEvent(params: MetaCapiEventParams): P
     if (params.phone && params.phone.trim()) {
       userData.ph = [sha256(normalizePhoneForMeta(params.phone))]
     }
-    if (params.clientIp) {
-      userData.client_ip_address = params.clientIp
+    const normalizedClientIp = params.clientIp
+      ?.split(",")[0]
+      ?.trim()
+    if (
+      normalizedClientIp &&
+      normalizedClientIp !== "unknown" &&
+      /^[0-9a-fA-F:.]+$/.test(normalizedClientIp)
+    ) {
+      userData.client_ip_address = normalizedClientIp
     }
     if (params.userAgent) {
       userData.client_user_agent = params.userAgent
@@ -169,6 +176,7 @@ export async function sendMetaConversionApiEvent(params: MetaCapiEventParams): P
     const response = await fetch(`https://graph.facebook.com/v22.0/${pixelId}/events?access_token=${accessToken}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(4000),
       body: JSON.stringify({
         data: [
           {

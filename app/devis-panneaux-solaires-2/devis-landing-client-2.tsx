@@ -34,7 +34,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import {
   getEmailError,
   formatAndValidateBelgianPhone,
-  getProvinceFromPostalCode,
+  getWalloonProvinceKeyFromPostalCode,
 } from "@/lib/leads-validation"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 import { getStoredMediaPartnerRef } from "@/components/media-partner-ref-tracker"
@@ -111,7 +111,7 @@ export function DevisLandingClient2() {
   const [ownership, setOwnership] = useState("proprietaire")
   const [roofType, setRoofType] = useState("tuiles")
   const [roofSurface, setRoofSurface] = useState("medium")
-  const [province, setProvince] = useState("liege")
+  const [province, setProvince] = useState("")
   const [postalCode, setPostalCode] = useState("")
   const [city, setCity] = useState("")
 
@@ -142,6 +142,11 @@ export function DevisLandingClient2() {
   const hasTrackedStart = useRef(false)
   const hasTrackedOwner = useRef(false)
   const hasTrackedContact = useRef(false)
+  const hasFiredInitiateCheckoutCapiRef = useRef(false)
+  const trackedTelemetryStepsRef = useRef<Set<number>>(new Set())
+  const provinceRef = useRef(province)
+  provinceRef.current = province
+  const [isUtmReady, setIsUtmReady] = useState(false)
 
   const formOpenedAt = useRef(new Date().toISOString())
   const leadCardRef = useRef<HTMLDivElement>(null)
@@ -193,8 +198,15 @@ export function DevisLandingClient2() {
           if (p.ownership) setOwnership(p.ownership)
           if (p.roofType) setRoofType(p.roofType)
           if (p.roofSurface) setRoofSurface(p.roofSurface)
-          if (p.province) setProvince(p.province)
-          if (p.postalCode) setPostalCode(p.postalCode)
+          if (p.postalCode) {
+            const cleanRestoredCp = String(p.postalCode).replace(/\D/g, "").slice(0, 4)
+            setPostalCode(cleanRestoredCp)
+            const derivedKey =
+              cleanRestoredCp.length === 4 ? getWalloonProvinceKeyFromPostalCode(cleanRestoredCp) : null
+            setProvince(derivedKey ?? "")
+          } else if (p.province) {
+            setProvince(p.province)
+          }
           if (p.city) setCity(p.city)
           if (p.fullName) {
             setFullName(p.fullName)
@@ -215,6 +227,8 @@ export function DevisLandingClient2() {
       }
     } catch (e) {
       console.warn("Erreur capture UTMs:", e)
+    } finally {
+      setIsUtmReady(true)
     }
   }, [])
 
@@ -261,9 +275,11 @@ export function DevisLandingClient2() {
     step,
   ])
 
-  // Télémétrie d'entonnoir 100 % anonyme
+  // Télémétrie d'entonnoir 100 % anonyme (dédupliquée par étape après hydratation UTM)
   useEffect(() => {
-    if (typeof window === "undefined" || !sessionIdRef.current) return
+    if (!isUtmReady || typeof window === "undefined" || !sessionIdRef.current) return
+    if (trackedTelemetryStepsRef.current.has(step)) return
+    trackedTelemetryStepsRef.current.add(step)
     try {
       fetch("/api/telemetry/funnel-step", {
         method: "POST",
@@ -273,7 +289,7 @@ export function DevisLandingClient2() {
           sessionId: sessionIdRef.current,
           step,
           stepName: STEP_LABELS[step - 1] ?? `Step ${step}`,
-          province: province || undefined,
+          province: provinceRef.current || undefined,
           utmSource: utmData.utm_source,
           utmCampaign: utmData.utm_campaign,
           utmContent: utmData.utm_content,
@@ -281,7 +297,7 @@ export function DevisLandingClient2() {
         }),
       }).catch(() => {})
     } catch {}
-  }, [step, province, utmData.utm_source, utmData.utm_campaign, utmData.utm_content, utmData.utm_term])
+  }, [isUtmReady, step, utmData.utm_source, utmData.utm_campaign, utmData.utm_content, utmData.utm_term])
 
   // Validation
   const emailErr = getEmailError(email)
@@ -297,27 +313,29 @@ export function DevisLandingClient2() {
     (nameParts.length >= 2 && nameParts[0].length >= 2 && nameParts[1].length >= 2) ||
     (firstName.trim().length >= 2 && lastName.trim().length >= 2)
 
-  const isPostalCodeValid = postalCode.trim().length === 4
+  const cleanedPostalCode = postalCode.trim()
+  const walloonProvinceKey =
+    cleanedPostalCode.length === 4 ? getWalloonProvinceKeyFromPostalCode(cleanedPostalCode) : null
+  const isPostalCodeValid = walloonProvinceKey !== null
+  const isNonWalloonCompleteCp = cleanedPostalCode.length === 4 && walloonProvinceKey === null
   const isAddressValid = address.trim().length >= 4
 
   const showFullNameError = hasAttemptedSubmit && !isFullNameValid
   const showEmailError = hasAttemptedSubmit && !!emailErr
   const showPhoneError = hasAttemptedSubmit && (!isPhoneValid || !!phoneErr)
-  const showPostalCodeError = hasAttemptedSubmit && !isPostalCodeValid
+  const showPostalCodeError = isNonWalloonCompleteCp || (hasAttemptedSubmit && !isPostalCodeValid)
   const showAddressError = hasAttemptedSubmit && !isAddressValid
   const showConsentError = hasAttemptedSubmit && !partnerConsent
 
-  // Détection automatique de la province wallonne via le CP belge
+  // Détection stricte de la province wallonne via le CP complet (4 chiffres)
   const handlePostalCodeChange = (raw: string) => {
     const cleaned = raw.replace(/\D/g, "").slice(0, 4)
     setPostalCode(cleaned)
-    if (cleaned.length >= 2) {
-      const derived = getProvinceFromPostalCode(cleaned)
-      if (derived === "Brabant wallon") setProvince("brabant_wallon")
-      else if (derived === "Liège") setProvince("liege")
-      else if (derived === "Namur") setProvince("namur")
-      else if (derived === "Hainaut") setProvince("hainaut")
-      else if (derived === "Luxembourg") setProvince("luxembourg")
+    if (cleaned.length === 4) {
+      const derivedKey = getWalloonProvinceKeyFromPostalCode(cleaned)
+      setProvince(derivedKey ?? "")
+    } else {
+      setProvince("")
     }
   }
 
@@ -330,7 +348,7 @@ export function DevisLandingClient2() {
     if (step === 2) return !!propertyType
     if (step === 3) return ownership === "proprietaire" || ownership === "copropriete"
     if (step === 4) return !!roofType && !!roofSurface
-    if (step === 5) return postalCode.trim().length === 4
+    if (step === 5) return isPostalCodeValid
     return true
   }
 
@@ -355,9 +373,34 @@ export function DevisLandingClient2() {
         setHasAttemptedSubmit(true)
         return
       }
-      if (!hasTrackedStep5.current && postalCode.trim().length === 4) {
+      const icEventId = `event_ic_${sessionIdRef.current}`
+      const activeProvince = walloonProvinceKey ?? province
+      if (!hasTrackedStep5.current) {
         hasTrackedStep5.current = true
-        trackInitiateCheckout({ province, postalCode: postalCode.trim() })
+        trackInitiateCheckout({
+          province: activeProvince,
+          postalCode: cleanedPostalCode,
+          eventId: icEventId,
+        })
+      }
+      if (!hasFiredInitiateCheckoutCapiRef.current) {
+        hasFiredInitiateCheckoutCapiRef.current = true
+        void fetch("/api/telemetry/funnel-step", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          keepalive: true,
+          body: JSON.stringify({
+            sessionId: sessionIdRef.current,
+            step: 5,
+            skipDbLog: true,
+            metaEventName: "InitiateCheckout",
+            eventId: icEventId,
+            postalCode: cleanedPostalCode,
+            province: activeProvince,
+            fbclid: utmData.fbclid,
+            sourceUrl: typeof window !== "undefined" ? window.location.href : undefined,
+          }),
+        }).catch(() => {})
       }
       setIsInterstitialRunning(true)
       if (typeof window !== "undefined" && window.innerWidth <= 1024) {
@@ -427,9 +470,15 @@ export function DevisLandingClient2() {
     const err = getEmailError(email)
     if (err) return
 
+    const contactEventId = `event_contact_${sessionIdRef.current}`
     if (!hasTrackedContact.current) {
       hasTrackedContact.current = true
-      trackContactInitiated({ email: email.trim(), postalCode, province })
+      trackContactInitiated({
+        email: email.trim(),
+        postalCode: cleanedPostalCode,
+        province,
+        eventId: contactEventId,
+      })
     }
 
     try {
@@ -442,10 +491,13 @@ export function DevisLandingClient2() {
           sessionId: sessionIdRef.current,
           fullName: fullName || `${firstName} ${lastName}`.trim(),
           email: email.trim().toLowerCase(),
-          postalCode,
+          postalCode: cleanedPostalCode,
           city,
           province,
           estimatedKwc: b2cCalc.installedPowerKwc,
+          eventId: contactEventId,
+          fbclid: utmData.fbclid,
+          sourceUrl: typeof window !== "undefined" ? window.location.href : undefined,
           funnelData: {
             consumption,
             propertyType,
@@ -520,7 +572,7 @@ export function DevisLandingClient2() {
     const payload = {
       sessionId: sessionIdRef.current,
       segment: "B2C",
-      sourceForm: "b2c_devis_landing_meta_astryx",
+      sourceForm: "b2c_devis_landing",
       firstName: finalFirstName,
       lastName: finalLastName,
       email: email.trim().toLowerCase(),
@@ -554,6 +606,7 @@ export function DevisLandingClient2() {
         .filter(Boolean)
         .join(" | "),
       qualificationMetadata: {
+        landingVariant: "meta_astryx_v2",
         consumptionKwh: consumption,
         annualConsumptionKwh: selectedKwh,
         propertyType,
@@ -589,7 +642,7 @@ export function DevisLandingClient2() {
         trackLeadConversion({
           segment: "B2C",
           leadId: resData?.leadId,
-          value: 75.9,
+          value: 64.9,
         })
       }
       try {
@@ -610,25 +663,27 @@ export function DevisLandingClient2() {
     <div suppressHydrationWarning className="min-h-dvh bg-background text-foreground flex flex-col justify-between font-sans selection:bg-accent/15 selection:text-foreground">
       
       {/* ── HEADER : Logo Aegis Solaire & Meta Trust Badges ── */}
-      <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-2 sm:pt-5 sm:pb-3 shrink-0 flex items-center justify-between">
+      <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2.5 pb-1.5 sm:pt-5 sm:pb-3 shrink-0 flex items-center justify-between gap-2">
         <Link href="/" className="flex items-center gap-2 group" aria-label="Aegis Solaire - Accueil">
-          <div className="relative h-12 sm:h-14 md:h-16 w-48 sm:w-60 md:w-72">
+          <div className="relative h-9 sm:h-14 md:h-16 w-36 sm:w-60 md:w-72">
             <Image
               src="/logo.png"
               alt="Aegis Solaire"
               fill
               className="object-contain object-left"
               priority
-              sizes="(max-width: 640px) 240px, 320px"
+              sizes="(max-width: 640px) 180px, 320px"
               suppressHydrationWarning
             />
           </div>
         </Link>
 
         {/* Badges Astryx Meta dans le Header */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <Badge variant="blue" label="Wallonie 2026" />
-          <Badge variant="green" label="Agréé RESCERT" />
+          <div className="hidden sm:inline-flex">
+            <Badge variant="green" label="Agréé RESCERT" />
+          </div>
           <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary border border-border text-xs text-muted-foreground font-mono">
             <Lock className="h-3.5 w-3.5 text-accent-solar" />
             <span className="font-semibold text-foreground tabular-nums">Étape {step}/6</span>
@@ -636,26 +691,26 @@ export function DevisLandingClient2() {
         </div>
       </header>
 
-      {/* ── CORPS CENTRAL : Structure Split-Screen Haute Conversion ── */}
-      <main className="flex-1 flex items-start justify-center w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-4 lg:py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-start w-full">
+      {/* ── CORPS CENTRAL : Structure Mobile-First + Split-Screen Desktop ── */}
+      <main className="flex-1 flex items-start justify-center w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5 sm:py-4 lg:py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 lg:grid-rows-[auto_1fr] gap-4 sm:gap-6 lg:gap-x-14 lg:gap-y-6 items-start w-full">
           
-          {/* ── COLONNE GAUCHE (Autorité, Réassurance & Preuves) ── */}
-          <div className="lg:col-span-6 flex flex-col justify-start gap-5 sm:gap-6 lg:sticky lg:top-4 self-start">
-            
-            {/* UN SEUL H1 PAR ROUTE (SEO Strict) */}
-            <div className="flex flex-col gap-2">
-              <h1 className="text-3xl sm:text-4xl lg:text-[40px] font-bold tracking-tight text-foreground font-heading leading-[1.14]">
-                La meilleure offre solaire ?{" "}
-                <span className="block text-primary">
-                  Comparez jusqu&apos;à 3 devis.
-                </span>
-              </h1>
+          {/* ── BLOC 1 : H1 & Promesse (Compact mobile above-the-fold) ── */}
+          <div className="order-1 lg:order-none lg:col-span-6 lg:col-start-1 lg:row-start-1 flex flex-col gap-1 sm:gap-2">
+            <h1 className="text-[22px] leading-[1.15] sm:text-4xl lg:text-[40px] font-bold tracking-tight text-foreground font-heading lg:leading-[1.14]">
+              La meilleure offre solaire ?{" "}
+              <span className="text-primary sm:block">
+                Comparez jusqu&apos;à 3 devis.
+              </span>
+            </h1>
 
-              <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mt-1">
-                Une seule demande, des installateurs certifiés <strong className="text-foreground font-semibold">RESCERT</strong> locaux.
-              </p>
-            </div>
+            <p className="text-xs sm:text-base text-muted-foreground leading-snug sm:leading-relaxed mt-0.5 sm:mt-1">
+              Une seule demande, des installateurs certifiés <strong className="text-foreground font-semibold">RESCERT</strong> locaux.
+            </p>
+          </div>
+
+          {/* ── BLOC 2 (Desktop Colonne Gauche Bas / Mobile sous le formulaire) : Autorité & Preuves ── */}
+          <div className="order-3 lg:order-none lg:col-span-6 lg:col-start-1 lg:row-start-2 flex flex-col justify-start gap-5 sm:gap-6 self-start">
 
             {/* 3 Avantages clés avec pastilles orange circulaires */}
             <ul className="flex flex-col gap-3.5 text-sm sm:text-base text-foreground font-bold list-none p-0 m-0">
@@ -730,22 +785,10 @@ export function DevisLandingClient2() {
               </button>
             </div>
 
-            {/* Bouton CTA Mobile */}
-            <div className="block lg:hidden pt-1">
-              <button
-                type="button"
-                onClick={scrollToForm}
-                className="w-full py-3.5 px-6 rounded-xl bg-accent-solar text-accent-solar-foreground font-bold text-sm shadow-xs flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>Recevez des devis gratuits</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-
           </div>
 
-          {/* ── COLONNE DROITE : CARTE INTERACTIVE META ASTRYX ── */}
-          <div ref={leadCardRef} className="lg:col-span-6 w-full">
+          {/* ── BLOC 3 : CARTE INTERACTIVE META ASTRYX (Au-dessus de la ligne de flottaison mobile) ── */}
+          <div ref={leadCardRef} className="order-2 lg:order-none lg:col-span-6 lg:col-start-7 lg:row-start-1 lg:row-span-2 w-full">
             <div className="bg-card border border-border/80 rounded-2xl sm:rounded-3xl shadow-[0_2px_8px_rgba(0,0,0,0.04),0_12px_28px_-6px_rgba(15,23,42,0.06)] p-6 sm:p-7 flex flex-col justify-between max-w-xl mx-auto lg:max-w-none">
               
               {!submitted ? (
@@ -1123,7 +1166,9 @@ export function DevisLandingClient2() {
                                   />
                                   {showPostalCodeError && (
                                     <p className="text-[11px] text-destructive font-medium" role="alert">
-                                      Code postal wallon requis (4 chiffres).
+                                      {isNonWalloonCompleteCp
+                                        ? "Zone hors Wallonie (CP wallon requis : 1300-1499 ou 4000-7999)."
+                                        : "Code postal wallon requis (4 chiffres)."}
                                     </p>
                                   )}
                                 </div>
@@ -1142,11 +1187,20 @@ export function DevisLandingClient2() {
                                 </div>
                               </div>
 
-                              {postalCode.length >= 2 && (
+                              {walloonProvinceKey && (
                                 <Banner
                                   status="info"
-                                  title={`Province détectée : ${getProvinceDisplayLabel(province)}`}
+                                  title={`Province détectée : ${getProvinceDisplayLabel(walloonProvinceKey)}`}
                                   description="Installateurs certifiés RESCert actifs et audités sur votre commune."
+                                  collapsible={false}
+                                />
+                              )}
+
+                              {isNonWalloonCompleteCp && (
+                                <Banner
+                                  status="warning"
+                                  title={`Zone non couverte (${cleanedPostalCode})`}
+                                  description="Notre comparateur RESCERT intervient exclusivement en Wallonie (codes postaux 1300-1499 et 4000-7999)."
                                   collapsible={false}
                                 />
                               )}

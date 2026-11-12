@@ -19,6 +19,7 @@ import {
   Users,
   ShieldCheck,
   TrendingDown,
+  AlertTriangle,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -26,7 +27,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import {
   getEmailError,
   formatAndValidateBelgianPhone,
-  getProvinceFromPostalCode,
+  getWalloonProvinceKeyFromPostalCode,
 } from "@/lib/leads-validation"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 import { getStoredMediaPartnerRef } from "@/components/media-partner-ref-tracker"
@@ -109,7 +110,7 @@ export function DevisLandingClient() {
   const [ownership, setOwnership] = useState("proprietaire")
   const [roofType, setRoofType] = useState("tuiles")
   const [roofSurface, setRoofSurface] = useState("medium")
-  const [province, setProvince] = useState("liege")
+  const [province, setProvince] = useState("")
   const [postalCode, setPostalCode] = useState("")
   const [city, setCity] = useState("")
 
@@ -141,6 +142,11 @@ export function DevisLandingClient() {
   const hasTrackedStart = useRef(false)
   const hasTrackedOwner = useRef(false)
   const hasTrackedContact = useRef(false)
+  const hasFiredInitiateCheckoutCapiRef = useRef(false)
+  const trackedTelemetryStepsRef = useRef<Set<number>>(new Set())
+  const provinceRef = useRef(province)
+  provinceRef.current = province
+  const [isUtmReady, setIsUtmReady] = useState(false)
 
   const formOpenedAt = useRef(new Date().toISOString())
   const leadCardRef = useRef<HTMLDivElement>(null)
@@ -192,8 +198,14 @@ export function DevisLandingClient() {
           if (p.ownership) setOwnership(p.ownership)
           if (p.roofType) setRoofType(p.roofType)
           if (p.roofSurface) setRoofSurface(p.roofSurface)
-          if (p.province) setProvince(p.province)
-          if (p.postalCode) setPostalCode(p.postalCode)
+          if (p.postalCode) {
+            const cleanRestoredCp = String(p.postalCode).replace(/\D/g, "").slice(0, 4)
+            setPostalCode(cleanRestoredCp)
+            const derivedKey = cleanRestoredCp.length === 4 ? getWalloonProvinceKeyFromPostalCode(cleanRestoredCp) : null
+            setProvince(derivedKey ?? "")
+          } else if (p.province) {
+            setProvince(p.province)
+          }
           if (p.city) setCity(p.city)
           if (p.fullName) {
             setFullName(p.fullName)
@@ -214,6 +226,8 @@ export function DevisLandingClient() {
       }
     } catch (e) {
       console.warn("Erreur capture UTMs:", e)
+    } finally {
+      setIsUtmReady(true)
     }
   }, [])
 
@@ -260,9 +274,11 @@ export function DevisLandingClient() {
     step,
   ])
 
-  // Télémétrie d'entonnoir 100 % anonyme
+  // Télémétrie d'entonnoir 100 % anonyme (dédupliquée par étape après hydratation UTM)
   useEffect(() => {
-    if (typeof window === "undefined" || !sessionIdRef.current) return
+    if (!isUtmReady || typeof window === "undefined" || !sessionIdRef.current) return
+    if (trackedTelemetryStepsRef.current.has(step)) return
+    trackedTelemetryStepsRef.current.add(step)
     try {
       fetch("/api/telemetry/funnel-step", {
         method: "POST",
@@ -272,7 +288,7 @@ export function DevisLandingClient() {
           sessionId: sessionIdRef.current,
           step,
           stepName: STEP_TITLES[step - 1] ?? `Step ${step}`,
-          province: province || undefined,
+          province: provinceRef.current || undefined,
           utmSource: utmData.utm_source,
           utmCampaign: utmData.utm_campaign,
           utmContent: utmData.utm_content,
@@ -280,7 +296,7 @@ export function DevisLandingClient() {
         }),
       }).catch(() => {})
     } catch {}
-  }, [step, province, utmData.utm_source, utmData.utm_campaign, utmData.utm_content, utmData.utm_term])
+  }, [isUtmReady, step, utmData.utm_source, utmData.utm_campaign, utmData.utm_content, utmData.utm_term])
 
   // Validation
   const emailErr = getEmailError(email)
@@ -293,7 +309,11 @@ export function DevisLandingClient() {
     (nameParts.length >= 2 && nameParts[0].length >= 2 && nameParts[1].length >= 2) ||
     (firstName.trim().length >= 2 && lastName.trim().length >= 2)
 
-  const isPostalCodeValid = postalCode.trim().length === 4
+  const cleanedPostalCode = postalCode.trim()
+  const walloonProvinceKey =
+    cleanedPostalCode.length === 4 ? getWalloonProvinceKeyFromPostalCode(cleanedPostalCode) : null
+  const isPostalCodeValid = walloonProvinceKey !== null
+  const isNonWalloonCompleteCp = cleanedPostalCode.length === 4 && walloonProvinceKey === null
   const isAddressValid = address.trim().length >= 4
 
   const showFullNameError = hasAttemptedSubmit && !isFullNameValid
@@ -301,21 +321,19 @@ export function DevisLandingClient() {
   const showLastNameError = hasAttemptedSubmit && !isFullNameValid
   const showEmailError = hasAttemptedSubmit && !!emailErr
   const showPhoneError = hasAttemptedSubmit && (!isPhoneValid || !!phoneErr)
-  const showPostalCodeError = hasAttemptedSubmit && !isPostalCodeValid
+  const showPostalCodeError = isNonWalloonCompleteCp || (hasAttemptedSubmit && !isPostalCodeValid)
   const showAddressError = hasAttemptedSubmit && !isAddressValid
   const showConsentError = hasAttemptedSubmit && !partnerConsent
 
-  // Détection automatique de la province wallonne via le CP belge
+  // Détection stricte de la province wallonne via le code postal complet (4 chiffres)
   const handlePostalCodeChange = (raw: string) => {
     const cleaned = raw.replace(/\D/g, "").slice(0, 4)
     setPostalCode(cleaned)
-    if (cleaned.length >= 2) {
-      const derived = getProvinceFromPostalCode(cleaned)
-      if (derived === "Brabant wallon") setProvince("brabant_wallon")
-      else if (derived === "Liège") setProvince("liege")
-      else if (derived === "Namur") setProvince("namur")
-      else if (derived === "Hainaut") setProvince("hainaut")
-      else if (derived === "Luxembourg") setProvince("luxembourg")
+    if (cleaned.length === 4) {
+      const derivedKey = getWalloonProvinceKeyFromPostalCode(cleaned)
+      setProvince(derivedKey ?? "")
+    } else {
+      setProvince("")
     }
   }
 
@@ -328,7 +346,7 @@ export function DevisLandingClient() {
     if (step === 2) return !!propertyType
     if (step === 3) return ownership === "proprietaire" || ownership === "copropriete"
     if (step === 4) return !!roofType && !!roofSurface
-    if (step === 5) return postalCode.trim().length === 4
+    if (step === 5) return isPostalCodeValid
     return true
   }
 
@@ -353,9 +371,34 @@ export function DevisLandingClient() {
         setHasAttemptedSubmit(true)
         return
       }
-      if (!hasTrackedStep5.current && postalCode.trim().length === 4) {
+      const icEventId = `event_ic_${sessionIdRef.current}`
+      const activeProvince = walloonProvinceKey ?? province
+      if (!hasTrackedStep5.current) {
         hasTrackedStep5.current = true
-        trackInitiateCheckout({ province, postalCode: postalCode.trim() })
+        trackInitiateCheckout({
+          province: activeProvince,
+          postalCode: cleanedPostalCode,
+          eventId: icEventId,
+        })
+      }
+      if (!hasFiredInitiateCheckoutCapiRef.current) {
+        hasFiredInitiateCheckoutCapiRef.current = true
+        void fetch("/api/telemetry/funnel-step", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          keepalive: true,
+          body: JSON.stringify({
+            sessionId: sessionIdRef.current,
+            step: 5,
+            skipDbLog: true,
+            metaEventName: "InitiateCheckout",
+            eventId: icEventId,
+            postalCode: cleanedPostalCode,
+            province: activeProvince,
+            fbclid: utmData.fbclid,
+            sourceUrl: typeof window !== "undefined" ? window.location.href : undefined,
+          }),
+        }).catch(() => {})
       }
       // Déclenche l'interstitiel de mise en concurrence de 3000 ms
       setIsInterstitialRunning(true)
@@ -426,9 +469,15 @@ export function DevisLandingClient() {
     const err = getEmailError(email)
     if (err) return
 
+    const contactEventId = `event_contact_${sessionIdRef.current}`
     if (!hasTrackedContact.current) {
       hasTrackedContact.current = true
-      trackContactInitiated({ email: email.trim(), postalCode, province })
+      trackContactInitiated({
+        email: email.trim(),
+        postalCode: cleanedPostalCode,
+        province,
+        eventId: contactEventId,
+      })
     }
 
     try {
@@ -441,10 +490,13 @@ export function DevisLandingClient() {
           sessionId: sessionIdRef.current,
           fullName: fullName || `${firstName} ${lastName}`.trim(),
           email: email.trim().toLowerCase(),
-          postalCode,
+          postalCode: cleanedPostalCode,
           city,
           province,
           estimatedKwc: b2cCalc.installedPowerKwc,
+          eventId: contactEventId,
+          fbclid: utmData.fbclid,
+          sourceUrl: typeof window !== "undefined" ? window.location.href : undefined,
           funnelData: {
             consumption,
             propertyType,
@@ -588,7 +640,7 @@ export function DevisLandingClient() {
         trackLeadConversion({
           segment: "B2C",
           leadId: resData?.leadId,
-          value: 75.9,
+          value: 64.9,
         })
       }
       try {
@@ -609,41 +661,41 @@ export function DevisLandingClient() {
     <div className="min-h-dvh bg-background text-foreground flex flex-col justify-between font-sans selection:bg-accent/15 selection:text-foreground">
       
       {/* ── HEADER MINIMAL : Logo Aegis Solaire en haut à gauche ── */}
-      <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-2 sm:pt-5 sm:pb-2 shrink-0 flex items-center justify-between">
+      <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2.5 pb-1.5 sm:pt-5 sm:pb-2 shrink-0 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 group" aria-label="Aegis Solaire - Accueil">
-          <div className="relative h-12 sm:h-14 md:h-16 w-48 sm:w-60 md:w-72">
+          <div className="relative h-9 sm:h-14 md:h-16 w-36 sm:w-60 md:w-72">
             <Image
               src="/logo.png"
               alt="Aegis Solaire"
               fill
               className="object-contain object-left"
               priority
-              sizes="(max-width: 640px) 240px, 320px"
+              sizes="(max-width: 640px) 180px, 320px"
             />
           </div>
         </Link>
       </header>
 
-      {/* ── CORPS CENTRAL : Structure Fullscreen Split-Screen Style Bobex ── */}
-      <main className="flex-1 flex items-start justify-center w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-4 lg:py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-start w-full">
+      {/* ── CORPS CENTRAL : Structure Mobile-First + Split-Screen Desktop ── */}
+      <main className="flex-1 flex items-start justify-center w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5 sm:py-4 lg:py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 lg:grid-rows-[auto_1fr] gap-4 sm:gap-6 lg:gap-x-14 lg:gap-y-6 items-start w-full">
           
-          {/* ── COLONNE GAUCHE (Autorité, Réassurance & Preuve Bobex-style) ── */}
-          <div className="lg:col-span-6 flex flex-col justify-start gap-5 sm:gap-6 lg:sticky lg:top-4 self-start">
-            
-            {/* UN SEUL H1 PAR ROUTE (Loi stricte SEO & Accessibilité) */}
-            <div className="flex flex-col gap-2">
-              <h1 className="text-3xl sm:text-4xl lg:text-[40px] font-bold tracking-tight text-foreground font-heading leading-[1.14]">
-                La meilleure offre solaire ?{" "}
-                <span className="block text-primary">
-                  Comparez jusqu&apos;à 3 devis.
-                </span>
-              </h1>
+          {/* ── BLOC 1 : H1 & Promesse (Compact mobile above-the-fold) ── */}
+          <div className="order-1 lg:order-none lg:col-span-6 lg:col-start-1 lg:row-start-1 flex flex-col gap-1 sm:gap-2">
+            <h1 className="text-[22px] leading-[1.15] sm:text-4xl lg:text-[40px] font-bold tracking-tight text-foreground font-heading lg:leading-[1.14]">
+              La meilleure offre solaire ?{" "}
+              <span className="text-primary sm:block">
+                Comparez jusqu&apos;à 3 devis.
+              </span>
+            </h1>
 
-              <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mt-1">
-                Une seule demande, des installateurs certifiés <strong className="text-foreground font-semibold">RESCERT</strong> locaux.
-              </p>
-            </div>
+            <p className="text-xs sm:text-base text-muted-foreground leading-snug sm:leading-relaxed mt-0.5 sm:mt-1">
+              Une seule demande, des installateurs certifiés <strong className="text-foreground font-semibold">RESCERT</strong> locaux.
+            </p>
+          </div>
+
+          {/* ── BLOC 2 (Desktop Colonne Gauche Bas / Mobile sous le formulaire) : Autorité & Preuves ── */}
+          <div className="order-3 lg:order-none lg:col-span-6 lg:col-start-1 lg:row-start-2 flex flex-col justify-start gap-5 sm:gap-6 self-start">
 
             {/* 3 Avantages clés avec pastilles orange circulaires (comme sur la référence) */}
             <ul className="flex flex-col gap-3.5 text-sm sm:text-base text-foreground font-bold list-none p-0 m-0">
@@ -711,22 +763,10 @@ export function DevisLandingClient() {
               </button>
             </div>
 
-            {/* Bouton CTA Mobile (scroll direct vers formulaire comme Bobex mobile) */}
-            <div className="block lg:hidden pt-1">
-              <button
-                type="button"
-                onClick={scrollToForm}
-                className="w-full py-3.5 px-6 rounded-xl bg-accent-solar text-accent-solar-foreground font-bold text-sm shadow-xs flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>Recevez des devis gratuits</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-
           </div>
 
-          {/* ── COLONNE DROITE : CARTE DU QUESTIONNAIRE (Structure Bobex) ── */}
-          <div ref={leadCardRef} className="lg:col-span-6 w-full">
+          {/* ── BLOC 3 : CARTE DU QUESTIONNAIRE (Directement au-dessus de la ligne de flottaison mobile) ── */}
+          <div ref={leadCardRef} className="order-2 lg:order-none lg:col-span-6 lg:col-start-7 lg:row-start-1 lg:row-span-2 w-full">
             <div className="bg-card border border-border/80 rounded-2xl sm:rounded-3xl shadow-[0_2px_8px_rgba(0,0,0,0.04),0_12px_28px_-6px_rgba(15,23,42,0.06)] p-6 sm:p-8 flex flex-col justify-between max-w-xl mx-auto lg:max-w-none">
               
               {!submitted ? (
@@ -1032,7 +1072,9 @@ export function DevisLandingClient() {
                               />
                               {showPostalCodeError && (
                                 <p className="text-[11px] text-destructive font-medium" role="alert">
-                                  Code postal wallon requis.
+                                  {isNonWalloonCompleteCp
+                                    ? "Zone hors Wallonie (CP wallon requis : 1300-1499 ou 4000-7999)."
+                                    : "Code postal wallon requis (4 chiffres)."}
                                 </p>
                               )}
                             </div>
@@ -1051,15 +1093,32 @@ export function DevisLandingClient() {
                             </div>
                           </div>
 
-                          {postalCode.length >= 2 && (
+                          {walloonProvinceKey && (
                             <div className="p-3.5 rounded-xl bg-accent/[0.06] border border-accent/20 flex items-center justify-between">
                               <span className="text-xs sm:text-sm text-foreground font-medium flex items-center gap-2">
                                 <MapPin className="h-4 w-4 text-accent" />
                                 <span>Province détectée :</span>
                               </span>
                               <span className="font-mono text-xs sm:text-sm font-semibold text-accent">
-                                {getProvinceDisplayLabel(province)} · Artisans actifs
+                                {getProvinceDisplayLabel(walloonProvinceKey)} · Artisans actifs
                               </span>
+                            </div>
+                          )}
+
+                          {isNonWalloonCompleteCp && (
+                            <div
+                              role="alert"
+                              className="p-3.5 rounded-xl bg-destructive/[0.06] border border-destructive/30 flex items-start gap-2.5 text-destructive"
+                            >
+                              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                              <div className="flex flex-col gap-0.5 text-xs leading-relaxed">
+                                <span className="font-bold">Zone non couverte ({cleanedPostalCode})</span>
+                                <span>
+                                  Notre comparateur RESCERT intervient exclusivement en Wallonie (codes postaux{" "}
+                                  <span className="font-mono tabular-nums font-semibold">1300-1499</span> et{" "}
+                                  <span className="font-mono tabular-nums font-semibold">4000-7999</span>).
+                                </span>
+                              </div>
                             </div>
                           )}
                         </motion.fieldset>

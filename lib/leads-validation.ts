@@ -162,17 +162,49 @@ export function formatAndValidateBelgianPhone(input: string): {
   return { isValid: true, normalized: e164 }
 }
 
+export type WalloonProvinceKey =
+  | "brabant_wallon"
+  | "liege"
+  | "namur"
+  | "hainaut"
+  | "luxembourg"
+
 /**
- * Déduit la province wallonne à partir du code postal belge à 4 chiffres.
+ * Retourne la clé de province wallonne canonique d'un code postal belge à 4 chiffres,
+ * ou `null` si le code postal est situé hors Wallonie (Bruxelles 1000-1299, Flandre 1500-3999 / 8000-9999).
+ */
+export function getWalloonProvinceKeyFromPostalCode(cp: string): WalloonProvinceKey | null {
+  const digits = cp.replace(/\D/g, "")
+  if (digits.length !== 4) return null
+  const code = parseInt(digits, 10)
+  if (code >= 1300 && code <= 1499) return "brabant_wallon"
+  if (code >= 4000 && code <= 4999) return "liege"
+  if (code >= 5000 && code <= 5999) return "namur"
+  if ((code >= 6000 && code <= 6599) || (code >= 7000 && code <= 7999)) return "hainaut"
+  if (code >= 6600 && code <= 6999) return "luxembourg"
+  return null
+}
+
+/**
+ * Vérifie strictement si un code postal belge à 4 chiffres appartient à la Région wallonne.
+ */
+export function isWalloonPostalCode(postalCode: string): boolean {
+  return getWalloonProvinceKeyFromPostalCode(postalCode) !== null
+}
+
+const WALLOON_PROVINCE_DISPLAY_NAMES: Record<WalloonProvinceKey, string> = {
+  brabant_wallon: "Brabant wallon",
+  liege: "Liège",
+  namur: "Namur",
+  hainaut: "Hainaut",
+  luxembourg: "Luxembourg",
+}
+
+/**
+ * Déduit le libellé de la province wallonne à partir du code postal belge à 4 chiffres.
  */
 export function getProvinceFromPostalCode(cp: string): string {
-  const code = parseInt(cp.trim(), 10)
-  if (isNaN(code)) return "Wallonie"
-  if (code >= 1300 && code <= 1499) return "Brabant wallon"
-  if (code >= 4000 && code <= 4999) return "Liège"
-  if (code >= 5000 && code <= 5999) return "Namur"
-  if ((code >= 6000 && code <= 6599) || (code >= 7000 && code <= 7999)) return "Hainaut"
-  if (code >= 6600 && code <= 6999) return "Luxembourg"
-  return "Wallonie"
+  const key = getWalloonProvinceKeyFromPostalCode(cp)
+  return key ? WALLOON_PROVINCE_DISPLAY_NAMES[key] : "Wallonie"
 }
 

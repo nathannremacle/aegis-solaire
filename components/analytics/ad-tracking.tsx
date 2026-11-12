@@ -21,6 +21,7 @@ const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID
 export function trackLeadConversion(params?: {
   segment?: "B2B" | "B2C"
   leadId?: string
+  eventId?: string
   value?: number
   currency?: string
 }) {
@@ -29,7 +30,7 @@ export function trackLeadConversion(params?: {
   const eventData = {
     content_name: params?.segment === "B2C" ? "Lead Solaire Résidentiel" : "Lead Solaire B2B",
     content_category: "Solar Lead Wallonie",
-    value: params?.value ?? (params?.segment === "B2C" ? 35 : 120),
+    value: params?.value ?? (params?.segment === "B2C" ? 64.9 : 88.5),
     currency: params?.currency ?? "EUR",
     lead_id: params?.leadId,
   }
@@ -37,8 +38,9 @@ export function trackLeadConversion(params?: {
   // 1. Meta Pixel (Facebook Ads)
   if (typeof window.fbq === "function") {
     try {
-      if (params?.leadId) {
-        const deduplicationId = params.leadId.startsWith("lead_") ? params.leadId : `lead_${params.leadId}`
+      const rawDedupId = params?.eventId ?? params?.leadId
+      if (rawDedupId) {
+        const deduplicationId = rawDedupId.startsWith("lead_") ? rawDedupId : `lead_${rawDedupId}`
         window.fbq("track", "Lead", eventData, { eventID: deduplicationId })
       } else {
         window.fbq("track", "Lead", eventData)
@@ -155,19 +157,29 @@ export function trackOwnerQualified(params?: {
 export function trackInitiateCheckout(params?: {
   province?: string
   postalCode?: string
+  eventId?: string
 }) {
   if (typeof window === "undefined") return
 
   if (typeof window.fbq === "function") {
     try {
-      window.fbq("track", "InitiateCheckout", {
+      const payload = {
         content_name: "Audit Solaire Wallonie",
         content_category: "Owner Qualified",
         province: params?.province,
         postal_code: params?.postalCode,
         currency: "EUR",
         value: 15,
-      })
+      }
+      if (params?.eventId) {
+        const normalizedId =
+          params.eventId.startsWith("event_") || params.eventId.startsWith("lead_")
+            ? params.eventId
+            : `event_${params.eventId}`
+        window.fbq("track", "InitiateCheckout", payload, { eventID: normalizedId })
+      } else {
+        window.fbq("track", "InitiateCheckout", payload)
+      }
     } catch (e) {
       console.warn("Meta Pixel InitiateCheckout error:", e)
     }
@@ -194,19 +206,29 @@ export function trackContactInitiated(params?: {
   email?: string
   postalCode?: string
   province?: string
+  eventId?: string
 }) {
   if (typeof window === "undefined") return
 
   if (typeof window.fbq === "function") {
     try {
-      window.fbq("track", "Contact", {
+      const payload = {
         content_name: "Audit Solaire - Contact E-mail",
         content_category: "Solar Lead In Progress",
         value: 20,
         currency: "EUR",
         postal_code: params?.postalCode,
         province: params?.province,
-      })
+      }
+      if (params?.eventId) {
+        const normalizedId =
+          params.eventId.startsWith("event_") || params.eventId.startsWith("lead_")
+            ? params.eventId
+            : `event_${params.eventId}`
+        window.fbq("track", "Contact", payload, { eventID: normalizedId })
+      } else {
+        window.fbq("track", "Contact", payload)
+      }
     } catch (e) {
       console.warn("Meta Pixel trackContactInitiated error:", e)
     }
