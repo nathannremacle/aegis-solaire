@@ -78,6 +78,77 @@ export function trackLeadConversion(params?: {
 }
 
 /**
+ * Événement d'engagement initial : l'utilisateur sélectionne son profil de consommation (Étape 1).
+ * Nourrit l'algorithme Meta avec l'intérêt initial pour l'audit solaire.
+ */
+export function trackSimulatorStart(params?: { consumption?: string }) {
+  if (typeof window === "undefined") return
+
+  if (typeof window.fbq === "function") {
+    try {
+      window.fbq("track", "CustomizeProduct", {
+        content_name: "Simulation Solaire Démarrée",
+        content_category: "Solar Step 1",
+        consumption: params?.consumption,
+      })
+    } catch (e) {
+      console.warn("Meta Pixel trackSimulatorStart error:", e)
+    }
+  }
+
+  if (Array.isArray(window.dataLayer)) {
+    try {
+      window.dataLayer.push({
+        event: "simulator_started",
+        consumption: params?.consumption,
+      })
+    } catch (e) {
+      console.warn("GTM simulator_started error:", e)
+    }
+  }
+}
+
+/**
+ * Événement de qualification majeure : l'utilisateur confirme être propriétaire ou copropriétaire (Étape 3).
+ * Signal haute valeur pour Meta afin d'identifier les propriétaires fonciers.
+ */
+export function trackOwnerQualified(params?: {
+  ownership?: string
+  propertyType?: string
+}) {
+  if (typeof window === "undefined") return
+
+  if (typeof window.fbq === "function") {
+    try {
+      window.fbq("track", "CustomizeProduct", {
+        content_name: "Propriétaire Solaire Qualifié",
+        content_category: "Owner Qualified",
+        value: 10,
+        currency: "EUR",
+      })
+      window.fbq("trackCustom", "OwnerQualified", {
+        ownership: params?.ownership,
+        property_type: params?.propertyType,
+      })
+    } catch (e) {
+      console.warn("Meta Pixel trackOwnerQualified error:", e)
+    }
+  }
+
+  if (Array.isArray(window.dataLayer)) {
+    try {
+      window.dataLayer.push({
+        event: "owner_qualified",
+        ownership: params?.ownership,
+        property_type: params?.propertyType,
+      })
+    } catch (e) {
+      console.warn("GTM owner_qualified error:", e)
+    }
+  }
+}
+
+/**
  * Envoie un événement de qualification d'intention (InitiateCheckout)
  * Déclenché lors du passage Step 5 -> Step 6 (code postal wallon validé + propriétaire vérifié).
  */
@@ -111,6 +182,45 @@ export function trackInitiateCheckout(params?: {
       })
     } catch (e) {
       console.warn("GTM begin_checkout push error:", e)
+    }
+  }
+}
+
+/**
+ * Événement de contact initié : l'utilisateur saisit son adresse e-mail (Étape 6).
+ * Déclenche l'événement standard Meta 'Contact' (micro-conversion à forte intention).
+ */
+export function trackContactInitiated(params?: {
+  email?: string
+  postalCode?: string
+  province?: string
+}) {
+  if (typeof window === "undefined") return
+
+  if (typeof window.fbq === "function") {
+    try {
+      window.fbq("track", "Contact", {
+        content_name: "Audit Solaire - Contact E-mail",
+        content_category: "Solar Lead In Progress",
+        value: 20,
+        currency: "EUR",
+        postal_code: params?.postalCode,
+        province: params?.province,
+      })
+    } catch (e) {
+      console.warn("Meta Pixel trackContactInitiated error:", e)
+    }
+  }
+
+  if (Array.isArray(window.dataLayer)) {
+    try {
+      window.dataLayer.push({
+        event: "contact_initiated",
+        postal_code: params?.postalCode,
+        province: params?.province,
+      })
+    } catch (e) {
+      console.warn("GTM contact_initiated error:", e)
     }
   }
 }

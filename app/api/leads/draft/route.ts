@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { checkRateLimit } from "@/lib/rate-limit"
 import { getEmailError } from "@/lib/leads-validation"
+import { sendMetaConversionApiEvent } from "@/lib/meta-capi"
 
 export async function POST(request: NextRequest) {
   try {
@@ -122,6 +123,32 @@ export async function POST(request: NextRequest) {
       utm_content: utmContent || null,
       utm_term: utmTerm || null,
     })
+
+    // 5. Transmission micro-conversion CAPI Meta (Événement 'Contact' enrichi)
+    try {
+      const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || undefined
+      const userAgent = request.headers.get("user-agent") || undefined
+      const fbp = request.cookies.get("_fbp")?.value
+      const fbc = request.cookies.get("_fbc")?.value
+
+      void sendMetaConversionApiEvent({
+        eventName: "Contact",
+        eventId: `draft_${upserted.id}`,
+        email: cleanEmail,
+        firstName: firstName !== "Prospect" ? firstName : undefined,
+        lastName: lastName !== "Incomplet" ? lastName : undefined,
+        postalCode: safePostalCode || undefined,
+        clientIp,
+        userAgent,
+        fbp,
+        fbc,
+        segment: "B2C",
+        value: 20,
+        contentName: "Audit Solaire - Contact E-mail Saisi",
+      })
+    } catch (capiErr) {
+      console.warn("[Meta CAPI Contact Draft] Warning:", capiErr)
+    }
 
     return NextResponse.json({
       success: true,

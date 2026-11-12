@@ -30,7 +30,13 @@ import {
 } from "@/lib/leads-validation"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 import { getStoredMediaPartnerRef } from "@/components/media-partner-ref-tracker"
-import { trackLeadConversion, trackInitiateCheckout } from "@/components/analytics/ad-tracking"
+import {
+  trackLeadConversion,
+  trackInitiateCheckout,
+  trackSimulatorStart,
+  trackOwnerQualified,
+  trackContactInitiated,
+} from "@/components/analytics/ad-tracking"
 import { calculateB2CSolarROI } from "@/lib/solar-assumptions"
 import { CompetitionInterstitial } from "@/components/funnel/competition-interstitial"
 import { NetworkPartnersModal } from "@/components/funnel/network-partners-modal"
@@ -132,6 +138,9 @@ export function DevisLandingClient() {
   const [hasCopiedLink, setHasCopiedLink] = useState(false)
   const hasTrackedStep5 = useRef(false)
   const hasCapturedDraft = useRef(false)
+  const hasTrackedStart = useRef(false)
+  const hasTrackedOwner = useRef(false)
+  const hasTrackedContact = useRef(false)
 
   const formOpenedAt = useRef(new Date().toISOString())
   const leadCardRef = useRef<HTMLDivElement>(null)
@@ -324,12 +333,20 @@ export function DevisLandingClient() {
   }
 
   const handleNext = () => {
+    if (step === 1 && !hasTrackedStart.current && consumption) {
+      hasTrackedStart.current = true
+      trackSimulatorStart({ consumption })
+    }
     if (step === 2 && propertyType === "immeuble_commercial") {
       window.location.href = "/#simulateur"
       return
     }
     if (step === 3 && ownership === "locataire") {
       return // Bloqué pour les locataires
+    }
+    if (step === 3 && (ownership === "proprietaire" || ownership === "copropriete") && !hasTrackedOwner.current) {
+      hasTrackedOwner.current = true
+      trackOwnerQualified({ ownership, propertyType })
     }
     if (step === 5) {
       if (!isPostalCodeValid) {
@@ -376,6 +393,10 @@ export function DevisLandingClient() {
   // Auto-advance de 180 ms sur étapes à choix unique (style Bobex)
   const handleOptionSelect = (setter: (val: string) => void, val: string) => {
     setter(val)
+    if (step === 1 && !hasTrackedStart.current) {
+      hasTrackedStart.current = true
+      trackSimulatorStart({ consumption: val })
+    }
     if (step === 2 && val === "immeuble_commercial") {
       setTimeout(() => {
         window.location.href = "/#simulateur"
@@ -384,6 +405,10 @@ export function DevisLandingClient() {
     }
     if (step === 3 && val === "locataire") {
       return // Ne pas avancer automatiquement pour afficher l'écran d'arrêt bienveillant
+    }
+    if (step === 3 && (val === "proprietaire" || val === "copropriete") && !hasTrackedOwner.current) {
+      hasTrackedOwner.current = true
+      trackOwnerQualified({ ownership: val, propertyType })
     }
     if (step < 4) {
       setTimeout(() => {
@@ -400,6 +425,11 @@ export function DevisLandingClient() {
     if (!email || hasCapturedDraft.current) return
     const err = getEmailError(email)
     if (err) return
+
+    if (!hasTrackedContact.current) {
+      hasTrackedContact.current = true
+      trackContactInitiated({ email: email.trim(), postalCode, province })
+    }
 
     try {
       hasCapturedDraft.current = true

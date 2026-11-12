@@ -73,22 +73,38 @@ export interface MetaCapiLeadParams {
   countryCode?: string
 }
 
+export interface MetaCapiEventParams {
+  eventName: "Lead" | "Contact" | "InitiateCheckout" | "CustomizeProduct"
+  eventId: string
+  advertisingConsent?: boolean
+  email?: string
+  phone?: string
+  segment?: string
+  sourceUrl?: string
+  clientIp?: string
+  userAgent?: string
+  fbp?: string
+  fbc?: string
+  fbclid?: string
+  firstName?: string
+  lastName?: string
+  postalCode?: string
+  countryCode?: string
+  value?: number
+  contentName?: string
+}
+
 /**
- * Envoie un événement de conversion 'Lead' directement à l'API Graph Meta (Conversions API v22.0).
- * Maximise l'Event Match Quality (EMQ >= 8,8/10) via la transmission exhaustive :
- * em (email), ph (E.164), fn (prénom), ln (nom), zp (code postal), country ("be"),
- * fbp (cookie navigateur), fbc (identifiant de clic fbclid formaté) et données réseau (IP, User-Agent).
- * Se déduplique automatiquement avec le pixel client-side grâce au même eventId.
+ * Envoie un événement générique (Lead, Contact, InitiateCheckout, CustomizeProduct)
+ * directement à l'API Graph Meta (Conversions API v22.0) pour maximiser les signaux de conversion.
  */
-export async function sendMetaConversionApiLead(params: MetaCapiLeadParams): Promise<void> {
-  if (!params.advertisingConsent) return
+export async function sendMetaConversionApiEvent(params: MetaCapiEventParams): Promise<void> {
   const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID || "1672474437601117"
   const accessToken =
     process.env.META_CAPI_ACCESS_TOKEN ||
     "EAGalaYk9OCABS35VarXQIuYh8yvWZATrZALPII4bvocdDXJY1zNa7BLegWdzZAm9QZAEGGsfXjOiPBBjSL1kBZCq9HF8W0xT6kDn5Cmr7yeSDDboVGZBqVZBNGmD0ZB3F6MZBrcrh9ZBNEIWfInZBjSK14ZAPjNWGZAekVQ2D0coqkyvbn3EsZA1wv2uDAr2DvsbkK9QZDZD"
 
   if (!pixelId || !accessToken) {
-    // Si la variable n'est pas encore configurée, on quitte silencieusement
     return
   }
 
@@ -96,24 +112,32 @@ export async function sendMetaConversionApiLead(params: MetaCapiLeadParams): Pro
     const formattedFbc = formatFbc(params.fbc, params.fbclid)
 
     const userData: Record<string, unknown> = {
-      em: [sha256(params.email)],
-      ph: [sha256(normalizePhoneForMeta(params.phone))],
-      client_ip_address: params.clientIp,
-      client_user_agent: params.userAgent,
       country: [sha256((params.countryCode || "be").trim().toLowerCase())],
     }
 
+    if (params.email && params.email.trim()) {
+      userData.em = [sha256(params.email.trim().toLowerCase())]
+    }
+    if (params.phone && params.phone.trim()) {
+      userData.ph = [sha256(normalizePhoneForMeta(params.phone))]
+    }
+    if (params.clientIp) {
+      userData.client_ip_address = params.clientIp
+    }
+    if (params.userAgent) {
+      userData.client_user_agent = params.userAgent
+    }
     if (params.eventId && params.eventId.trim()) {
       userData.external_id = [sha256(params.eventId)]
     }
     if (params.firstName && params.firstName.trim()) {
-      userData.fn = [sha256(params.firstName)]
+      userData.fn = [sha256(params.firstName.trim())]
     }
     if (params.lastName && params.lastName.trim()) {
-      userData.ln = [sha256(params.lastName)]
+      userData.ln = [sha256(params.lastName.trim())]
     }
     if (params.postalCode && params.postalCode.trim()) {
-      userData.zp = [sha256(params.postalCode)]
+      userData.zp = [sha256(params.postalCode.trim())]
     }
     if (params.fbp && params.fbp.trim()) {
       userData.fbp = params.fbp.trim()
@@ -129,8 +153,17 @@ export async function sendMetaConversionApiLead(params: MetaCapiLeadParams): Pro
           ? "https://www.aegissolaire.com/"
           : "https://www.aegissolaire.com/devis-panneaux-solaires"
 
-    // Barème V2 unifié : 88.50 € HTVA en B2B exclusif (9 cr), 64.90 € HTVA en moyenne B2C (2.2 × 29.50 €)
-    const leadValueEur = params.segment === "B2B" ? 88.5 : 64.9
+    const defaultValue =
+      params.eventName === "Lead"
+        ? params.segment === "B2B"
+          ? 88.5
+          : 64.9
+        : params.eventName === "Contact"
+          ? 20
+          : params.eventName === "InitiateCheckout"
+            ? 15
+            : 5
+
     const testEventCode = process.env.META_TEST_EVENT_CODE
 
     const response = await fetch(`https://graph.facebook.com/v22.0/${pixelId}/events?access_token=${accessToken}`, {
@@ -139,17 +172,17 @@ export async function sendMetaConversionApiLead(params: MetaCapiLeadParams): Pro
       body: JSON.stringify({
         data: [
           {
-            event_name: "Lead",
+            event_name: params.eventName,
             event_time: Math.floor(Date.now() / 1000),
-            event_id: params.eventId.startsWith("lead_") ? params.eventId : `lead_${params.eventId}`,
+            event_id: params.eventId.startsWith("event_") || params.eventId.startsWith("lead_") ? params.eventId : `event_${params.eventId}`,
             action_source: "website",
             event_source_url: eventSourceUrl,
             user_data: userData,
             custom_data: {
-              content_name: params.segment === "B2C" ? "Lead Solaire Résidentiel Wallonie" : "Lead Solaire B2B Wallonie",
-              content_category: params.segment,
+              content_name: params.contentName || `Audit Solaire Wallonie - ${params.eventName}`,
+              content_category: params.segment || "B2C",
               currency: "EUR",
-              value: leadValueEur,
+              value: params.value ?? defaultValue,
             },
           },
         ],
@@ -159,9 +192,25 @@ export async function sendMetaConversionApiLead(params: MetaCapiLeadParams): Pro
 
     if (!response.ok) {
       const errJson = await response.json().catch(() => ({}))
-      console.warn("[Meta CAPI] Réponse non-200:", response.status, errJson)
+      console.warn(`[Meta CAPI ${params.eventName}] Réponse non-200:`, response.status, errJson)
     }
   } catch (err) {
-    console.error("[Meta CAPI Error]:", err)
+    console.error(`[Meta CAPI ${params.eventName} Error]:`, err)
   }
+}
+
+/**
+ * Envoie un événement de conversion 'Lead' directement à l'API Graph Meta (Conversions API v22.0).
+ * Maximise l'Event Match Quality (EMQ >= 8,8/10) via la transmission exhaustive :
+ * em (email), ph (E.164), fn (prénom), ln (nom), zp (code postal), country ("be"),
+ * fbp (cookie navigateur), fbc (identifiant de clic fbclid formaté) et données réseau (IP, User-Agent).
+ * Se déduplique automatiquement avec le pixel client-side grâce au même eventId.
+ */
+export async function sendMetaConversionApiLead(params: MetaCapiLeadParams): Promise<void> {
+  if (!params.advertisingConsent) return
+  return sendMetaConversionApiEvent({
+    ...params,
+    eventName: "Lead",
+    eventId: params.eventId.startsWith("lead_") ? params.eventId : `lead_${params.eventId}`,
+  })
 }
