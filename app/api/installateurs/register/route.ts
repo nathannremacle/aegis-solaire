@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
 
     const adminNotes = [
       data.invitedBy ? `⭐ INVITATION VIP PAR: ${data.invitedBy}` : null,
+      data.leadId ? `🎯 CHANTIER CIBLE: ${data.leadId}` : null,
       data.targetSegment ? `Segments cibles: ${data.targetSegment}` : null,
       data.powerCapacity ? `Capacité: ${data.powerCapacity}` : null,
     ]

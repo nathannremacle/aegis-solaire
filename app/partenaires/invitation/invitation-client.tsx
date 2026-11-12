@@ -44,23 +44,40 @@ interface InvitationClientProps {
   initialNom?: string
   initialCie?: string
   initialInviter?: string
+  initialCode?: string
+  initialLeadId?: string
+  initialEmail?: string
+  initialPhone?: string
 }
 
 export function InvitationClient({
   initialNom = "",
   initialCie = "",
   initialInviter = "Direction des Partenariats",
+  initialCode = "",
+  initialLeadId = "",
+  initialEmail = "",
+  initialPhone = "",
 }: InvitationClientProps) {
   const searchParams = useSearchParams()
   const rawNom = searchParams.get("nom") || searchParams.get("name") || initialNom
   const rawCie = searchParams.get("cie") || searchParams.get("company") || initialCie
   const inviter = searchParams.get("par") || initialInviter
+  const postalCode = searchParams.get("code") || searchParams.get("cp") || initialCode
+  const leadId = searchParams.get("leadId") || initialLeadId
+  const emailParam = searchParams.get("email") || initialEmail
+  const phoneParam = searchParams.get("phone") || initialPhone
   const rawCredits = searchParams.get("credits")
   const freeCredits = rawCredits ? Number(rawCredits) : 0
 
-  // Nettoyage et capitalisation
-  const nom = rawNom ? rawNom.charAt(0).toUpperCase() + rawNom.slice(1).trim() : ""
+  // Nettoyage et séparation Prénom / Nom
+  const nomClean = rawNom ? rawNom.trim() : ""
+  const parts = nomClean ? nomClean.split(/\s+/) : []
+  const firstName = parts[0] || ""
+  const lastName = parts.slice(1).join(" ")
   const cie = rawCie ? rawCie.trim() : ""
+  const isBxl = postalCode && (parseInt(postalCode, 10) >= 1000 && parseInt(postalCode, 10) <= 1299)
+  const regionLabel = isBxl ? "Bruxelles & Wallonie" : "en Wallonie"
 
   return (
     <div className="flex min-h-screen min-w-0 flex-col overflow-x-hidden font-sans bg-background text-foreground">
@@ -119,12 +136,12 @@ export function InvitationClient({
 
               {/* UN SEUL H1 DANS LE DOM */}
               <h1 className="font-heading text-3xl sm:text-4xl lg:text-5xl leading-[1.12] font-semibold tracking-tight text-foreground">
-                {nom ? (
+                {firstName ? (
                   <>
-                    <span className="text-primary">{nom}</span>, accédez au réseau d'installateurs photovoltaïques Aegis Solaire en Wallonie
+                    <span className="text-primary">{firstName}</span>, accédez au réseau d'installateurs photovoltaïques Aegis Solaire ({regionLabel})
                   </>
                 ) : (
-                  <>Accédez au réseau d'installateurs photovoltaïques Aegis Solaire en Wallonie</>
+                  <>Accédez au réseau d'installateurs photovoltaïques Aegis Solaire ({regionLabel})</>
                 )}
               </h1>
 
@@ -134,9 +151,31 @@ export function InvitationClient({
                 </p>
               )}
 
+              {leadId && (
+                <div className="mt-6 rounded-md border border-accent/40 bg-accent/5 p-4 sm:p-5 text-left shadow-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-accent/20 pb-2 mb-3">
+                    <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Opportunité de chantier auditée · Zone Bruxelles-Nord (1780 Wemmel)
+                    </span>
+                    <span className="font-mono text-[11px] font-semibold bg-accent/20 text-accent px-2 py-0.5 rounded">
+                      Plafonné à 3 installateurs max
+                    </span>
+                  </div>
+                  <div className="text-xs sm:text-sm text-foreground space-y-1">
+                    <p className="font-semibold text-foreground">
+                      Maison unifamiliale · Toiture 42 m² tuiles · Puissance recommandée ~5,4 kWc · 1 150 €/an facture
+                    </p>
+                    <p className="text-muted-foreground text-xs font-sans">
+                      Activez votre accès installateur ci-dessous pour consulter et débloquer la fiche complète (coordonnées directes, photo de la toiture et cadastre vérifié).
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Sous-titre institutionnel */}
               <p className="mt-6 text-base sm:text-lg text-muted-foreground leading-relaxed font-sans max-w-3xl">
-                Aegis Solaire est l'organe de sélection technique wallon : chaque projet fait l'objet d'un audit préalable rigoureux (compteur bidirectionnel, cadastre toiture, solvabilité) avant toute mise à disposition sur la plateforme.
+                Aegis Solaire est l'organe de sélection technique de référence : chaque projet fait l'objet d'un audit préalable rigoureux (compteur bidirectionnel, cadastre toiture, solvabilité) avant toute mise à disposition sur la plateforme.
               </p>
 
               {/* Triple métrique institutionnelle (Swiss Grid) */}
@@ -237,9 +276,9 @@ export function InvitationClient({
                 {/* Message éditorial */}
                 <div className="flex flex-col gap-4 text-sm sm:text-base text-foreground/90 leading-relaxed font-sans border-t md:border-t-0 md:border-l border-border pt-6 md:pt-0 md:pl-8">
                   <p>
-                    {nom ? (
+                    {firstName ? (
                       <>
-                        « Bonjour <strong className="text-foreground">{nom}</strong>. Avec plus de <span className="font-mono tabular-nums font-semibold">20 ans</span> d'expérience cumulée dans le secteur photovoltaïque en Wallonie, notre cellule technique mesure l'importance pour une entreprise d'installation de travailler sur des dossiers fiables, techniquement préparés et sans dispersion commerciale excessive.
+                        « Bonjour <strong className="text-foreground">{firstName}</strong>. Avec plus de <span className="font-mono tabular-nums font-semibold">20 ans</span> d'expérience cumulée dans le secteur photovoltaïque en Wallonie, notre cellule technique mesure l'importance pour une entreprise d'installation de travailler sur des dossiers fiables, techniquement préparés et sans dispersion commerciale excessive.
                       </>
                     ) : (
                       <>
@@ -527,7 +566,7 @@ export function InvitationClient({
                 ENRÔLEMENT RAPIDE · ENTRÉE PRIVILÉGIÉE
               </span>
               <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-foreground">
-                {nom ? `${nom}, activez votre accès installateur partenaire` : "Activez votre accès installateur partenaire"}
+                {firstName ? `${firstName}, activez votre accès installateur partenaire` : "Activez votre accès installateur partenaire"}
               </h2>
               <p className="mt-2 text-sm text-muted-foreground font-sans max-w-lg mx-auto">
                 Complétez votre fiche professionnelle en moins de <span className="font-mono tabular-nums">2</span> minutes. Notre équipe technique validera vos accès sous <span className="font-mono tabular-nums">24 h</span> ouvrées.
@@ -545,8 +584,13 @@ export function InvitationClient({
             </div>
 
             <InstallerVipInvitationForm
-              initialFirstName={nom}
+              initialFirstName={firstName}
+              initialLastName={lastName}
               initialCompanyName={cie}
+              initialPostalCode={postalCode}
+              initialLeadId={leadId}
+              initialEmail={emailParam}
+              initialPhone={phoneParam}
               inviterName={`${inviter}${freeCredits > 0 ? ` (${freeCredits} crédits offerts)` : ""}`}
             />
 

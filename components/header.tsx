@@ -39,9 +39,9 @@ const B2C_NAV_ITEMS: NavItem[] = [
 
 const PARTNER_NAV_ITEMS: NavItem[] = [
   { label: "Chantiers", href: "/partenaires#apercu" },
+  { label: "Annuaire RESCert", href: "/partenaires/annuaire" },
   { label: "Simulateur", href: "/partenaires#simulateur-roi" },
   { label: "Tarifs", href: "/partenaires#tarifs" },
-  { label: "Avis", href: "/partenaires#temoignages" },
   { label: "Ressources", href: "/partenaires#comparatif" },
 ]
 

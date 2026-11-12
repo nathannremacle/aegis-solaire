@@ -42,8 +42,17 @@ export default async function PartenairesInvitationPage({
     typeof resolved.par === "string" && resolved.par.trim()
       ? resolved.par.trim()
       : "Direction des Partenariats"
+  const rawCode =
+    typeof resolved.code === "string"
+      ? resolved.code
+      : typeof resolved.cp === "string"
+      ? resolved.cp
+      : ""
+  const rawLeadId = typeof resolved.leadId === "string" ? resolved.leadId : ""
+  const rawEmail = typeof resolved.email === "string" ? resolved.email : ""
+  const rawPhone = typeof resolved.phone === "string" ? resolved.phone : ""
 
-  const nom = rawNom ? rawNom.charAt(0).toUpperCase() + rawNom.slice(1).trim() : ""
+  const nom = rawNom ? rawNom.trim() : ""
   const cie = rawCie ? rawCie.trim() : ""
 
   return (
@@ -58,6 +67,10 @@ export default async function PartenairesInvitationPage({
         initialNom={nom}
         initialCie={cie}
         initialInviter={inviter}
+        initialCode={rawCode}
+        initialLeadId={rawLeadId}
+        initialEmail={rawEmail}
+        initialPhone={rawPhone}
       />
     </Suspense>
   )

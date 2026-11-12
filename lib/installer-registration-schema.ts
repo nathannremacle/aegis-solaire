@@ -89,7 +89,22 @@ export const installerRegistrationSchema = z.object({
       { message: "Une ou plusieurs zones sélectionnées sont invalides." }
     ),
   invitedBy: z.string().max(255).optional(),
+  leadId: z.string().max(255).optional(),
 })
+
+export function getRegionsFromPostalCode(postalCode?: string): string[] {
+  if (!postalCode) return ["Bruxelles-Capitale"]
+  const num = parseInt(postalCode.replace(/\D/g, ""), 10)
+  if (isNaN(num)) return ["Bruxelles-Capitale"]
+  if (num >= 1000 && num <= 1299) return ["Bruxelles-Capitale", "Brabant wallon"]
+  if (num >= 1300 && num <= 1499) return ["Brabant wallon", "Bruxelles-Capitale"]
+  if (num >= 4000 && num <= 4999) return ["Liège"]
+  if (num >= 5000 && num <= 5999) return ["Namur"]
+  if (num >= 6000 && num <= 6599) return ["Hainaut"]
+  if (num >= 6600 && num <= 6999) return ["Luxembourg (BE)", "Namur"]
+  if (num >= 7000 && num <= 7999) return ["Hainaut"]
+  return ["Bruxelles-Capitale"]
+}
 
 export type InstallerRegistrationInput = z.infer<typeof installerRegistrationSchema>
 

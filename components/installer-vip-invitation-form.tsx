@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
@@ -28,6 +28,7 @@ import {
   INSTALLER_REGIONS,
   TARGET_SEGMENT_OPTIONS,
   POWER_CAPACITY_OPTIONS,
+  getRegionsFromPostalCode,
 } from "@/lib/installer-registration-schema"
 import { CheckCircle2, ShieldCheck, ArrowRight, ArrowLeft, Loader2, Sparkles } from "lucide-react"
 
@@ -50,18 +51,31 @@ const inputClass =
 
 interface InstallerVipInvitationFormProps {
   initialFirstName?: string
+  initialLastName?: string
   initialCompanyName?: string
+  initialPostalCode?: string
+  initialEmail?: string
+  initialPhone?: string
+  initialLeadId?: string
   inviterName?: string
 }
 
 export function InstallerVipInvitationForm({
   initialFirstName = "",
+  initialLastName = "",
   initialCompanyName = "",
+  initialPostalCode = "",
+  initialEmail = "",
+  initialPhone = "",
+  initialLeadId = "",
   inviterName = "Direction des Partenariats",
 }: InstallerVipInvitationFormProps) {
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(0)
   const [submitted, setSubmitted] = useState(false)
+  const [canSubmit, setCanSubmit] = useState(false)
+
+  const defaultRegions = getRegionsFromPostalCode(initialPostalCode)
 
   const form = useForm<InstallerRegistrationInput>({
     resolver: zodResolver(installerRegistrationSchema),
@@ -71,18 +85,30 @@ export function InstallerVipInvitationForm({
       targetSegment: "BOTH",
       powerCapacity: "mixte",
       firstName: initialFirstName,
-      lastName: "",
+      lastName: initialLastName,
       jobTitle: "Gérant / Installateur",
-      email: "",
-      phone: "",
+      email: initialEmail,
+      phone: initialPhone,
       rescertPhotovoltaicRef: "",
       rescertPhotovoltaicConfirmed: true,
-      regions: ["Liège"],
+      regions: defaultRegions,
       invitedBy: inviterName,
+      leadId: initialLeadId,
     },
   })
 
   const totalSteps = STEP_FIELDS.length
+
+  // Protection anti-double-clic et debounce sur l'étape finale
+  useEffect(() => {
+    if (step === totalSteps - 1) {
+      setCanSubmit(false)
+      const t = setTimeout(() => setCanSubmit(true), 350)
+      return () => clearTimeout(t)
+    } else {
+      setCanSubmit(false)
+    }
+  }, [step, totalSteps])
 
   async function goNext() {
     const fields = STEP_FIELDS[step]
@@ -102,6 +128,7 @@ export function InstallerVipInvitationForm({
       const payload = {
         ...values,
         invitedBy: inviterName,
+        leadId: initialLeadId || undefined,
       }
       const res = await fetch("/api/installateurs/register", {
         method: "POST",
@@ -212,6 +239,14 @@ export function InstallerVipInvitationForm({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.target as HTMLElement)?.tagName === "INPUT") {
+                if (step < totalSteps - 1) {
+                  e.preventDefault()
+                  goNext()
+                }
+              }
+            }}
             className="flex flex-col gap-5 [padding-bottom:max(0.5rem,env(safe-area-inset-bottom))]"
             noValidate
           >
@@ -484,7 +519,7 @@ export function InstallerVipInvitationForm({
                     <FormItem>
                       <div className="mb-2">
                         <FormLabel className="text-foreground text-sm font-medium">
-                          Sélectionnez vos provinces prioritaires en Wallonie
+                          Sélectionnez vos zones prioritaires (Wallonie &amp; Bruxelles)
                         </FormLabel>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           Votre profil ne recevra d'alertes que pour les chantiers géolocalisés dans ces zones.
@@ -493,29 +528,37 @@ export function InstallerVipInvitationForm({
                       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                         {INSTALLER_REGIONS.map((region) => {
                           const checked = field.value?.includes(region)
+                          const toggle = () => {
+                            const current = field.value || []
+                            if (current.includes(region)) {
+                              field.onChange(current.filter((r: string) => r !== region))
+                            } else {
+                              field.onChange([...current, region])
+                            }
+                          }
                           return (
-                            <label
+                            <div
                               key={region}
-                              className={`flex cursor-pointer items-center gap-2.5 rounded-md border p-3 text-xs sm:text-sm transition-all ${
+                              role="button"
+                              tabIndex={0}
+                              onClick={toggle}
+                              onKeyDown={(e) => {
+                                if (e.key === " " || e.key === "Enter") {
+                                  e.preventDefault()
+                                  toggle()
+                                }
+                              }}
+                              className={`flex cursor-pointer items-center gap-2.5 rounded-md border p-3 text-xs sm:text-sm transition-all select-none ${
                                 checked
                                   ? "border-2 border-primary bg-primary/[0.04] text-foreground font-semibold ring-1 ring-primary/10"
                                   : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-secondary/30"
                               }`}
                             >
-                              <Checkbox
-                                checked={checked}
-                                onCheckedChange={(c) => {
-                                  if (c) {
-                                    field.onChange([...(field.value || []), region])
-                                  } else {
-                                    field.onChange(
-                                      field.value?.filter((r: string) => r !== region)
-                                    )
-                                  }
-                                }}
-                              />
-                              <span>{region}</span>
-                            </label>
+                              <div className="pointer-events-none">
+                                <Checkbox checked={checked} tabIndex={-1} />
+                              </div>
+                              <span className="font-medium text-foreground">{region}</span>
+                            </div>
                           )
                         })}
                       </div>
@@ -537,6 +580,7 @@ export function InstallerVipInvitationForm({
             <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
               {step > 0 ? (
                 <Button
+                  key="btn-prev"
                   type="button"
                   variant="outline"
                   onClick={goPrev}
@@ -552,6 +596,7 @@ export function InstallerVipInvitationForm({
 
               {step < totalSteps - 1 ? (
                 <Button
+                  key="btn-next"
                   type="button"
                   onClick={goNext}
                   className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md font-mono text-xs font-medium px-5 py-2.5 shadow-xs"
@@ -561,8 +606,9 @@ export function InstallerVipInvitationForm({
                 </Button>
               ) : (
                 <Button
+                  key="btn-submit"
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !canSubmit}
                   className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md font-mono text-xs font-semibold px-6 py-2.5 shadow-xs"
                 >
                   {loading ? (

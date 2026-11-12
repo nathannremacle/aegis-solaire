@@ -111,6 +111,29 @@ export default function PartenairesPage() {
                 </div>
               </div>
             </div>
+
+            {/* Bannière Annuaire RESCert Inbound */}
+            <div className="mt-8 rounded-2xl border border-accent/25 bg-accent/[0.03] p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded-lg bg-accent/10 p-2 text-accent border border-accent/20 shrink-0">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm sm:text-base font-bold text-foreground font-heading">
+                    Votre entreprise est-elle déjà certifiée RESCert en Wallonie ou à Bruxelles ?
+                  </h4>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                    Consultez les 784 installateurs recensés sur notre annuaire public et revendiquez votre fiche pour activer votre accès partenaire et configurer vos zones d&apos;attribution prioritaires sans abonnement.
+                  </p>
+                </div>
+              </div>
+              <Button asChild size="sm" variant="outline" className="border-border hover:border-accent hover:text-accent font-mono text-xs font-semibold shrink-0">
+                <Link href="/partenaires/annuaire">
+                  Consulter l&apos;annuaire RESCert
+                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                </Link>
+              </Button>
+            </div>
           </div>
         </section>
 
