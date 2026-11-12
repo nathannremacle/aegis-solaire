@@ -1,6 +1,5 @@
 import fs from "node:fs"
 import path from "node:path"
-import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import {
   InstallerDirectory,
@@ -61,8 +60,6 @@ export default function AnnuairePartenairesPage() {
 
   return (
     <div className="flex min-h-screen min-w-0 flex-col overflow-x-hidden font-sans bg-background text-foreground selection:bg-accent/15 selection:text-foreground">
-      <Header />
-
       <main className="min-w-0 flex-1">
         {/* ─── Hero Section de l'Annuaire RESCert ─── */}
         <section className="border-b border-border py-14 md:py-20 bg-background [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
