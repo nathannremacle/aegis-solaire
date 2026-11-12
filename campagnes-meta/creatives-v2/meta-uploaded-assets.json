@@ -2,23 +2,23 @@
   "account": "act_1596485538374624",
   "adsetFeedId": "120251604763100465",
   "pageId": "1135722802965073",
-  "uploadedAt": "2026-11-12T21:35:13.465Z",
+  "uploadedAt": "2026-11-12T22:36:27.158Z",
   "uploaded": {
     "V2_AD1_ECART_1850_4X5": {
-      "imageHash": "68f348838ddfcfe0985d98c00ae9b9b3"
+      "imageHash": "f87d4b9e3cfd69d4cec59b9319ecb9e9"
     },
     "V2_AD2_RENTABILITE_2026_4X5": {
-      "imageHash": "d0b8c5258309347876970665c474a9b1"
+      "imageHash": "e1c4eb10c873f108187d84753af46ad7"
     },
     "V2_AD3_ANTI_DEMARCHAGE_4X5": {
-      "imageHash": "6054d33a4c7a5261a1bbe0180216b0c0"
+      "imageHash": "ffc9003223991982fabecf0a31a737e0"
     },
     "V2_VIDEO_WALLONIE_FEED_4X5": {
-      "videoId": "1008011991627217",
-      "thumbHash": "68f348838ddfcfe0985d98c00ae9b9b3"
+      "videoId": "1888854545817833",
+      "thumbHash": "f87d4b9e3cfd69d4cec59b9319ecb9e9"
     },
     "V2_VIDEO_WALLONIE_REELS_9X16": {
-      "videoId": "1603647467749152"
+      "videoId": "29529273160029395"
     }
   }
 }
