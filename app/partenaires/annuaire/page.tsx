@@ -16,6 +16,22 @@ export const metadata = {
   alternates: {
     canonical: `${baseUrl}/partenaires/annuaire`,
   },
+  openGraph: {
+    title: "Annuaire Officiel des Installateurs RESCert Photovoltaïque Wallonie & Bruxelles | Aegis Solaire",
+    description:
+      "Consultez les 784 installateurs photovoltaïques certifiés RESCert en Wallonie et à Bruxelles. Revendiquez votre fiche entreprise et accédez aux opportunités de chantiers qualifiés.",
+    url: `${baseUrl}/partenaires/annuaire`,
+    siteName: "Aegis Solaire",
+    locale: "fr_BE",
+    type: "website",
+    images: [{ url: "/logo.png", width: 1200, height: 630, alt: "Aegis Solaire" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Annuaire Officiel des Installateurs RESCert Photovoltaïque Wallonie & Bruxelles",
+    description:
+      "Consultez les 784 installateurs photovoltaïques certifiés RESCert en Wallonie et à Bruxelles.",
+  },
 }
 
 function getInstallersData(): RescertInstaller[] {
