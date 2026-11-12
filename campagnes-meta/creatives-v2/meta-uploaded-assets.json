@@ -1,24 +1,27 @@
 {
   "account": "act_1596485538374624",
+  "campaignId": "120251604763090465",
   "adsetFeedId": "120251604763100465",
   "pageId": "1135722802965073",
-  "uploadedAt": "2026-11-12T22:36:27.158Z",
+  "instagramUserId": "17841416430125462",
+  "pixelId": "1672474437601117",
+  "uploadedAt": "2026-11-12T22:49:56.277Z",
   "uploaded": {
-    "V2_AD1_ECART_1850_4X5": {
-      "imageHash": "f87d4b9e3cfd69d4cec59b9319ecb9e9"
+    "V2_AD1_ECART_1850_GPT": {
+      "imageHash": "cb94e847464b80d7ebcf44d35c0370ff"
     },
-    "V2_AD2_RENTABILITE_2026_4X5": {
-      "imageHash": "e1c4eb10c873f108187d84753af46ad7"
+    "V2_AD2_RENTABILITE_2026_GPT": {
+      "imageHash": "c0b05538c6e0d7ebfdb7be68958f0add"
     },
-    "V2_AD3_ANTI_DEMARCHAGE_4X5": {
-      "imageHash": "ffc9003223991982fabecf0a31a737e0"
+    "V2_AD3_ANTI_DEMARCHAGE_GPT": {
+      "imageHash": "87aa62b15455c8907befc0b0700c1ec2"
     },
     "V2_VIDEO_WALLONIE_FEED_4X5": {
-      "videoId": "1888854545817833",
-      "thumbHash": "f87d4b9e3cfd69d4cec59b9319ecb9e9"
+      "videoId": "1706548700861731",
+      "thumbHash": "cb94e847464b80d7ebcf44d35c0370ff"
     },
     "V2_VIDEO_WALLONIE_REELS_9X16": {
-      "videoId": "29529273160029395"
+      "videoId": "1856643732201466"
     }
   }
 }

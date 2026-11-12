@@ -1,60 +1,60 @@
 # PACK V2 — RELANCE HAUT CTR & QUALIFICATION WALLONIE (META ADS)
 
-> **Statut :** Prêt au déploiement (`PUB_1`, `PUB_2`, `PUB_3` en pause ; ciblage AdSet `120251604763100465` migré sur **Wallonie 5 provinces complète** + **placements Feed FB/IG uniquement**).  
+> **Statut :** **Déployé & Actif (12 novembre 2026)** — Pack V1 (`PUB_1`, `PUB_2`, `PUB_3`) en pause ; **4 annonces V2 actives** (3 visuels GPT Image `1080×1350` + 1 vidéo Feed `4:5`) dans l'AdSet `120251604763100465` (**Wallonie 5 provinces complète** + **placements Feed FB/IG uniquement**).  
 > **Objectif :** Faire passer le `CTR Lien` (`inline_link_click_ctr`) de **0,66 %** (Pack V1) à **>= 1,40 %**, diviser le `CPC Lien` de **3,75 €** vers **<= 1,10 €**, et ramener le `CPL` sous **<= 25–30 €** sur `/devis-panneaux-solaires`.
 
 ---
 
-## 1. Déblocage préalable dans Meta Business Manager (`Init42`)
+## 1. Permissions Page Meta Business Manager — Résolu
 
-Lors des tests API sur `act_1596485538374624`, l'API Graph retourne l'erreur **`3858749` (`Autorisation de Page manquante`)** dès la création d'un objet `AdCreative` rattaché à la Page `1135722802965073` :
-- Le compte publicitaire et le Pixel `1672474437601117` sont opérationnels via `META_MARKETING_TOKEN`.
-- Il manque uniquement le rôle **Annonces (`ADS`)** sur la Page Facebook `1135722802965073` pour le Système User / profil `AegisLeadEngineMonitor` (`122105755887540362`).
-
-**Action en 30 secondes dans `business.facebook.com/settings` (Business Manager `Init42` — `532988283872893`) :**
-1. Ouvrir **Utilisateurs → Utilisateurs système** (ou **Comptes → Pages → Aegis Solaire `1135722802965073`**).
-2. Sélectionner **`AegisLeadEngineMonitor`** → **Attribuer des actifs → Pages → Cocher la Page `1135722802965073` → Activer l'autorisation `Créer des publicités / Annonces`**.
-3. Enregistrer, puis exécuter :
-   ```bash
-   node scripts/launch-meta-pack-v2.mjs --create-ads
-   ```
-   *(Tous les visuels et vidéos V2 sont déjà pré-téléversables dans la bibliothèque médias de `act_1596485538374624` via `--stage-assets`.)*
+Le blocage initial **`3858749` (`Autorisation de Page manquante`)** sur `act_1596485538374624` a été résolu dans le Business Manager `Init42` (`532988283872893`) :
+- L'utilisateur système `AegisLeadEngineMonitor` (`122105755887540362`) dispose désormais de l'accès complet (`MANAGE`, `ADVERTISE`, `CREATE_CONTENT`, `ANALYZE`) sur la Page `1135722802965073`.
+- Le Pixel `1672474437601117` (`tracking_specs` + CAPI serveur) et le compte Instagram `17841416430125462` sont directement reliés à chaque créatif V2.
+- Commande utilisée pour le déploiement :
+  ```bash
+  node scripts/launch-meta-pack-v2.mjs --create-ads --activate
+  ```
 
 ---
 
-## 2. Architecture de Campagne V2 Recommandée
+## 2. Architecture de Campagne V2 Déployée
 
 ### AdSet A (Actif — Feed Statique & Vidéo 4:5) : `Wallonie_Proprietaires_Broad_30-64` (`120251604763100465`)
 - **Ciblage géographique :** Région Wallonne (`4137`) **complète (5 provinces, y compris Luxembourg belge 66xx–69xx)**.
 - **Exclusions actives :** Bruxelles (`296`), Flandre (`4136`), Grand-Duché de Luxembourg (`LU`).
 - **Advantage+ Audience :** Désactivé (`advantage_audience: 0`) pour empêcher toute fuite hors Wallonie.
-- **Placements :** `Facebook Feed` + `Instagram Feed` uniquement (**Reels / Stories / Audience Network coupés** pour ne plus brûler de budget à 0,27 % de CTR sur du statique).
-- **Budget recommandé :** `20 € / jour` sur **3 annonces V2 actives max** simultanément (1 AdSet propre = sortie plus rapide de la phase d'apprentissage avec `Lead` + `InitiateCheckout` + `Contact` CAPI).
+- **Placements :** `Facebook Feed` + `Instagram Stream` uniquement (**Reels / Stories / Audience Network coupés** pour éviter le trafic accidentel à 0,27 % de CTR sur du statique).
+- **Budget actif (`CBO`) :** `20,00 € / jour` concentré sur **4 annonces V2 actives** (~5 €/j par variante) :
+  - `V2_AD1_ECART_1850_GPT` (`120251681580910465`) — `GET_QUOTE`
+  - `V2_AD2_RENTABILITE_2026_GPT` (`120251681581910465`) — `LEARN_MORE`
+  - `V2_AD3_ANTI_DEMARCHAGE_GPT` (`120251681583000465`) — `GET_QUOTE`
+  - `V2_VIDEO_WALLONIE_FEED_4X5` (`120251681583270465`) — `GET_QUOTE`
 
-### AdSet B (Optionnel à J+3 ou dès lancement dédié Vidéo 9:16) : `Wallonie_Reels_Stories_Video_30-64`
+### AdSet B (En réserve pour Phase Scaling > 35–40 €/j) : `Wallonie_Reels_Stories_Video_30-64`
 - **Ciblage :** Identique à l'AdSet A (Wallonie 5 provinces, `30–64 ans`, exclusions BXL/VL/LU, `advantage_audience: 0`).
 - **Placements exclusifs :** `Facebook Reels`, `Instagram Reels`, `Facebook Stories`, `Instagram Stories`.
-- **Créatif exclusif :** `creatives-v2/v2_video_wallonie_9x16.mp4` (`1080×1920`, `15 s`, zones sûres Reels/Stories respectées).
-- **Pourquoi séparer :** Empêche Meta de diffuser des vignettes statiques 4:5 en Reels, tout en captant les CPM plus bas du format vertical immersif avec un vrai motion design.
+- **Créatif prêt dans la bibliothèque média :** `creatives-v2/v2_video_wallonie_9x16.mp4` (`1080×1920`, `15 s`, `video_id 1856643732201466`).
+- **Pourquoi attendre :** À `20 €/j`, scinder le budget sur un 2ᵉ AdSet laisserait ~`10 €/j` par AdSet, insuffisant pour stabiliser l'apprentissage `LEAD` ; cet AdSet sera ouvert uniquement après validation d'un gagnant Feed et hausse du budget.
 
 ---
 
 ## 3. Paramètres UTM & URL de Destination Standardisés
 
-**URL de destination recommandée :**
+**URL cible propre (`link_data.link`) :** `https://www.aegissolaire.com/devis-panneaux-solaires`  
+**`url_tags` dynamiques appliqués sur chaque annonce V2 :**
 ```text
-https://www.aegissolaire.com/devis-panneaux-solaires?utm_source=meta&utm_medium=cpc&utm_campaign={{campaign.name}}&utm_content={{ad.name}}&utm_term={{placement}}
+utm_source=meta&utm_medium=cpc&utm_campaign={{campaign.name}}&utm_content=<AD_NAME>&utm_term={{placement}}
 ```
 
 *(Note : ajouter `&utm_term={{placement}}` permet dans Supabase `funnel_step_events` de distinguer immédiatement les sessions issues de `Facebook_Mobile_Feed` vs `Instagram_Stream` vs `Reels`.)*
 
 ---
 
-## 4. Les 4 Créatifs & Textes Complets (Français Belgique / Wallonie)
+## 4. Les 4 Créatifs Actifs & Textes Complets (Français Belgique / Wallonie)
 
-### V2-AD1 — Angle Douleur / Écart Réel de Prix (`V2_AD1_ECART_1850_4X5`)
-- **Fichier visuel :** `campagnes-meta/creatives-v2/v2_ad1_ecart1850_4x5.png` (`1080×1350`, ratio 4:5)
-- **URL CTA :** `https://www.aegissolaire.com/devis-panneaux-solaires?utm_source=meta&utm_medium=cpc&utm_campaign={{campaign.name}}&utm_content=V2_AD1_ECART_1850_4X5&utm_term={{placement}}`
+### V2-AD1 — Angle Douleur / Écart Réel de Prix (`V2_AD1_ECART_1850_GPT` — `120251681580910465`)
+- **Fichier visuel déployé :** `campagnes-meta/creatives-v2/v2_ad1_ecart1850_gpt_4x5.png` (`1080×1350`, ratio 4:5 — fallback CSS `v2_ad1_ecart1850_4x5.png`)
+- **Image hash Meta :** `cb94e847464b80d7ebcf44d35c0370ff`
 - **CTA Meta :** `Obtenir un devis` (`GET_QUOTE`)
 
 **Texte principal — Version Courte (recommandée test mobile) :**
@@ -80,10 +80,10 @@ https://www.aegissolaire.com/devis-panneaux-solaires?utm_source=meta&utm_medium=
 
 ---
 
-### V2-AD2 — Angle Rentabilité 2026 & Fin du Compteur à l'Envers (`V2_AD2_RENTABILITE_2026_4X5`)
-- **Fichier visuel :** `campagnes-meta/creatives-v2/v2_ad2_rentabilite2026_4x5.png` (`1080×1350`, ratio 4:5)
-- **URL CTA :** `https://www.aegissolaire.com/devis-panneaux-solaires?utm_source=meta&utm_medium=cpc&utm_campaign={{campaign.name}}&utm_content=V2_AD2_RENTABILITE_2026_4X5&utm_term={{placement}}`
-- **CTA Meta :** `En savoir plus` (`LEARN_MORE`) ou `Obtenir un devis` (`GET_QUOTE`)
+### V2-AD2 — Angle Rentabilité 2026 & Fin du Compteur à l'Envers (`V2_AD2_RENTABILITE_2026_GPT` — `120251681581910465`)
+- **Fichier visuel déployé :** `campagnes-meta/creatives-v2/v2_ad2_rentabilite2026_gpt_4x5.png` (`1080×1350`, ratio 4:5 — fallback CSS `v2_ad2_rentabilite2026_4x5.png`)
+- **Image hash Meta :** `c0b05538c6e0d7ebfdb7be68958f0add`
+- **CTA Meta :** `En savoir plus` (`LEARN_MORE`)
 
 **Texte principal — Version Courte :**
 > Fin du compteur qui tourne à l'envers : le solaire reste-t-il rentable sur votre maison en Wallonie en 2026 ?
@@ -104,9 +104,9 @@ https://www.aegissolaire.com/devis-panneaux-solaires?utm_source=meta&utm_medium=
 
 ---
 
-### V2-AD3 — Angle Anti-Démarchage & Zéro Harcèlement (`V2_AD3_ANTI_DEMARCHAGE_4X5`)
-- **Fichier visuel :** `campagnes-meta/creatives-v2/v2_ad3_anti_demarchage_4x5.png` (`1080×1350`, ratio 4:5)
-- **URL CTA :** `https://www.aegissolaire.com/devis-panneaux-solaires?utm_source=meta&utm_medium=cpc&utm_campaign={{campaign.name}}&utm_content=V2_AD3_ANTI_DEMARCHAGE_4X5&utm_term={{placement}}`
+### V2-AD3 — Angle Anti-Démarchage & Zéro Harcèlement (`V2_AD3_ANTI_DEMARCHAGE_GPT` — `120251681583000465`)
+- **Fichier visuel déployé :** `campagnes-meta/creatives-v2/v2_ad3_anti_demarchage_gpt_4x5.png` (`1080×1350`, ratio 4:5 — fallback CSS `v2_ad3_anti_demarchage_4x5.png`)
+- **Image hash Meta :** `87aa62b15455c8907befc0b0700c1ec2`
 - **CTA Meta :** `Obtenir un devis` (`GET_QUOTE`)
 
 **Texte principal — Version Courte :**
@@ -129,14 +129,14 @@ https://www.aegissolaire.com/devis-panneaux-solaires?utm_source=meta&utm_medium=
 
 ---
 
-### V2-VIDEO1 — Vidéo Motion 15s (`V2_VIDEO_WALLONIE_REELS_9X16` & `V2_VIDEO_WALLONIE_FEED_4X5`)
+### V2-VIDEO1 — Vidéo Motion 15s (`V2_VIDEO_WALLONIE_FEED_4X5` — `120251681583270465`)
 - **Fichiers visuels :**
-  - `campagnes-meta/creatives-v2/v2_video_wallonie_9x16.mp4` (`1080×1920`, `15 s`, `30 fps`, H.264) → AdSet Reels/Stories
-  - `campagnes-meta/creatives-v2/v2_video_wallonie_4x5.mp4` (`1080×1350`, `15 s`, `30 fps`, H.264) → AdSet Feed FB/IG
-- **URL CTA :** `https://www.aegissolaire.com/devis-panneaux-solaires?utm_source=meta&utm_medium=cpc&utm_campaign={{campaign.name}}&utm_content=V2_VIDEO_WALLONIE_15S&utm_term={{placement}}`
-- **Texte principal :** Utiliser la version courte de **V2-AD1** (`1 850 € d'écart`).
+  - `campagnes-meta/creatives-v2/v2_video_wallonie_4x5.mp4` (`1080×1350`, `15 s`, `30 fps`, H.264 — `video_id 1706548700861731`) → **Actif dans AdSet A (Feed FB/IG)**
+  - `campagnes-meta/creatives-v2/v2_video_wallonie_9x16.mp4` (`1080×1920`, `15 s`, `30 fps`, H.264 — `video_id 1856643732201466`) → **En réserve pour AdSet B (Reels/Stories)**
+- **CTA Meta :** `Obtenir un devis` (`GET_QUOTE`)
+- **Texte principal :** Angle `1 850 € d'écart` adapté Feed.
 - **Titre (Headline) :** `1 850 € d'écart ? Comparez 3 devis`
-- **Description :** `Gratuit · 45 sec · Wallonie (RESCERT)`
+- **Description :** `Gratuit · 45 s · Wallonie (RESCERT)`
 
 ---
 

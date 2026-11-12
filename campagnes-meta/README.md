@@ -16,16 +16,20 @@ Ce dossier centralise la recherche concurrentielle, les créations publicitaires
 * **Placements** : Exclusifs Facebook & Instagram (Audience Network et Messenger exclus le 10/11/2026).
 
 ### Pack V1 (Archivé / En pause suite à l'audit V1) :
-1. **Pub 1** : `PUB_1_VISUEL_ANALYSE_DEVIS` — En pause (`CTR lien 0,69 %`, `38,74 €`)
-2. **Pub 2** : `PUB_2_VISUEL_MAISON_COMPAREZ` — En pause (`CTR lien 0,74 %`, `21,55 €`)
-3. **Pub 3** : `PUB_3_VISUEL_AUDIT_COMPARER` — En pause (`CTR lien 0,57 %`, `37,13 €`)
+1. **Pub 1** : `PUB_1_VISUEL_ANALYSE_DEVIS` (`120251604763110465`) — En pause (`CTR lien 0,69 %`, `38,74 €`)
+2. **Pub 2** : `PUB_2_VISUEL_MAISON_COMPAREZ` (`120251605088950465`) — En pause (`CTR lien 0,74 %`, `21,55 €`)
+3. **Pub 3** : `PUB_3_VISUEL_AUDIT_COMPARER` (`120251628805770465`) — En pause (`CTR lien 0,57 %`, `37,13 €`)
 
-### Pack V2 (Haut CTR & Feed/Reels — Prêt au déploiement) :
+### Pack V2 (Déployé & Actif — GPT Image 4:5 + Vidéo Feed 4:5) :
 Voir **[`6-PACK-V2-RELANCE-HAUT-CTR.md`](./6-PACK-V2-RELANCE-HAUT-CTR.md)** et le dossier `campagnes-meta/creatives-v2/` :
-* **Statiques Feed 4:5 (`1080×1350`)** : `v2_ad1_ecart1850_4x5.png`, `v2_ad2_rentabilite2026_4x5.png`, `v2_ad3_anti_demarchage_4x5.png`
-* **Vidéos Motion 15s** : `v2_video_wallonie_4x5.mp4` (Feed) et `v2_video_wallonie_9x16.mp4` (Reels/Stories)
-* **Script de téléversement & lancement Meta** : `node scripts/launch-meta-pack-v2.mjs --stage-assets` puis `--create-ads`
-* **Ciblage V2 appliqué sur AdSet `120251604763100465`** : Wallonie complète 5 provinces (Luxembourg BE restauré), BXL/VL/`LU` exclus, placements Feed FB/IG uniquement (`advantage_audience: 0`).
+* **Annonces actives dans AdSet `120251604763100465`** (`Page 1135722802965073` + `IG 17841416430125462` + `Pixel 1672474437601117` + `url_tags`) :
+  1. `V2_AD1_ECART_1850_GPT` (`120251681580910465`) — `v2_ad1_ecart1850_gpt_4x5.png` (`1080×1350`)
+  2. `V2_AD2_RENTABILITE_2026_GPT` (`120251681581910465`) — `v2_ad2_rentabilite2026_gpt_4x5.png` (`1080×1350`)
+  3. `V2_AD3_ANTI_DEMARCHAGE_GPT` (`120251681583000465`) — `v2_ad3_anti_demarchage_gpt_4x5.png` (`1080×1350`)
+  4. `V2_VIDEO_WALLONIE_FEED_4X5` (`120251681583270465`) — `v2_video_wallonie_4x5.mp4` (`1080×1350`, `15 s`)
+* **Réserve Scaling Reels/Stories** : `v2_video_wallonie_9x16.mp4` (`video_id 1856643732201466` pré-téléversé).
+* **Script de déploiement** : `node scripts/launch-meta-pack-v2.mjs --create-ads --activate`
+* **Ciblage V2 actif sur AdSet `120251604763100465`** : Wallonie complète 5 provinces (Luxembourg BE restauré), BXL/VL/`LU` exclus, placements Feed FB/IG uniquement (`advantage_audience: 0`).
 
 ---
 
@@ -36,9 +40,10 @@ Pour auditer en direct les performances sans avoir à ouvrir le Gestionnaire de 
 * **Exécution** : `node --env-file=.env.local scripts/monitor-campaigns.mjs`
 
 ### Ce que le script mesure en temps réel :
+* **Annonces Meta actives & en pause** : Métriques réelles (`inline_link_clicks`, `LPV`, `Leads`) et statut de validation de chaque annonce V1/V2.
 * **Entonnoir de conversion (Funnel)** :
-  - Décompte des visiteurs à chaque étape (Étape 1 à 6) depuis la table `funnel_step_events`.
-  - Comparaison directe entre la Pub 1 (`visuel1_table_devis`) et la Pub 2 (`visuel2_maison_comparez`).
+  - Décompte des visiteurs humains à chaque étape (Étape 1 à 6) depuis la table `funnel_step_events`.
+  - Comparaison directe par `utm_content` entre les annonces V2 actives (`V2_AD1_ECART_1850_GPT`, `V2_AD2_RENTABILITE_2026_GPT`, `V2_AD3_ANTI_DEMARCHAGE_GPT`, `V2_VIDEO_WALLONIE_FEED_4X5`) et l'historique V1.
 * **CV Complet des Prospects (Leads)** :
   - Nom, commune, code postal, puissance estimée (kWc), facture annuelle déclarée.
   - Horodatage et publicité exacte ayant généré la conversion.

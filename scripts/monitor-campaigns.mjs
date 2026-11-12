@@ -155,7 +155,10 @@ async function runMetaAudit() {
   let totalLpv = 0
   let totalLeads = 0
 
+  const seenAdIds = new Set()
+
   for (const row of insightsAd?.data || []) {
+    seenAdIds.add(row.ad_id)
     const spend = Number(row.spend || 0)
     const impr = Number(row.impressions || 0)
     const linkClicks = Number(row.inline_link_clicks || 0)
@@ -191,6 +194,14 @@ async function runMetaAudit() {
       `     Vues Landing (LPV): ${lpv} (${fmtPct(lpvRate)} des clics lien) | IC: ${ic} | Contact: ${contact} | Leads Meta: ${leads}`
     )
     console.log(`     -> VERDICT: ${verdict}\n`)
+  }
+
+  for (const ad of adsMeta?.data || []) {
+    if (seenAdIds.has(ad.id)) continue
+    if (ad.status !== "ACTIVE" && ad.effective_status !== "WITH_ISSUES") continue
+    const status = `${ad.status || "?"}/${ad.effective_status || "?"}`
+    console.log(`   * ${ad.name} (${ad.id}) [${status}]`)
+    console.log(`     Depense: ${fmtEur(0)} | Impr: 0 (En validation ou demarrage recent)\n`)
   }
 
   const globalLinkCtr = totalImpr > 0 ? (totalLinkClicks / totalImpr) * 100 : 0
