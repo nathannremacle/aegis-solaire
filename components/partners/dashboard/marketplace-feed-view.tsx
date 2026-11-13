@@ -1847,16 +1847,8 @@ function MarketplaceLeadCard({
   const surfaceArea = financials.normalizedSurfaceAreaM2
   const annualBill = financials.normalizedAnnualBill
 
-  // Image réelle du lead (Street View) en priorité, sinon illustration non contractuelle B2B/B2C
-  const customRoofImage = (
-    lead.qualification_metadata?.roof_image_url ||
-    lead.qualification_metadata?.site_image_url ||
-    lead.qualificationMetadata?.roof_image_url ||
-    lead.qualificationMetadata?.site_image_url ||
-    lead.roof_image_url ||
-    lead.site_image_url
-  ) as string | undefined
-  const leadImage = customRoofImage || (isB2B ? B2B_SOLAR_IMAGE : B2C_SOLAR_IMAGE)
+  // 1 image dédiée non contractuelle : teinte froide/acier pour B2B, teinte chaude/terracotta pour B2C
+  const leadImage = isB2B ? B2B_SOLAR_IMAGE : B2C_SOLAR_IMAGE
 
   // Formatage financier précis (arrondi 50 €/100 € en B2C au lieu d'un arrondi grossier au millier)
   const minText = formatRoundedCurrency(financials.estimatedContractValueRange?.min || 0).replace("~", "")
@@ -1897,7 +1889,6 @@ function MarketplaceLeadCard({
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-cover transition-transform duration-500 group-hover:scale-105"
             priority={index < 3}
-            unoptimized={Boolean(customRoofImage)}
           />
 
           {/* Dégradé supérieur pour contraster les badges */}
@@ -1939,17 +1930,10 @@ function MarketplaceLeadCard({
             <ChevronRight className="h-4 w-4" />
           </div>
 
-          {/* Mention visuel réel Street View ou illustration non contractuelle */}
-          {customRoofImage ? (
-            <span className="absolute bottom-2.5 right-3 inline-flex items-center gap-1.5 text-[10px] font-semibold text-white bg-black/65 backdrop-blur-xs px-2.5 py-0.5 rounded-full pointer-events-none">
-              <Camera className="h-3 w-3 text-emerald-400" />
-              <span>Visuel Street View</span>
-            </span>
-          ) : (
-            <span className="absolute bottom-2.5 right-3 text-[10px] font-medium text-white/85 bg-black/45 backdrop-blur-xs px-2.5 py-0.5 rounded-full pointer-events-none">
-              Illustration non contractuelle
-            </span>
-          )}
+          {/* Mention discrète illustration non contractuelle */}
+          <span className="absolute bottom-2.5 right-3 text-[10px] font-medium text-white/85 bg-black/45 backdrop-blur-xs px-2.5 py-0.5 rounded-full pointer-events-none">
+            Illustration non contractuelle
+          </span>
         </div>
 
         {/* ── B. Contenu de la Carte : Titre, Puissance, Spécifications 2x2, Économie ── */}
