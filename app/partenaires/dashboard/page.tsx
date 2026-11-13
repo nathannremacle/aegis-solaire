@@ -134,11 +134,16 @@ async function PartnerDashboardLoader({
 
     if (!rpcErr && initPayload) {
       const feed = initPayload.marketplace || []
-      // Si la RPC active ne retourne pas encore 'city', basculer sur la requête riche
-      if (feed.length === 0 || feed[0].city !== undefined) {
+      const port = initPayload.portfolio || []
+      // S'assurer que la RPC active retourne bien 'city' ET 'qualification_metadata' (pour les visuels toiture)
+      const feedHasMeta =
+        feed.length === 0 ||
+        (feed[0].city !== undefined && feed[0].qualification_metadata !== undefined)
+      const portHasMeta = port.length === 0 || port[0].qualification_metadata !== undefined
+      if ((feed.length > 0 || port.length > 0) && feedHasMeta && portHasMeta) {
         initialPartner = initPayload.partner || initialPartner
         initialMarketplace = feed
-        initialPortfolio = initPayload.portfolio || []
+        initialPortfolio = port
         rpcSuccess = true
       }
     }
@@ -194,7 +199,12 @@ async function PartnerDashboardLoader({
       }))
 
     initialMarketplace = (marketRes.data ?? [])
-      .filter((l: any) => !myPurchasedLeadIds.has(l.id))
+      .filter(
+        (l: any) =>
+          !myPurchasedLeadIds.has(l.id) &&
+          !isShowcaseOnlyLeadId(l.id) &&
+          l.qualification_metadata?.is_showcase !== true
+      )
       .map((l: any) => {
         const maxSlots = l.segment === "B2B" ? 1 : 3
         const testEmailEnv = (process.env.TEST_PARTNER_EMAIL || "").toLowerCase().trim()

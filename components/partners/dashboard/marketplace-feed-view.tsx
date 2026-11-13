@@ -266,6 +266,14 @@ export function MarketplaceFeedView({
     [targetedLead, targetCost]
   )
   const targetLocation = useMemo(() => (targetedLead ? getLeadLocationInfo(targetedLead) : null), [targetedLead])
+  const targetRoofImageUrl = (
+    targetedLead?.qualification_metadata?.roof_image_url ||
+    targetedLead?.qualification_metadata?.site_image_url ||
+    targetedLead?.qualificationMetadata?.roof_image_url ||
+    targetedLead?.qualificationMetadata?.site_image_url ||
+    targetedLead?.roof_image_url ||
+    targetedLead?.site_image_url
+  ) as string | undefined
   const targetSanitized = useMemo(
     () => (targetedLead ? sanitizeLeadNotes(targetedLead.project_details || targetedLead.message) : null),
     [targetedLead]
@@ -756,6 +764,41 @@ export function MarketplaceFeedView({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Colonne Gauche (7 cols) : Fiche Technique & Radar Géographique */}
             <div className="lg:col-span-7 flex flex-col gap-6">
+              {/* Visuel Street View du bâtiment & toiture si disponible */}
+              {targetRoofImageUrl && (
+                <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs flex flex-col gap-3">
+                  <div className="flex items-center justify-between border-b border-border/70 pb-3">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
+                      <Camera className="h-4 w-4 text-primary" />
+                      <span>Visuel Façade &amp; Toiture (Street View)</span>
+                    </h3>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Vérifié sur Street View
+                    </span>
+                  </div>
+                  <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl border border-border bg-muted">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={targetRoofImageUrl}
+                      alt={`Visuel toiture ${targetLocation?.city || "Chantier"}`}
+                      className="h-full w-full object-cover object-center"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>Aperçu préalable de la couverture, pente et orientation.</span>
+                    <a
+                      href={targetRoofImageUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold text-primary hover:underline shrink-0"
+                    >
+                      Ouvrir en grand &rarr;
+                    </a>
+                  </div>
+                </div>
+              )}
+
               {/* Spécifications Techniques */}
               <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs flex flex-col gap-4">
                 <div className="flex items-center justify-between border-b border-border/70 pb-3">
@@ -1804,8 +1847,16 @@ function MarketplaceLeadCard({
   const surfaceArea = financials.normalizedSurfaceAreaM2
   const annualBill = financials.normalizedAnnualBill
 
-  // 1 image dédiée non contractuelle : teinte froide/acier pour B2B, teinte chaude/terracotta pour B2C
-  const leadImage = isB2B ? B2B_SOLAR_IMAGE : B2C_SOLAR_IMAGE
+  // Image réelle du lead (Street View) en priorité, sinon illustration non contractuelle B2B/B2C
+  const customRoofImage = (
+    lead.qualification_metadata?.roof_image_url ||
+    lead.qualification_metadata?.site_image_url ||
+    lead.qualificationMetadata?.roof_image_url ||
+    lead.qualificationMetadata?.site_image_url ||
+    lead.roof_image_url ||
+    lead.site_image_url
+  ) as string | undefined
+  const leadImage = customRoofImage || (isB2B ? B2B_SOLAR_IMAGE : B2C_SOLAR_IMAGE)
 
   // Formatage financier précis (arrondi 50 €/100 € en B2C au lieu d'un arrondi grossier au millier)
   const minText = formatRoundedCurrency(financials.estimatedContractValueRange?.min || 0).replace("~", "")
@@ -1846,6 +1897,7 @@ function MarketplaceLeadCard({
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-cover transition-transform duration-500 group-hover:scale-105"
             priority={index < 3}
+            unoptimized={Boolean(customRoofImage)}
           />
 
           {/* Dégradé supérieur pour contraster les badges */}
@@ -1887,10 +1939,17 @@ function MarketplaceLeadCard({
             <ChevronRight className="h-4 w-4" />
           </div>
 
-          {/* Mention discrète illustration non contractuelle */}
-          <span className="absolute bottom-2.5 right-3 text-[10px] font-medium text-white/85 bg-black/45 backdrop-blur-xs px-2.5 py-0.5 rounded-full pointer-events-none">
-            Illustration non contractuelle
-          </span>
+          {/* Mention visuel réel Street View ou illustration non contractuelle */}
+          {customRoofImage ? (
+            <span className="absolute bottom-2.5 right-3 inline-flex items-center gap-1.5 text-[10px] font-semibold text-white bg-black/65 backdrop-blur-xs px-2.5 py-0.5 rounded-full pointer-events-none">
+              <Camera className="h-3 w-3 text-emerald-400" />
+              <span>Visuel Street View</span>
+            </span>
+          ) : (
+            <span className="absolute bottom-2.5 right-3 text-[10px] font-medium text-white/85 bg-black/45 backdrop-blur-xs px-2.5 py-0.5 rounded-full pointer-events-none">
+              Illustration non contractuelle
+            </span>
+          )}
         </div>
 
         {/* ── B. Contenu de la Carte : Titre, Puissance, Spécifications 2x2, Économie ── */}

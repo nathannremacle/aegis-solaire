@@ -152,6 +152,11 @@ export async function GET() {
       projectDriver: lead.project_driver ?? null,
       timeframe: lead.timeframe ?? null,
       qualificationMetadata: lead.qualification_metadata ?? null,
+      qualification_metadata: lead.qualification_metadata ?? null,
+      roof_image_url:
+        (lead.qualification_metadata as Record<string, unknown> | null)?.roof_image_url ??
+        (lead.qualification_metadata as Record<string, unknown> | null)?.site_image_url ??
+        null,
       wantsIrve: hasIrve,
       badges: {
         isTopDeal: isFastRoi || (isHighVolume && !isB2C),

@@ -101,16 +101,31 @@ BEGIN
       l.credit_cost,
       l.lead_score,
       l.wants_irve,
+      l.qualification_metadata,
       (CASE WHEN l.segment = 'B2B' THEN 1 ELSE 3 END) AS max_slots,
-      count(lp.id)::int AS taken_slots,
-      ((CASE WHEN l.segment = 'B2B' THEN 1 ELSE 3 END) - count(lp.id)::int) AS remaining_slots,
+      count(lp.id) FILTER (
+        WHERE p.id IS NOT NULL
+          AND coalesce(p.is_test, false) = false
+          AND lower(coalesce(p.company_name, '')) NOT LIKE '%test%'
+      )::int AS taken_slots,
+      ((CASE WHEN l.segment = 'B2B' THEN 1 ELSE 3 END) - count(lp.id) FILTER (
+        WHERE p.id IS NOT NULL
+          AND coalesce(p.is_test, false) = false
+          AND lower(coalesce(p.company_name, '')) NOT LIKE '%test%'
+      )::int) AS remaining_slots,
       bool_or(lp.partner_id = p_partner_id) AS already_purchased
     FROM public.leads l
     LEFT JOIN public.lead_purchases lp ON lp.lead_id = l.id
+    LEFT JOIN public.partners p ON p.id = lp.partner_id
     WHERE l.marketplace_status = 'available'
+      AND coalesce((l.qualification_metadata->>'is_showcase')::boolean, false) IS NOT TRUE
     GROUP BY l.id
     HAVING bool_or(lp.partner_id = p_partner_id) IS NOT TRUE
-       AND count(lp.id) < (CASE WHEN l.segment = 'B2B' THEN 1 ELSE 3 END)
+       AND count(lp.id) FILTER (
+         WHERE p.id IS NOT NULL
+           AND coalesce(p.is_test, false) = false
+           AND lower(coalesce(p.company_name, '')) NOT LIKE '%test%'
+       ) < (CASE WHEN l.segment = 'B2B' THEN 1 ELSE 3 END)
     ORDER BY l.created_at DESC
     LIMIT 60
   ),
@@ -141,7 +156,8 @@ BEGIN
       l.estimated_power_kwc,
       l.lead_score,
       l.project_details,
-      l.message
+      l.message,
+      l.qualification_metadata
     FROM public.lead_purchases lp
     JOIN public.leads l ON l.id = lp.lead_id
     WHERE lp.partner_id = p_partner_id

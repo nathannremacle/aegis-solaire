@@ -1005,8 +1005,16 @@ function CrmPortfolioCard({
   const surfaceArea = financials.normalizedSurfaceAreaM2
   const annualBill = financials.normalizedAnnualBill
 
-  // Images dédiées cohérentes avec la marketplace
-  const leadImage = isB2B ? B2B_SOLAR_IMAGE : B2C_SOLAR_IMAGE
+  // Image réelle du lead en priorité, sinon illustration cohérente avec la marketplace
+  const customRoofImage = (
+    item.qualification_metadata?.roof_image_url ||
+    item.qualification_metadata?.site_image_url ||
+    item.qualificationMetadata?.roof_image_url ||
+    item.qualificationMetadata?.site_image_url ||
+    item.roof_image_url ||
+    item.site_image_url
+  ) as string | undefined
+  const leadImage = customRoofImage || (isB2B ? B2B_SOLAR_IMAGE : B2C_SOLAR_IMAGE)
 
   // Calculs financiers précis (sans arrondi grossier au millier en B2C)
   const minText = formatRoundedCurrency(financials.estimatedContractValueRange?.min || 0).replace("~", "")
@@ -1044,6 +1052,7 @@ function CrmPortfolioCard({
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-cover transition-transform duration-500 group-hover:scale-105"
             priority={index < 3}
+            unoptimized={Boolean(customRoofImage)}
           />
 
           {/* Dégradé supérieur pour contraster les badges */}
