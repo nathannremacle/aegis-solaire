@@ -7,7 +7,6 @@ import { Toaster } from '@/components/ui/sonner'
 import { MediaPartnerRefTracker } from '@/components/media-partner-ref-tracker'
 import { SiteHeader } from '@/components/site-header'
 import { AdTrackingScripts } from '@/components/analytics/ad-tracking'
-import { CookieConsentBanner } from '@/components/analytics/cookie-consent-banner'
 import './globals.css'
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -239,7 +238,6 @@ fbq('track', 'PageView');`,
         <Toaster richColors position="top-right" />
         <Analytics />
         <AdTrackingScripts />
-        <CookieConsentBanner />
       </body>
     </html>
   )
