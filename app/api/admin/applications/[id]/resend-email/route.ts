@@ -8,6 +8,10 @@ import {
   sendInstallerEmail,
 } from "@/lib/installer-welcome-emails"
 import {
+  ensurePartnerAuthAccount,
+  generatePartnerPasswordSetupUrl,
+} from "@/lib/partner-auth-onboarding"
+import {
   getAvailableMatchingLeadsForPartner,
   recordCatchUpDispatches,
   type AvailableLeadSummary,
@@ -95,6 +99,21 @@ export async function POST(
         }
       }
 
+      let setupPasswordUrl: string | null = null
+      try {
+        await ensurePartnerAuthAccount(supabase, {
+          email: app.email,
+          companyName: app.company_name,
+          partnerId: partner?.id,
+        })
+        setupPasswordUrl = await generatePartnerPasswordSetupUrl(supabase, {
+          email: app.email,
+          baseUrl,
+        })
+      } catch (authErr) {
+        console.error("[resend-email] auth onboarding warning:", authErr)
+      }
+
       const emailPayload = buildInstallerMarketplaceWelcomeEmail({
         applicationId: app.id,
         firstName: app.first_name,
@@ -103,6 +122,7 @@ export async function POST(
         email: app.email,
         rescertRef: app.rescert_ref,
         marketplaceUrl,
+        setupPasswordUrl,
         availableLeads,
       })
 

@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ArrowLeft, Eye, EyeOff, Loader2, ShieldCheck, Zap } from "lucide-react"
+import { ArrowLeft, CheckCircle2, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react"
 import { motion } from "framer-motion"
 
 const containerVariants = {
@@ -54,8 +54,37 @@ function PartnerLoginForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [resetMode, setResetMode] = useState(() => searchParams.get("mode") === "reset")
+  const [resetSuccess, setResetSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  async function handleResetRequest(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setResetSuccess(null)
+    setLoading(true)
+    try {
+      const res = await fetch("/api/partners/auth/request-access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      })
+      const payload = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(payload.error || "Impossible d'envoyer le lien pour le moment.")
+      } else {
+        setResetSuccess(
+          payload.message ||
+            "Un lien sécurisé pour définir votre mot de passe vient d'être envoyé à votre adresse e-mail."
+        )
+      }
+    } catch {
+      setError("Une erreur réseau est survenue. Veuillez réessayer.")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -119,12 +148,23 @@ function PartnerLoginForm() {
           </p>
         </motion.div>
 
-        {/* Login Form */}
+        {/* Login / Reset Form */}
         <motion.form
           variants={itemVariants}
-          onSubmit={handleSubmit}
+          onSubmit={resetMode ? handleResetRequest : handleSubmit}
           className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs"
         >
+          {resetMode && (
+            <div className="flex flex-col gap-1">
+              <h2 className="text-sm font-bold text-foreground">
+                Première connexion ou mot de passe oublié ?
+              </h2>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Entrez votre e-mail professionnel approuvé pour recevoir un lien sécurisé et définir votre mot de passe.
+              </p>
+            </div>
+          )}
+
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="email" className="text-xs font-bold text-foreground">
               Adresse e-mail professionnelle
@@ -141,37 +181,60 @@ function PartnerLoginForm() {
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password" className="text-xs font-bold text-foreground">
-                Mot de passe
-              </Label>
+          {!resetMode && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="password" className="text-xs font-bold text-foreground">
+                  Mot de passe
+                </Label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError(null)
+                    setResetSuccess(null)
+                    setResetMode(true)
+                  }}
+                  className="text-xs font-medium text-primary hover:underline cursor-pointer"
+                >
+                  Première connexion / Oublié ?
+                </button>
+              </div>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  className="h-12 pr-11 text-sm sm:text-xs bg-background border-border"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-0 top-0 flex h-12 w-11 items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-r-md cursor-pointer"
+                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                  title={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <Eye className="h-4 w-4" aria-hidden="true" />
+                  )}
+                </button>
+              </div>
             </div>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-                className="h-12 pr-11 text-sm sm:text-xs bg-background border-border"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-0 top-0 flex h-12 w-11 items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-r-md cursor-pointer"
-                aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                title={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" aria-hidden="true" />
-                ) : (
-                  <Eye className="h-4 w-4" aria-hidden="true" />
-                )}
-              </button>
+          )}
+
+          {resetSuccess && (
+            <div
+              className="flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2.5 text-xs text-foreground"
+              role="status"
+            >
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+              <span>{resetSuccess}</span>
             </div>
-          </div>
+          )}
 
           {error && (
             <motion.p
@@ -192,12 +255,28 @@ function PartnerLoginForm() {
             {loading ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin text-accent" />
-                Connexion…
+                {resetMode ? "Envoi du lien…" : "Connexion…"}
               </span>
+            ) : resetMode ? (
+              "Recevoir mon lien par e-mail"
             ) : (
               "Se connecter à l'espace"
             )}
           </Button>
+
+          {resetMode && (
+            <button
+              type="button"
+              onClick={() => {
+                setError(null)
+                setResetSuccess(null)
+                setResetMode(false)
+              }}
+              className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer text-center"
+            >
+              Retour à la connexion avec mot de passe
+            </button>
+          )}
         </motion.form>
 
         {/* Lien retour */}

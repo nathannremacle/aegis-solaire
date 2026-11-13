@@ -327,6 +327,7 @@ export interface InstallerMarketplaceWelcomeData {
   email: string
   rescertRef?: string
   marketplaceUrl?: string
+  setupPasswordUrl?: string | null
   baseUrl?: string
   availableLeads?: AvailableLeadSummary[]
 }
@@ -345,6 +346,8 @@ export function buildInstallerMarketplaceWelcomeEmail(data: InstallerMarketplace
   const baseUrl = data.baseUrl || publicAssetBase
   const marketplaceUrl =
     data.marketplaceUrl || `${baseUrl}/partenaires/dashboard`
+  const primaryActionUrl = data.setupPasswordUrl || marketplaceUrl
+  const hasSetupPasswordUrl = Boolean(data.setupPasswordUrl)
 
   const leads = data.availableLeads || []
   const hasLeads = leads.length > 0
@@ -376,8 +379,7 @@ Excellente nouvelle : votre compte installateur pour ${company} a été validé 
 
 Vous avez désormais un accès direct à la Marketplace Aegis Solaire pour débloquer des demandes de devis solaires qualifiées dans votre région en Wallonie.
 ${leadsTextSection}
-Accéder à la Marketplace maintenant :
-${marketplaceUrl}
+${hasSetupPasswordUrl ? `Définir votre mot de passe et accéder à la Marketplace :\n${primaryActionUrl}\n` : `Accéder à la Marketplace maintenant :\n${marketplaceUrl}`}
 
 La Marketplace Aegis Solaire en bref :
 - Pas d’abonnement – vous ne payez que pour les demandes de devis que vous choisissez d'acquérir.
@@ -565,8 +567,14 @@ ${availableLeadsHtml}
                     <table role="presentation" cellspacing="0" cellpadding="0">
                       <tr>
                         <td align="center" style="background-color: #0F172A; border-radius: 10px; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);">
-                          <a href="${marketplaceUrl}" target="_blank" style="display: inline-block; padding: 15px 36px; font-size: 15px; font-weight: 700; color: #FFFFFF; text-decoration: none; letter-spacing: 0.01em;">
-                            ${hasLeads ? "Accéder à la Marketplace et débloquer ces dossiers &rarr;" : "Accéder à la Marketplace des Leads &rarr;"}
+                          <a href="${escapeHtml(primaryActionUrl)}" target="_blank" style="display: inline-block; padding: 15px 36px; font-size: 15px; font-weight: 700; color: #FFFFFF; text-decoration: none; letter-spacing: 0.01em;">
+                            ${
+                              hasSetupPasswordUrl
+                                ? "Créer mon mot de passe et accéder à la Marketplace &rarr;"
+                                : hasLeads
+                                  ? "Accéder à la Marketplace et débloquer ces dossiers &rarr;"
+                                  : "Accéder à la Marketplace des Leads &rarr;"
+                            }
                           </a>
                         </td>
                       </tr>
@@ -575,7 +583,13 @@ ${availableLeadsHtml}
                 </tr>
                 <tr>
                   <td align="center" style="padding-top: 10px;">
-                    <span class="mono" style="font-size: 12px; color: #64748B;">Accès direct · Portail Installateurs Wallonie</span>
+                    <span class="mono" style="font-size: 12px; color: #64748B;">
+                      ${
+                        hasSetupPasswordUrl
+                          ? "Première connexion · Ce lien permet de définir votre mot de passe personnel"
+                          : "Accès direct · Portail Installateurs Wallonie"
+                      }
+                    </span>
                   </td>
                 </tr>
               </table>

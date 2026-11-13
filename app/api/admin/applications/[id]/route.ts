@@ -144,6 +144,10 @@ import {
   sendInstallerEmail,
 } from "@/lib/installer-welcome-emails"
 import {
+  ensurePartnerAuthAccount,
+  generatePartnerPasswordSetupUrl,
+} from "@/lib/partner-auth-onboarding"
+import {
   getAvailableMatchingLeadsForPartner,
   recordCatchUpDispatches,
   type AvailableLeadSummary,
@@ -243,6 +247,21 @@ export async function PATCH(
           ? request.nextUrl.origin
           : getSiteBaseUrl()
       const marketplaceUrl = `${baseUrl}/partenaires/dashboard`
+      let setupPasswordUrl: string | null = null
+      try {
+        await ensurePartnerAuthAccount(supabase, {
+          email: app.email,
+          companyName: app.company_name,
+          partnerId,
+        })
+        setupPasswordUrl = await generatePartnerPasswordSetupUrl(supabase, {
+          email: app.email,
+          baseUrl,
+        })
+      } catch (authErr) {
+        console.error("[admin/applications] auth onboarding warning:", authErr)
+      }
+
       const emailPayload = buildInstallerMarketplaceWelcomeEmail({
         applicationId: app.id,
         firstName: app.first_name,
@@ -251,6 +270,7 @@ export async function PATCH(
         email: app.email,
         rescertRef: app.rescert_ref,
         marketplaceUrl,
+        setupPasswordUrl,
         availableLeads,
       })
 
