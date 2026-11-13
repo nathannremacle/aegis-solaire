@@ -32,10 +32,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const baseUrl =
-      request.nextUrl.origin && !request.nextUrl.origin.includes("localhost:0")
-        ? request.nextUrl.origin
-        : getSiteBaseUrl()
+    const baseUrl = getSiteBaseUrl(request.nextUrl.origin)
 
     const verificationToken = generateInstallerVerificationToken(app.id, app.email)
     const verificationUrl = `${baseUrl}/api/installateurs/verify-email?id=${encodeURIComponent(

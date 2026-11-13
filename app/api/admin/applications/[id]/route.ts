@@ -138,6 +138,7 @@ async function syncPartnerFromApplication(
 
 import {
   buildInstallerMarketplaceWelcomeEmail,
+  getSiteBaseUrl,
   sendInstallerEmail,
 } from "@/lib/installer-welcome-emails"
 import {
@@ -149,10 +150,6 @@ import {
   recordCatchUpDispatches,
   type AvailableLeadSummary,
 } from "@/lib/lead-relance-engine"
-
-function getSiteBaseUrl(): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.aegissolaire.com").replace(/\/$/, "")
-}
 
 export async function PATCH(
   request: NextRequest,
@@ -239,10 +236,7 @@ export async function PATCH(
 
     // Envoi de l'e-mail de bienvenue sur la Marketplace (avec rattrapage des leads chauds)
     try {
-      const baseUrl =
-        request.nextUrl.origin && !request.nextUrl.origin.includes("localhost:0")
-          ? request.nextUrl.origin
-          : getSiteBaseUrl()
+      const baseUrl = getSiteBaseUrl(request.nextUrl.origin)
       const marketplaceUrl = `${baseUrl}/partenaires/dashboard`
       let setupPasswordUrl: string | null = null
       try {

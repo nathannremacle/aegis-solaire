@@ -5,6 +5,7 @@ import { generateInstallerVerificationToken } from "@/lib/installer-verification
 import {
   buildInstallerWelcomeVerificationEmail,
   buildInstallerMarketplaceWelcomeEmail,
+  getSiteBaseUrl,
   sendInstallerEmail,
 } from "@/lib/installer-welcome-emails"
 import {
@@ -16,10 +17,6 @@ import {
   recordCatchUpDispatches,
   type AvailableLeadSummary,
 } from "@/lib/lead-relance-engine"
-
-function getSiteBaseUrl(): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.aegissolaire.com").replace(/\/$/, "")
-}
 
 export async function POST(
   request: NextRequest,
@@ -46,10 +43,7 @@ export async function POST(
       return NextResponse.json({ error: "Candidature introuvable." }, { status: 404 })
     }
 
-    const baseUrl =
-      request.nextUrl.origin && !request.nextUrl.origin.includes("localhost:0")
-        ? request.nextUrl.origin
-        : getSiteBaseUrl()
+    const baseUrl = getSiteBaseUrl(request.nextUrl.origin)
 
     if (type === "verification") {
       const verificationToken = generateInstallerVerificationToken(app.id, app.email)
@@ -135,12 +129,16 @@ export async function POST(
       })
 
       if (sendRes.success && partner && availableLeads.length > 0) {
-        void recordCatchUpDispatches(
-          supabase,
-          { id: partner.id, email: app.email },
-          availableLeads,
-          emailPayload.subject
-        ).catch(() => {})
+        try {
+          await recordCatchUpDispatches(
+            supabase,
+            { id: partner.id, email: app.email },
+            availableLeads,
+            emailPayload.subject
+          )
+        } catch (dispatchErr) {
+          console.warn("[admin/applications/resend-email] recordCatchUpDispatches error:", dispatchErr)
+        }
       }
 
       return NextResponse.json({

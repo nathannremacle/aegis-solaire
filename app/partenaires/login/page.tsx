@@ -1,7 +1,7 @@
 "use client"
 
 import { Suspense, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { createClient } from "@/lib/supabase/client"
@@ -43,7 +43,6 @@ export default function PartnerLoginPage() {
 }
 
 function PartnerLoginForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const returnUrl =
     searchParams.get("returnUrl") ||
@@ -51,7 +50,7 @@ function PartnerLoginForm() {
       ? `/partenaires/dashboard?lead=${encodeURIComponent(searchParams.get("lead")!)}`
       : "/partenaires/dashboard")
 
-  const [email, setEmail] = useState("")
+  const [email, setEmail] = useState(() => searchParams.get("email") || "")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [resetMode, setResetMode] = useState(() => searchParams.get("mode") === "reset")
@@ -105,8 +104,7 @@ function PartnerLoginForm() {
         setLoading(false)
         return
       }
-      router.push(returnUrl)
-      router.refresh()
+      window.location.assign(returnUrl)
     } catch {
       setError("Une erreur est survenue lors de la connexion.")
       setLoading(false)

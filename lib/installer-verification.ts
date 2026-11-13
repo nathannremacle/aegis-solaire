@@ -123,16 +123,28 @@ export async function recordInstallerEmailVerified(applicationId: string) {
 
 /**
  * Vérifie si l'adresse e-mail d'un installateur ou partenaire a été confirmée.
- * Vérifie la présence de email_verified_at ou du tag [EMAIL_VÉRIFIÉ: ...] dans installer_applications.
+ * Débloque automatiquement si un compte partenaire existe déjà, si la candidature est approuvée (`status === "approved"`),
+ * ou si `email_verified_at` / le tag `[EMAIL_VÉRIFIÉ: ...]` est présent dans `installer_applications`.
  */
 export async function isPartnerEmailVerified(email: string): Promise<boolean> {
   if (!email) return false
   const cleanEmail = email.toLowerCase().trim()
   const supabase = createServiceRoleClient()
 
+  // Un compte partenaire déjà provisionné ne doit jamais être redirigé vers /partenaires/verification-requise
+  const { data: existingPartner } = await supabase
+    .from("partners")
+    .select("id")
+    .eq("email", cleanEmail)
+    .maybeSingle()
+
+  if (existingPartner?.id) {
+    return true
+  }
+
   const { data: apps, error } = await supabase
     .from("installer_applications")
-    .select("id, email, admin_notes")
+    .select("id, email, admin_notes, status")
     .eq("email", cleanEmail)
 
   if (error || !apps || apps.length === 0) {
@@ -140,11 +152,13 @@ export async function isPartnerEmailVerified(email: string): Promise<boolean> {
     return true
   }
 
-  // Si au moins une candidature pour cette adresse a été validée, l'accès est débloqué
-  const hasVerifiedTag = apps.some(
-    (a) => a.admin_notes && a.admin_notes.includes("[EMAIL_VÉRIFIÉ:")
+  // Si au moins une candidature pour cette adresse a été approuvée ou vérifiée par e-mail, l'accès est débloqué
+  const isApprovedOrVerified = apps.some(
+    (a) =>
+      a.status === "approved" ||
+      (a.admin_notes && a.admin_notes.includes("[EMAIL_VÉRIFIÉ:"))
   )
-  if (hasVerifiedTag) return true
+  if (isApprovedOrVerified) return true
 
   // Tente aussi de vérifier si la colonne native email_verified_at existe et est non nulle
   try {

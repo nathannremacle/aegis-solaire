@@ -3,21 +3,14 @@ import {
   verifyInstallerVerificationToken,
   recordInstallerEmailVerified,
 } from "@/lib/installer-verification"
+import { getSiteBaseUrl } from "@/lib/installer-welcome-emails"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
-
-function getSiteBaseUrl(): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.aegissolaire.com").replace(/\/$/, "")
-}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const id = searchParams.get("id")?.trim() || ""
   const token = searchParams.get("token")?.trim() || ""
-  const origin =
-    request.nextUrl.origin && !request.nextUrl.origin.includes("localhost:0")
-      ? request.nextUrl.origin
-      : getSiteBaseUrl()
-  const baseUrl = origin
+  const baseUrl = getSiteBaseUrl(request.nextUrl.origin)
 
   if (!id || !token) {
     return NextResponse.redirect(
@@ -28,7 +21,7 @@ export async function GET(request: NextRequest) {
   const supabase = createServiceRoleClient()
   const { data: app, error } = await supabase
     .from("installer_applications")
-    .select("id, email, company_name, first_name")
+    .select("id, email, company_name, first_name, status")
     .eq("id", id)
     .maybeSingle()
 
@@ -48,11 +41,25 @@ export async function GET(request: NextRequest) {
   // Enregistre la vérification
   await recordInstallerEmailVerified(app.id)
 
+  // Vérifie si le partenaire est déjà approuvé (via status ou table partners) pour adapter la page de confirmation
+  let isAlreadyApproved = app.status === "approved"
+  if (!isAlreadyApproved) {
+    const { data: partner } = await supabase
+      .from("partners")
+      .select("id")
+      .eq("email", app.email.toLowerCase().trim())
+      .maybeSingle()
+    if (partner?.id) {
+      isAlreadyApproved = true
+    }
+  }
+
   const successUrl = new URL("/partenaires/verification", baseUrl)
   successUrl.searchParams.set("status", "success")
   successUrl.searchParams.set("email", app.email)
   successUrl.searchParams.set("company", app.company_name)
   if (app.first_name) successUrl.searchParams.set("name", app.first_name)
+  if (isAlreadyApproved) successUrl.searchParams.set("approved", "1")
 
   return NextResponse.redirect(successUrl)
 }

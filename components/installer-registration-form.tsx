@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
 import {
+  ArrowRight,
   BadgeCheck,
   CheckCircle2,
   Mail,
@@ -61,6 +62,7 @@ export function InstallerRegistrationForm() {
     companyName: string
     firstName: string
     regions: string[]
+    alreadyApproved?: boolean
   } | null>(null)
   const [resending, setResending] = useState(false)
   const [resendSent, setResendSent] = useState(false)
@@ -134,9 +136,10 @@ export function InstallerRegistrationForm() {
       }
       setSubmittedData({
         email: values.email,
-        companyName: values.companyName,
+        companyName: data.companyName || values.companyName,
         firstName: values.firstName,
         regions: values.regions ?? [],
+        alreadyApproved: Boolean(data.alreadyApproved),
       })
       toast.success(
         data.message ??
@@ -156,6 +159,72 @@ export function InstallerRegistrationForm() {
   }
 
   if (submittedData) {
+    if (submittedData.alreadyApproved) {
+      const loginHref = `/partenaires/login?email=${encodeURIComponent(submittedData.email)}`
+      const resetHref = `/partenaires/login?mode=reset&email=${encodeURIComponent(submittedData.email)}`
+      return (
+        <div className="animate-in fade-in-0 duration-300 flex flex-col gap-6">
+          <div className="border-b border-border pb-6 text-center flex flex-col items-center gap-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-1.5 text-xs font-mono font-semibold text-emerald-700 dark:text-emerald-300">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              <span>COMPTE PARTENAIRE DÉJÀ VALIDÉ</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-heading">
+              Votre accès est déjà actif !
+            </h2>
+            <p className="mx-auto max-w-lg text-sm text-muted-foreground leading-relaxed">
+              Bonne nouvelle{submittedData.firstName ? ` ${submittedData.firstName}` : ""} : le compte de{" "}
+              <strong className="text-foreground">{submittedData.companyName}</strong>{" "}
+              (<span className="font-mono text-foreground">{submittedData.email}</span>) est déjà approuvé sur la Marketplace Aegis Solaire. Aucune nouvelle attente de validation n&apos;est requise.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5 sm:p-6 flex flex-col gap-3 text-left">
+            <p className="text-sm font-semibold text-foreground">
+              Un lien sécurisé pour définir votre mot de passe vient d&apos;être envoyé à{" "}
+              <span className="font-mono">{submittedData.email}</span>.
+            </p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Si vous avez déjà défini votre mot de passe, connectez-vous directement avec votre adresse e-mail{" "}
+              <strong className="font-mono text-foreground">{submittedData.email}</strong> pour accéder aux leads solaires disponibles.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Button
+              asChild
+              className="w-full sm:w-auto rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-medium shadow-xs"
+            >
+              <a href={loginHref}>
+                Accéder à mon Portail Partenaire
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </a>
+            </Button>
+            <Button variant="outline" asChild className="w-full sm:w-auto rounded-xl border-border">
+              <a href={resetHref}>Recevoir un lien de connexion</a>
+            </Button>
+          </div>
+
+          <div className="border-t border-border pt-4 text-center">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSubmittedData(null)
+                setResendSent(false)
+                form.reset()
+                setStep(0)
+              }}
+              className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              Utiliser une autre adresse e-mail
+            </Button>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div className="animate-in fade-in-0 duration-300">
         {/* En-tête de confirmation */}

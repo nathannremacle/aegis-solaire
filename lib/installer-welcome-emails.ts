@@ -6,10 +6,18 @@ const fromEmail = process.env.RESEND_FROM_EMAIL ?? "contact@aegissolaire.com"
 const replyToEmail = process.env.RESEND_REPLY_TO ?? "contact@aegissolaire.com"
 
 export function getSiteBaseUrl(reqOrigin?: string): string {
-  if (reqOrigin && typeof reqOrigin === "string" && !reqOrigin.includes("localhost:0")) {
+  const canonical = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.aegissolaire.com").replace(/\/$/, "")
+  if (
+    reqOrigin &&
+    typeof reqOrigin === "string" &&
+    !reqOrigin.includes("localhost:0") &&
+    (reqOrigin.includes("localhost") ||
+      reqOrigin.includes("127.0.0.1") ||
+      reqOrigin.endsWith(".vercel.app"))
+  ) {
     return reqOrigin.replace(/\/$/, "")
   }
-  return (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.aegissolaire.com").replace(/\/$/, "")
+  return canonical
 }
 
 function escapeHtml(s: string): string {

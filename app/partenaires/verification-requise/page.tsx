@@ -1,9 +1,13 @@
 import { Suspense } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { redirect } from "next/navigation"
 import { ShieldAlert, Mail, ArrowRight, RefreshCw, CheckCircle2, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { isPartnerEmailVerified } from "@/lib/installer-verification"
 import { VerificationRequiseClient } from "./verification-requise-client"
+
+export const dynamic = "force-dynamic"
 
 export const metadata = {
   title: "Validation d'e-mail requise | Aegis Solaire",
@@ -22,6 +26,14 @@ export default async function VerificationRequisePage({ searchParams }: PageProp
   const resolved = searchParams ? await searchParams : {}
   const email = resolved.email || ""
   const company = resolved.company || ""
+
+  // Si l'adresse est déjà vérifiée ou rattachée à un partenaire approuvé, débloque immédiatement l'accès
+  if (email) {
+    const unlocked = await isPartnerEmailVerified(email)
+    if (unlocked) {
+      redirect("/partenaires/dashboard")
+    }
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground font-sans">

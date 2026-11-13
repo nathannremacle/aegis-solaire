@@ -1,8 +1,10 @@
-import { Suspense } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { CheckCircle2, AlertTriangle, ShieldCheck, ArrowRight, Clock, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { createServiceRoleClient } from "@/lib/supabase/admin"
+
+export const dynamic = "force-dynamic"
 
 export const metadata = {
   title: "Validation de compte installateur | Aegis Solaire",
@@ -16,6 +18,7 @@ interface VerificationPageProps {
     email?: string
     company?: string
     name?: string
+    approved?: string
   }>
 }
 
@@ -27,6 +30,33 @@ export default async function PartnerVerificationPage({ searchParams }: Verifica
   const name = resolved.name || ""
 
   const isSuccess = status === "success"
+
+  // Détermine si le compte est déjà validé (paramètre approved=1 ou statut en base de données)
+  let isAlreadyApproved = resolved.approved === "1"
+  if (isSuccess && !isAlreadyApproved && email) {
+    const cleanEmail = email.toLowerCase().trim()
+    const supabase = createServiceRoleClient()
+
+    const { data: partner } = await supabase
+      .from("partners")
+      .select("id")
+      .eq("email", cleanEmail)
+      .maybeSingle()
+
+    if (partner?.id) {
+      isAlreadyApproved = true
+    } else {
+      const { data: approvedApp } = await supabase
+        .from("installer_applications")
+        .select("id")
+        .eq("email", cleanEmail)
+        .eq("status", "approved")
+        .limit(1)
+      if (approvedApp && approvedApp.length > 0) {
+        isAlreadyApproved = true
+      }
+    }
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
@@ -72,7 +102,9 @@ export default async function PartnerVerificationPage({ searchParams }: Verifica
                   <span>Validation Sécurisée · Wallonie</span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-                  Adresse e-mail confirmée avec succès
+                  {isAlreadyApproved
+                    ? "E-mail confirmé · Compte Partenaire actif"
+                    : "Adresse e-mail confirmée avec succès"}
                 </h1>
                 <p className="mt-2 text-sm sm:text-base text-muted-foreground max-w-md">
                   {name ? `Merci ${name} ! ` : "Merci ! "}
@@ -85,7 +117,9 @@ export default async function PartnerVerificationPage({ searchParams }: Verifica
                   {company ? (
                     <>pour <strong>{company}</strong></>
                   ) : null}{" "}
-                  est désormais authentifiée.
+                  {isAlreadyApproved
+                    ? "est confirmée et votre accès Marketplace est déjà actif."
+                    : "est désormais authentifiée."}
                 </p>
               </div>
 
@@ -93,12 +127,19 @@ export default async function PartnerVerificationPage({ searchParams }: Verifica
               <div className="rounded-xl border border-border bg-muted/40 p-4 sm:p-5 flex flex-col gap-3">
                 <div className="flex items-center justify-between border-b border-border pb-2.5">
                   <span className="font-mono text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    État de votre demande
+                    {isAlreadyApproved ? "Statut du compte" : "État de votre demande"}
                   </span>
-                  <span className="inline-flex items-center gap-1 font-mono text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                    <Clock className="h-3 w-3" />
-                    Audit technique en cours
-                  </span>
+                  {isAlreadyApproved ? (
+                    <span className="inline-flex items-center gap-1 font-mono text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Compte Partenaire Validé
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 font-mono text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
+                      <Clock className="h-3 w-3" />
+                      Audit technique en cours
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-3 pt-1">
@@ -117,32 +158,60 @@ export default async function PartnerVerificationPage({ searchParams }: Verifica
                       ✓
                     </div>
                     <div className="text-sm">
-                      <p className="font-semibold text-foreground"><span className="font-mono tabular-nums">02.</span> Confirmation de l'adresse e-mail</p>
+                      <p className="font-semibold text-foreground"><span className="font-mono tabular-nums">02.</span> Confirmation de l&apos;adresse e-mail</p>
                       <p className="text-xs text-muted-foreground">Canal de contact direct et sécurisé validé.</p>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground text-xs font-bold font-mono tabular-nums">
-                      03
-                    </div>
-                    <div className="text-sm">
-                      <p className="font-semibold text-foreground"><span className="font-mono tabular-nums">03.</span> Contrôle RESCERT & BCE (En cours)</p>
-                      <p className="text-xs text-muted-foreground">
-                        Vérification de votre agrément photovoltaïque et assurances sous <span className="font-mono tabular-nums font-semibold text-foreground">24 à 48 h</span>.
-                      </p>
-                    </div>
-                  </div>
+                  {isAlreadyApproved ? (
+                    <>
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white text-xs font-bold">
+                          ✓
+                        </div>
+                        <div className="text-sm">
+                          <p className="font-semibold text-foreground"><span className="font-mono tabular-nums">03.</span> Contrôle RESCERT &amp; BCE (Validé)</p>
+                          <p className="text-xs text-muted-foreground">
+                            Votre agrément photovoltaïque et votre dossier entreprise sont validés.
+                          </p>
+                        </div>
+                      </div>
 
-                  <div className="flex items-start gap-3 opacity-60">
-                    <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground text-xs font-bold font-mono tabular-nums">
-                      04
-                    </div>
-                    <div className="text-sm">
-                      <p className="font-semibold text-foreground"><span className="font-mono tabular-nums">04.</span> Déblocage Marketplace des Leads</p>
-                      <p className="text-xs text-muted-foreground">Notification par e-mail dès activation avec vos accès complets.</p>
-                    </div>
-                  </div>
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white text-xs font-bold">
+                          ✓
+                        </div>
+                        <div className="text-sm">
+                          <p className="font-semibold text-foreground"><span className="font-mono tabular-nums">04.</span> Accès Marketplace des Leads (Actif)</p>
+                          <p className="text-xs text-muted-foreground">Votre espace partenaire est débloqué et opérationnel.</p>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground text-xs font-bold font-mono tabular-nums">
+                          03
+                        </div>
+                        <div className="text-sm">
+                          <p className="font-semibold text-foreground"><span className="font-mono tabular-nums">03.</span> Contrôle RESCERT &amp; BCE (En cours)</p>
+                          <p className="text-xs text-muted-foreground">
+                            Vérification de votre agrément photovoltaïque et assurances sous <span className="font-mono tabular-nums font-semibold text-foreground">24 à 48 h</span>.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3 opacity-60">
+                        <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground text-xs font-bold font-mono tabular-nums">
+                          04
+                        </div>
+                        <div className="text-sm">
+                          <p className="font-semibold text-foreground"><span className="font-mono tabular-nums">04.</span> Déblocage Marketplace des Leads</p>
+                          <p className="text-xs text-muted-foreground">Notification par e-mail dès activation avec vos accès complets.</p>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -153,7 +222,7 @@ export default async function PartnerVerificationPage({ searchParams }: Verifica
                     Support Partenaires Wallonie
                   </p>
                   <p className="text-sm font-medium text-foreground">
-                    L'équipe Support Aegis Solaire
+                    L&apos;équipe Support Aegis Solaire
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -166,14 +235,30 @@ export default async function PartnerVerificationPage({ searchParams }: Verifica
                 </div>
               </div>
 
-              {/* Bottom Return Button */}
-              <div className="pt-2 flex justify-center">
-                <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-6 py-2.5 font-medium shadow-xs">
-                  <Link href="/">
-                    Retour à l'accueil Aegis Solaire
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
+              {/* Bottom Action Buttons */}
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                {isAlreadyApproved ? (
+                  <>
+                    <Button asChild className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-6 py-2.5 font-medium shadow-xs">
+                      <Link href="/partenaires/dashboard">
+                        Accéder à mon Portail Partenaire
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <Button variant="outline" asChild className="w-full sm:w-auto rounded-xl px-5 py-2.5 font-medium border-border">
+                      <Link href={email ? `/partenaires/login?email=${encodeURIComponent(email)}` : "/partenaires/login"}>
+                        Se connecter au portail
+                      </Link>
+                    </Button>
+                  </>
+                ) : (
+                  <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-6 py-2.5 font-medium shadow-xs">
+                    <Link href="/">
+                      Retour à l&apos;accueil Aegis Solaire
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                )}
               </div>
             </div>
           ) : (

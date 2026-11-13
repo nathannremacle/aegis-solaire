@@ -73,6 +73,7 @@ export function InstallerVipInvitationForm({
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(0)
   const [submitted, setSubmitted] = useState(false)
+  const [alreadyApproved, setAlreadyApproved] = useState(false)
   const [canSubmit, setCanSubmit] = useState(false)
 
   const defaultRegions = getRegionsFromPostalCode(initialPostalCode)
@@ -140,8 +141,13 @@ export function InstallerVipInvitationForm({
         toast.error(data.error ?? "Erreur lors de l'enregistrement.")
         return
       }
+      setAlreadyApproved(Boolean(data.alreadyApproved))
       setSubmitted(true)
-      toast.success("Invitation activée avec succès !")
+      toast.success(
+        data.alreadyApproved
+          ? "Votre compte est déjà validé ! Un lien de connexion vient de vous être envoyé."
+          : "Invitation activée avec succès !"
+      )
     } catch {
       toast.error("Une erreur de communication est survenue. Veuillez réessayer.")
     } finally {
@@ -150,6 +156,52 @@ export function InstallerVipInvitationForm({
   }
 
   if (submitted) {
+    const submittedEmail = form.getValues("email") || ""
+    const loginHref = submittedEmail
+      ? `/partenaires/login?email=${encodeURIComponent(submittedEmail)}`
+      : "/partenaires/login"
+    const resetHref = submittedEmail
+      ? `/partenaires/login?mode=reset&email=${encodeURIComponent(submittedEmail)}`
+      : "/partenaires/login?mode=reset"
+
+    if (alreadyApproved) {
+      return (
+        <div className="rounded-lg border border-border bg-card p-6 sm:p-10 text-center shadow-[0_2px_12px_-4px_rgba(17,24,21,0.06)] animate-in fade-in duration-300 flex flex-col items-center gap-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+            <CheckCircle2 className="h-7 w-7" />
+          </div>
+          <div className="inline-flex items-center gap-1.5 rounded-sm bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-xs font-mono font-medium text-emerald-700">
+            <span>COMPTE PARTENAIRE DÉJÀ VALIDÉ</span>
+          </div>
+          <h3 className="font-heading text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+            Votre accès Marketplace est déjà actif !
+          </h3>
+          <p className="mx-auto max-w-lg text-sm text-muted-foreground leading-relaxed font-sans">
+            L&apos;adresse <strong className="font-mono text-foreground">{submittedEmail}</strong> est déjà approuvée sur Aegis Solaire. Aucune nouvelle attente de validation n&apos;est nécessaire : un lien sécurisé pour définir votre mot de passe vient de vous être envoyé par e-mail.
+          </p>
+
+          <div className="mt-2 flex flex-col sm:flex-row items-center justify-center gap-3 w-full">
+            <Button
+              asChild
+              className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 rounded-md font-mono text-xs font-medium shadow-xs"
+            >
+              <a href={loginHref}>
+                Accéder à l&apos;espace membre
+                <ArrowRight className="h-4 w-4 ml-1.5" />
+              </a>
+            </Button>
+            <Button
+              variant="outline"
+              asChild
+              className="w-full sm:w-auto rounded-md border-border font-mono text-xs"
+            >
+              <a href={resetHref}>Définir / réinitialiser le mot de passe</a>
+            </Button>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div className="rounded-lg border border-border bg-card p-6 sm:p-10 text-center shadow-[0_2px_12px_-4px_rgba(17,24,21,0.06)] animate-in fade-in duration-300">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-md bg-primary/[0.08] text-primary border border-primary/20">
@@ -185,6 +237,7 @@ export function InstallerVipInvitationForm({
             variant="outline"
             onClick={() => {
               setSubmitted(false)
+              setAlreadyApproved(false)
               form.reset()
               setStep(0)
             }}
@@ -196,7 +249,7 @@ export function InstallerVipInvitationForm({
             asChild
             className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 rounded-md font-mono text-xs font-medium shadow-xs"
           >
-            <a href="/partenaires/login">
+            <a href={loginHref}>
               Accéder à l'espace membre
               <ArrowRight className="h-4 w-4 ml-1.5" />
             </a>

@@ -1,14 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Mail, RefreshCw, ArrowRight } from "lucide-react"
 
 export function VerificationRequiseClient({ email }: { email: string }) {
-  const router = useRouter()
   const [resending, setResending] = useState(false)
   const [sent, setSent] = useState(false)
 
@@ -39,12 +37,11 @@ export function VerificationRequiseClient({ email }: { email: string }) {
   }
 
   function handleRetryDashboard() {
-    router.push("/partenaires/dashboard")
-    router.refresh()
+    window.location.assign("/partenaires/dashboard")
   }
 
   return (
-    <div className="space-y-4 pt-2">
+    <div className="flex flex-col gap-4 pt-2">
       <div className="flex flex-col sm:flex-row gap-3">
         <Button
           onClick={handleResend}

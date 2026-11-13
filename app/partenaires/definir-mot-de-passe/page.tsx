@@ -1,7 +1,7 @@
 "use client"
 
 import { Suspense, useEffect, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { createClient } from "@/lib/supabase/client"
@@ -33,7 +33,6 @@ export default function PartnerSetPasswordPage() {
 }
 
 function PartnerSetPasswordForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const tokenHash = searchParams.get("token_hash") || ""
   const tokenType = (searchParams.get("type") || "recovery") as "recovery" | "magiclink" | "invite"
@@ -133,8 +132,7 @@ function PartnerSetPasswordForm() {
 
       setSuccess(true)
       setTimeout(() => {
-        router.push("/partenaires/dashboard")
-        router.refresh()
+        window.location.assign("/partenaires/dashboard")
       }, 900)
     } catch {
       setError("Une erreur technique est survenue. Veuillez réessayer.")

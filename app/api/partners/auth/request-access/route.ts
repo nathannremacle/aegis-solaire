@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { checkRateLimit } from "@/lib/rate-limit"
-import { sendInstallerEmail } from "@/lib/installer-welcome-emails"
+import { getSiteBaseUrl, sendInstallerEmail } from "@/lib/installer-welcome-emails"
 import {
   buildPartnerPasswordResetEmail,
   ensurePartnerAuthAccount,
@@ -48,10 +48,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, message: GENERIC_SUCCESS_MESSAGE })
     }
 
-    const origin =
-      request.nextUrl.origin && !request.nextUrl.origin.includes("localhost:0")
-        ? request.nextUrl.origin
-        : undefined
+    const baseUrl = getSiteBaseUrl(request.nextUrl.origin)
 
     const { userId } = await ensurePartnerAuthAccount(supabase, {
       email: partner.email,
@@ -68,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     const setupUrl = await generatePartnerPasswordSetupUrl(supabase, {
       email: partner.email,
-      baseUrl: origin,
+      baseUrl,
     })
 
     if (!setupUrl) {
