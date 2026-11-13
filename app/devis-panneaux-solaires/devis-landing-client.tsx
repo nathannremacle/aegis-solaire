@@ -28,7 +28,12 @@ import {
   getEmailError,
   formatAndValidateBelgianPhone,
   getWalloonProvinceKeyFromPostalCode,
+  hasBelgianHouseNumber,
 } from "@/lib/leads-validation"
+import {
+  BelgianLocalityField,
+  BelgianStreetNumberFields,
+} from "@/components/address/belgian-address-fields"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 import { getStoredMediaPartnerRef } from "@/components/media-partner-ref-tracker"
 import {
@@ -314,7 +319,7 @@ export function DevisLandingClient() {
     cleanedPostalCode.length === 4 ? getWalloonProvinceKeyFromPostalCode(cleanedPostalCode) : null
   const isPostalCodeValid = walloonProvinceKey !== null
   const isNonWalloonCompleteCp = cleanedPostalCode.length === 4 && walloonProvinceKey === null
-  const isAddressValid = address.trim().length >= 4
+  const isAddressValid = hasBelgianHouseNumber(address)
 
   const showFullNameError = hasAttemptedSubmit && !isFullNameValid
   const showFirstNameError = hasAttemptedSubmit && !isFullNameValid
@@ -1081,14 +1086,14 @@ export function DevisLandingClient() {
 
                             <div className="flex flex-col gap-1.5">
                               <Label htmlFor="city" className="text-xs sm:text-sm font-bold text-foreground">
-                                Commune / Ville
+                                Commune / Localité
                               </Label>
-                              <Input
+                              <BelgianLocalityField
                                 id="city"
-                                placeholder="ex. Liège"
+                                postalCode={cleanedPostalCode}
                                 value={city}
-                                onChange={(e) => setCity(e.target.value)}
-                                className="h-12 rounded-lg text-base border-input bg-background/50 focus:bg-background"
+                                onChange={setCity}
+                                placeholder="ex. Namêche / Andenne"
                               />
                             </div>
                           </div>
@@ -1349,30 +1354,34 @@ export function DevisLandingClient() {
                               )}
                             </div>
 
-                            {/* Champ 5 : Adresse */}
+                            {/* Champ 5 : Adresse structurée (Rue + Numéro SPW ICAR) */}
                             <div className="flex flex-col gap-1">
                               <Label htmlFor="address" className="text-xs font-semibold text-foreground">
-                                Adresse (Rue et numéro) <span className="text-destructive">*</span>
+                                Adresse du bien (Rue et n°) <span className="text-destructive">*</span>
                               </Label>
-                              <Input
-                                id="address"
-                                autoComplete="street-address"
-                                placeholder="ex. Rue de la Station 12"
+                              <BelgianStreetNumberFields
+                                streetId="address"
+                                houseId="address-number"
                                 value={address}
-                                onChange={(e) => setAddress(e.target.value)}
-                                className={`h-11 rounded-lg text-sm ${
-                                  showAddressError
-                                    ? "border-destructive ring-1 ring-destructive"
-                                    : "border-input bg-background/50 focus:bg-background"
-                                }`}
+                                onChange={setAddress}
+                                postalCode={cleanedPostalCode}
+                                city={city}
+                                onSuggestionSelect={(s) => {
+                                  if (
+                                    s.section &&
+                                    (!city.trim() ||
+                                      city.trim().toLowerCase() === s.city.toLowerCase())
+                                  ) {
+                                    setCity(s.section)
+                                  }
+                                }}
+                                showError={showAddressError}
+                                required
+                                requireHouseNumber
                               />
-                              {showAddressError ? (
-                                <p className="text-[11px] text-destructive font-medium" role="alert">
-                                  Adresse complète requise.
-                                </p>
-                              ) : (
+                              {!showAddressError && (
                                 <span className="text-[10px] text-muted-foreground">
-                                  Nécessaire pour le dimensionnement toiture.
+                                  Nécessaire pour situer votre toiture (étude satellite).
                                 </span>
                               )}
                             </div>

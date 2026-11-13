@@ -9,6 +9,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import {
@@ -48,6 +49,9 @@ import {
   BatteryCharging,
   MessageSquare,
   Sparkles,
+  Pencil,
+  Send,
+  AlertTriangle,
 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -56,6 +60,12 @@ import { LeadRiskBanner } from "./lead-risk-banner"
 import { LeadScoreBreakdown } from "./lead-score-breakdown"
 import { DispatchPanel, type CompatiblePartner } from "./dispatch-panel"
 import { LeadRelanceStatus } from "./lead-relance-status"
+import {
+  BelgianLocalityField,
+  BelgianStreetNumberFields,
+} from "@/components/address/belgian-address-fields"
+import { hasBelgianHouseNumber } from "@/lib/leads-validation"
+import { buildMapLinks } from "@/lib/address-spw"
 import { calculateLeadScore } from "@/lib/lead-score"
 import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
 import { parseLeadProjectDetails } from "@/lib/lead-display-helpers"
@@ -165,6 +175,28 @@ export function LeadDrawer({
   const [urlInputOpen, setUrlInputOpen] = useState(false)
   const [customUrlInput, setCustomUrlInput] = useState("")
 
+  // État d'édition locale d'adresse & relance précision adresse prospect
+  const [addressPatch, setAddressPatch] = useState<{
+    site_address?: string | null
+    postal_code?: string | null
+    city?: string | null
+    province?: string | null
+    qualification_metadata?: Record<string, unknown> | null
+  } | null>(null)
+  const [isEditingAddress, setIsEditingAddress] = useState(false)
+  const [editSiteAddress, setEditSiteAddress] = useState(lead?.site_address ?? "")
+  const [editPostalCode, setEditPostalCode] = useState(lead?.postal_code ?? "")
+  const [editCity, setEditCity] = useState(lead?.city ?? "")
+  const [isSavingAddress, setIsSavingAddress] = useState(false)
+
+  const [isComposingAddressEmail, setIsComposingAddressEmail] = useState(false)
+  const [reqEmailSubject, setReqEmailSubject] = useState("")
+  const [reqEmailBody, setReqEmailBody] = useState("")
+  const [isSendingAddressEmail, setIsSendingAddressEmail] = useState(false)
+  const [addressRequestSentAt, setAddressRequestSentAt] = useState<string | null>(
+    (lead?.qualification_metadata?.addressRequestSentAt as string | undefined) ?? null
+  )
+
   useEffect(() => {
     if (lead) {
       setNotes(lead.admin_notes ?? "")
@@ -174,8 +206,129 @@ export function LeadDrawer({
       setRoofImageUrl(currentImg)
       setCustomUrlInput("")
       setUrlInputOpen(false)
+      setAddressPatch(null)
+      setIsEditingAddress(false)
+      setEditSiteAddress(lead.site_address ?? "")
+      setEditPostalCode(lead.postal_code ?? "")
+      setEditCity(lead.city ?? "")
+      setIsComposingAddressEmail(false)
+      setAddressRequestSentAt(
+        (lead.qualification_metadata?.addressRequestSentAt as string | undefined) ?? null
+      )
     }
   }, [lead])
+
+  const effectiveSiteAddress =
+    addressPatch && "site_address" in addressPatch
+      ? addressPatch.site_address
+      : lead?.site_address
+  const effectivePostalCode =
+    addressPatch && "postal_code" in addressPatch
+      ? addressPatch.postal_code
+      : lead?.postal_code
+  const effectiveCity =
+    addressPatch && "city" in addressPatch
+      ? addressPatch.city
+      : lead?.city
+  const effectiveProvince =
+    addressPatch && "province" in addressPatch
+      ? addressPatch.province
+      : lead?.province
+  const effectiveMeta =
+    addressPatch?.qualification_metadata ?? lead?.qualification_metadata ?? null
+
+  async function handleSaveAddress() {
+    if (!lead) return
+    const cleanCp = editPostalCode.replace(/\D/g, "").slice(0, 4)
+    if (cleanCp && cleanCp.length !== 4) {
+      toast.error("Le code postal belge doit comporter 4 chiffres.")
+      return
+    }
+    setIsSavingAddress(true)
+    try {
+      const res = await fetch(`/api/admin/leads/${lead.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          site_address: editSiteAddress.trim() || null,
+          postal_code: cleanCp || null,
+          city: editCity.trim() || null,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        toast.error(json?.error || "Échec de mise à jour de l'adresse")
+        return
+      }
+      setAddressPatch({
+        site_address: json.site_address,
+        postal_code: json.postal_code,
+        city: json.city,
+        province: json.province,
+        qualification_metadata: json.qualification_metadata,
+      })
+      setIsEditingAddress(false)
+      const spwOk = (json.qualification_metadata?.verifications?.walloniaAddress as Record<string, unknown> | undefined)?.houseVerified
+      toast.success(
+        spwOk
+          ? "Adresse mise à jour et certifiée par le cadastre SPW ICAR"
+          : "Adresse mise à jour et re-vérifiée"
+      )
+      router.refresh()
+    } catch {
+      toast.error("Erreur réseau lors de l'enregistrement de l'adresse")
+    } finally {
+      setIsSavingAddress(false)
+    }
+  }
+
+  function openAddressEmailComposer() {
+    if (!lead) return
+    const locality = [effectivePostalCode, effectiveCity].filter(Boolean).join(" ") || "Wallonie"
+    const firstName = (lead.first_name || "").trim() || "Bonjour"
+    const currentAddr = (effectiveSiteAddress || "").trim()
+    setReqEmailSubject(`Précision requise pour votre étude solaire (${locality}) — Aegis Solaire`)
+    setReqEmailBody(
+      `Bonjour ${firstName},\n\n` +
+        `Nous finalisons la vérification technique de votre projet photovoltaïque situé sur ${locality} afin de sélectionner les installateurs certifiés RESCERT les plus adaptés.\n\n` +
+        `Pour réaliser le repérage satellite préalable de votre toiture et établir un dimensionnement fiable, il nous manque le numéro exact de votre habitation` +
+        (currentAddr ? ` (vous aviez indiqué « ${currentAddr} »)` : "") +
+        `.\n\n` +
+        `Pourriez-vous simplement répondre à cet e-mail en nous confirmant votre adresse complète (rue et numéro) ?\n\n` +
+        `Dès réception, nous validons votre dossier dans les plus brefs délais.\n\n` +
+        `Bien cordialement,\nLa Cellule Technique Aegis Solaire\ncontact@aegissolaire.com`
+    )
+    setIsComposingAddressEmail(true)
+  }
+
+  async function handleSendAddressEmail() {
+    if (!lead) return
+    setIsSendingAddressEmail(true)
+    try {
+      const res = await fetch(`/api/admin/leads/${lead.id}/request-address`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject: reqEmailSubject,
+          message: reqEmailBody,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        toast.error(json?.error || "Échec de l'envoi de l'e-mail")
+        return
+      }
+      if (json.updatedNotes) setNotes(json.updatedNotes)
+      setAddressRequestSentAt(json.sentAt || new Date().toISOString())
+      setIsComposingAddressEmail(false)
+      toast.success(`E-mail de demande de précision envoyé à ${lead.email}`)
+      router.refresh()
+    } catch {
+      toast.error("Erreur réseau lors de l'envoi de l'e-mail")
+    } finally {
+      setIsSendingAddressEmail(false)
+    }
+  }
 
   const handleUploadImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -305,14 +458,17 @@ export function LeadDrawer({
         lastName: lead.last_name,
         email: lead.email,
         phone: lead.phone,
-        postalCode: lead.postal_code,
-        province: lead.province,
+        postalCode: effectivePostalCode,
+        city: effectiveCity,
+        siteAddress: effectiveSiteAddress,
+        province: effectiveProvince,
         segment: lead.segment,
         company: lead.company,
         companyVat: lead.company_vat,
         ownershipStatus: lead.ownership_status,
         surfaceArea: lead.surface_area,
         annualElectricityBill: lead.annual_electricity_bill,
+        qualificationMetadata: effectiveMeta,
       })
     : []
 
@@ -374,8 +530,8 @@ export function LeadDrawer({
         } else {
           onClose()
         }
-      } catch {
-        toast.error("Échec de la publication du lead")
+      } catch (err: any) {
+        toast.error(err?.message || "Échec de la publication du lead")
       }
     })
   }
@@ -653,52 +809,310 @@ export function LeadDrawer({
               )}
             </div>
 
-            {/* Localisation & Adresse exacte */}
-            <div className="rounded-lg bg-secondary/50 border border-border p-3 flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-[11px] font-bold text-foreground uppercase tracking-wider font-mono">
-                  <MapPin className="h-3.5 w-3.5 text-accent" />
-                  Adresse du Chantier & Localisation
-                </span>
-                {lead.site_address && (
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(
-                      `${lead.site_address}, ${lead.postal_code || ""} ${lead.city || ""}`.trim(),
-                      "Adresse complète"
-                    )}
-                    className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground font-mono"
-                  >
-                    <Copy className="h-2.5 w-2.5" />
-                    Copier
-                  </button>
-                )}
-              </div>
+            {/* Localisation & Adresse exacte (avec édition, re-vérification SPW & demande prospect) */}
+            {(() => {
+              const spwVerif = (
+                (effectiveMeta?.verifications as Record<string, unknown> | undefined)
+                  ?.walloniaAddress as Record<string, unknown> | undefined
+              )
+              const hasHouse = hasBelgianHouseNumber(effectiveSiteAddress)
+              const isHouseVerified = Boolean(spwVerif?.houseVerified)
+              const isStreetVerified = Boolean(spwVerif?.streetVerified)
+              const coords = (spwVerif?.coordinates as { lat: number; lng: number } | null | undefined) ?? null
+              const mapLinks = buildMapLinks({
+                streetAddress: effectiveSiteAddress,
+                postalCode: effectivePostalCode,
+                city: effectiveCity,
+                coordinates: coords,
+              })
+              const contactPref = (effectiveMeta?.contactPreference as string | undefined) || "written_first"
 
-              <div className="flex flex-col gap-1 text-xs">
-                {lead.site_address ? (
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-muted-foreground text-[11px] shrink-0 font-medium">Adresse exacte :</span>
-                    <span className="font-semibold text-foreground text-sm select-all">
-                      {lead.site_address}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="text-[11px] text-muted-foreground italic">
-                    Adresse exacte de voirie non renseignée (uniquement commune & CP)
-                  </div>
-                )}
+              return (
+                <div className="rounded-lg bg-secondary/50 border border-border p-3 flex flex-col gap-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="flex items-center gap-1.5 text-[11px] font-bold text-foreground uppercase tracking-wider font-mono">
+                        <MapPin className="h-3.5 w-3.5 text-accent" />
+                        Adresse du Chantier
+                      </span>
+                      {isHouseVerified ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">
+                          <CheckCircle2 className="h-2.5 w-2.5" />
+                          SPW ICAR exacte
+                        </span>
+                      ) : !effectiveSiteAddress || !hasHouse ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-destructive/10 text-destructive border border-destructive/20">
+                          <AlertTriangle className="h-2.5 w-2.5" />
+                          {!effectiveSiteAddress ? "Adresse absente" : "N° maison manquant"}
+                        </span>
+                      ) : isStreetVerified ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 border border-amber-500/20">
+                          Voirie OK · n° non cadastré
+                        </span>
+                      ) : null}
+                    </div>
 
-                <div className="flex items-center gap-2 pt-1 border-t border-border/60">
-                  <span className="text-muted-foreground text-[11px] shrink-0">Ville & Province :</span>
-                  <span className="font-mono tabular-nums font-bold text-foreground">
-                    {lead.postal_code ? `${lead.postal_code} ` : ""}
-                    {lead.city || "Non précisée"}
-                    {lead.province ? ` · Province de ${lead.province.replace("_", " ")}` : ""}
-                  </span>
+                    <div className="flex items-center gap-2">
+                      {effectiveSiteAddress && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            copyToClipboard(
+                              `${effectiveSiteAddress}, ${effectivePostalCode || ""} ${effectiveCity || ""}`.trim(),
+                              "Adresse complète"
+                            )
+                          }
+                          className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground font-mono"
+                        >
+                          <Copy className="h-2.5 w-2.5" />
+                          Copier
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!isEditingAddress) {
+                            setEditSiteAddress(effectiveSiteAddress ?? "")
+                            setEditPostalCode(effectivePostalCode ?? "")
+                            setEditCity(effectiveCity ?? "")
+                          }
+                          setIsEditingAddress(!isEditingAddress)
+                        }}
+                        className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold text-primary hover:underline"
+                      >
+                        <Pencil className="h-2.5 w-2.5" />
+                        {isEditingAddress ? "Annuler" : "Corriger"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {isEditingAddress ? (
+                    <div className="flex flex-col gap-2.5 rounded-md border border-border bg-card p-2.5">
+                      <div className="grid grid-cols-1 sm:grid-cols-[110px_1fr] gap-2">
+                        <div className="flex flex-col gap-1">
+                          <Label htmlFor="admin-edit-cp" className="text-[11px]">
+                            Code postal
+                          </Label>
+                          <Input
+                            id="admin-edit-cp"
+                            value={editPostalCode}
+                            maxLength={4}
+                            onChange={(e) =>
+                              setEditPostalCode(e.target.value.replace(/\D/g, "").slice(0, 4))
+                            }
+                            placeholder="5300"
+                            className="h-9 font-mono tabular-nums text-xs"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <Label htmlFor="admin-edit-city" className="text-[11px]">
+                            Commune / Localité
+                          </Label>
+                          <BelgianLocalityField
+                            id="admin-edit-city"
+                            postalCode={editPostalCode}
+                            value={editCity}
+                            onChange={setEditCity}
+                            inputClassName="h-9 text-xs"
+                            showQuickChips={false}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <Label htmlFor="admin-edit-street" className="text-[11px]">
+                          Rue &amp; Numéro (autocomplétion SPW ICAR)
+                        </Label>
+                        <BelgianStreetNumberFields
+                          streetId="admin-edit-street"
+                          houseId="admin-edit-house"
+                          value={editSiteAddress}
+                          onChange={setEditSiteAddress}
+                          postalCode={editPostalCode}
+                          city={editCity}
+                          onSuggestionSelect={(s) => {
+                            if (s.section) setEditCity(s.section)
+                          }}
+                          required={false}
+                          requireHouseNumber={false}
+                          compact
+                          inputHeightClass="h-9"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 pt-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsEditingAddress(false)}
+                          className="h-7 text-xs"
+                        >
+                          Annuler
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handleSaveAddress}
+                          disabled={isSavingAddress}
+                          className="h-7 text-xs gap-1"
+                        >
+                          {isSavingAddress ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Check className="h-3 w-3" />
+                          )}
+                          Enregistrer &amp; re-vérifier SPW
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-1.5 text-xs">
+                      {effectiveSiteAddress ? (
+                        <div className="flex items-baseline gap-2 flex-wrap">
+                          <span className="text-muted-foreground text-[11px] shrink-0 font-medium">
+                            Adresse exacte :
+                          </span>
+                          <span className="font-semibold text-foreground text-sm select-all">
+                            {effectiveSiteAddress}
+                          </span>
+                          {typeof spwVerif?.canonicalStreet === "string" &&
+                            spwVerif.canonicalStreet.toLowerCase() !==
+                              effectiveSiteAddress.toLowerCase() && (
+                              <span className="text-[11px] text-primary font-mono">
+                                (SPW ICAR : {spwVerif.canonicalStreet}
+                                {spwVerif.officialSection ? ` · ${String(spwVerif.officialSection)}` : ""})
+                              </span>
+                            )}
+                        </div>
+                      ) : (
+                        <div className="text-[11px] text-destructive italic">
+                          Adresse exacte de voirie non renseignée (uniquement commune &amp; CP)
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-border/60">
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground text-[11px] shrink-0">
+                            Ville &amp; Province :
+                          </span>
+                          <span className="font-mono tabular-nums font-bold text-foreground">
+                            {effectivePostalCode ? `${effectivePostalCode} ` : ""}
+                            {effectiveCity || "Non précisée"}
+                            {effectiveProvince
+                              ? ` · Province de ${effectiveProvince.replace("_", " ")}`
+                              : ""}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <a
+                            href={mapLinks.googleMapsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded border border-border bg-card hover:bg-muted text-foreground"
+                          >
+                            Maps <ExternalLink className="h-2.5 w-2.5" />
+                          </a>
+                          <a
+                            href={mapLinks.streetViewUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded border border-border bg-card hover:bg-muted text-foreground"
+                          >
+                            Street View <ExternalLink className="h-2.5 w-2.5" />
+                          </a>
+                          <a
+                            href={mapLinks.walOnMapUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded border border-border bg-card hover:bg-muted text-foreground"
+                          >
+                            WalOnMap <ExternalLink className="h-2.5 w-2.5" />
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Outil de récupération rapide si adresse ou numéro manquant */}
+                  {(!effectiveSiteAddress || !hasHouse) && (
+                    <div className="mt-1 rounded-md border border-destructive/25 bg-destructive/5 p-2.5 flex flex-col gap-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-[11px] text-foreground leading-snug">
+                          <span className="font-semibold text-destructive">
+                            Adresse incomplète avant mise en vente :
+                          </span>{" "}
+                          {contactPref === "written_first"
+                            ? "le prospect préfère un contact écrit d'abord (e-mail / SMS)."
+                            : "demandez la précision d'adresse avant publication."}
+                          {addressRequestSentAt && (
+                            <span className="block text-[10px] text-primary font-mono mt-0.5">
+                              ✓ Demande envoyée par e-mail le{" "}
+                              {new Date(addressRequestSentAt).toLocaleDateString("fr-BE")}
+                            </span>
+                          )}
+                        </div>
+                        {!isComposingAddressEmail && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={openAddressEmailComposer}
+                            className="h-7 text-xs gap-1.5 border-destructive/30 hover:bg-destructive/10 text-foreground shrink-0"
+                          >
+                            <Send className="h-3 w-3 text-primary" />
+                            Demander par e-mail
+                          </Button>
+                        )}
+                      </div>
+
+                      {isComposingAddressEmail && (
+                        <div className="flex flex-col gap-2 pt-1.5 border-t border-destructive/15">
+                          <Input
+                            value={reqEmailSubject}
+                            onChange={(e) => setReqEmailSubject(e.target.value)}
+                            placeholder="Objet de l'e-mail"
+                            className="h-8 text-xs bg-card"
+                          />
+                          <Textarea
+                            value={reqEmailBody}
+                            onChange={(e) => setReqEmailBody(e.target.value)}
+                            rows={6}
+                            className="text-xs bg-card resize-y"
+                          />
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setIsComposingAddressEmail(false)}
+                              className="h-7 text-xs"
+                            >
+                              Fermer
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={handleSendAddressEmail}
+                              disabled={isSendingAddressEmail || !reqEmailBody.trim()}
+                              className="h-7 text-xs gap-1.5"
+                            >
+                              {isSendingAddressEmail ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Send className="h-3 w-3" />
+                              )}
+                              Envoyer à {lead.email}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
-            </div>
+              )
+            })()}
 
             {/* Visuel du Bâtiment & Toiture (Street View) */}
             <div className="rounded-lg bg-secondary/50 border border-border p-3 flex flex-col gap-2.5">

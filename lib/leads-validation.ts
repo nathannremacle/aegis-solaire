@@ -208,3 +208,126 @@ export function getProvinceFromPostalCode(cp: string): string {
   return key ? WALLOON_PROVINCE_DISPLAY_NAMES[key] : "Wallonie"
 }
 
+export interface ParsedBelgianAddress {
+  street: string
+  houseNumber: string | null
+  box: string | null
+}
+
+/**
+ * Extrait proprement la voirie et le numéro de bâtiment d'une adresse belge.
+ * Gère les formats belges courants ("Rue X 12", "Rue X, 12A", "Thier-Martin N°113c",
+ * "Rue X 14 bte 2", "12 Rue X") tout en ignorant les nombres intégrés aux noms de rue
+ * ("Rue du 11 Novembre", "Avenue Albert 1er", "Rue 1914-1918").
+ */
+export function extractBelgianStreetAndNumber(raw?: string | null): ParsedBelgianAddress {
+  if (!raw || typeof raw !== "string") {
+    return { street: "", houseNumber: null, box: null }
+  }
+
+  let cleaned = raw.replace(/\s+/g, " ").trim()
+  if (!cleaned) {
+    return { street: "", houseNumber: null, box: null }
+  }
+
+  // Exclure les tranches d'années historiques en fin de nom de rue (ex: "1914-1918", "1940-1945")
+  const warYearsEnd = /(?:\b(?:18|19|20)\d{2}\s*[-–]\s*(?:18|19|20)\d{2})$/.test(cleaned)
+  if (warYearsEnd) {
+    return { street: cleaned, houseNumber: null, box: null }
+  }
+
+  // Extraire une éventuelle boîte / appartement en suffixe ("bte 2", "boîte B", "apt 4", "bus 1")
+  let box: string | null = null
+  const boxMatch = cleaned.match(
+    /(?:,?\s*\b(?:bte|boite|boîte|bt|apt|appartement|bus)\s*[:.]?\s*([a-zA-Z0-9]{1,8}))\s*$/i
+  )
+  if (boxMatch) {
+    box = boxMatch[1].trim()
+    cleaned = cleaned.slice(0, boxMatch.index).replace(/[,\s]+$/, "").trim()
+  }
+
+  // 1. Cas standard belge/européen : numéro en fin d'adresse ("Rue X 14", "Rue X, N°113c", "Rue X 12-14", "Rue X 12/A")
+  const trailingMatch = cleaned.match(
+    /^(.+?)(?:,\s*|\s+)(?:n[°o]\s*\.?\s*)?([1-9]\d{0,3}(?:\s*[-/]\s*(?:[1-9]\d{0,3}|[a-zA-Z]{1,3}))?(?:\s*[a-zA-Z]{1,3})?)\s*$/i
+  )
+  if (trailingMatch) {
+    const candidateStreet = trailingMatch[1].replace(/[,\s]+$/, "").trim()
+    const candidateNum = trailingMatch[2].replace(/\s+/g, "")
+
+    // Éviter les ordinaux français/néerlandais en fin de nom de rue ("Albert 1er", "Léon XIII", "2e", "3e", "4ème")
+    const isOrdinal = /^\d+(?:er|ere|ère|e|eme|ème|ste|de)$/i.test(candidateNum)
+    if (!isOrdinal && /[a-zA-ZÀ-ÿ]{2,}/.test(candidateStreet)) {
+      return {
+        street: candidateStreet,
+        houseNumber: candidateNum,
+        box,
+      }
+    }
+  }
+
+  // 2. Cas autofill / anglo-français : numéro au début ("14 Rue Bois l'Evêque", "12A, Avenue Louise")
+  const leadingMatch = cleaned.match(
+    /^(?:n[°o]\s*\.?\s*)?([1-9]\d{0,3}(?:\s*[a-zA-Z])?(?:\s*[-/]\s*[1-9]\d{0,3})?)(?:\s*,\s*|\s+)([a-zA-ZÀ-ÿ].{2,})$/i
+  )
+  if (leadingMatch) {
+    const candidateNum = leadingMatch[1].replace(/\s+/g, "")
+    const candidateStreet = leadingMatch[2].trim()
+    const isMonthStreet = /^(?:janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre)\b/i.test(
+      candidateStreet
+    )
+    if (!isMonthStreet) {
+      return {
+        street: candidateStreet,
+        houseNumber: candidateNum,
+        box,
+      }
+    }
+  }
+
+  return {
+    street: cleaned,
+    houseNumber: null,
+    box,
+  }
+}
+
+/**
+ * Vérifie qu'une adresse de voirie comporte un véritable numéro de bâtiment.
+ */
+export function hasBelgianHouseNumber(raw?: string | null): boolean {
+  const parsed = extractBelgianStreetAndNumber(raw)
+  return Boolean(parsed.street && /[a-zA-ZÀ-ÿ]{2,}/.test(parsed.street) && parsed.houseNumber)
+}
+
+/**
+ * Retourne un message d'erreur clair si l'adresse saisie est incomplète (ou null si valide).
+ */
+export function getBelgianAddressError(
+  raw?: string | null,
+  options?: { required?: boolean; requireHouseNumber?: boolean }
+): string | null {
+  const required = options?.required ?? true
+  const requireHouseNumber = options?.requireHouseNumber ?? true
+  const trimmed = (raw ?? "").trim()
+
+  if (!trimmed) {
+    return required ? "Veuillez renseigner votre adresse (rue et numéro)." : null
+  }
+
+  if (trimmed.length < 4) {
+    return "Veuillez renseigner une adresse complète (rue et numéro)."
+  }
+
+  const parsed = extractBelgianStreetAndNumber(trimmed)
+  if (!parsed.street || !/[a-zA-ZÀ-ÿ]{2,}/.test(parsed.street)) {
+    return "Veuillez saisir le nom complet de votre rue ou avenue."
+  }
+
+  if (requireHouseNumber && !parsed.houseNumber) {
+    return "Indiquez votre numéro de maison (ex: 12 ou 12A) pour localiser votre toiture."
+  }
+
+  return null
+}
+
+

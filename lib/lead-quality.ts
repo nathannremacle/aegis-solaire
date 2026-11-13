@@ -1,3 +1,5 @@
+import { hasBelgianHouseNumber } from "@/lib/leads-validation"
+
 /**
  * Module de contrôle de qualité et d'éligibilité des leads pour la marketplace Aegis Solaire.
  * Empêche la publication de leads incomplets ou erronés qui détruisent la crédibilité auprès des installateurs.
@@ -12,6 +14,9 @@ export interface LeadQualityCheckResult {
 
 export function evaluateLeadPublishability(lead: {
   province?: string | null
+  postal_code?: string | null
+  city?: string | null
+  site_address?: string | null
   surface_area?: number | null
   surface_type?: string | null
   annual_electricity_bill?: number | null
@@ -49,6 +54,21 @@ export function evaluateLeadPublishability(lead: {
     missingFields.push("Aucun moyen de contact direct (téléphone ou email)")
   } else if (!hasPhone) {
     warnings.push("Numéro de téléphone absent (email uniquement)")
+  }
+
+  // Contrôle qualité d'adresse : en B2C, rue + numéro requis si la colonne est sélectionnée
+  if (lead.segment === "B2C" && "site_address" in lead) {
+    const trimmedAddr = (lead.site_address ?? "").trim()
+    if (!trimmedAddr) {
+      missingFields.push("Adresse du bien (rue et numéro) manquante")
+    } else if (!hasBelgianHouseNumber(trimmedAddr)) {
+      missingFields.push("Numéro de maison manquant dans l'adresse (localisation toiture impossible)")
+    }
+  } else if (lead.segment === "B2B" && "site_address" in lead) {
+    const trimmedAddr = (lead.site_address ?? "").trim()
+    if (!trimmedAddr) {
+      warnings.push("Adresse ou zoning B2B non précisé")
+    }
   }
 
   if (lead.segment === "B2B" && (!lead.company || lead.company.trim() === "")) {

@@ -23,7 +23,9 @@ export async function POST(
   // 1. Récupération préalable et contrôle de qualité rigoureux
   const { data: leadToPublish, error: fetchError } = await admin
     .from("leads")
-    .select("id, province, surface_area, surface_type, annual_electricity_bill, segment, first_name, last_name, email, phone, company")
+    .select(
+      "id, province, postal_code, city, site_address, surface_area, surface_type, annual_electricity_bill, segment, first_name, last_name, email, phone, company"
+    )
     .eq("id", id)
     .single()
 

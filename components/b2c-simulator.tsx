@@ -22,6 +22,8 @@ import { getStoredMediaPartnerRef } from "@/components/media-partner-ref-tracker
 import { AnimatedCounter } from "@/components/ui/animated-counter"
 import { calculateB2CSolarROI } from "@/lib/solar-assumptions"
 import { trackLeadConversion } from "@/components/analytics/ad-tracking"
+import { BelgianStreetNumberFields } from "@/components/address/belgian-address-fields"
+import { getBelgianAddressError, hasBelgianHouseNumber } from "@/lib/leads-validation"
 import {
   ArrowRight,
   ArrowLeft,
@@ -386,6 +388,7 @@ export function B2CSimulator() {
           /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fd.email) &&
           fd.phone.trim().replace(/[\s.-]/g, "").length >= 8 &&
           /^[1-9][0-9]{3}$/.test(fd.postalCode.trim()) &&
+          hasBelgianHouseNumber(fd.siteAddress) &&
           fd.marketingConsent
         )
       default:
@@ -399,6 +402,7 @@ export function B2CSimulator() {
   const emailError = !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fd.email) ? "Format d'adresse e-mail invalide" : null
   const phoneError = fd.phone.trim().replace(/[\s.-]/g, "").length < 8 ? "Numéro de téléphone requis (au moins 8 chiffres)" : null
   const postalCodeError = !/^[1-9][0-9]{3}$/.test(fd.postalCode.trim()) ? "Code postal belge à 4 chiffres requis (ex: 4000)" : null
+  const siteAddressError = getBelgianAddressError(fd.siteAddress, { required: true, requireHouseNumber: true })
   const consentError = !fd.marketingConsent ? "Vous devez accepter d'être recontacté pour recevoir votre étude" : null
 
   const showFirstNameError = (hasAttemptedSubmit || touched.firstName) ? firstNameError : null
@@ -406,6 +410,7 @@ export function B2CSimulator() {
   const showEmailError = (hasAttemptedSubmit || touched.email) ? emailError : null
   const showPhoneError = (hasAttemptedSubmit || touched.phone) ? phoneError : null
   const showPostalCodeError = (hasAttemptedSubmit || touched.postalCode) ? postalCodeError : null
+  const showSiteAddressError = (hasAttemptedSubmit || touched.siteAddress) ? siteAddressError : null
   const showConsentError = (hasAttemptedSubmit || touched.marketingConsent) ? consentError : null
 
   /* ── Loading messages cycle ── */
@@ -1149,15 +1154,23 @@ export function B2CSimulator() {
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="b2c-address">
-                        Adresse / Rue et n° <span className="text-xs font-normal text-muted-foreground">(recommandé pour étude satellite)</span>
+                        Adresse du bien (Rue et n°) <span className="text-destructive">*</span>
                       </Label>
-                      <Input
-                        id="b2c-address"
-                        type="text"
-                        placeholder="Rue des Saules 14"
+                      <BelgianStreetNumberFields
+                        streetId="b2c-address"
+                        houseId="b2c-address-number"
                         value={fd.siteAddress}
-                        onChange={(e) => up("siteAddress", e.target.value)}
-                        className="h-12"
+                        onChange={(val) => {
+                          up("siteAddress", val)
+                          markTouched("siteAddress")
+                        }}
+                        postalCode={fd.postalCode}
+                        showError={Boolean(showSiteAddressError)}
+                        required
+                        requireHouseNumber
+                        streetPlaceholder="Rue des Saules"
+                        housePlaceholder="14"
+                        inputHeightClass="h-12"
                       />
                     </div>
                   </div>

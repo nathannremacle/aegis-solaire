@@ -51,6 +51,7 @@ import { LeadDrawer, type LeadDetail } from "@/components/admin/leads/lead-drawe
 import { BulkActionBar } from "@/components/admin/leads/bulk-action-bar"
 import { type CompatiblePartner } from "@/components/admin/leads/dispatch-panel"
 import { isWalloonPostalCode } from "@/lib/admin/lead-risk"
+import { hasBelgianHouseNumber } from "@/lib/leads-validation"
 import { triggerAdminBadgesRefresh } from "@/components/admin/admin-badges-provider"
 import {
   publishLeadAction,
@@ -414,10 +415,10 @@ export function LeadsTable({
             {currentView === "triage"
               ? "File de Triage des Leads"
               : currentView === "marketplace"
-              ? "Vivier Marketplace Live"
-              : currentView === "assigned"
-              ? "Leads Attribués & Vendus"
-              : "Contrôle des Leads"}
+                ? "Vivier Marketplace Live"
+                : currentView === "assigned"
+                  ? "Leads Attribués & Vendus"
+                  : "Contrôle des Leads"}
           </h1>
           <span className="font-mono text-xs tabular-nums text-muted-foreground bg-secondary px-2 py-0.5 rounded-sm border border-border">
             {currentTotal} lead{currentTotal > 1 ? "s" : ""}
@@ -446,8 +447,8 @@ export function LeadsTable({
                     currentView === "triage"
                       ? "bg-primary-foreground/20 text-primary-foreground"
                       : tabCounts.triage > 0
-                      ? "bg-accent/20 text-accent font-bold"
-                      : "bg-muted text-muted-foreground"
+                        ? "bg-accent/20 text-accent font-bold"
+                        : "bg-muted text-muted-foreground"
                   )}
                 >
                   {tabCounts.triage}
@@ -474,8 +475,8 @@ export function LeadsTable({
                     currentView === "marketplace"
                       ? "bg-primary-foreground/20 text-primary-foreground"
                       : tabCounts.marketplace > 0
-                      ? "bg-primary/10 text-primary font-bold"
-                      : "bg-muted text-muted-foreground"
+                        ? "bg-primary/10 text-primary font-bold"
+                        : "bg-muted text-muted-foreground"
                   )}
                 >
                   {tabCounts.marketplace}
@@ -818,13 +819,27 @@ export function LeadsTable({
 
                     {/* Localité & Adresse */}
                     <TableCell>
-                      <div className="flex flex-col text-[11px]">
+                      <div className="flex flex-col text-[11px] max-w-[200px]">
                         <span className="font-mono tabular-nums text-foreground font-semibold truncate">
                           {lead.postal_code || "–"} {lead.city || ""}
                         </span>
                         {lead.site_address ? (
-                          <span className="text-[10px] text-muted-foreground truncate" title={lead.site_address}>
-                            {lead.site_address}
+                          <div className="flex items-center gap-1 min-w-0">
+                            <span className="text-[10px] text-muted-foreground truncate" title={lead.site_address}>
+                              {lead.site_address}
+                            </span>
+                            {isB2C && !hasBelgianHouseNumber(lead.site_address) && (
+                              <span
+                                className="shrink-0 font-mono tabular-nums text-[9px] font-semibold px-1 py-0.2 rounded bg-accent/15 text-accent border border-accent/30"
+                                title="Numéro de maison manquant — non publiable"
+                              >
+                                N° ?
+                              </span>
+                            )}
+                          </div>
+                        ) : isB2C ? (
+                          <span className="text-[10px] text-accent font-medium" title="Adresse de chantier manquante — non publiable">
+                            Adresse manquante
                           </span>
                         ) : (
                           <span className="text-[10px] text-muted-foreground/80 capitalize">

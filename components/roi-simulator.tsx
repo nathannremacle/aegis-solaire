@@ -41,6 +41,7 @@ import {
 import { getStoredMediaPartnerRef } from "@/components/media-partner-ref-tracker"
 import { calculateB2BSolarROI } from "@/lib/solar-assumptions"
 import { trackLeadConversion } from "@/components/analytics/ad-tracking"
+import { BelgianStreetNumberFields } from "@/components/address/belgian-address-fields"
 
 type FormData = {
   surfaceType: string
@@ -710,13 +711,17 @@ export function ROISimulator() {
                       <Label htmlFor="siteAddress" className="text-sm font-semibold text-foreground">
                         Adresse ou zoning <span className="text-xs font-normal text-muted-foreground">(recommandé étude satellite)</span>
                       </Label>
-                      <Input
-                        id="siteAddress"
-                        type="text"
-                        placeholder="Rue, n° ou nom du zoning"
+                      <BelgianStreetNumberFields
+                        streetId="siteAddress"
+                        houseId="siteAddressNumber"
                         value={formData.siteAddress}
-                        onChange={(e) => updateFormData("siteAddress", e.target.value)}
-                        className="mt-1.5 h-11"
+                        onChange={(val) => updateFormData("siteAddress", val)}
+                        postalCode={formData.postalCode}
+                        required={false}
+                        requireHouseNumber={false}
+                        streetPlaceholder="Rue ou nom du zoning"
+                        housePlaceholder="12"
+                        className="mt-1.5"
                       />
                     </div>
                   </div>

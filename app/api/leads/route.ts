@@ -10,6 +10,7 @@ import { sendAdminNewLeadAlertEmail } from "@/lib/notify-admin-lead"
 import { sendMetaConversionApiLead } from "@/lib/meta-capi"
 import { enrichLeadVerifications } from "@/lib/lead-verification-engine"
 import {
+  extractBelgianStreetAndNumber,
   formatAndValidateBelgianPhone,
   getWalloonProvinceKeyFromPostalCode,
   isWalloonPostalCode,
@@ -235,8 +236,22 @@ export async function POST(request: NextRequest) {
       factors.push({ label: `Vérification certifiée : ${badge}`, delta: 5 })
     }
     for (const warn of verifications.warningFlags) {
-      factors.push({ label: `Alerte conformité : ${warn}`, delta: -30 })
+      factors.push({ label: `Alerte conformité : ${warn}`, delta: -15 })
     }
+
+    const spwRes = verifications.walloniaAddress
+    const resolvedCityRaw =
+      (data.city && sanitizeString(data.city, 100)) ||
+      spwRes.officialSection ||
+      spwRes.officialCity ||
+      null
+    const parsedRawAddress = extractBelgianStreetAndNumber(data.siteAddress)
+    const canonicalAddressText =
+      spwRes.houseVerified && spwRes.canonicalStreet && spwRes.houseNumber
+        ? `${spwRes.canonicalStreet} ${spwRes.houseNumber}${parsedRawAddress.box ? ` bte ${parsedRawAddress.box}` : ""}`
+        : data.siteAddress
+          ? sanitizeString(data.siteAddress, 255)
+          : null
 
     const insertPayload: Record<string, unknown> = {
       segment: data.segment,
@@ -274,8 +289,8 @@ export async function POST(request: NextRequest) {
       source_form: safeSourceForm,
       ownership_status: safeOwnership,
       postal_code: safePostalCode,
-      city: data.city ? sanitizeString(data.city, 100) : null,
-      site_address: data.siteAddress ? sanitizeString(data.siteAddress, 255) : null,
+      city: resolvedCityRaw,
+      site_address: canonicalAddressText,
       roof_material: safeRoofMaterial,
       surface_area_m2: financials.normalizedSurfaceAreaM2,
       annual_bill_eur: financials.normalizedAnnualBill,
@@ -410,8 +425,8 @@ export async function POST(request: NextRequest) {
         wantsIrve: financials.includesEv,
         province: data.province,
         postalCode: safePostalCode,
-        city: data.city ? sanitizeString(data.city, 100) : null,
-        siteAddress: data.siteAddress ? sanitizeString(data.siteAddress, 255) : null,
+        city: resolvedCityRaw,
+        siteAddress: canonicalAddressText,
         grd: data.grd ?? null,
         ownershipStatus: safeOwnership,
         timeframe: data.timeframe ?? null,

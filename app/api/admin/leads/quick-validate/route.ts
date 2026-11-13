@@ -163,7 +163,9 @@ export async function GET(request: NextRequest) {
 
   const { data: lead, error: fetchError } = await admin
     .from("leads")
-    .select("id, province, surface_area, surface_type, annual_electricity_bill, segment, first_name, last_name, email, phone, company, marketplace_status, lead_score, credit_cost")
+    .select(
+      "id, province, postal_code, city, site_address, surface_area, surface_type, annual_electricity_bill, segment, first_name, last_name, email, phone, company, marketplace_status, lead_score, credit_cost"
+    )
     .eq("id", id)
     .single()
 

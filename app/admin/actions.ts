@@ -6,6 +6,7 @@ import { getAdminUser } from "@/lib/admin-auth"
 import { dispatchLeadWave } from "@/lib/lead-relance-engine"
 import { B2C_CREDIT_COST, B2B_CREDIT_COST } from "@/lib/credit-pricing"
 import { sendLeadAssignedEmail } from "@/lib/notify-installateur"
+import { evaluateLeadPublishability } from "@/lib/lead-quality"
 
 export async function validateCreditOrderAction(orderId: string, adminEmail?: string) {
   const adminUser = await getAdminUser()
@@ -65,12 +66,25 @@ export async function publishLeadAction(leadId: string, creditCost?: number) {
 
   const supabase = createServiceRoleClient()
 
-  // Récupérer le segment du lead si le coût n'est pas fourni
+  // Récupérer le lead et vérifier les critères minimaux de qualité (dont adresse B2C complète)
   const { data: lead } = await supabase
     .from("leads")
-    .select("segment, credit_cost")
+    .select(
+      "id, segment, credit_cost, province, postal_code, city, site_address, surface_area, surface_type, annual_electricity_bill, first_name, last_name, email, phone, company"
+    )
     .eq("id", leadId)
     .single()
+
+  if (!lead) {
+    throw new Error("Dossier introuvable.")
+  }
+
+  const qualityCheck = evaluateLeadPublishability(lead)
+  if (!qualityCheck.isPublishable) {
+    throw new Error(
+      `Publication bloquée : ${qualityCheck.missingFields.join(" · ")}. Complétez la fiche d'abord.`
+    )
+  }
 
   const finalCost =
     creditCost && creditCost > 0

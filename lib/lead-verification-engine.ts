@@ -1,4 +1,8 @@
 import { resolveMx } from "node:dns/promises"
+import {
+  verifyWalloniaAddressStrict,
+  type AddressResolutionLevel,
+} from "./address-spw"
 
 /**
  * Liste non exhaustive des fournisseurs d'adresses temporaires/jetables connues.
@@ -27,11 +31,23 @@ export interface EmailMxVerificationResult {
 
 export interface WalloniaAddressVerificationResult {
   validInWallonia: boolean
+  resolutionLevel?: AddressResolutionLevel
+  streetVerified?: boolean
+  houseVerified?: boolean
+  hasHouseNumber?: boolean
+  postalMismatch?: boolean
   officialCity?: string
+  officialSection?: string
   officialPostalCode?: string
+  canonicalStreet?: string
+  houseNumber?: string | null
   confidenceScore: number // 0 à 100
   source: "SPW_ICAR"
   rawCandidatesCount: number
+  coordinates?: { lat: number; lng: number } | null
+  googleMapsUrl?: string
+  streetViewUrl?: string
+  walOnMapUrl?: string
 }
 
 export interface CbeCompanyVerificationResult {
@@ -124,98 +140,14 @@ export async function verifyEmailDomainMx(email: string): Promise<EmailMxVerific
 
 /**
  * 2. Contrôle Géoportail de la Wallonie (SPW / ICAR) :
- * Vérifie officiellement l'existence de la commune, du code postal et de l'adresse en Région wallonne.
+ * Vérifie rigoureusement la commune, le code postal, la rue et le numéro de maison (avec coordonnées WGS84).
  */
 export async function verifyWalloniaAddressSpw(params: {
   postalCode?: string | null
   city?: string | null
   streetAddress?: string | null
 }): Promise<WalloniaAddressVerificationResult> {
-  const { postalCode, city, streetAddress } = params
-  const cleanPostal = postalCode?.trim() || ""
-  const cleanCity = city?.trim() || ""
-  const cleanStreet = streetAddress?.trim() || ""
-
-  // Si aucune donnée de localisation wallonne n'est fournie
-  if (!cleanPostal && !cleanCity && !cleanStreet) {
-    return {
-      validInWallonia: false,
-      confidenceScore: 0,
-      source: "SPW_ICAR",
-      rawCandidatesCount: 0,
-    }
-  }
-
-  try {
-    const fullText = [cleanStreet, cleanPostal, cleanCity].filter(Boolean).join(", ")
-
-    // 1. Si une adresse ou rue est fournie, interroger le géocodeur d'adresse SPW
-    if (cleanStreet || (cleanPostal && cleanCity)) {
-      const geocodeUrl = `https://geoservices.wallonie.be/geocodeWS/geocode?address=${encodeURIComponent(fullText)}`
-      const res = await fetch(geocodeUrl, {
-        signal: AbortSignal.timeout(3500),
-        headers: { Accept: "application/json" },
-      })
-
-      if (res.ok) {
-        const data = await res.json()
-        const candidates = Array.isArray(data?.candidates) ? data.candidates : []
-        if (candidates.length > 0) {
-          const top = candidates[0]
-          const score = typeof top?.score === "number" ? top.score : 100
-          if (score >= 80) {
-            return {
-              validInWallonia: true,
-              officialCity: top?.city?.name || top?.zone?.name || cleanCity,
-              officialPostalCode: top?.zone?.ident || cleanPostal,
-              confidenceScore: Math.min(100, score),
-              source: "SPW_ICAR",
-              rawCandidatesCount: candidates.length,
-            }
-          }
-        }
-      }
-    }
-
-    // 2. Recherche par zone / commune via geolist
-    const queryZone = cleanPostal || cleanCity
-    const geolistUrl = `https://geoservices.wallonie.be/geocodeWS/geolist?zone=${encodeURIComponent(queryZone)}`
-    const listRes = await fetch(geolistUrl, {
-      signal: AbortSignal.timeout(3000),
-      headers: { Accept: "application/json" },
-    })
-
-    if (listRes.ok) {
-      const listData = await listRes.json()
-      const candidates = Array.isArray(listData?.candidates) ? listData.candidates : []
-      if (candidates.length > 0) {
-        const top = candidates[0]
-        return {
-          validInWallonia: true,
-          officialCity: top?.city?.name || top?.zone?.name || cleanCity,
-          officialPostalCode: top?.zone?.ident || cleanPostal,
-          confidenceScore: 90,
-          source: "SPW_ICAR",
-          rawCandidatesCount: candidates.length,
-        }
-      }
-    }
-
-    return {
-      validInWallonia: false,
-      confidenceScore: 10,
-      source: "SPW_ICAR",
-      rawCandidatesCount: 0,
-    }
-  } catch (e) {
-    console.warn("[SPW Geoportail] Erreur ou timeout consultation SPW:", e)
-    return {
-      validInWallonia: true, // Tolérance de résilience réseau
-      confidenceScore: 50,
-      source: "SPW_ICAR",
-      rawCandidatesCount: 0,
-    }
-  }
+  return verifyWalloniaAddressStrict(params)
 }
 
 /**
@@ -380,11 +312,45 @@ export async function enrichLeadVerifications(params: {
     warningFlags.push(emailMx.reason || "Domaine e-mail sans serveur de messagerie")
   }
 
-  // 2. Évaluation Localisation SPW
-  if (walloniaAddress.validInWallonia && walloniaAddress.confidenceScore >= 80) {
-    globalTrustScoreDelta += 5
-    trustBadges.push(`Commune certifiée SPW Wallonie (${walloniaAddress.officialCity || "ICAR"})`)
-  } else if (!walloniaAddress.validInWallonia && walloniaAddress.confidenceScore <= 10) {
+  // 2. Évaluation Localisation SPW & Complétude Adresse
+  if (walloniaAddress.postalMismatch) {
+    globalTrustScoreDelta -= 25
+    warningFlags.push(
+      `Incohérence code postal (${postalCode || "?"}) vs localité SPW (${walloniaAddress.officialPostalCode || "?"} ${walloniaAddress.officialCity || ""})`
+    )
+  } else if (walloniaAddress.validInWallonia && walloniaAddress.houseVerified) {
+    globalTrustScoreDelta += 10
+    trustBadges.push(
+      `Adresse exacte certifiée SPW ICAR (${walloniaAddress.canonicalStreet || ""} ${walloniaAddress.houseNumber || ""}, ${walloniaAddress.officialPostalCode || ""} ${walloniaAddress.officialSection || walloniaAddress.officialCity || ""})`.trim()
+    )
+  } else if (walloniaAddress.validInWallonia && walloniaAddress.streetVerified) {
+    if (!walloniaAddress.hasHouseNumber) {
+      globalTrustScoreDelta -= 10
+      warningFlags.push(
+        "Numéro de maison manquant — localisation satellite / Street View précise impossible"
+      )
+    } else {
+      trustBadges.push(
+        `Voirie reconnue SPW Wallonie (${walloniaAddress.canonicalStreet || walloniaAddress.officialCity || "ICAR"})`
+      )
+      warningFlags.push(
+        "Numéro de bâtiment non confirmé au cadastre SPW ICAR (construction neuve ou erreur de saisie)"
+      )
+    }
+  } else if (walloniaAddress.validInWallonia) {
+    trustBadges.push(
+      `Commune reconnue SPW Wallonie (${walloniaAddress.officialCity || "ICAR"})`
+    )
+    if (streetAddress && streetAddress.trim().length > 0) {
+      globalTrustScoreDelta -= 10
+      warningFlags.push(
+        "Nom de rue non trouvé dans le registre SPW ICAR pour ce code postal"
+      )
+    } else if (segment === "B2C") {
+      globalTrustScoreDelta -= 10
+      warningFlags.push("Adresse précise de voirie (rue et n°) manquante")
+    }
+  } else {
     globalTrustScoreDelta -= 20
     warningFlags.push("Localisation non répertoriée dans le cadastre SPW Wallonie")
   }

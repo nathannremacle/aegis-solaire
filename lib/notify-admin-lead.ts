@@ -1,5 +1,8 @@
 import { Resend } from "resend"
 import { createHmac } from "crypto"
+import { detectLeadRiskFlags } from "./admin/lead-risk"
+import { buildMapLinks, type AddressResolutionLevel } from "./address-spw"
+import { hasBelgianHouseNumber } from "./leads-validation"
 
 export type ScoreFactor = {
   label: string
@@ -38,9 +41,20 @@ export type EmailMxData = {
 
 export type WalloniaAddressData = {
   validInWallonia: boolean
+  resolutionLevel?: AddressResolutionLevel
+  streetVerified?: boolean
+  houseVerified?: boolean
+  hasHouseNumber?: boolean
+  postalMismatch?: boolean
   officialCity?: string
+  officialSection?: string
   officialPostalCode?: string
+  canonicalStreet?: string
+  houseNumber?: string | null
   confidenceScore: number
+  coordinates?: { lat: number; lng: number } | null
+  googleMapsUrl?: string
+  streetViewUrl?: string
 }
 
 export type LeadEnrichedData = {
@@ -142,87 +156,23 @@ export function checkBelgianOrFrPhone(phone?: string | null): boolean {
  * Détecte les signaux de risque et de vigilance pour un lead donné (aligné sur le cockpit admin).
  */
 export function extractLeadRiskAlerts(payload: AdminLeadAlertPayload): RiskFlag[] {
-  const flags: RiskFlag[] = []
-
-  // 1. Contrôle Téléphone
-  if (!payload.phone || payload.phone.trim() === "") {
-    flags.push({
-      code: "NO_PHONE",
-      label: "Numéro absent",
-      severity: "critical",
-      description: "Aucun numéro de téléphone fourni par le prospect.",
-    })
-  } else if (!checkBelgianOrFrPhone(payload.phone)) {
-    flags.push({
-      code: "INVALID_PHONE",
-      label: "Numéro suspect / format non conforme",
-      severity: "critical",
-      description: "Le format du numéro de téléphone présente une anomalie ou des répétitions anormales.",
-    })
-  }
-
-  // 2. Contrôle B2B : TVA et Société
-  if (payload.segment === "B2B") {
-    if (!payload.company || payload.company.trim().length < 2) {
-      flags.push({
-        code: "B2B_MISSING_COMPANY",
-        label: "Entreprise non précisée",
-        severity: "critical",
-        description: "Nom d'entreprise manquant pour un dossier professionnel B2B.",
-      })
-    }
-    if (payload.companyVat) {
-      if (!checkBelgianVatModulo97(payload.companyVat)) {
-        flags.push({
-          code: "INVALID_VAT",
-          label: "TVA invalide",
-          severity: "warning",
-          description: "La clé de contrôle Modulo 97 de la TVA belge n'est pas conforme.",
-        })
-      }
-    } else {
-      flags.push({
-        code: "B2B_NO_VAT",
-        label: "TVA absente",
-        severity: "warning",
-        description: "Numéro d'entreprise / TVA non renseigné pour ce lead B2B.",
-      })
-    }
-  }
-
-  // 3. Statut d'occupation
-  if (payload.ownershipStatus === "tenant_unauthorized" || payload.ownershipStatus === "tenant") {
-    flags.push({
-      code: "TENANT_UNAUTHORIZED",
-      label: "Locataire sans accord bailleur",
-      severity: "warning",
-      description: "Le demandeur est locataire et n'a pas confirmé l'accord formel du propriétaire.",
-    })
-  }
-
-  // 4. Code postal hors Wallonie
-  if (payload.postalCode) {
-    const n = parseInt(payload.postalCode.replace(/\D/g, ""), 10)
-    if (!Number.isNaN(n)) {
-      const isWalloon =
-        (n >= 1300 && n <= 1499) ||
-        (n >= 4000 && n <= 4999) ||
-        (n >= 5000 && n <= 5999) ||
-        (n >= 6000 && n <= 6599) ||
-        (n >= 6600 && n <= 6999) ||
-        (n >= 7000 && n <= 7999)
-      if (!isWalloon) {
-        flags.push({
-          code: "OUT_OF_WALLONIA",
-          label: "Hors Wallonie",
-          severity: "critical",
-          description: `Code postal ${payload.postalCode} situé hors de la Région wallonne (Flandre ou Bruxelles).`,
-        })
-      }
-    }
-  }
-
-  return flags
+  return detectLeadRiskFlags({
+    firstName: payload.firstName,
+    lastName: payload.lastName,
+    email: payload.email,
+    phone: payload.phone,
+    postalCode: payload.postalCode,
+    city: payload.city,
+    siteAddress: payload.siteAddress,
+    province: payload.province,
+    segment: payload.segment,
+    company: payload.company,
+    companyVat: payload.companyVat,
+    ownershipStatus: payload.ownershipStatus,
+    surfaceArea: payload.surfaceArea,
+    annualElectricityBill: payload.annualBill,
+    qualificationMetadata: payload.verifications ? { verifications: payload.verifications } : null,
+  })
 }
 
 /**
@@ -358,8 +308,18 @@ export function buildAdminLeadAlertEmail(payload: AdminLeadAlertPayload): {
   if (mx?.valid) {
     certifiedBadges.push(`E-mail certifié : serveurs MX actifs (${mx.mxServers[0] || "valide"})`)
   }
-  if (spw?.validInWallonia && spw.confidenceScore >= 70) {
-    certifiedBadges.push(`Localisation certifiée SPW Wallonie : ${spw.officialCity || payload.city || "ICAR"}`)
+  if (spw?.validInWallonia && spw.houseVerified) {
+    certifiedBadges.push(
+      `Adresse exacte certifiée SPW ICAR : ${spw.canonicalStreet || ""} ${spw.houseNumber || ""}, ${spw.officialPostalCode || payload.postalCode || ""} ${spw.officialSection || spw.officialCity || ""}`.trim()
+    )
+  } else if (spw?.validInWallonia && spw.streetVerified && hasBelgianHouseNumber(payload.siteAddress)) {
+    certifiedBadges.push(
+      `Voirie certifiée SPW Wallonie : ${spw.canonicalStreet || spw.officialCity || payload.city || "ICAR"}`
+    )
+  } else if (spw?.validInWallonia && spw.confidenceScore >= 30 && !spw.postalMismatch) {
+    certifiedBadges.push(
+      `Commune wallonne reconnue (${spw.officialCity || payload.city || "ICAR"}) — adresse précise à vérifier`
+    )
   }
   if (cbe?.verified && cbe.active) {
     certifiedBadges.push(
@@ -701,19 +661,47 @@ Aegis Solaire · Notification interne`
                 <td style="padding: 5px 0;">
                   ${escapeHtml(location)}
                   ${
-                    spw?.validInWallonia
-                      ? `<span style="display: inline-block; font-size: 11px; color: #047857; background: #ECFDF5; border: 1px solid #A7F3D0; padding: 1px 6px; border-radius: 3px; margin-left: 6px;">Certifié SPW Wallonie</span>`
+                    spw?.houseVerified
+                      ? `<span style="display: inline-block; font-size: 11px; color: #047857; background: #ECFDF5; border: 1px solid #A7F3D0; padding: 1px 6px; border-radius: 3px; margin-left: 6px;">Adresse exacte SPW</span>`
+                      : spw?.validInWallonia && spw.streetVerified && !hasBelgianHouseNumber(payload.siteAddress)
+                      ? `<span style="display: inline-block; font-size: 11px; color: #B45309; background: #FFFBEB; border: 1px solid #FDE68A; padding: 1px 6px; border-radius: 3px; margin-left: 6px;">Rue SPW (N° manquant)</span>`
+                      : spw?.validInWallonia && !spw.postalMismatch
+                      ? `<span style="display: inline-block; font-size: 11px; color: #1D4ED8; background: #EFF6FF; border: 1px solid #BFDBFE; padding: 1px 6px; border-radius: 3px; margin-left: 6px;">Commune SPW</span>`
                       : ""
                   }
                 </td>
               </tr>
               ${
                 payload.siteAddress
-                  ? `<tr>
+                  ? (() => {
+                      const mapLinks = buildMapLinks({
+                        streetAddress: payload.siteAddress,
+                        postalCode: payload.postalCode,
+                        city: payload.city,
+                        coordinates: spw?.coordinates ?? null,
+                      })
+                      const hasNum = hasBelgianHouseNumber(payload.siteAddress)
+                      return `<tr>
                       <td style="padding: 5px 0; color: #6B7280;">Adresse du site</td>
-                      <td style="padding: 5px 0;">${escapeHtml(payload.siteAddress)}</td>
+                      <td style="padding: 5px 0;">
+                        <strong>${escapeHtml(payload.siteAddress)}</strong>
+                        ${
+                          !hasNum
+                            ? `<span style="display: inline-block; font-size: 11px; color: #B91C1C; background: #FEF2F2; border: 1px solid #FECACA; padding: 1px 6px; border-radius: 3px; margin-left: 6px;">N° maison manquant</span>`
+                            : ""
+                        }
+                        <span style="margin-left: 8px; font-size: 11px;">
+                          <a href="${mapLinks.googleMapsUrl}" style="color: #2563EB; text-decoration: underline;">Maps</a>
+                          ·
+                          <a href="${mapLinks.streetViewUrl}" style="color: #2563EB; text-decoration: underline;">Street View</a>
+                        </span>
+                      </td>
                     </tr>`
-                  : ""
+                    })()
+                  : `<tr>
+                      <td style="padding: 5px 0; color: #6B7280;">Adresse du site</td>
+                      <td style="padding: 5px 0; color: #B91C1C; font-style: italic;">Non renseignée</td>
+                    </tr>`
               }
               <tr>
                 <td style="padding: 5px 0; color: #6B7280;">GRD compétent</td>

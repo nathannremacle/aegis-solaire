@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
+import { revalidatePath, revalidateTag } from "next/cache"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { sendLeadAssignedEmail } from "@/lib/notify-installateur"
 import { logAudit } from "@/lib/audit-log"
+import { verifyWalloniaAddressSpw } from "@/lib/lead-verification-engine"
+import { getWalloonProvinceKeyFromPostalCode } from "@/lib/leads-validation"
 
 const LEAD_SELECT =
-  "id, first_name, last_name, email, phone, job_title, company, message, surface_type, surface_area, annual_electricity_bill, project_timeline, estimated_roi_years, autoconsumption_rate, estimated_savings, status, marketplace_status, lead_score, installateur_id, segment, province, admin_notes, qualification_metadata, created_at"
+  "id, first_name, last_name, email, phone, job_title, company, company_vat, message, project_details, surface_type, surface_area, estimated_power_kwc, annual_electricity_bill, roof_material, ownership_status, project_timeline, estimated_roi_years, autoconsumption_rate, estimated_savings, status, marketplace_status, credit_cost, lead_score, installateur_id, wants_irve, segment, province, postal_code, city, site_address, grd, media_partner_code, admin_notes, qualification_metadata, created_at"
 
 const VALID_STATUSES = [
   "new",
@@ -64,15 +67,18 @@ export async function PATCH(
 
   const { id } = await params
   const body = await request.json()
-  const { status, marketplace_status, installateur_id: installateurId, admin_notes } = body
+  const {
+    status,
+    marketplace_status,
+    installateur_id: installateurId,
+    admin_notes,
+    site_address,
+    postal_code,
+    city,
+    province,
+  } = body
 
-  const updates: {
-    status?: string
-    marketplace_status?: string
-    installateur_id?: string | null
-    admin_notes?: string
-    updated_at: string
-  } = {
+  const updates: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
   }
 
@@ -119,6 +125,79 @@ export async function PATCH(
   }
 
   const supabase = createServiceRoleClient()
+  const addressEdited =
+    site_address !== undefined ||
+    postal_code !== undefined ||
+    city !== undefined ||
+    province !== undefined
+
+  if (addressEdited) {
+    const { data: existing } = await supabase
+      .from("leads")
+      .select("site_address, postal_code, city, province, qualification_metadata")
+      .eq("id", id)
+      .single()
+
+    if (!existing) {
+      return NextResponse.json({ error: "Lead introuvable" }, { status: 404 })
+    }
+
+    const nextPostal =
+      postal_code !== undefined
+        ? String(postal_code || "").replace(/\D/g, "").slice(0, 4) || null
+        : existing.postal_code
+    if (nextPostal && nextPostal.length !== 4) {
+      return NextResponse.json(
+        { error: "Le code postal belge doit comporter 4 chiffres." },
+        { status: 400 }
+      )
+    }
+
+    const nextCity =
+      city !== undefined
+        ? String(city || "").trim().slice(0, 100) || null
+        : existing.city
+    const nextSiteAddress =
+      site_address !== undefined
+        ? String(site_address || "").trim().slice(0, 255) || null
+        : existing.site_address
+
+    const derivedProvince = nextPostal
+      ? getWalloonProvinceKeyFromPostalCode(nextPostal)
+      : null
+    const nextProvince =
+      province !== undefined
+        ? String(province || "").trim() || derivedProvince || existing.province
+        : derivedProvince || existing.province
+
+    // Re-vérifier automatiquement via SPW ICAR Wallonie
+    const spwVerification = await verifyWalloniaAddressSpw({
+      postalCode: nextPostal,
+      city: nextCity,
+      streetAddress: nextSiteAddress,
+    })
+
+    const existingMeta =
+      (existing.qualification_metadata as Record<string, unknown> | null) ?? {}
+    const existingVerifs =
+      (existingMeta.verifications as Record<string, unknown> | undefined) ?? {}
+
+    updates.postal_code = nextPostal
+    updates.city = nextCity || spwVerification.officialSection || spwVerification.officialCity || null
+    updates.site_address = nextSiteAddress
+    updates.province = nextProvince
+    updates.matched_province = nextProvince
+    updates.qualification_metadata = {
+      ...existingMeta,
+      verifications: {
+        ...existingVerifs,
+        walloniaAddress: spwVerification,
+        addressManuallyCorrectedAt: new Date().toISOString(),
+        addressManuallyCorrectedBy: user.email,
+      },
+    }
+  }
+
   const { data, error } = await supabase
     .from("leads")
     .update(updates)
@@ -129,6 +208,12 @@ export async function PATCH(
   if (error || !data) {
     console.error("Admin lead patch error:", error)
     return NextResponse.json({ error: "Erreur lors de la mise à jour du lead" }, { status: 500 })
+  }
+
+  if (addressEdited) {
+    revalidateTag("admin-kpis", "max")
+    revalidatePath("/admin/leads")
+    revalidateTag("marketplace-feed", "max")
   }
 
   let installateur_notified = false
@@ -167,6 +252,10 @@ export async function PATCH(
         marketplace_status: updates.marketplace_status,
         installateur_id: updates.installateur_id,
         admin_notes: updates.admin_notes !== undefined ? true : undefined,
+        address_edited: addressEdited || undefined,
+        postal_code: addressEdited ? updates.postal_code : undefined,
+        city: addressEdited ? updates.city : undefined,
+        site_address: addressEdited ? updates.site_address : undefined,
         installateur_notified,
       },
     })

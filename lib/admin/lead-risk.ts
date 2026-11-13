@@ -3,6 +3,7 @@ import {
   isValidBelgianVat,
   normalizeBelgianVat,
   isWalloonPostalCode,
+  extractBelgianStreetAndNumber,
 } from "../leads-validation"
 
 export { isWalloonPostalCode }
@@ -22,6 +23,8 @@ export type LeadRiskInput = {
   email?: string | null
   phone?: string | null
   postalCode?: string | null
+  city?: string | null
+  siteAddress?: string | null
   province?: string | null
   segment?: string | null
   company?: string | null
@@ -29,6 +32,7 @@ export type LeadRiskInput = {
   ownershipStatus?: string | null
   surfaceArea?: number | null
   annualElectricityBill?: number | null
+  qualificationMetadata?: Record<string, unknown> | null
 }
 
 /**
@@ -84,7 +88,7 @@ export function detectLeadRiskFlags(lead: LeadRiskInput): RiskFlag[] {
     })
   }
 
-  // 3. Localisation en Région Wallonne
+  // 3. Localisation en Région Wallonne & Qualité de l'Adresse Chantier
   if (lead.postalCode && lead.postalCode.trim().length === 4) {
     if (!isWalloonPostalCode(lead.postalCode)) {
       flags.push({
@@ -93,6 +97,57 @@ export function detectLeadRiskFlags(lead: LeadRiskInput): RiskFlag[] {
         severity: "critical",
         description: `Code postal ${lead.postalCode} situé hors du territoire wallon (Flandre ou Bruxelles).`,
       })
+    }
+  }
+
+  // 3b. Adresse de voirie & numéro de bâtiment (requis pour Street View / étude satellite)
+  const spwVerif = (
+    (lead.qualificationMetadata?.verifications as Record<string, unknown> | undefined)
+      ?.walloniaAddress as Record<string, unknown> | undefined
+  )
+  const trimmedAddr = (lead.siteAddress ?? "").trim()
+  const isB2C = lead.segment === "B2C"
+
+  if (!trimmedAddr) {
+    flags.push({
+      code: "MISSING_ADDRESS",
+      label: "Adresse chantier absente",
+      severity: isB2C ? "critical" : "warning",
+      description:
+        "Aucune rue/adresse précise renseignée : impossible de localiser la toiture avant appel.",
+    })
+  } else {
+    const parsedAddr = extractBelgianStreetAndNumber(trimmedAddr)
+    if (!parsedAddr.houseNumber) {
+      flags.push({
+        code: "MISSING_HOUSE_NUMBER",
+        label: "Numéro de maison manquant",
+        severity: isB2C ? "critical" : "warning",
+        description: `L'adresse « ${trimmedAddr} » ne comporte pas de numéro de bâtiment — vue satellite / Street View précise impossible.`,
+      })
+    } else if (spwVerif) {
+      if (spwVerif.postalMismatch === true) {
+        flags.push({
+          code: "ADDRESS_POSTAL_MISMATCH",
+          label: "Incohérence CP / localité SPW",
+          severity: "critical",
+          description: `Le code postal saisi (${lead.postalCode || "?"}) ne correspond pas à la localité détectée par SPW (${String(spwVerif.officialPostalCode || "?")} ${String(spwVerif.officialCity || "")}).`,
+        })
+      } else if (spwVerif.streetVerified === false) {
+        flags.push({
+          code: "UNVERIFIED_STREET",
+          label: "Rue non trouvée au cadastre SPW",
+          severity: "warning",
+          description: `La voirie « ${parsedAddr.street} » n'a pas été trouvée telle quelle dans le code postal ${lead.postalCode || ""}. Vérifiez l'orthographe.`,
+        })
+      } else if (spwVerif.houseVerified === false && spwVerif.resolutionLevel === "street") {
+        flags.push({
+          code: "UNVERIFIED_HOUSE_NUMBER",
+          label: "N° non confirmé SPW ICAR",
+          severity: "warning",
+          description: `La rue est reconnue, mais le numéro « ${parsedAddr.houseNumber} » n'apparaît pas au cadastre SPW (nouvelle construction ou erreur).`,
+        })
+      }
     }
   }
 

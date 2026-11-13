@@ -1,6 +1,11 @@
 import { z } from "zod"
 import { BELGIUM_PROVINCE_KEYS, type BelgiumProvinceKey } from "@/lib/belgium-regions"
-import { isValidFrBePhone, isValidBelgianVat, normalizeBelgianVat } from "@/lib/leads-validation"
+import {
+  isValidFrBePhone,
+  isValidBelgianVat,
+  normalizeBelgianVat,
+  getBelgianAddressError,
+} from "@/lib/leads-validation"
 
 const provinceEnum = z.enum(BELGIUM_PROVINCE_KEYS as unknown as [BelgiumProvinceKey, ...BelgiumProvinceKey[]])
 
@@ -216,7 +221,34 @@ export const leadSubmitSchema = z
       }
     }
 
-    // 2. Validation de localisation personnalisée si 'autre'
+    // 2. Validation stricte de l'adresse de voirie B2C (rue + numéro requis pour localiser la toiture)
+    if (data.sourceForm === "b2c_devis_landing" || data.sourceForm === "b2c_simulator") {
+      const addrErr = getBelgianAddressError(data.siteAddress, {
+        required: true,
+        requireHouseNumber: true,
+      })
+      if (addrErr) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: addrErr,
+          path: ["siteAddress"],
+        })
+      }
+    } else if (data.segment === "B2C" && data.siteAddress && data.siteAddress.trim().length > 0) {
+      const addrErr = getBelgianAddressError(data.siteAddress, {
+        required: false,
+        requireHouseNumber: true,
+      })
+      if (addrErr) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: addrErr,
+          path: ["siteAddress"],
+        })
+      }
+    }
+
+    // 3. Validation de localisation personnalisée si 'autre'
     if (data.province === "autre" && (!data.provinceFreeText || data.provinceFreeText.trim().length < 2)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
