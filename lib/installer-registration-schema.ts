@@ -98,6 +98,7 @@ export function getRegionsFromPostalCode(postalCode?: string): string[] {
   if (isNaN(num)) return ["Bruxelles-Capitale"]
   if (num >= 1000 && num <= 1299) return ["Bruxelles-Capitale", "Brabant wallon"]
   if (num >= 1300 && num <= 1499) return ["Brabant wallon", "Bruxelles-Capitale"]
+  if (num >= 3000 && num <= 3999) return ["Liège", "Brabant wallon"]
   if (num >= 4000 && num <= 4999) return ["Liège"]
   if (num >= 5000 && num <= 5999) return ["Namur"]
   if (num >= 6000 && num <= 6599) return ["Hainaut"]

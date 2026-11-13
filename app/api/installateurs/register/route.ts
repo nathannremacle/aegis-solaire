@@ -94,16 +94,17 @@ export async function POST(request: NextRequest) {
       verificationUrl,
     })
 
-    // Envoi en tâche d'arrière-plan sans bloquer la réponse rapide
-    sendInstallerEmail({
+    // Envoi synchrone avant la réponse pour garantir la livraison en serverless (Vercel)
+    const emailRes = await sendInstallerEmail({
       to: insertedApp.email,
       subject: emailPayload.subject,
       html: emailPayload.html,
       text: emailPayload.text,
       tag: "installer-welcome-verification",
-    }).catch((emailErr) => {
-      console.error("[installer register] Échec envoi email de vérification:", emailErr)
     })
+    if (!emailRes.success) {
+      console.error("[installer register] Échec envoi email de vérification:", emailRes.error)
+    }
 
     return NextResponse.json({
       success: true,

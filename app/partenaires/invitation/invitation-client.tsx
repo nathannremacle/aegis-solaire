@@ -21,6 +21,10 @@ import {
 import dynamic from "next/dynamic"
 import { Button } from "@/components/ui/button"
 import { Footer } from "@/components/footer"
+import {
+  getRegionalLeadSummary,
+  type InvitationLeadSummary,
+} from "@/lib/regional-leads-catalog"
 
 const InstallerVipInvitationForm = dynamic(
   () =>
@@ -46,6 +50,7 @@ interface InvitationClientProps {
   initialInviter?: string
   initialCode?: string
   initialLeadId?: string
+  initialLeadSummary?: InvitationLeadSummary | null
   initialEmail?: string
   initialPhone?: string
 }
@@ -56,6 +61,7 @@ export function InvitationClient({
   initialInviter = "Direction des Partenariats",
   initialCode = "",
   initialLeadId = "",
+  initialLeadSummary = null,
   initialEmail = "",
   initialPhone = "",
 }: InvitationClientProps) {
@@ -65,6 +71,20 @@ export function InvitationClient({
   const inviter = searchParams.get("par") || initialInviter
   const postalCode = searchParams.get("code") || searchParams.get("cp") || initialCode
   const leadId = searchParams.get("leadId") || initialLeadId
+  const leadSummary =
+    (initialLeadSummary && (!leadId || initialLeadSummary.id === leadId)
+      ? initialLeadSummary
+      : null) ?? getRegionalLeadSummary(leadId)
+  const leadTechSummary = leadSummary
+    ? [
+        leadSummary.segmentLabel,
+        leadSummary.surfaceLabel,
+        leadSummary.powerLabel,
+        leadSummary.billLabel,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : ""
   const emailParam = searchParams.get("email") || initialEmail
   const phoneParam = searchParams.get("phone") || initialPhone
   const rawCredits = searchParams.get("credits")
@@ -151,21 +171,30 @@ export function InvitationClient({
                 </p>
               )}
 
-              {leadId && (
+              {leadSummary && (
                 <div className="mt-6 rounded-md border border-accent/40 bg-accent/5 p-4 sm:p-5 text-left shadow-xs">
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-accent/20 pb-2 mb-3">
-                    <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5" />
-                      Opportunité de chantier auditée · Zone Bruxelles-Nord (1780 Wemmel)
+                    <span className="font-mono tabular-nums text-xs font-bold uppercase tracking-wider text-accent flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                      <span>
+                        Opportunité de chantier auditée ·{" "}
+                        {[leadSummary.postalCode, leadSummary.city].filter(Boolean).join(" ") ||
+                          leadSummary.province}
+                        {leadSummary.province && leadSummary.city ? ` (${leadSummary.province})` : ""}
+                      </span>
                     </span>
-                    <span className="font-mono text-[11px] font-semibold bg-accent/20 text-accent px-2 py-0.5 rounded">
-                      Plafonné à 3 installateurs max
+                    <span className="font-mono tabular-nums text-[11px] font-semibold bg-accent/20 text-accent px-2 py-0.5 rounded">
+                      {leadSummary.maxSlots === 1
+                        ? "Exclusivité · 1 installateur max"
+                        : `Plafonné à ${leadSummary.maxSlots} installateurs max`}
                     </span>
                   </div>
-                  <div className="text-xs sm:text-sm text-foreground space-y-1">
-                    <p className="font-semibold text-foreground">
-                      Maison unifamiliale · Toiture 42 m² tuiles · Puissance recommandée ~5,4 kWc · 1 150 €/an facture
-                    </p>
+                  <div className="text-xs sm:text-sm text-foreground flex flex-col gap-1">
+                    {leadTechSummary && (
+                      <p className="font-semibold text-foreground font-mono tabular-nums">
+                        {leadTechSummary}
+                      </p>
+                    )}
                     <p className="text-muted-foreground text-xs font-sans">
                       Activez votre accès installateur ci-dessous pour consulter et débloquer la fiche complète (coordonnées directes, photo de la toiture et cadastre vérifié).
                     </p>

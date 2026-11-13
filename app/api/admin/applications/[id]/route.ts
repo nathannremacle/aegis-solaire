@@ -93,13 +93,11 @@ async function syncPartnerFromApplication(
     return { created: false, partnerId: existing.id }
   }
 
-  // Vérifier si des crédits d'accueil / invitation sont prévus (par défaut 3 crédits V2 si invitation VIP)
+  // Vérifier si des crédits d'accueil / invitation ont été explicitement offerts dans admin_notes
   let initialCredits = 0
   const match = app.admin_notes?.match(/(\d+)\s*crédits?\s*offerts?/i)
   if (match) {
     initialCredits = parseInt(match[1], 10) || 0
-  } else if (app.admin_notes?.includes("INVITATION VIP")) {
-    initialCredits = 3 // Barème V2 : 3 crédits pour 1er dossier B2C offert
   }
 
   const { data: inserted, error } = await supabase
@@ -124,15 +122,14 @@ async function syncPartnerFromApplication(
   }
 
   if (inserted?.id && initialCredits > 0) {
-    try {
-      await supabase.rpc("add_credits", {
-        p_partner_id: inserted.id,
-        p_amount: initialCredits,
-        p_type: "bonus",
-        p_reference: "Bienvenue Partenaire Privilégié (1er dossier B2C offert)",
-      })
-    } catch (creditErr) {
-      console.error("[syncPartnerFromApplication] add_credits bonus error:", creditErr)
+    const { error: creditRpcErr } = await supabase.rpc("add_credits", {
+      p_partner_id: inserted.id,
+      p_amount: initialCredits,
+      p_type: "adjustment",
+      p_reference: "Bienvenue Partenaire Privilégié (crédits d'accueil offerts)",
+    })
+    if (creditRpcErr) {
+      console.error("[syncPartnerFromApplication] add_credits error:", creditRpcErr)
     }
   }
 
@@ -285,14 +282,16 @@ export async function PATCH(
 
       // Journalisation dans lead_relance_dispatches pour ces leads disponibles
       if (sendRes.success && partnerId && availableLeads.length > 0) {
-        void recordCatchUpDispatches(
-          supabase,
-          { id: partnerId, email: app.email },
-          availableLeads,
-          emailPayload.subject
-        ).catch((dispatchErr) =>
+        try {
+          await recordCatchUpDispatches(
+            supabase,
+            { id: partnerId, email: app.email },
+            availableLeads,
+            emailPayload.subject
+          )
+        } catch (dispatchErr) {
           console.warn("[admin/applications] recordCatchUpDispatches error:", dispatchErr)
-        )
+        }
       }
     } catch (mailErr) {
       console.error("[admin/applications] Échec envoi email marketplace:", mailErr)
