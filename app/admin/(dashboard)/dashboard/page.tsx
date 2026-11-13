@@ -24,7 +24,9 @@ import { ActionRequiredTray } from "@/components/admin/action-required-tray"
 import { AdminKpiGrid } from "@/components/admin/admin-kpi-grid"
 import { AdminRecentActivity } from "@/components/admin/admin-recent-activity"
 import { AdminRelancesCockpitWidget } from "@/components/admin/admin-relances-cockpit-widget"
+import { AdminPartnerTelemetryWidget } from "@/components/admin/admin-partner-telemetry-widget"
 import { DashboardSkeleton } from "@/components/admin/dashboard-skeleton"
+import { getPartnerTelemetryAnalytics } from "@/lib/partner-telemetry"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -121,7 +123,10 @@ export default async function AdminDashboardPage() {
 }
 
 async function AdminDashboardContent() {
-  const data = await getAdminDashboardData({ fresh: true })
+  const [data, telemetry] = await Promise.all([
+    getAdminDashboardData({ fresh: true }),
+    getPartnerTelemetryAnalytics({ days: 30, includeTest: false }).catch(() => null),
+  ])
 
   return (
     <div className="flex flex-col gap-6">
@@ -142,6 +147,9 @@ async function AdminDashboardContent() {
         mediaPartners={data.media_partners}
         lists={data.lists}
       />
+
+      {/* Télémétrie Comportementale Installateurs & Signaux Chauds */}
+      {telemetry && <AdminPartnerTelemetryWidget telemetry={telemetry} />}
 
       {/* Widget Moteur de Relances & Cascades Automatiques */}
       <AdminRelancesCockpitWidget />

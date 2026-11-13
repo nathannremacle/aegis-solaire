@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { MarketplaceFeedView } from "./marketplace-feed-view"
 import { CrmPortfolioView } from "./crm-portfolio-view"
+import { trackPartnerActivity } from "@/lib/client/partner-tracker"
 
 // Code-splitting : ces modales ne sont téléchargées par le navigateur qu'à la demande
 const DisputeClaimModal = dynamic(() => import("./modals/dispute-claim-modal"), { ssr: false })
@@ -58,6 +59,58 @@ export function PartnerDashboardShell({
   const [isCreditsOpen, setIsCreditsOpen] = React.useState(false)
   const [isExpertOpen, setIsExpertOpen] = React.useState(false)
   const [selectedLeadForExpert, setSelectedLeadForExpert] = React.useState<any | null>(null)
+  const sessionTrackedRef = React.useRef(false)
+  const deepLinkTrackedRef = React.useRef<string | null>(null)
+
+  React.useEffect(() => {
+    if (sessionTrackedRef.current) return
+    sessionTrackedRef.current = true
+    trackPartnerActivity({
+      eventType: "session_start",
+      source: targetLeadId ? "email_deep_link" : "dashboard",
+      metadata: {
+        marketplaceCount: (initialMarketplace ?? []).length,
+        portfolioCount: (initialPortfolio ?? []).length,
+        partnerCredits: initialPartner?.credits ?? 0,
+      },
+    })
+  }, [targetLeadId, initialMarketplace, initialPortfolio, initialPartner?.credits])
+
+  React.useEffect(() => {
+    if (!targetLeadId || deepLinkTrackedRef.current === targetLeadId) return
+    deepLinkTrackedRef.current = targetLeadId
+    trackPartnerActivity({
+      eventType: "email_deep_link",
+      leadId: targetLeadId,
+      leadRef: targetLeadId.slice(0, 8),
+      source: "email_deep_link",
+      metadata: {
+        alreadyPurchased: isAlreadyPurchased,
+      },
+    })
+  }, [targetLeadId, isAlreadyPurchased])
+
+  const openCreditsModal = React.useCallback(
+    (origin: string) => {
+      setIsCreditsOpen(true)
+      trackPartnerActivity({
+        eventType: "credit_modal_open",
+        source: origin,
+        metadata: { currentCredits: credits },
+      })
+    },
+    [credits]
+  )
+
+  const handleSelectTab = React.useCallback((tab: "marketplace" | "portfolio", origin: string) => {
+    setActiveTab(tab)
+    if (tab === "portfolio") {
+      trackPartnerActivity({
+        eventType: "crm_tab_open",
+        source: origin,
+      })
+    }
+  }, [])
 
   const handleUpdatePipelineStatus = React.useCallback(
     (purchaseId: string, newStatus: string) => {
@@ -159,7 +212,7 @@ export function PartnerDashboardShell({
             <nav aria-label="Espaces du portail" className="hidden md:flex items-center gap-1.5 sm:gap-2">
               <button
                 type="button"
-                onClick={() => setActiveTab("marketplace")}
+                onClick={() => handleSelectTab("marketplace", "topbar")}
                 className={`flex items-center gap-1.5 sm:gap-2 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 ${activeTab === "marketplace"
                   ? "bg-primary text-primary-foreground font-bold shadow-2xs"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -179,7 +232,7 @@ export function PartnerDashboardShell({
 
               <button
                 type="button"
-                onClick={() => setActiveTab("portfolio")}
+                onClick={() => handleSelectTab("portfolio", "topbar")}
                 className={`flex items-center gap-1.5 sm:gap-2 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 ${activeTab === "portfolio"
                   ? "bg-primary text-primary-foreground font-bold shadow-2xs"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -253,7 +306,7 @@ export function PartnerDashboardShell({
             {/* Composant Unique du Portefeuille (Coins + Montant + CTA Recharger) */}
             <button
               type="button"
-              onClick={() => setIsCreditsOpen(true)}
+              onClick={() => openCreditsModal("topbar")}
               className="flex items-center gap-1.5 sm:gap-2 rounded-xl border border-accent/30 bg-accent/10 hover:bg-accent/15 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs whitespace-nowrap shrink-0"
               title="Gérer mes crédits de déblocage"
             >
@@ -353,7 +406,7 @@ export function PartnerDashboardShell({
               setPortfolio((prev) => [newPurchaseRecord, ...prev])
               setActiveTab("portfolio")
             }}
-            onRequestTopUp={() => setIsCreditsOpen(true)}
+            onRequestTopUp={() => openCreditsModal("marketplace")}
             onOpenAlertPreferences={() => setIsPrefsOpen(true)}
             onOpenExpertModal={(lead) => {
               setSelectedLeadForExpert(lead || null)
@@ -383,7 +436,7 @@ export function PartnerDashboardShell({
           {/* Tab 1: Marketplace */}
           <button
             type="button"
-            onClick={() => setActiveTab("marketplace")}
+            onClick={() => handleSelectTab("marketplace", "mobile_nav")}
             className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${activeTab === "marketplace"
               ? "text-primary font-bold"
               : "text-muted-foreground hover:text-foreground"
@@ -403,7 +456,7 @@ export function PartnerDashboardShell({
           {/* Tab 2: Mon CRM */}
           <button
             type="button"
-            onClick={() => setActiveTab("portfolio")}
+            onClick={() => handleSelectTab("portfolio", "mobile_nav")}
             className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${activeTab === "portfolio"
               ? "text-primary font-bold"
               : "text-muted-foreground hover:text-foreground"
@@ -423,7 +476,7 @@ export function PartnerDashboardShell({
           {/* Tab 3: Recharger */}
           <button
             type="button"
-            onClick={() => setIsCreditsOpen(true)}
+            onClick={() => openCreditsModal("mobile_nav")}
             className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             <div className="relative">

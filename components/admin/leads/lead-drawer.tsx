@@ -60,6 +60,7 @@ import { LeadRiskBanner } from "./lead-risk-banner"
 import { LeadScoreBreakdown } from "./lead-score-breakdown"
 import { DispatchPanel, type CompatiblePartner } from "./dispatch-panel"
 import { LeadRelanceStatus } from "./lead-relance-status"
+import { LeadPartnerViewsPanel } from "./lead-partner-views-panel"
 import {
   BelgianLocalityField,
   BelgianStreetNumberFields,
@@ -1475,6 +1476,9 @@ export function LeadDrawer({
             marketplaceStatus={lead.marketplace_status}
             segment={lead.segment}
           />
+
+          {/* Télémétrie Comportementale Installateurs sur ce Lead */}
+          <LeadPartnerViewsPanel leadId={lead.id} />
 
           {/* Module de Sélection et Routage Installateurs */}
           <DispatchPanel

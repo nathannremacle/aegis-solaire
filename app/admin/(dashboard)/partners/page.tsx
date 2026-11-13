@@ -41,13 +41,45 @@ import {
   Layers,
   ArrowRight,
   UserPlus,
+  Activity,
+  Flame,
+  Camera,
+  MousePointerClick,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AdminNetworkInviteHub } from "@/components/admin/admin-network-invite-hub"
+import type { PartnerTelemetryAnalytics } from "@/lib/partner-telemetry"
 
 /* ═══════════════════════════════════════════════════════
    Types
    ═══════════════════════════════════════════════════════ */
+
+type PartnerTelemetryStats = {
+  sessionsCount: number
+  leadsInspectedCount: number
+  totalViewsCount: number
+  totalDurationMs: number
+  avgDurationMs: number
+  unlockIntentsCount: number
+  roofZoomsCount: number
+  lastActivityAt: string | null
+  hotLeadSignals: number
+  recentLeads: Array<{
+    leadId: string
+    leadLabel: string
+    segment: string | null
+    province: string | null
+    creditCost: number | null
+    marketplaceStatus: string | null
+    viewsCount: number
+    totalDurationMs: number
+    zoomedPhoto: boolean
+    unlockIntent: boolean
+    hasPurchased: boolean
+    lastViewedAt: string
+    lastSource: string
+  }>
+}
 
 type Partner = {
   id: string
@@ -64,6 +96,32 @@ type Partner = {
     creditsSpent: number
     creditsTopupped: number
   }
+  telemetry?: PartnerTelemetryStats
+}
+
+function formatTelemetryDuration(durationMs: number): string {
+  const totalSeconds = Math.max(0, Math.round(durationMs / 1000))
+  if (totalSeconds < 60) return `${totalSeconds} s`
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  if (minutes < 60) {
+    return seconds > 0 ? `${minutes}m ${String(seconds).padStart(2, "0")}s` : `${minutes}m`
+  }
+  const hours = Math.floor(minutes / 60)
+  const remMinutes = minutes % 60
+  return `${hours}h ${String(remMinutes).padStart(2, "0")}m`
+}
+
+const TELEMETRY_EVENT_LABELS: Record<string, string> = {
+  session_start: "Connexion portail",
+  email_deep_link: "Clic lien e-mail",
+  lead_inspect_open: "Ouverture fiche lead",
+  lead_inspect_duration: "Fin lecture dossier",
+  roof_photo_zoom: "Zoom photo toiture",
+  unlock_intent: "Intention déblocage",
+  credit_modal_open: "Ouverture packs crédits",
+  marketplace_filter: "Filtrage marketplace",
+  crm_tab_open: "Consultation CRM",
 }
 
 const WALLOON_PROVINCES = [
@@ -78,9 +136,17 @@ export default function AdminPartnersPage() {
   const [partners, setPartners] = useState<Partner[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [activeTab, setActiveTab] = useState<"all" | "test" | "certified" | "at_risk" | "coverage">("all")
+  const [activeTab, setActiveTab] = useState<"all" | "test" | "certified" | "at_risk" | "coverage" | "telemetry">("all")
   const [testSubTab, setTestSubTab] = useState<"all" | "simulation" | "admin">("all")
   const [showInviteHub, setShowInviteHub] = useState(false)
+  const [telemetryData, setTelemetryData] = useState<PartnerTelemetryAnalytics | null>(null)
+  const [loadingTelemetry, setLoadingTelemetry] = useState(false)
+  const [includeTestTelemetry, setIncludeTestTelemetry] = useState(false)
+
+  // Modale d'analyse comportementale d'un installateur
+  const [activityModalPartner, setActivityModalPartner] = useState<Partner | null>(null)
+  const [activityPartnerData, setActivityPartnerData] = useState<PartnerTelemetryAnalytics | null>(null)
+  const [loadingActivityModal, setLoadingActivityModal] = useState(false)
 
   // Modale d'ajout de crédits
   const [creditModalPartner, setCreditModalPartner] = useState<Partner | null>(null)
@@ -110,8 +176,25 @@ export default function AdminPartnersPage() {
     }
   }
 
+  const loadTelemetry = async (withTests = includeTestTelemetry) => {
+    setLoadingTelemetry(true)
+    try {
+      const res = await fetch(`/api/admin/partner-telemetry?days=30&includeTest=${withTests ? "true" : "false"}`, {
+        headers: { "x-admin-request": "true" },
+      })
+      if (!res.ok) throw new Error("Erreur télémétrie")
+      const data = await res.json()
+      setTelemetryData(data)
+    } catch {
+      toast.error("Impossible de charger la télémétrie installateurs")
+    } finally {
+      setLoadingTelemetry(false)
+    }
+  }
+
   useEffect(() => {
     loadPartners()
+    loadTelemetry(false)
   }, [])
 
   // Attribution manuelle de crédits
@@ -169,6 +252,25 @@ export default function AdminPartnersPage() {
       toast.error("Impossible de charger l'historique des achats")
     } finally {
       setLoadingPurchases(false)
+    }
+  }
+
+  async function openPartnerActivity(partner: Partner) {
+    setActivityModalPartner(partner)
+    setLoadingActivityModal(true)
+    setActivityPartnerData(null)
+    try {
+      const res = await fetch(
+        `/api/admin/partner-telemetry?partnerId=${encodeURIComponent(partner.id)}&days=60&includeTest=true`,
+        { headers: { "x-admin-request": "true" } }
+      )
+      if (!res.ok) throw new Error("Erreur")
+      const data = await res.json()
+      setActivityPartnerData(data)
+    } catch {
+      toast.error("Impossible de charger l'activité comportementale")
+    } finally {
+      setLoadingActivityModal(false)
     }
   }
 
@@ -341,11 +443,14 @@ export default function AdminPartnersPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={loadPartners}
-            disabled={loading}
+            onClick={() => {
+              loadPartners()
+              loadTelemetry(includeTestTelemetry)
+            }}
+            disabled={loading || loadingTelemetry}
             className="h-8 text-xs gap-1.5"
           >
-            <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+            <RefreshCw className={cn("h-3.5 w-3.5", (loading || loadingTelemetry) && "animate-spin")} />
             <span>Actualiser</span>
           </Button>
 
@@ -553,9 +658,31 @@ export default function AdminPartnersPage() {
             <MapPin className="h-3 w-3" />
             <span>Matrice de Couverture Wallonie</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("telemetry")
+              if (!telemetryData) loadTelemetry(includeTestTelemetry)
+            }}
+            className={cn(
+              "px-3 py-1.5 rounded-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer",
+              activeTab === "telemetry"
+                ? "bg-secondary text-foreground shadow-2xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Activity className="h-3 w-3 text-accent" />
+            <span>Télémétrie &amp; Signaux Chauds</span>
+            {(telemetryData?.kpis.hotSignalsCount ?? 0) > 0 && (
+              <span className="rounded-full bg-accent/15 border border-accent/30 px-1.5 py-0.2 font-mono text-[10px] tabular-nums font-bold text-accent">
+                {telemetryData?.kpis.hotSignalsCount}
+              </span>
+            )}
+          </button>
         </div>
 
-        {activeTab !== "coverage" && (
+        {activeTab !== "coverage" && activeTab !== "telemetry" && (
           <div className="relative min-w-[260px] max-w-sm">
             <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
             <Input
@@ -638,8 +765,270 @@ export default function AdminPartnersPage() {
         </div>
       )}
 
-      {/* 4. Affichage conditionnel : Matrice de Couverture OU Table Haute Densité */}
-      {activeTab === "coverage" ? (
+      {/* 4. Affichage conditionnel : Télémétrie, Matrice de Couverture OU Table Haute Densité */}
+      {activeTab === "telemetry" ? (
+        <div className="flex flex-col gap-5">
+          {/* Barre de contrôle télémétrie */}
+          <div className="rounded-lg border border-border bg-card p-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-col gap-0.5">
+              <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <Activity className="h-4 w-4 text-accent" />
+                <span>Intelligence Comportementale Installateurs (30 derniers jours)</span>
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Suivi des clics par chantier, temps actif réel d&apos;étude, zooms toiture et intentions de déblocage non finalisées.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !includeTestTelemetry
+                  setIncludeTestTelemetry(next)
+                  loadTelemetry(next)
+                }}
+                className={cn(
+                  "rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors cursor-pointer",
+                  includeTestTelemetry
+                    ? "border-accent bg-accent/10 text-accent font-semibold"
+                    : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {includeTestTelemetry ? "Comptes test inclus" : "Exclure comptes test"}
+              </button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadTelemetry(includeTestTelemetry)}
+                disabled={loadingTelemetry}
+                className="h-8 text-xs gap-1.5"
+              >
+                <RefreshCw className={cn("h-3.5 w-3.5", loadingTelemetry && "animate-spin")} />
+                <span>Rafraîchir</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* 4 KPIs comportementaux */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-muted-foreground">Installateurs actifs détectés</span>
+              <span className="font-mono text-2xl font-bold tabular-nums text-foreground">
+                {telemetryData?.kpis.activePartnersCount ?? 0}
+              </span>
+              <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                {telemetryData?.kpis.totalLeadViews ?? 0} ouvertures de fiches leads
+              </span>
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-muted-foreground">Temps d&apos;étude moyen / dossier</span>
+              <span className="font-mono text-2xl font-bold tabular-nums text-foreground">
+                {formatTelemetryDuration(telemetryData?.kpis.avgStudyDurationMs ?? 0)}
+              </span>
+              <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                {formatTelemetryDuration(telemetryData?.kpis.totalStudyDurationMs ?? 0)} cumulés sur le réseau
+              </span>
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-muted-foreground">Intentions de déblocage</span>
+              <span className="font-mono text-2xl font-bold tabular-nums text-accent">
+                {telemetryData?.kpis.unlockIntentsCount ?? 0}
+              </span>
+              <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                Sur {telemetryData?.kpis.uniqueLeadsViewed ?? 0} dossiers distincts
+              </span>
+            </div>
+
+            <div className="rounded-lg border border-accent/40 bg-accent/5 p-4 flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                <Flame className="h-3.5 w-3.5 text-accent" />
+                <span>Signaux d&apos;achat chauds</span>
+              </span>
+              <span className="font-mono text-2xl font-bold tabular-nums text-accent">
+                {telemetryData?.kpis.hotSignalsCount ?? 0}
+              </span>
+              <span className="text-[11px] text-muted-foreground">
+                Lectures longues ou clics sans achat finalisé
+              </span>
+            </div>
+          </div>
+
+          {/* Signaux Chauds + Leads les plus consultés */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Signaux Chauds */}
+            <div className="rounded-lg border border-border bg-card overflow-hidden flex flex-col">
+              <div className="border-b border-border bg-secondary/40 px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Flame className="h-4 w-4 text-accent" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
+                    Signaux d&apos;Achat Chauds (À relancer en priorité)
+                  </h3>
+                </div>
+                <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                  {telemetryData?.hotSignals.length ?? 0} opportunités
+                </span>
+              </div>
+              <div className="divide-y divide-border max-h-[380px] overflow-y-auto">
+                {!telemetryData || telemetryData.hotSignals.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-muted-foreground italic">
+                    Aucun signal d&apos;achat chaud en attente sur la période.
+                  </div>
+                ) : (
+                  telemetryData.hotSignals.slice(0, 12).map((sig) => (
+                    <div key={sig.id} className="p-3.5 flex flex-col gap-1.5 hover:bg-secondary/20 transition-colors text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Badge variant="outline" className="font-mono text-[10px] tabular-nums border-accent/40 text-accent bg-accent/10 shrink-0">
+                            Score {sig.heatScore}
+                          </Badge>
+                          <span className="font-semibold text-foreground truncate">{sig.companyName}</span>
+                        </div>
+                        <span className="font-mono text-[11px] tabular-nums font-bold text-foreground shrink-0">
+                          {formatTelemetryDuration(sig.totalDurationMs)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                        <span className="truncate">{sig.reason}</span>
+                        <Link
+                          href={`/admin/leads?leadId=${sig.leadId}`}
+                          className="font-mono text-[11px] font-semibold text-accent hover:underline shrink-0"
+                        >
+                          {sig.leadLabel} &rarr;
+                        </Link>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Classement des Leads les plus consultés */}
+            <div className="rounded-lg border border-border bg-card overflow-hidden flex flex-col">
+              <div className="border-b border-border bg-secondary/40 px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Eye className="h-4 w-4 text-primary" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
+                    Chantiers les Plus Étudiés
+                  </h3>
+                </div>
+                <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                  Top {telemetryData?.topViewedLeads.slice(0, 10).length ?? 0}
+                </span>
+              </div>
+              <div className="divide-y divide-border max-h-[380px] overflow-y-auto">
+                {!telemetryData || telemetryData.topViewedLeads.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-muted-foreground italic">
+                    Aucune consultation enregistrée pour le moment.
+                  </div>
+                ) : (
+                  telemetryData.topViewedLeads.slice(0, 10).map((leadStat) => (
+                    <div key={leadStat.leadId} className="p-3.5 flex items-center justify-between gap-3 hover:bg-secondary/20 transition-colors text-xs">
+                      <div className="flex flex-col gap-0.5 min-w-0">
+                        <Link
+                          href={`/admin/leads?leadId=${leadStat.leadId}`}
+                          className="font-semibold text-foreground hover:text-accent transition-colors truncate"
+                        >
+                          {leadStat.leadLabel}
+                        </Link>
+                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono tabular-nums">
+                          <span>{leadStat.uniquePartnersCount} installateur{leadStat.uniquePartnersCount > 1 ? "s" : ""}</span>
+                          <span>·</span>
+                          <span>{leadStat.totalViews} clics</span>
+                          <span>·</span>
+                          <span>{leadStat.purchasesCount} achat{leadStat.purchasesCount > 1 ? "s" : ""}</span>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0 font-mono tabular-nums">
+                        <span className="font-bold text-foreground block">
+                          {formatTelemetryDuration(leadStat.totalDurationMs)}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          moy. {formatTelemetryDuration(leadStat.avgDurationMs)}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Flux en direct des événements */}
+          <div className="rounded-lg border border-border bg-card overflow-hidden">
+            <div className="border-b border-border bg-secondary/40 px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
+                  Journal Chronologique des Actions Installateurs
+                </h3>
+              </div>
+              <span className="font-mono text-[10px] text-muted-foreground">
+                Backend : {telemetryData?.storageBackend || "—"}
+              </span>
+            </div>
+            <div className="overflow-x-auto max-h-[360px] overflow-y-auto">
+              <Table className="text-xs">
+                <TableHeader>
+                  <TableRow className="bg-secondary/20 border-b border-border">
+                    <TableHead className="w-32 font-mono text-[11px]">Horodatage</TableHead>
+                    <TableHead>Installateur</TableHead>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Dossier / Chantier</TableHead>
+                    <TableHead className="text-right font-mono text-[11px]">Durée active</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {!telemetryData || telemetryData.recentEvents.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="py-10 text-center text-muted-foreground italic">
+                        Aucun événement comportemental enregistré sur cette période.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    telemetryData.recentEvents.slice(0, 40).map((ev) => (
+                      <TableRow key={ev.id} className="border-b border-border hover:bg-secondary/20">
+                        <TableCell className="font-mono text-[11px] tabular-nums text-muted-foreground whitespace-nowrap">
+                          {new Date(ev.createdAt).toLocaleString("fr-BE", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </TableCell>
+                        <TableCell className="font-medium text-foreground">
+                          {ev.partnerName}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-[10px] font-mono">
+                            {TELEMETRY_EVENT_LABELS[ev.eventType] || ev.eventType}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {ev.leadId ? (
+                            <Link
+                              href={`/admin/leads?leadId=${ev.leadId}`}
+                              className="text-accent hover:underline font-medium"
+                            >
+                              {ev.leadLabel || ev.leadRef || ev.leadId.slice(0, 8)}
+                            </Link>
+                          ) : (
+                            <span className="text-muted-foreground">{ev.source}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-mono tabular-nums font-semibold">
+                          {ev.durationMs > 0 ? formatTelemetryDuration(ev.durationMs) : "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </div>
+      ) : activeTab === "coverage" ? (
         <div className="rounded-md border border-border bg-card p-5 flex flex-col gap-4">
           <div className="flex flex-col gap-1">
             <h2 className="text-sm font-semibold text-foreground">
@@ -716,13 +1105,14 @@ export default function AdminPartnersPage() {
                 <TableHead className="min-w-[160px]">Provinces Couvertes</TableHead>
                 <TableHead className="w-28 text-right font-mono text-[11px] text-muted-foreground">Solde Crédits</TableHead>
                 <TableHead className="w-28 text-right font-mono text-[11px] text-muted-foreground">Leads Achetés</TableHead>
-                <TableHead className="w-40 text-right">Actions Opérationnelles</TableHead>
+                <TableHead className="min-w-[165px] text-right font-mono text-[11px] text-muted-foreground">Activité &amp; Temps</TableHead>
+                <TableHead className="w-48 text-right">Actions Opérationnelles</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredPartners.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-12 text-center text-muted-foreground italic">
+                  <TableCell colSpan={7} className="py-12 text-center text-muted-foreground italic">
                     {activeTab === "test"
                       ? "Aucun compte de test."
                       : "Aucun installateur ne correspond aux critères sélectionnés."}
@@ -849,9 +1239,49 @@ export default function AdminPartnersPage() {
                         </span>
                       </TableCell>
 
+                      {/* Activité & Temps d'étude */}
+                      <TableCell className="text-right font-mono tabular-nums">
+                        {partner.telemetry && partner.telemetry.leadsInspectedCount > 0 ? (
+                          <div className="flex flex-col items-end gap-0.5">
+                            <div className="flex items-center gap-1.5">
+                              {partner.telemetry.hotLeadSignals > 0 && (
+                                <span
+                                  className="inline-flex items-center gap-0.5 rounded bg-accent/15 border border-accent/30 px-1 py-0.2 text-[9px] font-bold text-accent"
+                                  title={`${partner.telemetry.hotLeadSignals} signal(aux) d'achat chaud(s)`}
+                                >
+                                  <Flame className="h-2.5 w-2.5" />
+                                  {partner.telemetry.hotLeadSignals}
+                                </span>
+                              )}
+                              <span className="font-semibold text-foreground">
+                                {partner.telemetry.leadsInspectedCount} vus · {formatTelemetryDuration(partner.telemetry.totalDurationMs)}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-muted-foreground">
+                              moy. {formatTelemetryDuration(partner.telemetry.avgDurationMs)}/lead
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground italic">
+                            Aucune visite suivie
+                          </span>
+                        )}
+                      </TableCell>
+
                       {/* Actions */}
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs gap-1 border-border"
+                            onClick={() => openPartnerActivity(partner)}
+                            title="Voir les leads consultés et le temps d'étude"
+                          >
+                            <Activity className="h-3 w-3 text-accent" />
+                            <span>Activité</span>
+                          </Button>
+
                           <Button
                             size="sm"
                             variant="default"
@@ -1046,6 +1476,149 @@ export default function AdminPartnersPage() {
               variant="outline"
               size="sm"
               onClick={() => setPurchasesModalPartner(null)}
+            >
+              Fermer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialogue d'Analyse Comportementale Installateur */}
+      <Dialog
+        open={Boolean(activityModalPartner)}
+        onOpenChange={(open) => !open && setActivityModalPartner(null)}
+      >
+        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-accent" />
+              <span>Activité Comportementale — {activityModalPartner?.company_name}</span>
+            </DialogTitle>
+            <DialogDescription>
+              Dossiers consultés sur la marketplace, temps actif d&apos;étude et intentions d&apos;achat (60 derniers jours).
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="overflow-y-auto flex-1 my-2 flex flex-col gap-4">
+            {loadingActivityModal ? (
+              <div className="p-8 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
+                <RefreshCw className="h-4 w-4 animate-spin text-accent" />
+                <span>Analyse de l&apos;historique comportemental…</span>
+              </div>
+            ) : (() => {
+              const pSum = activityModalPartner
+                ? activityPartnerData?.byPartner?.[activityModalPartner.id]
+                : null
+
+              if (!pSum || (pSum.recentLeads.length === 0 && pSum.recentEvents.length === 0)) {
+                return (
+                  <div className="p-8 text-center text-xs text-muted-foreground italic">
+                    Aucune session ou consultation de dossier enregistrée pour cet installateur sur la période.
+                  </div>
+                )
+              }
+
+              return (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div className="rounded-lg border border-border bg-secondary/30 p-3 flex flex-col gap-0.5">
+                      <span className="text-[10px] font-mono uppercase text-muted-foreground">Sessions</span>
+                      <span className="font-mono text-lg font-bold tabular-nums text-foreground">
+                        {pSum.sessionsCount}
+                      </span>
+                    </div>
+                    <div className="rounded-lg border border-border bg-secondary/30 p-3 flex flex-col gap-0.5">
+                      <span className="text-[10px] font-mono uppercase text-muted-foreground">Leads cliqués</span>
+                      <span className="font-mono text-lg font-bold tabular-nums text-foreground">
+                        {pSum.leadsInspectedCount}
+                      </span>
+                    </div>
+                    <div className="rounded-lg border border-border bg-secondary/30 p-3 flex flex-col gap-0.5">
+                      <span className="text-[10px] font-mono uppercase text-muted-foreground">Temps cumulé</span>
+                      <span className="font-mono text-lg font-bold tabular-nums text-foreground">
+                        {formatTelemetryDuration(pSum.totalDurationMs)}
+                      </span>
+                    </div>
+                    <div className="rounded-lg border border-border bg-secondary/30 p-3 flex flex-col gap-0.5">
+                      <span className="text-[10px] font-mono uppercase text-muted-foreground">Clics Débloquer</span>
+                      <span className="font-mono text-lg font-bold tabular-nums text-accent">
+                        {pSum.unlockIntentsCount}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-md border border-border overflow-hidden">
+                    <Table className="text-xs">
+                      <TableHeader>
+                        <TableRow className="bg-secondary/40 border-b border-border">
+                          <TableHead>Chantier consulté</TableHead>
+                          <TableHead className="w-20 text-right font-mono text-[11px]">Clics</TableHead>
+                          <TableHead className="w-28 text-right font-mono text-[11px]">Temps d&apos;étude</TableHead>
+                          <TableHead>Signaux</TableHead>
+                          <TableHead className="w-32 text-right font-mono text-[11px]">Dernière vue</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pSum.recentLeads.map((ld) => (
+                          <TableRow key={ld.leadId} className="border-b border-border">
+                            <TableCell className="font-medium">
+                              <Link
+                                href={`/admin/leads?leadId=${ld.leadId}`}
+                                className="text-foreground hover:text-accent hover:underline"
+                              >
+                                {ld.leadLabel}
+                              </Link>
+                            </TableCell>
+                            <TableCell className="text-right font-mono tabular-nums">
+                              {ld.viewsCount}
+                            </TableCell>
+                            <TableCell className="text-right font-mono tabular-nums font-bold text-foreground">
+                              {formatTelemetryDuration(ld.totalDurationMs)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1">
+                                {ld.hasPurchased && (
+                                  <Badge variant="outline" className="text-[9px] font-mono py-0 h-4 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 bg-emerald-500/10">
+                                    Acheté
+                                  </Badge>
+                                )}
+                                {ld.unlockIntent && !ld.hasPurchased && (
+                                  <Badge variant="outline" className="text-[9px] font-mono py-0 h-4 border-accent/40 text-accent bg-accent/10 gap-1">
+                                    <MousePointerClick className="h-2.5 w-2.5" />
+                                    Intention
+                                  </Badge>
+                                )}
+                                {ld.zoomedPhoto && (
+                                  <Badge variant="outline" className="text-[9px] font-mono py-0 h-4 gap-1">
+                                    <Camera className="h-2.5 w-2.5" />
+                                    Photo
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-[11px] tabular-nums text-muted-foreground">
+                              {new Date(ld.lastViewedAt).toLocaleString("fr-BE", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )
+            })()}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setActivityModalPartner(null)}
             >
               Fermer
             </Button>

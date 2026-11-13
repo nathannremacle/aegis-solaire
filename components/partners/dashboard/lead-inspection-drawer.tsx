@@ -53,6 +53,7 @@ import {
 import { LeadGeoRadarMap } from "./lead-geo-radar-map"
 import { downloadLeadVCard } from "./lib/vcard-export"
 import { DirectLeadPaymentModal } from "./modals/direct-lead-payment-modal"
+import { useLeadInspectionTimer } from "@/lib/client/partner-tracker"
 
 interface LeadInspectionDrawerProps {
   lead: any
@@ -76,6 +77,20 @@ export function LeadInspectionDrawer({
   const drawerRef = useRef<HTMLDivElement>(null)
   const [isDirectPayOpen, setIsDirectPayOpen] = React.useState(false)
   const [isImageModalOpen, setIsImageModalOpen] = React.useState(false)
+
+  const isLeadAlreadyPurchased = Boolean(
+    !lead?.is_demo_preview &&
+      (lead?.already_purchased ||
+        lead?.purchase_id ||
+        (lead?.email && !lead.email.includes("***") && !lead.email.includes("—")))
+  )
+
+  const { recordRoofZoom, recordUnlockIntent } = useLeadInspectionTimer({
+    lead,
+    source: isLeadAlreadyPurchased ? "crm_drawer" : "marketplace_drawer",
+    partnerCredits,
+    enabled: Boolean(lead),
+  })
 
   // Fermeture clavier (Escape) & Verrouillage du scroll arrière-plan
   useEffect(() => {
@@ -280,7 +295,10 @@ export function LeadInspectionDrawer({
 
               <div
                 className="relative rounded-lg overflow-hidden border border-border bg-secondary/30 group cursor-pointer aspect-[4/5] max-h-[500px]"
-                onClick={() => setIsImageModalOpen(true)}
+                onClick={() => {
+                  setIsImageModalOpen(true)
+                  recordRoofZoom()
+                }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -304,7 +322,10 @@ export function LeadInspectionDrawer({
                 <span>Vérification technique préalable : pente, couverture &amp; orientation visibles.</span>
                 <button
                   type="button"
-                  onClick={() => setIsImageModalOpen(true)}
+                  onClick={() => {
+                    setIsImageModalOpen(true)
+                    recordRoofZoom()
+                  }}
                   className="text-xs font-semibold text-primary hover:underline shrink-0"
                 >
                   Voir en grand &rarr;
@@ -790,7 +811,10 @@ export function LeadInspectionDrawer({
                   <Button
                     variant="outline"
                     type="button"
-                    onClick={() => setIsDirectPayOpen(true)}
+                    onClick={() => {
+                      recordUnlockIntent("direct_pay")
+                      setIsDirectPayOpen(true)
+                    }}
                     className="font-bold h-11 px-3.5 text-xs border-border hover:bg-secondary cursor-pointer w-full sm:w-auto shadow-2xs"
                     title="Payer directement en euros par Bancontact/Carte sans débiter vos crédits"
                   >
@@ -800,7 +824,10 @@ export function LeadInspectionDrawer({
                   <Button
                     variant="default"
                     disabled={isBuying}
-                    onClick={() => onPurchase(lead)}
+                    onClick={() => {
+                      recordUnlockIntent("credits")
+                      onPurchase(lead)
+                    }}
                     className="font-bold h-11 px-5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm w-full sm:w-auto"
                   >
                     {isBuying ? (
@@ -821,7 +848,10 @@ export function LeadInspectionDrawer({
                   <Button
                     variant="outline"
                     type="button"
-                    onClick={onRequestTopUp}
+                    onClick={() => {
+                      recordUnlockIntent("insufficient_credits")
+                      onRequestTopUp()
+                    }}
                     className="font-bold h-11 px-3.5 text-xs border-border hover:bg-secondary cursor-pointer w-full sm:w-auto"
                   >
                     <Coins className="h-4 w-4 mr-1.5 text-accent" />
@@ -830,7 +860,10 @@ export function LeadInspectionDrawer({
                   <Button
                     variant="default"
                     type="button"
-                    onClick={() => setIsDirectPayOpen(true)}
+                    onClick={() => {
+                      recordUnlockIntent("direct_pay")
+                      setIsDirectPayOpen(true)
+                    }}
                     className="font-bold h-11 px-5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm w-full sm:w-auto gap-1.5"
                   >
                     <CreditCard className="h-4 w-4" />

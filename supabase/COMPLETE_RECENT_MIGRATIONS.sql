@@ -214,3 +214,58 @@ Bien cordialement,
 La Direction des Partenariats Aegis Solaire'),
   ('court_whatsapp', 'Accès partenaire Aegis Solaire', 'Salut {{prenom}}, c''est La Cellule Technique & Ingénierie Aegis Solaire. Nous avons lancé Aegis Solaire pour transmettre directement des chantiers solaires ultra-qualifiés sur ta province (Wallonie). Voici ton accès direct : {{lien_inscription}} Écris-nous à contact@aegissolaire.com quand tu as pu regarder !')
 ON CONFLICT (tone) DO NOTHING;
+
+
+-- ------------------------------------------------------------------------------
+-- 4. TÉLÉMÉTRIE COMPORTEMENTALE INSTALLATEURS (CLICS, DURÉES, SIGNAUX CHAUDS)
+-- ------------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS public.partner_activity_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  partner_id UUID REFERENCES public.partners(id) ON DELETE CASCADE,
+  partner_email TEXT NOT NULL,
+  partner_name TEXT NOT NULL,
+  lead_id UUID REFERENCES public.leads(id) ON DELETE SET NULL,
+  lead_ref TEXT,
+  session_id TEXT NOT NULL,
+  event_type TEXT NOT NULL CHECK (
+    event_type IN (
+      'session_start',
+      'email_deep_link',
+      'lead_inspect_open',
+      'lead_inspect_duration',
+      'roof_photo_zoom',
+      'unlock_intent',
+      'credit_modal_open',
+      'marketplace_filter',
+      'crm_tab_open'
+    )
+  ),
+  duration_ms INTEGER NOT NULL DEFAULT 0 CHECK (duration_ms >= 0),
+  source TEXT NOT NULL DEFAULT 'marketplace',
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_partner_activity_partner_created
+  ON public.partner_activity_events (partner_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_partner_activity_lead_created
+  ON public.partner_activity_events (lead_id, created_at DESC)
+  WHERE lead_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_partner_activity_event_created
+  ON public.partner_activity_events (event_type, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_partner_activity_created_at
+  ON public.partner_activity_events (created_at DESC);
+
+ALTER TABLE public.partner_activity_events ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Service role full access on partner_activity_events" ON public.partner_activity_events;
+CREATE POLICY "Service role full access on partner_activity_events"
+  ON public.partner_activity_events
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);

@@ -66,6 +66,7 @@ import { LeadInspectionDrawer } from "./lead-inspection-drawer"
 import { MarketplaceInteractiveTour } from "./marketplace-interactive-tour"
 import { LeadGeoRadarMap } from "./lead-geo-radar-map"
 import { DirectLeadPaymentModal } from "./modals/direct-lead-payment-modal"
+import { trackPartnerActivity, useLeadInspectionTimer } from "@/lib/client/partner-tracker"
 
 interface MarketplaceFeedViewProps {
   leads: any[]
@@ -195,6 +196,35 @@ export function MarketplaceFeedView({
     if (!focusedLeadId) return null
     return leads.find((l) => l.id === focusedLeadId) || null
   }, [focusedLeadId, leads])
+
+  // Chronomètre actif si le partenaire consulte un lead en mode focus e-mail
+  const { recordUnlockIntent: recordFocusedUnlockIntent } = useLeadInspectionTimer({
+    lead: targetedLead,
+    source: "email_focus",
+    partnerCredits,
+    enabled: Boolean(focusedLeadId && targetedLead && !selectedLeadForDrawer),
+  })
+
+  // Suivi des filtres marketplace avec debounce pour mesurer la demande par province/segment
+  const hasMountedFilterRef = React.useRef(false)
+  useEffect(() => {
+    if (!hasMountedFilterRef.current) {
+      hasMountedFilterRef.current = true
+      return
+    }
+    const timer = setTimeout(() => {
+      trackPartnerActivity({
+        eventType: "marketplace_filter",
+        source: "marketplace_toolbar",
+        metadata: {
+          segmentFilter,
+          selectedProvince,
+          sortBy,
+        },
+      })
+    }, 800)
+    return () => clearTimeout(timer)
+  }, [segmentFilter, selectedProvince, sortBy])
 
   const activeClosedShowcaseLead = useMemo(() => {
     if (!focusedLeadId || targetedLead) return null
@@ -422,6 +452,19 @@ export function MarketplaceFeedView({
     }
     const isB2B = lead.segment === "B2B"
     const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
+    trackPartnerActivity({
+      eventType: "unlock_intent",
+      leadId: lead.id,
+      leadRef: lead.id?.slice(0, 8) ?? null,
+      source: selectedLeadForDrawer?.id === lead.id ? "marketplace_drawer" : "marketplace_card",
+      metadata: {
+        method: partnerCredits >= cost ? "credits" : "insufficient_credits",
+        segment: lead.segment ?? null,
+        province: lead.province ?? null,
+        creditCost: cost,
+        partnerCredits,
+      },
+    })
     if (partnerCredits < cost) {
       toast.info(`Solde insuffisant (${cost} crédits requis, ${partnerCredits} disponibles). Vous pouvez régler ce dossier directement par Bancontact / Carte.`)
       setDirectPayLead(lead)
@@ -935,7 +978,10 @@ export function MarketplaceFeedView({
                         size="default"
                         variant="outline"
                         type="button"
-                        onClick={() => setDirectPayLead(targetedLead)}
+                        onClick={() => {
+                          recordFocusedUnlockIntent("direct_pay")
+                          setDirectPayLead(targetedLead)
+                        }}
                         className="w-full border-border hover:bg-secondary font-bold h-11 text-xs sm:text-sm cursor-pointer gap-2"
                       >
                         <CreditCard className="h-4 w-4 text-accent" />
@@ -947,7 +993,10 @@ export function MarketplaceFeedView({
                       <Button
                         size="lg"
                         type="button"
-                        onClick={() => setDirectPayLead(targetedLead)}
+                        onClick={() => {
+                          recordFocusedUnlockIntent("direct_pay")
+                          setDirectPayLead(targetedLead)
+                        }}
                         className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-12 shadow-sm cursor-pointer text-sm gap-2"
                       >
                         <CreditCard className="h-4 w-4" />
@@ -1270,7 +1319,22 @@ export function MarketplaceFeedView({
                   isTargeted={targetLeadId === lead.id}
                   onInspect={() => setSelectedLeadForDrawer(lead)}
                   onPurchase={() => handlePurchase(lead)}
-                  onDirectPay={() => setDirectPayLead(lead)}
+                  onDirectPay={() => {
+                    trackPartnerActivity({
+                      eventType: "unlock_intent",
+                      leadId: lead.id,
+                      leadRef: lead.id?.slice(0, 8) ?? null,
+                      source: "marketplace_card",
+                      metadata: {
+                        method: "direct_pay",
+                        segment: lead.segment ?? null,
+                        province: lead.province ?? null,
+                        creditCost: lead.credit_cost ?? (lead.segment === "B2B" ? 9 : 3),
+                        partnerCredits,
+                      },
+                    })
+                    setDirectPayLead(lead)
+                  }}
                 />
               ))}
             </div>
