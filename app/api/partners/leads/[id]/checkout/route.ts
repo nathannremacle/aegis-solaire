@@ -4,8 +4,11 @@ import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { createLeadDirectPayment } from "@/lib/mollie"
 import { calculateLeadDirectFinancials } from "@/lib/credit-pricing"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
+import { isShowcaseOnlyLeadId } from "@/lib/regional-leads-catalog"
 
 export const dynamic = "force-dynamic"
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -20,9 +23,24 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     )
   }
 
-  const { id: leadId } = await params
+  const { id: rawLeadId } = await params
+  const leadId = typeof rawLeadId === "string" ? rawLeadId.trim() : ""
   if (!leadId) {
     return NextResponse.json({ error: "leadId manquant" }, { status: 400 })
+  }
+
+  if (isShowcaseOnlyLeadId(leadId)) {
+    return NextResponse.json(
+      { error: "Ce dossier a déjà atteint son quota maximum d'installateurs et n'est plus disponible à l'achat." },
+      { status: 400 }
+    )
+  }
+
+  if (!UUID_REGEX.test(leadId)) {
+    return NextResponse.json(
+      { error: "Ce dossier n'est pas disponible à l'achat." },
+      { status: 400 }
+    )
   }
 
   const supabase = createServiceRoleClient()
@@ -30,7 +48,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
   // 1. Récupérer le lead
   const { data: lead, error: leadErr } = await supabase
     .from("leads")
-    .select("id, segment, marketplace_status, credit_cost, province, city, postal_code, surface_area, annual_electricity_bill")
+    .select("id, segment, marketplace_status, credit_cost, province, city, postal_code, surface_area, annual_electricity_bill, qualification_metadata")
     .eq("id", leadId)
     .single()
 
@@ -38,7 +56,10 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: "Dossier introuvable." }, { status: 404 })
   }
 
-  if (lead.marketplace_status !== "available") {
+  if (
+    lead.marketplace_status !== "available" ||
+    Boolean((lead.qualification_metadata as Record<string, unknown> | null)?.is_showcase)
+  ) {
     return NextResponse.json(
       { error: "Ce dossier n'est plus disponible sur la marketplace." },
       { status: 400 }

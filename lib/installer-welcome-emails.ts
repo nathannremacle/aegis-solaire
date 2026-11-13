@@ -1,5 +1,6 @@
 import { Resend } from "resend"
 import type { AvailableLeadSummary } from "@/lib/lead-relance-engine"
+import type { InvitationLeadSummary } from "@/lib/regional-leads-catalog"
 
 const resendApiKey = process.env.RESEND_API_KEY
 const fromEmail = process.env.RESEND_FROM_EMAIL ?? "contact@aegissolaire.com"
@@ -338,6 +339,7 @@ export interface InstallerMarketplaceWelcomeData {
   setupPasswordUrl?: string | null
   baseUrl?: string
   availableLeads?: AvailableLeadSummary[]
+  closedTargetLead?: InvitationLeadSummary | null
 }
 
 export function buildInstallerMarketplaceWelcomeEmail(data: InstallerMarketplaceWelcomeData): {
@@ -359,10 +361,15 @@ export function buildInstallerMarketplaceWelcomeEmail(data: InstallerMarketplace
 
   const leads = data.availableLeads || []
   const hasLeads = leads.length > 0
+  const closedLead = data.closedTargetLead || null
 
   const subject = hasLeads
     ? `${firstName}, votre compte est validé — ${leads.length} projet${leads.length > 1 ? "s" : ""} solaire${leads.length > 1 ? "s" : ""} disponible${leads.length > 1 ? "s" : ""} dans votre zone`
     : `${firstName}, votre compte est validé — Bienvenue sur la Marketplace Aegis Solaire`
+
+  const closedLeadTextSection = closedLead
+    ? `\nÀ PROPOS DU DOSSIER DE ${closedLead.city.toUpperCase()} (${closedLead.postalCode}) :\nCe chantier vient d'atteindre son quota maximum d'installateurs (${closedLead.maxSlots}/${closedLead.maxSlots} places attribuées) et est désormais clôturé. Votre profil RESCERT étant maintenant validé, vous recevrez nos alertes prioritaires dès l'ouverture des prochains chantiers dans votre secteur.\n`
+    : ""
 
   let leadsTextSection = ""
   if (hasLeads) {
@@ -386,7 +393,7 @@ export function buildInstallerMarketplaceWelcomeEmail(data: InstallerMarketplace
 Excellente nouvelle : votre compte installateur pour ${company} a été validé avec succès par notre équipe technique${rescert} !
 
 Vous avez désormais un accès direct à la Marketplace Aegis Solaire pour débloquer des demandes de devis solaires qualifiées dans votre région en Wallonie.
-${leadsTextSection}
+${closedLeadTextSection}${leadsTextSection}
 ${hasSetupPasswordUrl ? `Définir votre mot de passe et accéder à la Marketplace :\n${primaryActionUrl}\n` : `Accéder à la Marketplace maintenant :\n${marketplaceUrl}`}
 
 La Marketplace Aegis Solaire en bref :
@@ -410,6 +417,19 @@ L'équipe Aegis Solaire
 
 --
 Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique`.trim()
+
+  const closedLeadHtml = closedLead
+    ? `
+              <!-- Information Statut Dossier Cible Clôturé -->
+              <div style="background-color: #FFFBEB; border: 1px solid #FDE68A; border-left: 3px solid #D97706; border-radius: 10px; padding: 16px 18px; margin-bottom: 22px;">
+                <p class="mono" style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: #B45309; text-transform: uppercase; letter-spacing: 0.05em;">
+                  Statut du dossier ${escapeHtml(closedLead.city)} (${escapeHtml(closedLead.postalCode)}) · Quota atteint (${closedLead.maxSlots}/${closedLead.maxSlots})
+                </p>
+                <p style="margin: 0; font-size: 13px; line-height: 1.55; color: #78350F;">
+                  Ce chantier vient d'être clôturé suite à l'attribution de toutes ses places disponibles. Votre compte est désormais prioritaire pour recevoir en direct les prochains projets qualifiés dans votre secteur.
+                </p>
+              </div>`
+    : ""
 
   const availableLeadsHtml = hasLeads
     ? `
@@ -436,26 +456,24 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                 </table>
 
                 ${leads
-                  .map((lead) => {
-                    const isB2B = lead.segment === "B2B"
-                    const segmentBadge = isB2B
-                      ? `<span style="display: inline-block; background-color: #0F172A; color: #FFFFFF; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.03em;">PRO B2B · Exclusif</span>`
-                      : `<span style="display: inline-block; background-color: #F1F5F9; color: #334155; border: 1px solid #CBD5E1; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.03em;">Résidentiel B2C</span>`
+      .map((lead) => {
+        const isB2B = lead.segment === "B2B"
+        const segmentBadge = isB2B
+          ? `<span style="display: inline-block; background-color: #0F172A; color: #FFFFFF; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.03em;">PRO B2B · Exclusif</span>`
+          : `<span style="display: inline-block; background-color: #F1F5F9; color: #334155; border: 1px solid #CBD5E1; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.03em;">Résidentiel B2C</span>`
 
-                    const quotaBadge = isB2B
-                      ? `<span class="mono" style="font-size: 11px; font-weight: 700; color: #059669;">1 seul artisan</span>`
-                      : `<span class="mono" style="font-size: 11px; font-weight: 700; color: ${
-                          lead.remainingSlots === 1 ? "#D97706" : "#059669"
-                        };">${lead.remainingSlots}/${lead.maxSlots} place${lead.remainingSlots > 1 ? "s" : ""} dispo</span>`
+        const quotaBadge = isB2B
+          ? `<span class="mono" style="font-size: 11px; font-weight: 700; color: #059669;">1 seul artisan</span>`
+          : `<span class="mono" style="font-size: 11px; font-weight: 700; color: ${lead.remainingSlots === 1 ? "#D97706" : "#059669"
+          };">${lead.remainingSlots}/${lead.maxSlots} place${lead.remainingSlots > 1 ? "s" : ""} dispo</span>`
 
-                    const locationStr = `${lead.postalCode ? escapeHtml(lead.postalCode) + " " : ""}${escapeHtml(
-                      lead.city || lead.provinceLabel
-                    )}`
+        const locationStr = `${lead.postalCode ? escapeHtml(lead.postalCode) + " " : ""}${escapeHtml(
+          lead.city || lead.provinceLabel
+        )}`
 
-                    return `
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #FFFFFF; border: 1px solid #E2E8F0; border-left: 3px solid ${
-                  isB2B ? "#0F172A" : "#059669"
-                }; border-radius: 8px; margin-bottom: 10px; padding: 12px 14px;">
+        return `
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #FFFFFF; border: 1px solid #E2E8F0; border-left: 3px solid ${isB2B ? "#0F172A" : "#059669"
+          }; border-radius: 8px; margin-bottom: 10px; padding: 12px 14px;">
                   <tr>
                     <td valign="middle" align="left" style="padding-bottom: 8px;">
                       ${segmentBadge}
@@ -483,8 +501,8 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                     </td>
                   </tr>
                 </table>`
-                  })
-                  .join("")}
+      })
+      .join("")}
               </div>`
     : ""
 
@@ -567,7 +585,7 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
               <p style="margin: 0 0 26px 0; font-size: 15px; line-height: 1.6; color: #334155;">
                 Votre espace partenaire est désormais actif. Vous pouvez dès maintenant consulter et acquérir des demandes de devis rigoureusement auditées dans vos provinces d'intervention en Wallonie.
               </p>
-${availableLeadsHtml}
+${closedLeadHtml}${availableLeadsHtml}
               <!-- Main Marketplace CTA Button -->
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 30px;">
                 <tr>
@@ -576,13 +594,12 @@ ${availableLeadsHtml}
                       <tr>
                         <td align="center" style="background-color: #0F172A; border-radius: 10px; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);">
                           <a href="${escapeHtml(primaryActionUrl)}" target="_blank" style="display: inline-block; padding: 15px 36px; font-size: 15px; font-weight: 700; color: #FFFFFF; text-decoration: none; letter-spacing: 0.01em;">
-                            ${
-                              hasSetupPasswordUrl
-                                ? "Créer mon mot de passe et accéder à la Marketplace &rarr;"
-                                : hasLeads
-                                  ? "Accéder à la Marketplace et débloquer ces dossiers &rarr;"
-                                  : "Accéder à la Marketplace des Leads &rarr;"
-                            }
+                            ${hasSetupPasswordUrl
+      ? "Créer mon mot de passe et accéder à la Marketplace &rarr;"
+      : hasLeads
+        ? "Accéder à la Marketplace et débloquer ces dossiers &rarr;"
+        : "Accéder à la Marketplace des Leads &rarr;"
+    }
                           </a>
                         </td>
                       </tr>
@@ -592,11 +609,10 @@ ${availableLeadsHtml}
                 <tr>
                   <td align="center" style="padding-top: 10px;">
                     <span class="mono" style="font-size: 12px; color: #64748B;">
-                      ${
-                        hasSetupPasswordUrl
-                          ? "Première connexion · Ce lien permet de définir votre mot de passe personnel"
-                          : "Accès direct · Portail Installateurs Wallonie"
-                      }
+                      ${hasSetupPasswordUrl
+      ? "Première connexion · Ce lien permet de définir votre mot de passe personnel"
+      : "Accès direct · Portail Installateurs Wallonie"
+    }
                     </span>
                   </td>
                 </tr>

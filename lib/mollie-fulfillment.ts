@@ -1,6 +1,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { Resend } from "resend"
 import type { Payment } from "@mollie/api-client"
+import { isShowcaseOnlyLeadId } from "@/lib/regional-leads-catalog"
 
 export interface FulfillmentResult {
   success: boolean
@@ -133,6 +134,10 @@ export async function fulfillPaidLeadDirectPurchase(
   partnerId: string,
   payment: Payment
 ): Promise<LeadFulfillmentResult> {
+  if (isShowcaseOnlyLeadId(leadId)) {
+    return { success: false, error: "Dossier vitrine régional clôturé (non achetable)." }
+  }
+
   const supabase = createServiceRoleClient()
 
   // 1. Récupérer le partenaire

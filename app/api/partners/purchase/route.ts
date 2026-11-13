@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server"
 import { getPartner } from "@/lib/partner-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
+import { isShowcaseOnlyLeadId } from "@/lib/regional-leads-catalog"
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export async function POST(request: Request) {
   const partner = await getPartner()
@@ -15,18 +18,57 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Body invalide" }, { status: 400 })
   }
 
-  if (!body.leadId) {
+  const leadId = typeof body.leadId === "string" ? body.leadId.trim() : ""
+  if (!leadId) {
     return NextResponse.json({ error: "leadId requis" }, { status: 400 })
   }
 
+  if (isShowcaseOnlyLeadId(leadId)) {
+    return NextResponse.json(
+      { error: "Ce dossier a déjà atteint son quota maximum d'installateurs et n'est plus disponible à l'achat." },
+      { status: 400 }
+    )
+  }
+
+  if (!UUID_REGEX.test(leadId)) {
+    return NextResponse.json(
+      { error: "Ce dossier n'est pas disponible à l'achat." },
+      { status: 400 }
+    )
+  }
+
   const admin = createServiceRoleClient()
+
+  // Garde-fou supplémentaire en base avant toute RPC d'achat
+  const { data: leadCheck } = await admin
+    .from("leads")
+    .select("id, marketplace_status, qualification_metadata")
+    .eq("id", leadId)
+    .maybeSingle()
+
+  if (!leadCheck) {
+    return NextResponse.json(
+      { error: "Ce dossier est introuvable ou n'est plus actif sur la marketplace." },
+      { status: 404 }
+    )
+  }
+
+  if (
+    leadCheck.marketplace_status !== "available" ||
+    Boolean((leadCheck.qualification_metadata as Record<string, unknown> | null)?.is_showcase)
+  ) {
+    return NextResponse.json(
+      { error: "Ce dossier n'est plus disponible à l'achat." },
+      { status: 400 }
+    )
+  }
 
   let purchaseResult: any = null
   let purchaseErr: any = null
 
   // 1. Tenter la nouvelle RPC atomique avec verrouillage pessimiste
   const { data: rpcData, error: rpcError } = await admin.rpc("purchase_marketplace_lead", {
-    p_lead_id: body.leadId,
+    p_lead_id: leadId,
     p_partner_id: partner.id,
   })
 
@@ -35,7 +77,7 @@ export async function POST(request: Request) {
   } else if (rpcError && (rpcError.code === "42883" || rpcError.message?.includes("does not exist"))) {
     // 2. Fallback sur l'ancienne RPC purchase_lead
     const { data: oldData, error: oldErr } = await admin.rpc("purchase_lead", {
-      p_lead_id: body.leadId,
+      p_lead_id: leadId,
       p_partner_id: partner.id,
     })
     purchaseResult = oldData
@@ -59,7 +101,7 @@ export async function POST(request: Request) {
     .select(
       "id, first_name, last_name, email, phone, company, company_vat, province, postal_code, city, site_address, segment, surface_type, surface_area, annual_electricity_bill, grd, project_details, message"
     )
-    .eq("id", body.leadId)
+    .eq("id", leadId)
     .single()
 
   let purchaseId = (result?.purchase_id as string) || (result?.purchaseId as string) || null
@@ -68,7 +110,7 @@ export async function POST(request: Request) {
     const { data: lp } = await admin
       .from("lead_purchases")
       .select("id")
-      .eq("lead_id", body.leadId)
+      .eq("lead_id", leadId)
       .eq("partner_id", partner.id)
       .order("purchased_at", { ascending: false })
       .limit(1)

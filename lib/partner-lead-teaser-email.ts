@@ -1,5 +1,6 @@
 import { Resend } from "resend"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
+import { getSurfaceTypeLabel, getGrdLabel } from "@/lib/lead-display-helpers"
 
 const resendApiKey = process.env.RESEND_API_KEY
 const fromEmail = process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev"
@@ -17,22 +18,6 @@ function getEnvPartnerAlertRecipients(): string[] {
 function dashboardUrl(): string {
   const base = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://aegissolaire.com").replace(/\/$/, "")
   return `${base}/partenaires`
-}
-
-const SURFACE_TYPE_LABELS: Record<string, string> = {
-  toiture: "Toiture",
-  parking: "Parking",
-  terrain: "Terrain",
-  friche: "Friche",
-}
-
-const GRD_LABELS: Record<string, string> = {
-  ores: "Ores",
-  resa: "Resa",
-  aieg: "AIEG",
-  rew: "REW",
-  fluvius: "Fluvius",
-  unknown: "Je ne sais pas",
 }
 
 export type PartnerLeadTeaserPayload = {
@@ -63,9 +48,8 @@ export function buildPartnerLeadTeaserContent(payload: PartnerLeadTeaserPayload)
   html: string
 } {
   const provinceLabel = getProvinceDisplayLabel(payload.province, payload.provinceFreeText)
-  const typeLabel = SURFACE_TYPE_LABELS[payload.surfaceType] ?? payload.surfaceType
-  const grdKey = payload.grd ?? "unknown"
-  const grdLabel = GRD_LABELS[grdKey] ?? (payload.grd ?? "—")
+  const typeLabel = getSurfaceTypeLabel(payload.surfaceType)
+  const grdLabel = payload.grd ? getGrdLabel(payload.grd) : "—"
   const facture = `${payload.annualElectricityBill.toLocaleString("fr-BE")} € HT / an`
   const surface = `${payload.surfaceArea.toLocaleString("fr-BE")} m²`
   const precisions =

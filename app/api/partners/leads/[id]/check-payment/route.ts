@@ -3,8 +3,11 @@ import { getPartner } from "@/lib/partner-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { getMollieClient } from "@/lib/mollie"
 import { fulfillPaidLeadDirectPurchase } from "@/lib/mollie-fulfillment"
+import { isShowcaseOnlyLeadId } from "@/lib/regional-leads-catalog"
 
 export const dynamic = "force-dynamic"
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -16,9 +19,17 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
   }
 
-  const { id: leadId } = await params
+  const { id: rawLeadId } = await params
+  const leadId = typeof rawLeadId === "string" ? rawLeadId.trim() : ""
   if (!leadId) {
     return NextResponse.json({ error: "leadId manquant" }, { status: 400 })
+  }
+
+  if (isShowcaseOnlyLeadId(leadId) || !UUID_REGEX.test(leadId)) {
+    return NextResponse.json(
+      { error: "Ce dossier n'est pas éligible au paiement direct." },
+      { status: 400 }
+    )
   }
 
   const { searchParams } = new URL(request.url)

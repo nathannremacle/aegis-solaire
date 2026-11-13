@@ -17,6 +17,11 @@ import {
   recordCatchUpDispatches,
   type AvailableLeadSummary,
 } from "@/lib/lead-relance-engine"
+import {
+  extractTargetLeadIdFromAdminNotes,
+  getRegionalLeadSummary,
+  isShowcaseOnlyLeadId,
+} from "@/lib/regional-leads-catalog"
 
 export async function POST(
   request: NextRequest,
@@ -76,7 +81,15 @@ export async function POST(
         message: "E-mail de vérification réexpédié avec succès.",
       })
     } else {
-      const marketplaceUrl = `${baseUrl}/partenaires/dashboard`
+      const targetLeadId = extractTargetLeadIdFromAdminNotes(app.admin_notes)
+      const dashboardPath = targetLeadId
+        ? `/partenaires/dashboard?lead=${encodeURIComponent(targetLeadId)}`
+        : "/partenaires/dashboard"
+      const marketplaceUrl = `${baseUrl}${dashboardPath}`
+      const closedTargetLead =
+        targetLeadId && isShowcaseOnlyLeadId(targetLeadId)
+          ? getRegionalLeadSummary(targetLeadId)
+          : null
 
       let availableLeads: AvailableLeadSummary[] = []
       const { data: partner } = await supabase
@@ -103,6 +116,7 @@ export async function POST(
         setupPasswordUrl = await generatePartnerPasswordSetupUrl(supabase, {
           email: app.email,
           baseUrl,
+          nextPath: dashboardPath,
         })
       } catch (authErr) {
         console.error("[resend-email] auth onboarding warning:", authErr)
@@ -118,6 +132,7 @@ export async function POST(
         marketplaceUrl,
         setupPasswordUrl,
         availableLeads,
+        closedTargetLead,
       })
 
       const sendRes = await sendInstallerEmail({

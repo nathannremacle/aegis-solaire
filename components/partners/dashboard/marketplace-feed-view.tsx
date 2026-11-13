@@ -42,12 +42,14 @@ import {
   FileCheck,
   Download,
   CreditCard,
+  Bell,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
 import { formatEurWithDecimals, calculateLeadDirectFinancials } from "@/lib/credit-pricing"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
+import { isShowcaseOnlyLeadId } from "@/lib/regional-leads-catalog"
 import {
   getLeadLocationInfo,
   formatRoundedCurrency,
@@ -69,9 +71,12 @@ interface MarketplaceFeedViewProps {
   leads: any[]
   partnerCredits: number
   targetLeadId?: string
+  targetedClosedLead?: any
+  partnerProvinces?: string[] | null
   onClearTargetLead?: () => void
   onPurchaseSuccess: (lead: any, newCredits: number, purchaseRecord: any) => void
   onRequestTopUp: () => void
+  onOpenAlertPreferences?: () => void
   onOpenExpertModal?: (lead?: any) => void
 }
 
@@ -125,9 +130,12 @@ export function MarketplaceFeedView({
   leads,
   partnerCredits,
   targetLeadId,
+  targetedClosedLead,
+  partnerProvinces,
   onClearTargetLead,
   onPurchaseSuccess,
   onRequestTopUp,
+  onOpenAlertPreferences,
   onOpenExpertModal,
 }: MarketplaceFeedViewProps) {
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid")
@@ -187,6 +195,14 @@ export function MarketplaceFeedView({
     if (!focusedLeadId) return null
     return leads.find((l) => l.id === focusedLeadId) || null
   }, [focusedLeadId, leads])
+
+  const activeClosedShowcaseLead = useMemo(() => {
+    if (!focusedLeadId || targetedLead) return null
+    if (targetedClosedLead && targetedClosedLead.id === focusedLeadId) {
+      return targetedClosedLead
+    }
+    return null
+  }, [focusedLeadId, targetedLead, targetedClosedLead])
 
   // Variables calculées pour le lead ciblé en mode isolé
   const rawTargetSurface = Math.max(0, Number(targetedLead?.surface_area || targetedLead?.surface_area_m2) || 0)
@@ -396,6 +412,14 @@ export function MarketplaceFeedView({
     searchQuery !== "" || segmentFilter !== "ALL" || selectedProvince !== "ALL" || sortBy !== "recent"
 
   const handlePurchase = async (lead: any) => {
+    if (
+      lead?.is_showcase_closed ||
+      isShowcaseOnlyLeadId(lead?.id) ||
+      (typeof lead?.remaining_slots === "number" && lead.remaining_slots <= 0)
+    ) {
+      toast.error("Ce dossier a déjà atteint son quota maximum d'installateurs et n'est plus disponible à l'achat.")
+      return
+    }
     const isB2B = lead.segment === "B2B"
     const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
     if (partnerCredits < cost) {
@@ -473,8 +497,107 @@ export function MarketplaceFeedView({
         />
       )}
 
-      {/* ── ALERTE SI LE DOSSIER CIBLÉ N'EST PLUS DISPONIBLE ── */}
-      {focusedLeadId && !targetedLead && (
+      {/* ── DOSSIER VITRINE / RÉGIONAL CLÔTURÉ (NON ACHETABLE) + OPPORTUNITÉS RÉELLES EN DESSOUS ── */}
+      {focusedLeadId && activeClosedShowcaseLead ? (
+        <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
+          <div className="border-b border-border bg-secondary/50 px-4 py-3 sm:px-6 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[11px] font-mono font-bold text-amber-700 dark:text-amber-400 tabular-nums">
+                <Lock className="h-3 w-3" />
+                QUOTA ATTEINT · {activeClosedShowcaseLead.max_slots}/{activeClosedShowcaseLead.max_slots} PLACE{activeClosedShowcaseLead.max_slots > 1 ? "S" : ""} ATTRIBUÉE{activeClosedShowcaseLead.max_slots > 1 ? "S" : ""}
+              </span>
+              <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
+                {activeClosedShowcaseLead.postal_code} {activeClosedShowcaseLead.city}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleClearFocus}
+              className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            >
+              Masquer cet aperçu &times;
+            </button>
+          </div>
+
+          <div className="p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+            {activeClosedShowcaseLead.qualification_metadata?.roof_image_url && (
+              <div className="lg:col-span-4 relative aspect-[16/10] w-full overflow-hidden rounded-xl border border-border bg-muted">
+                <img
+                  src={activeClosedShowcaseLead.qualification_metadata.roof_image_url}
+                  alt={`Aperçu toiture ${activeClosedShowcaseLead.postal_code} ${activeClosedShowcaseLead.city}`}
+                  className="h-full w-full object-cover opacity-80 grayscale-[25%]"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent" />
+                <span className="absolute bottom-2.5 left-2.5 inline-flex items-center gap-1.5 rounded-full bg-black/75 px-2.5 py-1 text-[10px] font-mono font-bold text-white uppercase tracking-wider">
+                  <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                  Dossier clôturé
+                </span>
+              </div>
+            )}
+
+            <div className={`${activeClosedShowcaseLead.qualification_metadata?.roof_image_url ? "lg:col-span-8" : "lg:col-span-12"} flex flex-col gap-3`}>
+              <div>
+                <h2 className="text-base sm:text-lg font-heading font-extrabold text-foreground">
+                  Chantier {activeClosedShowcaseLead.city} ({activeClosedShowcaseLead.postal_code}) — Attribution terminée
+                </h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">
+                  Ce projet a atteint son plafond d&apos;installateurs certifiés et n&apos;est plus ouvert au déblocage. Votre profil RESCERT est désormais actif pour accéder aux dossiers disponibles ci-dessous et recevoir en priorité les prochains chantiers{Array.isArray(partnerProvinces) && partnerProvinces.length > 0 ? ` (${partnerProvinces.join(", ")})` : ""}.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                <div className="rounded-xl border border-border bg-secondary/40 px-3 py-2">
+                  <span className="text-[10px] font-mono uppercase text-muted-foreground block">Puissance</span>
+                  <span className="font-mono font-bold text-foreground tabular-nums">
+                    ~{activeClosedShowcaseLead.estimated_power_kwc} kWc
+                  </span>
+                </div>
+                <div className="rounded-xl border border-border bg-secondary/40 px-3 py-2">
+                  <span className="text-[10px] font-mono uppercase text-muted-foreground block">Toiture</span>
+                  <span className="font-mono font-bold text-foreground tabular-nums">
+                    {activeClosedShowcaseLead.surface_area} m²
+                  </span>
+                </div>
+                <div className="rounded-xl border border-border bg-secondary/40 px-3 py-2">
+                  <span className="text-[10px] font-mono uppercase text-muted-foreground block">Facture</span>
+                  <span className="font-mono font-bold text-foreground tabular-nums">
+                    {Number(activeClosedShowcaseLead.annual_electricity_bill || 0).toLocaleString("fr-BE")} €/an
+                  </span>
+                </div>
+                <div className="rounded-xl border border-border bg-secondary/40 px-3 py-2">
+                  <span className="text-[10px] font-mono uppercase text-muted-foreground block">Statut</span>
+                  <span className="font-mono font-bold text-amber-700 dark:text-amber-400">
+                    Clôturé
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                {onOpenAlertPreferences && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={onOpenAlertPreferences}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-bold cursor-pointer gap-1.5"
+                  >
+                    <Bell className="h-3.5 w-3.5 text-accent" />
+                    <span>Vérifier mes alertes prioritaires</span>
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearFocus}
+                  className="text-xs font-semibold border-border hover:bg-secondary cursor-pointer"
+                >
+                  Explorer les {leads.length} dossier{leads.length > 1 ? "s" : ""} disponible{leads.length > 1 ? "s" : ""} &darr;
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : focusedLeadId && !targetedLead ? (
         <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 sm:p-5 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -486,7 +609,7 @@ export function MarketplaceFeedView({
                   Dossier non disponible ou déjà attribué
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Ce chantier n'est plus actif ou a atteint son quota d'installateurs. Voici l'ensemble des opportunités actuellement ouvertes :
+                  Ce chantier n&apos;est plus actif ou a atteint son quota d&apos;installateurs. Voici l&apos;ensemble des opportunités actuellement ouvertes :
                 </p>
               </div>
             </div>
@@ -500,7 +623,7 @@ export function MarketplaceFeedView({
             </Button>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* ── MODE FOCUS EXCLUSIF (Deep-link e-mail de relance) : Affichage UNIQUEMENT de ce lead ── */}
       {focusedLeadId && targetedLead ? (
@@ -912,19 +1035,17 @@ export function MarketplaceFeedView({
                   <button
                     type="button"
                     onClick={() => setSegmentFilter("ALL")}
-                    className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                      segmentFilter === "ALL"
+                    className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${segmentFilter === "ALL"
                         ? "bg-primary text-primary-foreground shadow-2xs"
                         : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
-                    }`}
+                      }`}
                   >
                     <span>Tous</span>
                     <span
-                      className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${
-                        segmentFilter === "ALL"
+                      className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${segmentFilter === "ALL"
                           ? "bg-white/20 text-white"
                           : "bg-secondary text-muted-foreground"
-                      }`}
+                        }`}
                     >
                       {counts.all}
                     </span>
@@ -933,20 +1054,18 @@ export function MarketplaceFeedView({
                   <button
                     type="button"
                     onClick={() => setSegmentFilter("B2B")}
-                    className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                      segmentFilter === "B2B"
+                    className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${segmentFilter === "B2B"
                         ? "bg-primary text-primary-foreground shadow-2xs"
                         : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
-                    }`}
+                      }`}
                   >
                     <span className="sm:hidden">B2B</span>
                     <span className="hidden sm:inline">B2B Exclusif</span>
                     <span
-                      className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${
-                        segmentFilter === "B2B"
+                      className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${segmentFilter === "B2B"
                           ? "bg-white/20 text-white"
                           : "bg-secondary text-muted-foreground"
-                      }`}
+                        }`}
                     >
                       {counts.b2b}
                     </span>
@@ -955,20 +1074,18 @@ export function MarketplaceFeedView({
                   <button
                     type="button"
                     onClick={() => setSegmentFilter("B2C")}
-                    className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                      segmentFilter === "B2C"
+                    className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${segmentFilter === "B2C"
                         ? "bg-primary text-primary-foreground shadow-2xs"
                         : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
-                    }`}
+                      }`}
                   >
                     <span className="sm:hidden">B2C</span>
                     <span className="hidden sm:inline">B2C Partagé</span>
                     <span
-                      className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${
-                        segmentFilter === "B2C"
+                      className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${segmentFilter === "B2C"
                           ? "bg-white/20 text-white"
                           : "bg-secondary text-muted-foreground"
-                      }`}
+                        }`}
                     >
                       {counts.b2c}
                     </span>
@@ -1057,11 +1174,10 @@ export function MarketplaceFeedView({
                   <button
                     type="button"
                     onClick={() => setViewMode("grid")}
-                    className={`rounded-lg p-1.5 transition-colors cursor-pointer ${
-                      viewMode === "grid"
+                    className={`rounded-lg p-1.5 transition-colors cursor-pointer ${viewMode === "grid"
                         ? "bg-primary text-primary-foreground shadow-2xs"
                         : "text-muted-foreground hover:text-foreground"
-                    }`}
+                      }`}
                     title="Vue grille (Cartes)"
                     aria-label="Vue grille"
                   >
@@ -1070,11 +1186,10 @@ export function MarketplaceFeedView({
                   <button
                     type="button"
                     onClick={() => setViewMode("table")}
-                    className={`rounded-lg p-1.5 transition-colors cursor-pointer ${
-                      viewMode === "table"
+                    className={`rounded-lg p-1.5 transition-colors cursor-pointer ${viewMode === "table"
                         ? "bg-primary text-primary-foreground shadow-2xs"
                         : "text-muted-foreground hover:text-foreground"
-                    }`}
+                      }`}
                     title="Vue liste dense"
                     aria-label="Vue liste dense"
                   >
@@ -1124,279 +1239,53 @@ export function MarketplaceFeedView({
             </div>
           </div>
 
-      {/* ── 2. Rendu des Opportunités : Grille de Cartes Réalistes ou Tableau ── */}
-      {filteredLeads.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-card p-12 text-center shadow-xs">
-          <SlidersHorizontal className="mx-auto h-9 w-9 text-muted-foreground/60" />
-          <h3 className="mt-3 text-base font-bold text-foreground">Aucun chantier avec ces critères</h3>
-          <p className="mt-1 text-xs text-muted-foreground max-w-sm mx-auto">
-            Élargissez votre sélection de provinces ou réinitialisez la recherche.
-          </p>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={resetFilters}
-            className="mt-4 text-xs font-semibold cursor-pointer border-border"
-          >
-            <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-            Afficher tous les chantiers
-          </Button>
-        </div>
-      ) : viewMode === "grid" ? (
-        /* ── Vue Grille : Cartes Photographiques en Lignes de 2 (2 Colonnes) ── */
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-          {filteredLeads.map((lead, index) => (
-            <MarketplaceLeadCard
-              key={lead.id}
-              lead={lead}
-              index={index}
-              partnerCredits={partnerCredits}
-              isBuying={buyingId === lead.id}
-              isTargeted={targetLeadId === lead.id}
-              onInspect={() => setSelectedLeadForDrawer(lead)}
-              onPurchase={() => handlePurchase(lead)}
-              onDirectPay={() => setDirectPayLead(lead)}
-            />
-          ))}
-        </div>
-      ) : (
-        /* ── Vue Liste Dense Haute-Productivité (Mobile Card-List + Desktop 8-Col Table) ── */
-        <div className="flex flex-col gap-3">
-          {/* Version Mobile (< md) : Fiches denses ultra-lisibles */}
-          <div className="flex flex-col gap-3 md:hidden">
-            {filteredLeads.map((lead) => {
-              const isB2B = lead.segment === "B2B"
-              const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
-              const remainingSlots = lead.remaining_slots ?? maxSlots
-              const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
-              const hasEnoughCredits = partnerCredits >= cost
-              const directFinancials = calculateLeadDirectFinancials({ segment: lead.segment, credit_cost: cost })
-              const isBuying = buyingId === lead.id
-              const surfaceArea = Math.max(0, Number(lead.surface_area || lead.surface_area_m2) || 0)
-              const annualBill = Math.max(0, Number(lead.annual_electricity_bill || lead.annual_bill_eur) || 0)
-
-              const financials = calculateMarketplaceFinancials({
-                segment: lead.segment,
-                surfaceArea,
-                surfaceType: lead.surface_type,
-                roofMaterial: lead.roof_material,
-                annualBill,
-                creditCost: cost,
-                estimatedPowerKwc: lead.estimated_power_kwc,
-                projectDetails: lead.project_details ?? lead.message,
-                qualificationMetadata: lead.qualification_metadata,
-              })
-
-              const location = getLeadLocationInfo(lead)
-              const freshness = getLeadFreshness(lead.created_at)
-              const powerKwc = financials.estimatedPowerKwc
-              const marginText = formatRoundedCurrency(financials.estimatedInstallerMargin || 0)
-
-              return (
-                <div
+          {/* ── 2. Rendu des Opportunités : Grille de Cartes Réalistes ou Tableau ── */}
+          {filteredLeads.length === 0 ? (
+            <div className="rounded-2xl border border-border bg-card p-12 text-center shadow-xs">
+              <SlidersHorizontal className="mx-auto h-9 w-9 text-muted-foreground/60" />
+              <h3 className="mt-3 text-base font-bold text-foreground">Aucun chantier avec ces critères</h3>
+              <p className="mt-1 text-xs text-muted-foreground max-w-sm mx-auto">
+                Élargissez votre sélection de provinces ou réinitialisez la recherche.
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={resetFilters}
+                className="mt-4 text-xs font-semibold cursor-pointer border-border"
+              >
+                <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                Afficher tous les chantiers
+              </Button>
+            </div>
+          ) : viewMode === "grid" ? (
+            /* ── Vue Grille : Cartes Photographiques en Lignes de 2 (2 Colonnes) ── */
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+              {filteredLeads.map((lead, index) => (
+                <MarketplaceLeadCard
                   key={lead.id}
-                  onClick={() => setSelectedLeadForDrawer(lead)}
-                  className="rounded-2xl border border-border bg-card p-3.5 shadow-xs flex flex-col gap-2.5 cursor-pointer hover:border-accent/40 transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span
-                          className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold ${
-                            isB2B
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-secondary text-foreground border border-border"
-                          }`}
-                        >
-                          {isB2B ? "B2B Exclusif" : `B2C (${remainingSlots}/${maxSlots})`}
-                        </span>
-                        <span className="font-mono text-[10px] text-muted-foreground flex items-center gap-1">
-                          <span className={`h-1.5 w-1.5 rounded-full ${freshness.dotClass}`} />
-                          {freshness.label}
-                        </span>
-                        {(lead.qualification_metadata?.roof_image_url || lead.qualificationMetadata?.roof_image_url) && (
-                          <span className="inline-flex items-center gap-1 font-mono text-[10px] text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded font-semibold">
-                            <Camera className="h-2.5 w-2.5" />
-                            Photo
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="font-bold text-sm text-foreground truncate mt-1">
-                        {location.fullTitle}
-                      </h3>
-                      <p className="text-xs text-muted-foreground truncate">{location.provinceLabel}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <span className="text-xl font-extrabold font-mono text-foreground tabular-nums">
-                        {powerKwc > 0 ? powerKwc : "—"}
-                      </span>
-                      <span className="text-[10px] font-bold text-muted-foreground ml-1">kWc</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs py-2 border-y border-border/60">
-                    <div>
-                      <span className="text-[10px] text-muted-foreground block font-mono">TOITURE</span>
-                      <span className="font-medium text-foreground truncate block">
-                        {surfaceArea > 0 ? `${surfaceArea} m² · ` : ""}{getRoofMaterialLabel(lead.roof_material)}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-muted-foreground block font-mono">MARGE ESTIMÉE</span>
-                      <span className="font-bold font-mono text-accent tabular-nums block">
-                        {marginText}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-2 pt-0.5">
-                    <div className="flex flex-col font-mono text-xs">
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-bold text-foreground">{cost} crédits</span>
-                        <span className="text-[10px] text-muted-foreground font-medium">ou {directFinancials.priceHtva.toFixed(2)} € HT</span>
-                      </div>
-                      <span className="text-[9px] text-muted-foreground">({directFinancials.priceTtc.toFixed(2)} € TTC)</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedLeadForDrawer(lead)}
-                        className="rounded-lg border border-border bg-secondary hover:bg-secondary/80 px-2.5 py-1.5 text-xs font-semibold text-foreground cursor-pointer flex items-center gap-1"
-                      >
-                        <Eye className="h-3.5 w-3.5 text-accent" />
-                        <span>Voir</span>
-                      </button>
-                      {hasEnoughCredits ? (
-                        <button
-                          type="button"
-                          disabled={isBuying}
-                          onClick={() => handlePurchase(lead)}
-                          className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1.5 text-xs font-bold cursor-pointer flex items-center gap-1 disabled:opacity-60"
-                        >
-                          {isBuying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
-                          <span>Débloquer</span>
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setDirectPayLead(lead)}
-                          className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-2.5 py-1.5 text-xs font-bold cursor-pointer flex items-center gap-1"
-                          title="Payer directement ce lead par Bancontact / Carte"
-                        >
-                          <CreditCard className="h-3.5 w-3.5" />
-                          <span>Payer en €</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Version Desktop (md+) : Tableau 8 colonnes dense haute productivité */}
-          <div className="hidden md:block overflow-x-auto rounded-2xl border border-border bg-card shadow-xs overscroll-x-contain">
-            <table className="w-full min-w-[840px] text-left text-xs">
-              <thead className="border-b border-border bg-secondary/60 text-[11px] font-bold uppercase text-muted-foreground sticky top-0">
-                <tr>
-                  <th className="px-4 py-3">Modèle</th>
-                  <th className="px-4 py-3">Localisation</th>
-                  <th className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => setSortBy((prev) => (prev === "power_desc" ? "power_asc" : "power_desc"))}
-                      className="inline-flex items-center gap-1 font-bold uppercase hover:text-foreground cursor-pointer transition-colors group select-none"
-                      title="Trier par puissance estimée"
-                    >
-                      <span>Puissance</span>
-                      <ArrowUpDown
-                        className={`h-3 w-3 ${
-                          sortBy === "power_desc" || sortBy === "power_asc"
-                            ? "text-accent font-bold"
-                            : "text-muted-foreground/40 group-hover:text-muted-foreground"
-                        }`}
-                      />
-                    </button>
-                  </th>
-                  <th className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => setSortBy("surface_desc")}
-                      className="inline-flex items-center gap-1 font-bold uppercase hover:text-foreground cursor-pointer transition-colors group select-none"
-                      title="Trier par surface de toiture disponible"
-                    >
-                      <span>Toiture &amp; Surface</span>
-                      <ArrowUpDown
-                        className={`h-3 w-3 ${
-                          sortBy === "surface_desc"
-                            ? "text-accent font-bold"
-                            : "text-muted-foreground/40 group-hover:text-muted-foreground"
-                        }`}
-                      />
-                    </button>
-                  </th>
-                  <th className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSortBy((prev) => (prev === "margin_desc" ? "contract_desc" : "margin_desc"))
-                      }
-                      className="inline-flex items-center gap-1 font-bold uppercase hover:text-foreground cursor-pointer transition-colors group select-none"
-                      title="Trier par marge estimée ou valeur de chantier"
-                    >
-                      <span>Marge Estimée</span>
-                      <ArrowUpDown
-                        className={`h-3 w-3 ${
-                          sortBy === "margin_desc" || sortBy === "contract_desc"
-                            ? "text-accent font-bold"
-                            : "text-muted-foreground/40 group-hover:text-muted-foreground"
-                        }`}
-                      />
-                    </button>
-                  </th>
-                  <th className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => setSortBy((prev) => (prev === "recent" ? "oldest" : "recent"))}
-                      className="inline-flex items-center gap-1 font-bold uppercase hover:text-foreground cursor-pointer transition-colors group select-none"
-                      title="Trier par fraîcheur / date d'audit"
-                    >
-                      <span>Fraîcheur</span>
-                      <ArrowUpDown
-                        className={`h-3 w-3 ${
-                          sortBy === "recent" || sortBy === "oldest"
-                            ? "text-accent font-bold"
-                            : "text-muted-foreground/40 group-hover:text-muted-foreground"
-                        }`}
-                      />
-                    </button>
-                  </th>
-                  <th className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => setSortBy((prev) => (prev === "cost_asc" ? "cost_desc" : "cost_asc"))}
-                      className="inline-flex items-center gap-1 font-bold uppercase hover:text-foreground cursor-pointer transition-colors group select-none"
-                      title="Trier par prix du lead en crédits"
-                    >
-                      <span>Tarif</span>
-                      <ArrowUpDown
-                        className={`h-3 w-3 ${
-                          sortBy === "cost_asc" || sortBy === "cost_desc"
-                            ? "text-accent font-bold"
-                            : "text-muted-foreground/40 group-hover:text-muted-foreground"
-                        }`}
-                      />
-                    </button>
-                  </th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
+                  lead={lead}
+                  index={index}
+                  partnerCredits={partnerCredits}
+                  isBuying={buyingId === lead.id}
+                  isTargeted={targetLeadId === lead.id}
+                  onInspect={() => setSelectedLeadForDrawer(lead)}
+                  onPurchase={() => handlePurchase(lead)}
+                  onDirectPay={() => setDirectPayLead(lead)}
+                />
+              ))}
+            </div>
+          ) : (
+            /* ── Vue Liste Dense Haute-Productivité (Mobile Card-List + Desktop 8-Col Table) ── */
+            <div className="flex flex-col gap-3">
+              {/* Version Mobile (< md) : Fiches denses ultra-lisibles */}
+              <div className="flex flex-col gap-3 md:hidden">
                 {filteredLeads.map((lead) => {
                   const isB2B = lead.segment === "B2B"
                   const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
                   const remainingSlots = lead.remaining_slots ?? maxSlots
-                  const cost = lead.credit_cost ?? (isB2B ? 8 : 2)
+                  const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
+                  const hasEnoughCredits = partnerCredits >= cost
+                  const directFinancials = calculateLeadDirectFinancials({ segment: lead.segment, credit_cost: cost })
                   const isBuying = buyingId === lead.id
                   const surfaceArea = Math.max(0, Number(lead.surface_area || lead.surface_area_m2) || 0)
                   const annualBill = Math.max(0, Number(lead.annual_electricity_bill || lead.annual_bill_eur) || 0)
@@ -1416,135 +1305,354 @@ export function MarketplaceFeedView({
                   const location = getLeadLocationInfo(lead)
                   const freshness = getLeadFreshness(lead.created_at)
                   const powerKwc = financials.estimatedPowerKwc
+                  const marginText = formatRoundedCurrency(financials.estimatedInstallerMargin || 0)
 
                   return (
-                    <tr
+                    <div
                       key={lead.id}
                       onClick={() => setSelectedLeadForDrawer(lead)}
-                      className="hover:bg-secondary/50 transition-colors cursor-pointer group"
+                      className="rounded-2xl border border-border bg-card p-3.5 shadow-xs flex flex-col gap-2.5 cursor-pointer hover:border-accent/40 transition-colors"
                     >
-                      {/* Modèle Commercial */}
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold ${
-                            isB2B
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-secondary text-foreground border border-border"
-                          }`}
-                        >
-                          {isB2B ? "B2B Exclusif" : `B2C (${remainingSlots}/${maxSlots})`}
-                        </span>
-                      </td>
-
-                      {/* Localisation */}
-                      <td className="px-4 py-3 text-foreground font-medium">
-                        <div className="font-bold group-hover:text-primary transition-colors">
-                          {location.fullTitle}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span
+                              className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold ${isB2B
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-secondary text-foreground border border-border"
+                                }`}
+                            >
+                              {isB2B ? "B2B Exclusif" : `B2C (${remainingSlots}/${maxSlots})`}
+                            </span>
+                            <span className="font-mono text-[10px] text-muted-foreground flex items-center gap-1">
+                              <span className={`h-1.5 w-1.5 rounded-full ${freshness.dotClass}`} />
+                              {freshness.label}
+                            </span>
+                            {(lead.qualification_metadata?.roof_image_url || lead.qualificationMetadata?.roof_image_url) && (
+                              <span className="inline-flex items-center gap-1 font-mono text-[10px] text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded font-semibold">
+                                <Camera className="h-2.5 w-2.5" />
+                                Photo
+                              </span>
+                            )}
+                          </div>
+                          <h3 className="font-bold text-sm text-foreground truncate mt-1">
+                            {location.fullTitle}
+                          </h3>
+                          <p className="text-xs text-muted-foreground truncate">{location.provinceLabel}</p>
                         </div>
-                        <div className="text-[11px] text-muted-foreground">{location.provinceLabel}</div>
-                      </td>
-
-                      {/* Puissance */}
-                      <td className="px-4 py-3 text-foreground whitespace-nowrap">
-                        <div className="flex items-baseline gap-1">
-                          <span className="font-mono font-bold text-sm tabular-nums">
+                        <div className="text-right shrink-0">
+                          <span className="text-xl font-extrabold font-mono text-foreground tabular-nums">
                             {powerKwc > 0 ? powerKwc : "—"}
                           </span>
-                          <span className="text-[10px] font-semibold text-muted-foreground uppercase">kWc</span>
+                          <span className="text-[10px] font-bold text-muted-foreground ml-1">kWc</span>
                         </div>
-                      </td>
+                      </div>
 
-                      {/* Toiture & Surface */}
-                      <td className="px-4 py-3 text-foreground">
-                        <div className="font-mono tabular-nums font-semibold">
-                          {surfaceArea > 0 ? `${surfaceArea} m²` : "À dimensionner"}
+                      <div className="grid grid-cols-2 gap-2 text-xs py-2 border-y border-border/60">
+                        <div>
+                          <span className="text-[10px] text-muted-foreground block font-mono">TOITURE</span>
+                          <span className="font-medium text-foreground truncate block">
+                            {surfaceArea > 0 ? `${surfaceArea} m² · ` : ""}{getRoofMaterialLabel(lead.roof_material)}
+                          </span>
                         </div>
-                        <div className="text-[11px] text-muted-foreground truncate max-w-[150px]">
-                          {getRoofMaterialLabel(lead.roof_material)}
+                        <div>
+                          <span className="text-[10px] text-muted-foreground block font-mono">MARGE ESTIMÉE</span>
+                          <span className="font-bold font-mono text-accent tabular-nums block">
+                            {marginText}
+                          </span>
                         </div>
-                      </td>
+                      </div>
 
-                      {/* Marge Estimée */}
-                      <td className="px-4 py-3 text-foreground whitespace-nowrap">
-                        <div className="font-mono font-bold text-accent tabular-nums">
-                          {formatRoundedCurrency(financials.estimatedInstallerMargin)}
+                      <div className="flex items-center justify-between gap-2 pt-0.5">
+                        <div className="flex flex-col font-mono text-xs">
+                          <div className="flex items-baseline gap-1">
+                            <span className="font-bold text-foreground">{cost} crédits</span>
+                            <span className="text-[10px] text-muted-foreground font-medium">ou {directFinancials.priceHtva.toFixed(2)} € HT</span>
+                          </div>
+                          <span className="text-[9px] text-muted-foreground">({directFinancials.priceTtc.toFixed(2)} € TTC)</span>
                         </div>
-                        <div className="font-mono text-[10px] text-muted-foreground tabular-nums">
-                          {annualBill > 0 ? `${annualBill.toLocaleString("fr-BE")} €/an` : (isB2B ? "Facture pro" : "Résidentiel")}
-                        </div>
-                      </td>
-
-                      {/* Fraîcheur */}
-                      <td className="px-4 py-3 whitespace-nowrap font-mono text-[11px] text-muted-foreground">
-                        <span className="inline-flex items-center gap-1.5">
-                          <span className={`h-1.5 w-1.5 rounded-full ${freshness.dotClass}`} />
-                          <span suppressHydrationWarning className="tabular-nums font-medium text-foreground/80">{freshness.label}</span>
-                        </span>
-                      </td>
-
-                      {/* Tarif */}
-                      <td className="px-4 py-3 whitespace-nowrap font-mono text-foreground font-bold tabular-nums">
-                        <div>{cost} crédits</div>
-                        <div className="text-[10px] text-muted-foreground font-medium">
-                          ou {formatEurWithDecimals(financials.leadCostEuros)}
-                        </div>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-4 py-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1.5">
-                          <Button
-                            size="sm"
-                            variant="outline"
+                        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
                             onClick={() => setSelectedLeadForDrawer(lead)}
-                            className="h-8 px-2.5 rounded-lg text-xs font-semibold cursor-pointer border-border hover:bg-secondary text-foreground"
+                            className="rounded-lg border border-border bg-secondary hover:bg-secondary/80 px-2.5 py-1.5 text-xs font-semibold text-foreground cursor-pointer flex items-center gap-1"
                           >
-                            Inspecter
-                          </Button>
-                          {partnerCredits >= cost ? (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setDirectPayLead(lead)}
-                                className="h-8 px-2.5 rounded-lg text-xs font-semibold cursor-pointer border-border hover:bg-secondary text-foreground"
-                                title="Payer directement ce lead par Bancontact / Carte sans débiter vos crédits"
-                              >
-                                <CreditCard className="h-3.5 w-3.5 text-accent mr-1" />
-                                <span>Payer en €</span>
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="default"
-                                disabled={isBuying}
-                                onClick={() => handlePurchase(lead)}
-                                className="h-8 px-3 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-2xs active:scale-[0.99]"
-                              >
-                                {isBuying ? "..." : `Débloquer (${cost} cr)`}
-                              </Button>
-                            </>
+                            <Eye className="h-3.5 w-3.5 text-accent" />
+                            <span>Voir</span>
+                          </button>
+                          {hasEnoughCredits ? (
+                            <button
+                              type="button"
+                              disabled={isBuying}
+                              onClick={() => handlePurchase(lead)}
+                              className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1.5 text-xs font-bold cursor-pointer flex items-center gap-1 disabled:opacity-60"
+                            >
+                              {isBuying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
+                              <span>Débloquer</span>
+                            </button>
                           ) : (
-                            <Button
-                              size="sm"
-                              variant="default"
+                            <button
+                              type="button"
                               onClick={() => setDirectPayLead(lead)}
-                              className="h-8 px-3 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-2xs active:scale-[0.99] gap-1"
+                              className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-2.5 py-1.5 text-xs font-bold cursor-pointer flex items-center gap-1"
                               title="Payer directement ce lead par Bancontact / Carte"
                             >
                               <CreditCard className="h-3.5 w-3.5" />
-                              <span>Payer {financials.leadCostEuros.toFixed(2)} € HT</span>
-                            </Button>
+                              <span>Payer en €</span>
+                            </button>
                           )}
                         </div>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   )
                 })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+              </div>
+
+              {/* Version Desktop (md+) : Tableau 8 colonnes dense haute productivité */}
+              <div className="hidden md:block overflow-x-auto rounded-2xl border border-border bg-card shadow-xs overscroll-x-contain">
+                <table className="w-full min-w-[840px] text-left text-xs">
+                  <thead className="border-b border-border bg-secondary/60 text-[11px] font-bold uppercase text-muted-foreground sticky top-0">
+                    <tr>
+                      <th className="px-4 py-3">Modèle</th>
+                      <th className="px-4 py-3">Localisation</th>
+                      <th className="px-4 py-3">
+                        <button
+                          type="button"
+                          onClick={() => setSortBy((prev) => (prev === "power_desc" ? "power_asc" : "power_desc"))}
+                          className="inline-flex items-center gap-1 font-bold uppercase hover:text-foreground cursor-pointer transition-colors group select-none"
+                          title="Trier par puissance estimée"
+                        >
+                          <span>Puissance</span>
+                          <ArrowUpDown
+                            className={`h-3 w-3 ${sortBy === "power_desc" || sortBy === "power_asc"
+                                ? "text-accent font-bold"
+                                : "text-muted-foreground/40 group-hover:text-muted-foreground"
+                              }`}
+                          />
+                        </button>
+                      </th>
+                      <th className="px-4 py-3">
+                        <button
+                          type="button"
+                          onClick={() => setSortBy("surface_desc")}
+                          className="inline-flex items-center gap-1 font-bold uppercase hover:text-foreground cursor-pointer transition-colors group select-none"
+                          title="Trier par surface de toiture disponible"
+                        >
+                          <span>Toiture &amp; Surface</span>
+                          <ArrowUpDown
+                            className={`h-3 w-3 ${sortBy === "surface_desc"
+                                ? "text-accent font-bold"
+                                : "text-muted-foreground/40 group-hover:text-muted-foreground"
+                              }`}
+                          />
+                        </button>
+                      </th>
+                      <th className="px-4 py-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSortBy((prev) => (prev === "margin_desc" ? "contract_desc" : "margin_desc"))
+                          }
+                          className="inline-flex items-center gap-1 font-bold uppercase hover:text-foreground cursor-pointer transition-colors group select-none"
+                          title="Trier par marge estimée ou valeur de chantier"
+                        >
+                          <span>Marge Estimée</span>
+                          <ArrowUpDown
+                            className={`h-3 w-3 ${sortBy === "margin_desc" || sortBy === "contract_desc"
+                                ? "text-accent font-bold"
+                                : "text-muted-foreground/40 group-hover:text-muted-foreground"
+                              }`}
+                          />
+                        </button>
+                      </th>
+                      <th className="px-4 py-3">
+                        <button
+                          type="button"
+                          onClick={() => setSortBy((prev) => (prev === "recent" ? "oldest" : "recent"))}
+                          className="inline-flex items-center gap-1 font-bold uppercase hover:text-foreground cursor-pointer transition-colors group select-none"
+                          title="Trier par fraîcheur / date d'audit"
+                        >
+                          <span>Fraîcheur</span>
+                          <ArrowUpDown
+                            className={`h-3 w-3 ${sortBy === "recent" || sortBy === "oldest"
+                                ? "text-accent font-bold"
+                                : "text-muted-foreground/40 group-hover:text-muted-foreground"
+                              }`}
+                          />
+                        </button>
+                      </th>
+                      <th className="px-4 py-3">
+                        <button
+                          type="button"
+                          onClick={() => setSortBy((prev) => (prev === "cost_asc" ? "cost_desc" : "cost_asc"))}
+                          className="inline-flex items-center gap-1 font-bold uppercase hover:text-foreground cursor-pointer transition-colors group select-none"
+                          title="Trier par prix du lead en crédits"
+                        >
+                          <span>Tarif</span>
+                          <ArrowUpDown
+                            className={`h-3 w-3 ${sortBy === "cost_asc" || sortBy === "cost_desc"
+                                ? "text-accent font-bold"
+                                : "text-muted-foreground/40 group-hover:text-muted-foreground"
+                              }`}
+                          />
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {filteredLeads.map((lead) => {
+                      const isB2B = lead.segment === "B2B"
+                      const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
+                      const remainingSlots = lead.remaining_slots ?? maxSlots
+                      const cost = lead.credit_cost ?? (isB2B ? 8 : 2)
+                      const isBuying = buyingId === lead.id
+                      const surfaceArea = Math.max(0, Number(lead.surface_area || lead.surface_area_m2) || 0)
+                      const annualBill = Math.max(0, Number(lead.annual_electricity_bill || lead.annual_bill_eur) || 0)
+
+                      const financials = calculateMarketplaceFinancials({
+                        segment: lead.segment,
+                        surfaceArea,
+                        surfaceType: lead.surface_type,
+                        roofMaterial: lead.roof_material,
+                        annualBill,
+                        creditCost: cost,
+                        estimatedPowerKwc: lead.estimated_power_kwc,
+                        projectDetails: lead.project_details ?? lead.message,
+                        qualificationMetadata: lead.qualification_metadata,
+                      })
+
+                      const location = getLeadLocationInfo(lead)
+                      const freshness = getLeadFreshness(lead.created_at)
+                      const powerKwc = financials.estimatedPowerKwc
+
+                      return (
+                        <tr
+                          key={lead.id}
+                          onClick={() => setSelectedLeadForDrawer(lead)}
+                          className="hover:bg-secondary/50 transition-colors cursor-pointer group"
+                        >
+                          {/* Modèle Commercial */}
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span
+                              className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold ${isB2B
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-secondary text-foreground border border-border"
+                                }`}
+                            >
+                              {isB2B ? "B2B Exclusif" : `B2C (${remainingSlots}/${maxSlots})`}
+                            </span>
+                          </td>
+
+                          {/* Localisation */}
+                          <td className="px-4 py-3 text-foreground font-medium">
+                            <div className="font-bold group-hover:text-primary transition-colors">
+                              {location.fullTitle}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">{location.provinceLabel}</div>
+                          </td>
+
+                          {/* Puissance */}
+                          <td className="px-4 py-3 text-foreground whitespace-nowrap">
+                            <div className="flex items-baseline gap-1">
+                              <span className="font-mono font-bold text-sm tabular-nums">
+                                {powerKwc > 0 ? powerKwc : "—"}
+                              </span>
+                              <span className="text-[10px] font-semibold text-muted-foreground uppercase">kWc</span>
+                            </div>
+                          </td>
+
+                          {/* Toiture & Surface */}
+                          <td className="px-4 py-3 text-foreground">
+                            <div className="font-mono tabular-nums font-semibold">
+                              {surfaceArea > 0 ? `${surfaceArea} m²` : "À dimensionner"}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground truncate max-w-[150px]">
+                              {getRoofMaterialLabel(lead.roof_material)}
+                            </div>
+                          </td>
+
+                          {/* Marge Estimée */}
+                          <td className="px-4 py-3 text-foreground whitespace-nowrap">
+                            <div className="font-mono font-bold text-accent tabular-nums">
+                              {formatRoundedCurrency(financials.estimatedInstallerMargin)}
+                            </div>
+                            <div className="font-mono text-[10px] text-muted-foreground tabular-nums">
+                              {annualBill > 0 ? `${annualBill.toLocaleString("fr-BE")} €/an` : (isB2B ? "Facture pro" : "Résidentiel")}
+                            </div>
+                          </td>
+
+                          {/* Fraîcheur */}
+                          <td className="px-4 py-3 whitespace-nowrap font-mono text-[11px] text-muted-foreground">
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className={`h-1.5 w-1.5 rounded-full ${freshness.dotClass}`} />
+                              <span suppressHydrationWarning className="tabular-nums font-medium text-foreground/80">{freshness.label}</span>
+                            </span>
+                          </td>
+
+                          {/* Tarif */}
+                          <td className="px-4 py-3 whitespace-nowrap font-mono text-foreground font-bold tabular-nums">
+                            <div>{cost} crédits</div>
+                            <div className="text-[10px] text-muted-foreground font-medium">
+                              ou {formatEurWithDecimals(financials.leadCostEuros)}
+                            </div>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="px-4 py-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1.5">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setSelectedLeadForDrawer(lead)}
+                                className="h-8 px-2.5 rounded-lg text-xs font-semibold cursor-pointer border-border hover:bg-secondary text-foreground"
+                              >
+                                Inspecter
+                              </Button>
+                              {partnerCredits >= cost ? (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setDirectPayLead(lead)}
+                                    className="h-8 px-2.5 rounded-lg text-xs font-semibold cursor-pointer border-border hover:bg-secondary text-foreground"
+                                    title="Payer directement ce lead par Bancontact / Carte sans débiter vos crédits"
+                                  >
+                                    <CreditCard className="h-3.5 w-3.5 text-accent mr-1" />
+                                    <span>Payer en €</span>
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    disabled={isBuying}
+                                    onClick={() => handlePurchase(lead)}
+                                    className="h-8 px-3 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-2xs active:scale-[0.99]"
+                                  >
+                                    {isBuying ? "..." : `Débloquer (${cost} cr)`}
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  onClick={() => setDirectPayLead(lead)}
+                                  className="h-8 px-3 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-2xs active:scale-[0.99] gap-1"
+                                  title="Payer directement ce lead par Bancontact / Carte"
+                                >
+                                  <CreditCard className="h-3.5 w-3.5" />
+                                  <span>Payer {financials.leadCostEuros.toFixed(2)} € HT</span>
+                                </Button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -1659,11 +1767,10 @@ function MarketplaceLeadCard({
           onInspect()
         }
       }}
-      className={`group relative flex flex-col justify-between rounded-3xl border bg-card shadow-xs hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden text-left ${
-        isTargeted
+      className={`group relative flex flex-col justify-between rounded-3xl border bg-card shadow-xs hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden text-left ${isTargeted
           ? "border-accent ring-2 ring-accent/30 shadow-md"
           : "border-border hover:border-accent/40"
-      }`}
+        }`}
     >
       <div className="flex flex-col">
         {/* ── A. Photo de toiture avec badges superposés et mention non contractuelle ── */}

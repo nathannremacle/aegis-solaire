@@ -21,6 +21,15 @@ import { BELGIUM_PROVINCE_GROUPS } from "@/lib/belgium-regions"
 import { getStoredMediaPartnerRef } from "@/components/media-partner-ref-tracker"
 import { AnimatedCounter } from "@/components/ui/animated-counter"
 import { calculateB2CSolarROI } from "@/lib/solar-assumptions"
+import {
+  getBatteryOptionLabel,
+  getEvOptionLabel,
+  getHouseholdSizeLabel,
+  getOrientationLabel,
+  getOwnershipLabel,
+  getRoofMaterialLabel,
+  getRoofSurfaceLabel,
+} from "@/lib/lead-display-helpers"
 import { trackLeadConversion } from "@/components/analytics/ad-tracking"
 import { BelgianStreetNumberFields } from "@/components/address/belgian-address-fields"
 import { getBelgianAddressError, hasBelgianHouseNumber } from "@/lib/leads-validation"
@@ -510,14 +519,14 @@ export function B2CSimulator() {
         },
         sourceUrl: typeof window !== "undefined" ? window.location.href : undefined,
         projectDetails: [
-          `Statut: ${fd.ownershipStatus}`,
-          `Toiture: ${fd.roofType}`,
-          `Orientation: ${fd.orientation}`,
-          `Taille toiture: ${fd.roofSize} (~${roofKwc} kWc)`,
-          `Ménage: ${fd.householdSize}`,
-          `VE: ${fd.evInterest}`,
-          `Batterie: ${fd.batteryInterest}`,
-          fd.projectDetails.trim() ? `Notes: ${fd.projectDetails.trim()}` : "",
+          `Statut d'occupation: ${getOwnershipLabel(fd.ownershipStatus)}`,
+          `Couverture toiture: ${getRoofMaterialLabel(fd.roofType)}`,
+          `Orientation toiture: ${getOrientationLabel(fd.orientation)}`,
+          `Surface toiture: ${getRoofSurfaceLabel(`${fd.roofSize} (~${roofKwc} kWc)`)}`,
+          `Taille du foyer: ${getHouseholdSizeLabel(fd.householdSize)}`,
+          `Borne de recharge: ${getEvOptionLabel(fd.evInterest)}`,
+          `Batterie: ${getBatteryOptionLabel(fd.batteryInterest)}`,
+          fd.projectDetails.trim() ? `Précisions: ${fd.projectDetails.trim()}` : "",
         ]
           .filter(Boolean)
           .join(" | "),

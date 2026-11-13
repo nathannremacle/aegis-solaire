@@ -3,6 +3,7 @@ import { getPartner } from "@/lib/partner-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
 import { evaluateLeadPublishability } from "@/lib/lead-quality"
+import { isShowcaseOnlyLeadId } from "@/lib/regional-leads-catalog"
 
 export const dynamic = "force-dynamic"
 
@@ -87,8 +88,11 @@ export async function GET() {
   // Déterminer le palier partenaire
   const partnerTier = myPurchasesCount >= 15 ? "gold" : myPurchasesCount >= 5 ? "silver" : "certified"
 
-  // Ne retenir que les leads viables et complets pour la marketplace
+  // Ne retenir que les leads viables et complets pour la marketplace (jamais les dossiers vitrines)
   const validLeads = (leads ?? []).filter((lead) => {
+    if (isShowcaseOnlyLeadId(lead.id) || lead.qualification_metadata?.is_showcase === true) {
+      return false
+    }
     // Si déjà acheté par ce partenaire, on l'affiche pour qu'il puisse le consulter
     if (myPurchasedIds.has(lead.id)) return true
     // Sinon, on s'assure qu'il est propre et qualifié

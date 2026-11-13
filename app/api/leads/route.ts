@@ -4,6 +4,7 @@ import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { leadSubmitSchema } from "@/lib/leads-schema"
 import { calculateLeadScore } from "@/lib/lead-score"
 import { calculateLeadCreditCost, calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
+import { canonicalizeProjectDetailsText } from "@/lib/lead-display-helpers"
 import { checkRateLimit } from "@/lib/rate-limit"
 import { sendProspectConfirmationEmail } from "@/lib/prospect-confirmation-email"
 import { sendAdminNewLeadAlertEmail } from "@/lib/notify-admin-lead"
@@ -122,7 +123,7 @@ export async function POST(request: NextRequest) {
     const projectDetailsOnly = data.projectDetails ? sanitizeString(data.projectDetails, 2000) : null
     const provinceFreeSanitized = data.provinceFreeText ? sanitizeString(data.provinceFreeText, 400) : null
     const newsletterNote = data.newsletterConsent ? "Newsletter Aegis Solaire : Opt-in consenti" : null
-    const projectDetailsText =
+    const rawProjectDetailsText =
       [
         provinceFreeSanitized ? `Précision localisation : ${provinceFreeSanitized}` : null,
         projectDetailsOnly,
@@ -130,6 +131,7 @@ export async function POST(request: NextRequest) {
       ]
         .filter(Boolean)
         .join("\n\n") || null
+    const projectDetailsText = canonicalizeProjectDetailsText(rawProjectDetailsText)
 
     const { score, status, factors } = calculateLeadScore({
       firstName: first_name,
@@ -175,7 +177,7 @@ export async function POST(request: NextRequest) {
       roofMaterial: safeRoofMaterial,
       annualBill: data.annualElectricityBill,
       creditCost: credit_cost,
-      projectDetails: projectDetailsText,
+      projectDetails: rawProjectDetailsText,
       qualificationMetadata: (data.qualificationMetadata as Record<string, unknown>) ?? null,
     })
 

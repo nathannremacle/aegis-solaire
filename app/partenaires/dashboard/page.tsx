@@ -5,6 +5,12 @@ import { isPartnerEmailVerified } from "@/lib/installer-verification"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { PartnerDashboardShell } from "@/components/partners/dashboard/partner-dashboard-shell"
 import { PartnerDashboardSkeleton } from "@/components/partners/dashboard/partner-dashboard-skeleton"
+import {
+  buildShowcaseClosedLeadRecord,
+  isShowcaseOnlyLeadId,
+} from "@/lib/regional-leads-catalog"
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export const dynamic = "force-dynamic"
 
@@ -219,53 +225,77 @@ async function PartnerDashboardLoader({
       .filter((l: any) => l.remaining_slots > 0)
   }
 
-  // 3. Garantir la présence du lead ciblé (?lead=[id]) s'il existe en base
+  // 3. Garantir la présence du lead ciblé (?lead=[id]) s'il existe en base,
+  //    ou afficher un dossier vitrine clôturé (non achetable) pour les leads de démarchage régional.
+  let targetedClosedLead: Record<string, any> | null = null
+
   if (targetLeadId) {
     const existsInMarket = initialMarketplace.some((l: any) => l.id === targetLeadId)
     const existsInPortfolio = initialPortfolio.some(
       (p: any) => p.id === targetLeadId || p.lead_id === targetLeadId || p.purchase_id === targetLeadId
     )
     if (!existsInMarket && !existsInPortfolio) {
-      const { data: specificLead } = await admin
-        .from("leads")
-        .select(`
-          id, segment, province, city, postal_code, site_address, surface_type, surface_area, surface_area_m2,
-          annual_electricity_bill, annual_bill_eur, estimated_power_kwc, roof_material, ownership_status,
-          timeframe, project_timeline, project_driver, project_details, message, first_name, last_name,
-          credit_cost, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate,
-          qualification_metadata, wants_irve, lead_score,
-          lead_purchases(id, partner_id, purchased_at, partners(id, company_name, email, is_test))
-        `)
-        .eq("id", targetLeadId)
-        .maybeSingle()
+      if (isShowcaseOnlyLeadId(targetLeadId)) {
+        targetedClosedLead = buildShowcaseClosedLeadRecord(targetLeadId)
+      } else if (UUID_REGEX.test(targetLeadId)) {
+        const { data: specificLead } = await admin
+          .from("leads")
+          .select(`
+            id, segment, province, city, postal_code, site_address, surface_type, surface_area, surface_area_m2,
+            annual_electricity_bill, annual_bill_eur, estimated_power_kwc, roof_material, ownership_status,
+            timeframe, project_timeline, project_driver, project_details, message, first_name, last_name,
+            credit_cost, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate,
+            qualification_metadata, wants_irve, lead_score,
+            lead_purchases(id, partner_id, purchased_at, partners(id, company_name, email, is_test))
+          `)
+          .eq("id", targetLeadId)
+          .maybeSingle()
 
-      if (specificLead) {
-        const maxSlots = specificLead.segment === "B2B" ? 1 : 3
-        const testEmailEnv = (process.env.TEST_PARTNER_EMAIL || "").toLowerCase().trim()
-        const realPurchases = (Array.isArray(specificLead.lead_purchases) ? specificLead.lead_purchases : []).filter((p: any) => {
-          const partnerObj = Array.isArray(p.partners) ? p.partners[0] : p.partners
-          if (partnerObj?.is_test) return false
-          const cName = (partnerObj?.company_name || "").toLowerCase()
-          if (cName.includes("test") || cName.includes("dev test")) return false
-          const email = (partnerObj?.email || "").toLowerCase()
-          if (testEmailEnv && email === testEmailEnv) return false
-          if (email.includes("+test") || email.startsWith("test@") || email.endsWith("@test.com")) return false
-          return true
-        })
-        const takenSlots = realPurchases.length
-        const remainingSlots = Math.max(0, maxSlots - takenSlots)
-        const formattedLead = {
-          ...specificLead,
-          max_slots: maxSlots,
-          taken_slots: takenSlots,
-          remaining_slots: remainingSlots,
-          buyers: realPurchases.map((p: any) => ({
-            companyName: p.partners?.company_name || "Installateur Partenaire",
-            purchasedAt: p.purchased_at,
-          })),
-          masked_postal_code: specificLead.postal_code ? `${specificLead.postal_code.slice(0, 2)}XX` : "—",
+        if (specificLead) {
+          const maxSlots = specificLead.segment === "B2B" ? 1 : 3
+          const testEmailEnv = (process.env.TEST_PARTNER_EMAIL || "").toLowerCase().trim()
+          const realPurchases = (Array.isArray(specificLead.lead_purchases) ? specificLead.lead_purchases : []).filter((p: any) => {
+            const partnerObj = Array.isArray(p.partners) ? p.partners[0] : p.partners
+            if (partnerObj?.is_test) return false
+            const cName = (partnerObj?.company_name || "").toLowerCase()
+            if (cName.includes("test") || cName.includes("dev test")) return false
+            const email = (partnerObj?.email || "").toLowerCase()
+            if (testEmailEnv && email === testEmailEnv) return false
+            if (email.includes("+test") || email.startsWith("test@") || email.endsWith("@test.com")) return false
+            return true
+          })
+          const takenSlots = realPurchases.length
+          const remainingSlots = Math.max(0, maxSlots - takenSlots)
+          const formattedLead = {
+            ...specificLead,
+            max_slots: maxSlots,
+            taken_slots: takenSlots,
+            remaining_slots: remainingSlots,
+            buyers: realPurchases.map((p: any) => ({
+              companyName: p.partners?.company_name || "Installateur Partenaire",
+              purchasedAt: p.purchased_at,
+            })),
+            masked_postal_code: specificLead.postal_code ? `${specificLead.postal_code.slice(0, 2)}XX` : "—",
+          }
+
+          const isClosedOrUnavailable =
+            specificLead.marketplace_status !== "available" ||
+            remainingSlots <= 0 ||
+            Boolean((specificLead.qualification_metadata as Record<string, unknown> | null)?.is_showcase)
+
+          if (isClosedOrUnavailable) {
+            targetedClosedLead = {
+              ...formattedLead,
+              is_showcase_closed: true,
+              taken_slots: maxSlots,
+              remaining_slots: 0,
+            }
+          } else {
+            initialMarketplace = [formattedLead, ...initialMarketplace]
+          }
+        } else {
+          targetedClosedLead = buildShowcaseClosedLeadRecord(targetLeadId)
         }
-        initialMarketplace = [formattedLead, ...initialMarketplace]
       }
     }
   }
@@ -276,6 +306,7 @@ async function PartnerDashboardLoader({
       initialMarketplace={initialMarketplace}
       initialPortfolio={initialPortfolio}
       targetLeadId={targetLeadId ?? undefined}
+      targetedClosedLead={targetedClosedLead ?? undefined}
     />
   )
 }

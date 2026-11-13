@@ -17,9 +17,11 @@ const ROOF_TYPE_LABELS: Record<string, string> = {
   tuiles: "Toiture en tuiles",
   ardoises: "Toiture en ardoises",
   plat_epdm: "Toit plat (EPDM)",
+  plat: "Toit plat (EPDM)",
   bac_acier: "Toiture bac acier",
   zinc_autre: "Toiture zinc / autre",
   fibrociment_amiante: "Toiture fibrociment",
+  autre: "Autre toiture / pose au sol",
 }
 
 export function CompetitionInterstitial({

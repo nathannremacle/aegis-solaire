@@ -3,6 +3,13 @@ import { createHmac } from "crypto"
 import { detectLeadRiskFlags } from "./admin/lead-risk"
 import { buildMapLinks, type AddressResolutionLevel } from "./address-spw"
 import { hasBelgianHouseNumber } from "./leads-validation"
+import {
+  getOwnershipLabel,
+  getRoofMaterialLabel,
+  getSurfaceTypeLabel,
+  getTimeframeLabel,
+  getGrdLabel,
+} from "./lead-display-helpers"
 
 export type ScoreFactor = {
   label: string
@@ -361,16 +368,11 @@ export function buildAdminLeadAlertEmail(payload: AdminLeadAlertPayload): {
       : "–"
   const creditsFormatted = payload.creditCost != null ? `${payload.creditCost} crédit${payload.creditCost > 1 ? "s" : ""}` : "–"
 
-  const ownershipLabel =
-    payload.ownershipStatus === "owner"
-      ? "Propriétaire occupant"
-      : payload.ownershipStatus === "tenant_authorized"
-      ? "Locataire (accord bailleur)"
-      : payload.ownershipStatus === "tenant" || payload.ownershipStatus === "tenant_unauthorized"
-      ? "Locataire (SANS accord)"
-      : payload.ownershipStatus === "co_ownership"
-      ? "Copropriété"
-      : payload.ownershipStatus ?? "–"
+  const ownershipLabel = payload.ownershipStatus ? getOwnershipLabel(payload.ownershipStatus) : "–"
+  const surfaceTypeLabel = payload.surfaceType ? getSurfaceTypeLabel(payload.surfaceType) : "–"
+  const roofMaterialLabel = payload.roofMaterial ? getRoofMaterialLabel(payload.roofMaterial) : "–"
+  const timeframeLabel = payload.timeframe ? getTimeframeLabel(payload.timeframe) : "–"
+  const grdLabel = payload.grd ? getGrdLabel(payload.grd) : "–"
 
   const textAlerts = allAlerts.map((a) => `  [!] ${a.label} : ${a.detail}`).join("\n")
   const textCertified = certifiedBadges.map((b) => `  [✓] ${b}`).join("\n")
@@ -402,12 +404,12 @@ Email : ${payload.email} ${mx?.valid === false ? "(ATTENTION: sans serveur MX)" 
 ${isB2B ? `Entreprise : ${payload.company || "–"}\nNuméro TVA : ${payload.companyVat || "–"} ${isVatValid === false ? "(ATTENTION: Clé Modulo 97 non valide)" : isVatValid === true ? "(TVA valide)" : ""}\nFonction : ${payload.jobTitle || "–"}\n` : ""}
 ${cbe?.verified ? `Détails BCE officiels : ${cbe.officialName} (${cbe.legalForm || ""}) - NACE ${cbe.naceCode} : ${cbe.naceDescription}\n` : ""}
 Localisation : ${payload.siteAddress ? `${payload.siteAddress}, ` : ""}${payload.postalCode || ""} ${payload.city || ""} (${payload.province || "–"})
-GRD compétent : ${payload.grd || "–"}
+GRD compétent : ${grdLabel}
 
 DONNÉES DU PROJET :
 -------------------
-Surface utile : ${surfaceFormatted} (${payload.surfaceType || "–"})
-Matériau toiture : ${payload.roofMaterial || "–"}
+Surface utile : ${surfaceFormatted} (${surfaceTypeLabel})
+Matériau toiture : ${roofMaterialLabel}
 Puissance estimée : ${powerFormatted} (${panelCountFormatted})
 Productible annuel : ${productionFormatted}
 Facture actuelle : ${billFormatted}
@@ -415,7 +417,7 @@ Taux d'autoconsommation : ${autoconsumptionFormatted}
 Économies estimées : ${savingsFormatted}
 Retour sur investissement : ${roiFormatted}
 Statut d'occupation : ${ownershipLabel}
-Délai envisagé : ${payload.timeframe || "–"}
+Délai envisagé : ${timeframeLabel}
 Borne IRVE : ${payload.wantsIrve ? "Oui" : "Non"}
 Formulaire source : ${payload.sourceForm || "simulateur"}
 
@@ -705,7 +707,7 @@ Aegis Solaire · Notification interne`
               }
               <tr>
                 <td style="padding: 5px 0; color: #6B7280;">GRD compétent</td>
-                <td style="padding: 5px 0;">${escapeHtml(payload.grd ? payload.grd.toUpperCase() : "–")}</td>
+                <td style="padding: 5px 0;">${escapeHtml(grdLabel)}</td>
               </tr>
             </table>
           </div>
@@ -719,12 +721,12 @@ Aegis Solaire · Notification interne`
               <tr>
                 <td width="35%" style="padding: 5px 0; color: #6B7280;">Surface utile</td>
                 <td style="padding: 5px 0; font-weight: 600; font-family: monospace;">
-                  ${escapeHtml(surfaceFormatted)} <span style="font-weight: 400; color: #6B7280;">(${escapeHtml(payload.surfaceType || "–")})</span>
+                  ${escapeHtml(surfaceFormatted)} <span style="font-weight: 400; color: #6B7280;">(${escapeHtml(surfaceTypeLabel)})</span>
                 </td>
               </tr>
               <tr>
                 <td style="padding: 5px 0; color: #6B7280;">Matériau de toiture</td>
-                <td style="padding: 5px 0;">${escapeHtml(payload.roofMaterial || "–")}</td>
+                <td style="padding: 5px 0;">${escapeHtml(roofMaterialLabel)}</td>
               </tr>
               <tr>
                 <td style="padding: 5px 0; color: #6B7280;">Puissance estimée</td>
@@ -765,7 +767,7 @@ Aegis Solaire · Notification interne`
               </tr>
               <tr>
                 <td style="padding: 5px 0; color: #6B7280;">Délai envisagé</td>
-                <td style="padding: 5px 0;">${escapeHtml(payload.timeframe || "–")}</td>
+                <td style="padding: 5px 0;">${escapeHtml(timeframeLabel)}</td>
               </tr>
               <tr>
                 <td style="padding: 5px 0; color: #6B7280;">Borne de recharge</td>

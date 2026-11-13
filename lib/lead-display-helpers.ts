@@ -20,9 +20,12 @@ export const SURFACE_TYPE_LABELS: Record<string, string> = {
 export const ROOF_MATERIAL_LABELS: Record<string, string> = {
   tuiles: "Tuiles",
   ardoises: "Ardoises",
+  tuiles_ardoises: "Tuiles ou ardoises",
   plat_epdm: "Toit plat (EPDM / Bitume)",
+  plat: "Toit plat (Roofing / EPDM)",
   epdm: "Toit plat (EPDM)",
   bitume: "Toit plat (Bitume)",
+  roofing: "Toit plat (Roofing)",
   bac_acier: "Bac acier / Métal",
   metal: "Bac acier / Métal",
   zinc_autre: "Zinc",
@@ -37,9 +40,12 @@ export const TIMEFRAME_LABELS: Record<string, string> = {
   "1_month": "Dès que possible",
   "3_months": "Dans les 3 mois",
   immediat_3mois: "Immédiat (1 à 3 mois)",
+  "1_3_mois": "Immédiat (1 à 3 mois)",
   "3_6mois": "D'ici 3 à 6 mois",
+  "3_6_mois": "D'ici 3 à 6 mois",
   "6_months": "D'ici 6 mois",
   plus_6mois: "Plus de 6 mois",
+  plus_6_mois: "Plus de 6 mois",
   "12_months": "Dans l'année",
   simple_renseignement: "Étude préalable & chiffrage",
 }
@@ -50,11 +56,13 @@ export const OWNERSHIP_LABELS: Record<string, string> = {
   proprietaire: "Propriétaire occupant",
   proprietaire_occupant: "Propriétaire occupant",
   proprietaire_bailleur: "Propriétaire bailleur",
+  bail_emphyt_accord: "Bail emphytéotique / Accord propriétaire",
   tenant_authorized: "Locataire (avec accord bailleur)",
   locataire_accord: "Locataire (avec accord bailleur)",
   tenant: "Locataire",
   locataire: "Locataire",
   tenant_unauthorized: "Locataire (en attente accord)",
+  locataire_sans_accord: "Locataire (sans accord préalable)",
   co_ownership: "Copropriété (syndic / ACP)",
   copropriete: "Copropriété",
   business_owner: "Chef d'entreprise / Dirigeant",
@@ -64,6 +72,7 @@ export const OWNERSHIP_LABELS: Record<string, string> = {
 
 export const PROJECT_DRIVER_LABELS: Record<string, string> = {
   reduire_facture: "Réduction des coûts énergétiques",
+  reduction_facture: "Réduction des coûts énergétiques",
   cost_reduction: "Réduction des factures d'électricité",
   facture: "Réduction des factures d'électricité",
   peb_permis: "Conformité PEB & Décret Wallonie 2026",
@@ -75,9 +84,15 @@ export const PROJECT_DRIVER_LABELS: Record<string, string> = {
 }
 
 export const CONSUMPTION_LABELS: Record<string, string> = {
+  // Formulaire comparateur B2C (devis-landing-client.tsx)
+  lt_3000: "< 3 000 kWh/an",
+  "3000_4000": "3 000 – 4 000 kWh/an",
+  "4000_5000": "4 000 – 5 000 kWh/an",
+  "5000_6000": "5 000 – 6 000 kWh/an",
+  gt_6000: "> 6 000 kWh/an",
+  // Tranches historiques / complémentaires
   moins_2500: "< 2 500 kWh/an",
   "2500_3000": "2 500 – 3 000 kWh/an",
-  "3000_4000": "3 000 – 4 000 kWh/an",
   "4000_6000": "4 000 – 6 000 kWh/an",
   "6000_10000": "6 000 – 10 000 kWh/an",
   plus_10000: "> 10 000 kWh/an",
@@ -100,6 +115,7 @@ export const PROPERTY_TYPE_LABELS: Record<string, string> = {
   "maison_3_facades": "Maison 3 façades",
   appartement: "Appartement / Copropriété",
   copropriete: "Copropriété (syndic)",
+  immeuble_commercial: "Bâtiment professionnel / PME",
   batiment_industriel: "Bâtiment industriel / Hangar",
   hangar: "Hangar / Entrepôt",
   entrepot: "Hangar / Entrepôt",
@@ -119,6 +135,44 @@ export const ROOF_SURFACE_LABELS: Record<string, string> = {
   xlarge: "Très grande (> 100 m²)",
   tres_grande: "Très grande (> 100 m²)",
   "très grande": "Très grande (> 100 m²)",
+  // Tranches B2B (roi-simulator.tsx)
+  lt_500: "< 500 m²",
+  m500_1500: "500 – 1 500 m²",
+  gt_1500: "> 1 500 m²",
+}
+
+export const ORIENTATION_LABELS: Record<string, string> = {
+  sud: "Plein Sud",
+  sud_est_ouest: "Sud-Est / Sud-Ouest",
+  est_ouest: "Est / Ouest",
+  unknown: "Non précisée",
+}
+
+export const HOUSEHOLD_SIZE_LABELS: Record<string, string> = {
+  "1_2": "1 – 2 personnes",
+  "3_4": "3 – 4 personnes",
+  "5_plus": "5 personnes ou +",
+}
+
+export const BATTERY_OPTION_LABELS: Record<string, string> = {
+  oui: "Oui, avec batterie",
+  hesite: "À comparer (avec / sans)",
+  non: "Panneaux seuls",
+}
+
+export const EV_OPTION_LABELS: Record<string, string> = {
+  oui: "Oui, déjà équipé",
+  prevu: "Prévu prochainement",
+  non: "Non",
+}
+
+export const GRD_LABELS: Record<string, string> = {
+  ores: "Ores",
+  resa: "Resa",
+  aieg: "AIEG",
+  rew: "REW",
+  fluvius: "Fluvius",
+  unknown: "Non précisé",
 }
 
 /**
@@ -203,59 +257,130 @@ export const WALLONIA_POSTAL_LOOKUP: Record<string, { city: string; province: st
   "1970": { city: "Wezembeek-Oppem", province: "Bruxelles", coords: [50.8400, 4.4900] },
 }
 
+function normalizeDisplayKey(key: string): string {
+  return key.toLowerCase().trim()
+}
+
+function formatThousandsSpace(numStr: string): string {
+  return numStr.replace(/\B(?=(\d{3})+(?!\d))/g, " ")
+}
+
 export function getSurfaceTypeLabel(key?: string | null): string {
-  if (!key) return "Toiture standard"
-  return SURFACE_TYPE_LABELS[key] ?? key
+  if (!key || !key.trim()) return "Toiture standard"
+  const normalized = normalizeDisplayKey(key)
+  return SURFACE_TYPE_LABELS[normalized] ?? key.trim().replace(/_/g, " ")
 }
 
 export function getPropertyTypeLabel(key?: string | null): string {
-  if (!key) return "Maison d'habitation"
-  const normalized = key.toLowerCase().trim()
+  if (!key || !key.trim()) return "Maison d'habitation"
+  const trimmed = key.trim()
+  const normalized = normalizeDisplayKey(trimmed)
   if (PROPERTY_TYPE_LABELS[normalized]) return PROPERTY_TYPE_LABELS[normalized]
-  return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  if (SURFACE_TYPE_LABELS[normalized]) return SURFACE_TYPE_LABELS[normalized]
+  // Si déjà lisible (contient des espaces ou déjà un libellé français), préserver la casse sans casser les accents
+  if (trimmed.includes(" ") && !trimmed.includes("_")) {
+    return trimmed.charAt(0).toUpperCase() + trimmed.slice(1)
+  }
+  const spaced = trimmed.replace(/_/g, " ")
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1)
 }
 
 export function getRoofSurfaceLabel(key?: string | null): string {
-  if (!key) return "Surface standard (~35 à 60 m²)"
-  const normalized = key.toLowerCase().trim()
+  if (!key || !key.trim()) return "Surface standard (~35 à 60 m²)"
+  const normalized = normalizeDisplayKey(key)
   if (ROOF_SURFACE_LABELS[normalized]) return ROOF_SURFACE_LABELS[normalized]
+
   if (normalized.includes("m²") || normalized.includes("m2")) {
-    return normalized.replace("m2", "m²")
+    return key.trim().replace(/m2/gi, "m²")
   }
+
+  // Gère par ex. "medium (~5.5 kWc)" émis par b2c-simulator.tsx
+  const bracketWithSuffix = key.trim().match(/^(small|petite|medium|moyenne|large|grande|xlarge|tres_grande)\s*(\([^)]+\))?$/i)
+  if (bracketWithSuffix) {
+    const base = ROOF_SURFACE_LABELS[bracketWithSuffix[1].toLowerCase()]
+    if (base) return bracketWithSuffix[2] ? `${base} ${bracketWithSuffix[2]}` : base
+  }
+
   if (/^\d+$/.test(normalized)) {
-    return `${normalized} m²`
+    return `${formatThousandsSpace(normalized)} m²`
   }
-  return key.replace(/_/g, " ")
+  return key.trim().replace(/_/g, " ")
 }
 
 export function getConsumptionLabel(key?: string | null): string {
-  if (!key) return "Non précisée"
-  const normalized = key.toLowerCase().trim()
+  if (!key || !key.trim()) return "Non précisée"
+  const normalized = normalizeDisplayKey(key)
   if (CONSUMPTION_LABELS[normalized]) return CONSUMPTION_LABELS[normalized]
-  const clean = normalized.replace(/_/g, " à ")
-  if (clean.includes("kwh")) return clean
-  if (/^\d+(\s*à\s*\d+)?$/.test(clean)) return `${clean} kWh/an`
-  return key.replace(/_/g, " ")
+
+  // Garde-fou générique pour toute tranche future de type lt_X, gt_X, moins_X, plus_X, X_Y
+  const ltMatch = normalized.match(/^(?:lt|moins)_(\d+)$/)
+  if (ltMatch) return `< ${formatThousandsSpace(ltMatch[1])} kWh/an`
+
+  const gtMatch = normalized.match(/^(?:gt|plus)_(\d+)$/)
+  if (gtMatch) return `> ${formatThousandsSpace(gtMatch[1])} kWh/an`
+
+  const rangeMatch = normalized.match(/^(\d+)(?:_|\s*(?:à|-|–)\s*)(\d+)$/)
+  if (rangeMatch) {
+    return `${formatThousandsSpace(rangeMatch[1])} – ${formatThousandsSpace(rangeMatch[2])} kWh/an`
+  }
+
+  if (normalized.includes("kwh")) return key.trim()
+  if (/^\d+$/.test(normalized)) return `${formatThousandsSpace(normalized)} kWh/an`
+  return key.trim().replace(/_/g, " ")
 }
 
 export function getRoofMaterialLabel(key?: string | null): string {
-  if (!key) return "Toiture standard"
-  return ROOF_MATERIAL_LABELS[key] ?? key
+  if (!key || !key.trim()) return "Toiture standard"
+  const normalized = normalizeDisplayKey(key)
+  return ROOF_MATERIAL_LABELS[normalized] ?? key.trim().replace(/_/g, " ")
 }
 
 export function getTimeframeLabel(key?: string | null): string {
-  if (!key) return "Dans les 3 mois"
-  return TIMEFRAME_LABELS[key] ?? key
+  if (!key || !key.trim()) return "Dans les 3 mois"
+  const normalized = normalizeDisplayKey(key)
+  return TIMEFRAME_LABELS[normalized] ?? key.trim().replace(/_/g, " ")
 }
 
 export function getOwnershipLabel(key?: string | null): string {
-  if (!key) return "Propriétaire occupant"
-  return OWNERSHIP_LABELS[key] ?? key
+  if (!key || !key.trim()) return "Propriétaire occupant"
+  const normalized = normalizeDisplayKey(key)
+  return OWNERSHIP_LABELS[normalized] ?? key.trim().replace(/_/g, " ")
 }
 
 export function getProjectDriverLabel(key?: string | null): string {
-  if (!key) return "Optimisation des coûts énergétiques"
-  return PROJECT_DRIVER_LABELS[key] ?? key
+  if (!key || !key.trim()) return "Optimisation des coûts énergétiques"
+  const normalized = normalizeDisplayKey(key)
+  return PROJECT_DRIVER_LABELS[normalized] ?? key.trim().replace(/_/g, " ")
+}
+
+export function getOrientationLabel(key?: string | null): string {
+  if (!key || !key.trim()) return "Non précisée"
+  const normalized = normalizeDisplayKey(key)
+  return ORIENTATION_LABELS[normalized] ?? key.trim().replace(/_/g, " ")
+}
+
+export function getHouseholdSizeLabel(key?: string | null): string {
+  if (!key || !key.trim()) return "Non précisé"
+  const normalized = normalizeDisplayKey(key)
+  return HOUSEHOLD_SIZE_LABELS[normalized] ?? key.trim().replace(/_/g, " ")
+}
+
+export function getBatteryOptionLabel(key?: string | null): string {
+  if (!key || !key.trim()) return "Non précisé"
+  const normalized = normalizeDisplayKey(key)
+  return BATTERY_OPTION_LABELS[normalized] ?? key.trim().replace(/_/g, " ")
+}
+
+export function getEvOptionLabel(key?: string | null): string {
+  if (!key || !key.trim()) return "Non"
+  const normalized = normalizeDisplayKey(key)
+  return EV_OPTION_LABELS[normalized] ?? key.trim().replace(/_/g, " ")
+}
+
+export function getGrdLabel(key?: string | null): string {
+  if (!key || !key.trim()) return "Non précisé"
+  const normalized = normalizeDisplayKey(key)
+  return GRD_LABELS[normalized] ?? key.trim().toUpperCase()
 }
 
 /**
@@ -351,16 +476,24 @@ const KEY_DEFINITIONS: Array<{
   label: string
   icon: ParsedLeadBadge["icon"]
 }> = [
-  { key: "location", match: ["précision localisation", "precision localisation", "localisation"], label: "Localisation indiquée", icon: "MapPin" },
+  { key: "location", match: ["localisation indiquée", "localisation indiquee", "précision localisation", "precision localisation", "localisation"], label: "Localisation indiquée", icon: "MapPin" },
   { key: "consumption", match: ["consommation annuelle", "consommation"], label: "Consommation annuelle", icon: "Zap" },
   { key: "propertyType", match: ["type de bien", "type bien"], label: "Type de bien", icon: "Home" },
-  { key: "ownership", match: ["statut", "décisionnaire", "decisionnaire"], label: "Statut d'occupation", icon: "User" },
-  { key: "roofSurface", match: ["surface toiture", "surface"], label: "Surface toiture", icon: "Ruler" },
+  { key: "ownership", match: ["statut d'occupation", "statut", "décisionnaire", "decisionnaire"], label: "Statut d'occupation", icon: "User" },
+  { key: "roofSurface", match: ["surface toiture", "taille toiture", "surface"], label: "Surface toiture", icon: "Ruler" },
   { key: "roofMaterial", match: ["couverture toiture", "couverture", "toiture"], label: "Couverture toiture", icon: "Building2" },
-  { key: "contact", match: ["règle contact client", "regle contact client", "règle contact", "contact client", "contact"], label: "Préférence contact", icon: "Phone" },
+  { key: "orientation", match: ["orientation toiture", "orientation"], label: "Orientation toiture", icon: "Info" },
+  { key: "householdSize", match: ["taille du foyer", "ménage", "menage", "foyer"], label: "Taille du foyer", icon: "User" },
+  { key: "contact", match: ["règle contact client", "regle contact client", "règle contact", "préférence contact", "preference contact", "contact client", "contact"], label: "Préférence contact", icon: "Phone" },
   { key: "battery", match: ["batterie"], label: "Batterie", icon: "BatteryCharging" },
-  { key: "irve", match: ["borne ve", "borne irve", "borne"], label: "Borne de recharge", icon: "Zap" },
-  { key: "remarks", match: ["précisions", "precisions", "remarques", "remarque", "précision", "precision"], label: "Remarques", icon: "Info" },
+  { key: "irve", match: ["borne de recharge", "borne ve", "borne irve", "borne", "ve"], label: "Borne de recharge", icon: "Zap" },
+  { key: "remarks", match: ["précisions", "precisions", "remarques", "remarque", "précision", "precision", "notes", "note"], label: "Remarques", icon: "Info" },
+  {
+    key: "internalSystem",
+    match: ["newsletter aegis solaire", "source", "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "fbclid"],
+    label: "Métadonnée interne",
+    icon: "Info",
+  },
 ]
 
 /**
@@ -388,12 +521,16 @@ export function parseLeadProjectDetails(text?: string | null): ParsedLeadDetails
       const searchTarget = phrase + ":"
       let startIdx = 0
       while ((startIdx = lowerText.indexOf(searchTarget, startIdx)) !== -1) {
-        occurrences.push({
-          def,
-          phrase,
-          start: startIdx,
-          valueStart: startIdx + searchTarget.length,
-        })
+        const prevChar = startIdx > 0 ? lowerText[startIdx - 1] : ""
+        const hasBoundary = startIdx === 0 || /[\s|;,\n\r]/.test(prevChar)
+        if (hasBoundary) {
+          occurrences.push({
+            def,
+            phrase,
+            start: startIdx,
+            valueStart: startIdx + searchTarget.length,
+          })
+        }
         startIdx += searchTarget.length
       }
     }
@@ -410,8 +547,8 @@ export function parseLeadProjectDetails(text?: string | null): ParsedLeadDetails
     }
   }
 
-  // Trier par position chronologique
-  occurrences.sort((a, b) => a.start - b.start)
+  // Trier par position chronologique (puis phrase la plus longue d'abord en cas d'égalité)
+  occurrences.sort((a, b) => a.start - b.start || b.valueStart - a.valueStart)
 
   // Éliminer les sous-clés redondantes
   const filtered: typeof occurrences = []
@@ -434,6 +571,10 @@ export function parseLeadProjectDetails(text?: string | null): ParsedLeadDetails
     rawVal = rawVal.replace(/^[:|\s]+|[:|\s]+$/g, "").trim()
 
     if (!rawVal) continue
+
+    if (curr.def.key === "internalSystem") {
+      continue
+    }
 
     if (curr.def.key === "remarks") {
       remarks = rawVal
@@ -462,6 +603,14 @@ export function parseLeadProjectDetails(text?: string | null): ParsedLeadDetails
       cleanVal = getRoofSurfaceLabel(rawVal)
     } else if (curr.def.key === "roofMaterial") {
       cleanVal = getRoofMaterialLabel(rawVal)
+    } else if (curr.def.key === "orientation") {
+      cleanVal = getOrientationLabel(rawVal)
+    } else if (curr.def.key === "householdSize") {
+      cleanVal = getHouseholdSizeLabel(rawVal)
+    } else if (curr.def.key === "battery") {
+      cleanVal = getBatteryOptionLabel(rawVal)
+    } else if (curr.def.key === "irve") {
+      cleanVal = getEvOptionLabel(rawVal)
     } else if (curr.def.key === "contact") {
       const isCall = rawVal.toLowerCase().includes("appel")
       variant = isCall ? "success" : "highlight"
@@ -485,10 +634,17 @@ export interface LeadProjectSpecs {
   roofSurface?: string
   ownership?: string
   consumption?: string
+  orientation?: string
+  householdSize?: string
   contactPreference?: string
   locationDetail?: string
   hasBattery?: boolean
   hasIrve?: boolean
+}
+
+function isAffirmativeSpecValue(value: string, negatives: string[]): boolean {
+  const norm = value.toLowerCase().trim()
+  return !negatives.some((neg) => norm === neg || norm.startsWith(neg))
 }
 
 /**
@@ -530,10 +686,15 @@ export function sanitizeLeadNotes(details?: string | null, message?: string | nu
     else if (b.id === "roofSurface") specs.roofSurface = b.value
     else if (b.id === "ownership") specs.ownership = b.value
     else if (b.id === "consumption") specs.consumption = b.value
+    else if (b.id === "orientation") specs.orientation = b.value
+    else if (b.id === "householdSize") specs.householdSize = b.value
     else if (b.id === "contact") specs.contactPreference = b.value
     else if (b.id === "location") specs.locationDetail = b.value
-    else if (b.id === "battery") specs.hasBattery = true
-    else if (b.id === "irve") specs.hasIrve = true
+    else if (b.id === "battery") {
+      specs.hasBattery = isAffirmativeSpecValue(b.value, ["non", "panneaux seuls", "no", "false"])
+    } else if (b.id === "irve") {
+      specs.hasIrve = isAffirmativeSpecValue(b.value, ["non", "no", "false"])
+    }
   }
 
   return {
@@ -541,6 +702,50 @@ export function sanitizeLeadNotes(details?: string | null, message?: string | nu
     cleanBadges: parsed.badges.map((b) => ({ label: b.label, value: b.value, key: b.id })),
     specs,
   }
+}
+
+/**
+ * Normalise en amont (avant sauvegarde en base ou envoi d'e-mail) le texte `project_details`
+ * afin qu'aucune clé technique brute (`gt_6000`, `maison_4f`, `locataire_sans_accord`, etc.)
+ * ne soit jamais stockée ni exposée. Idempotent sur les chaînes déjà traduites ou le texte libre.
+ */
+export function canonicalizeProjectDetailsText(text?: string | null): string | null {
+  if (!text || typeof text !== "string" || !text.trim()) return null
+
+  const trimmed = text.trim()
+  const parsed = parseLeadProjectDetails(trimmed)
+
+  // Texte libre sans aucune clé structurée : conserver tel quel
+  if (parsed.badges.length === 0 && !parsed.remarks) {
+    return trimmed
+  }
+  if (parsed.badges.length === 0) {
+    const hasNewsletterOnly = /newsletter aegis solaire\s*:/i.test(trimmed)
+    return hasNewsletterOnly ? trimmed : parsed.remarks || trimmed
+  }
+
+  const locationBadge = parsed.badges.find((b) => b.id === "location")
+  const specBadges = parsed.badges.filter((b) => b.id !== "location")
+
+  const parts: string[] = []
+  if (locationBadge) {
+    parts.push(`${locationBadge.label} : ${locationBadge.value}`)
+  }
+
+  const specLineItems = specBadges.map((b) => `${b.label}: ${b.value}`)
+  if (parsed.remarks) {
+    specLineItems.push(`Précisions: ${parsed.remarks}`)
+  }
+  if (specLineItems.length > 0) {
+    parts.push(specLineItems.join(" | "))
+  }
+
+  const newsletterMatch = trimmed.match(/Newsletter Aegis Solaire\s*:\s*[^\n]+/i)
+  if (newsletterMatch) {
+    parts.push(newsletterMatch[0].trim())
+  }
+
+  return parts.join("\n\n") || trimmed
 }
 
 /**

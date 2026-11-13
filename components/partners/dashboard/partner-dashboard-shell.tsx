@@ -22,6 +22,7 @@ export interface PartnerDashboardShellProps {
   initialMarketplace: any[]
   initialPortfolio: any[]
   targetLeadId?: string
+  targetedClosedLead?: any
 }
 
 export function PartnerDashboardShell({
@@ -29,6 +30,7 @@ export function PartnerDashboardShell({
   initialMarketplace,
   initialPortfolio,
   targetLeadId,
+  targetedClosedLead,
 }: PartnerDashboardShellProps) {
   const [activeTargetLeadId, setActiveTargetLeadId] = React.useState<string | undefined>(targetLeadId)
 
@@ -39,9 +41,9 @@ export function PartnerDashboardShell({
   // Détection si le lead ciblé a déjà été acheté
   const isAlreadyPurchased = Boolean(
     activeTargetLeadId &&
-      (initialPortfolio ?? []).some(
-        (p: any) => p.id === activeTargetLeadId || p.lead_id === activeTargetLeadId || p.purchase_id === activeTargetLeadId
-      )
+    (initialPortfolio ?? []).some(
+      (p: any) => p.id === activeTargetLeadId || p.lead_id === activeTargetLeadId || p.purchase_id === activeTargetLeadId
+    )
   )
 
   const [activeTab, setActiveTab] = React.useState<"marketplace" | "portfolio">(
@@ -160,20 +162,18 @@ export function PartnerDashboardShell({
               <button
                 type="button"
                 onClick={() => setActiveTab("marketplace")}
-                className={`flex items-center gap-1.5 sm:gap-2 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                  activeTab === "marketplace"
+                className={`flex items-center gap-1.5 sm:gap-2 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 ${activeTab === "marketplace"
                     ? "bg-primary text-primary-foreground font-bold shadow-2xs"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                }`}
+                  }`}
               >
                 <Store className="h-4 w-4 text-accent shrink-0" />
                 <span className="whitespace-nowrap font-bold">Marketplace</span>
                 <span
-                  className={`rounded-full px-1.5 py-0.2 text-[10px] sm:text-[11px] font-mono font-bold tabular-nums shrink-0 ${
-                    activeTab === "marketplace"
+                  className={`rounded-full px-1.5 py-0.2 text-[10px] sm:text-[11px] font-mono font-bold tabular-nums shrink-0 ${activeTab === "marketplace"
                       ? "bg-primary-foreground/20 text-primary-foreground"
                       : "bg-secondary text-foreground"
-                  }`}
+                    }`}
                 >
                   {marketplace.length}
                 </span>
@@ -182,20 +182,18 @@ export function PartnerDashboardShell({
               <button
                 type="button"
                 onClick={() => setActiveTab("portfolio")}
-                className={`flex items-center gap-1.5 sm:gap-2 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                  activeTab === "portfolio"
+                className={`flex items-center gap-1.5 sm:gap-2 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 ${activeTab === "portfolio"
                     ? "bg-primary text-primary-foreground font-bold shadow-2xs"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                }`}
+                  }`}
               >
                 <Briefcase className="h-4 w-4 text-accent shrink-0" />
                 <span className="whitespace-nowrap font-bold">Mon CRM</span>
                 <span
-                  className={`rounded-full px-1.5 py-0.2 text-[10px] sm:text-[11px] font-mono font-bold tabular-nums shrink-0 ${
-                    activeTab === "portfolio"
+                  className={`rounded-full px-1.5 py-0.2 text-[10px] sm:text-[11px] font-mono font-bold tabular-nums shrink-0 ${activeTab === "portfolio"
                       ? "bg-primary-foreground/20 text-primary-foreground"
                       : "bg-secondary text-foreground"
-                  }`}
+                    }`}
                 >
                   {portfolio.length}
                 </span>
@@ -305,17 +303,21 @@ export function PartnerDashboardShell({
             </div>
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-extrabold tracking-tight text-foreground">
               {activeTargetLeadId && activeTab === "marketplace"
-                ? "Opportunité Solaire Ciblée"
+                ? targetedClosedLead?.id === activeTargetLeadId
+                  ? "Dossier Régional Clôturé & Opportunités Disponibles"
+                  : "Opportunité Solaire Ciblée"
                 : activeTab === "marketplace"
-                ? "Marketplace des Chantiers Photovoltaïques"
-                : "Portefeuille & Suivi Commercial"}
+                  ? "Marketplace des Chantiers Photovoltaïques"
+                  : "Portefeuille & Suivi Commercial"}
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground">
               {activeTargetLeadId && activeTab === "marketplace"
-                ? "Fiche technique d'ingénierie et accès prioritaire au chantier recommandé par e-mail."
+                ? targetedClosedLead?.id === activeTargetLeadId
+                  ? "Ce chantier a déjà atteint son quota d'attribution. Consultez le récapitulatif et les opportunités disponibles ci-dessous."
+                  : "Fiche technique d'ingénierie et accès prioritaire au chantier recommandé par e-mail."
                 : activeTab === "marketplace"
-                ? "Projets solaires qualifiés en Wallonie : fiches techniques détaillées, puissance kWc et coordonnées directes vérifiées."
-                : "Dossiers débloqués, coordonnées complètes des décideurs et suivi des relances."}
+                  ? "Projets solaires qualifiés en Wallonie : fiches techniques détaillées, puissance kWc et coordonnées directes vérifiées."
+                  : "Dossiers débloqués, coordonnées complètes des décideurs et suivi des relances."}
             </p>
           </div>
 
@@ -346,6 +348,8 @@ export function PartnerDashboardShell({
             leads={marketplace}
             partnerCredits={credits}
             targetLeadId={activeTargetLeadId}
+            targetedClosedLead={targetedClosedLead}
+            partnerProvinces={initialPartner?.target_provinces}
             onClearTargetLead={() => setActiveTargetLeadId(undefined)}
             onPurchaseSuccess={(purchasedLead, newCredits, newPurchaseRecord) => {
               setCredits(newCredits)
@@ -354,6 +358,7 @@ export function PartnerDashboardShell({
               setActiveTab("portfolio")
             }}
             onRequestTopUp={() => setIsCreditsOpen(true)}
+            onOpenAlertPreferences={() => setIsPrefsOpen(true)}
             onOpenExpertModal={(lead) => {
               setSelectedLeadForExpert(lead || null)
               setIsExpertOpen(true)
@@ -383,11 +388,10 @@ export function PartnerDashboardShell({
           <button
             type="button"
             onClick={() => setActiveTab("marketplace")}
-            className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${
-              activeTab === "marketplace"
+            className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${activeTab === "marketplace"
                 ? "text-primary font-bold"
                 : "text-muted-foreground hover:text-foreground"
-            }`}
+              }`}
           >
             <div className="relative">
               <Store className={`h-5 w-5 ${activeTab === "marketplace" ? "text-primary" : "text-muted-foreground"}`} />
@@ -404,11 +408,10 @@ export function PartnerDashboardShell({
           <button
             type="button"
             onClick={() => setActiveTab("portfolio")}
-            className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${
-              activeTab === "portfolio"
+            className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${activeTab === "portfolio"
                 ? "text-primary font-bold"
                 : "text-muted-foreground hover:text-foreground"
-            }`}
+              }`}
           >
             <div className="relative">
               <Briefcase className={`h-5 w-5 ${activeTab === "portfolio" ? "text-primary" : "text-muted-foreground"}`} />

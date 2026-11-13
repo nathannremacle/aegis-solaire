@@ -37,6 +37,11 @@ function PartnerSetPasswordForm() {
   const tokenHash = searchParams.get("token_hash") || ""
   const tokenType = (searchParams.get("type") || "recovery") as "recovery" | "magiclink" | "invite"
   const code = searchParams.get("code") || ""
+  const rawNext = searchParams.get("next") || ""
+  const safeRedirectUrl =
+    rawNext.startsWith("/partenaires") && !rawNext.startsWith("//")
+      ? rawNext
+      : "/partenaires/dashboard"
 
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -124,7 +129,7 @@ function PartnerSetPasswordForm() {
       if (updateError) {
         setError(
           updateError.message ||
-            "Impossible d'enregistrer le mot de passe. Demandez un nouveau lien."
+          "Impossible d'enregistrer le mot de passe. Demandez un nouveau lien."
         )
         setSubmitting(false)
         return
@@ -132,7 +137,7 @@ function PartnerSetPasswordForm() {
 
       setSuccess(true)
       setTimeout(() => {
-        window.location.assign("/partenaires/dashboard")
+        window.location.assign(safeRedirectUrl)
       }, 900)
     } catch {
       setError("Une erreur technique est survenue. Veuillez réessayer.")

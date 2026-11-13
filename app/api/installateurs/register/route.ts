@@ -102,9 +102,13 @@ export async function POST(request: NextRequest) {
             companyName: resolvedCompany,
             partnerId: existingPartner.id,
           })
+          const nextPath = data.leadId
+            ? `/partenaires/dashboard?lead=${encodeURIComponent(data.leadId)}`
+            : "/partenaires/dashboard"
           const setupUrl = await generatePartnerPasswordSetupUrl(supabase, {
             email: cleanEmail,
             baseUrl,
+            nextPath,
           })
           if (setupUrl) {
             const resetPayload = buildPartnerPasswordResetEmail({

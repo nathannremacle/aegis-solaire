@@ -150,6 +150,11 @@ import {
   recordCatchUpDispatches,
   type AvailableLeadSummary,
 } from "@/lib/lead-relance-engine"
+import {
+  extractTargetLeadIdFromAdminNotes,
+  getRegionalLeadSummary,
+  isShowcaseOnlyLeadId,
+} from "@/lib/regional-leads-catalog"
 
 export async function PATCH(
   request: NextRequest,
@@ -237,7 +242,16 @@ export async function PATCH(
     // Envoi de l'e-mail de bienvenue sur la Marketplace (avec rattrapage des leads chauds)
     try {
       const baseUrl = getSiteBaseUrl(request.nextUrl.origin)
-      const marketplaceUrl = `${baseUrl}/partenaires/dashboard`
+      const targetLeadId = extractTargetLeadIdFromAdminNotes(app.admin_notes)
+      const dashboardPath = targetLeadId
+        ? `/partenaires/dashboard?lead=${encodeURIComponent(targetLeadId)}`
+        : "/partenaires/dashboard"
+      const marketplaceUrl = `${baseUrl}${dashboardPath}`
+      const closedTargetLead =
+        targetLeadId && isShowcaseOnlyLeadId(targetLeadId)
+          ? getRegionalLeadSummary(targetLeadId)
+          : null
+
       let setupPasswordUrl: string | null = null
       try {
         await ensurePartnerAuthAccount(supabase, {
@@ -248,6 +262,7 @@ export async function PATCH(
         setupPasswordUrl = await generatePartnerPasswordSetupUrl(supabase, {
           email: app.email,
           baseUrl,
+          nextPath: dashboardPath,
         })
       } catch (authErr) {
         console.error("[admin/applications] auth onboarding warning:", authErr)
@@ -263,6 +278,7 @@ export async function PATCH(
         marketplaceUrl,
         setupPasswordUrl,
         availableLeads,
+        closedTargetLead,
       })
 
       const sendRes = await sendInstallerEmail({

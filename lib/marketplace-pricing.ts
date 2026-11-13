@@ -118,10 +118,22 @@ function parseProjectSignals(lead: {
 
   // 1. Tranche de consommation B2C
   let consumptionBracket =
-    typeof meta.consumptionKwh === "string" ? meta.consumptionKwh.trim() : undefined
+    typeof meta.consumptionKwh === "string" ? meta.consumptionKwh.trim().toLowerCase() : undefined
   if (!consumptionBracket && detailsText) {
-    const match = detailsText.match(/Consommation annuelle:\s*(lt_3000|3000_4000|4000_5000|5000_6000|gt_6000)/i)
-    if (match) consumptionBracket = match[1].toLowerCase()
+    const rawMatch = detailsText.match(/Consommation annuelle:\s*(lt_3000|3000_4000|4000_5000|5000_6000|gt_6000)/i)
+    if (rawMatch) {
+      consumptionBracket = rawMatch[1].toLowerCase()
+    } else {
+      const labelMatch = detailsText.match(/Consommation annuelle:\s*([^|\n]+)/i)
+      if (labelMatch) {
+        const val = labelMatch[1].toLowerCase()
+        if (val.includes("3 000") && (val.includes("<") || val.includes("moins"))) consumptionBracket = "lt_3000"
+        else if (val.includes("3 000") && val.includes("4 000")) consumptionBracket = "3000_4000"
+        else if (val.includes("4 000") && val.includes("5 000")) consumptionBracket = "4000_5000"
+        else if (val.includes("5 000") && val.includes("6 000")) consumptionBracket = "5000_6000"
+        else if (val.includes("6 000") && (val.includes(">") || val.includes("plus"))) consumptionBracket = "gt_6000"
+      }
+    }
   }
 
   let consumptionKwh =
@@ -140,8 +152,19 @@ function parseProjectSignals(lead: {
         ? meta.roofSize.trim().toLowerCase()
         : undefined
   if (!roofSurfaceBracket && detailsText) {
-    const match = detailsText.match(/Surface toiture:\s*(small|medium|large|xlarge)/i)
-    if (match) roofSurfaceBracket = match[1].toLowerCase()
+    const rawMatch = detailsText.match(/(?:Surface|Taille)\s+toiture:\s*(small|medium|large|xlarge)/i)
+    if (rawMatch) {
+      roofSurfaceBracket = rawMatch[1].toLowerCase()
+    } else {
+      const labelMatch = detailsText.match(/(?:Surface|Taille)\s+toiture:\s*([^|\n]+)/i)
+      if (labelMatch) {
+        const val = labelMatch[1].toLowerCase()
+        if (val.includes("petite")) roofSurfaceBracket = "small"
+        else if (val.includes("moyenne")) roofSurfaceBracket = "medium"
+        else if (val.includes("très grande") || val.includes("tres grande")) roofSurfaceBracket = "xlarge"
+        else if (val.includes("grande")) roofSurfaceBracket = "large"
+      }
+    }
   }
 
   let b2bSurfaceBracket =
@@ -155,8 +178,17 @@ function parseProjectSignals(lead: {
     (typeof meta.roofType === "string" ? meta.roofType : undefined) ||
     (typeof meta.roofMaterial === "string" ? meta.roofMaterial : undefined)
   if (!roofMaterial && detailsText) {
-    const match = detailsText.match(/Couverture:\s*([a-zA-Z0-9_-]+)/i)
-    if (match) roofMaterial = match[1].toLowerCase()
+    const match = detailsText.match(/Couverture(?:\s+toiture)?:\s*([^|\n]+)/i)
+    if (match) {
+      const val = match[1].trim().toLowerCase()
+      if (val.includes("tuile")) roofMaterial = "tuiles"
+      else if (val.includes("ardoise")) roofMaterial = "ardoises"
+      else if (val.includes("plat") || val.includes("epdm") || val.includes("roofing")) roofMaterial = "plat_epdm"
+      else if (val.includes("acier")) roofMaterial = "bac_acier"
+      else if (val.includes("zinc")) roofMaterial = "zinc_autre"
+      else if (val.includes("fibrociment")) roofMaterial = "fibrociment_amiante"
+      else roofMaterial = val
+    }
   }
 
   // 4. Orientation
@@ -184,13 +216,20 @@ function parseProjectSignals(lead: {
   let hasBattery = false
   if (lead.hasBattery === true || lead.hasBattery === "oui") {
     hasBattery = true
-  } else if (meta.hasBattery === "oui" || meta.hasBattery === true || meta.batteryInterest === "oui") {
+  } else if (
+    meta.hasBattery === "oui" ||
+    meta.hasBattery === true ||
+    meta.batteryInterest === "oui" ||
+    meta.b2c_battery_interest === "oui"
+  ) {
     hasBattery = true
   } else if (
     meta.hasBattery === "non" ||
     meta.hasBattery === "hesite" ||
     meta.batteryInterest === "non" ||
-    meta.batteryInterest === "hesite"
+    meta.batteryInterest === "hesite" ||
+    meta.b2c_battery_interest === "non" ||
+    meta.b2c_battery_interest === "hesite"
   ) {
     hasBattery = false
   } else if (detailsText) {
@@ -206,12 +245,14 @@ function parseProjectSignals(lead: {
     meta.hasEv === "prevu" ||
     meta.hasEv === true ||
     meta.evInterest === "oui" ||
-    meta.evInterest === "prevu"
+    meta.evInterest === "prevu" ||
+    meta.b2c_ev_interest === "oui" ||
+    meta.b2c_ev_interest === "prevu"
   ) {
     hasEv = true
   } else if (detailsText) {
     hasEv =
-      /Borne\s+VE\s*:\s*(?:oui|prevu|prévu)/i.test(detailsText) ||
+      /(?:Borne(?:\s+de\s+recharge|\s+VE)?|VE)\s*:\s*(?:oui|prevu|prévu)/i.test(detailsText) ||
       /Intérêt borne VE:\s*(?:oui|prevu|prévu)/i.test(detailsText)
   }
 

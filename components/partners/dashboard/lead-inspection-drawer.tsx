@@ -74,6 +74,8 @@ export function LeadInspectionDrawer({
   onRequestExpert,
 }: LeadInspectionDrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null)
+  const [isDirectPayOpen, setIsDirectPayOpen] = React.useState(false)
+  const [isImageModalOpen, setIsImageModalOpen] = React.useState(false)
 
   // Fermeture clavier (Escape) & Verrouillage du scroll arrière-plan
   useEffect(() => {
@@ -101,7 +103,6 @@ export function LeadInspectionDrawer({
   const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
   const hasEnoughCredits = partnerCredits >= cost
 
-  const [isDirectPayOpen, setIsDirectPayOpen] = React.useState(false)
   const directFinancials = calculateLeadDirectFinancials({
     segment: lead.segment,
     credit_cost: cost,
@@ -145,7 +146,9 @@ export function LeadInspectionDrawer({
     (lead.surface_type ? getSurfaceTypeLabel(lead.surface_type) : "Maison d'habitation")
 
   const roofMaterialDisplay =
-    getRoofMaterialLabel(lead.roof_material) || specs.roofMaterial || "Tuiles"
+    (lead.roof_material ? getRoofMaterialLabel(lead.roof_material) : null) ||
+    specs.roofMaterial ||
+    "Tuiles"
 
   const roofSurfaceDisplay =
     specs.roofSurface ||
@@ -154,13 +157,18 @@ export function LeadInspectionDrawer({
     "Moyenne (~35 à 60 m²)"
 
   const ownershipDisplay =
-    getOwnershipLabel(lead.ownership_status) || specs.ownership || "Propriétaire occupant"
+    (lead.ownership_status ? getOwnershipLabel(lead.ownership_status) : null) ||
+    specs.ownership ||
+    "Propriétaire occupant"
 
   const timeframeDisplay = getTimeframeLabel(lead.timeframe || lead.project_timeline)
   const grdDisplay = lead.grd ? `GRD ${lead.grd.toUpperCase()}` : "ORES / RESA"
 
   const consumptionDisplay =
     specs.consumption ||
+    (lead.qualification_metadata?.consumptionKwh
+      ? getConsumptionLabel(String(lead.qualification_metadata.consumptionKwh))
+      : null) ||
     (lead.annual_bill_eur ? `${lead.annual_bill_eur.toLocaleString("fr-BE")} €/an` : null) ||
     (lead.annual_electricity_bill ? `${lead.annual_electricity_bill.toLocaleString("fr-BE")} €/an` : null)
 
@@ -180,7 +188,6 @@ export function LeadInspectionDrawer({
     lead.qualificationMetadata?.site_image_url ||
     lead.roof_image_url ||
     lead.site_image_url) as string | undefined
-  const [isImageModalOpen, setIsImageModalOpen] = React.useState(false)
 
   return (
     <div

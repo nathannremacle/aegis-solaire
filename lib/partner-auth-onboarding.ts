@@ -96,11 +96,16 @@ export async function generatePartnerPasswordSetupUrl(
   params: {
     email: string
     baseUrl?: string
+    nextPath?: string | null
   }
 ): Promise<string | null> {
   const email = params.email.trim().toLowerCase()
   const baseUrl = getSiteBaseUrl(params.baseUrl)
   const redirectTo = `${baseUrl}/partenaires/definir-mot-de-passe`
+  const safeNext =
+    params.nextPath && params.nextPath.startsWith("/partenaires") && !params.nextPath.startsWith("//")
+      ? params.nextPath
+      : null
 
   const { data, error } = await supabase.auth.admin.generateLink({
     type: "recovery",
@@ -115,7 +120,11 @@ export async function generatePartnerPasswordSetupUrl(
 
   const hashedToken = data?.properties?.hashed_token
   if (hashedToken) {
-    return `${redirectTo}?token_hash=${encodeURIComponent(hashedToken)}&type=recovery`
+    const url = new URL(redirectTo)
+    url.searchParams.set("token_hash", hashedToken)
+    url.searchParams.set("type", "recovery")
+    if (safeNext) url.searchParams.set("next", safeNext)
+    return url.toString()
   }
 
   return data?.properties?.action_link ?? null

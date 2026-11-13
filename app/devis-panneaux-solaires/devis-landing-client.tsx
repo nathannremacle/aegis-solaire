@@ -44,6 +44,13 @@ import {
   trackContactInitiated,
 } from "@/components/analytics/ad-tracking"
 import { calculateB2CSolarROI } from "@/lib/solar-assumptions"
+import {
+  getConsumptionLabel,
+  getOwnershipLabel,
+  getPropertyTypeLabel,
+  getRoofMaterialLabel,
+  getRoofSurfaceLabel,
+} from "@/lib/lead-display-helpers"
 import { CompetitionInterstitial } from "@/components/funnel/competition-interstitial"
 import { NetworkPartnersModal } from "@/components/funnel/network-partners-modal"
 
@@ -599,12 +606,12 @@ export function DevisLandingClient() {
       marketingConsent: partnerConsent,
       newsletterConsent,
       projectDetails: [
-        `Consommation annuelle: ${consumption}`,
-        `Type de bien: ${propertyType}`,
-        `Statut: ${ownership}`,
-        `Couverture: ${roofType}`,
-        `Surface toiture: ${roofSurface}`,
-        `Règle contact client: ${contactPreference === "direct_call" ? "Appel direct autorisé (9h-18h)" : "Écrit d'abord (E-mail/SMS)"}`,
+        `Consommation annuelle: ${getConsumptionLabel(consumption)}`,
+        `Type de bien: ${getPropertyTypeLabel(propertyType)}`,
+        `Statut d'occupation: ${getOwnershipLabel(ownership)}`,
+        `Couverture toiture: ${getRoofMaterialLabel(roofType)}`,
+        `Surface toiture: ${getRoofSurfaceLabel(roofSurface)}`,
+        `Préférence contact: ${contactPreference === "direct_call" ? "Appel direct autorisé (9h-18h)" : "Écrit d'abord (E-mail/SMS)"}`,
         remarks.trim() ? `Précisions: ${remarks.trim()}` : "",
       ]
         .filter(Boolean)
