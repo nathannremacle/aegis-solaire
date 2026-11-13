@@ -91,3 +91,36 @@ export function getProvinceDisplayLabel(key: string, freeText?: string | null): 
   if (key === "plusieurs_regions_be") return `${base} — ${extra}`
   return `${base} (${extra})`
 }
+
+/**
+ * Déduit la clé de province/région belge canonique depuis un code postal à 4 chiffres
+ * ou un code postal masqué (ex: "1780", "17XX", "40XX").
+ */
+export function getBelgiumProvinceKeyFromPostalCode(
+  postalCode?: string | null
+): BelgiumProvinceKey | null {
+  if (!postalCode) return null
+  const trimmed = postalCode.trim().toUpperCase()
+  const match = trimmed.match(/^([1-9][0-9])(?:\d{2}|XX)$/)
+  if (!match) return null
+
+  const prefix2 = parseInt(match[1], 10)
+
+  if (prefix2 >= 10 && prefix2 <= 12) return "bruxelles"
+  if (prefix2 >= 13 && prefix2 <= 14) return "brabant_wallon"
+  if ((prefix2 >= 15 && prefix2 <= 19) || (prefix2 >= 30 && prefix2 <= 34)) {
+    return "flandre_brabant_flamand"
+  }
+  if (prefix2 >= 20 && prefix2 <= 29) return "flandre_anvers"
+  if (prefix2 >= 35 && prefix2 <= 39) return "flandre_limbourg"
+  if (prefix2 >= 40 && prefix2 <= 49) return "liege"
+  if (prefix2 >= 50 && prefix2 <= 59) return "namur"
+  if ((prefix2 >= 60 && prefix2 <= 65) || (prefix2 >= 70 && prefix2 <= 79)) {
+    return "hainaut"
+  }
+  if (prefix2 >= 66 && prefix2 <= 69) return "luxembourg"
+  if (prefix2 >= 80 && prefix2 <= 89) return "flandre_occidentale"
+  if (prefix2 >= 90 && prefix2 <= 99) return "flandre_orientale"
+
+  return null
+}

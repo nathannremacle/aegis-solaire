@@ -314,17 +314,24 @@ export function MarketplaceFeedView({
       // Segment
       if (segmentFilter !== "ALL" && lead.segment !== segmentFilter) return false
 
+      const location = getLeadLocationInfo(lead)
+
       // Province
-      if (selectedProvince !== "ALL" && lead.province?.toLowerCase() !== selectedProvince.toLowerCase()) {
+      if (
+        selectedProvince !== "ALL" &&
+        location.provinceKey.toLowerCase() !== selectedProvince.toLowerCase()
+      ) {
         return false
       }
 
       // Recherche textuelle
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase().trim()
-        const cityMatch = lead.city?.toLowerCase().includes(query)
+        const cityMatch = lead.city?.toLowerCase().includes(query) || location.city.toLowerCase().includes(query)
         const postalMatch = lead.postal_code?.includes(query) || lead.masked_postal_code?.toLowerCase().includes(query)
-        const provinceMatch = lead.province?.toLowerCase().includes(query)
+        const provinceMatch =
+          location.provinceLabel.toLowerCase().includes(query) ||
+          location.provinceKey.toLowerCase().includes(query)
         const companyMatch = lead.company?.toLowerCase().includes(query)
         const driverMatch = lead.project_driver?.toLowerCase().includes(query)
         const detailsMatch = lead.project_details?.toLowerCase().includes(query)

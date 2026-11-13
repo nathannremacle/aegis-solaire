@@ -5,7 +5,10 @@
  * et garantit un rendu digne d'un terminal de décision financière institutionnel.
  */
 
-import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
+import {
+  getBelgiumProvinceKeyFromPostalCode,
+  getProvinceDisplayLabel,
+} from "@/lib/belgium-regions"
 
 export const SURFACE_TYPE_LABELS: Record<string, string> = {
   toiture: "Toiture",
@@ -252,9 +255,9 @@ export const WALLONIA_POSTAL_LOOKUP: Record<string, { city: string; province: st
   "1180": { city: "Uccle", province: "Bruxelles", coords: [50.8000, 4.3333] },
   "1190": { city: "Forest", province: "Bruxelles", coords: [50.8167, 4.3167] },
   "1200": { city: "Woluwe-Saint-Lambert", province: "Bruxelles", coords: [50.8400, 4.4250] },
-  "1780": { city: "Wemmel", province: "Bruxelles", coords: [50.9080, 4.3120] },
-  "1950": { city: "Kraainem", province: "Bruxelles", coords: [50.8600, 4.4600] },
-  "1970": { city: "Wezembeek-Oppem", province: "Bruxelles", coords: [50.8400, 4.4900] },
+  "1780": { city: "Wemmel", province: "flandre_brabant_flamand", coords: [50.9080, 4.3120] },
+  "1950": { city: "Kraainem", province: "flandre_brabant_flamand", coords: [50.8600, 4.4600] },
+  "1970": { city: "Wezembeek-Oppem", province: "flandre_brabant_flamand", coords: [50.8400, 4.4900] },
 }
 
 function normalizeDisplayKey(key: string): string {
@@ -391,33 +394,50 @@ export function getLeadLocationInfo(lead: any): {
   city: string
   postalCode: string
   maskedPostalCode: string
+  provinceKey: string
   provinceLabel: string
   fullTitle: string
   subtitle: string
   coords: [number, number]
 } {
-  const rawPostal = String(lead?.postal_code || "").trim()
+  const rawPostal = String(lead?.postal_code || lead?.postalCode || "").trim()
+  const rawMaskedPostal = String(lead?.masked_postal_code || lead?.maskedPostalCode || "").trim()
   const rawCity = String(lead?.city || "").trim()
   const rawProvince = String(lead?.province || "").trim()
 
   // Chercher dans le dictionnaire postal si connu
   const lookup = WALLONIA_POSTAL_LOOKUP[rawPostal]
+  const derivedProvinceKey = getBelgiumProvinceKeyFromPostalCode(rawPostal || rawMaskedPostal)
+  const isSpecialMultiOrForeign =
+    rawProvince === "plusieurs_regions_be" || rawProvince === "etranger"
+
+  const effectiveProvince = isSpecialMultiOrForeign
+    ? rawProvince
+    : derivedProvinceKey || rawProvince || lookup?.province || "Wallonie"
 
   let city = rawCity
-  let provinceLabel = getProvinceDisplayLabel(rawProvince || lookup?.province || "Wallonie")
-  let coords: [number, number] = lookup?.coords || [50.5039, 4.8690] // Centre Wallonie par défaut
+  const provinceKey = derivedProvinceKey || rawProvince || ""
+  const provinceLabel = getProvinceDisplayLabel(effectiveProvince)
+  const coords: [number, number] = lookup?.coords || [50.5039, 4.8690] // Centre Wallonie par défaut
 
   if (!city && lookup) {
     city = lookup.city
   }
 
-  // Si toujours pas de commune, inférer depuis le préfixe de code postal
+  // Si toujours pas de commune, inférer depuis la province ou le préfixe de code postal
   if (!city) {
-    if (rawPostal.startsWith("4")) city = "Secteur Liège"
-    else if (rawPostal.startsWith("5")) city = "Secteur Namur"
-    else if (rawPostal.startsWith("69") || rawPostal.startsWith("68") || rawPostal.startsWith("67") || rawPostal.startsWith("66")) city = "Secteur Luxembourg"
-    else if (rawPostal.startsWith("6") || rawPostal.startsWith("7")) city = "Secteur Hainaut"
-    else if (rawPostal.startsWith("13") || rawPostal.startsWith("14")) city = "Secteur Brabant Wallon"
+    const prefixCheck = rawPostal || rawMaskedPostal
+    if (prefixCheck.startsWith("4")) city = "Secteur Liège"
+    else if (prefixCheck.startsWith("5")) city = "Secteur Namur"
+    else if (
+      prefixCheck.startsWith("69") ||
+      prefixCheck.startsWith("68") ||
+      prefixCheck.startsWith("67") ||
+      prefixCheck.startsWith("66")
+    ) {
+      city = "Secteur Luxembourg"
+    } else if (prefixCheck.startsWith("6") || prefixCheck.startsWith("7")) city = "Secteur Hainaut"
+    else if (prefixCheck.startsWith("13") || prefixCheck.startsWith("14")) city = "Secteur Brabant Wallon"
     else if (provinceLabel && provinceLabel !== "Wallonie") city = `Région ${provinceLabel}`
     else city = "Chantier Wallonie"
   }
@@ -427,7 +447,7 @@ export function getLeadLocationInfo(lead: any): {
 
   const postalCode = rawPostal || "Wallonie"
   const maskedPostalCode =
-    lead?.masked_postal_code ||
+    rawMaskedPostal ||
     (rawPostal.length >= 2 ? `${rawPostal.slice(0, 2)}XX` : "Wallonie")
 
   const displayPostal = lead?.already_purchased || lead?.purchase_id ? postalCode : maskedPostalCode
@@ -449,6 +469,7 @@ export function getLeadLocationInfo(lead: any): {
     city,
     postalCode,
     maskedPostalCode,
+    provinceKey,
     provinceLabel,
     fullTitle,
     subtitle,

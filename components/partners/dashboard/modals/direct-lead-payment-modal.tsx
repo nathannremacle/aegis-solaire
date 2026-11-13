@@ -20,7 +20,6 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { calculateLeadDirectFinancials, formatEurWithDecimals } from "@/lib/credit-pricing"
-import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 import { getLeadLocationInfo } from "@/lib/lead-display-helpers"
 import { toast } from "sonner"
 
@@ -158,7 +157,7 @@ export function DirectLeadPaymentModal({
           <div className="flex items-center gap-2 text-xs text-foreground font-semibold">
             <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <span>
-              {location.city ? `${location.city} (${location.postalCode})` : getProvinceDisplayLabel(lead.province || "")} • {getProvinceDisplayLabel(lead.province || "")}
+              {location.fullTitle} • {location.provinceLabel}
             </span>
           </div>
 

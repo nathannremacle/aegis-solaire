@@ -1,5 +1,8 @@
 import { FinancialEstimates } from "@/lib/marketplace-pricing"
-import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
+import {
+  getBelgiumProvinceKeyFromPostalCode,
+  getProvinceDisplayLabel,
+} from "@/lib/belgium-regions"
 import {
   SURFACE_TYPE_LABELS,
   ROOF_MATERIAL_LABELS,
@@ -131,8 +134,17 @@ function getLeadLocationInfo(lead: {
 } {
   const rawCity = lead.city && lead.city !== "null" && lead.city !== "undefined" ? lead.city.trim() : ""
   const rawPostal = lead.postalCode && lead.postalCode !== "null" && lead.postalCode !== "undefined" ? lead.postalCode.trim() : ""
-  const rawProvince = lead.province && lead.province !== "null" && lead.province !== "undefined"
-    ? getProvinceDisplayLabel(lead.province, lead.provinceFreeText)
+  const derivedProvinceKey = getBelgiumProvinceKeyFromPostalCode(rawPostal)
+  const isSpecialMultiOrForeign =
+    lead.province === "plusieurs_regions_be" || lead.province === "etranger"
+  const effectiveProvinceKey =
+    !isSpecialMultiOrForeign && derivedProvinceKey
+      ? derivedProvinceKey
+      : lead.province && lead.province !== "null" && lead.province !== "undefined"
+        ? lead.province
+        : ""
+  const rawProvince = effectiveProvinceKey
+    ? getProvinceDisplayLabel(effectiveProvinceKey, lead.provinceFreeText)
     : ""
 
   const provinceLabel = rawProvince && rawProvince !== "null" && rawProvince !== "undefined" ? rawProvince : "Wallonie"
