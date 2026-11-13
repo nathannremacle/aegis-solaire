@@ -20,15 +20,15 @@ interface DisputeClaimModalProps {
 }
 
 const DISPUTE_REASONS = [
-  { id: "invalid_contact", label: "Numéro de téléphone / email erroné ou injoignable" },
-  { id: "out_of_scope", label: "Hors critères (pas propriétaire, locataire, pas de projet)" },
-  { id: "already_equipped", label: "Déjà équipé en panneaux photovoltaïques récents" },
-  { id: "competitor", label: "Concurrent / test / faux prospect" },
-  { id: "fake", label: "Demande non sollicitée par le prospect" },
+  { id: "wrong_number", label: "Numéro de téléphone / email erroné ou non attribué" },
+  { id: "unreachable", label: "Prospect injoignable après plusieurs tentatives (appels + SMS)" },
+  { id: "out_of_scope", label: "Hors critères (locataire, hors zone, pas de projet réel)" },
+  { id: "already_equipped", label: "Déjà équipé ou déjà signé avec un concurrent" },
+  { id: "other", label: "Autre anomalie (faux prospect, demande non sollicitée)" },
 ]
 
 export default function DisputeClaimModal({ purchase, onClose }: DisputeClaimModalProps) {
-  const [reason, setReason] = useState<string>("invalid_contact")
+  const [reason, setReason] = useState<string>("wrong_number")
   const [details, setDetails] = useState<string>("")
   const [submitting, setSubmitting] = useState(false)
 
@@ -115,7 +115,7 @@ export default function DisputeClaimModal({ purchase, onClose }: DisputeClaimMod
             <AlertCircle className="h-4 w-4 text-accent shrink-0 mt-0.5" />
             <span>
               Les réclamations sont examinées sous <span className="font-mono tabular-nums">24h</span> ouvrées. En cas de validation, les{" "}
-              <strong className="font-mono tabular-nums">{purchase.credits_spent || 2} crédits</strong> vous seront automatiquement recrédités.
+              <strong className="font-mono tabular-nums">{purchase.credits_spent || (purchase.segment === "B2B" ? 9 : 3)} crédits</strong> vous seront automatiquement recrédités.
             </span>
           </div>
 
@@ -125,11 +125,10 @@ export default function DisputeClaimModal({ purchase, onClose }: DisputeClaimMod
               {DISPUTE_REASONS.map((r) => (
                 <label
                   key={r.id}
-                  className={`flex items-center gap-2.5 rounded-lg border p-2.5 text-xs font-medium cursor-pointer transition-colors ${
-                    reason === r.id
+                  className={`flex items-center gap-2.5 rounded-lg border p-2.5 text-xs font-medium cursor-pointer transition-colors ${reason === r.id
                       ? "border-destructive bg-destructive/5 text-foreground font-bold"
                       : "border-border hover:bg-secondary/50 text-muted-foreground"
-                  }`}
+                    }`}
                 >
                   <input
                     type="radio"

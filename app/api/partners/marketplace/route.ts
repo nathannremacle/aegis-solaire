@@ -85,9 +85,6 @@ export async function GET() {
   const myPurchasedIds = new Set((myPurchases ?? []).map((p) => p.lead_id))
   const myPurchasesCount = (myPurchases ?? []).length
 
-  // Déterminer le palier partenaire
-  const partnerTier = myPurchasesCount >= 15 ? "gold" : myPurchasesCount >= 5 ? "silver" : "certified"
-
   // Ne retenir que les leads viables et complets pour la marketplace (jamais les dossiers vitrines)
   const validLeads = (leads ?? []).filter((lead) => {
     if (isShowcaseOnlyLeadId(lead.id) || lead.qualification_metadata?.is_showcase === true) {
@@ -180,7 +177,6 @@ export async function GET() {
       id: partner.id,
       credits: partner.credits,
       companyName: partner.company_name,
-      tier: partnerTier,
       purchasesCount: myPurchasesCount,
     },
   })

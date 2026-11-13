@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
 import dynamic from "next/dynamic"
-import { Coins, Store, Briefcase, Bell, Award, LogOut, FileText, ShieldCheck, Leaf, Sparkles } from "lucide-react"
+import { Coins, Store, Briefcase, Bell, LogOut, FileText, ShieldCheck, Leaf, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { MarketplaceFeedView } from "./marketplace-feed-view"
@@ -14,7 +14,6 @@ import { CrmPortfolioView } from "./crm-portfolio-view"
 const DisputeClaimModal = dynamic(() => import("./modals/dispute-claim-modal"), { ssr: false })
 const AlertPreferencesModal = dynamic(() => import("./modals/alert-preferences-modal"), { ssr: false })
 const CreditPacksModal = dynamic(() => import("./modals/credit-packs-modal"), { ssr: false })
-const PartnerTierModal = dynamic(() => import("./modals/partner-tier-modal"), { ssr: false })
 const ExpertStudyModal = dynamic(() => import("./modals/expert-study-modal"), { ssr: false })
 
 export interface PartnerDashboardShellProps {
@@ -57,7 +56,6 @@ export function PartnerDashboardShell({
   const [disputePurchase, setDisputePurchase] = React.useState<any | null>(null)
   const [isPrefsOpen, setIsPrefsOpen] = React.useState(false)
   const [isCreditsOpen, setIsCreditsOpen] = React.useState(false)
-  const [isTierOpen, setIsTierOpen] = React.useState(false)
   const [isExpertOpen, setIsExpertOpen] = React.useState(false)
   const [selectedLeadForExpert, setSelectedLeadForExpert] = React.useState<any | null>(null)
 
@@ -163,16 +161,16 @@ export function PartnerDashboardShell({
                 type="button"
                 onClick={() => setActiveTab("marketplace")}
                 className={`flex items-center gap-1.5 sm:gap-2 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 ${activeTab === "marketplace"
-                    ? "bg-primary text-primary-foreground font-bold shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                  ? "bg-primary text-primary-foreground font-bold shadow-2xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                   }`}
               >
                 <Store className="h-4 w-4 text-accent shrink-0" />
                 <span className="whitespace-nowrap font-bold">Marketplace</span>
                 <span
                   className={`rounded-full px-1.5 py-0.2 text-[10px] sm:text-[11px] font-mono font-bold tabular-nums shrink-0 ${activeTab === "marketplace"
-                      ? "bg-primary-foreground/20 text-primary-foreground"
-                      : "bg-secondary text-foreground"
+                    ? "bg-primary-foreground/20 text-primary-foreground"
+                    : "bg-secondary text-foreground"
                     }`}
                 >
                   {marketplace.length}
@@ -183,16 +181,16 @@ export function PartnerDashboardShell({
                 type="button"
                 onClick={() => setActiveTab("portfolio")}
                 className={`flex items-center gap-1.5 sm:gap-2 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 ${activeTab === "portfolio"
-                    ? "bg-primary text-primary-foreground font-bold shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                  ? "bg-primary text-primary-foreground font-bold shadow-2xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                   }`}
               >
                 <Briefcase className="h-4 w-4 text-accent shrink-0" />
                 <span className="whitespace-nowrap font-bold">Mon CRM</span>
                 <span
                   className={`rounded-full px-1.5 py-0.2 text-[10px] sm:text-[11px] font-mono font-bold tabular-nums shrink-0 ${activeTab === "portfolio"
-                      ? "bg-primary-foreground/20 text-primary-foreground"
-                      : "bg-secondary text-foreground"
+                    ? "bg-primary-foreground/20 text-primary-foreground"
+                    : "bg-secondary text-foreground"
                     }`}
                 >
                   {portfolio.length}
@@ -242,17 +240,15 @@ export function PartnerDashboardShell({
           {/* Droite : Badge Statut, Solde Portefeuille & Menu Profil */}
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             {/* Badge de statut partenaire (Affiché dès xl >= 1280px pour protéger l'espace des onglets) */}
-            <button
-              type="button"
-              onClick={() => setIsTierOpen(true)}
-              className="hidden xl:inline-flex items-center gap-1.5 rounded-xl border border-border bg-secondary/50 hover:bg-secondary px-2.5 py-1 text-xs font-medium text-foreground transition-all cursor-pointer whitespace-nowrap shrink-0"
-              title="Consulter mon palier et mes avantages installateur"
+            <div
+              className="hidden xl:inline-flex items-center gap-1.5 rounded-xl border border-border bg-secondary/50 px-2.5 py-1 text-xs font-medium text-foreground whitespace-nowrap shrink-0"
+              title="Compte installateur vérifié RESCERT"
             >
               <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />
               <span className="font-semibold truncate max-w-[140px]">
                 {initialPartner?.segment === "B2B" ? "Partenaire B2B" : "Artisan Agréé"}
               </span>
-            </button>
+            </div>
 
             {/* Composant Unique du Portefeuille (Coins + Montant + CTA Recharger) */}
             <button
@@ -389,8 +385,8 @@ export function PartnerDashboardShell({
             type="button"
             onClick={() => setActiveTab("marketplace")}
             className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${activeTab === "marketplace"
-                ? "text-primary font-bold"
-                : "text-muted-foreground hover:text-foreground"
+              ? "text-primary font-bold"
+              : "text-muted-foreground hover:text-foreground"
               }`}
           >
             <div className="relative">
@@ -409,8 +405,8 @@ export function PartnerDashboardShell({
             type="button"
             onClick={() => setActiveTab("portfolio")}
             className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${activeTab === "portfolio"
-                ? "text-primary font-bold"
-                : "text-muted-foreground hover:text-foreground"
+              ? "text-primary font-bold"
+              : "text-muted-foreground hover:text-foreground"
               }`}
           >
             <div className="relative">
@@ -468,12 +464,6 @@ export function PartnerDashboardShell({
         <CreditPacksModal
           partner={initialPartner}
           onClose={() => setIsCreditsOpen(false)}
-        />
-      )}
-      {isTierOpen && (
-        <PartnerTierModal
-          partner={initialPartner}
-          onClose={() => setIsTierOpen(false)}
         />
       )}
       {isExpertOpen && (
