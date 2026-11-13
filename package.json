@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "verify:onboarding": "node scripts/verify-partner-onboarding.mjs"
   },
   "dependencies": {
     "@astryxdesign/core": "^0.7.11",
