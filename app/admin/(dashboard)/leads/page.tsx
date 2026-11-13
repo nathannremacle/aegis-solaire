@@ -10,8 +10,33 @@ export const metadata = {
   title: "Gestion des Leads",
 }
 
+async function getPartialPurchasedLeadIds(supabase: ReturnType<typeof createServiceRoleClient>): Promise<string[]> {
+  const { data } = await supabase
+    .from("lead_purchases")
+    .select("lead_id, leads(marketplace_status, status)")
+
+  const ids = new Set<string>()
+  for (const row of (data as any[]) || []) {
+    const leadObj = Array.isArray(row.leads) ? row.leads[0] : row.leads
+    if (
+      row.lead_id &&
+      leadObj?.marketplace_status !== "sold_out" &&
+      leadObj?.status !== "converted"
+    ) {
+      ids.add(row.lead_id)
+    }
+  }
+  return Array.from(ids)
+}
+
 async function getLeadCounts() {
   const supabase = createServiceRoleClient()
+  const partialPurchasedIds = await getPartialPurchasedLeadIds(supabase)
+  const assignedOrFilter =
+    partialPurchasedIds.length > 0
+      ? `marketplace_status.eq.sold_out,status.eq.converted,id.in.(${partialPurchasedIds.join(",")})`
+      : "marketplace_status.eq.sold_out,status.eq.converted"
+
   const [triageRes, marketplaceRes, soldOutRes, totalRes] = await Promise.all([
     supabase
       .from("leads")
@@ -24,7 +49,7 @@ async function getLeadCounts() {
     supabase
       .from("leads")
       .select("id", { count: "exact", head: true })
-      .eq("marketplace_status", "sold_out"),
+      .or(assignedOrFilter),
     supabase
       .from("leads")
       .select("id", { count: "exact", head: true }),
@@ -63,6 +88,8 @@ async function getLeads(
   const from = (page - 1) * limit
   const view = filters.view || "all"
 
+  const partialPurchasedIds = view === "assigned" ? await getPartialPurchasedLeadIds(supabase) : []
+
   let purchasedLeadIdsForPartner: string[] | null = null
   if (filters.installateurId && filters.installateurId !== "all") {
     const { data: lp } = await supabase
@@ -88,7 +115,11 @@ async function getLeads(
       q = q.eq("marketplace_status", "available")
       q = q.order("created_at", { ascending: false })
     } else if (view === "assigned") {
-      q = q.or("marketplace_status.eq.sold_out,status.eq.converted")
+      const assignedOrFilter =
+        partialPurchasedIds.length > 0
+          ? `marketplace_status.eq.sold_out,status.eq.converted,id.in.(${partialPurchasedIds.join(",")})`
+          : "marketplace_status.eq.sold_out,status.eq.converted"
+      q = q.or(assignedOrFilter)
       q = q.order("created_at", { ascending: false })
     } else {
       q = q.order("created_at", { ascending: false })

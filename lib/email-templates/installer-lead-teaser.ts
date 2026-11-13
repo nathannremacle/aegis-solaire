@@ -13,6 +13,7 @@ import {
   getOwnershipLabel,
   getConsumptionLabel,
 } from "@/lib/lead-display-helpers"
+import { buildPartnerNotificationUrls } from "@/lib/partner-notification-tokens"
 
 export interface InstallerLeadTeaserData {
   partner: {
@@ -48,6 +49,12 @@ export interface InstallerLeadTeaserData {
   maxSlots: number
   creditCost: number
   financials: FinancialEstimates
+  engagement?: {
+    hasInspected?: boolean
+    inspectedDurationMs?: number
+    zoomedRoof?: boolean
+    unlockIntent?: boolean
+  }
 }
 
 function escapeHtml(s: string): string {
@@ -163,6 +170,13 @@ export function buildLeadEmailSubject(data: InstallerLeadTeaserData): string {
     return `Nouveau dossier photovoltaïque ${locPhrase} — 3 créneaux max (#${data.lead.id.slice(0, 8)})`
   }
 
+  if (data.waveNumber >= 2 && data.engagement?.hasInspected) {
+    if (!isB2B && data.takenSlots > 0) {
+      return `Mise à jour sur le dossier consulté ${locPhrase} — Plus que ${remainingSlots} place(s) disponible(s)`
+    }
+    return `Rappel sur le dossier consulté ${locPhrase} (${power})`
+  }
+
   if (data.waveNumber === 2) {
     if (isB2B) {
       return `Rappel : Projet B2B disponible ${locPhrase} (${power})`
@@ -189,6 +203,7 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
   const baseUrl = getSiteBaseUrl()
   const dashboardLeadUrl = `${baseUrl}/partenaires/dashboard?lead=${encodeURIComponent(data.lead.id)}`
   const creditsOrderUrl = `${baseUrl}/partenaires/dashboard/credits`
+  const notifUrls = buildPartnerNotificationUrls(baseUrl, data.partner.id)
   const logoUrl = `${baseUrl}/logo.png`
 
   const { city, provinceLabel, postalCode, locPhrase } = getLeadLocationInfo(data.lead)
@@ -262,14 +277,26 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
       : `Un nouveau dossier de rénovation photovoltaïque vient d'être validé par notre cellule technique ${locPhrase}. Les coordonnées complètes du demandeur sont prêtes à être transmises.`
     waveUrgencyBadge = isB2B ? "EXCLUSIVITÉ B2B — 1 SEUL ARTISAN" : "ATTRIBUTION RESTREINTE — 3 ARTISANS MAX"
   } else if (data.waveNumber === 2) {
-    waveIntroText = isB2B
-      ? `Rappel de disponibilité : Le projet photovoltaïque professionnel ${locPhrase} est toujours accessible en exclusivité sur votre espace partenaire.`
-      : `Rappel de disponibilité : Le dossier photovoltaïque ${locPhrase} dispose encore de ${remainingSlots} place(s) artisan ouverte(s) avant fermeture de la mise en relation.`
+    if (data.engagement?.hasInspected) {
+      waveIntroText = !isB2B && data.takenSlots > 0
+        ? `Mise à jour sur le dossier photovoltaïque ${locPhrase} que vous avez récemment étudié sur votre portail : un confrère partenaire vient d'en réserver un créneau. Il ne reste plus que ${remainingSlots} place(s) artisan ouverte(s) avant clôture définitive de la mise en relation.`
+        : `Suite à votre consultation de la fiche technique du projet photovoltaïque ${locPhrase}, nous vous confirmons que ce dossier est toujours accessible sur votre portail partenaire${!isB2B ? ` (${remainingSlots} place(s) disponible(s))` : " en exclusivité"}.`
+    } else {
+      waveIntroText = isB2B
+        ? `Rappel de disponibilité : Le projet photovoltaïque professionnel ${locPhrase} est toujours accessible en exclusivité sur votre espace partenaire.`
+        : `Rappel de disponibilité : Le dossier photovoltaïque ${locPhrase} dispose encore de ${remainingSlots} place(s) artisan ouverte(s) avant fermeture de la mise en relation.`
+    }
     waveUrgencyBadge = isB2B ? "PROJET B2B DISPONIBLE" : `PLUS QUE ${remainingSlots} CRÉNEAU(X) OUVERT(S)`
   } else {
-    waveIntroText = isB2B
-      ? `Dernière opportunité : Le projet photovoltaïque d'entreprise ${locPhrase} sera prochainement clôturé si aucun artisan partenaire ne le prend en charge.`
-      : `Dernier créneau disponible : Il ne reste qu'une seule place artisan ouverte sur ce chantier ${locPhrase} avant clôture définitive de la mise en relation.`
+    if (data.engagement?.hasInspected) {
+      waveIntroText = !isB2B && data.takenSlots > 0
+        ? `Mise à jour sur le dossier photovoltaïque ${locPhrase} que vous avez récemment étudié sur votre portail : un confrère partenaire vient d'en réserver un créneau. Il ne reste plus que ${remainingSlots} place(s) artisan ouverte(s) avant clôture définitive de la mise en relation.`
+        : `Suite à votre consultation de la fiche technique du projet photovoltaïque ${locPhrase}, nous vous confirmons que ce dossier est toujours accessible sur votre portail partenaire${!isB2B ? ` (${remainingSlots} place(s) disponible(s))` : " en exclusivité"}.`
+    } else {
+      waveIntroText = isB2B
+        ? `Dernière opportunité : Le projet photovoltaïque d'entreprise ${locPhrase} sera prochainement clôturé si aucun artisan partenaire ne le prend en charge.`
+        : `Dernier créneau disponible : Il ne reste qu'une seule place artisan ouverte sur ce chantier ${locPhrase} avant clôture définitive de la mise en relation.`
+    }
     waveUrgencyBadge = isB2B ? "AVIS DE CLÔTURE IMMINENTE" : "DERNIER CRÉNEAU AVANT CLÔTURE"
   }
 
@@ -345,6 +372,11 @@ ${!hasEnoughCredits ? `Note : Votre solde actuel (${data.partner.credits} crédi
 Une question technique sur ce dossier ?
 Notre cellule technique se tient à votre entière disposition par e-mail à contact@aegissolaire.com.
 
+Gérer vos alertes e-mail (sans connexion) :
+• Ajuster mes critères & ma fréquence d'alerte : ${notifUrls.manageUrl}
+• Recevoir uniquement les nouveaux chantiers (stopper les rappels) : ${notifUrls.noRelancesUrl}
+• Désactiver toutes les alertes e-mail en 1 clic : ${notifUrls.muteAllUrl}
+
 Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
 `.trim()
 
@@ -381,6 +413,11 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
       ? `Avis de Clôture · Projet B2B (#${data.lead.id.slice(0, 8)})`
       : `Dernière Opportunité · Clôture Imminente (#${data.lead.id.slice(0, 8)})`
     headlineTitle = `Dernier créneau disponible ${escapeHtml(locPhrase)}`
+  }
+
+  if (data.waveNumber >= 2 && data.engagement?.hasInspected && !isB2B && data.takenSlots > 0) {
+    eyebrowText = `Dossier Consulté · Plus que ${remainingSlots} place(s) restante(s) (#${data.lead.id.slice(0, 8)})`
+    headlineTitle = `Plus que ${remainingSlots} place(s) disponible(s) ${escapeHtml(locPhrase)}`
   }
 
   // Clean, Swiss editorial HTML Email without cheesy AI emojis
@@ -754,8 +791,15 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
               <p style="margin: 0 0 6px 0;">
                 Agrément RESCERT Photovoltaïque · Conformité CWaPE &amp; PACE 2030.
               </p>
+              <p style="margin: 0 0 8px 0;">
+                Vous recevez cette notification en tant qu'installateur partenaire agréé Aegis Solaire.
+              </p>
               <p style="margin: 0;">
-                Vous recevez cette notification en tant qu'installateur partenaire agréé Aegis Solaire. Pour ajuster vos préférences : <a href="${baseUrl}/partenaires/dashboard" style="color: #475569; text-decoration: underline;">Gérer mes préférences</a>.
+                <a href="${notifUrls.manageUrl}" style="color: #0F172A; font-weight: 600; text-decoration: underline;">Ajuster mes critères &amp; ma fréquence d'alerte</a>
+                &nbsp;&middot;&nbsp;
+                <a href="${notifUrls.noRelancesUrl}" style="color: #475569; text-decoration: underline;">Recevoir uniquement les nouveaux chantiers (stopper les rappels)</a>
+                &nbsp;&middot;&nbsp;
+                <a href="${notifUrls.muteAllUrl}" style="color: #475569; text-decoration: underline;">Désactiver toutes les alertes e-mail en 1 clic</a>
               </p>
             </td>
           </tr>

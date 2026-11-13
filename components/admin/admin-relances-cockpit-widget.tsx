@@ -21,10 +21,8 @@ export async function AdminRelancesCockpitWidget() {
   let nextUpcoming = null
 
   try {
-    const [statsData, upcomingData] = await Promise.all([
-      getRelancesOverviewStats(),
-      getUpcomingRelancesSchedule(),
-    ])
+    const upcomingData = await getUpcomingRelancesSchedule()
+    const statsData = await getRelancesOverviewStats(upcomingData)
     stats = statsData
     nextUpcoming = upcomingData.length > 0 ? upcomingData[0] : null
   } catch (err) {

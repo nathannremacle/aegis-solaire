@@ -241,7 +241,7 @@ export function AdminNetworkInviteHub() {
       try {
         await fetch("/api/admin/invite-templates", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-admin-request": "true" },
           body: JSON.stringify({ tone: targetTone, subject, body: bodyText }),
         })
         setSaveStatus("saved")
@@ -516,7 +516,7 @@ export function AdminNetworkInviteHub() {
       const renderedHtml = renderPartnerInviteHtml(baseInviteData, resolvedBody)
       const res = await fetch("/api/admin/invite-email", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
         body: JSON.stringify({
           toEmail: installerEmail.trim(),
           subject: resolvedSubject,

@@ -249,7 +249,7 @@ export function LeadDrawer({
     try {
       const res = await fetch(`/api/admin/leads/${lead.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
         body: JSON.stringify({
           site_address: editSiteAddress.trim() || null,
           postal_code: cleanCp || null,
@@ -308,7 +308,7 @@ export function LeadDrawer({
     try {
       const res = await fetch(`/api/admin/leads/${lead.id}/request-address`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
         body: JSON.stringify({
           subject: reqEmailSubject,
           message: reqEmailBody,

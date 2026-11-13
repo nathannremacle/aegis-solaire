@@ -58,6 +58,7 @@ export function PublishLeadQuickButton({
     try {
       const res = await fetch(`/api/admin/leads/${leadId}/publish`, {
         method: "POST",
+        headers: { "x-admin-request": "true" },
       })
       const data = await res.json()
       if (!res.ok || !data.success) {

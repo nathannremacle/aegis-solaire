@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server"
 import { getPartner } from "@/lib/partner-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
+import {
+  applyNotificationModeToSurfaces,
+  getCleanTargetSurfaces,
+  getPartnerNotificationMode,
+  isValidPartnerNotificationMode,
+  type PartnerNotificationMode,
+} from "@/lib/partner-notification-prefs"
 
 export const dynamic = "force-dynamic"
 
@@ -25,8 +32,9 @@ export async function GET() {
   return NextResponse.json({
     preferences: {
       provinces: data?.target_provinces ?? ["liege", "namur", "hainaut"],
-      surfaces: data?.target_surfaces ?? ["toiture", "parking"],
+      surfaces: getCleanTargetSurfaces(data?.target_surfaces),
       minFacture: data?.min_facture ?? 5000,
+      notificationMode: getPartnerNotificationMode(data),
     },
   })
 }
@@ -41,6 +49,7 @@ async function handleUpdate(request: Request) {
     provinces?: string[]
     surfaces?: string[]
     minFacture?: number
+    notificationMode?: PartnerNotificationMode
   }
 
   try {
@@ -50,27 +59,53 @@ async function handleUpdate(request: Request) {
   }
 
   const admin = createServiceRoleClient()
-  const updateData: Record<string, unknown> = {
+  const resolvedMode: PartnerNotificationMode = isValidPartnerNotificationMode(body.notificationMode)
+    ? body.notificationMode
+    : getPartnerNotificationMode(partner)
+
+  const cleanSurfaces = Array.isArray(body.surfaces)
+    ? getCleanTargetSurfaces(body.surfaces)
+    : getCleanTargetSurfaces(partner.target_surfaces)
+
+  const encodedSurfaces = applyNotificationModeToSurfaces(cleanSurfaces, resolvedMode)
+
+  const baseUpdateData: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
+    target_surfaces: encodedSurfaces,
   }
 
   if (Array.isArray(body.provinces)) {
-    updateData.target_provinces = body.provinces
-  }
-  if (Array.isArray(body.surfaces)) {
-    updateData.target_surfaces = body.surfaces
+    baseUpdateData.target_provinces = body.provinces
   }
   if (typeof body.minFacture === "number") {
-    updateData.min_facture = body.minFacture
+    baseUpdateData.min_facture = body.minFacture
   }
 
-  const { error } = await admin
+  const { error: fullError } = await admin
     .from("partners")
-    .update(updateData)
+    .update({
+      ...baseUpdateData,
+      email_notifications_enabled: resolvedMode !== "none",
+      email_relances_enabled: resolvedMode === "all",
+    })
     .eq("id", partner.id)
 
-  if (error) {
-    console.error("[preferences] update error:", error)
+  let updateError = fullError
+  if (
+    fullError &&
+    (fullError.code === "42703" ||
+      fullError.message?.includes("email_notifications_enabled") ||
+      fullError.message?.includes("email_relances_enabled"))
+  ) {
+    const fallbackRes = await admin
+      .from("partners")
+      .update(baseUpdateData)
+      .eq("id", partner.id)
+    updateError = fallbackRes.error
+  }
+
+  if (updateError) {
+    console.error("[preferences] update error:", updateError)
     return NextResponse.json({ error: "Erreur enregistrement préférences" }, { status: 500 })
   }
 
@@ -78,8 +113,10 @@ async function handleUpdate(request: Request) {
     success: true,
     preferences: {
       provinces: body.provinces ?? partner.target_provinces,
-      surfaces: body.surfaces ?? partner.target_surfaces,
+      surfaces: cleanSurfaces,
+      targetSurfacesRaw: encodedSurfaces,
       minFacture: body.minFacture ?? partner.min_facture,
+      notificationMode: resolvedMode,
     },
     message: "Préférences d'alerte enregistrées avec succès.",
   })

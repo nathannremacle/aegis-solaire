@@ -17,9 +17,16 @@ import {
   RotateCcw,
   Mail,
   ShieldCheck,
+  BellOff,
+  MailCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
+import {
+  getCleanTargetSurfaces,
+  getPartnerNotificationMode,
+  type PartnerNotificationMode,
+} from "@/lib/partner-notification-prefs"
 
 interface AlertPreferencesModalProps {
   partner: any
@@ -122,12 +129,13 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
     return ["liege", "namur", "hainaut", "brabant_wallon", "luxembourg"]
   })
 
-  const [selectedSurfaces, setSelectedSurfaces] = useState<string[]>(() => {
-    if (Array.isArray(partner?.target_surfaces) && partner.target_surfaces.length > 0) {
-      return partner.target_surfaces
-    }
-    return ["toiture", "parking"]
-  })
+  const [selectedSurfaces, setSelectedSurfaces] = useState<string[]>(() =>
+    getCleanTargetSurfaces(partner?.target_surfaces)
+  )
+
+  const [notificationMode, setNotificationMode] = useState<PartnerNotificationMode>(() =>
+    getPartnerNotificationMode(partner)
+  )
 
   const [minFacture, setMinFacture] = useState<number>(() => {
     if (typeof partner?.min_facture === "number") {
@@ -175,12 +183,12 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (selectedProvinces.length === 0) {
+    if (notificationMode !== "none" && selectedProvinces.length === 0) {
       toast.error("Veuillez sélectionner au moins une province pour recevoir des alertes.")
       return
     }
 
-    if (selectedSurfaces.length === 0) {
+    if (notificationMode !== "none" && selectedSurfaces.length === 0) {
       toast.error("Veuillez sélectionner au moins un type d'installation.")
       return
     }
@@ -194,6 +202,7 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
           provinces: selectedProvinces,
           surfaces: selectedSurfaces,
           minFacture,
+          notificationMode,
         }),
       })
 
@@ -205,11 +214,11 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
       // Mise à jour de l'objet partenaire en mémoire
       if (partner) {
         partner.target_provinces = selectedProvinces
-        partner.target_surfaces = selectedSurfaces
+        partner.target_surfaces = data?.preferences?.targetSurfacesRaw ?? selectedSurfaces
         partner.min_facture = minFacture
       }
 
-      toast.success("Vos alertes et votre périmètre wallon ont été enregistrés avec succès !")
+      toast.success("Vos alertes et préférences d'e-mails ont été enregistrées !")
       onClose()
     } catch (err: any) {
       toast.error(err.message || "Erreur lors de l'enregistrement des préférences")
@@ -478,34 +487,82 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
             </div>
           </div>
 
-          {/* ════════ Section D : Canal de Notification & Transparence ════════ */}
-          <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/5 p-3.5 sm:p-4 flex flex-col gap-2.5 text-xs text-foreground">
+          {/* ════════ Section D : Fréquence & Désactivation des E-mails ════════ */}
+          <div className="flex flex-col gap-3 pt-2 border-t border-border/80">
             <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600">
-                  <Mail className="h-4 w-4" />
-                </div>
-                <div>
-                  <span className="font-bold text-slate-900 dark:text-foreground block">
-                    Canal d&apos;alerte direct
-                  </span>
-                  <span className="font-mono text-[11px] text-muted-foreground">
-                    {partner?.email || "Adresse certifiée installateur"}
-                  </span>
-                </div>
-              </div>
-
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Actif · 0 spam
+              <label className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wider font-mono">
+                <Mail className="h-3.5 w-3.5 text-accent shrink-0" />
+                <span>Fréquence des e-mails</span>
+              </label>
+              <span className="font-mono text-[11px] text-muted-foreground truncate">
+                {partner?.email || "Adresse certifiée installateur"}
               </span>
             </div>
 
-            <div className="flex items-center gap-2 text-[11px] text-muted-foreground pt-1 border-t border-emerald-500/15">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-              <span>
-                Accès prioritaire en tant qu&apos;artisan agréé : vous recevez l&apos;alerte dès qu&apos;un dossier de votre zone est qualifié.
-              </span>
+            <div className="grid grid-cols-1 gap-2">
+              {[
+                {
+                  id: "all" as PartnerNotificationMode,
+                  title: "Toutes les alertes (Nouveaux chantiers + rappels)",
+                  desc: "Alerte dès publication + rappel s'il reste des créneaux disponibles.",
+                  icon: Bell,
+                },
+                {
+                  id: "new_only" as PartnerNotificationMode,
+                  title: "Nouveaux chantiers uniquement — Zéro relance",
+                  desc: "1 seul e-mail à la publication du chantier dans votre zone. Aucun rappel.",
+                  icon: MailCheck,
+                },
+                {
+                  id: "none" as PartnerNotificationMode,
+                  title: "Désactiver tous les e-mails (0 e-mail)",
+                  desc: "Met en pause toutes les alertes automatiques. Consultation sur le portail uniquement.",
+                  icon: BellOff,
+                },
+              ].map((opt) => {
+                const Icon = opt.icon
+                const isActive = notificationMode === opt.id
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setNotificationMode(opt.id)}
+                    className={`flex items-start justify-between gap-3 rounded-2xl border p-3 text-left transition-all cursor-pointer ${
+                      isActive
+                        ? "border-primary bg-primary/5 ring-1 ring-primary/20 shadow-xs"
+                        : "border-border bg-card hover:bg-secondary/40"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2.5 min-w-0">
+                      <div
+                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+                          isActive
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-muted-foreground"
+                        }`}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                      </div>
+                      <div className="flex flex-col gap-0.5 min-w-0">
+                        <span className="text-xs font-bold text-foreground">{opt.title}</span>
+                        <span className="text-[11px] text-muted-foreground leading-snug">
+                          {opt.desc}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div
+                      className={`mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+                        isActive
+                          ? "bg-primary border-primary text-primary-foreground"
+                          : "border-border bg-card"
+                      }`}
+                    >
+                      {isActive && <Check className="h-2.5 w-2.5 stroke-[3]" />}
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           </div>
         </form>

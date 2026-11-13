@@ -1,8 +1,15 @@
+import { cache } from "react"
 import { Resend } from "resend"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { calculateMarketplaceFinancials, calculateLeadCreditCost } from "@/lib/marketplace-pricing"
 import { renderInstallerLeadTeaserEmail, buildLeadEmailSubject } from "@/lib/email-templates/installer-lead-teaser"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
+import {
+  getPartnerNotificationMode,
+  OPTOUT_ALL_MARKER,
+  OPTOUT_RELANCES_MARKER,
+} from "@/lib/partner-notification-prefs"
+import { buildPartnerNotificationUrls } from "@/lib/partner-notification-tokens"
 
 // ==============================================================================
 // 1. CONFIGURATION & CONSTANTES MÉTIER
@@ -65,6 +72,11 @@ export interface PartnerMatchingScore {
   isNeighborProvince: boolean
   hasEnoughCredits: boolean
   segmentMatch: boolean
+  behavioralBoost?: number
+  hasInspectedLead?: boolean
+  inspectedDurationMs?: number
+  zoomedRoof?: boolean
+  unlockIntent?: boolean
 }
 
 // ==============================================================================
@@ -184,7 +196,9 @@ export function calculatePartnerMatchScore(
   }
 
   // 4. SPÉCIFICATIONS TECHNIQUES & SURFACE (15 points max)
-  const partnerSurfaces = partner.target_surfaces || []
+  const partnerSurfaces = (partner.target_surfaces || []).filter(
+    (s) => s !== OPTOUT_ALL_MARKER && s !== OPTOUT_RELANCES_MARKER
+  )
   if (partnerSurfaces.length === 0 || partnerSurfaces.includes(lead.surface_type)) {
     score += 15
   } else {
@@ -220,28 +234,43 @@ export interface EligiblePartnerForDispatch {
   isTest?: boolean
 }
 
+export interface PreloadedRelanceWaveData {
+  allPartners?: any[]
+  purchasesByLeadId?: Map<string, any[]>
+  dispatchesByLeadId?: Map<string, { partner_id: string; wave_number: number }[]>
+  telemetryByLeadId?: Map<string, any[]>
+}
+
 /**
  * Sélectionne la liste ordonnée des installateurs éligibles pour une vague donnée
  */
 export async function getEligiblePartnersForWave(
   supabase: ReturnType<typeof createServiceRoleClient>,
   lead: any,
-  waveNumber: number
+  waveNumber: number,
+  preloaded?: PreloadedRelanceWaveData
 ): Promise<EligiblePartnerForDispatch[]> {
   const maxSlots = lead.segment === "B2B" ? MAX_SLOTS_B2B : MAX_SLOTS_B2C
   const creditCost = lead.credit_cost || calculateLeadCreditCost(lead)
 
   // 1. Récupérer les achats existants pour ce lead (filtrer les comptes de test)
-  const { data: purchases } = await supabase
-    .from("lead_purchases")
-    .select("partner_id, partners(is_test, company_name)")
-    .eq("lead_id", lead.id)
+  let purchases: any[] = []
+  if (preloaded?.purchasesByLeadId) {
+    purchases = preloaded.purchasesByLeadId.get(lead.id) || []
+  } else {
+    const { data: fetchedPurchases } = await supabase
+      .from("lead_purchases")
+      .select("partner_id, partners(is_test, company_name)")
+      .eq("lead_id", lead.id)
+    purchases = fetchedPurchases || []
+  }
 
-  const realPurchases = (purchases || []).filter(
-    (p: any) => !p.partners?.is_test && !p.partners?.company_name?.toLowerCase().includes("test")
-  )
+  const realPurchases = purchases.filter((p: any) => {
+    const partnerObj = Array.isArray(p.partners) ? p.partners[0] : p.partners
+    return !partnerObj?.is_test && !partnerObj?.company_name?.toLowerCase().includes("test")
+  })
   const realPurchasedPartnerIds = new Set(realPurchases.map((p) => p.partner_id))
-  const allPurchasedPartnerIds = new Set((purchases || []).map((p) => p.partner_id))
+  const allPurchasedPartnerIds = new Set(purchases.map((p) => p.partner_id))
 
   // Si le lead est déjà plein pour les vrais installateurs, aucun partenaire n'est éligible
   if (realPurchasedPartnerIds.size >= maxSlots) {
@@ -250,15 +279,19 @@ export async function getEligiblePartnersForWave(
 
   // 2. Récupérer l'historique des relances déjà envoyées pour ce lead
   let alreadySentForThisLead: { partner_id: string; wave_number: number }[] = []
-  try {
-    const { data: dispatches } = await supabase
-      .from("lead_relance_dispatches")
-      .select("partner_id, wave_number")
-      .eq("lead_id", lead.id)
+  if (preloaded?.dispatchesByLeadId) {
+    alreadySentForThisLead = preloaded.dispatchesByLeadId.get(lead.id) || []
+  } else {
+    try {
+      const { data: dispatches } = await supabase
+        .from("lead_relance_dispatches")
+        .select("partner_id, wave_number")
+        .eq("lead_id", lead.id)
 
-    alreadySentForThisLead = dispatches || []
-  } catch (err) {
-    // Tolérance si la table n'est pas encore migrée
+      alreadySentForThisLead = dispatches || []
+    } catch {
+      // Tolérance si la table n'est pas encore migrée
+    }
   }
 
   const partnersWhoReceivedThisWave = new Set(
@@ -270,12 +303,96 @@ export async function getEligiblePartnersForWave(
     partnerNotificationCounts.set(d.partner_id, (partnerNotificationCounts.get(d.partner_id) || 0) + 1)
   }
 
-  // 3. Récupérer tous les partenaires actifs
-  const { data: allPartners, error: partnersErr } = await supabase
-    .from("partners")
-    .select("id, company_name, email, phone, credits, segment, target_provinces, target_surfaces, min_facture, is_test")
+  // 2b. Récupérer la télémétrie comportementale sur ce lead (consultations, durée d'étude, zoom, intention)
+  type LeadEngagementAgg = {
+    hasInspected: boolean
+    totalDurationMs: number
+    zoomedRoof: boolean
+    unlockIntent: boolean
+  }
+  const engagementByPartnerId = new Map<string, LeadEngagementAgg>()
+  const engagementByEmail = new Map<string, LeadEngagementAgg>()
 
-  if (partnersErr || !allPartners || allPartners.length === 0) {
+  try {
+    let telemetryRows: any[] = []
+    if (preloaded?.telemetryByLeadId) {
+      telemetryRows = preloaded.telemetryByLeadId.get(lead.id) || []
+    } else {
+      const { data: fetchedTelemetry } = await supabase
+        .from("partner_activity_events")
+        .select("partner_id, partner_email, event_type, duration_ms")
+        .eq("lead_id", lead.id)
+      telemetryRows = fetchedTelemetry || []
+    }
+
+    for (const ev of telemetryRows) {
+      const pId = ev.partner_id ? String(ev.partner_id) : null
+      const pEmail = ev.partner_email ? String(ev.partner_email).toLowerCase().trim() : null
+
+      const applyEvent = (agg: LeadEngagementAgg) => {
+        if (
+          ev.event_type === "lead_inspect_open" ||
+          ev.event_type === "email_deep_link" ||
+          ev.event_type === "lead_inspect_duration" ||
+          ev.event_type === "roof_photo_zoom" ||
+          ev.event_type === "unlock_intent"
+        ) {
+          agg.hasInspected = true
+        }
+        if (ev.event_type === "lead_inspect_duration") {
+          agg.totalDurationMs += Number(ev.duration_ms) || 0
+        } else if (Number(ev.duration_ms) > agg.totalDurationMs) {
+          agg.totalDurationMs = Number(ev.duration_ms) || 0
+        }
+        if (ev.event_type === "roof_photo_zoom") {
+          agg.zoomedRoof = true
+        }
+        if (ev.event_type === "unlock_intent") {
+          agg.unlockIntent = true
+        }
+      }
+
+      if (pId) {
+        const cur = engagementByPartnerId.get(pId) || {
+          hasInspected: false,
+          totalDurationMs: 0,
+          zoomedRoof: false,
+          unlockIntent: false,
+        }
+        applyEvent(cur)
+        engagementByPartnerId.set(pId, cur)
+      }
+      if (pEmail) {
+        const cur = engagementByEmail.get(pEmail) || {
+          hasInspected: false,
+          totalDurationMs: 0,
+          zoomedRoof: false,
+          unlockIntent: false,
+        }
+        applyEvent(cur)
+        engagementByEmail.set(pEmail, cur)
+      }
+    }
+  } catch {
+    // Tolérance si la table partner_activity_events n'est pas encore migrée
+  }
+
+  // 3. Récupérer tous les partenaires actifs
+  let allPartners: any[] = []
+  if (preloaded?.allPartners) {
+    allPartners = preloaded.allPartners
+  } else {
+    const { data: fetchedPartners, error: partnersErr } = await supabase
+      .from("partners")
+      .select("id, company_name, email, phone, credits, segment, target_provinces, target_surfaces, min_facture, is_test")
+
+    if (partnersErr || !fetchedPartners || fetchedPartners.length === 0) {
+      return []
+    }
+    allPartners = fetchedPartners
+  }
+
+  if (allPartners.length === 0) {
     return []
   }
 
@@ -297,6 +414,11 @@ export async function getEligiblePartnersForWave(
     const countForLead = partnerNotificationCounts.get(partner.id) || 0
     if (countForLead >= MAX_NOTIFICATIONS_PER_LEAD_PER_PARTNER) continue
 
+    // Respecter les préférences de fréquence d'alertes e-mail de l'installateur
+    const notifMode = getPartnerNotificationMode(partner)
+    if (notifMode === "none") continue
+    if (notifMode === "new_only" && (waveNumber > 1 || countForLead >= 1)) continue
+
     // Vérifier l'adresse e-mail
     if (!partner.email || !partner.email.includes("@")) continue
 
@@ -309,6 +431,32 @@ export async function getEligiblePartnersForWave(
     })
 
     if (scoreInfo.score === 0 || !scoreInfo.segmentMatch) continue
+
+    // Bonus d'intérêt comportemental (Behavioral Boost) sur Vagues 2 & 3
+    const partnerEmailLower = String(partner.email || "").toLowerCase().trim()
+    const engagement =
+      engagementByPartnerId.get(partner.id) ||
+      (partnerEmailLower ? engagementByEmail.get(partnerEmailLower) : undefined)
+
+    let behavioralBoost = 0
+    if (engagement?.hasInspected) {
+      behavioralBoost += 10
+      if (engagement.totalDurationMs >= 10000) behavioralBoost += 15
+      if (engagement.zoomedRoof) behavioralBoost += 10
+      if (engagement.unlockIntent) behavioralBoost += 15
+    }
+
+    if (behavioralBoost > 0) {
+      scoreInfo.score = Math.min(130, scoreInfo.score + behavioralBoost)
+      if (behavioralBoost >= 20) {
+        scoreInfo.tier = "tier_1"
+      }
+    }
+    scoreInfo.behavioralBoost = behavioralBoost
+    scoreInfo.hasInspectedLead = Boolean(engagement?.hasInspected)
+    scoreInfo.inspectedDurationMs = engagement?.totalDurationMs || 0
+    scoreInfo.zoomedRoof = Boolean(engagement?.zoomedRoof)
+    scoreInfo.unlockIntent = Boolean(engagement?.unlockIntent)
 
     // Filtrage par vague (Waterfall Cascade) :
     // Vague 1 : Priorité absolue aux installateurs du Tier 1 (Score >= 70, même province)
@@ -325,13 +473,18 @@ export async function getEligiblePartnersForWave(
     scoredCandidates.push({ partner, scoreInfo, isTest: false })
   }
 
-  // 5. Trier par score décroissant (les plus pertinents et ceux ayant des crédits en premier)
+  // 5. Trier par intérêt comportemental chaud, crédits disponibles, puis score décroissant
   scoredCandidates.sort((a, b) => {
-    // Priorité 1 : Solde de crédits suffisant
+    const aHot = (a.scoreInfo.behavioralBoost || 0) >= 20
+    const bHot = (b.scoreInfo.behavioralBoost || 0) >= 20
+    if (aHot !== bHot) {
+      return aHot ? -1 : 1
+    }
+    // Priorité 2 : Solde de crédits suffisant
     if (a.scoreInfo.hasEnoughCredits !== b.scoreInfo.hasEnoughCredits) {
       return a.scoreInfo.hasEnoughCredits ? -1 : 1
     }
-    // Priorité 2 : Score de pertinence global
+    // Priorité 3 : Score de pertinence global
     return b.scoreInfo.score - a.scoreInfo.score
   })
 
@@ -534,9 +687,17 @@ export async function dispatchLeadWave(
       maxSlots,
       creditCost,
       financials,
+      engagement: {
+        hasInspected: Boolean(scoreInfo.hasInspectedLead),
+        inspectedDurationMs: scoreInfo.inspectedDurationMs || 0,
+        zoomedRoof: Boolean(scoreInfo.zoomedRoof),
+        unlockIntent: Boolean(scoreInfo.unlockIntent),
+      },
     }
 
     const { subject, text, html } = renderInstallerLeadTeaserEmail(emailData)
+    const siteBaseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.aegissolaire.com").replace(/\/$/, "")
+    const notifUrls = buildPartnerNotificationUrls(siteBaseUrl, partner.id, partner.email)
 
     if (resend) {
       try {
@@ -547,6 +708,10 @@ export async function dispatchLeadWave(
           subject,
           text,
           html,
+          headers: {
+            "List-Unsubscribe": `<${notifUrls.muteAllUrl}>, <mailto:contact@aegissolaire.com?subject=Desabonnement%20alertes>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          },
         })
 
         if (sendErr) {
@@ -693,12 +858,57 @@ export async function dispatchLeadToSpecificPartners(
     qualificationMetadata: lead.qualification_metadata,
   })
 
-  // 5. Envoi des e-mails via Resend et journalisation
+  // 5. Récupérer l'éventuelle télémétrie sur ce lead pour personnaliser l'accroche
+  const manualEngagementByPartnerId = new Map<
+    string,
+    { hasInspected: boolean; totalDurationMs: number; zoomedRoof: boolean; unlockIntent: boolean }
+  >()
+  try {
+    const { data: telemetryRows } = await supabase
+      .from("partner_activity_events")
+      .select("partner_id, event_type, duration_ms")
+      .eq("lead_id", leadId)
+      .in("partner_id", partnerIds)
+
+    for (const ev of telemetryRows || []) {
+      if (!ev.partner_id) continue
+      const cur = manualEngagementByPartnerId.get(ev.partner_id) || {
+        hasInspected: false,
+        totalDurationMs: 0,
+        zoomedRoof: false,
+        unlockIntent: false,
+      }
+      if (
+        ev.event_type === "lead_inspect_open" ||
+        ev.event_type === "email_deep_link" ||
+        ev.event_type === "lead_inspect_duration" ||
+        ev.event_type === "roof_photo_zoom" ||
+        ev.event_type === "unlock_intent"
+      ) {
+        cur.hasInspected = true
+      }
+      if (ev.event_type === "lead_inspect_duration") {
+        cur.totalDurationMs += Number(ev.duration_ms) || 0
+      } else if (Number(ev.duration_ms) > cur.totalDurationMs) {
+        cur.totalDurationMs = Number(ev.duration_ms) || 0
+      }
+      if (ev.event_type === "roof_photo_zoom") cur.zoomedRoof = true
+      if (ev.event_type === "unlock_intent") cur.unlockIntent = true
+      manualEngagementByPartnerId.set(ev.partner_id, cur)
+    }
+  } catch {
+    // Non bloquant
+  }
+
+  // 6. Envoi des e-mails via Resend et journalisation
   const resend = resendApiKey ? new Resend(resendApiKey) : null
   const dispatchedRecipients: { email: string; companyName: string; score: number; tier: string; isTest?: boolean }[] = []
 
   for (const partner of selectedPartners) {
     if (!partner.email || !partner.email.includes("@") || isUnreachableMockEmail(partner.email)) continue
+    if (getPartnerNotificationMode(partner) === "none") continue
+
+    const partnerEngagement = manualEngagementByPartnerId.get(partner.id)
 
     const emailData = {
       partner: {
@@ -734,9 +944,19 @@ export async function dispatchLeadToSpecificPartners(
       maxSlots,
       creditCost,
       financials,
+      engagement: partnerEngagement
+        ? {
+            hasInspected: partnerEngagement.hasInspected,
+            inspectedDurationMs: partnerEngagement.totalDurationMs,
+            zoomedRoof: partnerEngagement.zoomedRoof,
+            unlockIntent: partnerEngagement.unlockIntent,
+          }
+        : undefined,
     }
 
     const { subject, text, html } = renderInstallerLeadTeaserEmail(emailData)
+    const siteBaseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.aegissolaire.com").replace(/\/$/, "")
+    const notifUrls = buildPartnerNotificationUrls(siteBaseUrl, partner.id, partner.email)
 
     if (resend) {
       try {
@@ -747,6 +967,10 @@ export async function dispatchLeadToSpecificPartners(
           subject,
           text,
           html,
+          headers: {
+            "List-Unsubscribe": `<${notifUrls.muteAllUrl}>, <mailto:contact@aegissolaire.com?subject=Desabonnement%20alertes>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          },
         })
         if (sendErr) {
           console.error(`[Manual Dispatch] Échec d'envoi à ${partner.email}:`, sendErr)
@@ -1131,10 +1355,7 @@ export function getEffectiveSendTime(targetDate: Date): Date {
   return current
 }
 
-/**
- * Récupère le planning détaillé des relances programmées à venir (quels mails, à qui, dans combien de temps)
- */
-export async function getUpcomingRelancesSchedule(): Promise<UpcomingRelanceItem[]> {
+const getUpcomingRelancesScheduleCached = cache(async (): Promise<UpcomingRelanceItem[]> => {
   const supabase = createServiceRoleClient()
   const now = Date.now()
 
@@ -1149,14 +1370,40 @@ export async function getUpcomingRelancesSchedule(): Promise<UpcomingRelanceItem
     return []
   }
 
-  // 2. Récupérer tous les achats existants pour vérifier les slots (hors tests)
-  const { data: allPurchases } = await supabase
-    .from("lead_purchases")
-    .select("lead_id, partner_id, purchased_at, partners(id, company_name, email, is_test)")
-    .order("purchased_at", { ascending: true })
+  const availableLeadIds = availableLeads.map((l) => l.id)
 
+  // 2. Précharger en parallèle achats, relances, télémétrie et partenaires (zéro boucle N+1)
+  const [purchasesRes, dispatchesRes, telemetryRes, partnersRes] = await Promise.all([
+    supabase
+      .from("lead_purchases")
+      .select("lead_id, partner_id, purchased_at, partners(id, company_name, email, is_test)")
+      .in("lead_id", availableLeadIds)
+      .order("purchased_at", { ascending: true }),
+    supabase
+      .from("lead_relance_dispatches")
+      .select("id, lead_id, partner_id, wave_number, email_to, sent_at, partners(id, company_name, email, is_test)")
+      .in("lead_id", availableLeadIds)
+      .order("sent_at", { ascending: false }),
+    Promise.resolve(
+      supabase
+        .from("partner_activity_events")
+        .select("lead_id, partner_id, partner_email, event_type, duration_ms")
+        .in("lead_id", availableLeadIds)
+    ).catch(() => ({ data: [] as any[], error: null })),
+    supabase
+      .from("partners")
+      .select("id, company_name, email, phone, credits, segment, target_provinces, target_surfaces, min_facture, is_test"),
+  ])
+
+  const allPurchases = (purchasesRes.data as any[]) || []
   const purchasesByLead = new Map<string, { partnerId: string; companyName: string; email: string; purchasedAt: string }[]>()
-  for (const p of (allPurchases as any[]) || []) {
+  const rawPurchasesByLeadId = new Map<string, any[]>()
+
+  for (const p of allPurchases) {
+    const rawList = rawPurchasesByLeadId.get(p.lead_id) || []
+    rawList.push(p)
+    rawPurchasesByLeadId.set(p.lead_id, rawList)
+
     const partnerObj = Array.isArray(p.partners) ? p.partners[0] : p.partners
     if (isDevTestPartner({ ...partnerObj, email: partnerObj?.email })) {
       continue
@@ -1171,16 +1418,15 @@ export async function getUpcomingRelancesSchedule(): Promise<UpcomingRelanceItem
     purchasesByLead.set(p.lead_id, list)
   }
 
-  // 3. Récupérer les relances déjà envoyées pour ces leads (hors comptes DEV TEST)
-  const availableLeadIds = availableLeads.map((l) => l.id)
-  const { data: allDispatches } = await supabase
-    .from("lead_relance_dispatches")
-    .select("id, lead_id, partner_id, wave_number, email_to, sent_at, partners(id, company_name, email, is_test)")
-    .in("lead_id", availableLeadIds)
-    .order("sent_at", { ascending: false })
-
+  const allDispatches = (dispatchesRes.data as any[]) || []
   const dispatchesByLead = new Map<string, { partnerId: string; companyName: string; email: string; waveNumber: number; sentAt: string }[]>()
-  for (const d of (allDispatches as any[]) || []) {
+  const rawDispatchesByLeadId = new Map<string, { partner_id: string; wave_number: number }[]>()
+
+  for (const d of allDispatches) {
+    const rawList = rawDispatchesByLeadId.get(d.lead_id) || []
+    rawList.push({ partner_id: d.partner_id, wave_number: d.wave_number })
+    rawDispatchesByLeadId.set(d.lead_id, rawList)
+
     const partnerObj = Array.isArray(d.partners) ? d.partners[0] : d.partners
     if (isDevTestPartner({ ...partnerObj, emailTo: d.email_to })) {
       continue
@@ -1194,6 +1440,21 @@ export async function getUpcomingRelancesSchedule(): Promise<UpcomingRelanceItem
       sentAt: d.sent_at,
     })
     dispatchesByLead.set(d.lead_id, list)
+  }
+
+  const telemetryByLeadId = new Map<string, any[]>()
+  for (const ev of (telemetryRes as any)?.data || []) {
+    if (!ev.lead_id) continue
+    const list = telemetryByLeadId.get(ev.lead_id) || []
+    list.push(ev)
+    telemetryByLeadId.set(ev.lead_id, list)
+  }
+
+  const preloaded: PreloadedRelanceWaveData = {
+    allPartners: partnersRes.data || [],
+    purchasesByLeadId: rawPurchasesByLeadId,
+    dispatchesByLeadId: rawDispatchesByLeadId,
+    telemetryByLeadId,
   }
 
   const upcomingItems: UpcomingRelanceItem[] = []
@@ -1252,8 +1513,8 @@ export async function getUpcomingRelancesSchedule(): Promise<UpcomingRelanceItem
       qualificationMetadata: lead.qualification_metadata,
     })
 
-    // Obtenir la liste des installateurs cibles éligibles
-    const candidates = await getEligiblePartnersForWave(supabase, lead, nextWave)
+    // Obtenir la liste des installateurs cibles éligibles (données préchargées en mémoire)
+    const candidates = await getEligiblePartnersForWave(supabase, lead, nextWave, preloaded)
     if (candidates.length === 0) {
       continue
     }
@@ -1342,6 +1603,13 @@ export async function getUpcomingRelancesSchedule(): Promise<UpcomingRelanceItem
   upcomingItems.sort((a, b) => a.msRemaining - b.msRemaining)
 
   return upcomingItems
+})
+
+/**
+ * Récupère le planning détaillé des relances programmées à venir (quels mails, à qui, dans combien de temps)
+ */
+export async function getUpcomingRelancesSchedule(): Promise<UpcomingRelanceItem[]> {
+  return getUpcomingRelancesScheduleCached()
 }
 
 /**
@@ -1484,7 +1752,9 @@ export async function getSentRelancesHistory(limit = 100): Promise<SentRelanceIt
 /**
  * Calcule les indicateurs statistiques Bento globaux des relances
  */
-export async function getRelancesOverviewStats(): Promise<RelancesOverviewStats> {
+export async function getRelancesOverviewStats(
+  precomputedSchedule?: UpcomingRelanceItem[]
+): Promise<RelancesOverviewStats> {
   const supabase = createServiceRoleClient()
   const now = new Date()
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
@@ -1496,47 +1766,58 @@ export async function getRelancesOverviewStats(): Promise<RelancesOverviewStats>
   let sentW3 = 0
   let purchasedFromRelanceCount = 0
 
-  try {
-    const { data: allDispatches } = await supabase
-      .from("lead_relance_dispatches")
-      .select("id, wave_number, sent_at, lead_id, partner_id, email_to, partners(is_test, company_name)")
+  const schedulePromise = precomputedSchedule
+    ? Promise.resolve(precomputedSchedule)
+    : getUpcomingRelancesSchedule()
 
-    if (allDispatches) {
-      // Exclure les envois de test des calculs statistiques de conversion et de volume
-      const realDispatches = allDispatches.filter((d: any) => {
-        const isTest = isDevTestPartner({
-          is_test: d.partners?.is_test,
-          company_name: d.partners?.company_name,
-          emailTo: d.email_to,
+  const statsPromise = (async () => {
+    try {
+      const [dispatchesRes, purchasesRes] = await Promise.all([
+        supabase
+          .from("lead_relance_dispatches")
+          .select("id, wave_number, sent_at, lead_id, partner_id, email_to, partners(is_test, company_name)"),
+        supabase
+          .from("lead_purchases")
+          .select("lead_id, partner_id, partners(is_test, company_name)"),
+      ])
+
+      const allDispatches = dispatchesRes.data
+      const purchases = purchasesRes.data
+
+      if (allDispatches) {
+        // Exclure les envois de test des calculs statistiques de conversion et de volume
+        const realDispatches = allDispatches.filter((d: any) => {
+          const isTest = isDevTestPartner({
+            is_test: d.partners?.is_test,
+            company_name: d.partners?.company_name,
+            emailTo: d.email_to,
+          })
+          return !isTest
         })
-        return !isTest
-      })
 
-      totalSent = realDispatches.length
-      sentToday = realDispatches.filter((d: any) => d.sent_at >= startOfDay).length
-      sentW1 = realDispatches.filter((d: any) => d.wave_number === 1).length
-      sentW2 = realDispatches.filter((d: any) => d.wave_number === 2).length
-      sentW3 = realDispatches.filter((d: any) => d.wave_number === 3).length
+        totalSent = realDispatches.length
+        sentToday = realDispatches.filter((d: any) => d.sent_at >= startOfDay).length
+        sentW1 = realDispatches.filter((d: any) => d.wave_number === 1).length
+        sentW2 = realDispatches.filter((d: any) => d.wave_number === 2).length
+        sentW3 = realDispatches.filter((d: any) => d.wave_number === 3).length
 
-      // Taux d'attribution (uniquement sur les vrais achats et vrais dispatches)
-      const { data: purchases } = await supabase
-        .from("lead_purchases")
-        .select("lead_id, partner_id, partners(is_test, company_name)")
-
-      if (purchases) {
-        const realPurchases = purchases.filter(
-          (p: any) => !p.partners?.is_test && !p.partners?.company_name?.toLowerCase().includes("test")
-        )
-        const purchaseSet = new Set(realPurchases.map((p: any) => `${p.lead_id}:${p.partner_id}`))
-        purchasedFromRelanceCount = realDispatches.filter((d: any) => purchaseSet.has(`${d.lead_id}:${d.partner_id}`)).length
+        // Taux d'attribution (uniquement sur les vrais achats et vrais dispatches)
+        if (purchases) {
+          const realPurchases = purchases.filter(
+            (p: any) => !p.partners?.is_test && !p.partners?.company_name?.toLowerCase().includes("test")
+          )
+          const purchaseSet = new Set(realPurchases.map((p: any) => `${p.lead_id}:${p.partner_id}`))
+          purchasedFromRelanceCount = realDispatches.filter((d: any) =>
+            purchaseSet.has(`${d.lead_id}:${d.partner_id}`)
+          ).length
+        }
       }
+    } catch {
+      // Si la table est encore vide
     }
-  } catch (err) {
-    // Si la table est encore vide
-  }
+  })()
 
-  // Calcul du planning à venir
-  const upcoming = await getUpcomingRelancesSchedule()
+  const [, upcoming] = await Promise.all([statsPromise, schedulePromise])
   const upcomingWavesCount = upcoming.length
   let upcomingRecipientsCount = 0
   for (const item of upcoming) {

@@ -1,3 +1,5 @@
+import { cache } from "react"
+import { unstable_cache, revalidateTag } from "next/cache"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 
 export type PartnerTelemetryEventType =
@@ -339,6 +341,18 @@ export async function recordPartnerActivityEvent(
     }
   }
 
+  if (
+    input.eventType === "unlock_intent" ||
+    input.eventType === "lead_inspect_duration" ||
+    input.eventType === "roof_photo_zoom"
+  ) {
+    try {
+      revalidateTag("admin-telemetry", "max")
+    } catch {
+      // Non bloquant hors contexte requête Next.js
+    }
+  }
+
   return { ok: true, backend: backendUsed }
 }
 
@@ -356,42 +370,117 @@ export async function getPartnerTelemetryAnalytics(options?: {
   const days = Math.min(365, Math.max(1, options?.days ?? 30))
   const includeTest = options?.includeTest ?? false
   const sinceIso = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
+  const validPartnerIdFilter = options?.partnerId && isValidUuid(options.partnerId) ? options.partnerId.trim() : null
+  const validLeadIdFilter = options?.leadId && isValidUuid(options.leadId) ? options.leadId.trim() : null
 
-  let tableQuery = supabase
-    .from("partner_activity_events")
-    .select("id, partner_id, partner_email, partner_name, lead_id, lead_ref, session_id, event_type, duration_ms, source, metadata, created_at")
-    .gte("created_at", sinceIso)
-    .order("created_at", { ascending: false })
-    .limit(2000)
-
-  if (options?.partnerId && isValidUuid(options.partnerId)) {
-    tableQuery = tableQuery.eq("partner_id", options.partnerId)
-  }
-  if (options?.leadId && isValidUuid(options.leadId)) {
-    tableQuery = tableQuery.eq("lead_id", options.leadId)
+  type TelemetryBundlePayload = {
+    events?: any[]
+    audit_events?: any[]
+    partners?: any[]
+    leads?: any[]
+    purchases?: any[]
   }
 
-  const auditQuery = supabase
-    .from("audit_log")
-    .select("id, admin_email, action, entity_type, entity_id, details, created_at")
-    .eq("entity_type", "partner_telemetry")
-    .gte("created_at", sinceIso)
-    .order("created_at", { ascending: false })
-    .limit(2000)
+  let tableRes: { data: any[] | null; error: { code?: string; message?: string } | null } = {
+    data: null,
+    error: null,
+  }
+  let auditRes: { data: any[] | null; error: { code?: string; message?: string } | null } = {
+    data: null,
+    error: null,
+  }
+  let partnersRes: { data: any[] | null } = { data: [] }
+  let leadsRes: { data: any[] | null } = { data: [] }
+  let purchasesRes: { data: any[] | null } = { data: [] }
 
-  const [tableRes, auditRes, partnersRes, leadsRes, purchasesRes] = await Promise.all([
-    tableQuery,
-    auditQuery,
-    supabase
-      .from("partners")
-      .select("id, company_name, email, credits, is_test, segment"),
-    supabase
-      .from("leads")
-      .select("id, segment, province, city, postal_code, credit_cost, marketplace_status, estimated_power_kwc"),
-    supabase
-      .from("lead_purchases")
-      .select("lead_id, partner_id, purchased_at"),
-  ])
+  let usedBundleRpc = false
+  try {
+    const rpcRes = await supabase.rpc("get_partner_telemetry_bundle", {
+      p_since: sinceIso,
+      p_partner_id: validPartnerIdFilter,
+      p_lead_id: validLeadIdFilter,
+    })
+
+    if (!rpcRes.error && rpcRes.data && typeof rpcRes.data === "object") {
+      const bundle = rpcRes.data as TelemetryBundlePayload
+      tableRes = { data: Array.isArray(bundle.events) ? bundle.events : [], error: null }
+      auditRes = { data: Array.isArray(bundle.audit_events) ? bundle.audit_events : [], error: null }
+      partnersRes = { data: Array.isArray(bundle.partners) ? bundle.partners : [] }
+      leadsRes = { data: Array.isArray(bundle.leads) ? bundle.leads : [] }
+      purchasesRes = { data: Array.isArray(bundle.purchases) ? bundle.purchases : [] }
+      usedBundleRpc = true
+    }
+  } catch {
+    // Fallback automatique si la RPC n'est pas encore déployée
+  }
+
+  if (!usedBundleRpc) {
+    let tableQuery = supabase
+      .from("partner_activity_events")
+      .select("id, partner_id, partner_email, partner_name, lead_id, lead_ref, session_id, event_type, duration_ms, source, metadata, created_at")
+      .gte("created_at", sinceIso)
+      .order("created_at", { ascending: false })
+      .limit(2000)
+
+    if (validPartnerIdFilter) {
+      tableQuery = tableQuery.eq("partner_id", validPartnerIdFilter)
+    }
+    if (validLeadIdFilter) {
+      tableQuery = tableQuery.eq("lead_id", validLeadIdFilter)
+    }
+
+    const auditQuery = supabase
+      .from("audit_log")
+      .select("id, admin_email, action, entity_type, entity_id, details, created_at")
+      .eq("entity_type", "partner_telemetry")
+      .gte("created_at", sinceIso)
+      .order("created_at", { ascending: false })
+      .limit(2000)
+
+    const [fallbackTableRes, fallbackAuditRes, fallbackPartnersRes] = await Promise.all([
+      tableQuery,
+      auditQuery,
+      supabase
+        .from("partners")
+        .select("id, company_name, email, credits, is_test, segment"),
+    ])
+
+    tableRes = fallbackTableRes
+    auditRes = fallbackAuditRes
+    partnersRes = fallbackPartnersRes
+
+    const leadIdSet = new Set<string>()
+    for (const row of fallbackTableRes.data ?? []) {
+      if (isValidUuid(row.lead_id)) {
+        leadIdSet.add(row.lead_id.trim())
+      }
+    }
+    for (const row of fallbackAuditRes.data ?? []) {
+      if (isValidUuid(row.entity_id)) {
+        leadIdSet.add(row.entity_id.trim())
+      }
+      const details = row.details as Record<string, unknown> | null
+      if (details && typeof details.lead_id === "string" && isValidUuid(details.lead_id)) {
+        leadIdSet.add(details.lead_id.trim())
+      }
+    }
+
+    const distinctLeadIds = Array.from(leadIdSet)
+    if (distinctLeadIds.length > 0) {
+      const [fallbackLeadsRes, fallbackPurchasesRes] = await Promise.all([
+        supabase
+          .from("leads")
+          .select("id, segment, province, city, postal_code, credit_cost, marketplace_status, estimated_power_kwc")
+          .in("id", distinctLeadIds),
+        supabase
+          .from("lead_purchases")
+          .select("lead_id, partner_id, purchased_at")
+          .in("lead_id", distinctLeadIds),
+      ])
+      leadsRes = fallbackLeadsRes
+      purchasesRes = fallbackPurchasesRes
+    }
+  }
 
   const partnerMap = new Map<
     string,
@@ -870,4 +959,38 @@ export async function getPartnerTelemetryAnalytics(options?: {
     recentEvents: events.slice(0, 100),
   }
 }
+
+const getPartnerTelemetryAnalyticsDefaultCached = unstable_cache(
+  async () => getPartnerTelemetryAnalytics({ days: 30, includeTest: false }),
+  ["admin-partner-telemetry-v1"],
+  {
+    revalidate: 30,
+    tags: ["admin-telemetry", "admin-kpis"],
+  }
+)
+
+/**
+ * Version cachée (TTL 30s + invalidation événementielle) et dédupliquée par requête React
+ * pour l'affichage instantané du cockpit Admin.
+ */
+export const getPartnerTelemetryAnalyticsCached = cache(
+  async (options?: {
+    partnerId?: string
+    leadId?: string
+    days?: number
+    includeTest?: boolean
+  }): Promise<PartnerTelemetryAnalytics> => {
+    const isDefaultDashboardQuery =
+      !options?.partnerId &&
+      !options?.leadId &&
+      (options?.days === undefined || options.days === 30) &&
+      (options?.includeTest === undefined || options.includeTest === false)
+
+    if (isDefaultDashboardQuery) {
+      return await getPartnerTelemetryAnalyticsDefaultCached()
+    }
+    return await getPartnerTelemetryAnalytics(options)
+  }
+)
+
 

@@ -26,7 +26,8 @@ import { AdminRecentActivity } from "@/components/admin/admin-recent-activity"
 import { AdminRelancesCockpitWidget } from "@/components/admin/admin-relances-cockpit-widget"
 import { AdminPartnerTelemetryWidget } from "@/components/admin/admin-partner-telemetry-widget"
 import { DashboardSkeleton } from "@/components/admin/dashboard-skeleton"
-import { getPartnerTelemetryAnalytics } from "@/lib/partner-telemetry"
+import { getPartnerTelemetryAnalyticsCached } from "@/lib/partner-telemetry"
+import { getUpcomingRelancesSchedule } from "@/lib/lead-relance-engine"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -123,9 +124,13 @@ export default async function AdminDashboardPage() {
 }
 
 async function AdminDashboardContent() {
+  // Pré-déclencher en parallèle le planning des relances (partagé via React cache())
+  // sans bloquer le streaming des KPIs prioritaires ni créer de waterfall RSC.
+  void getUpcomingRelancesSchedule().catch(() => [])
+
   const [data, telemetry] = await Promise.all([
-    getAdminDashboardData({ fresh: true }),
-    getPartnerTelemetryAnalytics({ days: 30, includeTest: false }).catch(() => null),
+    getAdminDashboardData(),
+    getPartnerTelemetryAnalyticsCached({ days: 30, includeTest: false }).catch(() => null),
   ])
 
   return (
@@ -152,7 +157,9 @@ async function AdminDashboardContent() {
       {telemetry && <AdminPartnerTelemetryWidget telemetry={telemetry} />}
 
       {/* Widget Moteur de Relances & Cascades Automatiques */}
-      <AdminRelancesCockpitWidget />
+      <Suspense fallback={null}>
+        <AdminRelancesCockpitWidget />
+      </Suspense>
 
       {/* Flux récents de leads & Journal d'Audit */}
       <AdminRecentActivity

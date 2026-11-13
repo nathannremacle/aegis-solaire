@@ -79,7 +79,16 @@ async function fetchAdminKpisRaw(): Promise<AdminDashboardData> {
   try {
     const { data, error } = await supabase.rpc("get_admin_dashboard_kpis")
     if (!error && data) {
-      // Enrichir avec les listes détaillées pour la transparence des KPIs (modales d'audit)
+      const typedData = data as AdminDashboardData
+      if (
+        Array.isArray(typedData.lists?.paid_orders) &&
+        Array.isArray(typedData.lists?.active_partners) &&
+        Array.isArray(typedData.lists?.available_leads)
+      ) {
+        return typedData
+      }
+
+      // Fallback partiel si l'ancienne version de la RPC est encore en base
       const [paidOrdersRes, partnersRes, availableLeadsRes] = await Promise.all([
         supabase
           .from("credit_orders")
@@ -101,7 +110,6 @@ async function fetchAdminKpisRaw(): Promise<AdminDashboardData> {
           .limit(20),
       ])
 
-      const typedData = data as AdminDashboardData
       typedData.lists.paid_orders = (paidOrdersRes.data ?? []).map((o: any) => ({
         ...o,
         partner_name: o.partners?.company_name || "Partenaire",
@@ -124,16 +132,9 @@ async function fetchAdminKpisRaw(): Promise<AdminDashboardData> {
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
 
   const [
-    totalLeadsRes,
-    leadsMonthRes,
-    leadsTodayRes,
-    leadsB2BRes,
-    leadsB2CRes,
-    leadsAvailableRes,
-    leadsSoldRes,
+    allLeadsMetaRes,
+    leadsAvailableListRes,
     leadsNeedsReviewRes,
-    leadsNewRes,
-    leadsQualifiedRes,
     recentLeadsRes,
     installerAppsRes,
     mediaAppsRes,
@@ -144,16 +145,9 @@ async function fetchAdminKpisRaw(): Promise<AdminDashboardData> {
     disputesRes,
     auditLogsRes,
   ] = await Promise.all([
-    supabase.from("leads").select("*", { count: "exact", head: true }),
-    supabase.from("leads").select("*", { count: "exact", head: true }).gte("created_at", startOfMonth),
-    supabase.from("leads").select("*", { count: "exact", head: true }).gte("created_at", startOfDay),
-    supabase.from("leads").select("*", { count: "exact", head: true }).eq("segment", "B2B"),
-    supabase.from("leads").select("*", { count: "exact", head: true }).eq("segment", "B2C"),
-    supabase.from("leads").select("id, credit_cost, segment").eq("marketplace_status", "available"),
-    supabase.from("leads").select("*", { count: "exact", head: true }).eq("marketplace_status", "sold_out"),
+    supabase.from("leads").select("id, created_at, segment, status, marketplace_status, credit_cost"),
+    supabase.from("leads").select("id, first_name, last_name, company, postal_code, city, province, credit_cost, segment, surface_area, annual_electricity_bill, created_at").eq("marketplace_status", "available").order("created_at", { ascending: false }).limit(20),
     supabase.from("leads").select("id, created_at, first_name, last_name, company, segment, province, surface_area, annual_electricity_bill, lead_score, status, marketplace_status, credit_cost").or("marketplace_status.eq.pending_review,status.eq.NEEDS_HUMAN_REVIEW").order("created_at", { ascending: false }).limit(10),
-    supabase.from("leads").select("*", { count: "exact", head: true }).eq("status", "new"),
-    supabase.from("leads").select("*", { count: "exact", head: true }).eq("status", "qualified"),
     supabase.from("leads").select("id, created_at, first_name, last_name, email, phone, company, segment, province, status, marketplace_status, credit_cost, lead_score, media_partner_code, surface_type, surface_area, estimated_roi_years").order("created_at", { ascending: false }).limit(15),
     supabase.from("installer_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("media_partner_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
@@ -165,16 +159,38 @@ async function fetchAdminKpisRaw(): Promise<AdminDashboardData> {
     supabase.from("audit_log").select("id, admin_email, action, entity_type, entity_id, details, created_at").order("created_at", { ascending: false }).limit(10),
   ])
 
-  const avail = leadsAvailableRes.data ?? []
-  const availCount = avail.length
-  const availCredits = avail.reduce((acc, l) => acc + (Number(l.credit_cost) || (l.segment === "B2B" ? 5 : 2)), 0)
+  const allLeadsMeta = allLeadsMetaRes.data ?? []
+  let leadsMonth = 0
+  let leadsToday = 0
+  let leadsB2B = 0
+  let leadsB2C = 0
+  let availCount = 0
+  let availCredits = 0
+  let soldOutCount = 0
+  let statusNewCount = 0
+  let statusQualifiedCount = 0
+
+  for (const l of allLeadsMeta) {
+    if (l.created_at && l.created_at >= startOfMonth) leadsMonth += 1
+    if (l.created_at && l.created_at >= startOfDay) leadsToday += 1
+    if (l.segment === "B2B") leadsB2B += 1
+    else if (l.segment === "B2C") leadsB2C += 1
+    if (l.marketplace_status === "available") {
+      availCount += 1
+      availCredits += Number(l.credit_cost) || (l.segment === "B2B" ? 5 : 2)
+    } else if (l.marketplace_status === "sold_out") {
+      soldOutCount += 1
+    }
+    if (l.status === "new") statusNewCount += 1
+    else if (l.status === "qualified") statusQualifiedCount += 1
+  }
 
   const realPartners = (partnersRes.data ?? []).filter((p) => !p.is_test && !p.company_name?.toLowerCase().includes("test"))
   const realPartnerIds = new Set(realPartners.map((p) => p.id))
 
   const validPurchases = (purchasesRes.data ?? []).filter((lp) => realPartnerIds.has(lp.partner_id))
   const distinctPurchased = new Set(validPurchases.map((lp) => lp.lead_id)).size
-  const totalPublishable = availCount + (leadsSoldRes.count ?? 0)
+  const totalPublishable = availCount + soldOutCount
   const sellThrough = totalPublishable > 0 ? Math.round((distinctPurchased / totalPublishable) * 100) : 0
 
   const orders = creditOrdersRes.data ?? []
@@ -184,17 +200,17 @@ async function fetchAdminKpisRaw(): Promise<AdminDashboardData> {
   return {
     generated_at: now.toISOString(),
     leads: {
-      total_leads: totalLeadsRes.count ?? 0,
-      leads_month: leadsMonthRes.count ?? 0,
-      leads_today: leadsTodayRes.count ?? 0,
-      leads_b2b: leadsB2BRes.count ?? 0,
-      leads_b2c: leadsB2CRes.count ?? 0,
+      total_leads: allLeadsMeta.length,
+      leads_month: leadsMonth,
+      leads_today: leadsToday,
+      leads_b2b: leadsB2B,
+      leads_b2c: leadsB2C,
       available_count: availCount,
       available_credits_pool: availCredits,
-      sold_out_count: leadsSoldRes.count ?? 0,
+      sold_out_count: soldOutCount,
       pending_review_count: leadsNeedsReviewRes.data?.length ?? 0,
-      status_new_count: leadsNewRes.count ?? 0,
-      status_qualified_count: leadsQualifiedRes.count ?? 0,
+      status_new_count: statusNewCount,
+      status_qualified_count: statusQualifiedCount,
       publishable_pool_count: totalPublishable,
     },
     partners: {
@@ -258,7 +274,7 @@ async function fetchAdminKpisRaw(): Promise<AdminDashboardData> {
         partner_name: o.partners?.company_name || "Partenaire",
       })),
       active_partners: realPartners,
-      available_leads: avail,
+      available_leads: leadsAvailableListRes.data ?? [],
     },
   }
 }

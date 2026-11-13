@@ -63,6 +63,14 @@ export function PartnerDashboardShell({
   const deepLinkTrackedRef = React.useRef<string | null>(null)
 
   React.useEffect(() => {
+    if (typeof window === "undefined") return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get("alerts") === "1" || params.get("preferences") === "1") {
+      setIsPrefsOpen(true)
+    }
+  }, [])
+
+  React.useEffect(() => {
     if (sessionTrackedRef.current) return
     sessionTrackedRef.current = true
     trackPartnerActivity({
@@ -268,15 +276,15 @@ export function PartnerDashboardShell({
                 </span>
               </button>
 
-              {/* Raccourcis Outils Complémentaires (Visible dès 2xl >= 1536px sur très grands écrans) */}
+              {/* Raccourcis Outils Complémentaires */}
               <button
                 type="button"
                 onClick={() => setIsPrefsOpen(true)}
-                className="hidden 2xl:inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer whitespace-nowrap shrink-0"
-                title="Gérer mes alertes e-mail et SMS"
+                className="inline-flex items-center gap-1.5 rounded-xl px-2 sm:px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer whitespace-nowrap shrink-0"
+                title="Gérer mes alertes e-mail et fréquences"
               >
                 <Bell className="h-3.5 w-3.5 text-accent shrink-0" />
-                <span>Alertes</span>
+                <span className="hidden md:inline">Alertes</span>
               </button>
 
               <Link
