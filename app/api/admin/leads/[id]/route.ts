@@ -76,6 +76,14 @@ export async function PATCH(
     postal_code,
     city,
     province,
+    first_name,
+    last_name,
+    email,
+    phone,
+    job_title,
+    company,
+    company_vat,
+    segment,
   } = body
 
   const updates: Record<string, unknown> = {
@@ -83,6 +91,56 @@ export async function PATCH(
   }
 
   let installateurEmailForNotify: string | null = null
+
+  if (first_name !== undefined) {
+    const cleanFirst = String(first_name || "").trim().slice(0, 100)
+    if (!cleanFirst) {
+      return NextResponse.json({ error: "Le prénom est requis." }, { status: 400 })
+    }
+    updates.first_name = cleanFirst
+  }
+
+  if (last_name !== undefined) {
+    updates.last_name = String(last_name || "").trim().slice(0, 100) || null
+  }
+
+  if (email !== undefined) {
+    const cleanEmail = String(email || "").trim().toLowerCase().slice(0, 180)
+    if (!cleanEmail || !cleanEmail.includes("@") || !cleanEmail.includes(".")) {
+      return NextResponse.json({ error: "Adresse e-mail invalide." }, { status: 400 })
+    }
+    updates.email = cleanEmail
+  }
+
+  if (phone !== undefined) {
+    updates.phone = String(phone || "").trim().slice(0, 40) || null
+  }
+
+  if (job_title !== undefined) {
+    updates.job_title = String(job_title || "").trim().slice(0, 100) || "Particulier"
+  }
+
+  if (company !== undefined) {
+    updates.company = String(company || "").trim().slice(0, 150) || null
+  }
+
+  if (company_vat !== undefined) {
+    updates.company_vat = String(company_vat || "").trim().slice(0, 40) || null
+  }
+
+  if (segment !== undefined && (segment === "B2B" || segment === "B2C")) {
+    updates.segment = segment
+  }
+
+  const contactEdited =
+    first_name !== undefined ||
+    last_name !== undefined ||
+    email !== undefined ||
+    phone !== undefined ||
+    job_title !== undefined ||
+    company !== undefined ||
+    company_vat !== undefined ||
+    segment !== undefined
 
   if (typeof status === "string" && VALID_STATUSES.includes(status as (typeof VALID_STATUSES)[number])) {
     updates.status = status
@@ -210,7 +268,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Erreur lors de la mise à jour du lead" }, { status: 500 })
   }
 
-  if (addressEdited) {
+  if (addressEdited || contactEdited) {
     revalidateTag("admin-kpis", "max")
     revalidatePath("/admin/leads")
     revalidateTag("marketplace-feed", "max")
@@ -253,6 +311,7 @@ export async function PATCH(
         installateur_id: updates.installateur_id,
         admin_notes: updates.admin_notes !== undefined ? true : undefined,
         address_edited: addressEdited || undefined,
+        contact_edited: contactEdited || undefined,
         postal_code: addressEdited ? updates.postal_code : undefined,
         city: addressEdited ? updates.city : undefined,
         site_address: addressEdited ? updates.site_address : undefined,

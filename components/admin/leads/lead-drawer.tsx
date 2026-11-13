@@ -198,6 +198,28 @@ export function LeadDrawer({
     (lead?.qualification_metadata?.addressRequestSentAt as string | undefined) ?? null
   )
 
+  // État d'édition locale des coordonnées prospect
+  const [contactPatch, setContactPatch] = useState<{
+    first_name?: string
+    last_name?: string | null
+    email?: string
+    phone?: string | null
+    job_title?: string
+    company?: string | null
+    company_vat?: string | null
+    segment?: string | null
+  } | null>(null)
+  const [isEditingContact, setIsEditingContact] = useState(false)
+  const [isSavingContact, setIsSavingContact] = useState(false)
+  const [editFirstName, setEditFirstName] = useState(lead?.first_name ?? "")
+  const [editLastName, setEditLastName] = useState(lead?.last_name ?? "")
+  const [editEmail, setEditEmail] = useState(lead?.email ?? "")
+  const [editPhone, setEditPhone] = useState(lead?.phone ?? "")
+  const [editJobTitle, setEditJobTitle] = useState(lead?.job_title ?? "")
+  const [editCompany, setEditCompany] = useState(lead?.company ?? "")
+  const [editCompanyVat, setEditCompanyVat] = useState(lead?.company_vat ?? "")
+  const [editSegment, setEditSegment] = useState<string>(lead?.segment ?? "B2C")
+
   useEffect(() => {
     if (lead) {
       setNotes(lead.admin_notes ?? "")
@@ -216,8 +238,51 @@ export function LeadDrawer({
       setAddressRequestSentAt(
         (lead.qualification_metadata?.addressRequestSentAt as string | undefined) ?? null
       )
+      setContactPatch(null)
+      setIsEditingContact(false)
+      setEditFirstName(lead.first_name ?? "")
+      setEditLastName(lead.last_name ?? "")
+      setEditEmail(lead.email ?? "")
+      setEditPhone(lead.phone ?? "")
+      setEditJobTitle(lead.job_title ?? "")
+      setEditCompany(lead.company ?? "")
+      setEditCompanyVat(lead.company_vat ?? "")
+      setEditSegment(lead.segment ?? "B2C")
     }
   }, [lead])
+
+  const effectiveFirstName =
+    contactPatch && "first_name" in contactPatch
+      ? contactPatch.first_name ?? ""
+      : lead?.first_name ?? ""
+  const effectiveLastName =
+    contactPatch && "last_name" in contactPatch
+      ? contactPatch.last_name
+      : lead?.last_name
+  const effectiveEmail =
+    contactPatch && "email" in contactPatch
+      ? contactPatch.email ?? ""
+      : lead?.email ?? ""
+  const effectivePhone =
+    contactPatch && "phone" in contactPatch
+      ? contactPatch.phone
+      : lead?.phone
+  const effectiveJobTitle =
+    contactPatch && "job_title" in contactPatch
+      ? contactPatch.job_title ?? ""
+      : lead?.job_title ?? ""
+  const effectiveCompany =
+    contactPatch && "company" in contactPatch
+      ? contactPatch.company
+      : lead?.company
+  const effectiveCompanyVat =
+    contactPatch && "company_vat" in contactPatch
+      ? contactPatch.company_vat
+      : lead?.company_vat
+  const effectiveSegment =
+    contactPatch && "segment" in contactPatch
+      ? contactPatch.segment
+      : lead?.segment
 
   const effectiveSiteAddress =
     addressPatch && "site_address" in addressPatch
@@ -237,6 +302,59 @@ export function LeadDrawer({
       : lead?.province
   const effectiveMeta =
     addressPatch?.qualification_metadata ?? lead?.qualification_metadata ?? null
+
+  async function handleSaveContact() {
+    if (!lead) return
+    const cleanFirst = editFirstName.trim()
+    const cleanEmail = editEmail.trim().toLowerCase()
+    if (!cleanFirst) {
+      toast.error("Le prénom est requis.")
+      return
+    }
+    if (!cleanEmail || !cleanEmail.includes("@") || !cleanEmail.includes(".")) {
+      toast.error("Adresse e-mail invalide.")
+      return
+    }
+    setIsSavingContact(true)
+    try {
+      const res = await fetch(`/api/admin/leads/${lead.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
+        body: JSON.stringify({
+          first_name: cleanFirst,
+          last_name: editLastName.trim() || null,
+          email: cleanEmail,
+          phone: editPhone.trim() || null,
+          job_title: editJobTitle.trim() || "Particulier",
+          company: editCompany.trim() || null,
+          company_vat: editCompanyVat.trim() || null,
+          segment: editSegment === "B2B" || editSegment === "B2C" ? editSegment : undefined,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        toast.error(json?.error || "Échec de mise à jour des coordonnées")
+        return
+      }
+      setContactPatch({
+        first_name: json.first_name,
+        last_name: json.last_name,
+        email: json.email,
+        phone: json.phone,
+        job_title: json.job_title,
+        company: json.company,
+        company_vat: json.company_vat,
+        segment: json.segment,
+      })
+      setIsEditingContact(false)
+      toast.success("Coordonnées du prospect mises à jour")
+      router.refresh()
+    } catch {
+      toast.error("Erreur réseau lors de l'enregistrement des coordonnées")
+    } finally {
+      setIsSavingContact(false)
+    }
+  }
 
   async function handleSaveAddress() {
     if (!lead) return
@@ -286,7 +404,7 @@ export function LeadDrawer({
   function openAddressEmailComposer() {
     if (!lead) return
     const locality = [effectivePostalCode, effectiveCity].filter(Boolean).join(" ") || "Wallonie"
-    const firstName = (lead.first_name || "").trim() || "Bonjour"
+    const firstName = (effectiveFirstName || "").trim() || "Bonjour"
     const currentAddr = (effectiveSiteAddress || "").trim()
     setReqEmailSubject(`Précision requise pour votre étude solaire (${locality}) — Aegis Solaire`)
     setReqEmailBody(
@@ -322,7 +440,7 @@ export function LeadDrawer({
       if (json.updatedNotes) setNotes(json.updatedNotes)
       setAddressRequestSentAt(json.sentAt || new Date().toISOString())
       setIsComposingAddressEmail(false)
-      toast.success(`E-mail de demande de précision envoyé à ${lead.email}`)
+      toast.success(`E-mail de demande de précision envoyé à ${effectiveEmail}`)
       router.refresh()
     } catch {
       toast.error("Erreur réseau lors de l'envoi de l'e-mail")
@@ -455,17 +573,17 @@ export function LeadDrawer({
   // Détection des risques et calcul du score
   const riskFlags = lead
     ? detectLeadRiskFlags({
-        firstName: lead.first_name,
-        lastName: lead.last_name,
-        email: lead.email,
-        phone: lead.phone,
+        firstName: effectiveFirstName,
+        lastName: effectiveLastName,
+        email: effectiveEmail,
+        phone: effectivePhone,
         postalCode: effectivePostalCode,
         city: effectiveCity,
         siteAddress: effectiveSiteAddress,
         province: effectiveProvince,
-        segment: lead.segment,
-        company: lead.company,
-        companyVat: lead.company_vat,
+        segment: effectiveSegment,
+        company: effectiveCompany,
+        companyVat: effectiveCompanyVat,
         ownershipStatus: lead.ownership_status,
         surfaceArea: lead.surface_area,
         annualElectricityBill: lead.annual_electricity_bill,
@@ -475,12 +593,12 @@ export function LeadDrawer({
 
   const scoreResult = lead
     ? calculateLeadScore({
-        firstName: lead.first_name,
-        lastName: lead.last_name || "",
-        jobTitle: lead.job_title,
+        firstName: effectiveFirstName,
+        lastName: effectiveLastName || "",
+        jobTitle: effectiveJobTitle,
         surfaceArea: lead.surface_area ?? 0,
         annualElectricityBill: lead.annual_electricity_bill ?? 0,
-        segment: lead.segment ?? "B2B",
+        segment: effectiveSegment ?? "B2B",
         grd: lead.grd,
       })
     : { score: 0, status: "new" as const, factors: [] }
@@ -603,7 +721,7 @@ export function LeadDrawer({
         }
       },
       e: () => handleArchive(),
-      c: () => lead?.phone && copyToClipboard(lead.phone, "Numéro de téléphone"),
+      c: () => effectivePhone && copyToClipboard(effectivePhone, "Numéro de téléphone"),
     },
     open && !!lead
   )
@@ -611,10 +729,10 @@ export function LeadDrawer({
   if (!lead) return null
 
   const shortId = lead.id.slice(0, 8).toUpperCase()
-  const prospectTitle = lead.segment === "B2B" && lead.company ? lead.company : `${lead.first_name} ${lead.last_name || ""}`
+  const prospectTitle = effectiveSegment === "B2B" && effectiveCompany ? effectiveCompany : `${effectiveFirstName} ${effectiveLastName || ""}`
 
   const financials = calculateMarketplaceFinancials({
-    segment: lead.segment ?? "B2B",
+    segment: effectiveSegment ?? "B2B",
     surfaceArea: lead.surface_area,
     surfaceType: lead.surface_type,
     roofMaterial: lead.roof_material,
@@ -643,7 +761,7 @@ export function LeadDrawer({
               #{shortId}
             </span>
             <span className="font-mono text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-secondary text-secondary-foreground border border-border">
-              {lead.segment ?? "B2B"}
+              {effectiveSegment ?? "B2B"}
             </span>
             <LeadStatusBadge
               status={lead.status}
@@ -709,16 +827,144 @@ export function LeadDrawer({
 
           {/* Carte Coordonnées & Contact */}
           <div className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3.5 shadow-2xs">
-            <div className="flex items-center justify-between pb-2 border-b border-border">
+            <div className="flex items-center justify-between pb-2 border-b border-border gap-2 flex-wrap">
               <span className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-foreground uppercase tracking-wider">
                 <User className="h-3.5 w-3.5 text-primary" />
                 Contact & Coordonnées Prospect
               </span>
-              <span className="text-[10px] font-mono text-muted-foreground bg-secondary px-2 py-0.5 rounded border border-border">
-                {lead.segment === "B2B" ? "Dossier Professionnel" : "Particulier Résidentiel"}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono text-muted-foreground bg-secondary px-2 py-0.5 rounded border border-border">
+                  {effectiveSegment === "B2B" ? "Dossier Professionnel" : "Particulier Résidentiel"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!isEditingContact) {
+                      setEditFirstName(effectiveFirstName)
+                      setEditLastName(effectiveLastName ?? "")
+                      setEditEmail(effectiveEmail)
+                      setEditPhone(effectivePhone ?? "")
+                      setEditJobTitle(effectiveJobTitle ?? "")
+                      setEditCompany(effectiveCompany ?? "")
+                      setEditCompanyVat(effectiveCompanyVat ?? "")
+                      setEditSegment(effectiveSegment === "B2C" ? "B2C" : "B2B")
+                    }
+                    setIsEditingContact((v) => !v)
+                  }}
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors px-1.5 py-0.5 rounded hover:bg-secondary"
+                >
+                  <Pencil className="h-2.5 w-2.5" />
+                  {isEditingContact ? "Annuler" : "Modifier"}
+                </button>
+              </div>
             </div>
 
+            {isEditingContact ? (
+              <div className="rounded-lg border border-border bg-secondary/20 p-3 flex flex-col gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[11px] text-muted-foreground font-medium">Prénom</span>
+                    <input
+                      type="text"
+                      value={editFirstName}
+                      onChange={(e) => setEditFirstName(e.target.value)}
+                      placeholder="Prénom"
+                      className="h-8 rounded-md border border-input bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[11px] text-muted-foreground font-medium">Nom</span>
+                    <input
+                      type="text"
+                      value={editLastName}
+                      onChange={(e) => setEditLastName(e.target.value)}
+                      placeholder="Nom"
+                      className="h-8 rounded-md border border-input bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[11px] text-muted-foreground font-medium">Téléphone</span>
+                    <input
+                      type="tel"
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                      placeholder="+32..."
+                      className="h-8 rounded-md border border-input bg-background px-2.5 text-xs font-mono tabular-nums text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[11px] text-muted-foreground font-medium">Segment</span>
+                    <select
+                      value={editSegment}
+                      onChange={(e) => setEditSegment(e.target.value === "B2C" ? "B2C" : "B2B")}
+                      className="h-8 rounded-md border border-input bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    >
+                      <option value="B2C">B2C (Particulier)</option>
+                      <option value="B2B">B2B (Professionnel)</option>
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1 sm:col-span-2">
+                    <span className="text-[11px] text-muted-foreground font-medium">Adresse e-mail</span>
+                    <input
+                      type="email"
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      placeholder="email@exemple.be"
+                      className="h-8 rounded-md border border-input bg-background px-2.5 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[11px] text-muted-foreground font-medium">Fonction / Qualité</span>
+                    <input
+                      type="text"
+                      value={editJobTitle}
+                      onChange={(e) => setEditJobTitle(e.target.value)}
+                      placeholder="Ex: Particulier, Gérant..."
+                      className="h-8 rounded-md border border-input bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[11px] text-muted-foreground font-medium">Société</span>
+                    <input
+                      type="text"
+                      value={editCompany}
+                      onChange={(e) => setEditCompany(e.target.value)}
+                      placeholder="Nom de l'entreprise"
+                      className="h-8 rounded-md border border-input bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 sm:col-span-2">
+                    <span className="text-[11px] text-muted-foreground font-medium">Numéro TVA / BCE</span>
+                    <input
+                      type="text"
+                      value={editCompanyVat}
+                      onChange={(e) => setEditCompanyVat(e.target.value)}
+                      placeholder="BE0123456789"
+                      className="h-8 rounded-md border border-input bg-background px-2.5 text-xs font-mono tabular-nums text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                  </label>
+                </div>
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingContact(false)}
+                    disabled={isSavingContact}
+                    className="h-8 px-3 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveContact}
+                    disabled={isSavingContact}
+                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-semibold transition-colors disabled:opacity-50"
+                  >
+                    {isSavingContact ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                    <span>Enregistrer</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
               <div className="flex flex-col gap-1 p-2 rounded-lg bg-secondary/30 border border-border/50">
                 <span className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
@@ -726,11 +972,11 @@ export function LeadDrawer({
                   Interlocuteur
                 </span>
                 <span className="font-semibold text-foreground text-sm">
-                  {lead.first_name} {lead.last_name || ""}
+                  {effectiveFirstName} {effectiveLastName || ""}
                 </span>
-                {lead.job_title && (
+                {effectiveJobTitle && (
                   <span className="text-[11px] text-muted-foreground">
-                    {lead.job_title}
+                    {effectiveJobTitle}
                   </span>
                 )}
               </div>
@@ -741,17 +987,17 @@ export function LeadDrawer({
                   Téléphone
                 </span>
                 <div className="flex items-center gap-2 font-mono tabular-nums">
-                  {lead.phone ? (
+                  {effectivePhone ? (
                     <>
                       <a
-                        href={`tel:${lead.phone}`}
+                        href={`tel:${effectivePhone}`}
                         className="font-bold text-foreground hover:text-primary transition-colors text-sm"
                       >
-                        {lead.phone}
+                        {effectivePhone}
                       </a>
                       <button
                         type="button"
-                        onClick={() => copyToClipboard(lead.phone!, "Téléphone")}
+                        onClick={() => copyToClipboard(effectivePhone, "Téléphone")}
                         className="p-1 rounded bg-secondary hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         title="Copier le numéro (C)"
                       >
@@ -771,14 +1017,14 @@ export function LeadDrawer({
                 </span>
                 <div className="flex items-center justify-between gap-2 font-mono">
                   <a
-                    href={`mailto:${lead.email}`}
+                    href={`mailto:${effectiveEmail}`}
                     className="font-semibold text-foreground hover:text-primary transition-colors text-xs truncate"
                   >
-                    {lead.email}
+                    {effectiveEmail}
                   </a>
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(lead.email, "E-mail")}
+                    onClick={() => copyToClipboard(effectiveEmail, "E-mail")}
                     className="p-1 rounded bg-secondary hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
                     title="Copier l'e-mail"
                   >
@@ -787,16 +1033,26 @@ export function LeadDrawer({
                 </div>
               </div>
 
-              {lead.company_vat && (
+              {effectiveCompany && (
+                <div className="flex flex-col gap-1 p-2 rounded-lg bg-secondary/30 border border-border/50 sm:col-span-2">
+                  <span className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+                    <Building2 className="h-3 w-3 text-muted-foreground" />
+                    Société
+                  </span>
+                  <span className="font-semibold text-foreground text-xs">{effectiveCompany}</span>
+                </div>
+              )}
+
+              {effectiveCompanyVat && (
                 <div className="flex flex-col gap-1 p-2 rounded-lg bg-secondary/30 border border-border/50 sm:col-span-2">
                   <span className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
                     <Building2 className="h-3 w-3 text-muted-foreground" />
                     Numéro TVA / BCE
                   </span>
                   <div className="flex items-center justify-between gap-2 font-mono tabular-nums">
-                    <span className="font-bold text-foreground">{lead.company_vat}</span>
+                    <span className="font-bold text-foreground">{effectiveCompanyVat}</span>
                     <a
-                      href={`${BCE_PUBLIC_SEARCH_URL}?action=search&zoekWaarde=${formatBceNumber(lead.company_vat)}`}
+                      href={`${BCE_PUBLIC_SEARCH_URL}?action=search&zoekWaarde=${formatBceNumber(effectiveCompanyVat)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline bg-primary/10 px-2 py-0.5 rounded"
@@ -809,6 +1065,7 @@ export function LeadDrawer({
                 </div>
               )}
             </div>
+            )}
 
             {/* Localisation & Adresse exacte (avec édition, re-vérification SPW & demande prospect) */}
             {(() => {
@@ -1104,7 +1361,7 @@ export function LeadDrawer({
                               ) : (
                                 <Send className="h-3 w-3" />
                               )}
-                              Envoyer à {lead.email}
+                              Envoyer à {effectiveEmail}
                             </Button>
                           </div>
                         </div>
@@ -1474,7 +1731,7 @@ export function LeadDrawer({
           <LeadRelanceStatus
             leadId={lead.id}
             marketplaceStatus={lead.marketplace_status}
-            segment={lead.segment}
+            segment={effectiveSegment}
           />
 
           {/* Télémétrie Comportementale Installateurs sur ce Lead */}
@@ -1483,7 +1740,7 @@ export function LeadDrawer({
           {/* Module de Sélection et Routage Installateurs */}
           <DispatchPanel
             leadId={lead.id}
-            segment={lead.segment ?? "B2B"}
+            segment={effectiveSegment ?? "B2B"}
             province={lead.province}
             creditCost={creditCost}
             onCreditCostChange={setCreditCost}
