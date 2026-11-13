@@ -870,3 +870,4 @@ export async function getPartnerTelemetryAnalytics(options?: {
     recentEvents: events.slice(0, 100),
   }
 }
+

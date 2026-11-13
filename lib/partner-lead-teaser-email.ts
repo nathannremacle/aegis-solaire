@@ -262,7 +262,17 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
  */
 export async function sendPartnerLeadTeaserEmails(payload: PartnerLeadTeaserPayload): Promise<void> {
   const envRecipients = getEnvPartnerAlertRecipients()
-  const recipients = Array.from(new Set([...payload.targetEmails, ...envRecipients]))
+  const recipients = Array.from(new Set([...payload.targetEmails, ...envRecipients])).filter(
+    (email) => {
+      const normalized = email.toLowerCase().trim()
+      return (
+        normalized.includes("@") &&
+        !normalized.endsWith("@aegissolaire-pro.be") &&
+        !normalized.endsWith("@example.com") &&
+        !normalized.endsWith("@test.com")
+      )
+    }
+  )
 
   if (recipients.length === 0) {
     console.log(

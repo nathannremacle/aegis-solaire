@@ -279,8 +279,9 @@ export async function getEligiblePartnersForWave(
     return []
   }
 
-  const realPartners = allPartners.filter((p) => !isDevTestPartner(p))
-  const devTestPartners = allPartners.filter((p) => isDevTestPartner(p))
+  const activePartners = allPartners.filter((p) => !isUnreachableMockEmail(p.email))
+  const realPartners = activePartners.filter((p) => !isDevTestPartner(p))
+  const devTestPartners = activePartners.filter((p) => isDevTestPartner(p))
 
   // 4. Calculer le score et filtrer les candidats réels
   const scoredCandidates: EligiblePartnerForDispatch[] = []
@@ -496,6 +497,7 @@ export async function dispatchLeadWave(
 
   for (const candidate of candidates) {
     const partner = candidate.partner
+    if (isUnreachableMockEmail(partner.email)) continue
     const scoreInfo = candidate.scoreInfo
 
     const emailData = {
@@ -696,7 +698,7 @@ export async function dispatchLeadToSpecificPartners(
   const dispatchedRecipients: { email: string; companyName: string; score: number; tier: string; isTest?: boolean }[] = []
 
   for (const partner of selectedPartners) {
-    if (!partner.email || !partner.email.includes("@")) continue
+    if (!partner.email || !partner.email.includes("@") || isUnreachableMockEmail(partner.email)) continue
 
     const emailData = {
       partner: {
@@ -902,6 +904,25 @@ export async function processPendingLeadRelances(): Promise<CronRelanceSummary> 
 // ==============================================================================
 // 7. FONCTIONS DE SUPERVISION DASHBOARD : PLANNING, HISTORIQUE ET STATISTIQUES
 // ==============================================================================
+
+/**
+ * Exclut les domaines fictifs / de démonstration sans serveur mail (ex. @aegissolaire-pro.be)
+ * afin d'éviter les bounce/delivery_delayed sur Resend.
+ */
+export function isUnreachableMockEmail(email: string | null | undefined): boolean {
+  const normalized = (email || "").toLowerCase().trim()
+  if (!normalized || !normalized.includes("@")) return true
+  const domain = normalized.split("@")[1] || ""
+  return (
+    domain === "aegissolaire-pro.be" ||
+    domain === "example.com" ||
+    domain === "example.org" ||
+    domain === "example.net" ||
+    domain === "test.com" ||
+    domain.endsWith(".local") ||
+    domain.endsWith(".invalid")
+  )
+}
 
 /**
  * Détermine avec certitude si un partenaire ou un envoi relève des tests internes / DEV TEST

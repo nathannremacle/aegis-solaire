@@ -30,3 +30,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Erreur lors de l'analyse de télémétrie" }, { status: 500 })
   }
 }
+

@@ -54,3 +54,4 @@ CREATE POLICY "Service role full access on partner_activity_events"
 COMMENT ON TABLE public.partner_activity_events IS 'Télémétrie comportementale des installateurs sur le portail partenaire (clics, temps d inspection actif, intentions d achat).';
 COMMENT ON COLUMN public.partner_activity_events.duration_ms IS 'Durée active d inspection du dossier en millisecondes (hors onglet inactif).';
 COMMENT ON COLUMN public.partner_activity_events.source IS 'Origine de l action (marketplace_drawer, email_focus, table_row, card_cta, dashboard).';
+

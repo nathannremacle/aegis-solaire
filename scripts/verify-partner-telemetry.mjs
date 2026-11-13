@@ -135,3 +135,4 @@ run().catch((err) => {
   console.error("[verify:telemetry] FAILED:", err)
   process.exit(1)
 })
+

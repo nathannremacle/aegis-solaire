@@ -1,5 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
+import dns from "node:dns/promises"
 import { fileURLToPath } from "node:url"
 
 const __filename = fileURLToPath(import.meta.url)
@@ -445,15 +446,36 @@ Pour ne plus recevoir d'opportunités de chantiers régionaux, répondez simplem
 }
 
 function getResendFromHeader() {
-  const raw = (process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com").trim()
+  const raw = (process.env.OUTREACH_FROM_EMAIL || process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com").trim()
   const angleMatch = raw.match(/<([^>]+)>/)
   const emailAddr = (angleMatch ? angleMatch[1] : raw).trim()
   return `Aegis Solaire <${emailAddr}>`
 }
 
+const mxCache = new Map()
+async function hasValidMxRecord(email) {
+  const domain = String(email || "").split("@")[1]?.toLowerCase().trim()
+  if (!domain) return false
+  if (mxCache.has(domain)) return mxCache.get(domain)
+  try {
+    const records = await dns.resolveMx(domain)
+    const ok = Array.isArray(records) && records.length > 0
+    mxCache.set(domain, ok)
+    return ok
+  } catch {
+    mxCache.set(domain, false)
+    return false
+  }
+}
+
 async function sendViaResend({ to, subject, html, text, tag, idempotencyKey }) {
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) throw new Error("RESEND_API_KEY missing in environment")
+
+  const mxOk = await hasValidMxRecord(to)
+  if (!mxOk) {
+    throw new Error(`Invalid recipient domain (no MX record): ${to}`)
+  }
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",

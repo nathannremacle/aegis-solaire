@@ -251,7 +251,18 @@ async function remove() {
   if (errInst) console.error("Erreur suppression installateurs:", errInst.message);
   else console.log("✓ Supprimés de installateurs");
 
-  // 3. Suppression de partners
+  // 3. Nettoyage des tables dépendantes avant suppression de partners
+  for (const depTable of ["lead_purchases", "credit_orders", "lead_disputes", "partner_activity_events"]) {
+    const { error: errDep } = await supabase
+      .from(depTable)
+      .delete()
+      .in("partner_id", partnerIds);
+    if (errDep && !errDep.message.includes("Could not find the table")) {
+      console.error(`Erreur suppression ${depTable}:`, errDep.message);
+    }
+  }
+
+  // 4. Suppression de partners
   const { error: errPartner } = await supabase
     .from("partners")
     .delete()
