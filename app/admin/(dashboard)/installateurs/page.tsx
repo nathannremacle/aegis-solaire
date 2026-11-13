@@ -3,6 +3,10 @@ import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { redirect } from "next/navigation"
 import { InstallateursClient } from "./installateurs-client"
 
+export const metadata = {
+  title: "Installateurs",
+}
+
 async function getInstallateurs() {
   const user = await getAdminUser()
   if (!user) redirect("/admin/login")

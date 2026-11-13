@@ -5,7 +5,7 @@ import { DisputesClient, type DisputeItem } from "./disputes-client"
 
 export const dynamic = "force-dynamic"
 export const metadata = {
-  title: "Litiges & Garantie Qualité 48h | Aegis Solaire Admin",
+  title: "Litiges & Garantie Qualité 48h",
   description: "Arbitrage des contestations de leads installateurs et gestion des garanties contractuelles",
 }
 

@@ -3,6 +3,10 @@ import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { redirect } from "next/navigation"
 import { AuditLogTable } from "./audit-log-table"
 
+export const metadata = {
+  title: "Journal d'audit",
+}
+
 async function getAuditLogs() {
   const user = await getAdminUser()
   if (!user) redirect("/admin/login")

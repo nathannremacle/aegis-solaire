@@ -6,6 +6,10 @@ import { LeadsTable } from "./leads-table"
 export const dynamic = "force-dynamic"
 export const revalidate = 0
 
+export const metadata = {
+  title: "Gestion des Leads",
+}
+
 async function getLeadCounts() {
   const supabase = createServiceRoleClient()
   const [triageRes, marketplaceRes, soldOutRes, totalRes] = await Promise.all([

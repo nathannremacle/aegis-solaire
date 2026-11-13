@@ -30,7 +30,7 @@ export const dynamic = "force-dynamic"
 export const revalidate = 0
 
 export const metadata = {
-  title: "Cockpit Opérationnel | Aegis Solaire Admin",
+  title: "Cockpit Opérationnel",
   description: "Tour de contrôle administrative et supervision de la marketplace photovoltaïque en Wallonie",
 }
 

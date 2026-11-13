@@ -7,7 +7,7 @@ import { FinanceClient, type CreditOrder, type FinanceKpis } from "./finance-cli
 export const dynamic = "force-dynamic"
 export const revalidate = 0
 export const metadata = {
-  title: "Finances & Commandes | Aegis Solaire Admin",
+  title: "Finances & Commandes",
   description: "Contrôle financier, suivi des encaissements Mollie et facturation des packs de crédits",
 }
 

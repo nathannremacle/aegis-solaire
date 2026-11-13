@@ -9,7 +9,7 @@ import {
 import { AdminRelancesDashboard } from "@/components/admin/relances/admin-relances-dashboard"
 
 export const metadata = {
-  title: "Supervision Relances Mails | Aegis Solaire Admin",
+  title: "Supervision Relances Mails",
   description: "Tour de contrôle des notifications et relances automatiques par e-mail en Wallonie",
 }
 
