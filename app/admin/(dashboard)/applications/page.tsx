@@ -14,6 +14,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { CheckCircle2, XCircle, Clock, Eye, Mail, Send, ShieldCheck } from "lucide-react"
+import { resolvePartnerSegment } from "@/lib/partner-notification-prefs"
 
 type Application = {
   id: string
@@ -221,6 +222,12 @@ export default function ApplicationsPage() {
               </div>
 
               <div><span className="text-muted-foreground">Régions cibles :</span> {selected.regions.join(", ")}</div>
+              <div>
+                <span className="text-muted-foreground">Segment cible :</span>{" "}
+                <Badge variant="outline" className="font-mono text-xs">
+                  {resolvePartnerSegment({ email: selected.email, adminNotes: selected.admin_notes })}
+                </Badge>
+              </div>
 
               {/* État des e-mails et actions de renvoi */}
               <div className="rounded-xl border border-border bg-card p-3.5 flex flex-col gap-2.5">

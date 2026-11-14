@@ -5,6 +5,7 @@ import { calculateMarketplaceFinancials, calculateLeadCreditCost } from "@/lib/m
 import { renderInstallerLeadTeaserEmail, buildLeadEmailSubject } from "@/lib/email-templates/installer-lead-teaser"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 import {
+  getEffectivePartnerSegment,
   getPartnerNotificationMode,
   OPTOUT_ALL_MARKER,
   OPTOUT_RELANCES_MARKER,
@@ -128,6 +129,7 @@ function normalizeProvinceKey(val: string | null | undefined): string {
 export function calculatePartnerMatchScore(
   partner: {
     id: string
+    email?: string | null
     credits: number
     segment: string | null
     target_provinces?: string[] | null
@@ -144,12 +146,11 @@ export function calculatePartnerMatchScore(
 ): PartnerMatchingScore {
   let score = 0
   const leadSegment = (lead.segment || "B2B").toUpperCase()
-  const partnerSegment = (partner.segment || "BOTH").toUpperCase()
+  const partnerSegment = getEffectivePartnerSegment(partner)
 
   // 1. FILTRE ÉLIMINATOIRE : Segment
   const segmentMatch =
     partnerSegment === "BOTH" ||
-    partnerSegment === "ALL" ||
     partnerSegment === leadSegment
 
   if (!segmentMatch) {
@@ -384,7 +385,7 @@ export async function getEligiblePartnersForWave(
   } else {
     const { data: fetchedPartners, error: partnersErr } = await supabase
       .from("partners")
-      .select("id, company_name, email, phone, credits, segment, target_provinces, target_surfaces, min_facture, is_test")
+      .select("id, company_name, email, phone, credits, segment, target_provinces, target_surfaces, min_facture, is_test, email_notifications_enabled, email_relances_enabled")
 
     if (partnersErr || !fetchedPartners || fetchedPartners.length === 0) {
       return []
@@ -837,7 +838,7 @@ export async function dispatchLeadToSpecificPartners(
   // 3. Récupérer les partenaires cibles
   const { data: selectedPartners, error: partnersErr } = await supabase
     .from("partners")
-    .select("id, company_name, email, phone, credits, segment, target_provinces, target_surfaces, min_facture, is_test")
+    .select("id, company_name, email, phone, credits, segment, target_provinces, target_surfaces, min_facture, is_test, email_notifications_enabled, email_relances_enabled")
     .in("id", partnerIds)
 
   if (partnersErr || !selectedPartners || selectedPartners.length === 0) {
@@ -907,6 +908,12 @@ export async function dispatchLeadToSpecificPartners(
   for (const partner of selectedPartners) {
     if (!partner.email || !partner.email.includes("@") || isUnreachableMockEmail(partner.email)) continue
     if (getPartnerNotificationMode(partner) === "none") continue
+
+    const effectiveSegment = getEffectivePartnerSegment(partner)
+    const leadSegmentUpper = (lead.segment || "B2B").toUpperCase()
+    if (effectiveSegment !== "BOTH" && effectiveSegment !== leadSegmentUpper) {
+      continue
+    }
 
     const partnerEngagement = manualEngagementByPartnerId.get(partner.id)
 
@@ -1392,7 +1399,7 @@ const getUpcomingRelancesScheduleCached = cache(async (): Promise<UpcomingRelanc
     ).catch(() => ({ data: [] as any[], error: null })),
     supabase
       .from("partners")
-      .select("id, company_name, email, phone, credits, segment, target_provinces, target_surfaces, min_facture, is_test"),
+      .select("id, company_name, email, phone, credits, segment, target_provinces, target_surfaces, min_facture, is_test, email_notifications_enabled, email_relances_enabled"),
   ])
 
   const allPurchases = (purchasesRes.data as any[]) || []
@@ -1882,6 +1889,7 @@ export async function getAvailableMatchingLeadsForPartner(
   supabase: ReturnType<typeof createServiceRoleClient>,
   partner: {
     id: string
+    email?: string | null
     credits?: number | null
     segment?: string | null
     target_provinces?: string[] | null
@@ -1921,8 +1929,9 @@ export async function getAvailableMatchingLeadsForPartner(
 
   const partnerForScore = {
     id: partner.id,
+    email: partner.email || null,
     credits: partner.credits || 0,
-    segment: partner.segment || "BOTH",
+    segment: getEffectivePartnerSegment(partner),
     target_provinces: partner.target_provinces || [],
     target_surfaces: partner.target_surfaces || [],
     min_facture: partner.min_facture || null,

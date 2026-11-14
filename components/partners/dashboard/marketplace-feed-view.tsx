@@ -74,6 +74,7 @@ interface MarketplaceFeedViewProps {
   targetLeadId?: string
   targetedClosedLead?: any
   partnerProvinces?: string[] | null
+  partnerSegment?: string | null
   onClearTargetLead?: () => void
   onPurchaseSuccess: (lead: any, newCredits: number, purchaseRecord: any) => void
   onRequestTopUp: () => void
@@ -133,6 +134,7 @@ export function MarketplaceFeedView({
   targetLeadId,
   targetedClosedLead,
   partnerProvinces,
+  partnerSegment,
   onClearTargetLead,
   onPurchaseSuccess,
   onRequestTopUp,
@@ -141,7 +143,12 @@ export function MarketplaceFeedView({
 }: MarketplaceFeedViewProps) {
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid")
   const [searchQuery, setSearchQuery] = useState("")
-  const [segmentFilter, setSegmentFilter] = useState<"ALL" | "B2B" | "B2C">("ALL")
+  const [segmentFilter, setSegmentFilter] = useState<"ALL" | "B2B" | "B2C">(() => {
+    const seg = (partnerSegment || "").trim().toUpperCase()
+    if (seg === "B2B") return "B2B"
+    if (seg === "B2C") return "B2C"
+    return "ALL"
+  })
   const [selectedProvince, setSelectedProvince] = useState<string>("ALL")
   const [sortBy, setSortBy] = useState<MarketplaceSortOption>("recent")
   const [buyingId, setBuyingId] = useState<string | null>(null)

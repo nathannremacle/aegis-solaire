@@ -12,13 +12,15 @@ import {
   ensurePartnerAuthAccount,
   generatePartnerPasswordSetupUrl,
 } from "@/lib/partner-auth-onboarding"
+import { isB2COptedOutEmail } from "@/lib/partner-notification-prefs"
 
 function mergeAdminNotes(existing: string | null | undefined, incomingParts: string[]): string | null {
+  const hasIncomingSegment = incomingParts.some((p) => /^Segments?\s+cibles?\s*:/i.test(p.trim()))
   const parts = existing
     ? existing
         .split(" | ")
         .map((s) => s.trim())
-        .filter(Boolean)
+        .filter((s) => Boolean(s) && !(hasIncomingSegment && /^Segments?\s+cibles?\s*:/i.test(s)))
     : []
   for (const part of incomingParts) {
     const cleanPart = part.trim()
@@ -55,11 +57,12 @@ export async function POST(request: NextRequest) {
     const cleanEmail = data.email.toLowerCase().trim()
     const supabase = createServiceRoleClient()
     const baseUrl = getSiteBaseUrl(request.nextUrl.origin)
+    const effectiveSegment = isB2COptedOutEmail(cleanEmail) ? "B2B" : data.targetSegment
 
     const incomingNotesParts = [
       data.invitedBy ? `⭐ INVITATION VIP PAR: ${data.invitedBy}` : null,
       data.leadId ? `🎯 CHANTIER CIBLE: ${data.leadId}` : null,
-      data.targetSegment ? `Segments cibles: ${data.targetSegment}` : null,
+      effectiveSegment ? `Segments cibles: ${effectiveSegment}` : null,
       data.powerCapacity ? `Capacité: ${data.powerCapacity}` : null,
     ].filter((v): v is string => Boolean(v))
 
@@ -96,6 +99,12 @@ export async function POST(request: NextRequest) {
       }
 
       if (existingPartner?.id) {
+        if (isB2COptedOutEmail(cleanEmail)) {
+          await supabase
+            .from("partners")
+            .update({ segment: "B2B", updated_at: new Date().toISOString() })
+            .eq("id", existingPartner.id)
+        }
         try {
           await ensurePartnerAuthAccount(supabase, {
             email: cleanEmail,

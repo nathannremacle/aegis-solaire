@@ -3,9 +3,12 @@ import { createServiceRoleClient } from "@/lib/supabase/admin"
 import {
   applyNotificationModeToSurfaces,
   getCleanTargetSurfaces,
+  getEffectivePartnerSegment,
   getPartnerNotificationMode,
   isValidPartnerNotificationMode,
+  normalizePartnerSegment,
   type PartnerNotificationMode,
+  type PartnerSegmentPreference,
 } from "@/lib/partner-notification-prefs"
 import { verifyPartnerUnsubscribeToken } from "@/lib/partner-notification-tokens"
 
@@ -19,6 +22,7 @@ async function persistPartnerNotificationMode(
     provinces?: string[]
     surfaces?: string[]
     minFacture?: number
+    segment?: PartnerSegmentPreference | null
   }
 ) {
   const admin = createServiceRoleClient()
@@ -36,6 +40,9 @@ async function persistPartnerNotificationMode(
   }
   if (typeof extra?.minFacture === "number") {
     baseUpdates.min_facture = extra.minFacture
+  }
+  if (extra?.segment) {
+    baseUpdates.segment = extra.segment
   }
 
   const { error: fullError } = await admin
@@ -75,7 +82,7 @@ export async function GET(request: NextRequest) {
   const admin = createServiceRoleClient()
   const { data: partner, error } = await admin
     .from("partners")
-    .select("id, company_name, email, target_provinces, target_surfaces, min_facture")
+    .select("id, company_name, email, segment, target_provinces, target_surfaces, min_facture, email_notifications_enabled, email_relances_enabled")
     .eq("id", partnerId)
     .maybeSingle()
 
@@ -88,6 +95,7 @@ export async function GET(request: NextRequest) {
       id: partner.id,
       companyName: partner.company_name,
       email: partner.email,
+      segment: getEffectivePartnerSegment(partner),
       provinces: partner.target_provinces ?? [],
       surfaces: getCleanTargetSurfaces(partner.target_surfaces),
       minFacture: partner.min_facture ?? 0,
@@ -101,6 +109,7 @@ export async function POST(request: NextRequest) {
   let partnerId = (searchParams.get("partner") || "").trim()
   let token = (searchParams.get("token") || "").trim()
   let modeParam: unknown = searchParams.get("mode")
+  let segmentParam: unknown = searchParams.get("segment")
   let extraProvinces: string[] | undefined
   let extraSurfaces: string[] | undefined
   let extraMinFacture: number | undefined
@@ -112,6 +121,7 @@ export async function POST(request: NextRequest) {
       if (typeof body.partnerId === "string" && !partnerId) partnerId = body.partnerId.trim()
       if (typeof body.token === "string" && !token) token = body.token.trim()
       if (body.mode !== undefined) modeParam = body.mode
+      if (body.segment !== undefined) segmentParam = body.segment
       if (Array.isArray(body.provinces)) extraProvinces = body.provinces
       if (Array.isArray(body.surfaces)) extraSurfaces = body.surfaces
       if (typeof body.minFacture === "number") extraMinFacture = body.minFacture
@@ -130,20 +140,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Lien de gestion invalide ou expiré." }, { status: 403 })
   }
 
-  const mode: PartnerNotificationMode = isValidPartnerNotificationMode(modeParam)
-    ? modeParam
-    : "none"
+  const requestedSegment = normalizePartnerSegment(segmentParam)
 
   const admin = createServiceRoleClient()
   const { data: partner, error: fetchErr } = await admin
     .from("partners")
-    .select("id, company_name, email, target_provinces, target_surfaces, min_facture")
+    .select("id, company_name, email, segment, target_provinces, target_surfaces, min_facture, email_notifications_enabled, email_relances_enabled")
     .eq("id", partnerId)
     .maybeSingle()
 
   if (fetchErr || !partner) {
     return NextResponse.json({ error: "Compte partenaire introuvable." }, { status: 404 })
   }
+
+  const mode: PartnerNotificationMode = isValidPartnerNotificationMode(modeParam)
+    ? modeParam
+    : modeParam === undefined || modeParam === null
+      ? getPartnerNotificationMode(partner)
+      : "none"
 
   const { error: updateErr, cleanSurfaces } = await persistPartnerNotificationMode(
     partner.id,
@@ -153,6 +167,7 @@ export async function POST(request: NextRequest) {
       provinces: extraProvinces,
       surfaces: extraSurfaces,
       minFacture: extraMinFacture,
+      segment: requestedSegment,
     }
   )
 
@@ -167,6 +182,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     success: true,
     notificationMode: mode,
+    segment: requestedSegment ?? getEffectivePartnerSegment(partner),
     surfaces: cleanSurfaces,
     provinces: extraProvinces ?? partner.target_provinces ?? [],
     minFacture: extraMinFacture ?? partner.min_facture ?? 0,

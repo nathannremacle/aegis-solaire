@@ -4,9 +4,12 @@ import { createServiceRoleClient } from "@/lib/supabase/admin"
 import {
   applyNotificationModeToSurfaces,
   getCleanTargetSurfaces,
+  getEffectivePartnerSegment,
   getPartnerNotificationMode,
   isValidPartnerNotificationMode,
+  normalizePartnerSegment,
   type PartnerNotificationMode,
+  type PartnerSegmentPreference,
 } from "@/lib/partner-notification-prefs"
 
 export const dynamic = "force-dynamic"
@@ -20,7 +23,7 @@ export async function GET() {
   const admin = createServiceRoleClient()
   const { data, error } = await admin
     .from("partners")
-    .select("id, target_provinces, target_surfaces, min_facture")
+    .select("id, email, segment, target_provinces, target_surfaces, min_facture, email_notifications_enabled, email_relances_enabled")
     .eq("id", partner.id)
     .single()
 
@@ -34,6 +37,7 @@ export async function GET() {
       provinces: data?.target_provinces ?? ["liege", "namur", "hainaut"],
       surfaces: getCleanTargetSurfaces(data?.target_surfaces),
       minFacture: data?.min_facture ?? 5000,
+      segment: getEffectivePartnerSegment(data ?? partner),
       notificationMode: getPartnerNotificationMode(data),
     },
   })
@@ -49,6 +53,7 @@ async function handleUpdate(request: Request) {
     provinces?: string[]
     surfaces?: string[]
     minFacture?: number
+    segment?: PartnerSegmentPreference
     notificationMode?: PartnerNotificationMode
   }
 
@@ -62,6 +67,8 @@ async function handleUpdate(request: Request) {
   const resolvedMode: PartnerNotificationMode = isValidPartnerNotificationMode(body.notificationMode)
     ? body.notificationMode
     : getPartnerNotificationMode(partner)
+
+  const resolvedSegment = normalizePartnerSegment(body.segment)
 
   const cleanSurfaces = Array.isArray(body.surfaces)
     ? getCleanTargetSurfaces(body.surfaces)
@@ -79,6 +86,9 @@ async function handleUpdate(request: Request) {
   }
   if (typeof body.minFacture === "number") {
     baseUpdateData.min_facture = body.minFacture
+  }
+  if (resolvedSegment) {
+    baseUpdateData.segment = resolvedSegment
   }
 
   const { error: fullError } = await admin
@@ -116,6 +126,7 @@ async function handleUpdate(request: Request) {
       surfaces: cleanSurfaces,
       targetSurfacesRaw: encodedSurfaces,
       minFacture: body.minFacture ?? partner.min_facture,
+      segment: resolvedSegment ?? getEffectivePartnerSegment(partner),
       notificationMode: resolvedMode,
     },
     message: "Préférences d'alerte enregistrées avec succès.",

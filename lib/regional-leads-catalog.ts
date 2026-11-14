@@ -49,11 +49,100 @@ const WEMMEL_LEAD: InvitationLeadSummary = {
   creditCost: 3,
   maxSlots: 3,
   imageUrl:
-    "https://fvvdfhbqojtnnqsrthwl.supabase.co/storage/v1/object/public/lead-media/carlos-marcelino-wemmel-blurred.jpg",
+    "https://fvvdfhbqojtnnqsrthwl.supabase.co/storage/v1/object/public/lead-media/lead-wemmel-1780-blurred.jpg",
   projectDetails:
     "Maison unifamiliale à Wemmel (1780). Toiture tuiles 42 m², puissance recommandée ~5,4 kWc.",
   isShowcaseOnly: false,
   createdAt: "2026-11-11T10:25:37.556Z",
+}
+
+const ROLY_LEAD: InvitationLeadSummary = {
+  id: "413e8eae-8168-4907-bcaa-558204ac6aba",
+  postalCode: "5600",
+  city: "Roly",
+  province: "Namur",
+  provinceKey: "namur",
+  segment: "B2C",
+  segmentLabel: "Maison 4 façades",
+  surfaceLabel: "Toiture ~65 m² tuiles",
+  surfaceType: "toiture",
+  surfaceAreaM2: 65,
+  powerLabel: "Puissance recommandée ~6,1 kWc (14 panneaux)",
+  estimatedPowerKwc: 6.1,
+  billLabel: "2 300 €/an (> 6 000 kWh)",
+  annualBillEur: 2300,
+  roofMaterial: "tuiles",
+  ownershipStatus: "owner",
+  timeframe: "immediat_3mois",
+  projectDriver: "autoconsommation",
+  grd: "ORES",
+  creditCost: 3,
+  maxSlots: 3,
+  imageUrl:
+    "https://fvvdfhbqojtnnqsrthwl.supabase.co/storage/v1/object/public/lead-media/lead-roly-5600-blurred.jpg",
+  projectDetails:
+    "Maison 4 façades à Roly (5600). Grande toiture tuiles ~65 m², consommation > 6 000 kWh/an, appel direct autorisé (9h-18h).",
+  isShowcaseOnly: false,
+  createdAt: "2026-11-13T10:45:38.149Z",
+}
+
+const GERPINNES_LEAD: InvitationLeadSummary = {
+  id: "bd3d6c78-0acb-4b59-8f96-ff9817f634f7",
+  postalCode: "6280",
+  city: "Gerpinnes",
+  province: "Lisière Namur / Entre-Sambre-et-Meuse",
+  provinceKey: "hainaut",
+  segment: "B2C",
+  segmentLabel: "Maison 4 façades isolée",
+  surfaceLabel: "Toiture ~42 m² tuiles",
+  surfaceType: "toiture",
+  surfaceAreaM2: 42,
+  powerLabel: "Puissance recommandée ~4,8 kWc (11 panneaux)",
+  estimatedPowerKwc: 4.8,
+  billLabel: "1 820 €/an (5 000 – 6 000 kWh)",
+  annualBillEur: 1820,
+  roofMaterial: "tuiles",
+  ownershipStatus: "owner",
+  timeframe: "immediat_3mois",
+  projectDriver: "autoconsommation",
+  grd: "ORES",
+  creditCost: 3,
+  maxSlots: 3,
+  imageUrl: "",
+  projectDetails:
+    "Maison 4 façades isolée à Gerpinnes (6280). Adresse exacte certifiée SPW ICAR, toiture tuiles ~42 m², consommation 5 000 à 6 000 kWh/an.",
+  isShowcaseOnly: false,
+  createdAt: "2026-11-14T09:15:22.876Z",
+}
+
+const NAMECHE_LEAD: InvitationLeadSummary = {
+  id: "a63dd867-8e1c-47e9-b4d0-93818b0a667a",
+  postalCode: "5300",
+  city: "Namêche",
+  province: "Namur / Andenne",
+  provinceKey: "namur",
+  segment: "B2C",
+  segmentLabel: "Maison 4 façades",
+  surfaceLabel: "Toiture 42 m² tuiles",
+  surfaceType: "toiture",
+  surfaceAreaM2: 42,
+  powerLabel: "Puissance recommandée ~3,0 kWc (7 panneaux)",
+  estimatedPowerKwc: 3.0,
+  billLabel: "1 150 €/an (3 500 kWh)",
+  annualBillEur: 1150,
+  roofMaterial: "tuiles",
+  ownershipStatus: "owner",
+  timeframe: "immediat_3mois",
+  projectDriver: "autoconsommation",
+  grd: "ORES",
+  creditCost: 3,
+  maxSlots: 3,
+  imageUrl:
+    "https://fvvdfhbqojtnnqsrthwl.supabase.co/storage/v1/object/public/lead-media/lead-nameche-5300-blurred.jpg",
+  projectDetails:
+    "Maison 4 façades à Namêche (5300 Andenne). Adresse exacte certifiée SPW ICAR, toiture tuiles 42 m², consommation 3 500 kWh/an.",
+  isShowcaseOnly: false,
+  createdAt: "2026-11-13T09:22:40.453Z",
 }
 
 const OUPEYE_LEAD: InvitationLeadSummary = {
@@ -238,6 +327,9 @@ const OHEY_LEAD: InvitationLeadSummary = {
 
 export const REGIONAL_LEADS_CATALOG: Record<string, InvitationLeadSummary> = {
   "e597cc47-01f2-47e4-a953-c7e6902b2028": WEMMEL_LEAD,
+  "413e8eae-8168-4907-bcaa-558204ac6aba": ROLY_LEAD,
+  "bd3d6c78-0acb-4b59-8f96-ff9817f634f7": GERPINNES_LEAD,
+  "a63dd867-8e1c-47e9-b4d0-93818b0a667a": NAMECHE_LEAD,
   "e597cc47-01f2-47e4-a953-c7e6902b4680": {
     ...OUPEYE_LEAD,
     id: "e597cc47-01f2-47e4-a953-c7e6902b4680",

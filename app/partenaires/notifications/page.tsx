@@ -4,9 +4,12 @@ import { createServiceRoleClient } from "@/lib/supabase/admin"
 import {
   applyNotificationModeToSurfaces,
   getCleanTargetSurfaces,
+  getEffectivePartnerSegment,
   getPartnerNotificationMode,
   isValidPartnerNotificationMode,
+  normalizePartnerSegment,
   type PartnerNotificationMode,
+  type PartnerSegmentPreference,
 } from "@/lib/partner-notification-prefs"
 import { verifyPartnerUnsubscribeToken } from "@/lib/partner-notification-tokens"
 import { PartnerNotificationsClient } from "@/components/partners/partner-notifications-client"
@@ -21,12 +24,13 @@ export const metadata = {
 export default async function PartnerNotificationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ partner?: string; token?: string; mode?: string }>
+  searchParams: Promise<{ partner?: string; token?: string; mode?: string; segment?: string }>
 }) {
   const params = await searchParams
   const partnerId = (params.partner || "").trim()
   const token = (params.token || "").trim()
   const requestedMode = params.mode
+  const requestedSegment = normalizePartnerSegment(params.segment)
 
   const isTokenValid = Boolean(partnerId && verifyPartnerUnsubscribeToken(partnerId, token))
 
@@ -34,29 +38,37 @@ export default async function PartnerNotificationsPage({
     id: string
     company_name: string
     email: string
+    segment: string | null
     target_surfaces: string[] | null
+    email_notifications_enabled?: boolean | null
+    email_relances_enabled?: boolean | null
   } | null = null
 
   let currentMode: PartnerNotificationMode = "all"
+  let currentSegment: PartnerSegmentPreference = "BOTH"
   let autoAppliedMode: PartnerNotificationMode | null = null
 
   if (isTokenValid) {
     const admin = createServiceRoleClient()
     const { data } = await admin
       .from("partners")
-      .select("id, company_name, email, target_surfaces")
+      .select("id, company_name, email, segment, target_surfaces, email_notifications_enabled, email_relances_enabled")
       .eq("id", partnerId)
       .maybeSingle()
 
     if (data) {
       partner = data
       currentMode = getPartnerNotificationMode(data)
+      currentSegment = getEffectivePartnerSegment(data)
 
-      if (isValidPartnerNotificationMode(requestedMode)) {
+      if (isValidPartnerNotificationMode(requestedMode) || requestedSegment) {
+        const nextMode = isValidPartnerNotificationMode(requestedMode) ? requestedMode : currentMode
+        const nextSegment = requestedSegment ?? currentSegment
         const cleanSurfaces = getCleanTargetSurfaces(data.target_surfaces)
-        const encodedSurfaces = applyNotificationModeToSurfaces(cleanSurfaces, requestedMode)
+        const encodedSurfaces = applyNotificationModeToSurfaces(cleanSurfaces, nextMode)
         const baseUpdates = {
           target_surfaces: encodedSurfaces,
+          segment: nextSegment,
           updated_at: new Date().toISOString(),
         }
 
@@ -64,8 +76,8 @@ export default async function PartnerNotificationsPage({
           .from("partners")
           .update({
             ...baseUpdates,
-            email_notifications_enabled: requestedMode !== "none",
-            email_relances_enabled: requestedMode === "all",
+            email_notifications_enabled: nextMode !== "none",
+            email_relances_enabled: nextMode === "all",
           })
           .eq("id", data.id)
 
@@ -78,8 +90,11 @@ export default async function PartnerNotificationsPage({
           await admin.from("partners").update(baseUpdates).eq("id", data.id)
         }
 
-        currentMode = requestedMode
-        autoAppliedMode = requestedMode
+        currentMode = nextMode
+        currentSegment = nextSegment
+        if (isValidPartnerNotificationMode(requestedMode)) {
+          autoAppliedMode = requestedMode
+        }
       }
     }
   }
@@ -128,6 +143,7 @@ export default async function PartnerNotificationsPage({
               companyName={partner.company_name}
               email={partner.email}
               initialMode={currentMode}
+              initialSegment={currentSegment}
               autoAppliedMode={autoAppliedMode}
             />
           )}

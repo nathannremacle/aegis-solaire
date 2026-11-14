@@ -24,8 +24,10 @@ import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import {
   getCleanTargetSurfaces,
+  getEffectivePartnerSegment,
   getPartnerNotificationMode,
   type PartnerNotificationMode,
+  type PartnerSegmentPreference,
 } from "@/lib/partner-notification-prefs"
 
 interface AlertPreferencesModalProps {
@@ -137,6 +139,10 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
     getPartnerNotificationMode(partner)
   )
 
+  const [selectedSegment, setSelectedSegment] = useState<PartnerSegmentPreference>(() =>
+    getEffectivePartnerSegment(partner)
+  )
+
   const [minFacture, setMinFacture] = useState<number>(() => {
     if (typeof partner?.min_facture === "number") {
       return partner.min_facture
@@ -202,6 +208,7 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
           provinces: selectedProvinces,
           surfaces: selectedSurfaces,
           minFacture,
+          segment: selectedSegment,
           notificationMode,
         }),
       })
@@ -216,6 +223,7 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
         partner.target_provinces = selectedProvinces
         partner.target_surfaces = data?.preferences?.targetSurfacesRaw ?? selectedSurfaces
         partner.min_facture = minFacture
+        partner.segment = selectedSegment
       }
 
       toast.success("Vos alertes et préférences d'e-mails ont été enregistrées !")
@@ -490,6 +498,59 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
           {/* ════════ Section D : Fréquence & Désactivation des E-mails ════════ */}
           <div className="flex flex-col gap-3 pt-2 border-t border-border/80">
             <div className="flex items-center justify-between gap-2">
+              <label className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wider font-mono">
+                <ShieldCheck className="h-3.5 w-3.5 text-accent shrink-0" />
+                <span>Segments ciblés (B2B / B2C)</span>
+              </label>
+              <span className="font-mono text-[11px] text-muted-foreground">
+                Filtrage e-mails &amp; relances
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {[
+                {
+                  id: "B2B" as PartnerSegmentPreference,
+                  label: "B2B uniquement",
+                  desc: "PME, hangars & tertiaire (0 alerte B2C)",
+                },
+                {
+                  id: "B2C" as PartnerSegmentPreference,
+                  label: "B2C uniquement",
+                  desc: "Résidentiel & maisons unifamiliales",
+                },
+                {
+                  id: "BOTH" as PartnerSegmentPreference,
+                  label: "B2B & B2C",
+                  desc: "Tous les chantiers qualifiés",
+                },
+              ].map((seg) => {
+                const isActive = selectedSegment === seg.id
+                return (
+                  <button
+                    key={seg.id}
+                    type="button"
+                    onClick={() => setSelectedSegment(seg.id)}
+                    className={`rounded-xl border p-2.5 text-left transition-all cursor-pointer flex flex-col gap-0.5 ${
+                      isActive
+                        ? "border-primary bg-primary text-primary-foreground font-bold shadow-2xs"
+                        : "border-border bg-card hover:bg-secondary/60 text-foreground font-semibold"
+                    }`}
+                  >
+                    <div className="text-xs font-bold">{seg.label}</div>
+                    <div
+                      className={`text-[10px] leading-snug ${
+                        isActive ? "text-primary-foreground/80" : "text-muted-foreground"
+                      }`}
+                    >
+                      {seg.desc}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="flex items-center justify-between gap-2 pt-2">
               <label className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wider font-mono">
                 <Mail className="h-3.5 w-3.5 text-accent shrink-0" />
                 <span>Fréquence des e-mails</span>

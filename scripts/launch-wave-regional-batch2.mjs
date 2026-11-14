@@ -40,6 +40,7 @@ const HARD_BOUNCED_EMAILS = [
   "frederic@homegridsolutions.be",
   "contact@wenergy-consulting.com",
   "thibaut.cougnet@we-green.be",
+  "rh@monnaie.be",
 ]
 
 const ALREADY_REGISTERED_EMAILS = [
@@ -512,12 +513,17 @@ function sleep(ms) {
 async function main() {
   const rescertPath = path.join(ROOT, "lib/data/rescert-wallonie-installateurs.json")
   const optoutPath = path.join(ROOT, "lib/data/optout-emails.json")
+  const b2cOptoutPath = path.join(ROOT, "lib/data/b2c-optout-emails.json")
 
   const installers = JSON.parse(fs.readFileSync(rescertPath, "utf8"))
   const optouts = JSON.parse(fs.readFileSync(optoutPath, "utf8")).map(normalizeEmail)
+  const b2cOptouts = fs.existsSync(b2cOptoutPath)
+    ? JSON.parse(fs.readFileSync(b2cOptoutPath, "utf8")).map(normalizeEmail)
+    : []
 
   const excluded = new Set([
     ...optouts,
+    ...b2cOptouts,
     ...HARD_BOUNCED_EMAILS.map(normalizeEmail),
     ...ALREADY_REGISTERED_EMAILS.map(normalizeEmail),
   ])

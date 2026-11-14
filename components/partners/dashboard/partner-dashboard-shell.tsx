@@ -407,6 +407,7 @@ export function PartnerDashboardShell({
             targetLeadId={activeTargetLeadId}
             targetedClosedLead={targetedClosedLead}
             partnerProvinces={initialPartner?.target_provinces}
+            partnerSegment={initialPartner?.segment}
             onClearTargetLead={() => setActiveTargetLeadId(undefined)}
             onPurchaseSuccess={(purchasedLead, newCredits, newPurchaseRecord) => {
               setCredits(newCredits)

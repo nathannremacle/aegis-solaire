@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { revalidateTag, revalidatePath } from "next/cache"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
+import { isB2COptedOutEmail, resolvePartnerSegment } from "@/lib/partner-notification-prefs"
 
 type ApplicationRow = {
   id: string
@@ -76,6 +77,10 @@ async function syncPartnerFromApplication(
 ) {
   const email = app.email.toLowerCase().trim()
   const targetProvinces = Array.isArray(app.regions) && app.regions.length > 0 ? app.regions : null
+  const resolvedSegment = resolvePartnerSegment({
+    email,
+    adminNotes: app.admin_notes,
+  })
 
   const { data: existing } = await supabase
     .from("partners")
@@ -84,10 +89,13 @@ async function syncPartnerFromApplication(
     .maybeSingle()
 
   if (existing?.id) {
-    if (targetProvinces) {
+    const existingUpdates: Record<string, unknown> = {}
+    if (targetProvinces) existingUpdates.target_provinces = targetProvinces
+    if (isB2COptedOutEmail(email)) existingUpdates.segment = "B2B"
+    if (Object.keys(existingUpdates).length > 0) {
       await supabase
         .from("partners")
-        .update({ target_provinces: targetProvinces })
+        .update(existingUpdates)
         .eq("id", existing.id)
     }
     return { created: false, partnerId: existing.id }
@@ -107,7 +115,7 @@ async function syncPartnerFromApplication(
       email,
       phone: app.phone?.trim().slice(0, 50) || null,
       credits: 0,
-      segment: "BOTH",
+      segment: resolvedSegment,
       target_provinces: targetProvinces,
     })
     .select("id")

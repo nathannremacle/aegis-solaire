@@ -1,9 +1,88 @@
+import b2cOptoutEmails from "@/lib/data/b2c-optout-emails.json"
+
 export type PartnerNotificationMode = "all" | "new_only" | "none"
+export type PartnerSegmentPreference = "B2B" | "B2C" | "BOTH"
 
 export const OPTOUT_ALL_MARKER = "__optout_all__"
 export const OPTOUT_RELANCES_MARKER = "__optout_relances__"
 
 export const DEFAULT_CLEAN_SURFACES = ["toiture", "parking"]
+
+const B2C_OPTOUT_EMAIL_SET = new Set(
+  (Array.isArray(b2cOptoutEmails) ? b2cOptoutEmails : [])
+    .map((e) => (typeof e === "string" ? e.toLowerCase().trim() : ""))
+    .filter(Boolean)
+)
+
+/**
+ * Indique si une adresse e-mail a demandé à ne plus recevoir de leads B2C (B2B uniquement).
+ */
+export function isB2COptedOutEmail(email: string | null | undefined): boolean {
+  const normalized = (email || "").toLowerCase().trim()
+  if (!normalized) return false
+  return B2C_OPTOUT_EMAIL_SET.has(normalized)
+}
+
+export function isValidPartnerSegment(value: unknown): value is PartnerSegmentPreference {
+  return value === "B2B" || value === "B2C" || value === "BOTH"
+}
+
+export function normalizePartnerSegment(value: unknown): PartnerSegmentPreference | null {
+  if (typeof value !== "string") return null
+  const upper = value.trim().toUpperCase()
+  if (upper === "B2B") return "B2B"
+  if (upper === "B2C") return "B2C"
+  if (upper === "BOTH" || upper === "ALL") return "BOTH"
+  return null
+}
+
+/**
+ * Extrait le segment cible depuis `installer_applications.admin_notes` (ex. "Segments cibles: B2B").
+ */
+export function extractTargetSegmentFromAdminNotes(
+  adminNotes: string | null | undefined
+): PartnerSegmentPreference | null {
+  if (!adminNotes) return null
+  const match = adminNotes.match(/Segments?\s+cibles?\s*:\s*(B2B|B2C|BOTH|ALL)/i)
+  return match ? normalizePartnerSegment(match[1]) : null
+}
+
+/**
+ * Résout le segment d'un partenaire lors de l'inscription ou de l'approbation.
+ * Les adresses listées dans `b2c-optout-emails.json` sont forcées sur `B2B`.
+ */
+export function resolvePartnerSegment(options: {
+  email?: string | null
+  explicitSegment?: unknown
+  adminNotes?: string | null
+  fallback?: PartnerSegmentPreference
+}): PartnerSegmentPreference {
+  if (isB2COptedOutEmail(options.email)) {
+    return "B2B"
+  }
+  const explicit = normalizePartnerSegment(options.explicitSegment)
+  if (explicit) return explicit
+  const fromNotes = extractTargetSegmentFromAdminNotes(options.adminNotes)
+  if (fromNotes) return fromNotes
+  return options.fallback ?? "BOTH"
+}
+
+/**
+ * Retourne le segment effectif utilisé par le moteur de matching et d'e-mails.
+ * Si un segment explicite est défini en base (ex. B2B, B2C ou BOTH modifié par le partenaire),
+ * il est respecté ; à défaut, les adresses ayant refusé le B2C reçoivent uniquement du B2B.
+ */
+export function getEffectivePartnerSegment(partner: {
+  email?: string | null
+  segment?: string | null
+} | null | undefined): PartnerSegmentPreference {
+  const current = normalizePartnerSegment(partner?.segment)
+  if (current) return current
+  if (isB2COptedOutEmail(partner?.email)) {
+    return "B2B"
+  }
+  return "BOTH"
+}
 
 export interface PartnerNotificationStateInput {
   email_notifications_enabled?: boolean | null

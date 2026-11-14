@@ -9,6 +9,7 @@ import {
   buildShowcaseClosedLeadRecord,
   isShowcaseOnlyLeadId,
 } from "@/lib/regional-leads-catalog"
+import { resolvePartnerSegment } from "@/lib/partner-notification-prefs"
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -50,7 +51,10 @@ export default async function PartnerDashboardPage({ searchParams }: PartnerDash
           email: matchedApp.email,
           phone: matchedApp.phone,
           credits: 0,
-          segment: "BOTH",
+          segment: resolvePartnerSegment({
+            email: matchedApp.email,
+            adminNotes: matchedApp.admin_notes,
+          }),
           target_provinces: matchedApp.regions,
           target_surfaces: null,
           min_facture: 0,
