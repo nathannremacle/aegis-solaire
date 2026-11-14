@@ -74,7 +74,7 @@ export interface MetaCapiLeadParams {
 }
 
 export interface MetaCapiEventParams {
-  eventName: "Lead" | "Contact" | "InitiateCheckout" | "CustomizeProduct"
+  eventName: "PageView" | "Lead" | "Contact" | "InitiateCheckout" | "CustomizeProduct"
   eventId: string
   advertisingConsent?: boolean
   email?: string
@@ -171,29 +171,39 @@ export async function sendMetaConversionApiEvent(params: MetaCapiEventParams): P
             ? 15
             : 5
 
+    const resolvedEventId =
+      params.eventId.startsWith("event_") ||
+      params.eventId.startsWith("lead_") ||
+      params.eventId.startsWith("pv_")
+        ? params.eventId
+        : `event_${params.eventId}`
+
+    const eventPayload: Record<string, unknown> = {
+      event_name: params.eventName,
+      event_time: Math.floor(Date.now() / 1000),
+      event_id: resolvedEventId,
+      action_source: "website",
+      event_source_url: eventSourceUrl,
+      user_data: userData,
+    }
+
+    if (params.eventName !== "PageView") {
+      eventPayload.custom_data = {
+        content_name: params.contentName || `Audit Solaire Wallonie - ${params.eventName}`,
+        content_category: params.segment || "B2C",
+        currency: "EUR",
+        value: params.value ?? defaultValue,
+      }
+    }
+
     const testEventCode = process.env.META_TEST_EVENT_CODE
 
     const response = await fetch(`https://graph.facebook.com/v22.0/${pixelId}/events?access_token=${accessToken}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(4000),
+      signal: typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function" ? AbortSignal.timeout(4000) : undefined,
       body: JSON.stringify({
-        data: [
-          {
-            event_name: params.eventName,
-            event_time: Math.floor(Date.now() / 1000),
-            event_id: params.eventId.startsWith("event_") || params.eventId.startsWith("lead_") ? params.eventId : `event_${params.eventId}`,
-            action_source: "website",
-            event_source_url: eventSourceUrl,
-            user_data: userData,
-            custom_data: {
-              content_name: params.contentName || `Audit Solaire Wallonie - ${params.eventName}`,
-              content_category: params.segment || "B2C",
-              currency: "EUR",
-              value: params.value ?? defaultValue,
-            },
-          },
-        ],
+        data: [eventPayload],
         ...(testEventCode ? { test_event_code: testEventCode } : {}),
       }),
     })

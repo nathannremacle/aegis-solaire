@@ -195,9 +195,14 @@ export function DevisLandingClient() {
       }
       setUtmData(utm)
 
-      if (utm.fbclid && !document.cookie.includes("_fbc=")) {
+      const hasFbcCookie = /(?:^|;\s*)_fbc=/.test(document.cookie)
+      if (utm.fbclid && !hasFbcCookie) {
         const creationTime = Date.now()
-        document.cookie = `_fbc=fb.1.${creationTime}.${utm.fbclid}; path=/; max-age=${90 * 24 * 3600}; SameSite=Lax`
+        const hostname = window.location.hostname
+        const isProdDomain = hostname === "aegissolaire.com" || hostname.endsWith(".aegissolaire.com")
+        const domainAttr = isProdDomain ? "; domain=.aegissolaire.com" : ""
+        const secureAttr = window.location.protocol === "https:" ? "; Secure" : ""
+        document.cookie = `_fbc=fb.1.${creationTime}.${utm.fbclid}; path=/${domainAttr}; max-age=${90 * 24 * 3600}; SameSite=Lax${secureAttr}`
       }
 
       // Restauration de l'état sauvegardé en sessionStorage (résistance au refresh WebView Meta)
@@ -292,6 +297,10 @@ export function DevisLandingClient() {
     if (trackedTelemetryStepsRef.current.has(step)) return
     trackedTelemetryStepsRef.current.add(step)
     try {
+      const metaPvEventId =
+        step === 1
+          ? (window as unknown as { __aegisMetaPvEventId?: string }).__aegisMetaPvEventId
+          : undefined
       fetch("/api/telemetry/funnel-step", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -305,10 +314,17 @@ export function DevisLandingClient() {
           utmCampaign: utmData.utm_campaign,
           utmContent: utmData.utm_content,
           utmTerm: utmData.utm_term,
+          ...(metaPvEventId
+            ? {
+                metaPageViewEventId: metaPvEventId,
+                fbclid: utmData.fbclid || undefined,
+                sourceUrl: window.location.href,
+              }
+            : {}),
         }),
       }).catch(() => {})
     } catch {}
-  }, [isUtmReady, step, utmData.utm_source, utmData.utm_campaign, utmData.utm_content, utmData.utm_term])
+  }, [isUtmReady, step, utmData.utm_source, utmData.utm_campaign, utmData.utm_content, utmData.utm_term, utmData.fbclid])
 
   // Validation
   const emailErr = getEmailError(email)

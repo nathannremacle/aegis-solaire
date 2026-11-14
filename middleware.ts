@@ -30,14 +30,14 @@ export function middleware(request: NextRequest) {
     default-src 'self';
     script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googletagmanager.com https://*.google-analytics.com https://connect.facebook.net https://va.vercel-scripts.com;
     style-src 'self' 'unsafe-inline';
-    img-src 'self' blob: data: https://*.supabase.co https://images.unsplash.com https://img.youtube.com https://i.ytimg.com https://*.googletagmanager.com https://*.google-analytics.com https://www.facebook.com;
+    img-src 'self' blob: data: https://*.supabase.co https://images.unsplash.com https://img.youtube.com https://i.ytimg.com https://*.googletagmanager.com https://*.google-analytics.com https://*.facebook.com;
     font-src 'self' data:;
     frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com https://calendly.com;
     object-src 'none';
     base-uri 'self';
-    form-action 'self';
+    form-action 'self' https://www.facebook.com;
     frame-ancestors 'none';
-    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.google-analytics.com https://*.googletagmanager.com https://vitals.vercel-insights.com https://*.facebook.com https://connect.facebook.net;
+    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.google-analytics.com https://*.googletagmanager.com https://vitals.vercel-insights.com https://*.facebook.com https://connect.facebook.net https://*.a.run.app https://*.on.aws;
     upgrade-insecure-requests;
   `.replace(/\s{2,}/g, " ").trim()
 

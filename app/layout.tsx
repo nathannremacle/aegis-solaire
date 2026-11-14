@@ -89,6 +89,11 @@ export default function RootLayout({
     <html lang="fr-BE" suppressHydrationWarning>
       <head>
         <meta name="darkreader-lock" />
+        <link rel="preconnect" href="https://connect.facebook.net" />
+        <link rel="dns-prefetch" href="https://connect.facebook.net" />
+        <link rel="preconnect" href="https://www.facebook.com" />
+        <link rel="dns-prefetch" href="https://www.facebook.com" />
+        <link rel="preload" as="script" href="https://connect.facebook.net/en_US/fbevents.js" />
         {/* Ignore browser extension errors & hydration warnings (e.g. Dark Reader, Bitdefender bis_skin_checked) from triggering Next.js dev overlay */}
         <script
           dangerouslySetInnerHTML={{
@@ -210,8 +215,9 @@ n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];
 s.parentNode.insertBefore(t,s)}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
+window.__aegisMetaPvEventId='pv_'+(window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,10));
 fbq('init', '1672474437601117');
-fbq('track', 'PageView');`,
+fbq('track', 'PageView', {}, { eventID: window.__aegisMetaPvEventId });`,
           }}
         />
         <noscript>

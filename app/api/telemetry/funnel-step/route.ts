@@ -3,9 +3,25 @@ import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { isWalloonPostalCode } from "@/lib/leads-validation"
 import { sendMetaConversionApiEvent } from "@/lib/meta-capi"
 
+function getMetaRequestContext(request: NextRequest, sourceUrl: unknown) {
+  return {
+    clientIp:
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip")?.trim() ||
+      undefined,
+    userAgent: request.headers.get("user-agent") || undefined,
+    fbp: request.cookies.get("_fbp")?.value,
+    fbc: request.cookies.get("_fbc")?.value,
+    sourceUrl:
+      (typeof sourceUrl === "string" && sourceUrl.startsWith("http") ? sourceUrl : undefined) ||
+      request.headers.get("referer") ||
+      "https://www.aegissolaire.com/devis-panneaux-solaires",
+  }
+}
+
 /**
  * Route télémétrie anonyme d'entonnoir (100 % conforme APD / sans cookie tiers / sans PII)
- * + Relais serveur CAPI optionnel pour l'intention qualifiée (InitiateCheckout étape 5 Wallonie).
+ * + Relais serveur CAPI optionnel (PageView étape 1 dédupliqué et InitiateCheckout étape 5 Wallonie).
  */
 export async function POST(request: NextRequest) {
   try {
@@ -20,6 +36,7 @@ export async function POST(request: NextRequest) {
       utmContent,
       utmTerm,
       metaEventName,
+      metaPageViewEventId,
       eventId,
       postalCode,
       fbclid,
@@ -62,6 +79,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const resolvedFbclid = typeof fbclid === "string" && fbclid.trim() !== "" ? fbclid.trim() : undefined
+
+    // Relais CAPI Meta PageView à l'étape 1 (dédupliqué avec le Pixel navigateur via le même event_id)
+    if (step === 1 && typeof metaPageViewEventId === "string" && metaPageViewEventId.trim() !== "") {
+      try {
+        await sendMetaConversionApiEvent({
+          eventName: "PageView",
+          eventId: metaPageViewEventId.trim(),
+          countryCode: "be",
+          fbclid: resolvedFbclid,
+          ...getMetaRequestContext(request, sourceUrl),
+        })
+      } catch {
+        // Relais non bloquant côté visiteur
+      }
+    }
+
     // Relais CAPI Meta InitiateCheckout uniquement si le CP wallon est valide (filtre le hors-zone)
     if (
       metaEventName === "InitiateCheckout" &&
@@ -71,29 +105,13 @@ export async function POST(request: NextRequest) {
       isWalloonPostalCode(postalCode.trim())
     ) {
       try {
-        const clientIp =
-          request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-          request.headers.get("x-real-ip")?.trim() ||
-          undefined
-        const userAgent = request.headers.get("user-agent") || undefined
-        const fbp = request.cookies.get("_fbp")?.value
-        const fbc = request.cookies.get("_fbc")?.value
-        const resolvedSourceUrl =
-          (typeof sourceUrl === "string" && sourceUrl.startsWith("http") ? sourceUrl : undefined) ||
-          request.headers.get("referer") ||
-          "https://www.aegissolaire.com/devis-panneaux-solaires"
-
         await sendMetaConversionApiEvent({
           eventName: "InitiateCheckout",
           eventId: eventId.trim(),
           postalCode: postalCode.trim(),
           countryCode: "be",
-          clientIp,
-          userAgent,
-          fbp,
-          fbc,
-          fbclid: typeof fbclid === "string" && fbclid.trim() !== "" ? fbclid.trim() : undefined,
-          sourceUrl: resolvedSourceUrl,
+          fbclid: resolvedFbclid,
+          ...getMetaRequestContext(request, sourceUrl),
           segment: "B2C",
           value: 15,
           contentName: "Audit Solaire Wallonie",
