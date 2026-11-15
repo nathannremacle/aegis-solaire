@@ -55,13 +55,23 @@ import { CompetitionInterstitial } from "@/components/funnel/competition-interst
 import { NetworkPartnersModal } from "@/components/funnel/network-partners-modal"
 
 // ── Options du formulaire B2C (Wallonie) ──
+// Étape 1 formulée en facture mensuelle (donnée connue de tous) au lieu des kWh annuels
+// (inconnus de la majorité des visiteurs Meta). Les `id`, `billValue` et `kwhValue`
+// restent strictement identiques : aucune incidence sur le calcul ROI ni sur les leads stockés.
 const CONSUMPTION_OPTIONS = [
-  { id: "lt_3000", label: "Moins de 3.000 kWh", sublabel: "1 à 2 personnes (Facture < 85 € / mois)", billValue: 820, kwhValue: 2400 },
-  { id: "3000_4000", label: "3.000 – 4.000 kWh", sublabel: "2 à 3 personnes (Facture ~85 à 115 € / mois)", billValue: 1150, kwhValue: 3500 },
-  { id: "4000_5000", label: "4.000 – 5.000 kWh", sublabel: "3 à 4 personnes (Facture ~115 à 145 € / mois)", billValue: 1480, kwhValue: 4500 },
-  { id: "5000_6000", label: "5.000 – 6.000 kWh", sublabel: "4 à 5 personnes (Facture ~145 à 175 € / mois)", billValue: 1820, kwhValue: 5500 },
-  { id: "gt_6000", label: "Plus de 6.000 kWh", sublabel: "Grand foyer, PAC ou borne VE (> 175 € / mois)", billValue: 2300, kwhValue: 7000 },
+  { id: "lt_3000", label: "Moins de 85 € / mois", sublabel: "1–2 pers.", kwhHint: "< 3 000 kWh", billValue: 820, kwhValue: 2400 },
+  { id: "3000_4000", label: "85 – 115 € / mois", sublabel: "2–3 pers.", kwhHint: "3 000–4 000 kWh", billValue: 1150, kwhValue: 3500 },
+  { id: "4000_5000", label: "115 – 145 € / mois", sublabel: "3–4 pers.", kwhHint: "4 000–5 000 kWh", billValue: 1480, kwhValue: 4500 },
+  { id: "5000_6000", label: "145 – 175 € / mois", sublabel: "4–5 pers.", kwhHint: "5 000–6 000 kWh", billValue: 1820, kwhValue: 5500 },
+  { id: "gt_6000", label: "Plus de 175 € / mois", sublabel: "PAC, VE", kwhHint: "> 6 000 kWh", billValue: 2300, kwhValue: 7000 },
 ]
+
+// Continuité du message annonce → landing (message match) selon l'utm_content Meta
+const AD_HOOK_LINES: Record<string, string> = {
+  V2_AD1_ECART_1850_GPT: "Jusqu'à 1 850 € d'écart entre deux devis pour une installation équivalente.",
+  V2_AD2_RENTABILITE_2026_GPT: "Ce que le solaire rapporte vraiment en 2026, chiffré par des installateurs locaux.",
+  V2_AD3_ANTI_DEMARCHAGE_GPT: "Sans démarchage : vous êtes contacté par écrit d'abord, et restez libre de tout refuser.",
+}
 
 const PROPERTY_TYPES = [
   { id: "maison_4f", label: "Maison individuelle", sublabel: "4 façades (villa, pavillon, plain-pied)" },
@@ -98,7 +108,7 @@ const STEP_TITLES = [
 ]
 
 const STEP_QUESTIONS = [
-  "Quelle est votre consommation d'électricité annuelle (estimée) ?",
+  "Combien payez-vous d'électricité par mois (environ) ?",
   "De quel type de bâtiment s'agit-il ?",
   "Êtes-vous propriétaire du bâtiment ?",
   "Spécifications de votre toiture pour panneaux solaires",
@@ -718,7 +728,11 @@ export function DevisLandingClient() {
             </h1>
 
             <p className="text-xs sm:text-base text-muted-foreground leading-snug sm:leading-relaxed mt-0.5 sm:mt-1">
-              Une seule demande, des installateurs certifiés <strong className="text-foreground font-semibold">RESCERT</strong> locaux.
+              {(utmData.utm_content && AD_HOOK_LINES[utmData.utm_content]) || (
+                <>
+                  Une seule demande, des installateurs certifiés <strong className="text-foreground font-semibold">RESCERT</strong> locaux.
+                </>
+              )}
             </p>
           </div>
 
@@ -795,7 +809,7 @@ export function DevisLandingClient() {
 
           {/* ── BLOC 3 : CARTE DU QUESTIONNAIRE (Directement au-dessus de la ligne de flottaison mobile) ── */}
           <div ref={leadCardRef} className="order-2 lg:order-none lg:col-span-6 lg:col-start-7 lg:row-start-1 lg:row-span-2 w-full">
-            <div className="bg-card border border-border/80 rounded-2xl sm:rounded-3xl shadow-[0_2px_8px_rgba(0,0,0,0.04),0_12px_28px_-6px_rgba(15,23,42,0.06)] p-6 sm:p-8 flex flex-col justify-between max-w-xl mx-auto lg:max-w-none">
+            <div className="bg-card border border-border/80 rounded-2xl sm:rounded-3xl shadow-[0_2px_8px_rgba(0,0,0,0.04),0_12px_28px_-6px_rgba(15,23,42,0.06)] p-4 sm:p-8 flex flex-col justify-between max-w-xl mx-auto lg:max-w-none">
               
               {!submitted ? (
                 <>
@@ -829,7 +843,7 @@ export function DevisLandingClient() {
                         </div>
 
                         {step < 6 && (
-                          <div className="flex flex-wrap items-center gap-2 pt-1">
+                          <div className="hidden sm:flex flex-wrap items-center gap-2 pt-1">
                             <span className="px-2.5 py-0.5 rounded-md bg-secondary text-[11px] font-medium text-muted-foreground border border-border/60">
                               Certifiés RESCert
                             </span>
@@ -871,7 +885,7 @@ export function DevisLandingClient() {
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -8 }}
                           transition={{ duration: 0.18 }}
-                          className="flex flex-col gap-2.5 border-none p-0 m-0"
+                          className="flex flex-col gap-2 border-none p-0 m-0"
                         >
                           {CONSUMPTION_OPTIONS.map((item) => {
                             const isChecked = consumption === item.id
@@ -880,21 +894,22 @@ export function DevisLandingClient() {
                                 key={item.id}
                                 type="button"
                                 onClick={() => handleOptionSelect(setConsumption, item.id)}
-                                className={`w-full text-left py-3.5 px-4 sm:px-5 rounded-xl border transition-colors duration-150 cursor-pointer flex items-center justify-between ${
+                                className={`w-full text-left min-h-12 py-2.5 px-4 sm:py-3.5 sm:px-5 rounded-xl border transition-colors duration-150 cursor-pointer flex items-center justify-between gap-3 ${
                                   isChecked
                                     ? "border-accent-solar bg-accent-solar/[0.10] text-foreground font-bold ring-2 ring-accent-solar/40 shadow-xs"
                                     : "border-border/70 bg-secondary/50 text-foreground hover:bg-secondary/80 hover:border-border font-medium"
                                 }`}
                               >
-                                <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between w-full pr-3">
-                                  <span className="text-[15px] sm:text-[16px] font-bold text-foreground font-mono tabular-nums">
-                                    {item.label}
+                                <span className="text-[15px] sm:text-[16px] font-bold text-foreground font-mono tabular-nums whitespace-nowrap">
+                                  {item.label}
+                                </span>
+                                <span className="flex items-center gap-2 shrink-0">
+                                  <span className="text-[11px] sm:text-xs text-muted-foreground font-mono tabular-nums font-normal text-right">
+                                    {item.sublabel}
+                                    <span className="hidden sm:inline"> · {item.kwhHint}</span>
                                   </span>
-                                  <span className="text-xs text-muted-foreground font-mono tabular-nums mt-0.5 sm:mt-0 font-normal">
-                                    ({item.sublabel.replace(/^\(|\)$/g, "")})
-                                  </span>
-                                </div>
-                                {isChecked && <Check className="h-5 w-5 text-accent-solar stroke-[3] shrink-0" />}
+                                  {isChecked && <Check className="h-5 w-5 text-accent-solar stroke-[3] shrink-0" />}
+                                </span>
                               </button>
                             )
                           })}

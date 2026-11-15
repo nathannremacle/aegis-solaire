@@ -334,9 +334,17 @@ async function runSupabaseAudit() {
   console.log(`   - Evenements attribues Meta : ${metaEvents.length} | Sessions uniques : ${sessions.size}`)
   console.log(`   - Bursts bots suspects filtres : ${suspiciousBurstSids.size} sessions`)
   console.log(`   - Sessions humaines dedupliquees : ${humanSessions.length}`)
+  const STEP_LABELS = {
+    1: "Vue landing (chargement)",
+    2: "Q1 facture repondue",
+    3: "Q2 batiment repondue",
+    4: "Q3 statut repondue",
+    5: "Q4 toiture repondue",
+    6: "Q5 CP valide -> coordonnees",
+  }
   for (let k = 1; k <= 6; k++) {
     const base = stepCounts[1] || 1
-    console.log(`     * Etape ${k} : ${stepCounts[k]} sessions (${fmtPct((stepCounts[k] / base) * 100)} du Step 1 humain)`)
+    console.log(`     * Etape ${k} [${STEP_LABELS[k]}] : ${stepCounts[k]} sessions (${fmtPct((stepCounts[k] / base) * 100)} des vues landing)`)
   }
 
   // Répartition par annonce (utm_content) sur les sessions humaines
