@@ -296,8 +296,8 @@ export function CompetitionInterstitial({
         </p>
       </div>
 
-      {/* ── 5. JOURNAL DE VALIDATION (2 COCHES ORANGE VÉRIFIÉES) ── */}
-      <div className="flex flex-col gap-2.5 pt-0.5">
+      {/* ── 5. JOURNAL DE VALIDATION (2 COCHES ORANGE VÉRIFIÉES, compact sur une ligne) ── */}
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
         
         {/* Check 1 : 3 installateurs sélectionnés */}
         <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-foreground">
@@ -333,8 +333,8 @@ export function CompetitionInterstitial({
 
       </div>
 
-      {/* ── 6. BOUTON D'ACTION CRO : CONTRÔLE UTILISATEUR ── */}
-      <div className="pt-1">
+      {/* ── 6. BOUTON D'ACTION CRO : collant en bas du viewport (toujours visible sans scroller) ── */}
+      <div className="sticky bottom-0 z-20 -mx-4 sm:-mx-8 -mb-5 sm:-mb-9 px-4 sm:px-8 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-card border-t border-border/70 rounded-b-2xl sm:rounded-b-3xl">
         <button
           type="button"
           onClick={onComplete}
