@@ -440,34 +440,22 @@ export function DevisLandingClient() {
       }
       // Déclenche l'interstitiel de mise en concurrence de 3000 ms
       setIsInterstitialRunning(true)
-      if (typeof window !== "undefined" && window.innerWidth <= 1024) {
-        scrollToForm()
-      }
       return
     }
     if (step < totalSteps) {
       setStep((s) => s + 1)
-      if (typeof window !== "undefined" && window.innerWidth <= 1024) {
-        scrollToForm()
-      }
     }
   }
 
   const handleInterstitialComplete = () => {
     setIsInterstitialRunning(false)
     setStep(6)
-    if (typeof window !== "undefined" && window.innerWidth <= 1024) {
-      scrollToForm()
-    }
   }
 
   const handleBack = () => {
     if (isInterstitialRunning) return
     if (step > 1) {
       setStep((s) => s - 1)
-      if (typeof window !== "undefined" && window.innerWidth <= 1024) {
-        scrollToForm()
-      }
     }
   }
 
@@ -494,9 +482,6 @@ export function DevisLandingClient() {
     if (step < 4) {
       setTimeout(() => {
         setStep((s) => Math.min(totalSteps, s + 1))
-        if (typeof window !== "undefined" && window.innerWidth <= 1024) {
-          scrollToForm()
-        }
       }, 180)
     }
   }
@@ -696,7 +681,7 @@ export function DevisLandingClient() {
   const progressPercent = Math.round((step / totalSteps) * 100)
 
   return (
-    <div className="min-h-dvh bg-background text-foreground flex flex-col justify-between font-sans selection:bg-accent/15 selection:text-foreground">
+    <div className="min-h-dvh bg-background text-foreground flex flex-col justify-between font-sans selection:bg-accent/15 selection:text-foreground [overflow-anchor:none]">
       
       {/* ── HEADER MINIMAL : Logo Aegis Solaire en haut à gauche ── */}
       <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2.5 pb-1.5 sm:pt-5 sm:pb-2 shrink-0 flex items-center justify-between">
