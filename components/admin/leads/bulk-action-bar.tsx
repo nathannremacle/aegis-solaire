@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Check, X, Trash2, Archive, Loader2 } from "lucide-react"
+import { Check, X, Archive, Loader2, PauseCircle } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +12,7 @@ import {
 export function BulkActionBar({
   selectedCount,
   onQualifyAll,
+  onUnpublishAll,
   onRejectAll,
   onArchiveAll,
   onClearSelection,
@@ -19,6 +20,7 @@ export function BulkActionBar({
 }: {
   selectedCount: number
   onQualifyAll: () => void
+  onUnpublishAll?: () => void
   onRejectAll: (reason: string) => void
   onArchiveAll: () => void
   onClearSelection: () => void
@@ -49,6 +51,19 @@ export function BulkActionBar({
           )}
           <span>Publier vivier</span>
         </Button>
+
+        {onUnpublishAll && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onUnpublishAll}
+            disabled={loading}
+            className="h-8 gap-1.5 text-xs font-medium"
+          >
+            <PauseCircle className="h-3.5 w-3.5 text-muted-foreground" />
+            <span>Retirer du vivier</span>
+          </Button>
+        )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

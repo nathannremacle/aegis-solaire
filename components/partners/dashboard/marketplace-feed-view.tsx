@@ -257,6 +257,29 @@ export function MarketplaceFeedView({
     return null
   }, [focusedLeadId, targetedLead, targetedClosedLead])
 
+  const closedShowcaseFinancials = useMemo(() => {
+    if (!activeClosedShowcaseLead) return null
+    const rawSurface = Math.max(
+      0,
+      Number(activeClosedShowcaseLead.surface_area || activeClosedShowcaseLead.surface_area_m2) || 0
+    )
+    const rawBill = Math.max(
+      0,
+      Number(activeClosedShowcaseLead.annual_electricity_bill || activeClosedShowcaseLead.annual_bill_eur) || 0
+    )
+    return calculateMarketplaceFinancials({
+      segment: activeClosedShowcaseLead.segment,
+      surfaceArea: rawSurface,
+      surfaceType: activeClosedShowcaseLead.surface_type,
+      roofMaterial: activeClosedShowcaseLead.roof_material,
+      annualBill: rawBill,
+      creditCost: activeClosedShowcaseLead.credit_cost ?? (activeClosedShowcaseLead.segment === "B2B" ? 9 : 3),
+      estimatedPowerKwc: activeClosedShowcaseLead.estimated_power_kwc,
+      projectDetails: activeClosedShowcaseLead.project_details ?? activeClosedShowcaseLead.message,
+      qualificationMetadata: activeClosedShowcaseLead.qualification_metadata,
+    })
+  }, [activeClosedShowcaseLead])
+
   // Variables calculées pour le lead ciblé en mode isolé
   const rawTargetSurface = Math.max(0, Number(targetedLead?.surface_area || targetedLead?.surface_area_m2) || 0)
   const rawTargetAnnualBill = Math.max(0, Number(targetedLead?.annual_electricity_bill || targetedLead?.annual_bill_eur) || 0)
@@ -578,119 +601,167 @@ export function MarketplaceFeedView({
         />
       )}
 
-      {/* ── DOSSIER VITRINE / RÉGIONAL CLÔTURÉ (NON ACHETABLE) + OPPORTUNITÉS RÉELLES EN DESSOUS ── */}
+      {/* ── DOSSIER RETIRÉ OU CLÔTURÉ (NON ACHETABLE) + OPPORTUNITÉS RÉELLES EN DESSOUS ── */}
       {focusedLeadId && activeClosedShowcaseLead ? (
-        <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
-          <div className="border-b border-border bg-secondary/50 px-4 py-3 sm:px-6 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[11px] font-mono font-bold text-amber-700 dark:text-amber-400 tabular-nums">
-                <Lock className="h-3 w-3" />
-                QUOTA ATTEINT · {activeClosedShowcaseLead.max_slots}/{activeClosedShowcaseLead.max_slots} PLACE{activeClosedShowcaseLead.max_slots > 1 ? "S" : ""} ATTRIBUÉE{activeClosedShowcaseLead.max_slots > 1 ? "S" : ""}
-              </span>
-              <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
-                {activeClosedShowcaseLead.postal_code} {activeClosedShowcaseLead.city}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={handleClearFocus}
-              className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            >
-              Masquer cet aperçu &times;
-            </button>
-          </div>
+        (() => {
+          const isWithdrawn = Boolean(activeClosedShowcaseLead.is_withdrawn_from_marketplace)
+          const closedLocation = getLeadLocationInfo(activeClosedShowcaseLead)
+          const closedPowerKwc =
+            closedShowcaseFinancials?.estimatedPowerKwc ||
+            Number(activeClosedShowcaseLead.estimated_power_kwc) ||
+            0
+          const closedSurfaceArea =
+            closedShowcaseFinancials?.normalizedSurfaceAreaM2 ||
+            Number(activeClosedShowcaseLead.surface_area || activeClosedShowcaseLead.surface_area_m2) ||
+            0
+          const closedAnnualBill =
+            closedShowcaseFinancials?.normalizedAnnualBill ||
+            Number(activeClosedShowcaseLead.annual_electricity_bill || activeClosedShowcaseLead.annual_bill_eur) ||
+            0
+          const closedRoofImg =
+            activeClosedShowcaseLead.qualification_metadata?.roof_image_url ||
+            activeClosedShowcaseLead.qualification_metadata?.site_image_url
 
-          <div className="p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
-            {activeClosedShowcaseLead.qualification_metadata?.roof_image_url && (
-              <div className="lg:col-span-4 relative aspect-[16/10] w-full overflow-hidden rounded-xl border border-border bg-muted">
-                <img
-                  src={activeClosedShowcaseLead.qualification_metadata.roof_image_url}
-                  alt={`Aperçu toiture ${activeClosedShowcaseLead.postal_code} ${activeClosedShowcaseLead.city}`}
-                  className="h-full w-full object-cover opacity-80 grayscale-[25%]"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent" />
-                <span className="absolute bottom-2.5 left-2.5 inline-flex items-center gap-1.5 rounded-full bg-black/75 px-2.5 py-1 text-[10px] font-mono font-bold text-white uppercase tracking-wider">
-                  <CheckCircle2 className="h-3 w-3 text-emerald-400" />
-                  Dossier clôturé
-                </span>
-              </div>
-            )}
-
-            <div className={`${activeClosedShowcaseLead.qualification_metadata?.roof_image_url ? "lg:col-span-8" : "lg:col-span-12"} flex flex-col gap-3`}>
-              <div>
-                <h2 className="text-base sm:text-lg font-heading font-extrabold text-foreground">
-                  Chantier {activeClosedShowcaseLead.city} ({activeClosedShowcaseLead.postal_code}) — Attribution terminée
-                </h2>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">
-                  Ce projet a atteint son plafond d&apos;installateurs certifiés et n&apos;est plus ouvert au déblocage. Votre profil RESCERT est désormais actif pour accéder aux dossiers disponibles ci-dessous et recevoir en priorité les prochains chantiers{Array.isArray(partnerProvinces) && partnerProvinces.length > 0 ? ` (${partnerProvinces.join(", ")})` : ""}.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
-                <div className="rounded-xl border border-border bg-secondary/40 px-3 py-2">
-                  <span className="text-[10px] font-mono uppercase text-muted-foreground block">Puissance</span>
-                  <span className="font-mono font-bold text-foreground tabular-nums">
-                    ~{activeClosedShowcaseLead.estimated_power_kwc} kWc
+          return (
+            <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
+              <div className="border-b border-border bg-secondary/50 px-4 py-3 sm:px-6 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {isWithdrawn ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary border border-border px-2.5 py-0.5 text-[11px] font-mono font-bold text-foreground tabular-nums">
+                      <Clock className="h-3 w-3 text-accent" />
+                      DOSSIER RETIRÉ · N&apos;EST PLUS DISPONIBLE SUR LA MARKETPLACE
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary border border-border px-2.5 py-0.5 text-[11px] font-mono font-bold text-foreground tabular-nums">
+                      <Lock className="h-3 w-3 text-accent" />
+                      QUOTA ATTEINT · {activeClosedShowcaseLead.max_slots}/{activeClosedShowcaseLead.max_slots} PLACE{activeClosedShowcaseLead.max_slots > 1 ? "S" : ""} ATTRIBUÉE{activeClosedShowcaseLead.max_slots > 1 ? "S" : ""}
+                    </span>
+                  )}
+                  <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
+                    Réf. #{String(activeClosedShowcaseLead.id).slice(0, 8)} ·{" "}
+                    {activeClosedShowcaseLead.postal_code || closedLocation.postalCode}{" "}
+                    {closedLocation.city}
                   </span>
                 </div>
-                <div className="rounded-xl border border-border bg-secondary/40 px-3 py-2">
-                  <span className="text-[10px] font-mono uppercase text-muted-foreground block">Toiture</span>
-                  <span className="font-mono font-bold text-foreground tabular-nums">
-                    {activeClosedShowcaseLead.surface_area} m²
-                  </span>
-                </div>
-                <div className="rounded-xl border border-border bg-secondary/40 px-3 py-2">
-                  <span className="text-[10px] font-mono uppercase text-muted-foreground block">Facture</span>
-                  <span className="font-mono font-bold text-foreground tabular-nums">
-                    {Number(activeClosedShowcaseLead.annual_electricity_bill || 0).toLocaleString("fr-BE")} €/an
-                  </span>
-                </div>
-                <div className="rounded-xl border border-border bg-secondary/40 px-3 py-2">
-                  <span className="text-[10px] font-mono uppercase text-muted-foreground block">Statut</span>
-                  <span className="font-mono font-bold text-amber-700 dark:text-amber-400">
-                    Clôturé
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2.5 pt-1">
-                {onOpenAlertPreferences && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={onOpenAlertPreferences}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-bold cursor-pointer gap-1.5"
-                  >
-                    <Bell className="h-3.5 w-3.5 text-accent" />
-                    <span>Vérifier mes alertes prioritaires</span>
-                  </Button>
-                )}
-                <Button
+                <button
                   type="button"
-                  variant="outline"
-                  size="sm"
                   onClick={handleClearFocus}
-                  className="text-xs font-semibold border-border hover:bg-secondary cursor-pointer"
+                  className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 >
-                  Explorer les {leads.length} dossier{leads.length > 1 ? "s" : ""} disponible{leads.length > 1 ? "s" : ""} &darr;
-                </Button>
+                  Masquer cet aperçu &times;
+                </button>
+              </div>
+
+              <div className="p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+                {closedRoofImg && (
+                  <div className="lg:col-span-4 relative aspect-[16/10] w-full overflow-hidden rounded-xl border border-border bg-muted">
+                    <img
+                      src={closedRoofImg}
+                      alt={`Aperçu toiture ${activeClosedShowcaseLead.postal_code || closedLocation.postalCode} ${closedLocation.city}`}
+                      className="h-full w-full object-cover opacity-80 grayscale-[25%]"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/15 to-transparent" />
+                    <span className="absolute bottom-2.5 left-2.5 inline-flex items-center gap-1.5 rounded-full bg-card/95 border border-border px-2.5 py-1 text-[10px] font-mono font-bold text-foreground uppercase tracking-wider shadow-2xs">
+                      {isWithdrawn ? (
+                        <>
+                          <Clock className="h-3 w-3 text-muted-foreground" />
+                          <span>Dossier indisponible</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="h-3 w-3 text-accent" />
+                          <span>Dossier clôturé</span>
+                        </>
+                      )}
+                    </span>
+                  </div>
+                )}
+
+                <div className={`${closedRoofImg ? "lg:col-span-8" : "lg:col-span-12"} flex flex-col gap-3`}>
+                  <div className="flex flex-col gap-1">
+                    <h2 className="text-base sm:text-lg font-heading font-extrabold text-foreground">
+                      {isWithdrawn
+                        ? `Chantier ${closedLocation.city} (${activeClosedShowcaseLead.postal_code || closedLocation.postalCode}) — Ce dossier n'est plus disponible`
+                        : `Chantier ${closedLocation.city} (${activeClosedShowcaseLead.postal_code || closedLocation.postalCode}) — Attribution terminée`}
+                    </h2>
+                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                      {isWithdrawn
+                        ? `Vous avez suivi un lien de notification concernant ce projet photovoltaïque. Ce dossier a été temporairement retiré ou suspendu de la marketplace par la Cellule Technique Aegis Solaire (mise en pause à la demande du porteur de projet, vérification complémentaire ou clôture anticipée) et n'est plus ouvert au déblocage. Aucun crédit ne vous a été débité. Consultez ci-dessous l'ensemble des chantiers qualifiés immédiatement disponibles.`
+                        : `Ce projet a atteint son plafond d'installateurs certifiés et n'est plus ouvert au déblocage. Votre profil RESCERT est désormais actif pour accéder aux dossiers disponibles ci-dessous et recevoir en priorité les prochains chantiers${Array.isArray(partnerProvinces) && partnerProvinces.length > 0 ? ` (${partnerProvinces.join(", ")})` : ""}.`}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                    <div className="rounded-xl border border-border bg-secondary/40 px-3 py-2 flex flex-col gap-0.5">
+                      <span className="text-[10px] font-mono uppercase text-muted-foreground">Puissance</span>
+                      <span className="font-mono font-bold text-foreground tabular-nums">
+                        {closedPowerKwc > 0 ? `~${closedPowerKwc} kWc` : "Sur étude"}
+                      </span>
+                    </div>
+                    <div className="rounded-xl border border-border bg-secondary/40 px-3 py-2 flex flex-col gap-0.5">
+                      <span className="text-[10px] font-mono uppercase text-muted-foreground">Toiture</span>
+                      <span className="font-mono font-bold text-foreground tabular-nums">
+                        {closedSurfaceArea > 0 ? `${closedSurfaceArea} m²` : "—"}
+                      </span>
+                    </div>
+                    <div className="rounded-xl border border-border bg-secondary/40 px-3 py-2 flex flex-col gap-0.5">
+                      <span className="text-[10px] font-mono uppercase text-muted-foreground">Facture</span>
+                      <span className="font-mono font-bold text-foreground tabular-nums">
+                        {closedAnnualBill > 0
+                          ? `${closedAnnualBill.toLocaleString("fr-BE")} €/an`
+                          : "Confidentiel"}
+                      </span>
+                    </div>
+                    <div className="rounded-xl border border-border bg-secondary/40 px-3 py-2 flex flex-col gap-0.5">
+                      <span className="text-[10px] font-mono uppercase text-muted-foreground">Statut</span>
+                      <span className="font-mono font-bold text-foreground">
+                        {isWithdrawn ? "Indisponible" : "Clôturé"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleClearFocus}
+                      className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-bold cursor-pointer gap-1.5"
+                    >
+                      <span className="font-mono tabular-nums">
+                        Explorer les {leads.length} dossier{leads.length > 1 ? "s" : ""} disponible{leads.length > 1 ? "s" : ""} &darr;
+                      </span>
+                    </Button>
+                    {onOpenAlertPreferences && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={onOpenAlertPreferences}
+                        className="text-xs font-semibold border-border hover:bg-secondary cursor-pointer gap-1.5"
+                      >
+                        <Bell className="h-3.5 w-3.5 text-accent" />
+                        <span>Vérifier mes alertes prioritaires</span>
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          )
+        })()
       ) : focusedLeadId && !targetedLead ? (
-        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 sm:p-5 shadow-xs">
+        <div className="rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-600 font-bold">
-                <Info className="h-5 w-5" />
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary border border-border text-accent font-bold">
+                <Clock className="h-5 w-5" />
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-foreground">
-                  Dossier non disponible ou déjà attribué
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Ce chantier n&apos;est plus actif ou a atteint son quota d&apos;installateurs. Voici l&apos;ensemble des opportunités actuellement ouvertes :
+              <div className="flex flex-col gap-0.5">
+                <h2 className="text-sm font-bold text-foreground">
+                  Ce dossier n&apos;est plus disponible sur la marketplace
+                </h2>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Le chantier que vous cherchez à consulter a été retiré de la marketplace ou son attribution est terminée. Aucun crédit ne vous a été débité. Découvrez ci-dessous les opportunités actuellement disponibles :
                 </p>
               </div>
             </div>

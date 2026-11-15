@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { 
   Euro, 
   TrendingUp, 
@@ -20,8 +21,13 @@ import {
   ChevronRight,
   Info,
   Sparkles,
-  BarChart3
+  BarChart3,
+  PauseCircle,
+  RotateCcw,
+  Loader2,
 } from "lucide-react"
+import { toast } from "sonner"
+import { publishLeadAction, unpublishLeadAction } from "@/app/admin/actions"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -111,7 +117,42 @@ export function AdminKpiGrid({
   mediaPartners,
   lists,
 }: AdminKpiGridProps) {
+  const router = useRouter()
   const [selectedKpi, setSelectedKpi] = useState<KpiModalType | null>(null)
+  const [togglingLeadId, setTogglingLeadId] = useState<string | null>(null)
+  const [localLeadStatus, setLocalLeadStatus] = useState<
+    Record<string, { marketplace_status: string; withdrawn?: boolean }>
+  >({})
+
+  async function handleToggleMarketplace(leadId: string, currentlyAvailable: boolean, wasWithdrawn: boolean) {
+    setTogglingLeadId(leadId)
+    try {
+      if (currentlyAvailable) {
+        await unpublishLeadAction(leadId)
+        setLocalLeadStatus((prev) => ({
+          ...prev,
+          [leadId]: { marketplace_status: "pending_review", withdrawn: true },
+        }))
+        toast.success("Lead retiré de la marketplace (conservé en base).")
+      } else {
+        await publishLeadAction(leadId)
+        setLocalLeadStatus((prev) => ({
+          ...prev,
+          [leadId]: { marketplace_status: "available", withdrawn: false },
+        }))
+        toast.success(
+          wasWithdrawn
+            ? "Lead remis en ligne sur la marketplace !"
+            : "Lead approuvé et publié sur la marketplace !"
+        )
+      }
+      router.refresh()
+    } catch (err: any) {
+      toast.error(err?.message || "Erreur lors de la mise à jour marketplace.")
+    } finally {
+      setTogglingLeadId(null)
+    }
+  }
 
   const totalLeads = leads.total_leads || 1
   const b2bPercent = Math.round((leads.leads_b2b / totalLeads) * 100)
@@ -656,32 +697,68 @@ export function AdminKpiGrid({
                   </div>
                 ) : (
                   <div className="rounded-xl border border-border overflow-hidden divide-y divide-border text-xs max-h-60 overflow-y-auto">
-                    {availableLeadsList.map((lead: any) => (
-                      <div key={lead.id} className="p-3 flex items-center justify-between hover:bg-muted/30 transition-colors">
-                        <div className="flex flex-col gap-0.5">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-foreground">
-                              {lead.company || `${lead.first_name} ${lead.last_name}`}
+                    {availableLeadsList.map((lead: any) => {
+                      const override = localLeadStatus[lead.id]
+                      const mStatus = override?.marketplace_status ?? lead.marketplace_status ?? "available"
+                      const isAvailable = mStatus === "available"
+                      const isToggling = togglingLeadId === lead.id
+                      return (
+                        <div key={lead.id} className="p-3 flex items-center justify-between gap-3 hover:bg-muted/30 transition-colors">
+                          <div className="flex flex-col gap-0.5 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-foreground truncate">
+                                {lead.company || `${lead.first_name} ${lead.last_name}`}
+                              </span>
+                              <Badge variant="outline" className="text-[10px] uppercase font-mono">
+                                {lead.segment}
+                              </Badge>
+                              {!isAvailable && (
+                                <Badge variant="secondary" className="text-[10px] font-mono">
+                                  Retiré
+                                </Badge>
+                              )}
+                            </div>
+                            <span className="text-[11px] text-muted-foreground">
+                              {lead.city || lead.province}{" "}
+                              <span className="font-mono tabular-nums">
+                                {lead.postal_code ? `(${lead.postal_code})` : ""}
+                              </span>{" "}
+                              ·{" "}
+                              <span className="font-mono tabular-nums">
+                                {lead.surface_area ? `${lead.surface_area} m²` : ""}
+                              </span>
                             </span>
-                            <Badge variant="outline" className="text-[10px] uppercase font-mono">
-                              {lead.segment}
-                            </Badge>
                           </div>
-                          <span className="text-[11px] text-muted-foreground">
-                            {lead.city || lead.province} {lead.postal_code ? `(${lead.postal_code})` : ""} ·{" "}
-                            {lead.surface_area ? `${lead.surface_area} m²` : ""}
-                          </span>
+                          <div className="flex items-center gap-2.5 shrink-0">
+                            <div className="text-right flex flex-col items-end gap-0.5">
+                              <span className="font-bold font-mono tabular-nums text-foreground">
+                                {lead.credit_cost || (lead.segment === "B2B" ? 5 : 2)} cr.
+                              </span>
+                              <span className="text-[10px] text-muted-foreground font-mono tabular-nums">
+                                {new Date(lead.created_at).toLocaleDateString("fr-BE")}
+                              </span>
+                            </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={isAvailable ? "outline" : "default"}
+                              disabled={isToggling || togglingLeadId !== null}
+                              onClick={() => handleToggleMarketplace(lead.id, isAvailable, !isAvailable)}
+                              className="h-7 px-2 text-[11px] gap-1"
+                            >
+                              {isToggling ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : isAvailable ? (
+                                <PauseCircle className="h-3 w-3 text-muted-foreground" />
+                              ) : (
+                                <RotateCcw className="h-3 w-3" />
+                              )}
+                              <span>{isAvailable ? "Retirer" : "Remettre"}</span>
+                            </Button>
+                          </div>
                         </div>
-                        <div className="text-right flex flex-col items-end gap-0.5">
-                          <span className="font-bold font-mono tabular-nums text-foreground">
-                            {lead.credit_cost || (lead.segment === "B2B" ? 5 : 2)} cr.
-                          </span>
-                          <span className="text-[10px] text-muted-foreground font-mono tabular-nums">
-                            {new Date(lead.created_at).toLocaleDateString("fr-BE")}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>
@@ -870,32 +947,81 @@ export function AdminKpiGrid({
                 </div>
 
                 <div className="rounded-xl border border-border overflow-hidden divide-y divide-border text-xs max-h-56 overflow-y-auto">
-                  {recentLeads.map((l: any) => (
-                    <div key={l.id} className="p-3 flex items-center justify-between hover:bg-muted/30 transition-colors">
-                      <div className="flex flex-col gap-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-foreground">
-                            {l.first_name} {l.last_name} {l.company ? `(${l.company})` : ""}
+                  {recentLeads.map((l: any) => {
+                    const override = localLeadStatus[l.id]
+                    const mStatus = override?.marketplace_status ?? l.marketplace_status
+                    const isWithdrawn =
+                      override?.withdrawn !== undefined
+                        ? override.withdrawn
+                        : Boolean(
+                            (l.qualification_metadata as Record<string, unknown> | null)
+                              ?.withdrawn_from_marketplace === true
+                          )
+                    const isAvailable = mStatus === "available"
+                    const isSoldOut = mStatus === "sold_out"
+                    const isRejected = mStatus === "rejected" || l.status === "lost"
+                    const isToggling = togglingLeadId === l.id
+
+                    return (
+                      <div key={l.id} className="p-3 flex items-center justify-between gap-3 hover:bg-muted/30 transition-colors">
+                        <div className="flex flex-col gap-0.5 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-foreground truncate">
+                              {l.first_name} {l.last_name} {l.company ? `(${l.company})` : ""}
+                            </span>
+                            <Badge variant="outline" className="text-[10px] font-mono">
+                              {l.segment}
+                            </Badge>
+                          </div>
+                          <span className="text-[11px] text-muted-foreground">
+                            {l.city || l.province} ·{" "}
+                            <span className="font-mono tabular-nums">
+                              {l.surface_area ? `${l.surface_area} m²` : ""}
+                            </span>{" "}
+                            · Score :{" "}
+                            <strong className="font-mono tabular-nums text-foreground">{l.lead_score || "N/A"}/100</strong>
                           </span>
-                          <Badge variant="outline" className="text-[10px] font-mono">
-                            {l.segment}
-                          </Badge>
                         </div>
-                        <span className="text-[11px] text-muted-foreground">
-                          {l.city || l.province} · {l.surface_area ? `${l.surface_area} m²` : ""} · Score :{" "}
-                          <strong className="font-mono tabular-nums text-foreground">{l.lead_score || "N/A"}/100</strong>
-                        </span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="text-right flex flex-col items-end gap-0.5">
+                            <Badge variant={isAvailable ? "default" : "secondary"} className="text-[10px] font-mono">
+                              {isAvailable
+                                ? "En ligne"
+                                : isSoldOut
+                                ? "Vendu"
+                                : isWithdrawn
+                                ? "Retiré"
+                                : l.status}
+                            </Badge>
+                            <span className="text-[10px] text-muted-foreground font-mono tabular-nums">
+                              {new Date(l.created_at).toLocaleDateString("fr-BE")}
+                            </span>
+                          </div>
+                          {!isSoldOut && !isRejected && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={isAvailable ? "outline" : "default"}
+                              disabled={isToggling || togglingLeadId !== null}
+                              onClick={() => handleToggleMarketplace(l.id, isAvailable, isWithdrawn)}
+                              className="h-7 px-2 text-[11px] gap-1"
+                            >
+                              {isToggling ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : isAvailable ? (
+                                <PauseCircle className="h-3 w-3 text-muted-foreground" />
+                              ) : isWithdrawn ? (
+                                <RotateCcw className="h-3 w-3" />
+                              ) : (
+                                <CheckCircle2 className="h-3 w-3" />
+                              )}
+                              <span>{isAvailable ? "Retirer" : isWithdrawn ? "Remettre" : "Publier"}</span>
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right flex flex-col items-end gap-0.5">
-                        <Badge variant="secondary" className="text-[10px] font-mono">
-                          {l.status}
-                        </Badge>
-                        <span className="text-[10px] text-muted-foreground font-mono tabular-nums">
-                          {new Date(l.created_at).toLocaleDateString("fr-BE")}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
 

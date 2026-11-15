@@ -296,17 +296,23 @@ async function PartnerDashboardLoader({
             masked_postal_code: specificLead.postal_code ? `${specificLead.postal_code.slice(0, 2)}XX` : "—",
           }
 
-          const isClosedOrUnavailable =
-            specificLead.marketplace_status !== "available" ||
-            remainingSlots <= 0 ||
-            Boolean((specificLead.qualification_metadata as Record<string, unknown> | null)?.is_showcase)
+          const isShowcaseLead = Boolean(
+            (specificLead.qualification_metadata as Record<string, unknown> | null)?.is_showcase
+          )
+          const isSoldOutLead =
+            specificLead.marketplace_status === "sold_out" || remainingSlots <= 0 || isShowcaseLead
+          const isWithdrawnFromMarketplace =
+            specificLead.marketplace_status !== "available" && !isSoldOutLead
+          const isClosedOrUnavailable = isSoldOutLead || isWithdrawnFromMarketplace
 
           if (isClosedOrUnavailable) {
             targetedClosedLead = {
               ...formattedLead,
               is_showcase_closed: true,
-              taken_slots: maxSlots,
-              remaining_slots: 0,
+              is_withdrawn_from_marketplace: isWithdrawnFromMarketplace,
+              unavailability_reason: isWithdrawnFromMarketplace ? "withdrawn" : "sold_out",
+              taken_slots: isWithdrawnFromMarketplace ? takenSlots : maxSlots,
+              remaining_slots: isWithdrawnFromMarketplace ? remainingSlots : 0,
             }
           } else {
             initialMarketplace = [formattedLead, ...initialMarketplace]

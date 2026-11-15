@@ -42,6 +42,9 @@ import {
   ShoppingCart,
   CheckCircle2,
   Users,
+  PauseCircle,
+  RotateCcw,
+  Loader2,
 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -55,8 +58,10 @@ import { hasBelgianHouseNumber } from "@/lib/leads-validation"
 import { triggerAdminBadgesRefresh } from "@/components/admin/admin-badges-provider"
 import {
   publishLeadAction,
+  unpublishLeadAction,
   rejectLeadAction,
   bulkQualifyAndPublishAction,
+  bulkUnpublishAction,
   bulkRejectAction,
 } from "@/app/admin/actions"
 import { useAdminHotkeys } from "@/hooks/use-admin-hotkeys"
@@ -132,6 +137,10 @@ export function LeadsTable({
   const [focusedIndex, setFocusedIndex] = useState<number>(0)
   const [exporting, setExporting] = useState(false)
   const [bulkLoading, setBulkLoading] = useState(false)
+  const [rowProcessingId, setRowProcessingId] = useState<string | null>(null)
+  const [localStatusMap, setLocalStatusMap] = useState<
+    Record<string, { marketplace_status: string; status?: string; withdrawn?: boolean }>
+  >({})
   const [removedLeadIds, setRemovedLeadIds] = useState<Set<string>>(new Set())
   const [dismissedTriage, setDismissedTriage] = useState(false)
   const initialTriageOpenedRef = useRef(false)
@@ -211,6 +220,7 @@ export function LeadsTable({
 
   // Synchronisation des leads supprimés avec les données serveur fraîches
   useEffect(() => {
+    setLocalStatusMap({})
     if (removedLeadIds.size > 0) {
       const serverLeadIds = new Set(leads.map((l) => l.id))
       setRemovedLeadIds((prev) => {
@@ -262,18 +272,82 @@ export function LeadsTable({
     }
   }
 
-  function handleLeadActionDone(id: string, _action: "qualified" | "rejected" | "archived") {
-    setRemovedLeadIds((prev) => new Set([...prev, id]))
-    triggerAdminBadgesRefresh()
-    const currentIdx = activeLeads.findIndex((l) => l.id === id)
-    if (currentIdx !== -1 && currentIdx < activeLeads.length - 1) {
-      openLeadDetail(activeLeads[currentIdx + 1].id)
-    } else if (currentIdx > 0) {
-      openLeadDetail(activeLeads[currentIdx - 1].id)
-    } else {
-      closeLeadDetail()
+  function handleLeadActionDone(
+    id: string,
+    action: "qualified" | "unpublished" | "rejected" | "archived"
+  ) {
+    const view = filters.view || "all"
+    const shouldHideFromCurrentView =
+      action === "rejected" ||
+      action === "archived" ||
+      (action === "qualified" && view === "triage") ||
+      (action === "unpublished" && view === "marketplace")
+
+    if (action === "qualified") {
+      setLocalStatusMap((prev) => ({
+        ...prev,
+        [id]: { marketplace_status: "available", status: "qualified", withdrawn: false },
+      }))
+    } else if (action === "unpublished") {
+      setLocalStatusMap((prev) => ({
+        ...prev,
+        [id]: { marketplace_status: "pending_review", withdrawn: true },
+      }))
     }
+
+    triggerAdminBadgesRefresh()
+
+    if (shouldHideFromCurrentView) {
+      setRemovedLeadIds((prev) => new Set([...prev, id]))
+      const currentIdx = activeLeads.findIndex((l) => l.id === id)
+      if (currentIdx !== -1 && currentIdx < activeLeads.length - 1) {
+        openLeadDetail(activeLeads[currentIdx + 1].id)
+      } else if (currentIdx > 0) {
+        openLeadDetail(activeLeads[currentIdx - 1].id)
+      } else {
+        closeLeadDetail()
+      }
+    }
+
     router.refresh()
+  }
+
+  async function handleSinglePublish(
+    e: React.MouseEvent,
+    id: string,
+    wasWithdrawn: boolean
+  ) {
+    e.stopPropagation()
+    setRowProcessingId(id)
+    try {
+      await publishLeadAction(id)
+      toast.success(
+        wasWithdrawn
+          ? `Lead #${id.slice(0, 8)} remis en ligne sur la marketplace`
+          : `Lead #${id.slice(0, 8)} approuvé et publié sur la marketplace`
+      )
+      handleLeadActionDone(id, "qualified")
+    } catch (err: any) {
+      toast.error(err?.message || "Impossible de publier ce lead")
+    } finally {
+      setRowProcessingId(null)
+    }
+  }
+
+  async function handleSingleUnpublish(e: React.MouseEvent, id: string) {
+    e.stopPropagation()
+    setRowProcessingId(id)
+    try {
+      await unpublishLeadAction(id)
+      toast.success(
+        `Lead #${id.slice(0, 8)} retiré de la marketplace (conservé en base)`
+      )
+      handleLeadActionDone(id, "unpublished")
+    } catch (err: any) {
+      toast.error(err?.message || "Impossible de retirer ce lead")
+    } finally {
+      setRowProcessingId(null)
+    }
   }
 
   // Actions groupées
@@ -281,13 +355,45 @@ export function LeadsTable({
     if (selectedIds.size === 0) return
     setBulkLoading(true)
     try {
-      await bulkQualifyAndPublishAction(Array.from(selectedIds))
-      toast.success(`${selectedIds.size} leads qualifiés et publiés`)
+      const ids = Array.from(selectedIds)
+      await bulkQualifyAndPublishAction(ids)
+      setLocalStatusMap((prev) => {
+        const next = { ...prev }
+        for (const id of ids) {
+          next[id] = { marketplace_status: "available", status: "qualified", withdrawn: false }
+        }
+        return next
+      })
+      toast.success(`${ids.length} leads qualifiés et publiés`)
       setSelectedIds(new Set())
       triggerAdminBadgesRefresh()
       router.refresh()
     } catch {
       toast.error("Échec de la validation groupée")
+    } finally {
+      setBulkLoading(false)
+    }
+  }
+
+  async function handleBulkUnpublish() {
+    if (selectedIds.size === 0) return
+    setBulkLoading(true)
+    try {
+      const ids = Array.from(selectedIds)
+      await bulkUnpublishAction(ids)
+      setLocalStatusMap((prev) => {
+        const next = { ...prev }
+        for (const id of ids) {
+          next[id] = { marketplace_status: "pending_review", withdrawn: true }
+        }
+        return next
+      })
+      toast.success(`${ids.length} lead(s) retiré(s) de la marketplace`)
+      setSelectedIds(new Set())
+      triggerAdminBadgesRefresh()
+      router.refresh()
+    } catch {
+      toast.error("Échec du retrait groupé")
     } finally {
       setBulkLoading(false)
     }
@@ -380,12 +486,16 @@ export function LeadsTable({
         toggleOne(activeLeads[focusedIndex].id)
       }
     },
-    q: () => {
+    q: async () => {
       const target = activeLead || activeLeads[focusedIndex]
       if (target) {
-        publishLeadAction(target.id)
-        toast.success(`Lead #${target.id.slice(0, 8)} publié`)
-        handleLeadActionDone(target.id, "qualified")
+        try {
+          await publishLeadAction(target.id)
+          toast.success(`Lead #${target.id.slice(0, 8)} publié`)
+          handleLeadActionDone(target.id, "qualified")
+        } catch (err: any) {
+          toast.error(err?.message || "Impossible de publier ce lead")
+        }
       }
     },
     c: () => {
@@ -689,7 +799,7 @@ export function LeadsTable({
               <TableHead className="w-24 text-center font-mono text-[11px] text-muted-foreground">Score</TableHead>
               <TableHead className="w-28 text-center font-mono text-[11px] text-muted-foreground">Statut</TableHead>
               <TableHead className="w-16 text-right font-mono text-[11px] text-muted-foreground">Prix</TableHead>
-              <TableHead className="w-20 text-right"></TableHead>
+              <TableHead className="w-36 text-right font-mono text-[11px] text-muted-foreground">Marketplace</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -723,6 +833,22 @@ export function LeadsTable({
                 const isB2C = lead.segment === "B2C"
                 const title = isB2B && lead.company ? lead.company : `${lead.first_name} ${lead.last_name || ""}`
                 const isOutOfWallonia = lead.postal_code && !isWalloonPostalCode(lead.postal_code)
+                const localOverride = localStatusMap[lead.id]
+                const effectiveMarketplaceStatus =
+                  localOverride?.marketplace_status ?? lead.marketplace_status
+                const effectiveStatus = localOverride?.status ?? lead.status
+                const isWithdrawn =
+                  localOverride?.withdrawn !== undefined
+                    ? localOverride.withdrawn
+                    : Boolean(
+                        (lead.qualification_metadata as Record<string, unknown> | null)
+                          ?.withdrawn_from_marketplace === true
+                      )
+                const isAvailableOnMarket = effectiveMarketplaceStatus === "available"
+                const isSoldOutOnMarket = effectiveMarketplaceStatus === "sold_out"
+                const isLostOrRejected =
+                  effectiveStatus === "lost" || effectiveMarketplaceStatus === "rejected"
+                const isRowProcessing = rowProcessingId === lead.id
 
                 return (
                   <TableRow
@@ -789,7 +915,7 @@ export function LeadsTable({
                           const purchases = lead.lead_purchases || []
                           const maxSlots = lead.segment === "B2B" ? 1 : 3
                           if (purchases.length === 0) {
-                            if (lead.marketplace_status === "available") {
+                            if (effectiveMarketplaceStatus === "available") {
                               return (
                                 <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-accent/10 text-accent border border-accent/25 font-semibold whitespace-nowrap">
                                   En vente
@@ -873,10 +999,17 @@ export function LeadsTable({
 
                     {/* Statut */}
                     <TableCell className="text-center">
-                      <LeadStatusBadge
-                        status={lead.status}
-                        marketplaceStatus={lead.marketplace_status}
-                      />
+                      <div className="flex flex-col items-center gap-1">
+                        <LeadStatusBadge
+                          status={effectiveStatus}
+                          marketplaceStatus={effectiveMarketplaceStatus}
+                        />
+                        {isWithdrawn && !isAvailableOnMarket && !isSoldOutOnMarket && (
+                          <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground border border-border whitespace-nowrap">
+                            Retiré (Pause)
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
 
                     {/* Prix */}
@@ -884,20 +1017,51 @@ export function LeadsTable({
                       {lead.credit_cost ?? (lead.segment === "B2B" ? 9 : 3)} cr.
                     </TableCell>
 
-                    {/* Quick Actions au survol */}
+                    {/* Actions Marketplace Directes (toujours visibles) */}
                     <TableCell className="text-right px-2" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            publishLeadAction(lead.id)
-                            toast.success(`Lead #${lead.id.slice(0, 8)} publié`)
-                          }}
-                          className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-primary transition-colors"
-                          title="Qualifier & publier (Q)"
-                        >
-                          <Check className="h-3.5 w-3.5" />
-                        </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        {isAvailableOnMarket ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={isRowProcessing || rowProcessingId !== null}
+                            onClick={(e) => handleSingleUnpublish(e, lead.id)}
+                            className="h-7 px-2 text-[11px] font-medium gap-1 border-border"
+                            title="Retirer de la marketplace sans supprimer"
+                          >
+                            {isRowProcessing ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <PauseCircle className="h-3 w-3 text-muted-foreground" />
+                            )}
+                            <span>Retirer</span>
+                          </Button>
+                        ) : !isSoldOutOnMarket && !isLostOrRejected ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={isWithdrawn ? "outline" : "default"}
+                            disabled={isRowProcessing || rowProcessingId !== null}
+                            onClick={(e) => handleSinglePublish(e, lead.id, isWithdrawn)}
+                            className="h-7 px-2 text-[11px] font-medium gap-1"
+                            title={
+                              isWithdrawn
+                                ? "Remettre sur la marketplace (Q)"
+                                : "Approuver et publier sur la marketplace (Q)"
+                            }
+                          >
+                            {isRowProcessing ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : isWithdrawn ? (
+                              <RotateCcw className="h-3 w-3 text-accent" />
+                            ) : (
+                              <Check className="h-3 w-3" />
+                            )}
+                            <span>{isWithdrawn ? "Remettre" : "Publier"}</span>
+                          </Button>
+                        ) : null}
+
                         {lead.phone && (
                           <button
                             type="button"
@@ -905,7 +1069,7 @@ export function LeadsTable({
                               navigator.clipboard.writeText(lead.phone!)
                               toast.success("Téléphone copié")
                             }}
-                            className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                            className="p-1.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
                             title="Copier le téléphone (C)"
                           >
                             <Phone className="h-3.5 w-3.5" />
@@ -967,6 +1131,7 @@ export function LeadsTable({
       <BulkActionBar
         selectedCount={selectedIds.size}
         onQualifyAll={handleBulkQualify}
+        onUnpublishAll={handleBulkUnpublish}
         onRejectAll={handleBulkReject}
         onArchiveAll={() => {
           handleBulkReject("Archivé par action groupée")

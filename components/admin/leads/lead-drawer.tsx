@@ -52,6 +52,8 @@ import {
   Pencil,
   Send,
   AlertTriangle,
+  PauseCircle,
+  RotateCcw,
 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -74,6 +76,7 @@ import { detectLeadRiskFlags } from "@/lib/admin/lead-risk"
 import { formatBceNumber, BCE_PUBLIC_SEARCH_URL } from "@/lib/leads-schema"
 import {
   publishLeadAction,
+  unpublishLeadAction,
   rejectLeadAction,
   archiveLeadAction,
   assignLeadAction,
@@ -157,10 +160,18 @@ export function LeadDrawer({
   hasPrevious?: boolean
   hasNext?: boolean
   partners?: CompatiblePartner[]
-  onLeadActionDone?: (id: string, action: "qualified" | "rejected" | "archived") => void
+  onLeadActionDone?: (
+    id: string,
+    action: "qualified" | "unpublished" | "rejected" | "archived"
+  ) => void
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  const [marketplacePatch, setMarketplacePatch] = useState<{
+    marketplace_status?: string
+    status?: string
+    withdrawn?: boolean
+  } | null>(null)
   const [notes, setNotes] = useState(lead?.admin_notes ?? "")
   const [notesSaving, setNotesSaving] = useState(false)
   const [notesSaved, setNotesSaved] = useState(false)
@@ -248,6 +259,7 @@ export function LeadDrawer({
       setEditCompany(lead.company ?? "")
       setEditCompanyVat(lead.company_vat ?? "")
       setEditSegment(lead.segment ?? "B2C")
+      setMarketplacePatch(null)
     }
   }, [lead])
 
@@ -641,7 +653,16 @@ export function LeadDrawer({
     startTransition(async () => {
       try {
         await publishLeadAction(leadId, creditCost)
-        toast.success(`Lead #${leadId.slice(0, 8)} qualifié et publié sur la marketplace`)
+        setMarketplacePatch({
+          marketplace_status: "available",
+          status: "qualified",
+          withdrawn: false,
+        })
+        toast.success(
+          isWithdrawnFromMarketplace
+            ? `Lead #${leadId.slice(0, 8)} remis en ligne sur la marketplace`
+            : `Lead #${leadId.slice(0, 8)} approuvé et publié sur la marketplace`
+        )
         onLeadActionDone?.(leadId, "qualified")
         router.refresh()
         if (hasNext && onNext) {
@@ -651,6 +672,27 @@ export function LeadDrawer({
         }
       } catch (err: any) {
         toast.error(err?.message || "Échec de la publication du lead")
+      }
+    })
+  }
+
+  async function handleUnpublish() {
+    if (!lead) return
+    const leadId = lead.id
+    startTransition(async () => {
+      try {
+        await unpublishLeadAction(leadId)
+        setMarketplacePatch({
+          marketplace_status: "pending_review",
+          withdrawn: true,
+        })
+        toast.success(
+          `Lead #${leadId.slice(0, 8)} retiré de la marketplace (conservé en base pour remise en ligne ultérieure).`
+        )
+        onLeadActionDone?.(leadId, "unpublished")
+        router.refresh()
+      } catch (err: any) {
+        toast.error(err?.message || "Échec du retrait de la marketplace")
       }
     })
   }
@@ -695,28 +737,36 @@ export function LeadDrawer({
     })
   }
 
-  const isAlreadyPublished = Boolean(
+  const effectiveMarketplaceStatus =
+    marketplacePatch?.marketplace_status ?? lead?.marketplace_status ?? null
+  const effectiveLeadStatus = marketplacePatch?.status ?? lead?.status ?? null
+  const isPublishedOnMarketplace = Boolean(
+    lead && effectiveMarketplaceStatus === "available"
+  )
+  const isSoldOutOnMarketplace = Boolean(
+    lead && effectiveMarketplaceStatus === "sold_out"
+  )
+  const isWithdrawnFromMarketplace = Boolean(
     lead &&
-      (lead.marketplace_status === "available" ||
-        lead.marketplace_status === "sold_out" ||
-        lead.marketplace_status === "distributed" ||
-        lead.status === "qualified" ||
-        lead.status === "assigned" ||
-        lead.status === "converted")
+      !isPublishedOnMarketplace &&
+      !isSoldOutOnMarketplace &&
+      (marketplacePatch?.withdrawn !== undefined
+        ? marketplacePatch.withdrawn
+        : (effectiveMeta as Record<string, unknown> | null)?.withdrawn_from_marketplace === true)
   )
 
   // Raccourcis clavier contextuels dans le Drawer
   useAdminHotkeys(
     {
       "cmd+enter": () => {
-        if (!isAlreadyPublished || dispatchMode === "direct") {
+        if ((!isPublishedOnMarketplace && !isSoldOutOnMarketplace) || dispatchMode === "direct") {
           handleQualifyAndPublish()
         } else if (hasNext && onNext) {
           onNext()
         }
       },
       q: () => {
-        if (!isAlreadyPublished || dispatchMode === "direct") {
+        if ((!isPublishedOnMarketplace && !isSoldOutOnMarketplace) || dispatchMode === "direct") {
           handleQualifyAndPublish()
         }
       },
@@ -764,9 +814,14 @@ export function LeadDrawer({
               {effectiveSegment ?? "B2B"}
             </span>
             <LeadStatusBadge
-              status={lead.status}
-              marketplaceStatus={lead.marketplace_status}
+              status={effectiveLeadStatus}
+              marketplaceStatus={effectiveMarketplaceStatus}
             />
+            {isWithdrawnFromMarketplace && (
+              <span className="font-mono text-[10px] px-1.5 py-0.5 rounded-sm bg-secondary text-muted-foreground border border-border whitespace-nowrap">
+                Pause Marketplace
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-1">
@@ -1730,7 +1785,7 @@ export function LeadDrawer({
           {/* Module de Suivi des Relances & Vagues de Vente */}
           <LeadRelanceStatus
             leadId={lead.id}
-            marketplaceStatus={lead.marketplace_status}
+            marketplaceStatus={effectiveMarketplaceStatus}
             segment={effectiveSegment}
           />
 
@@ -1831,12 +1886,63 @@ export function LeadDrawer({
                 <span>Attribuer ({selectedPartnerIds.length})</span>
                 <span className="font-mono text-[10px] opacity-70 ml-1">⌘⏎</span>
               </Button>
-            ) : isAlreadyPublished ? (
+            ) : isPublishedOnMarketplace ? (
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-xs font-semibold">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                  <span>Publié sur la Marketplace</span>
+                <span className="hidden sm:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md bg-accent/10 text-accent border border-accent/25 text-xs font-semibold">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-accent" />
+                  <span>En ligne sur la Marketplace</span>
                 </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleUnpublish}
+                  disabled={isPending}
+                  className="h-8 gap-1.5 text-xs font-medium border-border"
+                  title="Retirer ce lead de la marketplace sans le supprimer (réactivable plus tard)"
+                >
+                  {isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <PauseCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                  )}
+                  <span>Retirer de la Marketplace</span>
+                </Button>
+                {hasNext && onNext && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={onNext}
+                    className="h-8 gap-1 text-xs font-medium"
+                    title="Passer au lead suivant (J)"
+                  >
+                    <span>Suivant</span>
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
+            ) : isSoldOutOnMarketplace ? (
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md bg-secondary text-foreground border border-border text-xs font-semibold">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>Complet (Quota atteint)</span>
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleUnpublish}
+                  disabled={isPending}
+                  className="h-8 gap-1.5 text-xs font-medium border-border"
+                  title="Retirer ce lead de la marketplace sans le supprimer"
+                >
+                  {isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <PauseCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                  )}
+                  <span>Retirer</span>
+                </Button>
                 {hasNext && onNext && (
                   <Button
                     size="sm"
@@ -1859,10 +1965,16 @@ export function LeadDrawer({
               >
                 {isPending ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : isWithdrawnFromMarketplace ? (
+                  <RotateCcw className="h-3.5 w-3.5" />
                 ) : (
                   <Check className="h-3.5 w-3.5" />
                 )}
-                <span>Qualifier &amp; publier</span>
+                <span>
+                  {isWithdrawnFromMarketplace
+                    ? "Remettre sur la Marketplace"
+                    : "Approuver & Publier"}
+                </span>
                 <span className="font-mono text-[10px] opacity-70 ml-1">⌘⏎</span>
               </Button>
             )}

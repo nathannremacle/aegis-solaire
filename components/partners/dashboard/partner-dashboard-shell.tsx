@@ -363,7 +363,9 @@ export function PartnerDashboardShell({
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-extrabold tracking-tight text-foreground">
               {activeTargetLeadId && activeTab === "marketplace"
                 ? targetedClosedLead?.id === activeTargetLeadId
-                  ? "Dossier Régional Clôturé & Opportunités Disponibles"
+                  ? targetedClosedLead?.is_withdrawn_from_marketplace
+                    ? "Opportunité Solaire Indisponible & Catalogue Actif"
+                    : "Dossier Régional Clôturé & Opportunités Disponibles"
                   : "Opportunité Solaire Ciblée"
                 : activeTab === "marketplace"
                   ? "Marketplace des Chantiers Photovoltaïques"
@@ -372,7 +374,9 @@ export function PartnerDashboardShell({
             <p className="text-xs sm:text-sm text-muted-foreground">
               {activeTargetLeadId && activeTab === "marketplace"
                 ? targetedClosedLead?.id === activeTargetLeadId
-                  ? "Ce chantier a déjà atteint son quota d'attribution. Consultez le récapitulatif et les opportunités disponibles ci-dessous."
+                  ? targetedClosedLead?.is_withdrawn_from_marketplace
+                    ? "Ce dossier n'est actuellement plus disponible sur la marketplace. Consultez son récapitulatif ainsi que les chantiers ouverts ci-dessous."
+                    : "Ce chantier a déjà atteint son quota d'attribution. Consultez le récapitulatif et les opportunités disponibles ci-dessous."
                   : "Fiche technique d'ingénierie et accès prioritaire au chantier recommandé par e-mail."
                 : activeTab === "marketplace"
                   ? "Projets solaires qualifiés en Wallonie : fiches techniques détaillées, puissance kWc et coordonnées directes vérifiées."

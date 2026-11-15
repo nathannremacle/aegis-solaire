@@ -21,9 +21,10 @@ const VALID_STATUSES = [
 ] as const
 
 const VALID_MARKETPLACE_STATUSES = [
+  "draft",
   "pending_review",
   "available",
-  "sold",
+  "sold_out",
   "rejected",
 ] as const
 
@@ -268,10 +269,13 @@ export async function PATCH(
     return NextResponse.json({ error: "Erreur lors de la mise à jour du lead" }, { status: 500 })
   }
 
-  if (addressEdited || contactEdited) {
+  if (addressEdited || contactEdited || status !== undefined || marketplace_status !== undefined) {
     revalidateTag("admin-kpis", "max")
-    revalidatePath("/admin/leads")
+    revalidateTag("admin-badges", "max")
     revalidateTag("marketplace-feed", "max")
+    revalidatePath("/admin", "layout")
+    revalidatePath("/admin/leads")
+    revalidatePath("/partenaires/dashboard")
   }
 
   let installateur_notified = false

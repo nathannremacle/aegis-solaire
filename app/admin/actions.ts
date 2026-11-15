@@ -70,7 +70,7 @@ export async function publishLeadAction(leadId: string, creditCost?: number) {
   const { data: lead } = await supabase
     .from("leads")
     .select(
-      "id, segment, credit_cost, province, postal_code, city, site_address, surface_area, surface_type, annual_electricity_bill, first_name, last_name, email, phone, company"
+      "id, segment, credit_cost, province, postal_code, city, site_address, surface_area, surface_type, annual_electricity_bill, first_name, last_name, email, phone, company, qualification_metadata"
     )
     .eq("id", leadId)
     .single()
@@ -91,11 +91,25 @@ export async function publishLeadAction(leadId: string, creditCost?: number) {
       ? creditCost
       : lead?.credit_cost ?? (lead?.segment === "B2B" ? B2B_CREDIT_COST : B2C_CREDIT_COST)
 
+  const existingMeta =
+    lead.qualification_metadata && typeof lead.qualification_metadata === "object"
+      ? (lead.qualification_metadata as Record<string, unknown>)
+      : {}
+  const nowIso = new Date().toISOString()
+  const mergedMeta: Record<string, unknown> = {
+    ...existingMeta,
+    withdrawn_from_marketplace: false,
+    published_at: existingMeta.published_at || nowIso,
+    ...(existingMeta.withdrawn_from_marketplace === true ? { republished_at: nowIso } : {}),
+  }
+
   const updatePayload: Record<string, any> = {
     status: "qualified",
     marketplace_status: "available",
     credit_cost: finalCost,
     pricing_version: "v2",
+    qualification_metadata: mergedMeta,
+    updated_at: nowIso,
   }
 
   const { error } = await supabase
@@ -112,7 +126,7 @@ export async function publishLeadAction(leadId: string, creditCost?: number) {
       entity_type: "leads",
       entity_id: leadId,
       details: { credit_cost: finalCost, pricing_version: "v2" },
-      created_at: new Date().toISOString(),
+      created_at: nowIso,
     })
   } catch {
     // Non-blocking
@@ -126,7 +140,79 @@ export async function publishLeadAction(leadId: string, creditCost?: number) {
   revalidateTag("admin-kpis", "max")
   revalidateTag("admin-badges", "max")
   revalidatePath("/admin", "layout")
+  revalidatePath("/admin/dashboard")
+  revalidatePath("/admin/leads")
   revalidateTag("marketplace-feed", "max")
+  revalidatePath("/partenaires/dashboard")
+}
+
+export async function unpublishLeadAction(leadId: string) {
+  const adminUser = await getAdminUser()
+  if (!adminUser) {
+    throw new Error("Accès administrateur requis.")
+  }
+
+  const supabase = createServiceRoleClient()
+
+  const { data: lead, error: fetchErr } = await supabase
+    .from("leads")
+    .select("id, segment, status, marketplace_status, qualification_metadata")
+    .eq("id", leadId)
+    .single()
+
+  if (fetchErr || !lead) {
+    throw new Error("Dossier introuvable.")
+  }
+
+  const existingMeta =
+    lead.qualification_metadata && typeof lead.qualification_metadata === "object"
+      ? (lead.qualification_metadata as Record<string, unknown>)
+      : {}
+  const nowIso = new Date().toISOString()
+
+  const updatedMeta: Record<string, unknown> = {
+    ...existingMeta,
+    withdrawn_from_marketplace: true,
+    withdrawn_at: nowIso,
+    withdrawn_by: adminUser.email || "admin@aegissolaire.com",
+  }
+
+  const { error } = await supabase
+    .from("leads")
+    .update({
+      marketplace_status: "pending_review",
+      qualification_metadata: updatedMeta,
+      updated_at: nowIso,
+    })
+    .eq("id", leadId)
+
+  if (error) throw new Error(error.message)
+
+  try {
+    await supabase.from("audit_log").insert({
+      admin_email: adminUser.email || "admin@aegissolaire.com",
+      action: "LEAD_UNPUBLISHED_FROM_MARKETPLACE",
+      entity_type: "leads",
+      entity_id: leadId,
+      details: {
+        previous_marketplace_status: lead.marketplace_status,
+        withdrawn_at: nowIso,
+      },
+      created_at: nowIso,
+    })
+  } catch {
+    // Non-blocking
+  }
+
+  revalidateTag("admin-kpis", "max")
+  revalidateTag("admin-badges", "max")
+  revalidateTag("marketplace-feed", "max")
+  revalidatePath("/admin", "layout")
+  revalidatePath("/admin/dashboard")
+  revalidatePath("/admin/leads")
+  revalidatePath("/partenaires/dashboard")
+
+  return { success: true }
 }
 
 export async function rejectLeadAction(leadId: string, reason: string, adminNotes?: string) {
@@ -215,8 +301,10 @@ export async function bulkQualifyAndPublishAction(leadIds: string[]) {
   // Mettre à jour avec prix par défaut v2 selon segment pour les leads qui n'en ont pas
   const { data: leads } = await supabase
     .from("leads")
-    .select("id, segment, credit_cost")
+    .select("id, segment, credit_cost, qualification_metadata")
     .in("id", leadIds)
+
+  const nowIso = new Date().toISOString()
 
   if (leads) {
     for (const lead of leads) {
@@ -227,6 +315,11 @@ export async function bulkQualifyAndPublishAction(leadIds: string[]) {
             ? B2B_CREDIT_COST
             : B2C_CREDIT_COST
 
+      const existingMeta =
+        lead.qualification_metadata && typeof lead.qualification_metadata === "object"
+          ? (lead.qualification_metadata as Record<string, unknown>)
+          : {}
+
       await supabase
         .from("leads")
         .update({
@@ -234,6 +327,13 @@ export async function bulkQualifyAndPublishAction(leadIds: string[]) {
           marketplace_status: "available",
           credit_cost: finalCost,
           pricing_version: "v2",
+          qualification_metadata: {
+            ...existingMeta,
+            withdrawn_from_marketplace: false,
+            published_at: existingMeta.published_at || nowIso,
+            ...(existingMeta.withdrawn_from_marketplace === true ? { republished_at: nowIso } : {}),
+          },
+          updated_at: nowIso,
         })
         .eq("id", lead.id)
     }
@@ -245,7 +345,7 @@ export async function bulkQualifyAndPublishAction(leadIds: string[]) {
       action: "BULK_LEADS_PUBLISHED",
       entity_type: "leads",
       details: { count: leadIds.length, ids: leadIds },
-      created_at: new Date().toISOString(),
+      created_at: nowIso,
     })
   } catch {
     // Non-blocking
@@ -254,7 +354,71 @@ export async function bulkQualifyAndPublishAction(leadIds: string[]) {
   revalidateTag("admin-kpis", "max")
   revalidateTag("admin-badges", "max")
   revalidatePath("/admin", "layout")
+  revalidatePath("/admin/dashboard")
+  revalidatePath("/admin/leads")
   revalidateTag("marketplace-feed", "max")
+  revalidatePath("/partenaires/dashboard")
+}
+
+export async function bulkUnpublishAction(leadIds: string[]) {
+  if (leadIds.length === 0) return
+
+  const adminUser = await getAdminUser()
+  if (!adminUser) {
+    throw new Error("Accès administrateur requis.")
+  }
+
+  const supabase = createServiceRoleClient()
+  const nowIso = new Date().toISOString()
+  const callerEmail = adminUser.email || "admin@aegissolaire.com"
+
+  const { data: leads } = await supabase
+    .from("leads")
+    .select("id, qualification_metadata")
+    .in("id", leadIds)
+
+  if (leads) {
+    for (const lead of leads) {
+      const existingMeta =
+        lead.qualification_metadata && typeof lead.qualification_metadata === "object"
+          ? (lead.qualification_metadata as Record<string, unknown>)
+          : {}
+
+      await supabase
+        .from("leads")
+        .update({
+          marketplace_status: "pending_review",
+          qualification_metadata: {
+            ...existingMeta,
+            withdrawn_from_marketplace: true,
+            withdrawn_at: nowIso,
+            withdrawn_by: callerEmail,
+          },
+          updated_at: nowIso,
+        })
+        .eq("id", lead.id)
+    }
+  }
+
+  try {
+    await supabase.from("audit_log").insert({
+      admin_email: callerEmail,
+      action: "BULK_UNPUBLISH_FROM_MARKETPLACE",
+      entity_type: "leads",
+      details: { count: leadIds.length, ids: leadIds, withdrawn_at: nowIso },
+      created_at: nowIso,
+    })
+  } catch {
+    // Non-blocking
+  }
+
+  revalidateTag("admin-kpis", "max")
+  revalidateTag("admin-badges", "max")
+  revalidateTag("marketplace-feed", "max")
+  revalidatePath("/admin", "layout")
+  revalidatePath("/admin/dashboard")
+  revalidatePath("/admin/leads")
+  revalidatePath("/partenaires/dashboard")
 }
 
 export async function bulkRejectAction(leadIds: string[], reason: string) {

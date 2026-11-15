@@ -85,11 +85,32 @@ async function fetchAdminKpisRaw(): Promise<AdminDashboardData> {
         Array.isArray(typedData.lists?.active_partners) &&
         Array.isArray(typedData.lists?.available_leads)
       ) {
+        const recentIds = (typedData.lists.recent_leads ?? []).map((l: any) => l.id).filter(Boolean)
+        const availIds = (typedData.lists.available_leads ?? []).map((l: any) => l.id).filter(Boolean)
+        const allLeadIds = Array.from(new Set([...recentIds, ...availIds]))
+        if (allLeadIds.length > 0) {
+          const { data: metaRows } = await supabase
+            .from("leads")
+            .select("id, city, postal_code, status, marketplace_status, qualification_metadata")
+            .in("id", allLeadIds)
+          if (metaRows && metaRows.length > 0) {
+            const metaById = new Map(metaRows.map((r: any) => [r.id, r]))
+            typedData.lists.recent_leads = (typedData.lists.recent_leads ?? []).map((l: any) => {
+              const m = metaById.get(l.id)
+              return m ? { ...l, ...m } : l
+            })
+            typedData.lists.available_leads = (typedData.lists.available_leads ?? []).map((l: any) => {
+              const m = metaById.get(l.id)
+              return m ? { ...l, ...m } : { ...l, marketplace_status: l.marketplace_status || "available" }
+            })
+          }
+        }
         return typedData
       }
 
       // Fallback partiel si l'ancienne version de la RPC est encore en base
-      const [paidOrdersRes, partnersRes, availableLeadsRes] = await Promise.all([
+      const recentIds = (typedData.lists?.recent_leads ?? []).map((l: any) => l.id).filter(Boolean)
+      const [paidOrdersRes, partnersRes, availableLeadsRes, recentMetaRes] = await Promise.all([
         supabase
           .from("credit_orders")
           .select("id, partner_id, pack_name, credits, price_htva, price_ttc, transfer_reference, status, created_at, validated_at, partners(company_name)")
@@ -104,11 +125,25 @@ async function fetchAdminKpisRaw(): Promise<AdminDashboardData> {
           .limit(20),
         supabase
           .from("leads")
-          .select("id, first_name, last_name, company, postal_code, city, province, credit_cost, segment, surface_area, annual_electricity_bill, created_at")
+          .select("id, first_name, last_name, company, postal_code, city, province, credit_cost, segment, surface_area, annual_electricity_bill, status, marketplace_status, qualification_metadata, created_at")
           .eq("marketplace_status", "available")
           .order("created_at", { ascending: false })
           .limit(20),
+        recentIds.length > 0
+          ? supabase
+              .from("leads")
+              .select("id, city, postal_code, status, marketplace_status, qualification_metadata")
+              .in("id", recentIds)
+          : Promise.resolve({ data: [] as any[] }),
       ])
+
+      const recentMetaById = new Map((recentMetaRes.data ?? []).map((r: any) => [r.id, r]))
+      if (typedData.lists?.recent_leads) {
+        typedData.lists.recent_leads = typedData.lists.recent_leads.map((l: any) => {
+          const m = recentMetaById.get(l.id)
+          return m ? { ...l, ...m } : l
+        })
+      }
 
       typedData.lists.paid_orders = (paidOrdersRes.data ?? []).map((o: any) => ({
         ...o,
@@ -146,9 +181,9 @@ async function fetchAdminKpisRaw(): Promise<AdminDashboardData> {
     auditLogsRes,
   ] = await Promise.all([
     supabase.from("leads").select("id, created_at, segment, status, marketplace_status, credit_cost"),
-    supabase.from("leads").select("id, first_name, last_name, company, postal_code, city, province, credit_cost, segment, surface_area, annual_electricity_bill, created_at").eq("marketplace_status", "available").order("created_at", { ascending: false }).limit(20),
-    supabase.from("leads").select("id, created_at, first_name, last_name, company, segment, province, surface_area, annual_electricity_bill, lead_score, status, marketplace_status, credit_cost").or("marketplace_status.eq.pending_review,status.eq.NEEDS_HUMAN_REVIEW").order("created_at", { ascending: false }).limit(10),
-    supabase.from("leads").select("id, created_at, first_name, last_name, email, phone, company, segment, province, status, marketplace_status, credit_cost, lead_score, media_partner_code, surface_type, surface_area, estimated_roi_years").order("created_at", { ascending: false }).limit(15),
+    supabase.from("leads").select("id, first_name, last_name, company, postal_code, city, province, credit_cost, segment, surface_area, annual_electricity_bill, status, marketplace_status, qualification_metadata, created_at").eq("marketplace_status", "available").order("created_at", { ascending: false }).limit(20),
+    supabase.from("leads").select("id, created_at, first_name, last_name, company, segment, province, city, postal_code, surface_area, annual_electricity_bill, lead_score, status, marketplace_status, credit_cost, qualification_metadata").or("marketplace_status.eq.pending_review,status.eq.NEEDS_HUMAN_REVIEW").order("created_at", { ascending: false }).limit(10),
+    supabase.from("leads").select("id, created_at, first_name, last_name, email, phone, company, segment, province, city, postal_code, status, marketplace_status, credit_cost, lead_score, media_partner_code, surface_type, surface_area, estimated_roi_years, qualification_metadata").order("created_at", { ascending: false }).limit(15),
     supabase.from("installer_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("media_partner_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("partners").select("id, company_name, email, phone, credits, segment, target_provinces, created_at, is_test"),

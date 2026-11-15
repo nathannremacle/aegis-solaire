@@ -1,23 +1,28 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
-import { 
-  ArrowRight, 
-  Eye, 
-  ShieldCheck, 
-  Clock, 
-  Building2, 
-  User, 
-  MapPin, 
-  Sparkles,
-  Layers,
+import { useRouter } from "next/navigation"
+import {
+  ArrowRight,
+  Eye,
+  ShieldCheck,
+  Clock,
+  Building2,
+  User,
+  MapPin,
   Activity,
   FileCheck2,
-  AlertCircle
+  CheckCircle2,
+  PauseCircle,
+  RotateCcw,
+  Loader2,
 } from "lucide-react"
+import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { publishLeadAction, unpublishLeadAction } from "@/app/admin/actions"
 import { cn } from "@/lib/utils"
 
 interface AdminRecentActivityProps {
@@ -29,6 +34,52 @@ export function AdminRecentActivity({
   recentLeads,
   auditLogs,
 }: AdminRecentActivityProps) {
+  const router = useRouter()
+  const [processingId, setProcessingId] = useState<string | null>(null)
+  const [localStates, setLocalStates] = useState<
+    Record<string, { marketplace_status: string; withdrawn?: boolean }>
+  >({})
+
+  async function handlePublish(leadId: string, wasWithdrawn: boolean) {
+    setProcessingId(leadId)
+    try {
+      await publishLeadAction(leadId)
+      setLocalStates((prev) => ({
+        ...prev,
+        [leadId]: { marketplace_status: "available", withdrawn: false },
+      }))
+      toast.success(
+        wasWithdrawn
+          ? "Lead remis en ligne sur la marketplace !"
+          : "Lead approuvé et publié sur la marketplace !"
+      )
+      router.refresh()
+    } catch (err: any) {
+      toast.error(err?.message || "Impossible de publier ce lead sur la marketplace.")
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
+  async function handleUnpublish(leadId: string) {
+    setProcessingId(leadId)
+    try {
+      await unpublishLeadAction(leadId)
+      setLocalStates((prev) => ({
+        ...prev,
+        [leadId]: { marketplace_status: "pending_review", withdrawn: true },
+      }))
+      toast.success(
+        "Lead retiré de la marketplace (conservé en base pour remise en ligne ultérieure)."
+      )
+      router.refresh()
+    } catch (err: any) {
+      toast.error(err?.message || "Impossible de retirer ce lead de la marketplace.")
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* 1. Derniers leads reçus (2 colonnes) */}
@@ -72,9 +123,24 @@ export function AdminRecentActivity({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {recentLeads.slice(0, 8).map((lead) => {
+                  {recentLeads.slice(0, 12).map((lead) => {
                     const isB2B = lead.segment === "B2B"
                     const leadScore = Number(lead.lead_score || 0)
+                    const override = localStates[lead.id]
+                    const marketplaceStatus = override?.marketplace_status ?? lead.marketplace_status
+                    const isWithdrawn =
+                      override?.withdrawn !== undefined
+                        ? override.withdrawn
+                        : Boolean(
+                            (lead.qualification_metadata as Record<string, unknown> | null)
+                              ?.withdrawn_from_marketplace === true
+                          )
+                    const isAvailable = marketplaceStatus === "available"
+                    const isSoldOut = marketplaceStatus === "sold_out"
+                    const isLostOrRejected =
+                      lead.status === "lost" || marketplaceStatus === "rejected"
+                    const isProcessing = processingId === lead.id
+
                     const dateFormatted = lead.created_at
                       ? new Date(lead.created_at).toLocaleDateString("fr-BE", {
                           day: "2-digit",
@@ -131,7 +197,7 @@ export function AdminRecentActivity({
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1 text-muted-foreground">
                             <MapPin className="h-3 w-3 shrink-0" />
-                            <span className="capitalize text-foreground font-medium truncate max-w-[110px]">
+                            <span className="capitalize text-foreground font-medium truncate max-w-[125px]">
                               {lead.city || (lead.province ? lead.province.replace(/_/g, " ") : "Wallonie")}
                             </span>
                           </div>
@@ -156,37 +222,84 @@ export function AdminRecentActivity({
 
                         {/* Statut Marketplace */}
                         <td className="px-4 py-3">
-                          <Badge 
-                            variant={
-                              lead.marketplace_status === "available" 
-                                ? "default" 
-                                : lead.marketplace_status === "sold_out" 
-                                ? "secondary" 
-                                : "outline"
-                            }
-                            className={cn(
-                              "text-[10px] uppercase font-mono tracking-wider font-semibold",
-                              lead.marketplace_status === "available" && "bg-accent text-accent-foreground border-transparent"
-                            )}
-                          >
-                            {lead.marketplace_status || lead.status || "Nouveau"}
-                          </Badge>
+                          <div className="flex flex-col gap-1">
+                            <Badge
+                              variant={isAvailable ? "default" : isSoldOut ? "secondary" : "outline"}
+                              className={cn(
+                                "text-[10px] uppercase font-mono tracking-wider font-semibold w-fit",
+                                isAvailable && "bg-accent text-accent-foreground border-transparent"
+                              )}
+                            >
+                              {isAvailable
+                                ? "En ligne"
+                                : isSoldOut
+                                ? "Vendu / Complet"
+                                : isWithdrawn
+                                ? "Retiré (Pause)"
+                                : isLostOrRejected
+                                ? "Rejeté"
+                                : "En attente"}
+                            </Badge>
+                          </div>
                         </td>
 
-                        {/* Action Rapide */}
+                        {/* Action Rapide Marketplace */}
                         <td className="px-4 py-3 text-right">
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-secondary" 
-                            asChild
-                            title="Inspecter le dossier du lead"
-                          >
-                            <Link href={`/admin/leads?leadId=${lead.id}`}>
-                              <Eye className="h-3.5 w-3.5" />
-                              <span className="sr-only">Inspecter</span>
-                            </Link>
-                          </Button>
+                          <div className="inline-flex items-center justify-end gap-1.5">
+                            {isAvailable ? (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled={isProcessing || processingId !== null}
+                                onClick={() => handleUnpublish(lead.id)}
+                                className="h-7 px-2.5 text-[11px] font-medium gap-1 border-border hover:bg-secondary"
+                                title="Retirer ce lead de la marketplace sans le supprimer"
+                              >
+                                {isProcessing ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <PauseCircle className="h-3 w-3 text-muted-foreground" />
+                                )}
+                                <span>Retirer</span>
+                              </Button>
+                            ) : !isSoldOut && !isLostOrRejected ? (
+                              <Button
+                                type="button"
+                                size="sm"
+                                disabled={isProcessing || processingId !== null}
+                                onClick={() => handlePublish(lead.id, isWithdrawn)}
+                                className="h-7 px-2.5 text-[11px] font-semibold gap-1 shadow-2xs"
+                                title={
+                                  isWithdrawn
+                                    ? "Remettre ce lead en ligne sur la marketplace"
+                                    : "Approuver et publier ce lead sur la marketplace"
+                                }
+                              >
+                                {isProcessing ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : isWithdrawn ? (
+                                  <RotateCcw className="h-3 w-3" />
+                                ) : (
+                                  <CheckCircle2 className="h-3 w-3" />
+                                )}
+                                <span>{isWithdrawn ? "Remettre en ligne" : "Approuver"}</span>
+                              </Button>
+                            ) : null}
+
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-secondary"
+                              asChild
+                              title="Inspecter le dossier du lead"
+                            >
+                              <Link href={`/admin/leads?leadId=${lead.id}`}>
+                                <Eye className="h-3.5 w-3.5" />
+                                <span className="sr-only">Inspecter</span>
+                              </Link>
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     )
