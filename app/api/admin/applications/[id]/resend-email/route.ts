@@ -124,6 +124,7 @@ export async function POST(
 
       const emailPayload = buildInstallerMarketplaceWelcomeEmail({
         applicationId: app.id,
+        partnerId: partner?.id ?? null,
         firstName: app.first_name,
         lastName: app.last_name,
         companyName: app.company_name,

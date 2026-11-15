@@ -16,7 +16,10 @@ import {
   getOwnershipLabel,
   getConsumptionLabel,
 } from "@/lib/lead-display-helpers"
-import { buildPartnerNotificationUrls } from "@/lib/partner-notification-tokens"
+import {
+  buildPartnerNotificationUrls,
+  buildPartnerExpressLeadUrls,
+} from "@/lib/partner-notification-tokens"
 
 export interface InstallerLeadTeaserData {
   partner: {
@@ -213,8 +216,10 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
 } {
   const subject = buildLeadEmailSubject(data)
   const baseUrl = getSiteBaseUrl()
-  const dashboardLeadUrl = `${baseUrl}/partenaires/dashboard?lead=${encodeURIComponent(data.lead.id)}`
-  const creditsOrderUrl = `${baseUrl}/partenaires/dashboard/credits`
+  const expressUrls = buildPartnerExpressLeadUrls(baseUrl, data.partner.id, data.lead.id)
+  const dashboardLeadUrl = expressUrls.inspectLeadUrl
+  const directCheckoutLeadUrl = expressUrls.directCheckoutLeadUrl
+  const creditsOrderUrl = expressUrls.creditsUrl
   const notifUrls = buildPartnerNotificationUrls(baseUrl, data.partner.id)
   const logoUrl = `${baseUrl}/logo.png`
 
@@ -312,9 +317,9 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
     waveUrgencyBadge = isB2B ? "AVIS DE CLÔTURE IMMINENTE" : "DERNIER CRÉNEAU AVANT CLÔTURE"
   }
 
-  // Visual Scarcity Slots for B2C (Épuré sans emojis)
+  // Visual Scarcity Slots for B2C (Épuré sans emojis — masqué en relance Vague 2/3 si 0 place prise pour éviter la preuve sociale négative)
   let slotsHtml = ""
-  if (!isB2B) {
+  if (!isB2B && (data.waveNumber === 1 || data.takenSlots > 0)) {
     const slots = []
     for (let i = 1; i <= data.maxSlots; i++) {
       if (i <= data.takenSlots) {
@@ -348,8 +353,9 @@ Bonjour ${partnerGreetingName},
 
 ${waveIntroText}
 
-Consulter la fiche du chantier et obtenir les coordonnées :
+Consulter la fiche du chantier et obtenir les coordonnées (accès direct sans connexion) :
 ${dashboardLeadUrl}
+${!hasEnoughCredits ? `\nDébloquer à l'unité (${creditCostEur} — Bancontact / Carte, sans pack requis) :\n${directCheckoutLeadUrl}\n` : ""}
 
 ============================================================
 RÉSUMÉ DU PROJET : Installation Solaire ${locPhrase}
@@ -380,7 +386,9 @@ ${!isB2B ? `• Attribution : Limité à 3 artisans maximum (${remainingSlots} p
 Pour consulter la fiche et obtenir les coordonnées :
 ${dashboardLeadUrl}
 
-${!hasEnoughCredits ? `Note : Votre solde actuel (${data.partner.credits} crédits) est insuffisant pour ce dossier (${data.creditCost} crédits). Vous pouvez recharger votre compte ici : ${creditsOrderUrl}\n` : ""}
+Déblocage immédiat à l'unité (${creditCostEur} par Bancontact / Carte, sans pack obligatoire) ou en 1 clic avec vos crédits (solde : ${data.partner.credits} cr.) :
+${directCheckoutLeadUrl}
+${!hasEnoughCredits ? `Gérer / recharger des crédits (optionnel) : ${creditsOrderUrl}\n` : ""}
 Une question technique sur ce dossier ?
 Notre cellule technique se tient à votre entière disposition par e-mail à contact@aegissolaire.com.
 
@@ -530,13 +538,28 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                           </a>
                         </td>
                       </tr>
+                      ${!hasEnoughCredits ? `
+                      <tr>
+                        <td align="center" style="padding-top: 10px;">
+                          <table role="presentation" cellspacing="0" cellpadding="0">
+                            <tr>
+                              <td align="center" style="background-color: #2563EB; border-radius: 8px; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.18);">
+                                <a href="${directCheckoutLeadUrl}" target="_blank" style="display: inline-block; padding: 12px 24px; font-size: 14px; font-weight: 700; color: #FFFFFF; text-decoration: none;">
+                                  Débloquer à l'unité (${creditCostEur} — Bancontact / Carte, sans pack requis) &rarr;
+                                </a>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      ` : ""}
                     </table>
                   </td>
                 </tr>
                 <tr>
                   <td align="center" style="padding-top: 10px;">
                     <span class="mono" style="font-size: 12px; color: #64748B;">
-                      Accès immédiat · <strong style="color: #0F172A;">${data.creditCost} crédits</strong> (~${creditCostEur}) · Téléphone et adresse complète vérifiés
+                      Accès direct sans mot de passe &middot; <strong style="color: #0F172A;">${creditCostEur}</strong> ou ${data.creditCost} crédits &middot; Téléphone et adresse vérifiés
                     </span>
                   </td>
                 </tr>
@@ -749,7 +772,7 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                 </tr>
               </table>
 
-              <!-- Bottom CTA Button & Balance Status (Identique au bouton du haut) -->
+              <!-- Bottom CTA Button & Direct Checkout Option -->
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
                 <tr>
                   <td align="center">
@@ -761,13 +784,18 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                           </a>
                         </td>
                       </tr>
+                      <tr>
+                        <td align="center" style="padding-top: 10px;">
+                          <a href="${directCheckoutLeadUrl}" target="_blank" style="display: inline-block; padding: 10px 20px; font-size: 13px; font-weight: 700; color: #1D4ED8; background-color: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; text-decoration: none;">
+                            Débloquer à l'unité (${creditCostEur} — Bancontact / Carte, sans pack requis) &rarr;
+                          </a>
+                        </td>
+                      </tr>
                     </table>
-                    <p class="mono" style="margin: 12px 0 0 0; font-size: 12px; color: #64748B;">
-                      Votre solde actuel : <strong style="color: #0F172A;">${data.partner.credits} crédits</strong>
-                      ${!hasEnoughCredits
-      ? ` &bull; <a href="${creditsOrderUrl}" style="color: #2563EB; text-decoration: underline; font-weight: 600;">Recharger votre pack de crédits</a>`
-      : ""
-    }
+                    <p class="mono" style="margin: 12px 0 0 0; font-size: 12px; color: #475569; line-height: 1.5;">
+                      Déblocage immédiat à l'unité (<strong style="color: #0F172A;">${creditCostEur}</strong> par Bancontact / Carte, sans pack obligatoire) ou en 1 clic avec vos crédits (solde : <strong style="color: #0F172A;">${data.partner.credits} cr.</strong>).
+                      <br />
+                      <a href="${creditsOrderUrl}" style="color: #2563EB; text-decoration: underline; font-weight: 600;">Optionnel : Gérer ou recharger mes crédits</a>
                     </p>
                   </td>
                 </tr>

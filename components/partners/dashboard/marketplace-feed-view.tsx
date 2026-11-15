@@ -73,6 +73,7 @@ interface MarketplaceFeedViewProps {
   partnerCredits: number
   targetLeadId?: string
   targetedClosedLead?: any
+  initialCheckoutDirect?: boolean
   partnerProvinces?: string[] | null
   partnerSegment?: string | null
   onClearTargetLead?: () => void
@@ -133,6 +134,7 @@ export function MarketplaceFeedView({
   partnerCredits,
   targetLeadId,
   targetedClosedLead,
+  initialCheckoutDirect,
   partnerProvinces,
   partnerSegment,
   onClearTargetLead,
@@ -203,6 +205,20 @@ export function MarketplaceFeedView({
     if (!focusedLeadId) return null
     return leads.find((l) => l.id === focusedLeadId) || null
   }, [focusedLeadId, leads])
+
+  const checkoutDirectHandledRef = React.useRef<string | null>(null)
+  useEffect(() => {
+    if (typeof window === "undefined" || !targetedLead) return
+    if (checkoutDirectHandledRef.current === targetedLead.id) return
+    const url = new URL(window.location.href)
+    const wantsDirect = initialCheckoutDirect || url.searchParams.get("checkout") === "direct"
+    if (wantsDirect) {
+      checkoutDirectHandledRef.current = targetedLead.id
+      setDirectPayLead(targetedLead)
+      url.searchParams.delete("checkout")
+      window.history.replaceState({}, "", url.toString())
+    }
+  }, [initialCheckoutDirect, targetedLead])
 
   // Chronomètre actif si le partenaire consulte un lead en mode focus e-mail
   const { recordUnlockIntent: recordFocusedUnlockIntent } = useLeadInspectionTimer({
@@ -965,8 +981,10 @@ export function MarketplaceFeedView({
                       Règle de concurrence Aegis Solaire
                     </span>
                     {!targetIsB2B && (
-                      <span className="font-mono text-[10px] font-semibold text-primary">
-                        {targetTakenSlots} / {targetMaxSlots} réservé{targetTakenSlots > 1 ? "s" : ""}
+                      <span className="font-mono text-[10px] font-semibold text-primary tabular-nums">
+                        {targetTakenSlots > 0
+                          ? `${targetTakenSlots} / ${targetMaxSlots} réservé${targetTakenSlots > 1 ? "s" : ""}`
+                          : `Max ${targetMaxSlots} installateurs`}
                       </span>
                     )}
                   </div>
@@ -1061,6 +1079,10 @@ export function MarketplaceFeedView({
                       </Button>
                     </>
                   )}
+
+                  <div className="rounded-lg border border-border/70 bg-secondary/30 px-3 py-2 text-[11px] text-muted-foreground leading-snug text-center">
+                    Paiement sécurisé Bancontact &bull; Coordonnées débloquées à l&apos;écran et par e-mail dès validation
+                  </div>
 
                   <div className="flex items-center justify-between text-xs px-1">
                     <span className="text-muted-foreground">

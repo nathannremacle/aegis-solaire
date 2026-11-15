@@ -278,6 +278,7 @@ export async function PATCH(
 
       const emailPayload = buildInstallerMarketplaceWelcomeEmail({
         applicationId: app.id,
+        partnerId: partnerId ?? null,
         firstName: app.first_name,
         lastName: app.last_name,
         companyName: app.company_name,

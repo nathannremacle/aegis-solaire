@@ -1,6 +1,7 @@
 import { Resend } from "resend"
 import type { AvailableLeadSummary } from "@/lib/lead-relance-engine"
 import type { InvitationLeadSummary } from "@/lib/regional-leads-catalog"
+import { buildPartnerExpressLeadUrls } from "@/lib/partner-notification-tokens"
 
 const resendApiKey = process.env.RESEND_API_KEY
 const fromEmail = process.env.RESEND_FROM_EMAIL ?? "contact@aegissolaire.com"
@@ -330,6 +331,7 @@ Conformément au RGPD, vous disposez d'un droit d'accès et d'opposition (dpo@ae
 
 export interface InstallerMarketplaceWelcomeData {
   applicationId?: string
+  partnerId?: string | null
   firstName: string
   lastName?: string
   companyName: string
@@ -354,10 +356,24 @@ export function buildInstallerMarketplaceWelcomeEmail(data: InstallerMarketplace
   const company = data.companyName?.trim() ? data.companyName.trim() : "votre société"
   const rescert = data.rescertRef?.trim() ? ` (Réf. RESCERT : ${data.rescertRef.trim()})` : ""
   const baseUrl = data.baseUrl || publicAssetBase
-  const marketplaceUrl =
-    data.marketplaceUrl || `${baseUrl}/partenaires/dashboard`
+  let extractedLeadId: string | null = null
+  if (data.marketplaceUrl) {
+    try {
+      extractedLeadId = new URL(data.marketplaceUrl).searchParams.get("lead")
+    } catch {
+      extractedLeadId = null
+    }
+  }
+  const marketplaceUrl = data.partnerId
+    ? buildPartnerExpressLeadUrls(baseUrl, data.partnerId, extractedLeadId, data.email).inspectLeadUrl
+    : data.marketplaceUrl || `${baseUrl}/partenaires/dashboard`
   const primaryActionUrl = data.setupPasswordUrl || marketplaceUrl
   const hasSetupPasswordUrl = Boolean(data.setupPasswordUrl)
+
+  const getDirectLeadInspectUrl = (leadId: string) =>
+    data.partnerId
+      ? buildPartnerExpressLeadUrls(baseUrl, data.partnerId, leadId, data.email).inspectLeadUrl
+      : `${baseUrl}/partenaires/dashboard?lead=${encodeURIComponent(leadId)}`
 
   const leads = data.availableLeads || []
   const hasLeads = leads.length > 0
@@ -381,7 +397,8 @@ export function buildInstallerMarketplaceWelcomeEmail(data: InstallerMarketplace
             ? "1 seul artisan"
             : `${l.remainingSlots}/${l.maxSlots} place${l.remainingSlots > 1 ? "s" : ""} restante${l.remainingSlots > 1 ? "s" : ""}`
         const loc = `${l.postalCode ? l.postalCode + " " : ""}${l.city || l.provinceLabel}`
-        return `• [${seg}] ${loc} — ~${l.estimatedPowerKwc} kWc · Toiture ${l.surfaceArea} m² · ${l.creditCost} crédits (${quota})`
+        const directUrl = getDirectLeadInspectUrl(l.id)
+        return `• [${seg}] ${loc} — ~${l.estimatedPowerKwc} kWc · Toiture ${l.surfaceArea} m² · ${l.creditCost} crédits (${quota})\n  Consulter & débloquer ce dossier : ${directUrl}`
       })
       .join("\n")
 
@@ -498,6 +515,13 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                           </td>
                         </tr>
                       </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colspan="2" style="padding-top: 10px;">
+                      <a href="${escapeHtml(getDirectLeadInspectUrl(lead.id))}" target="_blank" style="display: inline-block; font-size: 12px; font-weight: 700; color: #2563EB; text-decoration: underline;">
+                        Consulter &amp; débloquer ce dossier &rarr;
+                      </a>
                     </td>
                   </tr>
                 </table>`

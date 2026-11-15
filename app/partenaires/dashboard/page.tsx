@@ -16,12 +16,13 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 export const dynamic = "force-dynamic"
 
 interface PartnerDashboardPageProps {
-  searchParams?: Promise<{ lead?: string; asPartner?: string }>
+  searchParams?: Promise<{ lead?: string; asPartner?: string; checkout?: string }>
 }
 
 export default async function PartnerDashboardPage({ searchParams }: PartnerDashboardPageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {}
   const targetLeadId = resolvedSearchParams.lead?.trim() || null
+  const initialCheckoutDirect = resolvedSearchParams.checkout?.trim() === "direct"
 
   let partner = await getPartner()
 
@@ -108,6 +109,7 @@ export default async function PartnerDashboardPage({ searchParams }: PartnerDash
         partnerId={partner.id}
         partnerRow={partner}
         targetLeadId={targetLeadId}
+        initialCheckoutDirect={initialCheckoutDirect}
       />
     </Suspense>
   )
@@ -117,10 +119,12 @@ async function PartnerDashboardLoader({
   partnerId,
   partnerRow,
   targetLeadId,
+  initialCheckoutDirect,
 }: {
   partnerId: string
   partnerRow: any
   targetLeadId?: string | null
+  initialCheckoutDirect?: boolean
 }) {
   const admin = createServiceRoleClient()
 
@@ -321,6 +325,7 @@ async function PartnerDashboardLoader({
       initialPortfolio={initialPortfolio}
       targetLeadId={targetLeadId ?? undefined}
       targetedClosedLead={targetedClosedLead ?? undefined}
+      initialCheckoutDirect={initialCheckoutDirect}
     />
   )
 }

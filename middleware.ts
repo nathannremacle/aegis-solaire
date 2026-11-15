@@ -1,14 +1,48 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
+const EXPRESS_PARTNER_UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const EXPRESS_TOKEN_HEX_REGEX = /^[0-9a-f]{32}$/i
+
 /**
  * Middleware de sécurité global
  * - Injection des headers de sécurité (HSTS, CSP, Frame Options, etc.)
  * - Protection CSRF pour les API d'administration et partenaires
+ * - Propagation transparente du jeton d'accès express partenaire depuis les e-mails
  */
 export function middleware(request: NextRequest) {
-  const response = NextResponse.next()
   const { pathname } = request.nextUrl
+
+  let expressCookieValue: string | null = null
+  const requestHeaders = new Headers(request.headers)
+
+  if (pathname.startsWith("/partenaires")) {
+    const partnerParam = request.nextUrl.searchParams.get("partner")?.trim() || ""
+    const tokenParam = request.nextUrl.searchParams.get("token")?.trim() || ""
+    if (
+      EXPRESS_PARTNER_UUID_REGEX.test(partnerParam) &&
+      EXPRESS_TOKEN_HEX_REGEX.test(tokenParam)
+    ) {
+      expressCookieValue = `${partnerParam}.${tokenParam}`
+      requestHeaders.set("x-aegis-express-partner", expressCookieValue)
+    }
+  }
+
+  const response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  })
+
+  if (expressCookieValue) {
+    response.cookies.set("aegis_partner_express", expressCookieValue, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    })
+  }
 
   // 1. Headers de sécurité standard
   if (process.env.NODE_ENV === "production") {

@@ -47,6 +47,13 @@ export interface PartnerNotificationUrls {
   dashboardAlertsUrl: string
 }
 
+export interface PartnerExpressLeadUrls {
+  dashboardUrl: string
+  inspectLeadUrl: string
+  directCheckoutLeadUrl: string
+  creditsUrl: string
+}
+
 /**
  * Construit les liens directs de gestion de fréquence e-mail pour les pieds de mail installateurs.
  */
@@ -64,7 +71,41 @@ export function buildPartnerNotificationUrls(
     manageUrl: `${cleanBase}/partenaires/notifications?partner=${encodedPartner}&token=${encodedToken}`,
     noRelancesUrl: `${cleanBase}/partenaires/notifications?partner=${encodedPartner}&token=${encodedToken}&mode=new_only`,
     muteAllUrl: `${cleanBase}/partenaires/notifications?partner=${encodedPartner}&token=${encodedToken}&mode=none`,
-    dashboardAlertsUrl: `${cleanBase}/partenaires/dashboard?alerts=1`,
+    dashboardAlertsUrl: `${cleanBase}/partenaires/dashboard?alerts=1&partner=${encodedPartner}&token=${encodedToken}`,
+  }
+}
+
+/**
+ * Construit les liens d'accès express pré-authentifiés (sans mur de connexion)
+ * vers la marketplace, l'inspection d'un dossier, le paiement direct Bancontact/Carte ou la recharge de crédits.
+ */
+export function buildPartnerExpressLeadUrls(
+  baseUrl: string,
+  partnerId: string,
+  leadId?: string | null,
+  email?: string | null
+): PartnerExpressLeadUrls {
+  const cleanBase = baseUrl.replace(/\/$/, "")
+  const token = createPartnerUnsubscribeToken(partnerId, email)
+  const encodedPartner = encodeURIComponent(partnerId)
+  const encodedToken = encodeURIComponent(token)
+  const authQuery = `partner=${encodedPartner}&token=${encodedToken}`
+
+  const dashboardUrl = `${cleanBase}/partenaires/dashboard?${authQuery}`
+  const cleanLeadId = leadId?.trim()
+  const inspectLeadUrl = cleanLeadId
+    ? `${cleanBase}/partenaires/dashboard?lead=${encodeURIComponent(cleanLeadId)}&${authQuery}`
+    : dashboardUrl
+  const directCheckoutLeadUrl = cleanLeadId
+    ? `${cleanBase}/partenaires/dashboard?lead=${encodeURIComponent(cleanLeadId)}&checkout=direct&${authQuery}`
+    : dashboardUrl
+  const creditsUrl = `${cleanBase}/partenaires/dashboard/credits?${authQuery}`
+
+  return {
+    dashboardUrl,
+    inspectLeadUrl,
+    directCheckoutLeadUrl,
+    creditsUrl,
   }
 }
 

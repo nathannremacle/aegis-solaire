@@ -23,6 +23,7 @@ export interface PartnerDashboardShellProps {
   initialPortfolio: any[]
   targetLeadId?: string
   targetedClosedLead?: any
+  initialCheckoutDirect?: boolean
 }
 
 export function PartnerDashboardShell({
@@ -31,6 +32,7 @@ export function PartnerDashboardShell({
   initialPortfolio,
   targetLeadId,
   targetedClosedLead,
+  initialCheckoutDirect,
 }: PartnerDashboardShellProps) {
   const [activeTargetLeadId, setActiveTargetLeadId] = React.useState<string | undefined>(targetLeadId)
 
@@ -406,6 +408,7 @@ export function PartnerDashboardShell({
             partnerCredits={credits}
             targetLeadId={activeTargetLeadId}
             targetedClosedLead={targetedClosedLead}
+            initialCheckoutDirect={initialCheckoutDirect}
             partnerProvinces={initialPartner?.target_provinces}
             partnerSegment={initialPartner?.segment}
             onClearTargetLead={() => setActiveTargetLeadId(undefined)}

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { PARTNER_EXPRESS_COOKIE_NAME } from "@/lib/partner-auth"
 
 export async function POST(request: Request) {
   try {
@@ -10,5 +11,7 @@ export async function POST(request: Request) {
   }
 
   const url = new URL("/partenaires/login", request.url)
-  return NextResponse.redirect(url, { status: 303 })
+  const response = NextResponse.redirect(url, { status: 303 })
+  response.cookies.delete(PARTNER_EXPRESS_COOKIE_NAME)
+  return response
 }

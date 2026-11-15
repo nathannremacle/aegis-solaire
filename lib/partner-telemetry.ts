@@ -1,6 +1,10 @@
 import { cache } from "react"
 import { unstable_cache, revalidateTag } from "next/cache"
+import { Resend } from "resend"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
+import { buildPartnerExpressLeadUrls } from "@/lib/partner-notification-tokens"
+import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
+import { calculateLeadDirectFinancials, formatEurWithDecimals } from "@/lib/credit-pricing"
 
 export type PartnerTelemetryEventType =
   | "session_start"
@@ -248,6 +252,301 @@ export function formatDurationCompact(durationMs: number): string {
   return `${hours}h ${String(remMinutes).padStart(2, "0")}m`
 }
 
+const HOT_INTENT_ALERT_COOLDOWN_MS = 2 * 60 * 60 * 1000 // 2 heures
+const hotIntentAlertCooldownMap = new Map<string, number>()
+
+function escapeHtmlTelemetry(s: string | null | undefined): string {
+  if (!s) return ""
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+}
+
+function formatBelgianWhatsAppNumber(phone: string | null | undefined): string | null {
+  if (!phone) return null
+  const trimmed = phone.trim()
+  let digits = trimmed.replace(/[^\d+]/g, "")
+  if (digits.startsWith("+")) {
+    digits = digits.slice(1)
+  } else if (digits.startsWith("00")) {
+    digits = digits.slice(2)
+  } else if (digits.startsWith("0")) {
+    digits = `32${digits.slice(1)}`
+  }
+  digits = digits.replace(/\D/g, "")
+  if (digits.length < 9) return null
+  return digits
+}
+
+function getHotIntentCategory(
+  eventType: PartnerTelemetryEventType,
+  durationMs: number
+): "unlock_intent" | "credit_modal_open" | "deep_inspection" | null {
+  if (eventType === "unlock_intent") return "unlock_intent"
+  if (eventType === "credit_modal_open") return "credit_modal_open"
+  if (eventType === "lead_inspect_duration" && durationMs >= 30000) return "deep_inspection"
+  return null
+}
+
+/**
+ * Alerte Admin Temps Réel « Sniper Sales » sur signaux d'achat chauds installateurs.
+ * Envoie un e-mail avec bouton d'appel direct et lien WhatsApp pré-rempli 1-clic.
+ * Strictement non-bloquant.
+ */
+async function maybeNotifyAdminHotPartnerIntent(params: {
+  supabase: ReturnType<typeof createServiceRoleClient>
+  partnerId: string | null
+  partnerEmail: string
+  partnerName: string
+  leadId: string | null
+  eventType: PartnerTelemetryEventType
+  durationMs: number
+  source: string
+  metadata: Record<string, unknown>
+}): Promise<void> {
+  const resendApiKey = process.env.RESEND_API_KEY
+  if (!resendApiKey) return
+
+  const eventCategory = getHotIntentCategory(params.eventType, params.durationMs)
+  if (!eventCategory) return
+
+  if (
+    isTestPartnerIdentity({
+      email: params.partnerEmail,
+      company_name: params.partnerName,
+    })
+  ) {
+    return
+  }
+
+  const now = Date.now()
+  const cooldownKey = `${params.partnerId || params.partnerEmail.toLowerCase().trim()}:${params.leadId || "global"}:${eventCategory}`
+  const lastSentAt = hotIntentAlertCooldownMap.get(cooldownKey)
+  if (lastSentAt && now - lastSentAt < HOT_INTENT_ALERT_COOLDOWN_MS) {
+    return
+  }
+
+  // Charger les coordonnées exactes du partenaire
+  let partnerRow: {
+    id: string
+    company_name: string | null
+    email: string | null
+    phone: string | null
+    credits: number | null
+    is_test: boolean | null
+  } | null = null
+
+  if (params.partnerId) {
+    const { data } = await params.supabase
+      .from("partners")
+      .select("id, company_name, email, phone, credits, is_test")
+      .eq("id", params.partnerId)
+      .maybeSingle()
+    partnerRow = data
+  } else if (params.partnerEmail) {
+    const { data } = await params.supabase
+      .from("partners")
+      .select("id, company_name, email, phone, credits, is_test")
+      .eq("email", params.partnerEmail.toLowerCase().trim())
+      .maybeSingle()
+    partnerRow = data
+  }
+
+  if (!partnerRow || isTestPartnerIdentity(partnerRow)) {
+    return
+  }
+
+  // Charger les détails du lead ciblé et vérifier s'il n'est pas déjà acheté
+  let leadRow: {
+    id: string
+    segment: string | null
+    province: string | null
+    city: string | null
+    postal_code: string | null
+    estimated_power_kwc: number | null
+    credit_cost: number | null
+    marketplace_status: string | null
+  } | null = null
+
+  if (params.leadId) {
+    const [{ data: fetchedLead }, { data: existingPurchase }] = await Promise.all([
+      params.supabase
+        .from("leads")
+        .select("id, segment, province, city, postal_code, estimated_power_kwc, credit_cost, marketplace_status")
+        .eq("id", params.leadId)
+        .maybeSingle(),
+      params.supabase
+        .from("lead_purchases")
+        .select("id")
+        .eq("lead_id", params.leadId)
+        .eq("partner_id", partnerRow.id)
+        .maybeSingle(),
+    ])
+
+    if (existingPurchase?.id) {
+      return
+    }
+    leadRow = fetchedLead
+  }
+
+  // Purge légère si le cache mémoire grossit
+  if (hotIntentAlertCooldownMap.size > 500) {
+    for (const [k, ts] of hotIntentAlertCooldownMap.entries()) {
+      if (now - ts >= HOT_INTENT_ALERT_COOLDOWN_MS) {
+        hotIntentAlertCooldownMap.delete(k)
+      }
+    }
+  }
+  hotIntentAlertCooldownMap.set(cooldownKey, now)
+
+  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.aegissolaire.com").replace(/\/$/, "")
+  const partnerEmail = (partnerRow.email || params.partnerEmail).trim()
+  const partnerCompany = (partnerRow.company_name || params.partnerName || partnerEmail).trim()
+  const partnerCredits = Number(partnerRow.credits) || 0
+  const partnerPhone = partnerRow.phone?.trim() || null
+
+  const expressUrls = buildPartnerExpressLeadUrls(
+    baseUrl,
+    partnerRow.id,
+    leadRow?.id || params.leadId || null,
+    partnerEmail
+  )
+
+  const leadLocation = leadRow
+    ? [leadRow.postal_code, leadRow.city].filter(Boolean).join(" ") ||
+      getProvinceDisplayLabel(leadRow.province || "wallonie")
+    : null
+  const powerLabel = leadRow?.estimated_power_kwc ? `~${leadRow.estimated_power_kwc} kWc` : null
+  const directFinancials = leadRow
+    ? calculateLeadDirectFinancials({ segment: leadRow.segment, credit_cost: leadRow.credit_cost })
+    : null
+
+  const signalLabel =
+    eventCategory === "unlock_intent"
+      ? "Intention de déblocage / paiement détectée"
+      : eventCategory === "credit_modal_open"
+      ? "Ouverture de la fenêtre de crédits sans achat finalisé"
+      : `Inspection approfondie du dossier (${formatDurationCompact(params.durationMs)})`
+
+  const waMessage = leadRow
+    ? `Bonjour ${partnerCompany}, ici La Cellule Technique Aegis Solaire. Nous avons vu que vous venez de consulter le chantier solaire ${leadRow.segment || "B2C"} à ${leadLocation}${powerLabel ? ` (${powerLabel})` : ""}. Le propriétaire est vérifié et disponible. Pour gagner du temps, vous pouvez débloquer ses coordonnées directement sans mot de passe via Bancontact ici (${directFinancials ? formatEurWithDecimals(directFinancials.priceHtva) : ""}) : ${expressUrls.directCheckoutLeadUrl}`
+    : `Bonjour ${partnerCompany}, ici La Cellule Technique Aegis Solaire. Nous avons vu votre passage sur le portail partenaire. Pour rappel, vous pouvez débloquer nos dossiers vérifiés directement à l'unité par Bancontact sans pack obligatoire : ${expressUrls.dashboardUrl}`
+
+  const waPhone = formatBelgianWhatsAppNumber(partnerPhone)
+  const waHref = waPhone
+    ? `https://wa.me/${waPhone}?text=${encodeURIComponent(waMessage)}`
+    : null
+  const telHref = partnerPhone ? `tel:${partnerPhone.replace(/\s+/g, "")}` : null
+  const adminLeadUrl = leadRow
+    ? `${baseUrl}/admin/leads?leadId=${encodeURIComponent(leadRow.id)}`
+    : `${baseUrl}/admin/partners`
+
+  const adminEmail =
+    process.env.ADMIN_ALERT_EMAIL?.split(",")[0]?.trim() ||
+    process.env.ADMIN_ALERT_EMAILS?.split(",")[0]?.trim() ||
+    "contact@aegissolaire.com"
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com"
+
+  const subject = leadRow
+    ? `[Sniper Sales] Signal chaud : ${partnerCompany} sur ${leadRow.segment || "PV"} ${leadLocation}`
+    : `[Sniper Sales] Signal chaud : ${partnerCompany} (${signalLabel})`
+
+  const text = `SIGNAL CHAUD INSTALLATEUR — AEGIS TÉLÉMÉTRIE
+
+Installateur : ${partnerCompany}
+Email : ${partnerEmail}
+Téléphone : ${partnerPhone || "Non renseigné"}
+Solde actuel : ${partnerCredits} crédits
+Signal : ${signalLabel} (source : ${params.source})
+${leadRow ? `\nDossier ciblé : ${leadRow.segment || "PV"} · ${leadLocation}${powerLabel ? ` · ${powerLabel}` : ""} (#${leadRow.id.slice(0, 8)})\nCoût direct : ${directFinancials ? formatEurWithDecimals(directFinancials.priceHtva) : "—"} (${directFinancials?.credits || "—"} crédits)` : ""}
+
+Lien direct Bancontact pré-authentifié de l'installateur :
+${expressUrls.directCheckoutLeadUrl}
+
+Message WhatsApp prêt à envoyer :
+${waMessage}
+${waHref ? `\nOuvrir WhatsApp 1-clic : ${waHref}` : ""}
+`.trim()
+
+  const html = `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="utf-8" /><title>${escapeHtmlTelemetry(subject)}</title></head>
+<body style="margin:0;padding:24px 12px;background-color:#F8FAFC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0F172A;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;margin:0 auto;background-color:#FFFFFF;border:1px solid #E2E8F0;border-top:4px solid #DC2626;border-radius:12px;overflow:hidden;">
+    <tr>
+      <td style="padding:24px 28px;">
+        <p style="margin:0 0 6px 0;font-family:monospace;font-size:11px;font-weight:700;color:#DC2626;text-transform:uppercase;letter-spacing:0.06em;">
+          Alerte Sniper Sales · Temps Réel
+        </p>
+        <h1 style="margin:0 0 16px 0;font-size:20px;font-weight:800;color:#0F172A;line-height:1.3;">
+          ${escapeHtmlTelemetry(partnerCompany)} montre une forte intention d'achat
+        </h1>
+
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;margin-bottom:20px;">
+          <tr>
+            <td style="padding:14px 16px;font-size:13px;line-height:1.6;">
+              <div><strong>Signal :</strong> <span style="color:#DC2626;font-weight:700;">${escapeHtmlTelemetry(signalLabel)}</span></div>
+              <div><strong>Installateur :</strong> ${escapeHtmlTelemetry(partnerCompany)} (${escapeHtmlTelemetry(partnerEmail)})</div>
+              <div><strong>Téléphone :</strong> <strong style="font-family:monospace;">${escapeHtmlTelemetry(partnerPhone || "Non renseigné")}</strong></div>
+              <div><strong>Solde crédits :</strong> <span style="font-family:monospace;">${partnerCredits} cr.</span></div>
+              ${leadRow ? `<div><strong>Dossier consulté :</strong> ${escapeHtmlTelemetry(leadRow.segment || "PV")} &middot; ${escapeHtmlTelemetry(leadLocation)}${powerLabel ? ` &middot; ${escapeHtmlTelemetry(powerLabel)}` : ""} (#${leadRow.id.slice(0, 8)})</div>` : ""}
+              ${directFinancials ? `<div><strong>Tarif dossier :</strong> <span style="font-family:monospace;">${directFinancials.credits} cr. / ${formatEurWithDecimals(directFinancials.priceHtva)}</span></div>` : ""}
+            </td>
+          </tr>
+        </table>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" style="margin-bottom:20px;">
+          <tr>
+            ${telHref ? `
+            <td style="padding-right:10px;padding-bottom:8px;">
+              <a href="${escapeHtmlTelemetry(telHref)}" style="display:inline-block;background-color:#0F172A;color:#FFFFFF;font-size:13px;font-weight:700;text-decoration:none;padding:12px 18px;border-radius:8px;">
+                Appeler l'installateur (${escapeHtmlTelemetry(partnerPhone)})
+              </a>
+            </td>` : ""}
+            ${waHref ? `
+            <td style="padding-bottom:8px;">
+              <a href="${escapeHtmlTelemetry(waHref)}" target="_blank" style="display:inline-block;background-color:#059669;color:#FFFFFF;font-size:13px;font-weight:700;text-decoration:none;padding:12px 18px;border-radius:8px;">
+                Envoyer le WhatsApp pré-rempli en 1 clic &rarr;
+              </a>
+            </td>` : ""}
+          </tr>
+        </table>
+
+        <div style="background-color:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:14px 16px;margin-bottom:18px;">
+          <p style="margin:0 0 6px 0;font-size:11px;font-weight:700;color:#1D4ED8;text-transform:uppercase;font-family:monospace;">
+            Message prêt à copier / envoyer :
+          </p>
+          <p style="margin:0;font-size:13px;line-height:1.5;color:#1E293B;">
+            ${escapeHtmlTelemetry(waMessage)}
+          </p>
+        </div>
+
+        <p style="margin:0;font-size:12px;color:#64748B;">
+          <a href="${escapeHtmlTelemetry(adminLeadUrl)}" style="color:#2563EB;text-decoration:underline;">Ouvrir le dossier dans l'admin</a>
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+
+  const resend = new Resend(resendApiKey)
+  const { error } = await resend.emails.send({
+    from: fromEmail,
+    to: adminEmail,
+    replyTo: partnerEmail,
+    subject,
+    text,
+    html,
+  })
+
+  if (error) {
+    console.error("[partner-telemetry] Sniper Sales Resend error:", error)
+  }
+}
+
 /**
  * Enregistre un événement de télémétrie partenaire avec persistance hybride zéro-panne
  * (table dédiée `partner_activity_events`, puis fallback automatique `audit_log` si migration en attente).
@@ -350,6 +649,28 @@ export async function recordPartnerActivityEvent(
       revalidateTag("admin-telemetry", "max")
     } catch {
       // Non bloquant hors contexte requête Next.js
+    }
+  }
+
+  if (
+    input.eventType === "unlock_intent" ||
+    input.eventType === "credit_modal_open" ||
+    (input.eventType === "lead_inspect_duration" && cleanDurationMs >= 30000)
+  ) {
+    try {
+      await maybeNotifyAdminHotPartnerIntent({
+        supabase,
+        partnerId: validPartnerId,
+        partnerEmail: input.partnerEmail,
+        partnerName: input.partnerName,
+        leadId: validLeadId,
+        eventType: input.eventType,
+        durationMs: cleanDurationMs,
+        source,
+        metadata,
+      })
+    } catch (alertErr) {
+      console.warn("[partner-telemetry] Sniper Sales alert non-blocking error:", alertErr)
     }
   }
 
