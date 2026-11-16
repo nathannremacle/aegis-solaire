@@ -10,6 +10,14 @@ import {
   getTimeframeLabel,
   getGrdLabel,
 } from "./lead-display-helpers"
+import {
+  renderActionBox,
+  renderCalloutBox,
+  renderFiguresBox,
+  renderInlineBadge,
+  renderInstallerEmailShell,
+  renderSpecsTable,
+} from "@/lib/email-templates/installer-email-layout"
 
 export type ScoreFactor = {
   label: string
@@ -424,403 +432,249 @@ Formulaire source : ${payload.sourceForm || "simulateur"}
 ${payload.message ? `COMMENTAIRE DU PROSPECT :\n${payload.message}\n\n` : ""}
 Aegis Solaire · Notification interne`
 
-  const html = `<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escapeHtml(subject)}</title>
-</head>
-<body style="margin: 0; padding: 24px 12px; background-color: #F4F5F7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #111827; line-height: 1.5;">
+  const leadRefCode = payload.leadId.slice(0, 8).toUpperCase()
+  const receivedLabel = new Date().toLocaleDateString("fr-BE", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
 
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 620px; margin: 0 auto;">
-    <tr>
-      <td>
-
-        <!-- En-tête sobre institutionnel -->
-        <div style="background-color: #FFFFFF; border: 1px solid #E5E7EB; border-bottom: none; border-radius: 8px 8px 0 0; padding: 24px 28px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-            <tr>
-              <td>
-                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6B7280;">
-                  Aegis Solaire · Modération des leads
-                </span>
-                <h1 style="font-size: 20px; font-weight: 700; color: #111827; margin: 6px 0 2px 0;">
-                  Nouveau dossier à modérer
-                </h1>
-                <p style="font-size: 13px; color: #6B7280; margin: 0;">
-                  ${isB2B ? "Segment Professionnel (B2B)" : "Segment Résidentiel (B2C)"} · Reçu le ${new Date().toLocaleDateString("fr-BE", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                </p>
-              </td>
-              <td align="right" valign="top" style="white-space: nowrap;">
-                <span style="display: inline-block; font-family: monospace; font-size: 11px; color: #4B5563; background-color: #F3F4F6; border: 1px solid #E5E7EB; padding: 3px 8px; border-radius: 4px;">
-                  #${escapeHtml(payload.leadId.slice(0, 8))}
-                </span>
-              </td>
-            </tr>
-          </table>
-        </div>
-
-        <!-- 1. ENCADRÉ DES POINTS DE VIGILANCE (SI DES ALERTES EXISTENT) -->
-        ${
-          allAlerts.length > 0
-            ? `<div style="background-color: #FEF2F2; border: 1px solid #FECACA; border-left: 4px solid #DC2626; padding: 16px 24px;">
-                <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #991B1B; margin-bottom: 8px;">
-                  Signalements de vigilance (${allAlerts.length} alerte${allAlerts.length > 1 ? "s" : ""}) :
-                </div>
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size: 13px; color: #7F1D1D;">
-                  ${allAlerts
-                    .map(
-                      (a) => `<tr>
-                        <td valign="top" style="padding: 3px 6px 3px 0; color: #DC2626; font-weight: bold; width: 14px;">•</td>
-                        <td style="padding: 3px 0; line-height: 1.4;">
-                          <strong style="color: #991B1B;">${escapeHtml(a.label)} :</strong> ${escapeHtml(a.detail)}
-                        </td>
-                      </tr>`
-                    )
-                    .join("")}
-                </table>
-              </div>`
-            : ""
-        }
-
-        <!-- 2. ENCADRÉ DES CONTRÔLES CERTIFIÉS POSITIFS -->
-        ${
-          certifiedBadges.length > 0
-            ? `<div style="background-color: #F0FDF4; border: 1px solid #BBF7D0; border-left: 4px solid #16A34A; padding: 14px 24px;">
-                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #166534; margin-bottom: 6px;">
-                  Contrôles de conformité certifiés :
-                </div>
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size: 12px; color: #14532D;">
-                  ${certifiedBadges
-                    .map(
-                      (b) => `<tr>
-                        <td valign="top" style="padding: 2px 6px 2px 0; color: #16A34A; font-weight: bold; width: 14px;">✓</td>
-                        <td style="padding: 2px 0;">${escapeHtml(b)}</td>
-                      </tr>`
-                    )
-                    .join("")}
-                </table>
-              </div>`
-            : ""
-        }
-
-        <!-- Bloc d'action rapide -->
-        <div style="background-color: #F9FAFB; border: 1px solid #E5E7EB; border-left: 3px solid #0F172A; padding: 18px 28px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-            <tr>
-              <td>
-                <p style="font-size: 13px; font-weight: 600; color: #111827; margin: 0 0 4px 0;">
-                  Validation en 1 clic
-                </p>
-                <p style="font-size: 12px; color: #6B7280; margin: 0 0 12px 0;">
-                  Publie immédiatement ce dossier sur la marketplace et déclenche la notification aux installateurs certifiés.
-                </p>
-                <table role="presentation" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td>
-                      <a href="${quickValidateUrl}" style="display: inline-block; background-color: #0F172A; color: #FFFFFF; font-size: 13px; font-weight: 600; text-decoration: none; padding: 10px 20px; border-radius: 6px;">
-                        Valider et publier sur la marketplace
-                      </a>
-                    </td>
-                    <td style="padding-left: 12px;">
-                      <a href="${directLeadDashboardUrl}" style="font-size: 13px; color: #4B5563; text-decoration: underline;">
-                        Examiner sur le dashboard admin
-                      </a>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-          </table>
-        </div>
-
-        <!-- Corps principal -->
-        <div style="background-color: #FFFFFF; border: 1px solid #E5E7EB; border-top: none; border-radius: 0 0 8px 8px; padding: 24px 28px;">
-
-          <!-- Synthèse Qualification & Score -->
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px; border: 1px solid #E5E7EB; border-radius: 6px; overflow: hidden;">
-            <tr>
-              <td width="50%" style="padding: 14px 18px; border-right: 1px solid #E5E7EB; background-color: #FAFAFA;">
-                <div style="font-size: 11px; text-transform: uppercase; font-weight: 600; color: #6B7280; letter-spacing: 0.05em;">Score de qualification</div>
-                <div style="font-size: 22px; font-weight: 700; color: #111827; font-family: monospace; margin: 2px 0;">
-                  ${escapeHtml(scoreBadgeText)}
-                </div>
-                <div style="font-size: 12px; color: ${isHotLead ? "#047857" : isReviewNeeded ? "#B91C1C" : "#4B5563"}; font-weight: 600;">
-                  ${escapeHtml(scoreCategory)}
-                </div>
-              </td>
-              <td width="50%" style="padding: 14px 18px; background-color: #FAFAFA;">
-                <div style="font-size: 11px; text-transform: uppercase; font-weight: 600; color: #6B7280; letter-spacing: 0.05em;">Prix marketplace</div>
-                <div style="font-size: 22px; font-weight: 700; color: #111827; font-family: monospace; margin: 2px 0;">
-                  ${escapeHtml(creditsFormatted)}
-                </div>
-                <div style="font-size: 12px; color: #6B7280;">
-                  Tarification installateur V2
-                </div>
-              </td>
-            </tr>
-          </table>
-
-          <!-- Coordonnées du contact avec statuts de vérification -->
-          <div style="margin-bottom: 24px;">
-            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #4B5563; padding-bottom: 6px; border-bottom: 1px solid #E5E7EB; margin-bottom: 10px;">
-              Contact &amp; Données d'identification
-            </div>
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size: 13px;">
-              <tr>
-                <td width="35%" style="padding: 5px 0; color: #6B7280;">Nom complet</td>
-                <td style="padding: 5px 0; font-weight: 600; color: #111827;">${escapeHtml(fullName)}</td>
-              </tr>
-              <tr>
-                <td style="padding: 5px 0; color: #6B7280;">Téléphone</td>
-                <td style="padding: 5px 0;">
-                  ${
-                    payload.phone
-                      ? `<a href="tel:${escapeHtml(payload.phone)}" style="color: #111827; font-family: monospace; font-weight: 600; text-decoration: underline;">${escapeHtml(payload.phone)}</a>`
-                      : '<span style="color: #9CA3AF;">Non renseigné</span>'
-                  }
-                  ${
-                    isPhoneValid === true
-                      ? `<span style="display: inline-block; font-size: 11px; color: #047857; background: #ECFDF5; border: 1px solid #A7F3D0; padding: 1px 6px; border-radius: 3px; margin-left: 6px;">Format BE valide</span>`
-                      : isPhoneValid === false
-                      ? `<span style="display: inline-block; font-size: 11px; color: #B91C1C; background: #FEF2F2; border: 1px solid #FECACA; padding: 1px 6px; border-radius: 3px; margin-left: 6px; font-weight: 600;">Format suspect</span>`
-                      : ""
-                  }
-                </td>
-              </tr>
-              ${
-                payload.contactPreference
-                  ? `<tr>
-                <td style="padding: 5px 0; color: #6B7280;">Règle de contact</td>
-                <td style="padding: 5px 0;">
-                  ${
-                    payload.contactPreference === "direct_call"
-                      ? `<span style="display: inline-block; font-size: 11px; font-weight: 700; color: #1E40AF; background: #EFF6FF; border: 1px solid #BFDBFE; padding: 2px 8px; border-radius: 4px;">APPEL DIRECT AUTORISÉ (9H-18H)</span>`
-                      : `<span style="display: inline-block; font-size: 11px; font-weight: 700; color: #065F46; background: #ECFDF5; border: 1px solid #A7F3D0; padding: 2px 8px; border-radius: 4px;">APPROCHE ÉCRITE (E-MAIL / SMS) D'ABORD</span>`
-                  }
-                </td>
-              </tr>`
-                  : ""
-              }
-              <tr>
-                <td style="padding: 5px 0; color: #6B7280;">Adresse e-mail</td>
-                <td style="padding: 5px 0;">
-                  <a href="mailto:${escapeHtml(payload.email)}" style="color: #111827; text-decoration: underline;">${escapeHtml(payload.email)}</a>
-                  ${
-                    mx?.valid === true
-                      ? `<span style="display: inline-block; font-size: 11px; color: #047857; background: #ECFDF5; border: 1px solid #A7F3D0; padding: 1px 6px; border-radius: 3px; margin-left: 6px;">MX valide</span>`
-                      : mx?.valid === false
-                      ? `<span style="display: inline-block; font-size: 11px; color: #B91C1C; background: #FEF2F2; border: 1px solid #FECACA; padding: 1px 6px; border-radius: 3px; margin-left: 6px; font-weight: 600;">Sans serveur MX</span>`
-                      : ""
-                  }
-                </td>
-              </tr>
-              ${
-                isB2B
-                  ? `<tr>
-                      <td style="padding: 5px 0; color: #6B7280;">Entreprise</td>
-                      <td style="padding: 5px 0; font-weight: 600; color: #111827;">${escapeHtml(payload.company || "–")}</td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 5px 0; color: #6B7280;">Numéro de TVA</td>
-                      <td style="padding: 5px 0;">
-                        <span style="font-family: monospace; font-weight: 600; color: #111827;">${escapeHtml(payload.companyVat || "–")}</span>
-                        ${
-                          isVatValid === true
-                            ? `<span style="display: inline-block; font-size: 11px; color: #047857; background: #ECFDF5; border: 1px solid #A7F3D0; padding: 1px 6px; border-radius: 3px; margin-left: 6px;">Modulo 97 conforme</span>`
-                            : isVatValid === false
-                            ? `<span style="display: inline-block; font-size: 11px; color: #B91C1C; background: #FEF2F2; border: 1px solid #FECACA; padding: 1px 6px; border-radius: 3px; margin-left: 6px; font-weight: 600;">Attention : TVA non valide</span>`
-                            : ""
-                        }
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 5px 0; color: #6B7280;">Fonction</td>
-                      <td style="padding: 5px 0;">${escapeHtml(payload.jobTitle || "–")}</td>
+  const alertsBlockHtml =
+    allAlerts.length > 0
+      ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width: 100%; margin-top: 14px; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 10px 12px; background-color: #fdecec; border-left: 3px solid #991b1b; border-radius: 0 5px 5px 0;">
+              <span style="display: block; font-size: 13px; font-weight: bold; color: #991b1b; margin-bottom: 4px;">
+                Signalements de vigilance (${allAlerts.length})
+              </span>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 13px; color: #7f1d1d; border-collapse: collapse;">
+                ${allAlerts
+                  .map(
+                    (a) => `<tr>
+                      <td valign="top" style="padding: 2px 6px 2px 0; font-weight: bold; width: 12px;">&bull;</td>
+                      <td style="padding: 2px 0; line-height: 1.4;"><strong>${escapeHtml(a.label)} :</strong> ${escapeHtml(a.detail)}</td>
                     </tr>`
-                  : ""
-              }
-              ${
-                cbe?.verified
-                  ? `<tr style="background-color: #F8FAFC;">
-                      <td style="padding: 8px 6px; color: #475569; font-size: 12px; font-weight: 600;" colspan="2">
-                        <div style="color: #0F172A; font-weight: 700; margin-bottom: 2px;">
-                          Registre officiel BCE (cbeapi.be) :
-                        </div>
-                        <div style="color: #334155; line-height: 1.4;">
-                          ${escapeHtml(cbe.officialName)} · <em>${escapeHtml(cbe.legalForm || "")}</em>
-                          ${cbe.active ? `<span style="color: #047857; font-weight: 600;">(Société active)</span>` : `<span style="color: #B91C1C; font-weight: 600;">(Non active)</span>`}<br/>
-                          Siège : ${escapeHtml(cbe.fullAddress || "–")}<br/>
-                          ${cbe.naceCode ? `Activité NACE ${escapeHtml(cbe.naceCode)} : ${escapeHtml(cbe.naceDescription || "–")}` : ""}
-                        </div>
-                      </td>
-                    </tr>`
-                  : ""
-              }
-              <tr>
-                <td style="padding: 5px 0; color: #6B7280;">Localisation</td>
-                <td style="padding: 5px 0;">
-                  ${escapeHtml(location)}
-                  ${
-                    spw?.houseVerified
-                      ? `<span style="display: inline-block; font-size: 11px; color: #047857; background: #ECFDF5; border: 1px solid #A7F3D0; padding: 1px 6px; border-radius: 3px; margin-left: 6px;">Adresse exacte SPW</span>`
-                      : spw?.validInWallonia && spw.streetVerified && !hasBelgianHouseNumber(payload.siteAddress)
-                      ? `<span style="display: inline-block; font-size: 11px; color: #B45309; background: #FFFBEB; border: 1px solid #FDE68A; padding: 1px 6px; border-radius: 3px; margin-left: 6px;">Rue SPW (N° manquant)</span>`
-                      : spw?.validInWallonia && !spw.postalMismatch
-                      ? `<span style="display: inline-block; font-size: 11px; color: #1D4ED8; background: #EFF6FF; border: 1px solid #BFDBFE; padding: 1px 6px; border-radius: 3px; margin-left: 6px;">Commune SPW</span>`
-                      : ""
-                  }
-                </td>
-              </tr>
-              ${
-                payload.siteAddress
-                  ? (() => {
-                      const mapLinks = buildMapLinks({
-                        streetAddress: payload.siteAddress,
-                        postalCode: payload.postalCode,
-                        city: payload.city,
-                        coordinates: spw?.coordinates ?? null,
-                      })
-                      const hasNum = hasBelgianHouseNumber(payload.siteAddress)
-                      return `<tr>
-                      <td style="padding: 5px 0; color: #6B7280;">Adresse du site</td>
-                      <td style="padding: 5px 0;">
-                        <strong>${escapeHtml(payload.siteAddress)}</strong>
-                        ${
-                          !hasNum
-                            ? `<span style="display: inline-block; font-size: 11px; color: #B91C1C; background: #FEF2F2; border: 1px solid #FECACA; padding: 1px 6px; border-radius: 3px; margin-left: 6px;">N° maison manquant</span>`
-                            : ""
-                        }
-                        <span style="margin-left: 8px; font-size: 11px;">
-                          <a href="${mapLinks.googleMapsUrl}" style="color: #2563EB; text-decoration: underline;">Maps</a>
-                          ·
-                          <a href="${mapLinks.streetViewUrl}" style="color: #2563EB; text-decoration: underline;">Street View</a>
-                        </span>
-                      </td>
-                    </tr>`
-                    })()
-                  : `<tr>
-                      <td style="padding: 5px 0; color: #6B7280;">Adresse du site</td>
-                      <td style="padding: 5px 0; color: #B91C1C; font-style: italic;">Non renseignée</td>
-                    </tr>`
-              }
-              <tr>
-                <td style="padding: 5px 0; color: #6B7280;">GRD compétent</td>
-                <td style="padding: 5px 0;">${escapeHtml(grdLabel)}</td>
-              </tr>
-            </table>
-          </div>
+                  )
+                  .join("")}
+              </table>
+            </td>
+          </tr>
+        </table>`
+      : ""
 
-          <!-- Données du projet -->
-          <div style="margin-bottom: 24px;">
-            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #4B5563; padding-bottom: 6px; border-bottom: 1px solid #E5E7EB; margin-bottom: 10px;">
-              Données Techniques &amp; Énergétiques
-            </div>
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size: 13px;">
-              <tr>
-                <td width="35%" style="padding: 5px 0; color: #6B7280;">Surface utile</td>
-                <td style="padding: 5px 0; font-weight: 600; font-family: monospace;">
-                  ${escapeHtml(surfaceFormatted)} <span style="font-weight: 400; color: #6B7280;">(${escapeHtml(surfaceTypeLabel)})</span>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding: 5px 0; color: #6B7280;">Matériau de toiture</td>
-                <td style="padding: 5px 0;">${escapeHtml(roofMaterialLabel)}</td>
-              </tr>
-              <tr>
-                <td style="padding: 5px 0; color: #6B7280;">Puissance estimée</td>
-                <td style="padding: 5px 0; font-family: monospace; font-weight: 600;">
-                  ${escapeHtml(powerFormatted)} <span style="font-weight: 400; color: #6B7280;">(${escapeHtml(panelCountFormatted)})</span>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding: 5px 0; color: #6B7280;">Productible estimé</td>
-                <td style="padding: 5px 0; font-family: monospace;">${escapeHtml(productionFormatted)}</td>
-              </tr>
-              <tr>
-                <td style="padding: 5px 0; color: #6B7280;">Facture annuelle</td>
-                <td style="padding: 5px 0; font-family: monospace;">${escapeHtml(billFormatted)}</td>
-              </tr>
-              <tr>
-                <td style="padding: 5px 0; color: #6B7280;">Économies estimées</td>
-                <td style="padding: 5px 0; font-family: monospace; font-weight: 600; color: #047857;">${escapeHtml(savingsFormatted)}</td>
-              </tr>
-              <tr>
-                <td style="padding: 5px 0; color: #6B7280;">ROI estimé</td>
-                <td style="padding: 5px 0; font-family: monospace;">${escapeHtml(roiFormatted)}</td>
-              </tr>
-              <tr>
-                <td style="padding: 5px 0; color: #6B7280;">Autoconsommation</td>
-                <td style="padding: 5px 0; font-family: monospace;">${escapeHtml(autoconsumptionFormatted)}</td>
-              </tr>
-              <tr>
-                <td style="padding: 5px 0; color: #6B7280;">Statut d'occupation</td>
-                <td style="padding: 5px 0; font-weight: 600;">
-                  ${escapeHtml(ownershipLabel)}
-                  ${
-                    payload.ownershipStatus === "tenant_unauthorized" || payload.ownershipStatus === "tenant"
-                      ? `<span style="display: inline-block; font-size: 11px; color: #B91C1C; background: #FEF2F2; border: 1px solid #FECACA; padding: 1px 6px; border-radius: 3px; margin-left: 6px; font-weight: 600;">Attention : locataire</span>`
-                      : ""
-                  }
-                </td>
-              </tr>
-              <tr>
-                <td style="padding: 5px 0; color: #6B7280;">Délai envisagé</td>
-                <td style="padding: 5px 0;">${escapeHtml(timeframeLabel)}</td>
-              </tr>
-              <tr>
-                <td style="padding: 5px 0; color: #6B7280;">Borne de recharge</td>
-                <td style="padding: 5px 0;">${payload.wantsIrve ? "Oui" : "Non"}</td>
-              </tr>
-              <tr>
-                <td style="padding: 5px 0; color: #6B7280;">Formulaire source</td>
-                <td style="padding: 5px 0; font-family: monospace; font-size: 12px; color: #6B7280;">${escapeHtml(payload.sourceForm || "simulateur")}</td>
-              </tr>
-            </table>
-          </div>
+  const certifiedBlockHtml =
+    certifiedBadges.length > 0
+      ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width: 100%; margin-top: 12px; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 10px 12px; background-color: #e8f2ed; border-left: 3px solid #1d5d45; border-radius: 0 5px 5px 0;">
+              <span style="display: block; font-size: 13px; font-weight: bold; color: #1d5d45; margin-bottom: 4px;">
+                Contrôles de conformité validés
+              </span>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 13px; color: #14532d; border-collapse: collapse;">
+                ${certifiedBadges
+                  .map(
+                    (b) => `<tr>
+                      <td valign="top" style="padding: 2px 6px 2px 0; font-weight: bold; width: 14px;">&#10003;</td>
+                      <td style="padding: 2px 0; line-height: 1.4;">${escapeHtml(b)}</td>
+                    </tr>`
+                  )
+                  .join("")}
+              </table>
+            </td>
+          </tr>
+        </table>`
+      : ""
 
-          <!-- Commentaires du prospect -->
+  const addressLinksHtml = payload.siteAddress
+    ? (() => {
+        const mapLinks = buildMapLinks({
+          streetAddress: payload.siteAddress,
+          postalCode: payload.postalCode,
+          city: payload.city,
+          coordinates: spw?.coordinates ?? null,
+        })
+        const hasNum = hasBelgianHouseNumber(payload.siteAddress)
+        return `<strong>${escapeHtml(payload.siteAddress)}</strong>${
+          !hasNum ? renderInlineBadge("N° manquant", "danger") : ""
+        } &middot; <a href="${escapeHtml(mapLinks.googleMapsUrl)}" target="_blank" style="color: #194767; text-decoration: underline;">Maps</a> &middot; <a href="${escapeHtml(mapLinks.streetViewUrl)}" target="_blank" style="color: #194767; text-decoration: underline;">Street View</a>`
+      })()
+    : `<span style="color: #991b1b; font-style: italic;">Non renseignée</span>`
+
+  const contactRowsHtml = `
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <th scope="row" style="width: 38%; padding: 6px 8px 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: normal; color: #4d6374; vertical-align: top;">Nom complet</th>
+        <td style="padding: 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: bold; color: #142d42; vertical-align: top;">${escapeHtml(fullName)}</td>
+      </tr>
+      <tr>
+        <th scope="row" style="padding: 6px 8px 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: normal; color: #4d6374; vertical-align: top;">Téléphone</th>
+        <td style="padding: 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: bold; color: #142d42; vertical-align: top; font-variant-numeric: tabular-nums;">
+          ${payload.phone ? `<a href="tel:${escapeHtml(payload.phone)}" style="color: #142d42; text-decoration: underline;">${escapeHtml(payload.phone)}</a>` : "Non renseigné"}
+          ${isPhoneValid === true ? renderInlineBadge("BE valide", "success") : isPhoneValid === false ? renderInlineBadge("Format suspect", "danger") : ""}
+        </td>
+      </tr>
+      ${
+        payload.contactPreference
+          ? `<tr>
+              <th scope="row" style="padding: 6px 8px 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: normal; color: #4d6374; vertical-align: top;">Préférence contact</th>
+              <td style="padding: 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: bold; color: #142d42; vertical-align: top;">
+                ${
+                  payload.contactPreference === "direct_call"
+                    ? "Appel direct autorisé (9h–18h)"
+                    : "Approche écrite (E-mail / SMS) d'abord"
+                }
+              </td>
+            </tr>`
+          : ""
+      }
+      <tr>
+        <th scope="row" style="padding: 6px 8px 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: normal; color: #4d6374; vertical-align: top;">E-mail</th>
+        <td style="padding: 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: bold; color: #142d42; vertical-align: top;">
+          <a href="mailto:${escapeHtml(payload.email)}" style="color: #194767; text-decoration: underline;">${escapeHtml(payload.email)}</a>
+          ${mx?.valid === true ? renderInlineBadge("MX valide", "success") : mx?.valid === false ? renderInlineBadge("Sans MX", "danger") : ""}
+        </td>
+      </tr>
+      ${
+        isB2B
+          ? `<tr>
+              <th scope="row" style="padding: 6px 8px 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: normal; color: #4d6374; vertical-align: top;">Entreprise &amp; TVA</th>
+              <td style="padding: 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: bold; color: #142d42; vertical-align: top; font-variant-numeric: tabular-nums;">
+                ${escapeHtml(payload.company || "—")} · ${escapeHtml(payload.companyVat || "—")}
+                ${isVatValid === true ? renderInlineBadge("Modulo 97 OK", "success") : isVatValid === false ? renderInlineBadge("TVA invalide", "danger") : ""}
+              </td>
+            </tr>`
+          : ""
+      }
+      ${
+        cbe?.verified
+          ? `<tr>
+              <th scope="row" style="padding: 6px 8px 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: normal; color: #4d6374; vertical-align: top;">Registre BCE</th>
+              <td style="padding: 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; color: #142d42; vertical-align: top;">
+                <strong>${escapeHtml(cbe.officialName)}</strong> (${escapeHtml(cbe.legalForm || "Active")}) · ${escapeHtml(cbe.fullAddress || "—")}
+              </td>
+            </tr>`
+          : ""
+      }
+      <tr>
+        <th scope="row" style="padding: 6px 8px 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: normal; color: #4d6374; vertical-align: top;">Localisation</th>
+        <td style="padding: 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: bold; color: #142d42; vertical-align: top;">
+          ${escapeHtml(location)}
           ${
-            payload.message
-              ? `<div style="background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px; padding: 12px 16px; margin-bottom: 24px;">
-                  <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: #6B7280; margin-bottom: 4px;">
-                    Commentaire du prospect :
-                  </div>
-                  <div style="font-size: 13px; color: #1F2937; white-space: pre-wrap; line-height: 1.4;">${escapeHtml(payload.message)}</div>
-                </div>`
-              : ""
+            spw?.houseVerified
+              ? renderInlineBadge("Adresse exacte SPW", "success")
+              : spw?.validInWallonia && spw.streetVerified && !hasBelgianHouseNumber(payload.siteAddress)
+                ? renderInlineBadge("Rue SPW (N° manquant)", "warning")
+                : spw?.validInWallonia && !spw.postalMismatch
+                  ? renderInlineBadge("Commune SPW", "info")
+                  : ""
           }
+        </td>
+      </tr>
+      <tr>
+        <th scope="row" style="padding: 6px 8px 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: normal; color: #4d6374; vertical-align: top;">Adresse du site</th>
+        <td style="padding: 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; color: #142d42; vertical-align: top;">${addressLinksHtml}</td>
+      </tr>
+      <tr>
+        <th scope="row" style="padding: 6px 8px 6px 0; border-bottom: 0; text-align: left; font-size: 13px; font-weight: normal; color: #4d6374; vertical-align: top;">GRD compétent</th>
+        <td style="padding: 6px 0; border-bottom: 0; text-align: left; font-size: 13px; font-weight: bold; color: #142d42; vertical-align: top;">${escapeHtml(grdLabel)}</td>
+      </tr>
+    </table>
+  `
 
-          <!-- Liens finaux -->
-          <div style="padding-top: 16px; border-top: 1px solid #E5E7EB; text-align: center;">
-            <a href="${quickValidateUrl}" style="display: inline-block; background-color: #0F172A; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none; padding: 11px 24px; border-radius: 6px;">
-              Valider ce lead maintenant
-            </a>
-            <div style="margin-top: 10px;">
-              <a href="${directLeadDashboardUrl}" style="font-size: 12px; color: #6B7280; text-decoration: underline;">
-                Examiner la fiche complète dans le panneau d'administration
-              </a>
-              <span style="color: #D1D5DB; margin: 0 6px;">·</span>
-              <a href="${triageUrl}" style="font-size: 12px; color: #6B7280; text-decoration: underline;">
-                File de triage
-              </a>
-            </div>
-          </div>
+  const techRows = [
+    { label: "Surface & type", value: `${surfaceFormatted} (${surfaceTypeLabel})` },
+    { label: "Matériau toiture", value: roofMaterialLabel },
+    { label: "Puissance estimée", value: `${powerFormatted} (${panelCountFormatted})` },
+    { label: "Productible estimé", value: productionFormatted },
+    { label: "Facture annuelle", value: billFormatted },
+    { label: "Économies estimées", value: savingsFormatted },
+    { label: "ROI & Autoconso", value: `${roiFormatted} · ${autoconsumptionFormatted}` },
+    { label: "Statut d'occupation", value: ownershipLabel },
+    { label: "Délai & Borne IRVE", value: `${timeframeLabel} · IRVE : ${payload.wantsIrve ? "Oui" : "Non"}` },
+    { label: "Source", value: payload.sourceForm || "simulateur" },
+  ]
 
-        </div>
+  const html = renderInstallerEmailShell({
+    subject,
+    preheader: `${companyOrName} · ${location} · Score ${scoreBadgeText} · ${creditsFormatted}`,
+    reference: `Dossier #${leadRefCode}`,
+    context: `Modération Lead · ${isB2B ? "B2B" : "B2C"} · ${receivedLabel}`,
+    contextColor: allAlerts.length > 0 ? "#991b1b" : isHotLead ? "#1d5d45" : "#305a76",
+    headline: companyOrName,
+    subtitle: location,
+    statusPill: {
+      text: `${scoreCategory} · ${scoreBadgeText}`,
+      tone: allAlerts.length > 0 ? "danger" : isHotLead ? "success" : isReviewNeeded ? "warning" : "info",
+    },
+    logoHref: directLeadDashboardUrl,
+    bodyHtml: `
+      ${alertsBlockHtml}
+      ${certifiedBlockHtml}
 
-        <!-- Bas de page -->
-        <div style="text-align: center; padding-top: 16px; font-size: 11px; color: #9CA3AF;">
-          Aegis Solaire · Notification interne d'arbitrage · <a href="${baseUrl}/admin" style="color: #6B7280;">Administration</a>
-        </div>
+      ${renderActionBox({
+        kicker: "Validation en 1 clic",
+        title: `Publier le dossier #${leadRefCode}`,
+        subtext: "Déclenche immédiatement la Vague 1 aux installateurs.",
+        ctaLabel: "Valider et publier →",
+        ctaUrl: quickValidateUrl,
+        secondaryLabel: "Examiner sur le dashboard admin",
+        secondaryUrl: directLeadDashboardUrl,
+      })}
 
-      </td>
-    </tr>
-  </table>
+      ${renderFiguresBox(
+        {
+          label: "Score de qualification",
+          value: scoreBadgeText,
+          sublabel: scoreCategory,
+        },
+        {
+          label: "Prix marketplace",
+          value: creditsFormatted,
+          sublabel: "Tarification installateur V2",
+        }
+      )}
 
-</body>
-</html>`
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 16px; width: 100%; border: 1px solid #dce5eb; border-radius: 8px; border-collapse: separate; border-spacing: 0;">
+        <tr>
+          <td style="padding: 14px 15px;">
+            <h2 style="margin: 0 0 8px 0; font-size: 18px; line-height: 1.25; font-weight: bold; color: #142d42;">
+              Contact &amp; Identification
+            </h2>
+            ${contactRowsHtml}
+          </td>
+        </tr>
+      </table>
+
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 20px; width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding-top: 16px; border-top: 1px solid #e4edf1;">
+            <h2 style="margin: 0 0 10px 0; font-size: 18px; line-height: 1.25; font-weight: bold; color: #142d42;">
+              Données techniques &amp; énergétiques
+            </h2>
+            ${renderSpecsTable(techRows)}
+          </td>
+        </tr>
+      </table>
+
+      ${
+        payload.message
+          ? renderCalloutBox({
+              label: "Commentaire du prospect",
+              value: payload.message,
+              tone: "info",
+            })
+          : ""
+      }
+    `,
+    footerLinks: [
+      { label: "Examiner le dossier", href: directLeadDashboardUrl },
+      { label: "File de triage", href: triageUrl },
+      { label: "Administration", href: `${baseUrl}/admin` },
+    ],
+    footerLegalText: "Aegis Solaire · Notification interne d'arbitrage & modération",
+  })
 
   return { subject, text, html }
 }
@@ -892,6 +746,45 @@ export async function sendAdminWebinarAlertEmail(
 
 Voir le dossier : ${baseUrl}/admin/leads?leadId=${encodeURIComponent(payload.leadId)}`
 
+  const adminLeadUrl = `${baseUrl}/admin/leads?leadId=${encodeURIComponent(payload.leadId)}`
+  const leadRefCode = payload.leadId.slice(0, 8).toUpperCase()
+  const html = renderInstallerEmailShell({
+    subject,
+    preheader: `Inscription webinaire B2B : ${payload.firstName} (${payload.companyName || "Entreprise"})`,
+    reference: `Dossier #${leadRefCode}`,
+    context: "Administration · Webinaire B2B",
+    headline: payload.firstName,
+    subtitle: `${payload.jobTitle}${payload.companyName ? ` · ${payload.companyName}` : ""}`,
+    statusPill: { text: "Inscription webinaire B2B", tone: "info" },
+    logoHref: adminLeadUrl,
+    bodyHtml: `
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 16px; width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding-top: 14px; border-top: 1px solid #e4edf1;">
+            ${renderSpecsTable([
+              { label: "Contact", value: payload.firstName },
+              { label: "Fonction", value: payload.jobTitle || "—" },
+              { label: "Entreprise", value: payload.companyName || "—" },
+              { label: "E-mail", value: payload.email },
+              { label: "Surface estimée", value: payload.surfaceRange || "—" },
+            ])}
+          </td>
+        </tr>
+      </table>
+      ${renderActionBox({
+        kicker: "Dossier enregistré",
+        title: `Lead #${leadRefCode}`,
+        ctaLabel: "Ouvrir le dossier →",
+        ctaUrl: adminLeadUrl,
+      })}
+    `,
+    footerLinks: [
+      { label: "Ouvrir le dossier", href: adminLeadUrl },
+      { label: "Administration", href: `${baseUrl}/admin` },
+    ],
+    footerLegalText: "Aegis Solaire · Notification interne Webinaire B2B",
+  })
+
   try {
     const resend = new Resend(apiKey)
     await resend.emails.send({
@@ -900,6 +793,7 @@ Voir le dossier : ${baseUrl}/admin/leads?leadId=${encodeURIComponent(payload.lea
       replyTo,
       subject,
       text,
+      html,
     })
     return { success: true }
   } catch (err) {

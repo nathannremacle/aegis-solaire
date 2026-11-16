@@ -3,14 +3,11 @@ import { Resend } from "resend"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { logAudit } from "@/lib/audit-log"
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-}
+import {
+  escapeEmailHtml,
+  getEmailSiteBaseUrl,
+  renderInstallerEmailShell,
+} from "@/lib/email-templates/installer-email-layout"
 
 export async function POST(
   request: NextRequest,
@@ -83,46 +80,28 @@ Confidentialité & RGPD : dpo@aegissolaire.com`
     .split(/\n{2,}/)
     .map(
       (p: string) =>
-        `<p style="margin: 0 0 14px 0; font-size: 15px; line-height: 1.6; color: #0F172A;">${escapeHtml(
+        `<p style="margin: 14px 0 0 0; font-size: 15px; line-height: 1.55; color: #142d42;">${escapeEmailHtml(
           p
         ).replace(/\n/g, "<br/>")}</p>`
     )
     .join("")
 
-  const html = `<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escapeHtml(finalSubject)}</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #F8FAFC; color: #0F172A;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #F8FAFC; padding: 28px 14px;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="100%" style="max-width: 580px; background-color: #FFFFFF; border-radius: 14px; border: 1px solid #E2E8F0; border-top: 4px solid #0F172A; overflow: hidden;">
-          <tr>
-            <td style="background-color: #0F172A; padding: 22px 28px;">
-              <h1 style="margin: 0; color: #FFFFFF; font-size: 19px; font-weight: 800; letter-spacing: -0.4px;">Aegis Solaire</h1>
-              <p style="margin: 4px 0 0 0; color: #94A3B8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.9px; font-weight: 600;">Cellule Technique · Vérification de dossier</p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 28px;">
-              ${paragraphsHtml}
-            </td>
-          </tr>
-          <tr>
-            <td style="background-color: #F1F5F9; padding: 16px 28px; border-top: 1px solid #E2E8F0; font-size: 11px; line-height: 1.5; color: #64748B;">
-              Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`
+  const baseUrl = getEmailSiteBaseUrl()
+  const html = renderInstallerEmailShell({
+    subject: finalSubject,
+    preheader: "Merci de préciser l'adresse exacte de votre projet solaire pour finaliser votre étude.",
+    reference: `Dossier #${id.slice(0, 8).toUpperCase()}`,
+    context: "Cellule Technique · Vérification de dossier",
+    headline: "Précision d’adresse requise",
+    subtitle: [lead.postal_code, lead.city].filter(Boolean).join(" ") || "Wallonie",
+    statusPill: { text: "Action requise par retour d'e-mail", tone: "warning" },
+    bodyHtml: paragraphsHtml,
+    logoHref: baseUrl,
+    footerLinks: [
+      { label: "Répondre à la cellule technique", href: "mailto:contact@aegissolaire.com" },
+      { label: "Droits RGPD", href: "mailto:dpo@aegissolaire.com" },
+    ],
+  })
 
   const fromEmail = process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com"
   const resend = new Resend(resendApiKey)

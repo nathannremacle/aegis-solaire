@@ -11,10 +11,7 @@ import {
   PROJECT_DRIVER_LABELS,
   sanitizeLeadNotes,
   getPropertyTypeLabel,
-  getRoofSurfaceLabel,
-  getRoofMaterialLabel,
-  getOwnershipLabel,
-  getConsumptionLabel,
+  getGrdLabel,
 } from "@/lib/lead-display-helpers"
 import {
   buildPartnerNotificationUrls,
@@ -44,6 +41,8 @@ export interface InstallerLeadTeaserData {
     ownershipStatus?: string | null
     projectDriver?: string | null
     projectDetails?: string | null
+    contactPreference?: string | null
+    phone?: string | null
     firstName: string
     lastName?: string | null
     grd?: string | null
@@ -72,7 +71,17 @@ function escapeHtml(s: string): string {
 }
 
 function formatEur(amount: number): string {
-  return `${amount.toLocaleString("fr-BE")} € HT`
+  return `${amount.toLocaleString("fr-BE", {
+    minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  })} € HT`
+}
+
+function formatPowerKwc(kwc: number): string {
+  return `${kwc.toLocaleString("fr-BE", {
+    minimumFractionDigits: kwc % 1 === 0 ? 0 : 1,
+    maximumFractionDigits: 1,
+  })} kWc`
 }
 
 function getSiteBaseUrl(): string {
@@ -86,7 +95,9 @@ function getSafeOwnershipLabel(val?: string | null): string {
   if (clean.includes("occup")) return "Propriétaire occupant"
   if (clean.includes("propri")) return "Propriétaire occupant"
   if (clean.includes("locat")) return "Locataire"
-  if (clean.includes("business") || clean.includes("owner") || clean.includes("dirig")) return "Chef d'entreprise / Dirigeant"
+  if (clean.includes("business") || clean.includes("owner") || clean.includes("dirig")) {
+    return "Chef d'entreprise / Dirigeant"
+  }
   return "Propriétaire occupant"
 }
 
@@ -95,21 +106,29 @@ function getExplicitTimeframeLabel(val?: string | null): string | null {
   const clean = val.toLowerCase().trim()
   if (clean === "non_specifie" || clean === "null" || clean === "undefined") return null
   if (TIMEFRAME_LABELS[clean]) return TIMEFRAME_LABELS[clean]
-  if (clean.includes("immed") || clean.includes("urgent") || clean.includes("1_month")) return "Immédiat (1 à 3 mois)"
-  if (clean.includes("3_months") || clean.includes("3 mois") || clean.includes("dans_les_3_mois")) return "Dans les 3 mois"
-  if (clean.includes("6_months") || clean.includes("6 mois") || clean.includes("3_6mois")) return "D'ici 3 à 6 mois"
+  if (clean.includes("immed") || clean.includes("urgent") || clean.includes("1_month")) {
+    return "Immédiat (1 à 3 mois)"
+  }
+  if (clean.includes("3_months") || clean.includes("3 mois") || clean.includes("dans_les_3_mois")) {
+    return "Dans les 3 mois"
+  }
+  if (clean.includes("6_months") || clean.includes("6 mois") || clean.includes("3_6mois")) {
+    return "D'ici 3 à 6 mois"
+  }
   if (clean.includes("12_months") || clean.includes("annee")) return "Dans l'année"
   return val.replace(/_/g, " ")
 }
 
-function getSafeDriverLabel(val?: string | null): string {
-  if (!val) return "Réduction de la facture d'électricité"
+function getSafeDriverLabel(val?: string | null): string | null {
+  if (!val || !val.trim()) return null
   const clean = val.toLowerCase().trim()
   if (PROJECT_DRIVER_LABELS[clean]) return PROJECT_DRIVER_LABELS[clean]
-  if (clean.includes("facture") || clean.includes("cost") || clean.includes("reduc")) return "Réduction de la facture d'électricité"
+  if (clean.includes("facture") || clean.includes("cost") || clean.includes("reduc")) {
+    return "Réduction des factures d'électricité"
+  }
   if (clean.includes("auto")) return "Autonomie & autoconsommation"
   if (clean.includes("esg") || clean.includes("rse")) return "Transition énergétique & conformité RSE"
-  return "Réduction de la facture d'électricité"
+  return null
 }
 
 function getSafeSurfaceTypeLabel(val?: string | null): string {
@@ -124,6 +143,58 @@ function getSafeRoofMaterialLabel(val?: string | null): string {
   return ROOF_MATERIAL_LABELS[clean] || "Toiture standard"
 }
 
+function formatContactPreferenceLabel(raw?: string | null): string | null {
+  if (!raw || !raw.trim()) return null
+  const clean = raw.toLowerCase().trim()
+  if (
+    clean === "written_first" ||
+    clean.includes("écrit") ||
+    clean.includes("ecrit") ||
+    clean.includes("e-mail") ||
+    clean.includes("email") ||
+    clean.includes("sms")
+  ) {
+    return "Par e-mail ou SMS"
+  }
+  if (clean === "direct_call" || clean.includes("appel")) {
+    return "Par appel direct (9h–18h)"
+  }
+  return raw.trim()
+}
+
+function formatCompactRoofSurface(
+  specSurface: string | undefined,
+  leadSurfaceArea: number,
+  normalizedSurfaceM2: number,
+  surfaceTypeLabel: string,
+  isB2B: boolean
+): string {
+  if (specSurface) {
+    const parenMatch = specSurface.match(/\(([^)]+)\)/)
+    if (parenMatch) {
+      const inner = parenMatch[1].trim().replace(/^~\s*/, "env. ")
+      return inner
+    }
+    return specSurface
+  }
+  const area = leadSurfaceArea > 0 ? leadSurfaceArea : normalizedSurfaceM2
+  if (area > 0) {
+    return isB2B
+      ? `${area.toLocaleString("fr-BE")} m² (${surfaceTypeLabel})`
+      : `env. ${area.toLocaleString("fr-BE")} m²`
+  }
+  return surfaceTypeLabel
+}
+
+function getMaskedPhoneDisplay(phone?: string | null): string {
+  if (!phone || !phone.trim()) return "04•• •• •• ••"
+  const digits = phone.replace(/\D/g, "")
+  if (digits.startsWith("324") || digits.startsWith("04")) {
+    return "04•• •• •• ••"
+  }
+  return "0• •• •• ••"
+}
+
 function getLeadLocationInfo(lead: {
   city?: string | null
   postalCode?: string | null
@@ -133,10 +204,17 @@ function getLeadLocationInfo(lead: {
   city: string
   provinceLabel: string
   postalCode: string
+  headlineLocation: string
   locPhrase: string
 } {
-  const rawCity = lead.city && lead.city !== "null" && lead.city !== "undefined" ? lead.city.trim() : ""
-  const rawPostal = lead.postalCode && lead.postalCode !== "null" && lead.postalCode !== "undefined" ? lead.postalCode.trim() : ""
+  const rawCity =
+    lead.city && lead.city !== "null" && lead.city !== "undefined"
+      ? lead.city.trim().replace(/^\d{4}\s+/, "").trim()
+      : ""
+  const rawPostal =
+    lead.postalCode && lead.postalCode !== "null" && lead.postalCode !== "undefined"
+      ? lead.postalCode.trim()
+      : ""
   const derivedProvinceKey = getBelgiumProvinceKeyFromPostalCode(rawPostal)
   const isSpecialMultiOrForeign =
     lead.province === "plusieurs_regions_be" || lead.province === "etranger"
@@ -150,9 +228,18 @@ function getLeadLocationInfo(lead: {
     ? getProvinceDisplayLabel(effectiveProvinceKey, lead.provinceFreeText)
     : ""
 
-  const provinceLabel = rawProvince && rawProvince !== "null" && rawProvince !== "undefined" ? rawProvince : "Wallonie"
+  const provinceLabel =
+    rawProvince && rawProvince !== "null" && rawProvince !== "undefined" ? rawProvince : "Wallonie"
   const city = rawCity || provinceLabel
   const postalCode = rawPostal || "—"
+
+  const headlineLocation = rawPostal && rawCity
+    ? `${rawPostal} ${rawCity}`
+    : rawCity
+      ? rawCity
+      : rawPostal
+        ? `${rawPostal} (${provinceLabel})`
+        : provinceLabel
 
   let locPhrase = "en Wallonie"
   if (rawPostal && rawCity) {
@@ -165,7 +252,7 @@ function getLeadLocationInfo(lead: {
     locPhrase = `en ${rawProvince}`
   }
 
-  return { city, provinceLabel, postalCode, locPhrase }
+  return { city, provinceLabel, postalCode, headlineLocation, locPhrase }
 }
 
 /**
@@ -175,14 +262,18 @@ function getLeadLocationInfo(lead: {
 export function buildLeadEmailSubject(data: InstallerLeadTeaserData): string {
   const { locPhrase } = getLeadLocationInfo(data.lead)
   const isB2B = data.lead.segment === "B2B"
-  const power = data.financials.estimatedPowerKwc > 0 ? `${data.financials.estimatedPowerKwc} kWc` : "PV"
+  const power =
+    data.financials.estimatedPowerKwc > 0
+      ? formatPowerKwc(data.financials.estimatedPowerKwc)
+      : "PV"
   const remainingSlots = Math.max(0, data.maxSlots - data.takenSlots)
+  const refCode = data.lead.id.slice(0, 8).toUpperCase()
 
   if (data.waveNumber === 1) {
     if (isB2B) {
-      return `Nouveau projet B2B exclusif ${locPhrase} (${power}) — Dossier #${data.lead.id.slice(0, 8)}`
+      return `Nouveau projet B2B exclusif ${locPhrase} (${power}) — Dossier #${refCode}`
     }
-    return `Nouveau dossier photovoltaïque ${locPhrase} — 3 créneaux max (#${data.lead.id.slice(0, 8)})`
+    return `Nouveau dossier photovoltaïque ${locPhrase} — ${remainingSlots} places dispo (#${refCode})`
   }
 
   if (data.waveNumber >= 2 && data.engagement?.hasInspected) {
@@ -199,7 +290,6 @@ export function buildLeadEmailSubject(data: InstallerLeadTeaserData): string {
     return `Rappel : Plus que ${remainingSlots} place(s) restante(s) — Projet solaire ${locPhrase}`
   }
 
-  // Étape 3
   if (isB2B) {
     return `Dernier appel : Projet B2B ${locPhrase} en attente d'artisan certifié`
   }
@@ -208,6 +298,7 @@ export function buildLeadEmailSubject(data: InstallerLeadTeaserData): string {
 
 /**
  * Génère le contenu HTML et texte pour l'installateur
+ * Architecture épurée Swiss/Editorial : lecture instantanée, mobile-first, 100% compatible Gmail / Outlook / Apple Mail.
  */
 export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
   subject: string
@@ -223,48 +314,61 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
   const notifUrls = buildPartnerNotificationUrls(baseUrl, data.partner.id)
   const logoUrl = `${baseUrl}/logo.png`
 
-  const { city, provinceLabel, postalCode, locPhrase } = getLeadLocationInfo(data.lead)
+  const { provinceLabel, headlineLocation, locPhrase } = getLeadLocationInfo(data.lead)
   const isB2B = data.lead.segment === "B2B"
   const remainingSlots = Math.max(0, data.maxSlots - data.takenSlots)
+  const leadRefCode = data.lead.id.slice(0, 8).toUpperCase()
 
   const surfaceTypeLabel = getSafeSurfaceTypeLabel(data.lead.surfaceType)
 
-  // Nettoyage et extraction chirurgicale des critères saisis par le prospect
+  // Extraction propre des critères saisis par le prospect
   const sanitized = sanitizeLeadNotes(data.lead.projectDetails)
   const specs = sanitized.specs
   const cleanRemarks = sanitized.cleanRemarks
 
   const propertyTypeDisplay =
     specs.propertyType ||
-    (data.lead.surfaceType ? getPropertyTypeLabel(data.lead.surfaceType) : null)
+    (isB2B
+      ? surfaceTypeLabel
+      : data.lead.surfaceType && data.lead.surfaceType !== "toiture"
+        ? getPropertyTypeLabel(data.lead.surfaceType)
+        : "Maison résidentielle")
 
   const roofMaterialLabel = specs.roofMaterial || getSafeRoofMaterialLabel(data.lead.roofMaterial)
   const timeframeLabel = getExplicitTimeframeLabel(data.lead.timeframe)
   const ownershipLabel = specs.ownership || getSafeOwnershipLabel(data.lead.ownershipStatus)
   const driverLabel = getSafeDriverLabel(data.lead.projectDriver)
 
-  const roofSurfaceDisplay =
-    specs.roofSurface ||
-    (data.lead.surfaceArea > 0 ? `${data.lead.surfaceArea.toLocaleString("fr-BE")} m² (${surfaceTypeLabel})` : null) ||
-    `${data.financials.normalizedSurfaceAreaM2.toLocaleString("fr-BE")} m² (${surfaceTypeLabel})`
+  const compactRoofSurface = formatCompactRoofSurface(
+    specs.roofSurface,
+    data.lead.surfaceArea,
+    data.financials.normalizedSurfaceAreaM2,
+    surfaceTypeLabel,
+    isB2B
+  )
 
-  const contactPreferenceDisplay = specs.contactPreference || null
+  const contactPreferenceDisplay = formatContactPreferenceLabel(
+    specs.contactPreference || data.lead.contactPreference
+  )
 
-  const panelInfo = data.financials.estimatedPanelCount ? ` (${data.financials.estimatedPanelCount} panneaux)` : ""
-  const powerKwc = `${data.financials.estimatedPowerKwc} kWc${panelInfo}`
+  const powerKwcShort = formatPowerKwc(data.financials.estimatedPowerKwc)
+  const panelCount = data.financials.estimatedPanelCount
   const displayBill = data.financials.normalizedAnnualBill || data.lead.annualElectricityBill
-  const annualBill = `${displayBill.toLocaleString("fr-BE")} € ${isB2B ? "HT" : "TTC"} / an`
-  const billWithConsumption = specs.consumption
-    ? `${annualBill} (Conso : ${specs.consumption})`
-    : annualBill
-  const estimatedContract = `${data.financials.estimatedContractValueRange.min.toLocaleString("fr-BE")} € à ${data.financials.estimatedContractValueRange.max.toLocaleString("fr-BE")} € HT`
-  const estimatedMargin = `~${data.financials.estimatedInstallerMargin.toLocaleString("fr-BE")} € HT`
-  const creditCostEur = `${data.financials.leadCostEuros.toFixed(2)} € HT`
+  const annualBillShort = `${displayBill.toLocaleString("fr-BE")} € ${isB2B ? "HT" : "TTC"}`
+  const consumptionDisplay =
+    specs.consumption ||
+    (data.financials.estimatedAnnualConsumptionKwh > 0
+      ? `${data.financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh/an`
+      : null)
 
-  const partnerGreetingName = data.partner.contactName?.trim() || data.partner.companyName
-  const hasEnoughCredits = data.partner.credits >= data.creditCost
+  const minContractStr = data.financials.estimatedContractValueRange.min.toLocaleString("fr-BE")
+  const maxContractStr = data.financials.estimatedContractValueRange.max.toLocaleString("fr-BE")
+  const estimatedContractShort = `${minContractStr} à ${maxContractStr} € HT`
+  const estimatedMarginShort = `Env. ${data.financials.estimatedInstallerMargin.toLocaleString("fr-BE")} € HT`
+  const creditCostEur = formatEur(data.financials.leadCostEuros)
+  const maskedPhoneDisplay = getMaskedPhoneDisplay(data.lead.phone)
 
-  // Masquage strict du contact : seul le nom de famille est affiché, le prénom est masqué par "******"
+  // Masquage strict du contact : prénom toujours masqué par "******" (règle d'anonymat Aegis Solaire)
   const rawLeadLastName = (data.lead.lastName?.trim() || "")
     .replace(/^(madame\s*,\s*monsieur|m\.|monsieur|mme|madame)\s+/i, "")
     .trim()
@@ -277,172 +381,175 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
     leadMaskedName = `****** ${rawLeadLastName}`
   } else if (rawLeadFirstName) {
     const parts = rawLeadFirstName.split(/\s+/)
-    if (parts.length > 1) {
-      leadMaskedName = `****** ${parts[parts.length - 1]}`
-    } else {
-      leadMaskedName = "******"
-    }
+    leadMaskedName = parts.length > 1 ? `****** ${parts[parts.length - 1]}` : "******"
   }
 
-  // Text Hook according to urgency
-  let waveIntroText = ""
-  let waveUrgencyBadge = ""
+  // Contexte d'en-tête & badge de disponibilité selon vague et segment
+  let contextText = isB2B ? "Nouveau projet photovoltaïque B2B" : "Nouveau dossier photovoltaïque"
+  let contextColor = "#305a76"
 
-  if (data.waveNumber === 1) {
-    waveIntroText = isB2B
-      ? `Un nouveau projet photovoltaïque d'entreprise vient d'être qualifié et audité ${locPhrase}. En tant qu'installateur agréé sur ce secteur, ce chantier vous est proposé en exclusivité.`
-      : `Un nouveau dossier de rénovation photovoltaïque vient d'être validé par notre cellule technique ${locPhrase}. Les coordonnées complètes du demandeur sont prêtes à être transmises.`
-    waveUrgencyBadge = isB2B ? "EXCLUSIVITÉ B2B — 1 SEUL ARTISAN" : "ATTRIBUTION RESTREINTE — 3 ARTISANS MAX"
-  } else if (data.waveNumber === 2) {
-    if (data.engagement?.hasInspected) {
-      waveIntroText = !isB2B && data.takenSlots > 0
-        ? `Mise à jour sur le dossier photovoltaïque ${locPhrase} que vous avez récemment étudié sur votre portail : un confrère partenaire vient d'en réserver un créneau. Il ne reste plus que ${remainingSlots} place(s) artisan ouverte(s) avant clôture définitive de la mise en relation.`
-        : `Suite à votre consultation de la fiche technique du projet photovoltaïque ${locPhrase}, nous vous confirmons que ce dossier est toujours accessible sur votre portail partenaire${!isB2B ? ` (${remainingSlots} place(s) disponible(s))` : " en exclusivité"}.`
+  if (data.waveNumber === 2) {
+    contextColor = "#89610e"
+    if (data.engagement?.hasInspected && !isB2B && data.takenSlots > 0) {
+      contextText = "Dossier consulté · Mise à jour"
+    } else if (data.engagement?.hasInspected) {
+      contextText = "Rappel · Dossier consulté"
     } else {
-      waveIntroText = isB2B
-        ? `Rappel de disponibilité : Le projet photovoltaïque professionnel ${locPhrase} est toujours accessible en exclusivité sur votre espace partenaire.`
-        : `Rappel de disponibilité : Le dossier photovoltaïque ${locPhrase} dispose encore de ${remainingSlots} place(s) artisan ouverte(s) avant fermeture de la mise en relation.`
+      contextText = isB2B
+        ? "Rappel · Projet B2B disponible"
+        : "Rappel · Dossier photovoltaïque disponible"
     }
-    waveUrgencyBadge = isB2B ? "PROJET B2B DISPONIBLE" : `PLUS QUE ${remainingSlots} CRÉNEAU(X) OUVERT(S)`
+  } else if (data.waveNumber >= 3) {
+    contextColor = "#991b1b"
+    contextText = isB2B
+      ? "Dernier appel · Projet B2B bientôt clôturé"
+      : "Dernier créneau avant clôture"
+  }
+
+  let availabilityText = ""
+  let availabilityBg = "#e8f2ed"
+  let availabilityColor = "#1d5d45"
+
+  if (isB2B) {
+    availabilityText = "Exclusivité B2B · 1 seul installateur"
+    availabilityBg = "#e8f2ed"
+    availabilityColor = "#1d5d45"
+  } else if (remainingSlots <= 0) {
+    availabilityText = `Complet · ${data.maxSlots} places attribuées`
+    availabilityBg = "#eef2f4"
+    availabilityColor = "#4d6374"
+  } else if (remainingSlots === 1) {
+    availabilityText = `1 place disponible sur ${data.maxSlots}`
+    availabilityBg = "#fdecec"
+    availabilityColor = "#991b1b"
+  } else if (remainingSlots === 2 && data.maxSlots >= 3) {
+    availabilityText = `2 places disponibles sur ${data.maxSlots}`
+    availabilityBg = "#fff5df"
+    availabilityColor = "#684916"
   } else {
-    if (data.engagement?.hasInspected) {
-      waveIntroText = !isB2B && data.takenSlots > 0
-        ? `Mise à jour sur le dossier photovoltaïque ${locPhrase} que vous avez récemment étudié sur votre portail : un confrère partenaire vient d'en réserver un créneau. Il ne reste plus que ${remainingSlots} place(s) artisan ouverte(s) avant clôture définitive de la mise en relation.`
-        : `Suite à votre consultation de la fiche technique du projet photovoltaïque ${locPhrase}, nous vous confirmons que ce dossier est toujours accessible sur votre portail partenaire${!isB2B ? ` (${remainingSlots} place(s) disponible(s))` : " en exclusivité"}.`
-    } else {
-      waveIntroText = isB2B
-        ? `Dernière opportunité : Le projet photovoltaïque d'entreprise ${locPhrase} sera prochainement clôturé si aucun artisan partenaire ne le prend en charge.`
-        : `Dernier créneau disponible : Il ne reste qu'une seule place artisan ouverte sur ce chantier ${locPhrase} avant clôture définitive de la mise en relation.`
-    }
-    waveUrgencyBadge = isB2B ? "AVIS DE CLÔTURE IMMINENTE" : "DERNIER CRÉNEAU AVANT CLÔTURE"
+    availabilityText = `${remainingSlots} places disponibles sur ${data.maxSlots}`
+    availabilityBg = "#e8f2ed"
+    availabilityColor = "#1d5d45"
   }
 
-  // Visual Scarcity Slots for B2C (Épuré sans emojis — masqué en relance Vague 2/3 si 0 place prise pour éviter la preuve sociale négative)
-  let slotsHtml = ""
-  if (!isB2B && (data.waveNumber === 1 || data.takenSlots > 0)) {
-    const slots = []
-    for (let i = 1; i <= data.maxSlots; i++) {
-      if (i <= data.takenSlots) {
-        slots.push(`
-          <td style="padding: 10px 14px; background-color: #F8FAFC; border-radius: 6px; border: 1px solid #E2E8F0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; color: #64748B; text-align: center; font-weight: 500;">
-            Place ${i} : Réservée
-          </td>
-        `)
-      } else {
-        slots.push(`
-          <td style="padding: 10px 14px; background-color: #EFF6FF; border-radius: 6px; border: 1px solid #BFDBFE; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; color: #1D4ED8; font-weight: 700; text-align: center;">
-            Place ${i} : Disponible
-          </td>
-        `)
-      }
-    }
-    slotsHtml = `
-      <table cellpadding="0" cellspacing="8" border="0" style="margin: 14px 0 0 0; width: 100%;">
-        <tr>
-          ${slots.join("")}
-        </tr>
-      </table>
-    `
+  const subtitleParts = [propertyTypeDisplay, ownershipLabel].filter(Boolean)
+  const subtitleLine = subtitleParts.join(" · ")
+
+  // Lignes techniques du chantier
+  const specRows: Array<{ label: string; value: string; italic?: boolean }> = [
+    {
+      label: "Toiture",
+      value: `${roofMaterialLabel} · ${compactRoofSurface}`,
+    },
+  ]
+
+  if (consumptionDisplay) {
+    specRows.push({
+      label: "Consommation annuelle",
+      value: consumptionDisplay,
+    })
   }
 
-  // Plain Text Version (Clair, direct, sobre)
-  const text = `AEGIS SOLAIRE — DOSSIER PHOTOVOLTAÏQUE QUALIFIÉ
-Tiers de Confiance Wallon · Agrément RESCERT & CWaPE
+  specRows.push(
+    {
+      label: "Facture annuelle",
+      value: annualBillShort,
+    },
+    {
+      label: "Marge brute indicative",
+      value: estimatedMarginShort,
+    }
+  )
 
-Bonjour ${partnerGreetingName},
+  if (timeframeLabel) {
+    specRows.push({
+      label: "Échéance souhaitée",
+      value: timeframeLabel,
+    })
+  }
 
-${waveIntroText}
+  const extraOptions: string[] = []
+  if (specs.hasBattery || data.financials.includesBattery) extraOptions.push("Batterie domestique")
+  if (specs.hasIrve || data.financials.includesEv) extraOptions.push("Borne de recharge VE")
+  if (extraOptions.length > 0) {
+    specRows.push({
+      label: "Équipements souhaités",
+      value: extraOptions.join(" · "),
+    })
+  }
 
-Consulter la fiche du chantier et obtenir les coordonnées (accès direct sans connexion) :
-${dashboardLeadUrl}
-${!hasEnoughCredits ? `\nDébloquer à l'unité (${creditCostEur} — Bancontact / Carte, sans pack requis) :\n${directCheckoutLeadUrl}\n` : ""}
+  if (driverLabel && isB2B) {
+    specRows.push({
+      label: "Objectif du projet",
+      value: driverLabel,
+    })
+  }
 
-============================================================
-RÉSUMÉ DU PROJET : Installation Solaire ${locPhrase}
-============================================================
-• Segment : ${isB2B ? "Professionnel / B2B (Exclusivité 100%)" : "Résidentiel / B2C (3 artisans maximum)"}
-${propertyTypeDisplay ? `• Type de bien : ${propertyTypeDisplay}\n` : ""}• Puissance estimée : ${powerKwc}
-• Surface toiture : ${roofSurfaceDisplay}
-• Couverture toiture : ${roofMaterialLabel}
-• Facture annuelle : ${billWithConsumption}
-• Profil du demandeur : ${ownershipLabel}
-• Objectif du projet : ${driverLabel}
-${timeframeLabel ? `• Échéance souhaitée : ${timeframeLabel}\n` : ""}${contactPreferenceDisplay ? `• Consigne de contact : ${contactPreferenceDisplay}\n` : ""}${cleanRemarks ? `• Remarque du demandeur : « ${cleanRemarks} »\n` : ""}${data.lead.roofImageUrl ? `• Visuel bâtiment : Photo Street View de la toiture et façade disponible sur le dossier\n` : ""}
+  if (isB2B && data.lead.grd) {
+    specRows.push({
+      label: "Gestionnaire réseau",
+      value: getGrdLabel(data.lead.grd),
+    })
+  }
 
-COORDONNÉES CLIENT :
-• Nom : ${leadMaskedName}
-• Localisation : ${locPhrase}
-• Téléphone : [Vérifié par notre cellule technique]
-• E-mail : [Vérifié par notre cellule technique]
-• Adresse exacte : [Débloquée instantanément lors de l'accès au dossier]
+  if (cleanRemarks) {
+    specRows.push({
+      label: "Précisions",
+      value: `« ${cleanRemarks} »`,
+      italic: true,
+    })
+  }
 
-CONDITIONS D'ACCÈS :
-• Coût du dossier : ${data.creditCost} crédits (~${creditCostEur})
-• Votre solde actuel : ${data.partner.credits} crédits
-• Montant estimé du devis : ${estimatedContract}
-• Marge brute indicative : ${estimatedMargin}
-${!isB2B ? `• Attribution : Limité à 3 artisans maximum (${remainingSlots} place(s) restante(s))` : "• Exclusivité : 100 % exclusif (1 seul artisan sur ce dossier)"}
+  const specRowsHtml = specRows
+    .map((row, index) => {
+      const isLast = index === specRows.length - 1
+      const borderStyle = isLast ? "border-bottom: 0;" : "border-bottom: 1px solid #e6edf1;"
+      const valueStyle = row.italic
+        ? "font-weight: normal; font-style: italic; color: #142d42;"
+        : "font-weight: bold; color: #142d42;"
+      return `<tr>
+        <th scope="row" style="width: 49%; padding: 6px 8px 6px 0; ${borderStyle} text-align: left; font-size: 13px; font-weight: normal; color: #4d6374; vertical-align: top;">${escapeHtml(row.label)}</th>
+        <td style="padding: 6px 0; ${borderStyle} text-align: left; font-size: 13px; ${valueStyle} vertical-align: top; font-variant-numeric: tabular-nums;">${escapeHtml(row.value)}</td>
+      </tr>`
+    })
+    .join("")
 
-Pour consulter la fiche et obtenir les coordonnées :
-${dashboardLeadUrl}
+  // Version texte brut sobre et structurée
+  const text = `AEGIS SOLAIRE — ${contextText.toUpperCase()}
+Dossier #${leadRefCode}
 
-Déblocage immédiat à l'unité (${creditCostEur} par Bancontact / Carte, sans pack obligatoire) ou en 1 clic avec vos crédits (solde : ${data.partner.credits} cr.) :
-${directCheckoutLeadUrl}
-${!hasEnoughCredits ? `Gérer / recharger des crédits (optionnel) : ${creditsOrderUrl}\n` : ""}
-Une question technique sur ce dossier ?
-Notre cellule technique se tient à votre entière disposition par e-mail à contact@aegissolaire.com.
+${headlineLocation}
+${subtitleLine}
+${availabilityText}
 
-Gérer vos alertes e-mail (sans connexion) :
-• Ajuster mes critères & ma fréquence d'alerte : ${notifUrls.manageUrl}
-• Recevoir uniquement les nouveaux chantiers (stopper les rappels) : ${notifUrls.noRelancesUrl}
-• Désactiver toutes les alertes e-mail en 1 clic : ${notifUrls.muteAllUrl}
+CHIFFRES CLÉS :
+• Puissance estimée : ${powerKwcShort}${panelCount ? ` (${panelCount} panneaux estimés)` : ""}
+• Devis estimé : ${estimatedContractShort}
+
+PROSPECT : ${leadMaskedName}
+${contactPreferenceDisplay ? `• Premier contact souhaité : ${contactPreferenceDisplay}\n` : ""}• Téléphone vérifié : ${maskedPhoneDisplay}
+• E-mail vérifié : ••••@••••.••
+• Secteur : ${provinceLabel}
+
+DÉBLOCAGE DES COORDONNÉES :
+• Tarif : ${creditCostEur} ou ${data.creditCost} crédits (Solde disponible : ${data.partner.credits} crédit${data.partner.credits > 1 ? "s" : ""})
+• Consulter le dossier : ${dashboardLeadUrl}
+• Débloquer à l'unité (Bancontact / Carte) : ${directCheckoutLeadUrl}
+• Gérer mes crédits : ${creditsOrderUrl}
+
+DÉTAILS DU CHANTIER :
+${specRows.map((r) => `• ${r.label} : ${r.value}`).join("\n")}${data.lead.roofImageUrl ? "\n• Photo du bâtiment disponible sur la fiche dossier" : ""}
+
+Assistance technique : contact@aegissolaire.com
+Gérer mes alertes : ${notifUrls.manageUrl}
+Recevoir uniquement les nouveaux chantiers : ${notifUrls.noRelancesUrl}
+Désactiver les alertes : ${notifUrls.muteAllUrl}
 
 Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
 `.trim()
 
-  const topStripeColor =
-    data.waveNumber === 1 ? "#2563EB" : data.waveNumber === 2 ? "#F59E0B" : "#DC2626"
-
-  let pillBadgeBg = "#EFF6FF"
-  let pillBadgeBorder = "#BFDBFE"
-  let pillBadgeColor = "#1D4ED8"
-  let pillBadgeText = isB2B ? "Exclusivité 100% · B2B" : "Attribution Restreinte · 3 Max"
-
-  let eyebrowColor = "#2563EB"
-  let eyebrowText = `Nouveau Dossier Qualifié · ${city} (#${data.lead.id.slice(0, 8)})`
-
-  let headlineTitle = `Installation solaire ${escapeHtml(locPhrase)}`
-
-  if (data.waveNumber === 2) {
-    pillBadgeBg = "#FEF3C7"
-    pillBadgeBorder = "#FDE68A"
-    pillBadgeColor = "#92400E"
-    pillBadgeText = isB2B ? "Dossier Disponible · B2B" : `${remainingSlots} place(s) restante(s)`
-    eyebrowColor = "#D97706"
-    eyebrowText = isB2B
-      ? `Rappel Disponibilité · Dossier B2B (#${data.lead.id.slice(0, 8)})`
-      : `Rappel Disponibilité · ${remainingSlots} place(s) restante(s) (#${data.lead.id.slice(0, 8)})`
-    headlineTitle = `Plus que ${remainingSlots} place(s) disponible(s) ${escapeHtml(locPhrase)}`
-  } else if (data.waveNumber >= 3) {
-    pillBadgeBg = "#FEF2F2"
-    pillBadgeBorder = "#FECACA"
-    pillBadgeColor = "#991B1B"
-    pillBadgeText = isB2B ? "Clôture Imminente · B2B" : "Dernier créneau disponible"
-    eyebrowColor = "#DC2626"
-    eyebrowText = isB2B
-      ? `Avis de Clôture · Projet B2B (#${data.lead.id.slice(0, 8)})`
-      : `Dernière Opportunité · Clôture Imminente (#${data.lead.id.slice(0, 8)})`
-    headlineTitle = `Dernier créneau disponible ${escapeHtml(locPhrase)}`
-  }
-
-  if (data.waveNumber >= 2 && data.engagement?.hasInspected && !isB2B && data.takenSlots > 0) {
-    eyebrowText = `Dossier Consulté · Plus que ${remainingSlots} place(s) restante(s) (#${data.lead.id.slice(0, 8)})`
-    headlineTitle = `Plus que ${remainingSlots} place(s) disponible(s) ${escapeHtml(locPhrase)}`
-  }
-
-  // Clean, Swiss editorial HTML Email without cheesy AI emojis
   const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="fr">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr-BE">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -450,401 +557,204 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
   <meta name="supported-color-schemes" content="light" />
   <title>${escapeHtml(subject)}</title>
   <style type="text/css">
+    * { box-sizing: border-box; }
     body {
       margin: 0;
       padding: 0;
-      background-color: #F8FAFC;
+      background-color: #eef2f4;
+      color: #142d42;
+      font-family: Arial, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
       -webkit-text-size-adjust: 100%;
       -ms-text-size-adjust: 100%;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      color: #0F172A;
     }
-    table { border-collapse: separate; border-spacing: 0; }
+    table { border-collapse: collapse; }
     img { border: 0; outline: none; text-decoration: none; display: block; }
-    .mono {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
-      font-variant-numeric: tabular-nums !important;
-    }
-    a { color: #2563EB; text-decoration: none; }
-    @media only screen and (max-width: 620px) {
-      .email-container { width: 100% !important; border-radius: 0 !important; border-left: none !important; border-right: none !important; }
-      .email-body { padding: 24px 18px !important; }
-      .email-header { padding: 18px 18px !important; }
-      .bento-cell { display: block !important; width: 100% !important; border-right: none !important; border-bottom: 1px solid #E2E8F0 !important; padding: 10px 0 !important; }
+    a { color: #194767; }
+    .tabular { font-variant-numeric: tabular-nums; }
+    @media only screen and (max-width: 520px) {
+      .mail-outer { padding: 12px 6px 24px 6px !important; }
+      .letterhead, .mail-footer { padding-left: 16px !important; padding-right: 16px !important; }
+      .mail-body { padding: 18px 16px 20px 16px !important; }
+      .mail-h1 { font-size: 27px !important; }
+      .figures-td { padding: 10px !important; }
+      .figure { font-size: 18px !important; }
+      .actions-td { display: block !important; width: 100% !important; }
+      .action-cell { padding: 12px 0 0 0 !important; }
+      .photo-cell, .spec-cell { display: block !important; width: 100% !important; }
+      .photo-cell { padding: 0 0 10px 0 !important; }
     }
   </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #F8FAFC; color: #0F172A;">
+<body style="margin: 0; padding: 0; background-color: #eef2f4; color: #142d42; font-family: Arial, Helvetica, sans-serif; font-size: 15px; line-height: 1.5;">
 
   <!-- Preheader invisible -->
   <div style="display: none; max-height: 0px; overflow: hidden; mso-hide: all;">
-    Dossier photovoltaïque qualifié ${escapeHtml(locPhrase)} — ${powerKwc} — ${remainingSlots} place(s) disponible(s).
+    ${escapeHtml(headlineLocation)} · ${escapeHtml(powerKwcShort)} · ${escapeHtml(availabilityText)} · Devis estimé ${escapeHtml(estimatedContractShort)}.
   </div>
 
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #F8FAFC; padding: 28px 12px 40px 12px;">
+  <table role="presentation" class="mail-outer" width="100%" cellspacing="0" cellpadding="0" border="0" style="width: 100%; background-color: #eef2f4; padding: 20px 12px 32px 12px;">
     <tr>
-      <td align="center">
+      <td align="center" style="vertical-align: top;">
+        <!--[if mso]><table role="presentation" width="640" align="center" cellspacing="0" cellpadding="0" border="0"><tr><td><![endif]-->
+        <table role="presentation" class="mail" width="100%" cellspacing="0" cellpadding="0" border="0" style="width: 100%; max-width: 640px; margin: 0 auto; background-color: #ffffff; border: 1px solid #d7e0e6; border-radius: 14px; border-collapse: separate; border-spacing: 0; overflow: hidden;">
 
-        <table role="presentation" class="email-container" width="600" style="width: 600px; max-width: 600px; background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid ${topStripeColor}; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.05);">
-          
-          <!-- Header Blanc Pur pour contraste maximal avec logo.png -->
+          <!-- En-tête lettre -->
           <tr>
-            <td class="email-header" style="background-color: #FFFFFF; padding: 22px 32px; border-bottom: 1px solid #E2E8F0;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+            <td class="letterhead" style="padding: 12px 28px; border-bottom: 1px solid #e6edf1; background-color: #ffffff;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width: 100%; border-collapse: collapse;">
                 <tr>
                   <td align="left" valign="middle">
-                    <a href="${baseUrl}" target="_blank" style="text-decoration: none; display: inline-block;">
-                      <img src="${logoUrl}" alt="Aegis Solaire" width="160" height="34" style="height: 34px; width: auto; max-width: 180px; display: block; border: 0; outline: none; text-decoration: none;" />
+                    <a href="${escapeHtml(baseUrl)}" target="_blank" style="text-decoration: none; display: inline-block;">
+                      <img src="${escapeHtml(logoUrl)}" alt="Aegis Solaire" width="132" height="72" style="display: block; width: 132px; height: 72px; border: 0; outline: none; text-decoration: none;" />
                     </a>
                   </td>
-                  <td align="right" valign="middle" style="white-space: nowrap; padding-left: 12px;">
-                    <span class="mono" style="display: inline-block; white-space: nowrap; background-color: ${pillBadgeBg}; border: 1px solid ${pillBadgeBorder}; color: ${pillBadgeColor}; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 6px; letter-spacing: 0.03em; text-transform: uppercase; line-height: 1.3;">
-                      ${escapeHtml(pillBadgeText)}
-                    </span>
+                  <td align="right" valign="middle" style="text-align: right; color: #536776; font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; padding-left: 12px;">
+                    Dossier #${leadRefCode}
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- Body Content -->
+          <!-- Corps principal -->
           <tr>
-            <td class="email-body" style="padding: 32px 32px 28px 32px;">
+            <td class="mail-body" style="padding: 22px 28px 24px 28px; background-color: #ffffff;">
 
-              <!-- Eyebrow & Subject Headline -->
-              <p class="mono" style="margin: 0 0 8px 0; font-size: 11px; font-weight: 700; color: ${eyebrowColor}; text-transform: uppercase; letter-spacing: 0.08em;">
-                ${eyebrowText}
+              <!-- En-tête dossier -->
+              <p style="margin: 0; font-size: 13px; font-weight: bold; color: ${contextColor}; line-height: 1.4;">
+                ${escapeHtml(contextText)}
               </p>
-              <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; line-height: 1.3; color: #0F172A; letter-spacing: -0.01em;">
-                ${headlineTitle}
+              <h1 class="mail-h1" style="margin: 2px 0 4px 0; font-size: 32px; font-weight: bold; line-height: 1.12; letter-spacing: -0.035em; color: #142d42;">
+                ${escapeHtml(headlineLocation)}
               </h1>
-
-              <p style="margin: 0 0 14px 0; font-size: 15px; line-height: 1.6; color: #334155;">
-                Bonjour <strong>${escapeHtml(partnerGreetingName)}</strong>,
+              <p style="margin: 0; color: #4d6374; font-size: 15px; line-height: 1.45;">
+                ${escapeHtml(subtitleLine)}
               </p>
-              <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #334155;">
-                ${escapeHtml(waveIntroText)}
-              </p>
+              <span class="tabular" style="display: inline-block; margin-top: 10px; padding: 3px 9px; border-radius: 5px; background-color: ${availabilityBg}; color: ${availabilityColor}; font-size: 12px; font-weight: bold; line-height: 1.4; font-variant-numeric: tabular-nums;">
+                ${escapeHtml(availabilityText)}
+              </span>
 
-              <!-- Top Primary CTA Button -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 28px;">
+              <!-- Chiffres clés -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 16px; width: 100%; background-color: #f0f5f8; border: 1px solid #e2eaf0; border-radius: 8px; border-collapse: separate; border-spacing: 0; overflow: hidden;">
                 <tr>
-                  <td align="center" style="padding: 4px 0;">
-                    <table role="presentation" cellspacing="0" cellpadding="0">
+                  <td class="figures-td" width="43%" style="width: 43%; padding: 12px 15px; vertical-align: top;">
+                    <span style="display: block; color: #4d6374; font-size: 13px; line-height: 1.35;">Puissance estimée</span>
+                    <strong class="figure tabular" style="display: block; margin: 2px 0; font-size: 22px; font-weight: bold; line-height: 1.15; letter-spacing: -0.025em; color: #142d42; font-variant-numeric: tabular-nums;">${escapeHtml(powerKwcShort)}</strong>
+                    ${panelCount ? `<span style="display: block; color: #4d6374; font-size: 13px; line-height: 1.35; font-variant-numeric: tabular-nums;">${panelCount} panneaux estimés</span>` : ""}
+                  </td>
+                  <td class="figures-td" width="57%" style="width: 57%; padding: 12px 15px; vertical-align: top; border-left: 1px solid #d8e3eb;">
+                    <span style="display: block; color: #4d6374; font-size: 13px; line-height: 1.35;">Devis estimé</span>
+                    <strong class="figure tabular" style="display: block; margin: 2px 0; font-size: 22px; font-weight: bold; line-height: 1.15; letter-spacing: -0.025em; color: #142d42; font-variant-numeric: tabular-nums;">${escapeHtml(estimatedContractShort)}</strong>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Bloc Prospect & Contact -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 16px; width: 100%; border: 1px solid #dce5eb; border-radius: 8px; border-collapse: separate; border-spacing: 0;">
+                <tr>
+                  <td style="padding: 14px 15px;">
+                    <h2 style="margin: 0 0 8px 0; font-size: 18px; line-height: 1.25; font-weight: bold; color: #142d42;">
+                      Prospect &middot; ${escapeHtml(leadMaskedName)}
+                    </h2>
+                    ${contactPreferenceDisplay ? `
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width: 100%; margin-bottom: 10px; border-collapse: collapse;">
                       <tr>
-                        <td align="center" style="background-color: #0F172A; border-radius: 8px; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);">
-                          <a href="${dashboardLeadUrl}" target="_blank" style="display: inline-block; padding: 14px 30px; font-size: 15px; font-weight: 700; color: #FFFFFF; text-decoration: none; letter-spacing: 0.01em;">
-                            Consulter la fiche et obtenir les coordonnées &rarr;
-                          </a>
+                        <td style="padding: 8px 10px; background-color: #fff5df; border-left: 3px solid #d69729; border-radius: 0 5px 5px 0;">
+                          <span style="display: block; font-size: 13px; color: #684916; line-height: 1.35;">Premier contact souhaité par le prospect</span>
+                          <strong style="display: block; font-size: 16px; line-height: 1.3; color: #142d42;">${escapeHtml(contactPreferenceDisplay)}</strong>
                         </td>
                       </tr>
-                      ${!hasEnoughCredits ? `
+                    </table>
+                    ` : ""}
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width: 100%; border-collapse: collapse;">
                       <tr>
-                        <td align="center" style="padding-top: 10px;">
-                          <table role="presentation" cellspacing="0" cellpadding="0">
-                            <tr>
-                              <td align="center" style="background-color: #2563EB; border-radius: 8px; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.18);">
-                                <a href="${directCheckoutLeadUrl}" target="_blank" style="display: inline-block; padding: 12px 24px; font-size: 14px; font-weight: 700; color: #FFFFFF; text-decoration: none;">
-                                  Débloquer à l'unité (${creditCostEur} — Bancontact / Carte, sans pack requis) &rarr;
-                                </a>
-                              </td>
-                            </tr>
+                        <td width="50%" style="width: 50%; vertical-align: top; padding-right: 10px;">
+                          <span style="display: block; color: #4d6374; font-size: 13px; line-height: 1.35;">
+                            <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background-color: #1d5d45; margin-right: 5px; vertical-align: middle;"></span>Téléphone vérifié
+                          </span>
+                          <strong class="tabular" style="display: block; margin-top: 2px; font-size: 15px; font-weight: bold; line-height: 1.35; color: #142d42; font-variant-numeric: tabular-nums;">${escapeHtml(maskedPhoneDisplay)}</strong>
+                        </td>
+                        <td width="50%" style="width: 50%; vertical-align: top; padding-left: 12px; border-left: 1px solid #e2eaf0;">
+                          <span style="display: block; color: #4d6374; font-size: 13px; line-height: 1.35;">
+                            <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background-color: #1d5d45; margin-right: 5px; vertical-align: middle;"></span>E-mail vérifié
+                          </span>
+                          <strong class="tabular" style="display: block; margin-top: 2px; font-size: 15px; font-weight: bold; line-height: 1.35; color: #142d42; font-variant-numeric: tabular-nums;">••••@••••.••</strong>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Bloc Actions & Déblocage -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 14px; width: 100%; border: 1px solid #dce5eb; border-radius: 8px; border-collapse: separate; border-spacing: 0;">
+                <tr>
+                  <td style="padding: 12px 15px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width: 100%; border-collapse: collapse;">
+                      <tr>
+                        <td class="actions-td" style="vertical-align: middle;">
+                          <span style="display: block; color: #4d6374; font-size: 13px; line-height: 1.35;">Déblocage des coordonnées</span>
+                          <strong class="tabular" style="display: block; margin: 2px 0; font-size: 19px; font-weight: bold; line-height: 1.2; letter-spacing: -0.02em; color: #142d42; font-variant-numeric: tabular-nums;">${escapeHtml(creditCostEur)} ou ${data.creditCost} crédits</strong>
+                          <span class="tabular" style="display: block; color: #4d6374; font-size: 13px; line-height: 1.35; font-variant-numeric: tabular-nums;">Solde disponible &middot; ${data.partner.credits} crédit${data.partner.credits > 1 ? "s" : ""}</span>
+                        </td>
+                        <td class="actions-td action-cell" width="47%" style="width: 47%; padding-left: 14px; text-align: center; vertical-align: middle;">
+                          <a href="${escapeHtml(dashboardLeadUrl)}" target="_blank" style="display: block; padding: 10px 12px; border: 1px solid #142d42; border-radius: 6px; background-color: #142d42; color: #ffffff; font-size: 15px; font-weight: bold; text-decoration: none; text-align: center;">Consulter le dossier &rarr;</a>
+                          <a href="${escapeHtml(directCheckoutLeadUrl)}" target="_blank" style="display: inline-block; margin-top: 6px; font-size: 13px; color: #194767; text-decoration: underline;">Débloquer à l&rsquo;unité</a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Détails du chantier -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 20px; width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding-top: 16px; border-top: 1px solid #e4edf1;">
+                    <h2 style="margin: 0 0 10px 0; font-size: 18px; line-height: 1.25; font-weight: bold; color: #142d42;">
+                      Détails du chantier
+                    </h2>
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width: 100%; border-collapse: collapse;">
+                      <tr>
+                        ${data.lead.roofImageUrl ? `
+                        <td class="photo-cell" width="42%" style="width: 42%; padding-right: 15px; vertical-align: top;">
+                          <img src="${escapeHtml(data.lead.roofImageUrl)}" alt="Façade du bâtiment concerné par le projet" width="230" style="display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 7px; border: 1px solid #e2eaf0;" />
+                          <p style="margin: 4px 0 0 0; font-size: 12px; color: #4d6374;">Photo du bâtiment</p>
+                        </td>
+                        ` : ""}
+                        <td class="spec-cell" style="vertical-align: top;">
+                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width: 100%; border-collapse: collapse;">
+                            ${specRowsHtml}
                           </table>
                         </td>
                       </tr>
-                      ` : ""}
-                    </table>
-                  </td>
-                </tr>
-                <tr>
-                  <td align="center" style="padding-top: 10px;">
-                    <span class="mono" style="font-size: 12px; color: #64748B;">
-                      Accès direct sans mot de passe &middot; <strong style="color: #0F172A;">${creditCostEur}</strong> ou ${data.creditCost} crédits &middot; Téléphone et adresse vérifiés
-                    </span>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- Project Technical Bento Card -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px; overflow: hidden; margin-bottom: 26px; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);">
-                
-                <!-- Card Header -->
-                <tr>
-                  <td style="padding: 16px 20px; border-bottom: 1px solid #E2E8F0; background-color: #F8FAFC;">
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                      <tr>
-                        <td align="left" valign="middle">
-                          <h2 style="margin: 0; font-size: 16px; font-weight: 700; color: #0F172A; line-height: 1.3;">
-                            Installation solaire ${escapeHtml(locPhrase)}
-                          </h2>
-                          <p style="margin: 4px 0 0 0; font-size: 12px; color: #64748B;" class="mono">
-                            ${escapeHtml(leadMaskedName)} · Secteur : ${escapeHtml(provinceLabel)}${postalCode && postalCode !== "—" ? ` (${escapeHtml(postalCode)})` : ""}
-                          </p>
-                        </td>
-                        <td align="right" valign="middle">
-                          <span class="mono" style="font-size: 11px; color: #64748B; font-weight: 600; background-color: #F1F5F9; border: 1px solid #E2E8F0; border-radius: 4px; padding: 3px 8px;">
-                            Dossier vérifié
-                          </span>
-                        </td>
-                      </tr>
-                    </table>
-
-                    <!-- Trust Badges -->
-                    <div style="margin-top: 10px;">
-                      <span class="mono" style="display: inline-block; font-size: 11px; padding: 3px 8px; background-color: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; border-radius: 4px; font-weight: 600; margin-right: 6px;">
-                        Téléphone vérifié
-                      </span>
-                      <span class="mono" style="display: inline-block; font-size: 11px; padding: 3px 8px; background-color: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; border-radius: 4px; font-weight: 600; margin-right: 6px;">
-                        Propriétaire occupant
-                      </span>
-                      <span class="mono" style="display: inline-block; font-size: 11px; padding: 3px 8px; background-color: #F8FAFC; color: #334155; border: 1px solid #E2E8F0; border-radius: 4px; font-weight: 600;">
-                        Cadastre toiture vérifié
-                      </span>
-                    </div>
-
-                    ${data.lead.roofImageUrl ? `
-                    <!-- Visuel Street View du Bâtiment & Toiture -->
-                    <div style="margin-top: 14px; border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; background-color: #0F172A;">
-                      <img src="${data.lead.roofImageUrl}" alt="Visuel de la maison et toiture" width="560" style="width: 100%; aspect-ratio: 4 / 5; max-height: 650px; object-fit: cover; object-position: center top; display: block; border: 0;" />
-                      <div style="padding: 7px 12px; background-color: #F8FAFC; border-top: 1px solid #E2E8F0; font-size: 11px; color: #475569;" class="mono">
-                        <strong style="color: #0F172A;">Visuel de toiture &amp; façade :</strong> Inspection Street View pour pré-dimensionnement visuel (pente, couverture, obstacles).
-                      </div>
-                    </div>
-                    ` : ""}
-                  </td>
-                </tr>
-
-                <!-- Technical Specs Rows -->
-                <tr>
-                  <td style="padding: 6px 20px;">
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                      <tr>
-                        <td width="44%" valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Segment de marché</td>
-                        <td width="56%" valign="top" style="padding: 10px 0; font-size: 13px; font-weight: 600; color: #0F172A; border-bottom: 1px solid #F1F5F9;">
-                          ${isB2B ? "Professionnel / B2B (Exclusivité 100%)" : "Résidentiel / B2C (Partagé max 3)"}
-                        </td>
-                      </tr>
-                      ${propertyTypeDisplay ? `
-                      <tr>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Type de bien</td>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; font-weight: 600; color: #0F172A; border-bottom: 1px solid #F1F5F9;">
-                          ${escapeHtml(propertyTypeDisplay)}
-                        </td>
-                      </tr>
-                      ` : ""}
-                      <tr>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Puissance estimée</td>
-                        <td valign="top" class="mono" style="padding: 10px 0; font-size: 13px; font-weight: 700; color: #2563EB; border-bottom: 1px solid #F1F5F9;">
-                          ${powerKwc}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Surface toiture</td>
-                        <td valign="top" class="mono" style="padding: 10px 0; font-size: 13px; font-weight: 600; color: #0F172A; border-bottom: 1px solid #F1F5F9;">
-                          ${escapeHtml(roofSurfaceDisplay)}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Couverture toiture</td>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; font-weight: 600; color: #0F172A; border-bottom: 1px solid #F1F5F9;">
-                          ${escapeHtml(roofMaterialLabel)}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Facture &amp; Consommation</td>
-                        <td valign="top" class="mono" style="padding: 10px 0; font-size: 13px; font-weight: 600; color: #0F172A; border-bottom: 1px solid #F1F5F9;">
-                          ${escapeHtml(billWithConsumption)}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Profil du demandeur</td>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; font-weight: 600; color: #0F172A; border-bottom: 1px solid #F1F5F9;">
-                          ${escapeHtml(ownershipLabel)}
-                        </td>
-                      </tr>
-                      ${driverLabel ? `
-                      <tr>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Objectif prioritaire</td>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; font-weight: 600; color: #0F172A; border-bottom: 1px solid #F1F5F9;">
-                          ${escapeHtml(driverLabel)}
-                        </td>
-                      </tr>
-                      ` : ""}
-                      ${timeframeLabel ? `
-                      <tr>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Échéance souhaitée</td>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; font-weight: 600; color: #0F172A; border-bottom: 1px solid #F1F5F9;">
-                          ${escapeHtml(timeframeLabel)}
-                        </td>
-                      </tr>
-                      ` : ""}
-                      ${contactPreferenceDisplay ? `
-                      <tr>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Consigne de contact</td>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; font-weight: 600; color: #0F172A; border-bottom: 1px solid #F1F5F9;">
-                          ${escapeHtml(contactPreferenceDisplay)}
-                        </td>
-                      </tr>
-                      ` : ""}
-                      ${cleanRemarks ? `
-                      <tr>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #64748B; border-bottom: 1px solid #F1F5F9;">Remarque du demandeur</td>
-                        <td valign="top" style="padding: 10px 0; font-size: 13px; color: #0F172A; font-style: italic; border-bottom: 1px solid #F1F5F9;">
-                          &laquo; ${escapeHtml(cleanRemarks)} &raquo;
-                        </td>
-                      </tr>
-                      ` : ""}
-                    </table>
-                  </td>
-                </tr>
-
-                <!-- Masked Contact Details -->
-                <tr>
-                  <td style="padding: 16px 20px; background-color: #F8FAFC; border-top: 1px solid #E2E8F0;">
-                    <p class="mono" style="margin: 0 0 10px 0; font-size: 11px; font-weight: 700; color: #0F172A; text-transform: uppercase; letter-spacing: 0.05em;">
-                      Coordonnées débloquées après validation :
-                    </p>
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="4">
-                      <tr>
-                        <td width="36%" style="font-size: 13px; color: #64748B;">Nom du contact :</td>
-                        <td width="64%" style="font-size: 13px; font-weight: 600; color: #0F172A;" class="mono">
-                          ${escapeHtml(leadMaskedName)}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="font-size: 13px; color: #64748B;">Adresse du chantier :</td>
-                        <td style="font-size: 13px; color: #64748B;" class="mono">
-                          ********* (${escapeHtml(postalCode)} ${escapeHtml(city)})
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="font-size: 13px; color: #64748B;">Numéro de téléphone :</td>
-                        <td style="font-size: 13px; color: #0F172A; font-weight: 600;" class="mono">
-                          ********* <span style="color: #059669; font-weight: 600;">[Numéro vérifié]</span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="font-size: 13px; color: #64748B;">Adresse e-mail :</td>
-                        <td style="font-size: 13px; color: #0F172A; font-weight: 600;" class="mono">
-                          ********* <span style="color: #059669; font-weight: 600;">[E-mail vérifié]</span>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-
-                <!-- Attribution Rules -->
-                <tr>
-                  <td style="padding: 16px 20px; background-color: #FFFFFF; border-top: 1px solid #E2E8F0;">
-                    <p class="mono" style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: #0F172A; text-transform: uppercase; letter-spacing: 0.05em;">
-                      Règle d'attribution Aegis Solaire :
-                    </p>
-                    <p style="margin: 0; font-size: 13px; color: #475569; line-height: 1.5;">
-                      ${isB2B
-      ? "<strong>Exclusivité absolue garantie :</strong> Ce chantier est cédé à <strong>1 seul installateur partenaire</strong>. Aucune concurrence de plateforme."
-      : "<strong>Attribution restreinte à 3 installateurs certifiés maximum :</strong> Pour protéger vos marges et éviter la guerre des prix, ce lead est automatiquement verrouillé dès le 3ème déblocage."
-    }
-                    </p>
-                    ${slotsHtml}
-                  </td>
-                </tr>
-
-                <!-- Financial Estimations Bento Footer -->
-                <tr>
-                  <td style="padding: 16px 20px; background-color: #F8FAFC; border-top: 1px solid #E2E8F0;">
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                      <tr>
-                        <td width="33%" align="center" class="bento-cell" style="border-right: 1px solid #E2E8F0; padding: 4px 8px;">
-                          <div style="font-size: 11px; color: #64748B; font-weight: 500;">Valeur devis estimée</div>
-                          <div class="mono" style="font-size: 13px; font-weight: 700; color: #0F172A; margin-top: 4px;">${estimatedContract}</div>
-                        </td>
-                        <td width="33%" align="center" class="bento-cell" style="border-right: 1px solid #E2E8F0; padding: 4px 8px;">
-                          <div style="font-size: 11px; color: #64748B; font-weight: 500;">Marge brute indicative</div>
-                          <div class="mono" style="font-size: 13px; font-weight: 700; color: #059669; margin-top: 4px;">${estimatedMargin}</div>
-                        </td>
-                        <td width="34%" align="center" class="bento-cell" style="padding: 4px 8px;">
-                          <div style="font-size: 11px; color: #64748B; font-weight: 500;">Coût d'acquisition</div>
-                          <div class="mono" style="font-size: 13px; font-weight: 700; color: #2563EB; margin-top: 4px;">${data.creditCost} cr. (~${creditCostEur})</div>
-                        </td>
-                      </tr>
                     </table>
                   </td>
                 </tr>
               </table>
-
-              <!-- Bottom CTA Button & Direct Checkout Option -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
-                <tr>
-                  <td align="center">
-                    <table role="presentation" cellspacing="0" cellpadding="0">
-                      <tr>
-                        <td align="center" style="background-color: #0F172A; border-radius: 8px; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);">
-                          <a href="${dashboardLeadUrl}" target="_blank" style="display: inline-block; padding: 14px 30px; font-size: 15px; font-weight: 700; color: #FFFFFF; text-decoration: none; letter-spacing: 0.01em;">
-                            Consulter la fiche et obtenir les coordonnées &rarr;
-                          </a>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td align="center" style="padding-top: 10px;">
-                          <a href="${directCheckoutLeadUrl}" target="_blank" style="display: inline-block; padding: 10px 20px; font-size: 13px; font-weight: 700; color: #1D4ED8; background-color: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; text-decoration: none;">
-                            Débloquer à l'unité (${creditCostEur} — Bancontact / Carte, sans pack requis) &rarr;
-                          </a>
-                        </td>
-                      </tr>
-                    </table>
-                    <p class="mono" style="margin: 12px 0 0 0; font-size: 12px; color: #475569; line-height: 1.5;">
-                      Déblocage immédiat à l'unité (<strong style="color: #0F172A;">${creditCostEur}</strong> par Bancontact / Carte, sans pack obligatoire) ou en 1 clic avec vos crédits (solde : <strong style="color: #0F172A;">${data.partner.credits} cr.</strong>).
-                      <br />
-                      <a href="${creditsOrderUrl}" style="color: #2563EB; text-decoration: underline; font-weight: 600;">Optionnel : Gérer ou recharger mes crédits</a>
-                    </p>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- Technical Assistance Bento Box (Anonymity Compliant) -->
-              <div style="background-color: #F8FAFC; border-left: 3px solid #2563EB; padding: 14px 18px; border-radius: 0 6px 6px 0; margin-bottom: 20px;">
-                <p style="margin: 0 0 4px 0; font-size: 13px; font-weight: 700; color: #0F172A;">
-                  Assistance technique &amp; dimensionnement :
-                </p>
-                <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #475569;">
-                  Notre cellule technique se tient à votre disposition pour vos questions d'implantation ou de matériel : <a href="mailto:contact@aegissolaire.com" style="color: #2563EB; font-weight: 600; text-decoration: underline;">contact@aegissolaire.com</a>.
-                </p>
-              </div>
-
-              <!-- Replacement Guarantee Note (Sans emoji) -->
-              <p style="margin: 0 0 16px 0; font-size: 12px; color: #64748B; text-align: center; line-height: 1.5;">
-                <strong>Garantie de conformité Aegis Solaire :</strong> Tout numéro erroné ou projet injoignable signalé sous 7 jours ouvrés est recrédité sous 24h ouvrées sur votre compte.
-              </p>
 
             </td>
           </tr>
 
-          <!-- Institutional Footer (100% Anonymity compliant) -->
+          <!-- Pied de page institutionnel -->
           <tr>
-            <td style="background-color: #F8FAFC; padding: 22px 32px; border-top: 1px solid #E2E8F0; font-size: 11px; line-height: 1.6; color: #64748B;">
-              <p style="margin: 0 0 6px 0;">
-                <strong>Aegis Solaire</strong> &mdash; Plateforme d'audit financier et de mise en relation photovoltaïque indépendante en Wallonie.
+            <td class="mail-footer" style="padding: 14px 28px; background-color: #f6f8fa; border-top: 1px solid #e3eaf0; color: #4d6374; font-size: 12px; line-height: 1.55;">
+              <p style="margin: 0 0 4px 0;">
+                <a href="mailto:contact@aegissolaire.com" style="display: inline-block; margin: 0 12px 3px 0; color: #194767; text-decoration: underline;">Assistance technique</a>
+                <a href="${escapeHtml(notifUrls.manageUrl)}" target="_blank" style="display: inline-block; margin: 0 12px 3px 0; color: #194767; text-decoration: underline;">Gérer mes alertes</a>
+                <a href="${escapeHtml(notifUrls.noRelancesUrl)}" target="_blank" style="display: inline-block; margin: 0 12px 3px 0; color: #194767; text-decoration: underline;">Uniquement les nouveaux chantiers</a>
+                <a href="${escapeHtml(notifUrls.muteAllUrl)}" target="_blank" style="display: inline-block; margin: 0 12px 3px 0; color: #194767; text-decoration: underline;">Désactiver les alertes</a>
               </p>
-              <p style="margin: 0 0 6px 0;">
+              <p style="margin: 0; color: #4d6374;">
                 Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
-              </p>
-              <p style="margin: 0 0 6px 0;">
-                Agrément RESCERT Photovoltaïque · Conformité CWaPE &amp; PACE 2030.
-              </p>
-              <p style="margin: 0 0 8px 0;">
-                Vous recevez cette notification en tant qu'installateur partenaire agréé Aegis Solaire.
-              </p>
-              <p style="margin: 0;">
-                <a href="${notifUrls.manageUrl}" style="color: #0F172A; font-weight: 600; text-decoration: underline;">Ajuster mes critères &amp; ma fréquence d'alerte</a>
-                &nbsp;&middot;&nbsp;
-                <a href="${notifUrls.noRelancesUrl}" style="color: #475569; text-decoration: underline;">Recevoir uniquement les nouveaux chantiers (stopper les rappels)</a>
-                &nbsp;&middot;&nbsp;
-                <a href="${notifUrls.muteAllUrl}" style="color: #475569; text-decoration: underline;">Désactiver toutes les alertes e-mail en 1 clic</a>
               </p>
             </td>
           </tr>
 
         </table>
+        <!--[if mso]></td></tr></table><![endif]-->
       </td>
     </tr>
   </table>

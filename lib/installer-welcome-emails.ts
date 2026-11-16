@@ -2,6 +2,13 @@ import { Resend } from "resend"
 import type { AvailableLeadSummary } from "@/lib/lead-relance-engine"
 import type { InvitationLeadSummary } from "@/lib/regional-leads-catalog"
 import { buildPartnerExpressLeadUrls } from "@/lib/partner-notification-tokens"
+import {
+  escapeEmailHtml,
+  renderActionBox,
+  renderCalloutBox,
+  renderInstallerEmailShell,
+  renderSpecsTable,
+} from "@/lib/email-templates/installer-email-layout"
 
 const resendApiKey = process.env.RESEND_API_KEY
 const fromEmail = process.env.RESEND_FROM_EMAIL ?? "contact@aegissolaire.com"
@@ -20,14 +27,6 @@ export function getSiteBaseUrl(reqOrigin?: string): string {
     return reqOrigin.replace(/\/$/, "")
   }
   return canonical
-}
-
-function escapeHtml(s: string): string {
-  return String(s || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
 }
 
 /* ==========================================================================
@@ -49,14 +48,12 @@ export function buildInstallerWelcomeVerificationEmail(data: InstallerWelcomeVer
   text: string
   html: string
 } {
-  // Le logo doit toujours pointer vers l'URL publique HTTPS absolue pour être visible dans tous les webmails (Gmail, Outlook...)
-  const publicAssetBase = "https://www.aegissolaire.com"
-  const logoUrl = `${publicAssetBase}/logo.png`
   const firstName = data.firstName?.trim() ? data.firstName.trim() : "Partenaire"
   const company = data.companyName?.trim() ? data.companyName.trim() : "votre entreprise"
   const email = data.email?.trim() || ""
+  const appRef = (data.applicationId || "ADHESION").slice(0, 8).toUpperCase()
 
-  const subject = `Bienvenue sur Aegis Solaire — Confirmez votre adresse email (${company})`
+  const subject = `Bienvenue sur Aegis Solaire — Confirmez votre adresse e-mail (${company})`
 
   const text = `Bonjour ${firstName},
 
@@ -64,25 +61,23 @@ Bienvenue sur la plateforme Aegis Solaire !
 
 Nous avons bien enregistré votre demande d'adhésion au réseau des installateurs photovoltaïques certifiés en Région wallonne pour ${company}.
 
-Pour confirmer qu'il s'agit bien de votre adresse email et activer le traitement prioritaire de votre dossier, veuillez cliquer sur le lien sécurisé ci-dessous :
+Pour confirmer qu'il s'agit bien de votre adresse e-mail et activer le traitement prioritaire de votre dossier, cliquez sur le lien sécurisé ci-dessous :
 
-Confirmer mon adresse email :
+Confirmer mon adresse e-mail :
 ${data.verificationUrl}
 
 Prochaines étapes de votre intégration :
-1. Validation de votre email (immédiat en 1 clic).
+1. Validation de votre e-mail (immédiat en 1 clic).
 2. Contrôle de conformité de votre certification RESCERT Photovoltaïque et vérification BCE/TVA par nos équipes sous 24 à 48h.
 3. Déblocage de votre accès à la Marketplace des leads solaires qualifiés dans vos zones d'intervention.
 
 Aegis Solaire en bref :
-- Pas d'abonnement – 100% à la carte, aucun engagement mensuel ni frais cachés.
-- Fiches techniques complètes – surface de toiture, historique de consommation kWh, type de compteur et coordonnées vérifiées avant transmission.
-- Concurrence plafonnée – 3 installateurs maximum par projet résidentiel et exclusivité stricte (1 seul artisan) sur les chantiers professionnels B2B.
-- Vous gardez le contrôle – pas de chantiers sélectionnés ? Zéro coût.
+- Pas d'abonnement – 100 % à la carte, aucun engagement mensuel ni frais cachés.
+- Fiches techniques complètes – surface de toiture, consommation kWh et coordonnées vérifiées avant transmission.
+- Concurrence plafonnée – 3 installateurs maximum par projet résidentiel et exclusivité stricte (1 seul artisan) en B2B.
+- Pas de chantiers sélectionnés ? Zéro coût.
 
-Des questions sur votre adhésion ?
-Notre équipe support partenaires est à votre disposition :
-Email : contact@aegissolaire.com
+Des questions sur votre adhésion ? contact@aegissolaire.com
 
 Cordialement,
 L'équipe Aegis Solaire
@@ -91,236 +86,68 @@ L'équipe Aegis Solaire
 Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
 Conformément au RGPD, vous disposez d'un droit d'accès et d'opposition (dpo@aegissolaire.com).`.trim()
 
-  const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="fr">
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="color-scheme" content="light" />
-  <meta name="supported-color-schemes" content="light" />
-  <title>${escapeHtml(subject)}</title>
-  <style type="text/css">
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #F8FAFC;
-      -webkit-text-size-adjust: 100%;
-      -ms-text-size-adjust: 100%;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      color: #0F172A;
-    }
-    table { border-collapse: separate; border-spacing: 0; }
-    img { border: 0; outline: none; text-decoration: none; display: block; }
-    .mono {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
-      font-variant-numeric: tabular-nums !important;
-    }
-    a { color: #2563EB; text-decoration: none; }
-    @media only screen and (max-width: 620px) {
-      .email-container { width: 100% !important; border-radius: 0 !important; border-left: none !important; border-right: none !important; }
-      .email-body { padding: 24px 18px !important; }
-      .email-header { padding: 18px 18px !important; }
-      .bento-cell { display: block !important; width: 100% !important; padding-right: 0 !important; margin-bottom: 12px !important; }
-    }
-  </style>
-</head>
-<body style="margin: 0; padding: 0; background-color: #F8FAFC; color: #0F172A;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #F8FAFC; padding: 28px 12px 40px 12px;">
-    <tr>
-      <td align="center">
-        <!-- Main Card Container avec liseré Cobalt Tech au sommet -->
-        <table role="presentation" class="email-container" width="600" style="width: 600px; max-width: 600px; background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #2563EB; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);">
-          
-          <!-- Header Blanc Pur pour contraste maximal avec logo.png -->
-          <tr>
-            <td class="email-header" style="background-color: #FFFFFF; padding: 22px 32px; border-bottom: 1px solid #E2E8F0;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                <tr>
-                  <td align="left" valign="middle">
-                    <a href="https://www.aegissolaire.com" target="_blank" style="text-decoration: none; display: inline-block;">
-                      <img src="${logoUrl}" alt="Aegis Solaire" width="160" height="34" style="height: 34px; width: auto; max-width: 180px; display: block; border: 0; outline: none; text-decoration: none;" />
-                    </a>
-                  </td>
-                  <td align="right" valign="middle">
-                    <span class="mono" style="display: inline-block; background-color: #EFF6FF; border: 1px solid #BFDBFE; color: #1D4ED8; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 9999px; letter-spacing: 0.04em; text-transform: uppercase;">
-                      Réseau Agréé Wallonie
-                    </span>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+  const bodyHtml = `
+    <p style="margin: 14px 0 0 0; font-size: 15px; line-height: 1.5; color: #142d42;">
+      Bonjour <strong>${escapeEmailHtml(firstName)}</strong>, la candidature de <strong>${escapeEmailHtml(company)}</strong> a bien été enregistrée. Confirmez votre adresse e-mail pour lancer le contrôle RESCERT.
+    </p>
 
-          <!-- Body Content -->
-          <tr>
-            <td class="email-body" style="padding: 34px 32px 28px 32px;">
-              
-              <!-- Greeting & Subject Headline -->
-              <p class="mono" style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: #2563EB; text-transform: uppercase; letter-spacing: 0.08em;">
-                Validation de compte installateur
-              </p>
-              <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 800; line-height: 1.25; color: #0F172A; letter-spacing: -0.02em;">
-                Confirmez votre adresse email
-              </h1>
+    ${renderActionBox({
+      kicker: "Adresse à confirmer",
+      title: email || company,
+      subtext: "Lien sécurisé · Valable 72 heures",
+      ctaLabel: "Confirmer mon e-mail →",
+      ctaUrl: data.verificationUrl,
+    })}
 
-              <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #334155;">
-                Bonjour <strong>${escapeHtml(firstName)}</strong>,
-              </p>
-              <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #334155;">
-                Bienvenue sur <strong>Aegis Solaire</strong> ! Nous avons bien enregistré la candidature de votre société <strong>${escapeHtml(company)}</strong> pour rejoindre notre réseau sélectif d'installateurs photovoltaïques certifiés en Wallonie.
-              </p>
-              <p style="margin: 0 0 28px 0; font-size: 15px; line-height: 1.6; color: #334155;">
-                Veuillez confirmer qu'il s'agit bien de votre adresse email (<span class="mono" style="font-weight: 600; color: #0F172A;">${escapeHtml(email)}</span>) en cliquant sur le bouton ci-dessous :
-              </p>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 20px; width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding-top: 16px; border-top: 1px solid #e4edf1;">
+          <h2 style="margin: 0 0 10px 0; font-size: 18px; line-height: 1.25; font-weight: bold; color: #142d42;">
+            Prochaines étapes
+          </h2>
+          ${renderSpecsTable([
+            { label: "01 · Confirmation e-mail", value: "Immédiate en 1 clic" },
+            { label: "02 · Contrôle RESCERT & BCE", value: "Sous 24 à 48 h ouvrées" },
+            { label: "03 · Accès Marketplace", value: "Dossiers qualifiés en Wallonie" },
+          ])}
+        </td>
+      </tr>
+    </table>
 
-              <!-- Main Verification CTA Button -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 32px;">
-                <tr>
-                  <td align="center" style="padding: 4px 0;">
-                    <table role="presentation" cellspacing="0" cellpadding="0">
-                      <tr>
-                        <td align="center" style="background-color: #2563EB; border-radius: 10px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);">
-                          <a href="${data.verificationUrl}" target="_blank" style="display: inline-block; padding: 15px 34px; font-size: 15px; font-weight: 700; color: #FFFFFF; text-decoration: none; letter-spacing: 0.01em;">
-                            Confirmer mon adresse email &rarr;
-                          </a>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                <tr>
-                  <td align="center" style="padding-top: 10px;">
-                    <span style="font-size: 12px; color: #64748B;">Lien sécurisé et immédiat · Valable 72 heures</span>
-                  </td>
-                </tr>
-              </table>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 16px; width: 100%; background-color: #f0f5f8; border: 1px solid #e2eaf0; border-radius: 8px; border-collapse: separate; border-spacing: 0;">
+      <tr>
+        <td style="padding: 12px 15px;">
+          <h2 style="margin: 0 0 8px 0; font-size: 16px; line-height: 1.25; font-weight: bold; color: #142d42;">
+            Aegis Solaire en bref
+          </h2>
+          ${renderSpecsTable([
+            { label: "Abonnement", value: "Aucun · 100 % à la carte" },
+            { label: "Concurrence", value: "Max 3 artisans B2C · Exclusif en B2B" },
+            { label: "Qualification", value: "Toiture, facture & coordonnées vérifiées" },
+          ])}
+        </td>
+      </tr>
+    </table>
 
-              <!-- Bento Process Timeline -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; margin-bottom: 28px; padding: 20px;">
-                <tr>
-                  <td style="padding-bottom: 12px;">
-                    <p class="mono" style="margin: 0; font-size: 11px; font-weight: 700; color: #0F172A; text-transform: uppercase; letter-spacing: 0.06em;">
-                      Prochaines étapes de votre activation :
-                    </p>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; border-top: 1px solid #E2E8F0;">
-                    <table role="presentation" width="100%">
-                      <tr>
-                        <td width="28" valign="top" class="mono" style="font-weight: 700; color: #2563EB; font-size: 13px;">01.</td>
-                        <td valign="top" style="font-size: 13px; line-height: 1.5; color: #334155;">
-                          <strong style="color: #0F172A;">Confirmation e-mail :</strong> Valide votre canal officiel et sécurise votre compte partenaire.
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; border-top: 1px solid #E2E8F0;">
-                    <table role="presentation" width="100%">
-                      <tr>
-                        <td width="28" valign="top" class="mono" style="font-weight: 700; color: #F59E0B; font-size: 13px;">02.</td>
-                        <td valign="top" style="font-size: 13px; line-height: 1.5; color: #334155;">
-                          <strong style="color: #0F172A;">Contrôle RESCERT & BCE :</strong> Nos auditeurs vérifient votre certification RESCERT Photovoltaïque et vos assurances sous 24 à 48h.
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; border-top: 1px solid #E2E8F0;">
-                    <table role="presentation" width="100%">
-                      <tr>
-                        <td width="28" valign="top" class="mono" style="font-weight: 700; color: #059669; font-size: 13px;">03.</td>
-                        <td valign="top" style="font-size: 13px; line-height: 1.5; color: #334155;">
-                          <strong style="color: #0F172A;">Accès Marketplace :</strong> Dès validation, vous accédez aux demandes de devis géolocalisées dans vos provinces cibles.
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
+    <p style="margin: 14px 0 0 0; font-size: 12px; line-height: 1.5; color: #4d6374;">
+      Si le bouton ne fonctionne pas : <a href="${escapeEmailHtml(data.verificationUrl)}" style="color: #194767; word-break: break-all;">${escapeEmailHtml(data.verificationUrl)}</a>
+    </p>
+  `
 
-              <!-- Aegis Solaire en bref (HomeDeal style) -->
-              <h2 style="margin: 0 0 14px 0; font-size: 16px; font-weight: 700; color: #0F172A;">
-                Aegis Solaire en bref :
-              </h2>
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 28px;">
-                <tr>
-                  <td width="22" valign="top" style="padding: 6px 0; font-size: 15px; font-weight: 800; color: #059669; line-height: 1.5;">
-                    &#10003;
-                  </td>
-                  <td valign="top" style="padding: 6px 0; font-size: 14px; line-height: 1.5; color: #334155;">
-                    <strong style="color: #0F172A;">Pas d'abonnement</strong> &mdash; 100% à la carte, vous ne réglez que les dossiers que vous choisissez de débloquer.
-                  </td>
-                </tr>
-                <tr>
-                  <td width="22" valign="top" style="padding: 6px 0; font-size: 15px; font-weight: 800; color: #059669; line-height: 1.5;">
-                    &#10003;
-                  </td>
-                  <td valign="top" style="padding: 6px 0; font-size: 14px; line-height: 1.5; color: #334155;">
-                    <strong style="color: #0F172A;">Coordonnées &amp; données techniques</strong> &mdash; surface toiture, facture annuelle, photos et téléphone vérifiés.
-                  </td>
-                </tr>
-                <tr>
-                  <td width="22" valign="top" style="padding: 6px 0; font-size: 15px; font-weight: 800; color: #059669; line-height: 1.5;">
-                    &#10003;
-                  </td>
-                  <td valign="top" style="padding: 6px 0; font-size: 14px; line-height: 1.5; color: #334155;">
-                    <strong style="color: #0F172A;">Plafond strict de concurrence</strong> &mdash; 3 installateurs maximum en résidentiel, exclusivité 100% en tertiaire B2B.
-                  </td>
-                </tr>
-                <tr>
-                  <td width="22" valign="top" style="padding: 6px 0; font-size: 15px; font-weight: 800; color: #059669; line-height: 1.5;">
-                    &#10003;
-                  </td>
-                  <td valign="top" style="padding: 6px 0; font-size: 14px; line-height: 1.5; color: #334155;">
-                    <strong style="color: #0F172A;">Pas de dossiers pris ? Pas de frais !</strong> Vous conservez la maîtrise intégrale de votre planning.
-                  </td>
-                </tr>
-              </table>
-
-              <!-- Contact & Support -->
-              <div style="background-color: #F1F5F9; border-left: 3px solid #0F172A; padding: 16px 18px; border-radius: 0 8px 8px 0; margin-bottom: 24px;">
-                <p style="margin: 0 0 4px 0; font-size: 13px; font-weight: 700; color: #0F172A;">
-                  Une question sur votre adhésion ?
-                </p>
-                <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #475569;">
-                  Notre équipe support partenaires est à votre entière écoute. Répondez simplement à cet e-mail ou écrivez-nous directement à <a href="mailto:contact@aegissolaire.com" style="color: #2563EB; font-weight: 600; text-decoration: underline;">contact@aegissolaire.com</a>.
-                </p>
-              </div>
-
-              <!-- Fallback Link -->
-              <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #64748B;">
-                Si le bouton ne fonctionne pas, copiez-collez ce lien dans votre navigateur :<br />
-                <a href="${data.verificationUrl}" style="color: #2563EB; word-break: break-all;">${data.verificationUrl}</a>
-              </p>
-
-            </td>
-          </tr>
-
-          <!-- Footer Legal -->
-          <tr>
-            <td style="background-color: #F8FAFC; padding: 22px 32px; border-top: 1px solid #E2E8F0; font-size: 11px; line-height: 1.6; color: #64748B;">
-              <p style="margin: 0 0 6px 0;">
-                <strong>Aegis Solaire</strong> &mdash; Plateforme d'audit financier et de mise en relation photovoltaïque indépendante en Wallonie.
-              </p>
-              <p style="margin: 0 0 6px 0;">
-                Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
-              </p>
-              <p style="margin: 0;">
-                Vous recevez cet email car une candidature a été déposée pour votre société sur notre site. Conformément au RGPD, vous disposez d'un droit d'accès et d'opposition via <a href="mailto:dpo@aegissolaire.com" style="color: #475569;">dpo@aegissolaire.com</a>.
-              </p>
-            </td>
-          </tr>
-
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`.trim()
+  const html = renderInstallerEmailShell({
+    subject,
+    preheader: `Confirmez votre adresse e-mail pour activer votre candidature partenaire (${company}).`,
+    reference: `Dossier #${appRef}`,
+    context: "Validation de compte installateur",
+    headline: "Confirmez votre adresse e-mail",
+    subtitle: `${company} · Réseau agréé Wallonie`,
+    statusPill: { text: "Étape 1 sur 2 · En attente de confirmation", tone: "warning" },
+    bodyHtml,
+    footerLinks: [
+      { label: "Assistance technique", href: "mailto:contact@aegissolaire.com" },
+      { label: "Droits RGPD", href: "mailto:dpo@aegissolaire.com" },
+    ],
+  })
 
   return { subject, text, html }
 }
@@ -349,9 +176,7 @@ export function buildInstallerMarketplaceWelcomeEmail(data: InstallerMarketplace
   text: string
   html: string
 } {
-  // Le logo doit toujours pointer vers l'URL publique HTTPS absolue pour être visible dans tous les webmails (Gmail, Outlook...)
   const publicAssetBase = "https://www.aegissolaire.com"
-  const logoUrl = `${publicAssetBase}/logo.png`
   const firstName = data.firstName?.trim() ? data.firstName.trim() : "Partenaire"
   const company = data.companyName?.trim() ? data.companyName.trim() : "votre société"
   const rescert = data.rescertRef?.trim() ? ` (Réf. RESCERT : ${data.rescertRef.trim()})` : ""
@@ -415,19 +240,11 @@ ${hasSetupPasswordUrl ? `Définir votre mot de passe et accéder à la Marketpla
 
 La Marketplace Aegis Solaire en bref :
 - Pas d’abonnement – vous ne payez que pour les demandes de devis que vous choisissez d'acquérir.
-- Fiches techniques vérifiées – surface toiture, historique de facture kWh, raccordement ORES/RESA et coordonnées complètes à portée de main.
+- Fiches techniques vérifiées – toiture, consommation kWh, raccordement GRD et coordonnées complètes.
 - Concurrence maîtrisée – maximum 3 installateurs par projet résidentiel et exclusivité totale (1 seul installateur) en B2B.
-- Facturation claire sans engagement.
 - Pas de chantiers sélectionnés ? Zéro frais.
 
-3 étapes pour démarrer :
-1. Connectez-vous à votre espace Marketplace : ${marketplaceUrl}
-2. Définissez vos zones d'intervention favorites (Liège, Namur, Brabant wallon, Hainaut, Luxembourg).
-3. Débloquez vos premières fiches techniques et contactez directement les porteurs de projet.
-
-Des questions ?
-Notre équipe support et relation partenaires est à votre entière disposition pour vous accompagner dans la prise en main de votre espace.
-Il vous suffit de répondre directement à cet email ou de nous écrire à contact@aegissolaire.com.
+Des questions ? contact@aegissolaire.com
 
 Cordialement,
 L'équipe Aegis Solaire
@@ -436,320 +253,116 @@ L'équipe Aegis Solaire
 Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique`.trim()
 
   const closedLeadHtml = closedLead
-    ? `
-              <!-- Information Statut Dossier Cible Clôturé -->
-              <div style="background-color: #FFFBEB; border: 1px solid #FDE68A; border-left: 3px solid #D97706; border-radius: 10px; padding: 16px 18px; margin-bottom: 22px;">
-                <p class="mono" style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: #B45309; text-transform: uppercase; letter-spacing: 0.05em;">
-                  Statut du dossier ${escapeHtml(closedLead.city)} (${escapeHtml(closedLead.postalCode)}) · Quota atteint (${closedLead.maxSlots}/${closedLead.maxSlots})
-                </p>
-                <p style="margin: 0; font-size: 13px; line-height: 1.55; color: #78350F;">
-                  Ce chantier vient d'être clôturé suite à l'attribution de toutes ses places disponibles. Votre compte est désormais prioritaire pour recevoir en direct les prochains projets qualifiés dans votre secteur.
-                </p>
-              </div>`
+    ? renderCalloutBox({
+        label: `Dossier ${closedLead.city} (${closedLead.postalCode}) · Quota atteint (${closedLead.maxSlots}/${closedLead.maxSlots})`,
+        value:
+          "Ce chantier est clôturé. Votre profil est désormais prioritaire pour les prochains dossiers dans votre secteur.",
+        tone: "warning",
+      })
     : ""
 
   const availableLeadsHtml = hasLeads
-    ? `
-              <!-- Bloc Dossiers Disponibles Immédiatement -->
-              <div style="background-color: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 12px; padding: 20px 22px; margin-bottom: 26px;">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 12px;">
+    ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 18px; width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding-top: 16px; border-top: 1px solid #e4edf1;">
+            <h2 style="margin: 0 0 10px 0; font-size: 18px; line-height: 1.25; font-weight: bold; color: #142d42;">
+              ${leads.length} dossier${leads.length > 1 ? "s" : ""} disponible${leads.length > 1 ? "s" : ""} dans votre secteur
+            </h2>
+            ${leads
+              .map((lead) => {
+                const isB2B = lead.segment === "B2B"
+                const quotaLabel = isB2B
+                  ? "Exclusif · 1 artisan"
+                  : `${lead.remainingSlots}/${lead.maxSlots} place${lead.remainingSlots > 1 ? "s" : ""} dispo`
+                const locationStr = `${lead.postalCode ? `${lead.postalCode} ` : ""}${lead.city || lead.provinceLabel}`
+                const powerFormatted = `${lead.estimatedPowerKwc.toLocaleString("fr-BE", { maximumFractionDigits: 1 })} kWc`
+                return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 10px; width: 100%; background-color: #f0f5f8; border: 1px solid #dce5eb; border-radius: 8px; border-collapse: separate; border-spacing: 0;">
                   <tr>
-                    <td valign="middle">
-                      <span class="mono" style="display: inline-block; background-color: #ECFDF5; border: 1px solid #A7F3D0; color: #047857; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 9999px; letter-spacing: 0.04em; text-transform: uppercase;">
-                        ${leads.length} opportunité${leads.length > 1 ? "s" : ""} immédiate${leads.length > 1 ? "s" : ""} dans votre zone
-                      </span>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style="padding-top: 8px;">
-                      <h2 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 800; color: #0F172A; line-height: 1.3;">
-                        Des projets solaires vérifiés attendent un artisan partenaire :
-                      </h2>
-                      <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #475569;">
-                        Ces demandes qualifiées sont actuellement ouvertes à l'attribution dans vos secteurs :
-                      </p>
-                    </td>
-                  </tr>
-                </table>
-
-                ${leads
-      .map((lead) => {
-        const isB2B = lead.segment === "B2B"
-        const segmentBadge = isB2B
-          ? `<span style="display: inline-block; background-color: #0F172A; color: #FFFFFF; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.03em;">PRO B2B · Exclusif</span>`
-          : `<span style="display: inline-block; background-color: #F1F5F9; color: #334155; border: 1px solid #CBD5E1; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.03em;">Résidentiel B2C</span>`
-
-        const quotaBadge = isB2B
-          ? `<span class="mono" style="font-size: 11px; font-weight: 700; color: #059669;">1 seul artisan</span>`
-          : `<span class="mono" style="font-size: 11px; font-weight: 700; color: ${lead.remainingSlots === 1 ? "#D97706" : "#059669"
-          };">${lead.remainingSlots}/${lead.maxSlots} place${lead.remainingSlots > 1 ? "s" : ""} dispo</span>`
-
-        const locationStr = `${lead.postalCode ? escapeHtml(lead.postalCode) + " " : ""}${escapeHtml(
-          lead.city || lead.provinceLabel
-        )}`
-
-        return `
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #FFFFFF; border: 1px solid #E2E8F0; border-left: 3px solid ${isB2B ? "#0F172A" : "#059669"
-          }; border-radius: 8px; margin-bottom: 10px; padding: 12px 14px;">
-                  <tr>
-                    <td valign="middle" align="left" style="padding-bottom: 8px;">
-                      ${segmentBadge}
-                      <strong style="margin-left: 8px; font-size: 14px; color: #0F172A;">${locationStr}</strong>
-                    </td>
-                    <td valign="middle" align="right" style="padding-bottom: 8px;">
-                      ${quotaBadge}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td colspan="2" style="border-top: 1px dashed #E2E8F0; padding-top: 8px;">
-                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                    <td style="padding: 11px 14px;">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width: 100%; border-collapse: collapse;">
                         <tr>
-                          <td width="33%" style="font-size: 12px; color: #64748B;">
-                            Puissance : <strong class="mono" style="color: #0F172A;">~${lead.estimatedPowerKwc} kWc</strong>
+                          <td align="left" valign="middle">
+                            <span style="display: inline-block; padding: 2px 7px; border-radius: 4px; background-color: ${isB2B ? "#142d42" : "#ffffff"}; color: ${isB2B ? "#ffffff" : "#305a76"}; border: 1px solid ${isB2B ? "#142d42" : "#ccd9e2"}; font-size: 11px; font-weight: bold;">${isB2B ? "PRO B2B" : "Résidentiel"}</span>
+                            <strong style="margin-left: 6px; font-size: 15px; color: #142d42;">${escapeEmailHtml(locationStr)}</strong>
                           </td>
-                          <td width="33%" style="font-size: 12px; color: #64748B;">
-                            Toiture : <strong class="mono" style="color: #0F172A;">${lead.surfaceArea} m²</strong>
+                          <td align="right" valign="middle" class="tabular" style="font-size: 12px; font-weight: bold; color: ${lead.remainingSlots === 1 ? "#89610e" : "#1d5d45"}; white-space: nowrap;">
+                            ${escapeEmailHtml(quotaLabel)}
                           </td>
-                          <td width="34%" align="right" style="font-size: 12px; color: #64748B;">
-                            Coût : <strong class="mono" style="color: #059669;">${lead.creditCost} crédits</strong>
+                        </tr>
+                        <tr>
+                          <td colspan="2" style="padding-top: 6px; font-size: 13px; color: #4d6374; font-variant-numeric: tabular-nums;">
+                            <strong style="color: #142d42;">~${escapeEmailHtml(powerFormatted)}</strong> &middot; Toiture ${lead.surfaceArea} m² &middot; <strong style="color: #142d42;">${lead.creditCost} crédits</strong>
+                            &nbsp;&middot;&nbsp;
+                            <a href="${escapeEmailHtml(getDirectLeadInspectUrl(lead.id))}" target="_blank" style="color: #194767; font-weight: bold; text-decoration: underline;">Consulter &rarr;</a>
                           </td>
                         </tr>
                       </table>
                     </td>
                   </tr>
-                  <tr>
-                    <td colspan="2" style="padding-top: 10px;">
-                      <a href="${escapeHtml(getDirectLeadInspectUrl(lead.id))}" target="_blank" style="display: inline-block; font-size: 12px; font-weight: 700; color: #2563EB; text-decoration: underline;">
-                        Consulter &amp; débloquer ce dossier &rarr;
-                      </a>
-                    </td>
-                  </tr>
                 </table>`
-      })
-      .join("")}
-              </div>`
+              })
+              .join("")}
+          </td>
+        </tr>
+      </table>`
     : ""
 
-  const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="fr">
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="color-scheme" content="light" />
-  <meta name="supported-color-schemes" content="light" />
-  <title>${escapeHtml(subject)}</title>
-  <style type="text/css">
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #F8FAFC;
-      -webkit-text-size-adjust: 100%;
-      -ms-text-size-adjust: 100%;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      color: #0F172A;
-    }
-    table { border-collapse: separate; border-spacing: 0; }
-    img { border: 0; outline: none; text-decoration: none; display: block; }
-    .mono {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
-      font-variant-numeric: tabular-nums !important;
-    }
-    a { color: #2563EB; text-decoration: none; }
-    @media only screen and (max-width: 620px) {
-      .email-container { width: 100% !important; border-radius: 0 !important; border-left: none !important; border-right: none !important; }
-      .email-body { padding: 24px 18px !important; }
-      .email-header { padding: 18px 18px !important; }
-    }
-  </style>
-</head>
-<body style="margin: 0; padding: 0; background-color: #F8FAFC; color: #0F172A;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #F8FAFC; padding: 28px 12px 40px 12px;">
-    <tr>
-      <td align="center">
-        <!-- Main Card Container avec liseré Vert Émeraude au sommet -->
-        <table role="presentation" class="email-container" width="600" style="width: 600px; max-width: 600px; background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #10B981; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);">
-          
-          <!-- Header Blanc Pur pour contraste maximal avec logo.png -->
-          <tr>
-            <td class="email-header" style="background-color: #FFFFFF; padding: 22px 32px; border-bottom: 1px solid #E2E8F0;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                <tr>
-                  <td align="left" valign="middle">
-                    <a href="https://www.aegissolaire.com" target="_blank" style="text-decoration: none; display: inline-block;">
-                      <img src="${logoUrl}" alt="Aegis Solaire" width="160" height="34" style="height: 34px; width: auto; max-width: 180px; display: block; border: 0; outline: none; text-decoration: none;" />
-                    </a>
-                  </td>
-                  <td align="right" valign="middle">
-                    <span class="mono" style="display: inline-block; background-color: #ECFDF5; border: 1px solid #A7F3D0; color: #047857; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 9999px; letter-spacing: 0.04em; text-transform: uppercase;">
-                      &#10003; Compte Validé
-                    </span>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+  const ctaLabel = hasSetupPasswordUrl
+    ? "Créer mon mot de passe →"
+    : hasLeads
+      ? "Accéder aux dossiers →"
+      : "Accéder à la Marketplace →"
 
-          <!-- Body Content -->
-          <tr>
-            <td class="email-body" style="padding: 34px 32px 28px 32px;">
-              
-              <p class="mono" style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: #059669; text-transform: uppercase; letter-spacing: 0.08em;">
-                Accès Marketplace Débloqué
-              </p>
-              <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 800; line-height: 1.25; color: #0F172A; letter-spacing: -0.02em;">
-                Bienvenue sur la Marketplace Aegis Solaire !
-              </h1>
+  const bodyHtml = `
+    <p style="margin: 14px 0 0 0; font-size: 15px; line-height: 1.5; color: #142d42;">
+      Bonjour <strong>${escapeEmailHtml(firstName)}</strong>, votre agrément <strong>RESCERT Photovoltaïque</strong> est validé. Votre accès partenaire est actif.
+    </p>
 
-              <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #334155;">
-                Cher <strong>${escapeHtml(firstName)}</strong>,
-              </p>
-              <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #334155;">
-                Bonne nouvelle : votre dossier d'installateur pour <strong>${escapeHtml(company)}</strong> a été validé avec succès par notre équipe technique. Votre agrément <strong>RESCERT Photovoltaïque</strong> a bien été authentifié.
-              </p>
-              <p style="margin: 0 0 26px 0; font-size: 15px; line-height: 1.6; color: #334155;">
-                Votre espace partenaire est désormais actif. Vous pouvez dès maintenant consulter et acquérir des demandes de devis rigoureusement auditées dans vos provinces d'intervention en Wallonie.
-              </p>
-${closedLeadHtml}${availableLeadsHtml}
-              <!-- Main Marketplace CTA Button -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 30px;">
-                <tr>
-                  <td align="center" style="padding: 4px 0;">
-                    <table role="presentation" cellspacing="0" cellpadding="0">
-                      <tr>
-                        <td align="center" style="background-color: #0F172A; border-radius: 10px; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);">
-                          <a href="${escapeHtml(primaryActionUrl)}" target="_blank" style="display: inline-block; padding: 15px 36px; font-size: 15px; font-weight: 700; color: #FFFFFF; text-decoration: none; letter-spacing: 0.01em;">
-                            ${hasSetupPasswordUrl
-      ? "Créer mon mot de passe et accéder à la Marketplace &rarr;"
-      : hasLeads
-        ? "Accéder à la Marketplace et débloquer ces dossiers &rarr;"
-        : "Accéder à la Marketplace des Leads &rarr;"
-    }
-                          </a>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                <tr>
-                  <td align="center" style="padding-top: 10px;">
-                    <span class="mono" style="font-size: 12px; color: #64748B;">
-                      ${hasSetupPasswordUrl
-      ? "Première connexion · Ce lien permet de définir votre mot de passe personnel"
-      : "Accès direct · Portail Installateurs Wallonie"
-    }
-                    </span>
-                  </td>
-                </tr>
-              </table>
+    ${closedLeadHtml}
 
-              <!-- Points clés HomeDeal style Bento -->
-              <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 22px; margin-bottom: 28px;">
-                <h2 style="margin: 0 0 14px 0; font-size: 15px; font-weight: 700; color: #0F172A; text-transform: uppercase; letter-spacing: 0.04em;">
-                  La Marketplace Aegis Solaire en bref :
-                </h2>
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                  <tr>
-                    <td width="22" valign="top" style="padding: 6px 0; font-size: 15px; font-weight: 800; color: #059669; line-height: 1.5;">
-                      &#10003;
-                    </td>
-                    <td valign="top" style="padding: 6px 0; font-size: 14px; line-height: 1.5; color: #334155;">
-                      <strong style="color: #0F172A;">Pas d'abonnement</strong> &mdash; Vous ne payez que pour les demandes de devis que vous choisissez de débloquer.
-                    </td>
-                  </tr>
-                  <tr>
-                    <td width="22" valign="top" style="padding: 6px 0; font-size: 15px; font-weight: 800; color: #059669; line-height: 1.5;">
-                      &#10003;
-                    </td>
-                    <td valign="top" style="padding: 6px 0; font-size: 14px; line-height: 1.5; color: #334155;">
-                      <strong style="color: #0F172A;">Coordonnées &amp; fiches techniques complètes</strong> &mdash; Toiture, puissance estimée, compteur et coordonnées vérifiés.
-                    </td>
-                  </tr>
-                  <tr>
-                    <td width="22" valign="top" style="padding: 6px 0; font-size: 15px; font-weight: 800; color: #059669; line-height: 1.5;">
-                      &#10003;
-                    </td>
-                    <td valign="top" style="padding: 6px 0; font-size: 14px; line-height: 1.5; color: #334155;">
-                      <strong style="color: #0F172A;">Facturation claire et transparente</strong> &mdash; Sans engagement de durée, sans tracas administratif.
-                    </td>
-                  </tr>
-                  <tr>
-                    <td width="22" valign="top" style="padding: 6px 0; font-size: 15px; font-weight: 800; color: #059669; line-height: 1.5;">
-                      &#10003;
-                    </td>
-                    <td valign="top" style="padding: 6px 0; font-size: 14px; line-height: 1.5; color: #334155;">
-                      <strong style="color: #0F172A;">Plafond strict de concurrence</strong> &mdash; 3 installateurs maximum sur un dossier résidentiel (exclusivité 100% en B2B).
-                    </td>
-                  </tr>
-                  <tr>
-                    <td width="22" valign="top" style="padding: 6px 0; font-size: 15px; font-weight: 800; color: #059669; line-height: 1.5;">
-                      &#10003;
-                    </td>
-                    <td valign="top" style="padding: 6px 0; font-size: 14px; line-height: 1.5; color: #334155;">
-                      <strong style="color: #0F172A;">Pas de chantiers sélectionnés ? Pas de frais !</strong> Vous conservez la totale liberté de vos interventions.
-                    </td>
-                  </tr>
-                </table>
-              </div>
+    ${renderActionBox({
+      kicker: hasSetupPasswordUrl ? "Première connexion" : "Portail Partenaires Wallonie",
+      title: company,
+      subtext: hasSetupPasswordUrl
+        ? "Définissez votre mot de passe personnel en 30 secondes."
+        : "Accès direct · Sans abonnement ni engagement.",
+      ctaLabel,
+      ctaUrl: primaryActionUrl,
+    })}
 
-              <!-- 3 étapes pour démarrer -->
-              <h3 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 700; color: #0F172A;">
-                Conseils pour bien démarrer :
-              </h3>
-              <ol style="margin: 0 0 26px 20px; padding: 0; font-size: 14px; line-height: 1.6; color: #334155;">
-                <li style="margin-bottom: 6px;">
-                  Connectez-vous sur votre espace <a href="${marketplaceUrl}" style="color: #2563EB; font-weight: 600;">Portail Partenaire</a>.
-                </li>
-                <li style="margin-bottom: 6px;">
-                  Ajustez vos filtres régionaux pour cibler vos provinces de prédilection en Wallonie.
-                </li>
-                <li style="margin-bottom: 0;">
-                  Consultez les dossiers disponibles et débloquez votre première opportunité.
-                </li>
-              </ol>
+    ${availableLeadsHtml}
 
-              <!-- Dedicated contact assistance -->
-              <div style="background-color: #F1F5F9; border-left: 3px solid #2563EB; padding: 16px 18px; border-radius: 0 8px 8px 0; margin-bottom: 24px;">
-                <p style="margin: 0 0 4px 0; font-size: 13px; font-weight: 700; color: #0F172A;">
-                  Des questions sur le fonctionnement ou un dossier ?
-                </p>
-                <p style="margin: 0 0 8px 0; font-size: 13px; line-height: 1.5; color: #475569;">
-                  L'équipe support et relation partenaires Aegis Solaire est à votre entière disposition pour vous assister. Il vous suffit de répondre directement à cet e-mail ou de nous écrire à :
-                </p>
-                <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #0F172A;">
-                  <strong>Email d'assistance directe :</strong> <a href="mailto:contact@aegissolaire.com" style="color: #2563EB; font-weight: 600; text-decoration: underline;">contact@aegissolaire.com</a>
-                </p>
-              </div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 20px; width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding-top: 16px; border-top: 1px solid #e4edf1;">
+          <h2 style="margin: 0 0 10px 0; font-size: 18px; line-height: 1.25; font-weight: bold; color: #142d42;">
+            Fonctionnement de votre espace
+          </h2>
+          ${renderSpecsTable([
+            { label: "Modèle tarifaire", value: "100 % à la carte · Zéro abonnement" },
+            { label: "Concurrence", value: "Max 3 artisans B2C · Exclusif B2B" },
+            { label: "Zones d'alerte", value: "Modifiables à tout moment" },
+          ])}
+        </td>
+      </tr>
+    </table>
+  `
 
-              <!-- Fallback Link -->
-              <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #64748B;">
-                Lien direct vers la Marketplace :<br />
-                <a href="${marketplaceUrl}" style="color: #2563EB; word-break: break-all;">${marketplaceUrl}</a>
-              </p>
-
-            </td>
-          </tr>
-
-          <!-- Footer Legal -->
-          <tr>
-            <td style="background-color: #F8FAFC; padding: 22px 32px; border-top: 1px solid #E2E8F0; font-size: 11px; line-height: 1.6; color: #64748B;">
-              <p style="margin: 0 0 6px 0;">
-                <strong>Aegis Solaire</strong> &mdash; Plateforme d'audit financier et de mise en relation photovoltaïque indépendante en Wallonie.
-              </p>
-              <p style="margin: 0 0 6px 0;">
-                Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
-              </p>
-              <p style="margin: 0;">
-                Vous recevez cet email car votre entreprise est agréée en tant qu'installateur partenaire sur notre plateforme.
-              </p>
-            </td>
-          </tr>
-
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`.trim()
+  const html = renderInstallerEmailShell({
+    subject,
+    preheader: `Compte installateur validé pour ${company}${hasLeads ? ` · ${leads.length} dossier(s) disponible(s) dans votre secteur` : ""}.`,
+    reference: "Compte validé",
+    context: "Accès Marketplace débloqué",
+    contextColor: "#1d5d45",
+    headline: "Bienvenue sur Aegis Solaire",
+    subtitle: `${company}${data.rescertRef?.trim() ? ` · RESCERT ${data.rescertRef.trim()}` : ""}`,
+    statusPill: { text: "Compte partenaire actif", tone: "success" },
+    bodyHtml,
+    footerLinks: [
+      { label: "Assistance technique", href: "mailto:contact@aegissolaire.com" },
+      { label: "Accéder à mon espace", href: marketplaceUrl },
+    ],
+  })
 
   return { subject, text, html }
 }

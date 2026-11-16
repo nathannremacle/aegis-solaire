@@ -2,6 +2,13 @@ import { NextResponse } from "next/server"
 import { getPartner } from "@/lib/partner-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { Resend } from "resend"
+import {
+  getEmailSiteBaseUrl,
+  renderActionBox,
+  renderCalloutBox,
+  renderInstallerEmailShell,
+  renderSpecsTable,
+} from "@/lib/email-templates/installer-email-layout"
 
 export const dynamic = "force-dynamic"
 
@@ -144,11 +151,63 @@ export async function POST(request: Request) {
       const resend = new Resend(process.env.RESEND_API_KEY)
       const adminEmail = process.env.ADMIN_ALERT_EMAIL || "contact@aegissolaire.com"
       const fromEmail = process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com"
+      const baseUrl = getEmailSiteBaseUrl()
+      const adminDisputesUrl = `${baseUrl}/admin/disputes`
+      const leadRef = leadId.slice(0, 8).toUpperCase()
+      const subject = `[Aegis Solaire - Litige] Nouvelle réclamation de ${partner.company_name} (Lead #${leadRef})`
+      const text = `Une nouvelle demande de Garantie Lead Conforme a été ouverte :\n\n- Installateur : ${partner.company_name} (${partner.email})\n- Lead ID : ${leadId}\n- Motif : ${reason}\n- Crédits engagés : ${purchase.credits_spent ?? 0}\n- Détails : ${details.trim()}\n\nTraiter sous 24h ouvrées dans l'interface d'administration :\n${adminDisputesUrl}`
+
+      const bodyHtml = `
+        ${renderCalloutBox({
+          label: "Détails du signalement",
+          value: details.trim(),
+          tone: "warning",
+        })}
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 16px; width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding-top: 14px; border-top: 1px solid #e4edf1;">
+              ${renderSpecsTable([
+                { label: "Installateur", value: `${partner.company_name} (${partner.email})` },
+                { label: "Lead ID", value: leadId },
+                { label: "Motif", value: reason },
+                { label: "Crédits engagés", value: `${purchase.credits_spent ?? 0} crédits` },
+              ])}
+            </td>
+          </tr>
+        </table>
+        ${renderActionBox({
+          kicker: "Engagement conformité · 24h ouvrées",
+          title: `Réclamation #${leadRef}`,
+          subtext: "Approuver le recrédit ou clôturer depuis le panneau admin.",
+          ctaLabel: "Traiter la réclamation →",
+          ctaUrl: adminDisputesUrl,
+        })}
+      `
+
+      const html = renderInstallerEmailShell({
+        subject,
+        preheader: `${partner.company_name} a ouvert une réclamation sur le dossier #${leadRef} (${reason}).`,
+        reference: `Litige #${leadRef}`,
+        context: "Administration · Garantie Lead Conforme",
+        contextColor: "#89610e",
+        headline: "Nouvelle réclamation partenaire",
+        subtitle: `${partner.company_name} · ${purchase.credits_spent ?? 0} crédits engagés`,
+        statusPill: { text: "À traiter sous 24 h ouvrées", tone: "warning" },
+        bodyHtml,
+        logoHref: `${baseUrl}/admin/disputes`,
+        footerLinks: [
+          { label: "Panneau litiges", href: adminDisputesUrl },
+          { label: "Dashboard admin", href: `${baseUrl}/admin` },
+        ],
+        footerLegalText: "Aegis Solaire · Notification interne Conformité & Litiges",
+      })
+
       await resend.emails.send({
         from: fromEmail,
         to: adminEmail,
-        subject: `[Aegis Solaire - Litige] Nouvelle réclamation de ${partner.company_name} (Lead #${leadId.slice(0, 8)})`,
-        text: `Une nouvelle demande de Garantie Lead Conforme a été ouverte :\n\n- Installateur : ${partner.company_name} (${partner.email})\n- Lead ID : ${leadId}\n- Motif : ${reason}\n- Crédits engagés : ${purchase.credits_spent ?? 0}\n- Détails : ${details.trim()}\n\nTraiter sous 24h ouvrées dans l'interface d'administration :\nhttps://www.aegissolaire.com/admin/disputes`,
+        subject,
+        text,
+        html,
       })
     } catch {
       /* silent */

@@ -2,6 +2,14 @@ import { NextResponse } from "next/server"
 import { getPartner } from "@/lib/partner-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { Resend } from "resend"
+import { buildExpertRequestAckEmail } from "@/lib/email-templates/installer-transactional"
+import {
+  getEmailSiteBaseUrl,
+  renderActionBox,
+  renderCalloutBox,
+  renderInstallerEmailShell,
+  renderSpecsTable,
+} from "@/lib/email-templates/installer-email-layout"
 
 export const dynamic = "force-dynamic"
 
@@ -107,49 +115,67 @@ export async function POST(request: Request) {
       const resend = new Resend(resendApiKey)
 
       const emailSubject = `[Cellule Technique] Demande d'étude expert : ${partner.company_name} (${studyLabel})`
+      const baseUrl = getEmailSiteBaseUrl()
+      const prefLabel =
+        preferredContact === "phone"
+          ? "Téléphone"
+          : preferredContact === "email"
+            ? "E-mail"
+            : "Téléphone ou e-mail"
+      const attachedLeadLabel =
+        leadReference ||
+        (leadData ? `${leadData.segment} · ${leadData.city || ""} (${leadData.postal_code || ""})` : null)
 
-      const emailHtml = `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #0F172A; line-height: 1.5;">
-          <div style="padding: 20px 0; border-bottom: 2px solid #0F172A;">
-            <h2 style="margin: 0; font-size: 18px; color: #0F172A;">Nouvelle demande d'accompagnement expert</h2>
-            <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748B;">Reçue via la Marketplace / Espace Partenaire</p>
-          </div>
-
-          <div style="padding: 20px 0;">
-            <p style="font-size: 14px;"><strong>Partenaire :</strong> ${escapeHtml(partner.company_name)}</p>
-            <p style="font-size: 14px;"><strong>Email de contact :</strong> ${escapeHtml(partner.email)}</p>
-            <p style="font-size: 14px;"><strong>Téléphone direct :</strong> ${escapeHtml(partnerPhone)} (Préférence : ${preferredContact === "phone" ? "Téléphone" : preferredContact === "email" ? "E-mail" : "Les deux"})</p>
-            <p style="font-size: 14px;"><strong>Type d'étude demandée :</strong> <span style="background: #E2E8F0; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${escapeHtml(studyLabel)}</span></p>
-
-            ${
-              leadReference || leadData
-                ? `
-              <div style="margin: 16px 0; padding: 12px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px;">
-                <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: bold; text-transform: uppercase; color: #475569;">Dossier rattaché</p>
-                <p style="margin: 0; font-size: 13px;">${escapeHtml(leadReference || (leadData ? `${leadData.segment} · ${leadData.city || ""} (${leadData.postal_code || ""})` : "Dossier externe"))}</p>
-                ${
-                  leadData
-                    ? `<p style="margin: 4px 0 0 0; font-size: 12px; color: #64748B;">Puissance : ${leadData.estimated_power_kwc || "—"} kWc · Surface : ${leadData.surface_area || "—"} m² · Toiture : ${leadData.roof_material || "Standard"}</p>`
-                    : ""
-                }
-              </div>
-            `
-                : ""
-            }
-
-            <div style="margin-top: 16px;">
-              <p style="font-size: 13px; font-weight: bold; margin-bottom: 6px;">Questions &amp; Précisions de l'installateur :</p>
-              <div style="background: #F1F5F9; padding: 12px; border-radius: 6px; font-size: 13px; white-space: pre-wrap; font-style: italic;">
-                "${escapeHtml(message.trim())}"
-              </div>
-            </div>
-          </div>
-
-          <div style="padding-top: 16px; border-top: 1px solid #E2E8F0; font-size: 12px; color: #64748B;">
-            Engagement de prise en charge sous 24h ouvrées · Cellule Technique Aegis Solaire.
-          </div>
-        </div>
-      `
+      const emailHtml = renderInstallerEmailShell({
+        subject: emailSubject,
+        preheader: `${partner.company_name} demande une étude : ${studyLabel}.`,
+        reference: leadReference || "Cellule Technique",
+        context: "Notification interne · Cellule Technique",
+        headline: "Demande d’accompagnement expert",
+        subtitle: `${partner.company_name} · ${studyLabel}`,
+        statusPill: { text: "Engagement réponse sous 24 h ouvrées", tone: "info" },
+        logoHref: `${baseUrl}/admin/leads`,
+        bodyHtml: `
+          ${renderCalloutBox({
+            label: "Questions & précisions de l'installateur",
+            value: `« ${message.trim()} »`,
+            tone: "info",
+          })}
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 16px; width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding-top: 14px; border-top: 1px solid #e4edf1;">
+                ${renderSpecsTable([
+                  { label: "Partenaire", value: partner.company_name },
+                  { label: "E-mail", value: partner.email },
+                  { label: "Téléphone", value: `${partnerPhone} (${prefLabel})` },
+                  { label: "Type d'étude", value: studyLabel },
+                  ...(attachedLeadLabel ? [{ label: "Dossier rattaché", value: attachedLeadLabel }] : []),
+                  ...(leadData
+                    ? [
+                        {
+                          label: "Dimensionnement",
+                          value: `${leadData.estimated_power_kwc || "—"} kWc · ${leadData.surface_area || "—"} m² · ${leadData.roof_material || "Standard"}`,
+                        },
+                      ]
+                    : []),
+                ])}
+              </td>
+            </tr>
+          </table>
+          ${renderActionBox({
+            kicker: "Suivi partenaire",
+            title: `Contacter ${partner.company_name}`,
+            subtext: `Canal privilégié : ${prefLabel}`,
+            ctaLabel: "Répondre par e-mail →",
+            ctaUrl: `mailto:${partner.email}?subject=${encodeURIComponent(`Re: ${studyLabel} — Cellule Technique Aegis Solaire`)}`,
+          })}
+        `,
+        footerLinks: [
+          { label: "Dashboard Admin", href: `${baseUrl}/admin/leads` },
+          { label: "Répondre au partenaire", href: `mailto:${partner.email}` },
+        ],
+        footerLegalText: "Aegis Solaire · Notification interne Cellule Technique",
+      })
 
       // 1. Email interne à la cellule technique
       await resend.emails.send({
@@ -161,44 +187,21 @@ export async function POST(request: Request) {
       })
 
       // 2. Email accusé de réception au partenaire
-      const partnerAckHtml = `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #0F172A; line-height: 1.5;">
-          <div style="padding: 20px 0; border-bottom: 2px solid #0F172A;">
-            <h2 style="margin: 0; font-size: 18px; color: #0F172A;">Cellule Technique Aegis Solaire</h2>
-            <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748B;">Accusé de réception de votre demande d'étude</p>
-          </div>
-
-          <div style="padding: 20px 0;">
-            <p style="font-size: 14px;">Bonjour,</p>
-            <p style="font-size: 14px;">
-              Nous avons bien reçu votre demande d'accompagnement expert concernant : <strong>${escapeHtml(studyLabel)}</strong>.
-            </p>
-            ${
-              leadReference
-                ? `<p style="font-size: 13px; color: #475569;"><strong>Dossier concerné :</strong> ${escapeHtml(leadReference)}</p>`
-                : ""
-            }
-            <div style="margin: 16px 0; padding: 12px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px;">
-              <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: bold; text-transform: uppercase; color: #475569;">Récapitulatif de votre note</p>
-              <p style="margin: 0; font-size: 13px; font-style: italic;">"${escapeHtml(message.trim())}"</p>
-            </div>
-            <p style="font-size: 13px; color: #334155;">
-              Un expert de notre cellule technique analyse les spécificités de votre dossier (raccordement GRD, faisabilité PEB/PACE 2030, dimensionnement et rentabilité) et vous recontactera sous <strong>24 heures ouvrées</strong> par ${preferredContact === "phone" ? "téléphone" : preferredContact === "email" ? "e-mail" : "téléphone ou e-mail"} pour échanger sur le projet et convenir ensemble du pourcentage d'honoraires au succès.
-            </p>
-          </div>
-
-          <div style="padding-top: 16px; border-top: 1px solid #E2E8F0; font-size: 12px; color: #64748B;">
-            L'équipe Support &amp; Cellule Technique Aegis Solaire · <a href="mailto:contact@aegissolaire.com" style="color: #0F172A; font-weight: 600;">contact@aegissolaire.com</a>
-          </div>
-        </div>
-      `
+      const partnerAck = buildExpertRequestAckEmail({
+        companyName: partner.company_name,
+        studyLabel,
+        leadReference,
+        message: message.trim(),
+        preferredContact,
+      })
 
       await resend.emails.send({
         from: fromEmail,
         to: partner.email,
         replyTo: toOfficialEmail,
-        subject: `Prise en charge de votre demande d'étude expert — Aegis Solaire`,
-        html: partnerAckHtml,
+        subject: partnerAck.subject,
+        text: partnerAck.text,
+        html: partnerAck.html,
       })
     } catch (emailErr) {
       console.warn("[expert-request] email send error (non blocking):", emailErr)

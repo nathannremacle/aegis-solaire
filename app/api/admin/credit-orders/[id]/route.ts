@@ -4,6 +4,7 @@ import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { z } from "zod"
 import { Resend } from "resend"
+import { buildCreditOrderConfirmationEmail } from "@/lib/email-templates/installer-transactional"
 
 export async function PATCH(
   request: NextRequest,
@@ -71,16 +72,25 @@ export async function PATCH(
       try {
         const resend = new Resend(process.env.RESEND_API_KEY)
         const invoiceRef = order.transfer_reference || `AEGIS-${order.id.slice(0, 8).toUpperCase()}`
-        const issuedDate = new Date().toLocaleDateString("fr-BE")
-        const priceHtva = Number(order.price_htva ?? 0).toFixed(2)
-        const vatAmount = Number(order.vat_amount ?? 0).toFixed(2)
-        const priceTtc = Number(order.price_ttc ?? 0).toFixed(2)
+        const rendered = buildCreditOrderConfirmationEmail({
+          orderId: order.id,
+          invoiceRef,
+          companyName: order.partners?.company_name || "Partenaire Installateur",
+          packName: order.pack_name,
+          credits: Number(order.credits || 0),
+          newCreditsBalance: newCredits,
+          priceHtva: order.price_htva ?? 0,
+          vatAmount: order.vat_amount ?? 0,
+          priceTtc: order.price_ttc ?? 0,
+          paymentMethodLabel: "Virement bancaire",
+        })
 
         resend.emails.send({
           from: process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com",
           to: partnerEmail,
-          subject: `[Aegis Solaire] Confirmation & Justificatif TVA (${invoiceRef}) — +${order.credits} crédits activés !`,
-          text: `Bonjour ${order.partners?.company_name || ""},\n\nVotre règlement bancaire pour la commande ${invoiceRef} a bien été réceptionné.\n\n${order.credits} crédits viennent d'être ajoutés à votre compte installateur.\nVotre nouveau solde est de : ${newCredits} crédits.\n\n--- RÉCAPITULATIF COMPTABLE B2B (ACQUITTÉ) ---\nRéférence pièce : ${invoiceRef}\nDate d'émission : ${issuedDate}\nPrestation : ${order.pack_name} (${order.credits} crédits leads photovoltaïques)\nMontant HTVA : ${priceHtva} €\nTVA belge (21 %) : ${vatAmount} €\nMontant Total TTC acquitté : ${priceTtc} €\n\nÉmetteur : INIT42 · BCE / TVA BE 1039.899.980 · Liège, Belgique\nClient B2B : ${order.partners?.company_name || "Partenaire Installateur"}\n----------------------------------------------\n\nVous pouvez dès à présent débloquer de nouveaux dossiers dans votre espace :\nhttps://www.aegissolaire.com/partenaires/dashboard\n\nBien à vous,\nL'équipe Aegis Solaire\n\n--\nPlateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique`,
+          subject: rendered.subject,
+          text: rendered.text,
+          html: rendered.html,
         }).catch((mailErr) => {
           console.warn("[validate-order] email notification failed:", mailErr)
         })

@@ -7,6 +7,10 @@ import {
   sendAdminLeadSaleNotification,
   type LeadSaleBuyerSummary,
 } from "@/lib/admin-sales-emails"
+import {
+  buildCreditOrderConfirmationEmail,
+  buildLeadDirectPurchaseConfirmationEmail,
+} from "@/lib/email-templates/installer-transactional"
 
 export interface FulfillmentResult {
   success: boolean
@@ -83,16 +87,26 @@ export async function fulfillPaidCreditOrder(
       const resend = new Resend(process.env.RESEND_API_KEY)
       const fromEmail = process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com"
       const invoiceRef = order.transfer_reference || `AEGIS-${order.id.slice(0, 8).toUpperCase()}`
-      const issuedDate = new Date().toLocaleDateString("fr-BE")
-      const priceHtva = Number(order.price_htva ?? 0).toFixed(2)
-      const vatAmount = Number(order.vat_amount ?? 0).toFixed(2)
-      const priceTtc = Number(order.price_ttc ?? 0).toFixed(2)
+      const rendered = buildCreditOrderConfirmationEmail({
+        orderId: order.id,
+        invoiceRef,
+        companyName: order.partners?.company_name || "Partenaire Installateur",
+        packName: order.pack_name,
+        credits: Number(order.credits || 0),
+        newCreditsBalance: newCredits,
+        priceHtva: order.price_htva ?? 0,
+        vatAmount: order.vat_amount ?? 0,
+        priceTtc: order.price_ttc ?? 0,
+        paymentMethodLabel: payment.method || "Bancontact",
+        transactionId: payment.id,
+      })
 
       await resend.emails.send({
         from: fromEmail,
         to: partnerEmail,
-        subject: `[Aegis Solaire] Confirmation & Justificatif TVA (${invoiceRef}) — +${order.credits} crédits activés`,
-        text: `Bonjour ${order.partners?.company_name || ""},\n\nVotre paiement pour le ${order.pack_name} a été validé avec succès.\n\n${order.credits} crédits viennent d'être ajoutés automatiquement à votre compte installateur.\nVotre nouveau solde est de : ${newCredits} crédits.\n\n--- RÉCAPITULATIF COMPTABLE B2B (ACQUITTÉ) ---\nRéférence pièce : ${invoiceRef}\nDate d'émission : ${issuedDate}\nPrestation : ${order.pack_name} (${order.credits} crédits leads photovoltaïques)\nMontant HTVA : ${priceHtva} €\nTVA belge (21 %) : ${vatAmount} €\nMontant Total TTC acquitté : ${priceTtc} €\nTransaction Mollie : ${payment.id}\n\nÉmetteur : INIT42 · BCE / TVA BE 1039.899.980 · Liège, Belgique\nClient B2B : ${order.partners?.company_name || "Partenaire Installateur"}\n----------------------------------------------\n\nVous pouvez dès maintenant débloquer vos chantiers prioritaires dans votre espace :\nhttps://www.aegissolaire.com/partenaires/dashboard\n\nBien cordialement,\nL'équipe Aegis Solaire\n\n--\nPlateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique`,
+        subject: rendered.subject,
+        text: rendered.text,
+        html: rendered.html,
       })
     } catch (emailErr) {
       console.error("[Mollie Fulfillment] Erreur notification email installateur:", emailErr)
@@ -191,7 +205,7 @@ export async function fulfillPaidLeadDirectPurchase(
   const { data: lead, error: leadErr } = await supabase
     .from("leads")
     .select(
-      "id, segment, marketplace_status, credit_cost, province, city, postal_code, site_address, surface_type, surface_area, estimated_power_kwc, annual_electricity_bill, roof_material, project_timeline, lead_score, grd, project_details, message, first_name, last_name, email, phone, company, company_vat, qualification_metadata, created_at"
+      "id, segment, marketplace_status, credit_cost, province, city, postal_code, site_address, surface_type, surface_area, estimated_power_kwc, annual_electricity_bill, roof_material, project_timeline, lead_score, grd, project_details, message, contact_preference, first_name, last_name, email, phone, company, company_vat, qualification_metadata, created_at"
     )
     .eq("id", leadId)
     .single()
@@ -283,14 +297,43 @@ export async function fulfillPaidLeadDirectPurchase(
       const resend = new Resend(process.env.RESEND_API_KEY)
       const fromEmail = process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com"
       const invoiceRef = `AEGIS-LEAD-${payment.id.slice(-8).toUpperCase()}`
-      const issuedDate = new Date().toLocaleDateString("fr-BE")
       const leadName = `${lead.first_name || ""} ${lead.last_name || ""}`.trim() || "Prospect Photovoltaïque"
+      const rawPref = (lead.contact_preference || (lead.qualification_metadata as any)?.contactPreference || "") as string
+      const contactPreferenceLabel = rawPref === "direct_call"
+        ? "Par appel direct (9h–18h)"
+        : rawPref === "written_first"
+          ? "Par e-mail ou SMS"
+          : null
+      const locationSubtitle = [lead.postal_code, lead.city].filter(Boolean).join(" ") || lead.province || "Wallonie"
+      const addressLine = lead.site_address
+        ? `${lead.site_address}, ${locationSubtitle}`
+        : locationSubtitle
+
+      const rendered = buildLeadDirectPurchaseConfirmationEmail({
+        leadId: lead.id,
+        segment: lead.segment || "B2C",
+        invoiceRef,
+        companyName: partner.company_name || "Partenaire Installateur",
+        leadName,
+        leadCompany: lead.company,
+        phone: lead.phone,
+        email: lead.email,
+        addressLine,
+        locationSubtitle,
+        contactPreferenceLabel,
+        priceHtva,
+        vatAmount,
+        priceTtc,
+        paymentMethodLabel: payment.method || "Bancontact",
+        transactionId: payment.id,
+      })
 
       await resend.emails.send({
         from: fromEmail,
         to: partner.email,
-        subject: `[Aegis Solaire] Justificatif d'achat TVA (${invoiceRef}) — Dossier ${lead.segment} débloqué !`,
-        text: `Bonjour ${partner.company_name || ""},\n\nVotre paiement direct pour le déblocage du dossier ${lead.segment} a été validé avec succès.\n\nCe dossier est dès à présent disponible dans votre portefeuille client CRM avec ses coordonnées complètes :\n- Nom : ${leadName} ${lead.company ? `(${lead.company})` : ""}\n- Téléphone : ${lead.phone || "—"}\n- E-mail : ${lead.email || "—"}\n- Adresse : ${lead.site_address || `${lead.city || ""} (${lead.postal_code || ""})`}\n\n--- JUSTIFICATIF COMPTABLE B2B (ACQUITTÉ) ---\nRéférence facture : ${invoiceRef}\nDate d'émission : ${issuedDate}\nPrestation : Achat direct dossier photovoltaïque ${lead.segment} (Réf: ${lead.id.slice(0, 8)})\nMontant HTVA : ${priceHtva} €\nTVA belge (21 %) : ${vatAmount} €\nMontant Total TTC acquitté : ${priceTtc} €\nMéthode de paiement : ${payment.method || "Bancontact"} (Mollie: ${payment.id})\n\nÉmetteur : INIT42 · BCE / TVA BE 1039.899.980 · Liège, Belgique\nClient B2B : ${partner.company_name || "Partenaire Installateur"}\n----------------------------------------------\n\nAccédez à la fiche complète dans votre CRM :\nhttps://www.aegissolaire.com/partenaires/dashboard\n\nBien cordialement,\nL'équipe Aegis Solaire\n\n--\nPlateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique`,
+        subject: rendered.subject,
+        text: rendered.text,
+        html: rendered.html,
       })
     } catch (emailErr) {
       console.error("[Mollie Lead Fulfillment] Erreur notification email installateur:", emailErr)

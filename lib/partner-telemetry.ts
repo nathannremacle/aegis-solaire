@@ -5,6 +5,12 @@ import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { buildPartnerExpressLeadUrls } from "@/lib/partner-notification-tokens"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 import { calculateLeadDirectFinancials, formatEurWithDecimals } from "@/lib/credit-pricing"
+import {
+  renderCalloutBox,
+  renderInstallerEmailShell,
+  renderSpecsTable,
+  type EmailSpecRow,
+} from "@/lib/email-templates/installer-email-layout"
 
 export type PartnerTelemetryEventType =
   | "session_start"
@@ -470,67 +476,91 @@ ${waMessage}
 ${waHref ? `\nOuvrir WhatsApp 1-clic : ${waHref}` : ""}
 `.trim()
 
-  const html = `<!DOCTYPE html>
-<html lang="fr">
-<head><meta charset="utf-8" /><title>${escapeHtmlTelemetry(subject)}</title></head>
-<body style="margin:0;padding:24px 12px;background-color:#F8FAFC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0F172A;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;margin:0 auto;background-color:#FFFFFF;border:1px solid #E2E8F0;border-top:4px solid #DC2626;border-radius:12px;overflow:hidden;">
-    <tr>
-      <td style="padding:24px 28px;">
-        <p style="margin:0 0 6px 0;font-family:monospace;font-size:11px;font-weight:700;color:#DC2626;text-transform:uppercase;letter-spacing:0.06em;">
-          Alerte Sniper Sales · Temps Réel
-        </p>
-        <h1 style="margin:0 0 16px 0;font-size:20px;font-weight:800;color:#0F172A;line-height:1.3;">
-          ${escapeHtmlTelemetry(partnerCompany)} montre une forte intention d'achat
-        </h1>
+  const sniperSpecRows: EmailSpecRow[] = [
+    { label: "Signal", value: signalLabel },
+    { label: "Installateur", value: `${partnerCompany} (${partnerEmail})` },
+    { label: "Téléphone", value: partnerPhone || "Non renseigné" },
+    { label: "Solde crédits", value: `${partnerCredits} cr.` },
+    ...(leadRow
+      ? [
+          {
+            label: "Dossier consulté",
+            value: `${leadRow.segment || "PV"} · ${leadLocation}${powerLabel ? ` · ${powerLabel}` : ""} (#${leadRow.id.slice(0, 8).toUpperCase()})`,
+          },
+        ]
+      : []),
+    ...(directFinancials
+      ? [
+          {
+            label: "Tarif dossier",
+            value: `${directFinancials.credits} cr. / ${formatEurWithDecimals(directFinancials.priceHtva)}`,
+          },
+        ]
+      : []),
+  ]
 
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;margin-bottom:20px;">
-          <tr>
-            <td style="padding:14px 16px;font-size:13px;line-height:1.6;">
-              <div><strong>Signal :</strong> <span style="color:#DC2626;font-weight:700;">${escapeHtmlTelemetry(signalLabel)}</span></div>
-              <div><strong>Installateur :</strong> ${escapeHtmlTelemetry(partnerCompany)} (${escapeHtmlTelemetry(partnerEmail)})</div>
-              <div><strong>Téléphone :</strong> <strong style="font-family:monospace;">${escapeHtmlTelemetry(partnerPhone || "Non renseigné")}</strong></div>
-              <div><strong>Solde crédits :</strong> <span style="font-family:monospace;">${partnerCredits} cr.</span></div>
-              ${leadRow ? `<div><strong>Dossier consulté :</strong> ${escapeHtmlTelemetry(leadRow.segment || "PV")} &middot; ${escapeHtmlTelemetry(leadLocation)}${powerLabel ? ` &middot; ${escapeHtmlTelemetry(powerLabel)}` : ""} (#${leadRow.id.slice(0, 8)})</div>` : ""}
-              ${directFinancials ? `<div><strong>Tarif dossier :</strong> <span style="font-family:monospace;">${directFinancials.credits} cr. / ${formatEurWithDecimals(directFinancials.priceHtva)}</span></div>` : ""}
-            </td>
-          </tr>
-        </table>
+  const sniperBodyHtml = `
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 16px; width: 100%; border: 1px solid #dce5eb; border-radius: 8px; border-collapse: separate; border-spacing: 0;">
+      <tr>
+        <td style="padding: 14px 15px;">
+          ${renderSpecsTable(sniperSpecRows)}
+        </td>
+      </tr>
+    </table>
 
-        <table role="presentation" cellspacing="0" cellpadding="0" style="margin-bottom:20px;">
-          <tr>
-            ${telHref ? `
-            <td style="padding-right:10px;padding-bottom:8px;">
-              <a href="${escapeHtmlTelemetry(telHref)}" style="display:inline-block;background-color:#0F172A;color:#FFFFFF;font-size:13px;font-weight:700;text-decoration:none;padding:12px 18px;border-radius:8px;">
-                Appeler l'installateur (${escapeHtmlTelemetry(partnerPhone)})
-              </a>
-            </td>` : ""}
-            ${waHref ? `
-            <td style="padding-bottom:8px;">
-              <a href="${escapeHtmlTelemetry(waHref)}" target="_blank" style="display:inline-block;background-color:#059669;color:#FFFFFF;font-size:13px;font-weight:700;text-decoration:none;padding:12px 18px;border-radius:8px;">
-                Envoyer le WhatsApp pré-rempli en 1 clic &rarr;
-              </a>
-            </td>` : ""}
-          </tr>
-        </table>
+    ${
+      telHref || waHref
+        ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 14px; width: 100%; border: 1px solid #dce5eb; border-radius: 8px; border-collapse: separate; border-spacing: 0;">
+            <tr>
+              <td style="padding: 12px 15px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    ${
+                      telHref
+                        ? `<td class="actions-td" style="padding-right: 6px; vertical-align: middle;">
+                            <a href="${escapeHtmlTelemetry(telHref)}" style="display: block; padding: 10px 12px; border: 1px solid #142d42; border-radius: 6px; background-color: #142d42; color: #ffffff; font-size: 14px; font-weight: bold; text-decoration: none; text-align: center;">Appeler (${escapeHtmlTelemetry(partnerPhone)})</a>
+                          </td>`
+                        : ""
+                    }
+                    ${
+                      waHref
+                        ? `<td class="actions-td" style="padding-left: 6px; vertical-align: middle;">
+                            <a href="${escapeHtmlTelemetry(waHref)}" target="_blank" style="display: block; padding: 10px 12px; border: 1px solid #1d5d45; border-radius: 6px; background-color: #1d5d45; color: #ffffff; font-size: 14px; font-weight: bold; text-decoration: none; text-align: center;">WhatsApp 1-clic &rarr;</a>
+                          </td>`
+                        : ""
+                    }
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>`
+        : ""
+    }
 
-        <div style="background-color:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:14px 16px;margin-bottom:18px;">
-          <p style="margin:0 0 6px 0;font-size:11px;font-weight:700;color:#1D4ED8;text-transform:uppercase;font-family:monospace;">
-            Message prêt à copier / envoyer :
-          </p>
-          <p style="margin:0;font-size:13px;line-height:1.5;color:#1E293B;">
-            ${escapeHtmlTelemetry(waMessage)}
-          </p>
-        </div>
+    ${renderCalloutBox({
+      label: "Message prêt à copier / envoyer",
+      value: waMessage,
+      tone: "info",
+    })}
+  `
 
-        <p style="margin:0;font-size:12px;color:#64748B;">
-          <a href="${escapeHtmlTelemetry(adminLeadUrl)}" style="color:#2563EB;text-decoration:underline;">Ouvrir le dossier dans l'admin</a>
-        </p>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`
+  const html = renderInstallerEmailShell({
+    subject,
+    preheader: `${partnerCompany} — ${signalLabel}${leadLocation ? ` · ${leadLocation}` : ""}`,
+    reference: leadRow ? `#${leadRow.id.slice(0, 8).toUpperCase()}` : "Sniper Sales",
+    context: "Alerte Sniper Sales · Temps réel",
+    contextColor: "#991b1b",
+    headline: `${partnerCompany} montre une intention d'achat`,
+    subtitle: signalLabel,
+    statusPill: { text: `Signal chaud · ${partnerCredits} crédits`, tone: "danger" },
+    bodyHtml: sniperBodyHtml,
+    logoHref: adminLeadUrl,
+    footerLinks: [
+      { label: "Ouvrir le dossier dans l'admin", href: adminLeadUrl },
+      { label: "Partenaires", href: `${baseUrl}/admin/partners` },
+    ],
+    footerLegalText: "Aegis Solaire · Télémétrie interne Sniper Sales",
+  })
 
   const resend = new Resend(resendApiKey)
   const { error } = await resend.emails.send({

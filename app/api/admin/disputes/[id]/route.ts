@@ -3,6 +3,7 @@ import { revalidateTag, revalidatePath } from "next/cache"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { Resend } from "resend"
+import { buildLeadDisputeResolutionEmail } from "@/lib/email-templates/installer-transactional"
 
 export async function PATCH(
   request: NextRequest,
@@ -126,11 +127,20 @@ export async function PATCH(
     if (partnerEmail && process.env.RESEND_API_KEY) {
       try {
         const resend = new Resend(process.env.RESEND_API_KEY)
+        const rendered = buildLeadDisputeResolutionEmail({
+          leadId: String(dispute.lead_id),
+          companyName: dispute.partners?.company_name || "Partenaire Installateur",
+          approved: true,
+          refundedCredits,
+          adminNotes,
+          reasonLabel: dispute.reason || null,
+        })
         await resend.emails.send({
           from: process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com",
           to: partnerEmail,
-          subject: `[Aegis Solaire] Garantie Lead Conforme approuvée (+${refundedCredits} crédits recrédités)`,
-          text: `Bonjour ${dispute.partners?.company_name || ""},\n\nVotre réclamation concernant le dossier #${String(dispute.lead_id).slice(0, 8)} a été approuvée par notre équipe conformité.\n\n${refundedCredits} crédits ont été immédiatement réintégrés sur votre solde installateur.\n${adminNotes ? `\nNote de l'équipe : ${adminNotes}\n` : ""}\nAccéder à votre espace partenaire :\nhttps://www.aegissolaire.com/partenaires/dashboard\n\nBien cordialement,\nL'équipe Support Aegis Solaire\n\n--\nPlateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique`,
+          subject: rendered.subject,
+          text: rendered.text,
+          html: rendered.html,
         })
       } catch {
         /* silent */
@@ -180,11 +190,19 @@ export async function PATCH(
     if (partnerEmail && process.env.RESEND_API_KEY) {
       try {
         const resend = new Resend(process.env.RESEND_API_KEY)
+        const rendered = buildLeadDisputeResolutionEmail({
+          leadId: String(dispute.lead_id),
+          companyName: dispute.partners?.company_name || "Partenaire Installateur",
+          approved: false,
+          adminNotes,
+          reasonLabel: dispute.reason || null,
+        })
         await resend.emails.send({
           from: process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com",
           to: partnerEmail,
-          subject: `[Aegis Solaire] Décision concernant votre réclamation (Dossier #${String(dispute.lead_id).slice(0, 8)})`,
-          text: `Bonjour ${dispute.partners?.company_name || ""},\n\nAprès vérification de votre signalement concernant le dossier #${String(dispute.lead_id).slice(0, 8)}, notre équipe conformité n'a pas pu donner une suite favorable à la demande de recrédit.\n\nMotif / Précision : ${adminNotes || "Réclamation non conforme aux conditions de la Garantie Lead Conforme (Article 4.1 des CGV)."}\n\nPour toute question complémentaire, vous pouvez répondre directement à cet e-mail (contact@aegissolaire.com).\n\nBien cordialement,\nL'équipe Support Aegis Solaire\n\n--\nPlateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique`,
+          subject: rendered.subject,
+          text: rendered.text,
+          html: rendered.html,
         })
       } catch {
         /* silent */

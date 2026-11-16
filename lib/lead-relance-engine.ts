@@ -677,6 +677,11 @@ export async function dispatchLeadWave(
         ownershipStatus: lead.ownership_status,
         projectDriver: lead.project_driver,
         projectDetails: lead.project_details || lead.message,
+        contactPreference:
+          lead.contact_preference ||
+          (lead.qualification_metadata?.contactPreference as string | null) ||
+          null,
+        phone: lead.phone || null,
         firstName: lead.first_name,
         lastName: lead.last_name,
         grd: lead.grd,
@@ -940,6 +945,11 @@ export async function dispatchLeadToSpecificPartners(
         ownershipStatus: lead.ownership_status,
         projectDriver: lead.project_driver,
         projectDetails: lead.project_details || lead.message,
+        contactPreference:
+          lead.contact_preference ||
+          (lead.qualification_metadata?.contactPreference as string | null) ||
+          null,
+        phone: lead.phone || null,
         firstName: lead.first_name,
         lastName: lead.last_name,
         grd: lead.grd,

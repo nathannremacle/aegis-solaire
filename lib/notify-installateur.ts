@@ -1,4 +1,13 @@
 import { Resend } from "resend"
+import {
+  escapeEmailHtml,
+  getEmailSiteBaseUrl,
+  renderActionBox,
+  renderFiguresBox,
+  renderInstallerEmailShell,
+  renderSpecsTable,
+  type EmailSpecRow,
+} from "@/lib/email-templates/installer-email-layout"
 
 export type LeadDetailsForEmail = {
   first_name: string
@@ -21,59 +30,154 @@ const resendApiKey = process.env.RESEND_API_KEY
 const fromEmail = process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev"
 const replyToEmail = process.env.RESEND_REPLY_TO ?? "contact@aegissolaire.com"
 
-function buildLeadAssignedHtml(lead: LeadDetailsForEmail): string {
-  const contactName = `${lead.first_name}${lead.last_name ? ` ${lead.last_name}` : ""}`
+export function buildLeadAssignedEmail(lead: LeadDetailsForEmail): {
+  subject: string
+  text: string
+  html: string
+} {
+  const contactName = `${lead.first_name}${lead.last_name ? ` ${lead.last_name}` : ""}`.trim()
+  const subject = `[Aegis Solaire] Nouveau lead assigné : ${contactName}`
+  const baseUrl = getEmailSiteBaseUrl()
+  const dashboardUrl = `${baseUrl}/partenaires/dashboard`
+
   const surface =
     lead.surface_area != null && lead.surface_type
-      ? `${lead.surface_area.toLocaleString("fr-FR")} m² (${lead.surface_type})`
-      : "–"
+      ? `${lead.surface_area.toLocaleString("fr-BE")} m² (${lead.surface_type})`
+      : lead.surface_area != null
+        ? `${lead.surface_area.toLocaleString("fr-BE")} m²`
+        : "—"
   const facture =
     lead.annual_electricity_bill != null
-      ? `${lead.annual_electricity_bill.toLocaleString("fr-FR")} € HT / an`
-      : "–"
-  const roi = lead.estimated_roi_years != null ? `${lead.estimated_roi_years} ans` : "–"
-  const economies = lead.estimated_savings != null ? `${lead.estimated_savings.toLocaleString("fr-FR")} € / an` : "–"
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><title>Nouveau lead Aegis Solaire</title></head>
-<body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <h2 style="color: #0F172A;">Nouveau lead assigné – Aegis Solaire</h2>
-  <p>Un lead vous a été assigné. Coordonnées et résumé ci-dessous.</p>
-  ${lead.roof_image_url ? `
-  <div style="margin: 16px 0; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
-    <img src="${lead.roof_image_url}" alt="Photo de la toiture / façade" style="width: 100%; max-height: 240px; object-fit: cover; display: block;" />
-    <div style="padding: 6px 10px; background-color: #f8fafc; font-size: 11px; color: #64748b; font-family: monospace;">
-      📷 Visuel Street View du bâtiment & toiture
-    </div>
-  </div>
-  ` : ""}
-  <table style="border-collapse: collapse; width: 100%;">
-    <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Contact</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${contactName}</td></tr>
-    <tr><td style="padding: 8px; border: 1px solid #ddd;">Fonction</td><td style="padding: 8px; border: 1px solid #ddd;">${lead.job_title}</td></tr>
-    <tr><td style="padding: 8px; border: 1px solid #ddd;">Entreprise</td><td style="padding: 8px; border: 1px solid #ddd;">${lead.company ?? "–"}</td></tr>
-    <tr><td style="padding: 8px; border: 1px solid #ddd;">Email</td><td style="padding: 8px; border: 1px solid #ddd;">${lead.email}</td></tr>
-    <tr><td style="padding: 8px; border: 1px solid #ddd;">Téléphone</td><td style="padding: 8px; border: 1px solid #ddd;">${lead.phone ?? "–"}</td></tr>
-    <tr><td style="padding: 8px; border: 1px solid #ddd;">Surface</td><td style="padding: 8px; border: 1px solid #ddd;">${surface}</td></tr>
-    <tr><td style="padding: 8px; border: 1px solid #ddd;">Facture annuelle</td><td style="padding: 8px; border: 1px solid #ddd;">${facture}</td></tr>
-    <tr><td style="padding: 8px; border: 1px solid #ddd;">ROI estimé</td><td style="padding: 8px; border: 1px solid #ddd;">${roi}</td></tr>
-    <tr><td style="padding: 8px; border: 1px solid #ddd;">Économies estimées</td><td style="padding: 8px; border: 1px solid #ddd;">${economies}</td></tr>
-  </table>
-  ${lead.message ? `<p><strong>Message du prospect :</strong><br/>${lead.message.replace(/\n/g, "<br/>")}</p>` : ""}
-  <p style="margin-top: 24px; color: #666; font-size: 12px;">Cet e-mail a été envoyé automatiquement par Aegis Solaire (Speed-to-Lead).</p>
-</body>
-</html>
-  `.trim()
+      ? `${lead.annual_electricity_bill.toLocaleString("fr-BE")} € HT / an`
+      : "—"
+  const roi = lead.estimated_roi_years != null ? `${lead.estimated_roi_years} ans` : "—"
+  const economies =
+    lead.estimated_savings != null
+      ? `${lead.estimated_savings.toLocaleString("fr-BE")} € / an`
+      : "—"
+
+  const specRows: EmailSpecRow[] = [
+    { label: "Surface", value: surface },
+    { label: "Facture annuelle", value: facture },
+    { label: "ROI estimé", value: roi },
+    { label: "Économies estimées", value: economies },
+    ...(lead.project_timeline ? [{ label: "Échéance", value: lead.project_timeline }] : []),
+    ...(lead.message?.trim()
+      ? [{ label: "Message du prospect", value: `« ${lead.message.trim()} »`, italic: true }]
+      : []),
+  ]
+
+  const bodyHtml = `
+    ${renderFiguresBox(
+      {
+        label: "Économies estimées",
+        value: economies,
+        sublabel: `ROI estimé · ${roi}`,
+      },
+      {
+        label: "Facture annuelle",
+        value: facture,
+        sublabel: surface !== "—" ? `Surface · ${surface}` : null,
+      }
+    )}
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 16px; width: 100%; border: 1px solid #dce5eb; border-radius: 8px; border-collapse: separate; border-spacing: 0;">
+      <tr>
+        <td style="padding: 14px 15px;">
+          <h2 style="margin: 0 0 8px 0; font-size: 18px; line-height: 1.25; font-weight: bold; color: #142d42;">
+            Coordonnées du prospect
+          </h2>
+          ${renderSpecsTable([
+            { label: "Contact", value: contactName },
+            { label: "Fonction", value: lead.job_title || "—" },
+            ...(lead.company ? [{ label: "Entreprise", value: lead.company }] : []),
+            { label: "Téléphone", value: lead.phone ?? "—" },
+            { label: "E-mail", value: lead.email },
+          ])}
+        </td>
+      </tr>
+    </table>
+
+    ${renderActionBox({
+      kicker: "Attribution directe Speed-to-Lead",
+      title: "Coordonnées complètes disponibles",
+      subtext: "Contactez le prospect rapidement pour maximiser la transformation.",
+      ctaLabel: "Ouvrir l'espace partenaire →",
+      ctaUrl: dashboardUrl,
+    })}
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 20px; width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding-top: 16px; border-top: 1px solid #e4edf1;">
+          <h2 style="margin: 0 0 10px 0; font-size: 18px; line-height: 1.25; font-weight: bold; color: #142d42;">
+            Détails du projet
+          </h2>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width: 100%; border-collapse: collapse;">
+            <tr>
+              ${
+                lead.roof_image_url
+                  ? `<td class="photo-cell" width="42%" style="width: 42%; padding-right: 15px; vertical-align: top;">
+                      <img src="${escapeEmailHtml(lead.roof_image_url)}" alt="Photo du bâtiment" width="230" style="display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 7px; border: 1px solid #e2eaf0;" />
+                      <p style="margin: 4px 0 0 0; font-size: 12px; color: #4d6374;">Photo du bâtiment</p>
+                    </td>`
+                  : ""
+              }
+              <td class="spec-cell" style="vertical-align: top;">
+                ${renderSpecsTable(specRows)}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  `
+
+  const html = renderInstallerEmailShell({
+    subject,
+    preheader: `Lead assigné : ${contactName}${lead.company ? ` (${lead.company})` : ""} · ${lead.phone || lead.email}`,
+    reference: "Attribution directe",
+    context: "Nouveau dossier assigné",
+    contextColor: "#1d5d45",
+    headline: contactName,
+    subtitle: `${lead.job_title}${lead.company ? ` · ${lead.company}` : ""}`,
+    statusPill: { text: "Speed-to-Lead · Coordonnées complètes", tone: "success" },
+    bodyHtml,
+    footerLinks: [
+      { label: "Assistance technique", href: "mailto:contact@aegissolaire.com" },
+      { label: "Espace partenaire", href: dashboardUrl },
+    ],
+  })
+
+  const text = `AEGIS SOLAIRE — NOUVEAU LEAD ASSIGNÉ
+${contactName}${lead.company ? ` (${lead.company})` : ""}
+
+COORDONNÉES :
+• Fonction : ${lead.job_title || "—"}
+• Téléphone : ${lead.phone ?? "—"}
+• E-mail : ${lead.email}
+
+PROJET :
+${specRows.map((r) => `• ${r.label} : ${r.value}`).join("\n")}
+
+Espace partenaire : ${dashboardUrl}
+Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
+`.trim()
+
+  return { subject, text, html }
 }
 
 export async function sendLeadAssignedEmail(
   installateurEmail: string,
   lead: LeadDetailsForEmail
 ): Promise<void> {
-  const subject = `[Aegis Solaire] Nouveau lead assigné : ${lead.first_name}${lead.last_name ? ` ${lead.last_name}` : ""}`
+  const { subject, text, html } = buildLeadAssignedEmail(lead)
 
   if (!resendApiKey) {
-    console.log("[Speed-to-Lead] RESEND_API_KEY non définie – e-mail simulé:", { to: installateurEmail, subject, lead: lead.first_name + " " + lead.last_name })
+    console.log("[Speed-to-Lead] RESEND_API_KEY non définie – e-mail simulé:", {
+      to: installateurEmail,
+      subject,
+      lead: `${lead.first_name} ${lead.last_name || ""}`.trim(),
+    })
     return
   }
 
@@ -83,7 +187,8 @@ export async function sendLeadAssignedEmail(
     to: installateurEmail,
     replyTo: replyToEmail,
     subject,
-    html: buildLeadAssignedHtml(lead),
+    text,
+    html,
   })
 
   if (error) {

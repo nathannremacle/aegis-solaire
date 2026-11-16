@@ -159,6 +159,11 @@ export async function POST(request: NextRequest) {
           ownershipStatus: lead.ownership_status || null,
           projectDriver: lead.project_driver || null,
           projectDetails: lead.project_details || lead.message || null,
+          contactPreference:
+            lead.contact_preference ||
+            (lead.qualification_metadata?.contactPreference as string | null) ||
+            null,
+          phone: lead.phone || null,
           firstName: lead.first_name || "Client",
           lastName: lead.last_name || "",
           grd: lead.grd || null,

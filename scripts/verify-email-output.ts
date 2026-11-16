@@ -60,7 +60,8 @@ const checks = [
   { name: "No '3_months'", pass: !res.html.includes("3_months") && !res.text.includes("3_months") },
   { name: "Has 'Propriétaire occupant'", pass: res.html.includes("Propriétaire occupant") },
   { name: "No emojis in HTML", pass: !/[🔒🛡️⚡🎯👉✅]/.test(res.html) },
-  { name: "Consistent button", pass: (res.html.match(/Consulter la fiche et obtenir les coordonnées/g) || []).length === 2 },
+  { name: "Single clean CTA", pass: (res.html.match(/Consulter le dossier/g) || []).length === 1 },
+  { name: "Masked first name with 6 asterisks", pass: res.html.includes("****** Infantino") },
 ]
 
 console.log("\nCHECKS:")

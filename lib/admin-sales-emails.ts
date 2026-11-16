@@ -8,6 +8,14 @@ import {
   getSurfaceTypeLabel,
   getTimeframeLabel,
 } from "@/lib/lead-display-helpers"
+import {
+  escapeEmailHtml,
+  renderActionBox,
+  renderFiguresBox,
+  renderInstallerEmailShell,
+  renderSpecsTable,
+  type EmailSpecRow,
+} from "@/lib/email-templates/installer-email-layout"
 
 function escapeHtml(value: unknown): string {
   const s = String(value ?? "")
@@ -233,10 +241,7 @@ export async function sendAdminLeadSaleNotification(
     : "Déblocage via portefeuille crédits"
 
   const modeBadgeText = isMollie ? "Achat direct Mollie" : "Déblocage par crédits"
-  const modeAccentColor = isMollie ? "#059669" : "#2563EB"
-  const modeBadgeBg = isMollie ? "#ECFDF5" : "#EFF6FF"
-  const modeBadgeBorder = isMollie ? "#A7F3D0" : "#BFDBFE"
-  const modeBadgeColor = isMollie ? "#047857" : "#1D4ED8"
+  const modeAccentColor = isMollie ? "#1d5d45" : "#305a76"
 
   const subject = isMollie
     ? `[Aegis Solaire - Ventes] Achat direct : ${partner.company_name} → ${leadFullName} (${priceTtcStr} TTC · ${slotShortSubject})`
@@ -302,362 +307,170 @@ export async function sendAdminLeadSaleNotification(
 
   const text = textLines.join("\n")
 
-  const dotsHtml = slotIndicator
-    ? slotIndicator.dots
-        .map(
-          (dotColor) =>
-            `<span style="display:inline-block;width:9px;height:9px;border-radius:9999px;background-color:${dotColor};margin-right:4px;vertical-align:middle;"></span>`
-        )
-        .join("")
-    : ""
+  const leadRefCode = lead.id.slice(0, 8).toUpperCase()
+  const slotTone = remainingSlots === 0 ? "danger" : remainingSlots === 1 ? "warning" : "success"
 
-  const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="fr">
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="color-scheme" content="light" />
-  <meta name="supported-color-schemes" content="light" />
-  <title>${escapeHtml(subject)}</title>
-  <style type="text/css">
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #F8FAFC;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      color: #0F172A;
-    }
-    table { border-collapse: separate; border-spacing: 0; }
-    img { border: 0; outline: none; text-decoration: none; display: block; }
-    .mono {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
-      font-variant-numeric: tabular-nums !important;
-    }
-    @media only screen and (max-width: 620px) {
-      .email-container { width: 100% !important; border-radius: 0 !important; }
-      .email-pad { padding: 20px 16px !important; }
-      .kpi-cell { display: block !important; width: 100% !important; border-right: none !important; border-bottom: 1px solid #E2E8F0 !important; box-sizing: border-box !important; }
-      .kpi-cell-last { display: block !important; width: 100% !important; box-sizing: border-box !important; }
-    }
-  </style>
-</head>
-<body style="margin:0;padding:0;background-color:#F8FAFC;color:#0F172A;">
-  <!-- Preheader -->
-  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
-    ${escapeHtml(`${leadHeadlineName} · ${fullLocality} · ${slotStatusLabel} · Partenaire : ${partner.company_name}`)}
-  </div>
+  const leadRowsHtml = `
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <th scope="row" style="width: 40%; padding: 6px 8px 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: normal; color: #4d6374; vertical-align: top;">Prospect</th>
+        <td style="padding: 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: bold; color: #142d42; vertical-align: top;">
+          ${escapeEmailHtml(leadHeadlineName)}${lead.company_vat ? ` · TVA ${escapeEmailHtml(lead.company_vat)}` : ""}
+        </td>
+      </tr>
+      <tr>
+        <th scope="row" style="padding: 6px 8px 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: normal; color: #4d6374; vertical-align: top;">Localité</th>
+        <td style="padding: 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: bold; color: #142d42; vertical-align: top;">
+          ${escapeEmailHtml(fullLocality)}${googleMapsUrl ? ` · <a href="${escapeEmailHtml(googleMapsUrl)}" target="_blank" style="color: #194767; text-decoration: underline; font-weight: normal;">Maps &rarr;</a>` : ""}
+        </td>
+      </tr>
+      <tr>
+        <th scope="row" style="padding: 6px 8px 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: normal; color: #4d6374; vertical-align: top;">Contact</th>
+        <td style="padding: 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: bold; color: #142d42; vertical-align: top; font-variant-numeric: tabular-nums;">
+          ${lead.phone ? `<a href="tel:${escapeEmailHtml(lead.phone)}" style="color: #142d42; text-decoration: underline;">${escapeEmailHtml(lead.phone)}</a>` : "—"}
+          &nbsp;&middot;&nbsp;
+          ${lead.email ? `<a href="mailto:${escapeEmailHtml(lead.email)}" style="color: #194767; text-decoration: underline; font-weight: normal;">${escapeEmailHtml(lead.email)}</a>` : "—"}
+        </td>
+      </tr>
+      <tr>
+        <th scope="row" style="padding: 6px 8px 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: normal; color: #4d6374; vertical-align: top;">Implantation</th>
+        <td style="padding: 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: bold; color: #142d42; vertical-align: top;">${escapeEmailHtml(implantationCombined)}</td>
+      </tr>
+      <tr>
+        <th scope="row" style="padding: 6px 8px 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: normal; color: #4d6374; vertical-align: top;">Dimensionnement</th>
+        <td style="padding: 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: bold; color: #142d42; vertical-align: top; font-variant-numeric: tabular-nums;">${escapeEmailHtml(dimensioningCombined)}</td>
+      </tr>
+      <tr>
+        <th scope="row" style="padding: 6px 8px 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: normal; color: #4d6374; vertical-align: top;">Facture &amp; GRD</th>
+        <td style="padding: 6px 0; border-bottom: 1px solid #e6edf1; text-align: left; font-size: 13px; font-weight: bold; color: #142d42; vertical-align: top; font-variant-numeric: tabular-nums;">${escapeEmailHtml(annualBillLabel)} · ${escapeEmailHtml(grdLabel)}</td>
+      </tr>
+      <tr>
+        <th scope="row" style="padding: 6px 8px 6px 0; border-bottom: 0; text-align: left; font-size: 13px; font-weight: normal; color: #4d6374; vertical-align: top;">Délai &amp; Score</th>
+        <td style="padding: 6px 0; border-bottom: 0; text-align: left; font-size: 13px; font-weight: bold; color: #142d42; vertical-align: top; font-variant-numeric: tabular-nums;">${escapeEmailHtml(timeframeLabel)} · ${escapeEmailHtml(scoreLabel)}</td>
+      </tr>
+    </table>
+  `
 
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#F8FAFC;padding:24px 12px 36px 12px;">
-    <tr>
-      <td align="center">
-        <table role="presentation" class="email-container" width="620" style="width:620px;max-width:620px;background-color:#FFFFFF;border:1px solid #E2E8F0;border-top:4px solid ${modeAccentColor};border-radius:14px;overflow:hidden;box-shadow:0 4px 20px -2px rgba(15,23,42,0.06);">
+  const partnerRows: EmailSpecRow[] = [
+    { label: "Partenaire", value: `${partner.company_name} (${partner.email})` },
+    ...(partner.phone ? [{ label: "Téléphone partenaire", value: partner.phone }] : []),
+    ...(isMollie
+      ? [
+          { label: "Montant", value: `${priceHtvaStr} HTVA + ${vatStr} TVA = ${priceTtcStr} TTC` },
+          { label: "Paiement Mollie", value: `${paymentMethodLabel} · ${params.molliePaymentId || "—"}` },
+        ]
+      : [
+          {
+            label: "Crédits débités",
+            value: `${creditsSpent} crédits${params.creditsRemainingAfter != null ? ` (solde : ${params.creditsRemainingAfter} cr.)` : ""}`,
+          },
+        ]),
+    {
+      label: "Références",
+      value: `Lead #${leadRefCode}${params.purchaseId ? ` · Achat ${params.purchaseId.slice(0, 8)}` : ""}`,
+    },
+  ]
 
-          <!-- Top Brand Bar -->
+  const buyersHtml =
+    buyersList.length > 0
+      ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 16px; width: 100%; border-collapse: collapse;">
           <tr>
-            <td class="email-pad" style="padding:18px 28px;border-bottom:1px solid #E2E8F0;background-color:#FFFFFF;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                <tr>
-                  <td align="left" valign="middle">
-                    <a href="${escapeHtml(baseUrl)}/admin/leads" target="_blank" style="text-decoration:none;display:inline-block;">
-                      <img src="https://www.aegissolaire.com/logo.png" alt="Aegis Solaire" width="136" height="28" style="height:28px;width:auto;max-width:150px;display:block;" />
-                    </a>
-                  </td>
-                  <td align="right" valign="middle">
-                    <span class="mono" style="display:inline-block;background-color:${modeBadgeBg};border:1px solid ${modeBadgeBorder};color:${modeBadgeColor};font-size:11px;font-weight:700;padding:4px 10px;border-radius:9999px;text-transform:uppercase;letter-spacing:0.04em;">
-                      ${escapeHtml(modeBadgeText)}
-                    </span>
-                    <span class="mono" style="display:inline-block;margin-left:6px;background-color:#F1F5F9;border:1px solid #E2E8F0;color:#475569;font-size:11px;font-weight:700;padding:4px 8px;border-radius:6px;">
-                      #${escapeHtml(lead.id.slice(0, 8))}
-                    </span>
-                  </td>
-                </tr>
-              </table>
+            <td style="padding-top: 14px; border-top: 1px solid #e4edf1;">
+              <h2 style="margin: 0 0 8px 0; font-size: 16px; line-height: 1.25; font-weight: bold; color: #142d42;">
+                Acquéreurs sur ce dossier (${takenSlots}/${maxSlots})
+              </h2>
+              ${renderSpecsTable(
+                buyersList.map((b, idx) => ({
+                  label: `#${idx + 1} · ${b.companyName}${b.isTest ? " [TEST]" : ""}${b.isCurrentBuyer ? " (nouvel achat)" : ""}`,
+                  value: b.purchasedAt ? formatDateTimeBrussels(b.purchasedAt) : dateLabel,
+                }))
+              )}
             </td>
           </tr>
+        </table>`
+      : ""
 
-          <!-- Headline -->
-          <tr>
-            <td class="email-pad" style="padding:24px 28px 18px 28px;">
-              <p class="mono" style="margin:0 0 6px 0;font-size:11px;font-weight:700;color:${modeAccentColor};text-transform:uppercase;letter-spacing:0.06em;">
-                Vente Lead · ${escapeHtml(lead.segment || "B2C")} · ${escapeHtml(dateLabel)}
-              </p>
-              <h1 style="margin:0 0 6px 0;font-size:21px;font-weight:800;line-height:1.25;color:#0F172A;letter-spacing:-0.015em;">
-                ${escapeHtml(partner.company_name)} a débloqué le dossier de ${escapeHtml(leadFullName)}
-              </h1>
-              <p style="margin:0;font-size:13px;color:#475569;line-height:1.5;">
-                Le dossier a été assigné instantanément dans le CRM de <strong>${escapeHtml(partner.company_name)}</strong>.
-              </p>
-            </td>
-          </tr>
+  const bodyHtml = `
+    ${renderFiguresBox(
+      {
+        label: isMollie ? "Encaissement" : "Crédits débités",
+        value: heroValueText,
+        sublabel: heroSubText,
+      },
+      {
+        label: "Places restantes",
+        value: `${remainingSlots} / ${maxSlots} restante${remainingSlots > 1 ? "s" : ""}`,
+        sublabel: `${takenSlots}/${maxSlots} prise${takenSlots > 1 ? "s" : ""} · ${cityPostalLine || loc.city}`,
+      }
+    )}
 
-          <!-- 3-Column KPI Strip -->
-          <tr>
-            <td style="padding:0 28px 20px 28px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #E2E8F0;border-radius:10px;overflow:hidden;background-color:#F8FAFC;">
-                <tr>
-                  <td class="kpi-cell" width="33%" valign="top" style="padding:14px 14px;border-right:1px solid #E2E8F0;">
-                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#64748B;margin-bottom:4px;">
-                      ${isMollie ? "Encaissement" : "Crédits débités"}
-                    </div>
-                    <div class="mono" style="font-size:17px;font-weight:800;color:#0F172A;line-height:1.2;">
-                      ${escapeHtml(heroValueText)}
-                    </div>
-                    <div class="mono" style="font-size:11px;color:#64748B;margin-top:3px;">
-                      ${escapeHtml(heroSubText)}
-                    </div>
-                  </td>
-                  <td class="kpi-cell" width="34%" valign="top" style="padding:14px 14px;border-right:1px solid #E2E8F0;">
-                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#64748B;margin-bottom:4px;">
-                      Places restantes
-                    </div>
-                    <div style="margin-bottom:4px;">
-                      <span class="mono" style="display:inline-block;background-color:${slotBadgeBg};border:1px solid ${slotBadgeBorder};color:${slotBadgeColor};font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px;">
-                        ${remainingSlots} / ${maxSlots} restante${remainingSlots > 1 ? "s" : ""}
-                      </span>
-                    </div>
-                    <div style="font-size:11px;color:#475569;margin-top:2px;">
-                      ${dotsHtml}<span class="mono">${takenSlots}/${maxSlots} prise${takenSlots > 1 ? "s" : ""}</span>
-                    </div>
-                  </td>
-                  <td class="kpi-cell-last" width="33%" valign="top" style="padding:14px 14px;">
-                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#64748B;margin-bottom:4px;">
-                      Localité
-                    </div>
-                    <div style="font-size:14px;font-weight:700;color:#0F172A;line-height:1.25;">
-                      ${escapeHtml(cityPostalLine || loc.city)}
-                    </div>
-                    <div style="font-size:11px;color:#64748B;margin-top:3px;">
-                      ${escapeHtml(provinceLabel)}
-                    </div>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+    ${renderActionBox({
+      kicker: modeBadgeText,
+      title: `${partner.company_name} → ${leadFullName}`,
+      subtext: `${cityPostalLine || loc.city} · ${provinceLabel}`,
+      ctaLabel: "Ouvrir la fiche du lead →",
+      ctaUrl: adminLeadUrl,
+      secondaryLabel: "Voir les partenaires",
+      secondaryUrl: adminPartnersUrl,
+    })}
 
-          <!-- Lead Visual & Identity Card -->
-          <tr>
-            <td style="padding:0 28px 20px 28px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;background-color:#FFFFFF;">
-                ${
-                  roofImageUrl
-                    ? `<tr>
-                        <td style="padding:0;background-color:#0F172A;">
-                          <a href="${escapeHtml(adminLeadUrl)}" target="_blank" style="display:block;text-decoration:none;">
-                            <img src="${escapeHtml(roofImageUrl)}" alt="Photo du lead ${escapeHtml(leadFullName)}" width="564" style="width:100%;max-height:260px;object-fit:cover;object-position:center;display:block;border:0;" />
-                          </a>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding:7px 16px;background-color:#F1F5F9;border-bottom:1px solid #E2E8F0;font-size:11px;color:#475569;">
-                          Visuel toiture / façade du lead · <a href="${escapeHtml(adminLeadUrl)}" target="_blank" style="color:#2563EB;font-weight:600;text-decoration:underline;">Ouvrir le dossier</a>
-                        </td>
-                      </tr>`
-                    : `<tr>
-                        <td style="padding:10px 16px;background-color:#F8FAFC;border-bottom:1px solid #E2E8F0;font-size:12px;color:#64748B;">
-                          Aucun visuel toiture/façade enregistré sur ce dossier · <a href="${escapeHtml(adminLeadUrl)}" target="_blank" style="color:#2563EB;font-weight:600;text-decoration:underline;">Ajouter une image</a>
-                        </td>
-                      </tr>`
-                }
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 20px; width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding-top: 16px; border-top: 1px solid #e4edf1;">
+          <h2 style="margin: 0 0 10px 0; font-size: 18px; line-height: 1.25; font-weight: bold; color: #142d42;">
+            Dossier Lead (${escapeEmailHtml(lead.segment || "B2C")})
+          </h2>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width: 100%; border-collapse: collapse;">
+            <tr>
+              ${
+                roofImageUrl
+                  ? `<td class="photo-cell" width="40%" style="width: 40%; padding-right: 15px; vertical-align: top;">
+                      <img src="${escapeEmailHtml(roofImageUrl)}" alt="Photo du lead" width="220" style="display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 7px; border: 1px solid #e2eaf0;" />
+                      <p style="margin: 4px 0 0 0; font-size: 12px; color: #4d6374;">Photo du bâtiment</p>
+                    </td>`
+                  : ""
+              }
+              <td class="spec-cell" style="vertical-align: top;">
+                ${leadRowsHtml}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
 
-                <tr>
-                  <td style="padding:18px 20px;">
-                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#64748B;margin-bottom:4px;">
-                      Dossier Lead (${escapeHtml(lead.segment || "B2C")})
-                    </div>
-                    <div style="margin-bottom:10px;">
-                      <a href="${escapeHtml(adminLeadUrl)}" target="_blank" style="font-size:19px;font-weight:800;color:#0F172A;text-decoration:underline;">
-                        ${escapeHtml(leadHeadlineName)}
-                      </a>
-                      ${
-                        lead.company_vat
-                          ? `<span class="mono" style="display:inline-block;margin-left:8px;font-size:11px;color:#475569;background-color:#F1F5F9;border:1px solid #E2E8F0;padding:2px 7px;border-radius:4px;">TVA ${escapeHtml(lead.company_vat)}</span>`
-                          : ""
-                      }
-                    </div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 18px; width: 100%; background-color: #f0f5f8; border: 1px solid #e2eaf0; border-radius: 8px; border-collapse: separate; border-spacing: 0;">
+      <tr>
+        <td style="padding: 12px 15px;">
+          <h2 style="margin: 0 0 8px 0; font-size: 16px; line-height: 1.25; font-weight: bold; color: #142d42;">
+            Partenaire acquéreur &amp; transaction
+          </h2>
+          ${renderSpecsTable(partnerRows)}
+        </td>
+      </tr>
+    </table>
 
-                    <!-- Lead Details Table -->
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:13px;line-height:1.5;">
-                      <tr>
-                        <td width="34%" valign="top" style="padding:5px 8px 5px 0;color:#64748B;border-top:1px solid #F1F5F9;">Localité complète</td>
-                        <td valign="top" style="padding:5px 0;color:#0F172A;font-weight:600;border-top:1px solid #F1F5F9;">
-                          ${escapeHtml(fullLocality)}
-                          ${
-                            googleMapsUrl
-                              ? ` · <a href="${escapeHtml(googleMapsUrl)}" target="_blank" style="color:#2563EB;font-weight:600;text-decoration:underline;font-size:12px;">Maps &rarr;</a>`
-                              : ""
-                          }
-                        </td>
-                      </tr>
-                      <tr>
-                        <td valign="top" style="padding:5px 8px 5px 0;color:#64748B;border-top:1px solid #F1F5F9;">Téléphone &amp; E-mail</td>
-                        <td valign="top" style="padding:5px 0;color:#0F172A;border-top:1px solid #F1F5F9;">
-                          ${
-                            lead.phone
-                              ? `<a href="tel:${escapeHtml(lead.phone)}" class="mono" style="color:#0F172A;font-weight:700;text-decoration:underline;">${escapeHtml(lead.phone)}</a>`
-                              : `<span style="color:#94A3B8;">Tél. non renseigné</span>`
-                          }
-                          <span style="color:#CBD5E1;margin:0 6px;">|</span>
-                          ${
-                            lead.email
-                              ? `<a href="mailto:${escapeHtml(lead.email)}" style="color:#2563EB;text-decoration:underline;">${escapeHtml(lead.email)}</a>`
-                              : `<span style="color:#94A3B8;">E-mail manquant</span>`
-                          }
-                        </td>
-                      </tr>
-                      <tr>
-                        <td valign="top" style="padding:5px 8px 5px 0;color:#64748B;border-top:1px solid #F1F5F9;">Implantation</td>
-                        <td valign="top" style="padding:5px 0;color:#0F172A;border-top:1px solid #F1F5F9;">
-                          ${escapeHtml(implantationCombined)}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td valign="top" style="padding:5px 8px 5px 0;color:#64748B;border-top:1px solid #F1F5F9;">Dimensionnement</td>
-                        <td valign="top" class="mono" style="padding:5px 0;color:#0F172A;font-weight:600;border-top:1px solid #F1F5F9;">
-                          ${escapeHtml(dimensioningCombined)}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td valign="top" style="padding:5px 8px 5px 0;color:#64748B;border-top:1px solid #F1F5F9;">Facture &amp; GRD</td>
-                        <td valign="top" style="padding:5px 0;color:#0F172A;border-top:1px solid #F1F5F9;">
-                          <span class="mono" style="font-weight:600;">${escapeHtml(annualBillLabel)}</span> · ${escapeHtml(grdLabel)}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td valign="top" style="padding:5px 8px 5px 0;color:#64748B;border-top:1px solid #F1F5F9;">Délai &amp; Score</td>
-                        <td valign="top" style="padding:5px 0;color:#0F172A;border-top:1px solid #F1F5F9;">
-                          ${escapeHtml(timeframeLabel)} · <span class="mono" style="font-weight:700;">${escapeHtml(scoreLabel)}</span>
-                        </td>
-                      </tr>
-                    </table>
+    ${buyersHtml}
+  `
 
-                    <!-- Primary Action CTA -->
-                    <div style="margin-top:16px;padding-top:14px;border-top:1px solid #E2E8F0;">
-                      <table role="presentation" cellspacing="0" cellpadding="0">
-                        <tr>
-                          <td style="padding-right:12px;">
-                            <a href="${escapeHtml(adminLeadUrl)}" target="_blank" style="display:inline-block;background-color:#0F172A;color:#FFFFFF;font-size:13px;font-weight:700;text-decoration:none;padding:11px 18px;border-radius:8px;">
-                              Ouvrir la fiche du lead &rarr;
-                            </a>
-                          </td>
-                          <td>
-                            <a href="${escapeHtml(adminPartnersUrl)}" target="_blank" style="font-size:12px;font-weight:600;color:#475569;text-decoration:underline;">
-                              Voir les partenaires
-                            </a>
-                          </td>
-                        </tr>
-                      </table>
-                    </div>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          <!-- Partner & Payment Details -->
-          <tr>
-            <td style="padding:0 28px 20px 28px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;">
-                <tr>
-                  <td style="padding:16px 20px;">
-                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#64748B;margin-bottom:8px;">
-                      Partenaire acquéreur &amp; Détails transaction
-                    </div>
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:13px;line-height:1.55;">
-                      <tr>
-                        <td width="34%" style="padding:3px 8px 3px 0;color:#64748B;">Partenaire</td>
-                        <td style="padding:3px 0;color:#0F172A;font-weight:700;">
-                          ${escapeHtml(partner.company_name)}
-                          (<a href="mailto:${escapeHtml(partner.email)}" style="color:#2563EB;font-weight:500;text-decoration:underline;">${escapeHtml(partner.email)}</a>)
-                        </td>
-                      </tr>
-                      ${
-                        partner.phone
-                          ? `<tr>
-                              <td style="padding:3px 8px 3px 0;color:#64748B;">Téléphone partenaire</td>
-                              <td style="padding:3px 0;"><a href="tel:${escapeHtml(partner.phone)}" class="mono" style="color:#0F172A;font-weight:600;text-decoration:underline;">${escapeHtml(partner.phone)}</a></td>
-                            </tr>`
-                          : ""
-                      }
-                      ${
-                        isMollie
-                          ? `<tr>
-                              <td style="padding:3px 8px 3px 0;color:#64748B;">Montant HTVA / TVA</td>
-                              <td class="mono" style="padding:3px 0;color:#0F172A;">${escapeHtml(priceHtvaStr)} HTVA + ${escapeHtml(vatStr)} TVA (21%) = <strong>${escapeHtml(priceTtcStr)} TTC</strong></td>
-                            </tr>
-                            <tr>
-                              <td style="padding:3px 8px 3px 0;color:#64748B;">Paiement Mollie</td>
-                              <td class="mono" style="padding:3px 0;color:#0F172A;">${escapeHtml(paymentMethodLabel)} · ${escapeHtml(params.molliePaymentId || "—")}</td>
-                            </tr>`
-                          : `<tr>
-                              <td style="padding:3px 8px 3px 0;color:#64748B;">Crédits utilisés</td>
-                              <td class="mono" style="padding:3px 0;color:#0F172A;"><strong>${creditsSpent} crédits</strong>${params.creditsRemainingAfter != null ? ` (solde après achat : ${params.creditsRemainingAfter} cr.)` : ""}</td>
-                            </tr>`
-                      }
-                      <tr>
-                        <td style="padding:3px 8px 3px 0;color:#64748B;">Références</td>
-                        <td class="mono" style="padding:3px 0;font-size:11px;color:#475569;">
-                          Lead : ${escapeHtml(lead.id)}${params.purchaseId ? ` · Achat : ${escapeHtml(params.purchaseId)}` : ""}
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          ${
-            buyersList.length > 0
-              ? `<!-- Current Buyers History on this Lead -->
-          <tr>
-            <td style="padding:0 28px 22px 28px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#FFFFFF;border:1px solid #E2E8F0;border-radius:10px;">
-                <tr>
-                  <td style="padding:14px 20px;">
-                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#64748B;margin-bottom:8px;">
-                      Historique des attributions sur ce lead (${takenSlots} / ${maxSlots})
-                    </div>
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:12px;">
-                      ${buyersList
-                        .map(
-                          (b, idx) => `<tr>
-                            <td style="padding:4px 0;color:#0F172A;${idx > 0 ? "border-top:1px solid #F1F5F9;" : ""}">
-                              <span class="mono" style="color:#64748B;font-weight:700;margin-right:6px;">#${idx + 1}</span>
-                              <strong>${escapeHtml(b.companyName)}</strong>
-                              ${b.isTest ? `<span class="mono" style="margin-left:6px;font-size:10px;background:#FEF3C7;color:#92400E;padding:1px 5px;border-radius:4px;">TEST</span>` : ""}
-                              ${b.isCurrentBuyer ? `<span class="mono" style="margin-left:6px;font-size:10px;background:#ECFDF5;color:#047857;border:1px solid #A7F3D0;padding:1px 6px;border-radius:4px;">Nouvel achat</span>` : ""}
-                            </td>
-                            <td align="right" class="mono" style="padding:4px 0;color:#64748B;${idx > 0 ? "border-top:1px solid #F1F5F9;" : ""}">
-                              ${escapeHtml(b.purchasedAt ? formatDateTimeBrussels(b.purchasedAt) : dateLabel)}
-                            </td>
-                          </tr>`
-                        )
-                        .join("")}
-                    </table>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`
-              : ""
-          }
-
-          <!-- Footer -->
-          <tr>
-            <td style="padding:14px 28px 18px 28px;background-color:#F8FAFC;border-top:1px solid #E2E8F0;text-align:center;font-size:11px;color:#64748B;">
-              Aegis Solaire · Notification interne Ventes ·
-              <a href="${escapeHtml(adminLeadUrl)}" style="color:#2563EB;text-decoration:underline;">Fiche lead</a> ·
-              <a href="${escapeHtml(baseUrl)}/admin/finance" style="color:#2563EB;text-decoration:underline;">Finance</a>
-            </td>
-          </tr>
-
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`
+  const html = renderInstallerEmailShell({
+    subject,
+    preheader: `${leadHeadlineName} · ${fullLocality} · ${slotStatusLabel} · Partenaire : ${partner.company_name}`,
+    reference: `Dossier #${leadRefCode}`,
+    context: `Vente Lead · ${lead.segment || "B2C"} · ${dateLabel}`,
+    contextColor: modeAccentColor,
+    headline: `${partner.company_name} → ${leadFullName}`,
+    subtitle: `${fullLocality} · ${modeBadgeText}`,
+    statusPill: { text: slotStatusLabel, tone: slotTone },
+    bodyHtml,
+    logoHref: adminLeadUrl,
+    footerLinks: [
+      { label: "Fiche lead", href: adminLeadUrl },
+      { label: "Finance & Trésorerie", href: `${baseUrl}/admin/finance` },
+      { label: "Partenaires", href: adminPartnersUrl },
+    ],
+    footerLegalText: "Aegis Solaire · Notification interne Ventes",
+  })
 
   const resend = new Resend(apiKey)
   const { error } = await resend.emails.send({
@@ -720,10 +533,7 @@ export async function sendAdminCreditOrderNotification(
     ? `[Aegis Solaire - Trésorerie] Recharge reçue : ${params.partner.company_name} (+${params.credits} cr. · ${priceTtcStr} TTC)`
     : `[Aegis Solaire - Commandes] Commande virement : ${params.partner.company_name} (+${params.credits} cr. · ${priceTtcStr} TTC)`
 
-  const accentColor = isPaid ? "#059669" : "#D97706"
-  const badgeBg = isPaid ? "#ECFDF5" : "#FFFBEB"
-  const badgeBorder = isPaid ? "#A7F3D0" : "#FDE68A"
-  const badgeColor = isPaid ? "#047857" : "#B45309"
+  const accentColor = isPaid ? "#1d5d45" : "#89610e"
   const badgeLabel = isPaid ? "Paiement Mollie validé" : "En attente de virement"
 
   const text = [
@@ -748,119 +558,71 @@ export async function sendAdminCreditOrderNotification(
     .filter((l): l is string => l !== null)
     .join("\n")
 
-  const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="fr">
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="color-scheme" content="light" />
-  <meta name="supported-color-schemes" content="light" />
-  <title>${escapeHtml(subject)}</title>
-  <style type="text/css">
-    body { margin:0;padding:0;background-color:#F8FAFC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0F172A; }
-    .mono { font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace !important;font-variant-numeric:tabular-nums !important; }
-  </style>
-</head>
-<body style="margin:0;padding:0;background-color:#F8FAFC;color:#0F172A;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#F8FAFC;padding:24px 12px 36px 12px;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="600" style="width:600px;max-width:600px;background-color:#FFFFFF;border:1px solid #E2E8F0;border-top:4px solid ${accentColor};border-radius:14px;overflow:hidden;">
-          <tr>
-            <td style="padding:18px 28px;border-bottom:1px solid #E2E8F0;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                <tr>
-                  <td align="left" valign="middle">
-                    <img src="https://www.aegissolaire.com/logo.png" alt="Aegis Solaire" width="136" height="28" style="height:28px;width:auto;display:block;" />
-                  </td>
-                  <td align="right" valign="middle">
-                    <span class="mono" style="display:inline-block;background-color:${badgeBg};border:1px solid ${badgeBorder};color:${badgeColor};font-size:11px;font-weight:700;padding:4px 10px;border-radius:9999px;text-transform:uppercase;">
-                      ${escapeHtml(badgeLabel)}
-                    </span>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:24px 28px;">
-              <p class="mono" style="margin:0 0 6px 0;font-size:11px;font-weight:700;color:${accentColor};text-transform:uppercase;letter-spacing:0.06em;">
-                ${isPaid ? "Trésorerie Crédits" : "Commande Crédits"} · ${escapeHtml(dateLabel)}
-              </p>
-              <h1 style="margin:0 0 14px 0;font-size:20px;font-weight:800;color:#0F172A;line-height:1.3;">
-                ${escapeHtml(params.partner.company_name)} — ${escapeHtml(params.packName)} (+${params.credits} cr.)
-              </h1>
+  const orderSpecRows: EmailSpecRow[] = [
+    { label: "Partenaire", value: `${params.partner.company_name} (${params.partner.email})` },
+    { label: "Pack", value: `${params.packName} (${params.credits} crédits)` },
+    isPaid
+      ? {
+          label: "Transaction Mollie",
+          value: `${params.paymentMethod || "Bancontact"} · ${params.molliePaymentId || "—"}`,
+        }
+      : {
+          label: "Communication virement",
+          value: params.transferReference || "—",
+        },
+  ]
 
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;margin-bottom:18px;">
-                <tr>
-                  <td width="50%" style="padding:14px 16px;border-right:1px solid #E2E8F0;">
-                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#64748B;margin-bottom:3px;">Montant TTC</div>
-                    <div class="mono" style="font-size:20px;font-weight:800;color:#0F172A;">${escapeHtml(priceTtcStr)}</div>
-                    <div class="mono" style="font-size:11px;color:#64748B;">${escapeHtml(priceHtvaStr)} HTVA${vatStr ? ` · TVA ${escapeHtml(vatStr)}` : ""}</div>
-                  </td>
-                  <td width="50%" style="padding:14px 16px;">
-                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#64748B;margin-bottom:3px;">
-                      ${isPaid ? "Crédits activés" : "Crédits commandés"}
-                    </div>
-                    <div class="mono" style="font-size:20px;font-weight:800;color:${accentColor};">+${params.credits} cr.</div>
-                    <div class="mono" style="font-size:11px;color:#64748B;">
-                      ${isPaid && params.newCreditsBalance != null ? `Nouveau solde : ${params.newCreditsBalance} cr.` : `Réf : ${escapeHtml(params.transferReference || "—")}`}
-                    </div>
-                  </td>
-                </tr>
-              </table>
+  const html = renderInstallerEmailShell({
+    subject,
+    preheader: `${params.partner.company_name} · ${params.packName} (+${params.credits} cr.) · ${priceTtcStr} TTC.`,
+    reference: params.transferReference || (params.orderId ? `#${params.orderId.slice(0, 8).toUpperCase()}` : "Trésorerie"),
+    context: `${isPaid ? "Trésorerie Crédits" : "Commande Crédits"} · ${dateLabel}`,
+    contextColor: accentColor,
+    headline: `${params.partner.company_name} — +${params.credits} cr.`,
+    subtitle: `${params.packName} · ${priceTtcStr} TTC`,
+    statusPill: { text: badgeLabel, tone: isPaid ? "success" : "warning" },
+    logoHref: adminFinanceUrl,
+    bodyHtml: `
+      ${renderFiguresBox(
+        {
+          label: "Montant TTC",
+          value: priceTtcStr,
+          sublabel: `${priceHtvaStr} HTVA${vatStr ? ` · TVA ${vatStr}` : ""}`,
+        },
+        {
+          label: isPaid ? "Crédits activés" : "Crédits commandés",
+          value: `+${params.credits} cr.`,
+          sublabel:
+            isPaid && params.newCreditsBalance != null
+              ? `Nouveau solde · ${params.newCreditsBalance} cr.`
+              : `Réf · ${params.transferReference || "—"}`,
+        }
+      )}
 
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:13px;line-height:1.6;margin-bottom:18px;">
-                <tr>
-                  <td width="35%" style="padding:4px 0;color:#64748B;">Partenaire</td>
-                  <td style="padding:4px 0;font-weight:700;color:#0F172A;">
-                    ${escapeHtml(params.partner.company_name)} (<a href="mailto:${escapeHtml(params.partner.email)}" style="color:#2563EB;font-weight:500;text-decoration:underline;">${escapeHtml(params.partner.email)}</a>)
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:4px 0;color:#64748B;">Pack</td>
-                  <td style="padding:4px 0;color:#0F172A;">${escapeHtml(params.packName)} (${params.credits} crédits)</td>
-                </tr>
-                ${
-                  isPaid
-                    ? `<tr>
-                        <td style="padding:4px 0;color:#64748B;">Transaction Mollie</td>
-                        <td class="mono" style="padding:4px 0;color:#0F172A;">${escapeHtml(params.paymentMethod || "Bancontact")} · ${escapeHtml(params.molliePaymentId || "—")}</td>
-                      </tr>`
-                    : `<tr>
-                        <td style="padding:4px 0;color:#64748B;">Communication virement</td>
-                        <td class="mono" style="padding:4px 0;font-weight:700;color:#0F172A;">${escapeHtml(params.transferReference || "—")}</td>
-                      </tr>`
-                }
-              </table>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 16px; width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding-top: 14px; border-top: 1px solid #e4edf1;">
+            ${renderSpecsTable(orderSpecRows)}
+          </td>
+        </tr>
+      </table>
 
-              <table role="presentation" cellspacing="0" cellpadding="0">
-                <tr>
-                  <td style="padding-right:12px;">
-                    <a href="${escapeHtml(adminFinanceUrl)}" target="_blank" style="display:inline-block;background-color:#0F172A;color:#FFFFFF;font-size:13px;font-weight:700;text-decoration:none;padding:11px 18px;border-radius:8px;">
-                      Ouvrir Finance &amp; Trésorerie &rarr;
-                    </a>
-                  </td>
-                  <td>
-                    <a href="${escapeHtml(adminPartnersUrl)}" target="_blank" style="font-size:12px;font-weight:600;color:#475569;text-decoration:underline;">
-                      Voir les partenaires
-                    </a>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:12px 28px;background-color:#F8FAFC;border-top:1px solid #E2E8F0;text-align:center;font-size:11px;color:#64748B;">
-              Aegis Solaire · Notification interne Trésorerie
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`
+      ${renderActionBox({
+        kicker: isPaid ? "Comptabilisé automatiquement" : "Validation manuelle requise à réception",
+        title: `${params.packName} · ${priceTtcStr}`,
+        subtext: isPaid ? "Crédits disponibles immédiatement pour le partenaire." : "Validez dès réception du virement.",
+        ctaLabel: "Ouvrir Finance & Trésorerie →",
+        ctaUrl: adminFinanceUrl,
+        secondaryLabel: "Voir les partenaires",
+        secondaryUrl: adminPartnersUrl,
+      })}
+    `,
+    footerLinks: [
+      { label: "Finance & Trésorerie", href: adminFinanceUrl },
+      { label: "Partenaires", href: adminPartnersUrl },
+    ],
+    footerLegalText: "Aegis Solaire · Notification interne Trésorerie",
+  })
 
   const resend = new Resend(apiKey)
   const { error } = await resend.emails.send({

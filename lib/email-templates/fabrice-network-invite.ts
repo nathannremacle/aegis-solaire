@@ -4,6 +4,13 @@
  * Posture : Tiers de confiance technique -> proposition de chantiers qualifiés sans guerre des prix.
  */
 
+import {
+  escapeEmailHtml,
+  renderActionBox,
+  renderCalloutBox,
+  renderInstallerEmailShell,
+} from "@/lib/email-templates/installer-email-layout"
+
 export interface PartnerInviteData {
   installerName: string
   companyName?: string
@@ -177,155 +184,73 @@ export function buildPartnerWhatsAppMessage(data: PartnerInviteData): string {
 }
 
 /**
- * Rendu HTML professionnel formaté Fintech Slate & Solar Trust avec logo officiel contrasté sur fond blanc
+ * Rendu HTML unifié Aegis Solaire (carte 640 px, logo 132×72 sans déformation, compatibilité Gmail/Outlook).
  */
 export function renderPartnerInviteHtml(data: PartnerInviteData, customBodyText?: string): string {
-  const baseUrl = getSiteBaseUrl()
-  const logoUrl = `${baseUrl}/logo.png`
   const subject = buildPartnerInviteSubject(data)
-
   const rawText = customBodyText?.trim() || buildPartnerInvitePlainText(data)
-  
+  const showCredits = data.includeCreditsText !== false && data.freeCredits > 0
+  const creditsCount = data.freeCredits > 0 ? data.freeCredits : 3
+
   // Formatage des paragraphes pour le HTML
   const formattedParagraphs = rawText
     .split(/\n\n+/)
     .map((p) => {
       const cleanP = escapeHtml(p.trim())
-      // Détection des listes à puces 1. 2. 3.
       if (cleanP.includes("1.") && cleanP.includes("2.")) {
         const items = cleanP
           .split(/\n/)
           .map((item) => `<li style="margin-bottom: 6px; line-height: 1.5;">${item.replace(/^[0-9]+\.\s*/, "")}</li>`)
           .join("")
-        return `<ol style="margin: 14px 0 16px 20px; padding: 0; color: #0F172A; font-size: 14px;">${items}</ol>`
+        return `<ol style="margin: 14px 0 16px 20px; padding: 0; color: #142d42; font-size: 14px;">${items}</ol>`
       }
-      // Remplacement du lien brut par un bouton/lien stylisé s'il est isolé
       if (cleanP === escapeHtml(data.inviteUrl)) {
-        return `
-          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 20px 0;">
-            <tr>
-              <td align="left">
-                <table border="0" cellspacing="0" cellpadding="0">
-                  <tr>
-                    <td align="center" style="background-color: #2563EB; border-radius: 8px; padding: 13px 26px;">
-                      <a href="${data.inviteUrl}" target="_blank" style="font-size: 14px; font-weight: 700; color: #FFFFFF; text-decoration: none; display: inline-block; letter-spacing: 0.02em;">
-                        Activer mon accès privilégié &rarr;
-                      </a>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-          </table>
-        `
+        return renderActionBox({
+          kicker: showCredits
+            ? `${creditsCount} crédits d'accueil offerts`
+            : "Accès réseau partenaires Wallonie",
+          title: data.companyName?.trim() || "Invitation installateur agréé",
+          subtext: "Sans abonnement · Zéro commission",
+          ctaLabel: "Activer mon accès privilégié →",
+          ctaUrl: data.inviteUrl,
+        })
       }
-      return `<p style="margin: 0 0 14px 0; font-size: 14px; line-height: 1.65; color: #0F172A;">${cleanP.replace(/\n/g, "<br />")}</p>`
+      return `<p style="margin: 14px 0 0 0; font-size: 15px; line-height: 1.55; color: #142d42;">${cleanP.replace(/\n/g, "<br />")}</p>`
     })
     .join("")
 
-  return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="fr">
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${escapeHtml(subject)}</title>
-  <style type="text/css">
-    body { margin: 0; padding: 0; background-color: #F8FAFC; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-    table { border-collapse: collapse; }
-    img { border: 0; outline: none; text-decoration: none; }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important; font-variant-numeric: tabular-nums !important; }
-    @media only screen and (max-width: 600px) {
-      .container { width: 100% !important; padding: 12px !important; }
-    }
-  </style>
-</head>
-<body style="margin: 0; padding: 0; background-color: #F8FAFC; color: #0F172A;">
+  const bodyHtml = `
+    ${formattedParagraphs}
 
-  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #F8FAFC;">
-    <tr>
-      <td align="center" style="padding: 24px 12px 40px 12px;">
+    ${renderCalloutBox({
+      label: "Engagement qualité Aegis Solaire",
+      value:
+        "Réseau dédié aux installateurs certifiés RESCERT en Wallonie : maximum 3 artisans en résidentiel, exclusivité totale en B2B.",
+      tone: "info",
+    })}
 
-        <!-- Main Wrapper (600px) -->
-        <table class="container" width="600" border="0" cellspacing="0" cellpadding="0" style="width: 600px; max-width: 600px; background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #2563EB; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px -4px rgba(15, 23, 42, 0.06);">
-          
-          <!-- Header Blanc Pur avec logo contrasté -->
-          <tr>
-            <td style="background-color: #FFFFFF; padding: 20px 24px; border-bottom: 1px solid #E2E8F0;">
-              <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                <tr>
-                  <td align="left" valign="middle">
-                    <img src="${logoUrl}" alt="Aegis Solaire" height="34" style="display: block; max-height: 34px; width: auto;" />
-                  </td>
-                  <td align="right" valign="middle" class="mono" style="font-family: ui-monospace, monospace; font-size: 11px; color: #0F172A; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700;">
-                    Réseau Partenaires · Wallonie
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+    <p style="margin: 16px 0 0 0; font-size: 13px; color: #4d6374;">
+      <strong style="color: #142d42;">La Direction des Partenariats Aegis Solaire</strong> &middot;
+      <a href="mailto:contact@aegissolaire.com" style="color: #194767; text-decoration: underline;">contact@aegissolaire.com</a>
+    </p>
+  `
 
-          <!-- Eyebrow Bar Privée -->
-          <tr>
-            <td style="background-color: #F1F5F9; padding: 9px 24px; border-bottom: 1px solid #E2E8F0;">
-              <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                <tr>
-                  <td align="left" class="mono" style="font-family: ui-monospace, monospace; font-size: 11px; font-weight: 600; color: #2563EB; text-transform: uppercase; letter-spacing: 0.05em;">
-                    INVITATION PROFESSIONNELLE · DIRECTION DES PARTENARIATS
-                  </td>
-                  <td align="right" class="mono" style="font-family: ui-monospace, monospace; font-size: 11px; color: #64748B;">
-                    ${escapeHtml(data.companyName || "Artisan Qualifié")}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          <!-- Contenu du message -->
-          <tr>
-            <td style="padding: 28px 24px 20px 24px;">
-              ${formattedParagraphs}
-
-              <!-- Encadré réassurance réseau -->
-              <div style="margin-top: 24px; padding: 14px 18px; background-color: #F8FAFC; border-left: 3px solid #2563EB; border-radius: 6px;">
-                <p style="margin: 0; font-size: 12px; color: #475569; line-height: 1.5;">
-                  <strong>Engagement qualité :</strong> Aegis Solaire est une initiative gérée en direct depuis la région liégeoise, dédiée exclusivement aux artisans RESCERT et entreprises d'installation en Wallonie.
-                </p>
-              </div>
-
-              <!-- Signature Direction des Partenariats -->
-              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top: 28px; border-top: 1px solid #E2E8F0; padding-top: 18px;">
-                <tr>
-                  <td align="left" valign="middle">
-                    <p style="margin: 0; font-size: 14px; font-weight: 700; color: #0F172A;">
-                      La Direction des Partenariats Aegis Solaire
-                    </p>
-                    <p style="margin: 2px 0 0 0; font-size: 12px; color: #64748B;">
-                      Aegis Solaire · Réseau Professionnel Photovoltaïque Wallon
-                    </p>
-                    <p style="margin: 2px 0 0 0; font-size: 12px; color: #64748B;" class="mono">
-                      Email : contact@aegissolaire.com · Liège, Belgique
-                    </p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          <!-- Footer institutionnel légal -->
-          <tr>
-            <td style="background-color: #F8FAFC; padding: 14px 24px; border-top: 1px solid #E2E8F0; text-align: center;">
-              <p style="margin: 0; font-size: 11px; color: #64748B;" class="mono">
-                Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
-              </p>
-            </td>
-          </tr>
-
-        </table>
-
-      </td>
-    </tr>
-  </table>
-
-</body>
-</html>`.trim()
+  return renderInstallerEmailShell({
+    subject,
+    preheader: showCredits
+      ? `${creditsCount} crédits d'accueil offerts pour découvrir les dossiers solaires qualifiés en Wallonie.`
+      : "Invitation à rejoindre le réseau d'installateurs photovoltaïques certifiés en Wallonie.",
+    reference: data.companyName?.trim() || "Réseau Partenaires",
+    context: "Direction des Partenariats · Wallonie",
+    headline: "Chantiers solaires qualifiés en Wallonie",
+    subtitle: "Sans abonnement · Zéro commission · Accès sélectif",
+    statusPill: showCredits
+      ? { text: `${creditsCount} crédits d'accueil offerts · 1er dossier B2C`, tone: "success" }
+      : { text: "Invitation réseau partenaires", tone: "info" },
+    bodyHtml,
+    footerLinks: [
+      { label: "Assistance technique", href: "mailto:contact@aegissolaire.com" },
+      { label: "Activer mon accès", href: data.inviteUrl },
+    ],
+  })
 }
