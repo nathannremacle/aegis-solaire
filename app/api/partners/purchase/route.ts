@@ -2,6 +2,10 @@ import { NextResponse } from "next/server"
 import { getPartner } from "@/lib/partner-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { isShowcaseOnlyLeadId } from "@/lib/regional-leads-catalog"
+import {
+  sendAdminLeadSaleNotification,
+  type LeadSaleBuyerSummary,
+} from "@/lib/admin-sales-emails"
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -99,7 +103,7 @@ export async function POST(request: Request) {
   const { data: lead } = await admin
     .from("leads")
     .select(
-      "id, first_name, last_name, email, phone, company, company_vat, province, postal_code, city, site_address, segment, surface_type, surface_area, annual_electricity_bill, grd, project_details, message"
+      "id, first_name, last_name, email, phone, company, company_vat, province, postal_code, city, site_address, segment, surface_type, surface_area, estimated_power_kwc, annual_electricity_bill, roof_material, project_timeline, lead_score, grd, project_details, message, qualification_metadata, created_at"
     )
     .eq("id", leadId)
     .single()
@@ -121,12 +125,62 @@ export async function POST(request: Request) {
     }
   }
 
+  const creditsSpent = (result?.credits_spent as number) ?? (result?.creditsSpent as number)
+  const creditsRemaining =
+    (result?.remaining_credits as number) ??
+    (result?.creditsRemaining as number) ??
+    (result?.credits_remaining as number)
+
+  if (lead) {
+    try {
+      const { data: allLeadPurchases } = await admin
+        .from("lead_purchases")
+        .select("id, partner_id, purchased_at, partners(id, company_name, is_test)")
+        .eq("lead_id", leadId)
+        .order("purchased_at", { ascending: true })
+
+      const buyers: LeadSaleBuyerSummary[] = (allLeadPurchases || []).map((row: any) => {
+        const pRel = Array.isArray(row.partners) ? row.partners[0] : row.partners
+        return {
+          partnerId: row.partner_id,
+          companyName: pRel?.company_name || "Partenaire",
+          purchasedAt: row.purchased_at,
+          isTest: Boolean(pRel?.is_test),
+          isCurrentBuyer: row.partner_id === partner.id,
+        }
+      })
+
+      const maxSlots = lead.segment === "B2B" ? 1 : 3
+      const takenSlots = buyers.length > 0 ? buyers.length : 1
+
+      await sendAdminLeadSaleNotification({
+        mode: "credits",
+        purchaseId,
+        partner: {
+          id: partner.id,
+          company_name: partner.company_name,
+          email: partner.email,
+          phone: partner.phone,
+          credits: creditsRemaining ?? partner.credits,
+        },
+        lead,
+        creditsSpent: Number(creditsSpent ?? (lead.segment === "B2B" ? 9 : 3)),
+        creditsRemainingAfter: creditsRemaining ?? null,
+        takenSlots,
+        maxSlots,
+        buyers,
+      })
+    } catch (emailErr) {
+      console.warn("[purchase] Admin sales notification warning:", emailErr)
+    }
+  }
+
   return NextResponse.json({
     success: true,
     purchaseId,
     purchase_id: purchaseId,
-    creditsSpent: (result?.credits_spent as number) ?? (result?.creditsSpent as number),
-    creditsRemaining: (result?.remaining_credits as number) ?? (result?.creditsRemaining as number) ?? (result?.credits_remaining as number),
+    creditsSpent,
+    creditsRemaining,
     lead,
   })
 }

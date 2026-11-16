@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto"
 import { NextResponse } from "next/server"
 import { getPartner } from "@/lib/partner-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
-import { Resend } from "resend"
+import { sendAdminCreditOrderNotification } from "@/lib/admin-sales-emails"
 
 export const dynamic = "force-dynamic"
 
@@ -59,20 +59,24 @@ export async function POST(request: Request) {
   }
 
   // Notification admin par email (si configuré)
-  const resendApiKey = process.env.RESEND_API_KEY
-  if (resendApiKey) {
-    try {
-      const resend = new Resend(resendApiKey)
-      const adminEmail = process.env.ADMIN_ALERT_EMAIL || "contact@aegissolaire.com"
-      await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com",
-        to: adminEmail,
-        subject: `[Aegis Solaire] Nouvelle commande de crédits : ${partner.company_name} (${pack.credits} crédits)`,
-        text: `Nouvelle commande de crédits partenaires :\n\n- Entreprise : ${partner.company_name}\n- Email : ${partner.email}\n- Pack : ${pack.name} (${pack.credits} crédits)\n- Montant HTVA : ${financials.priceHtva.toFixed(2)} €\n- Montant TTC (21%) : ${financials.priceTtc.toFixed(2)} €\n- Référence virement : ${transferReference}\n\nActiver les crédits dans le panel admin une fois le virement reçu sur le compte INIT42 (BE84 0020 3534 7259).`,
-      })
-    } catch (e) {
-      console.error("[Credit Order Email] Erreur notification admin:", e)
-    }
+  try {
+    await sendAdminCreditOrderNotification({
+      mode: "bank_transfer_pending",
+      partner: {
+        id: partner.id,
+        company_name: partner.company_name,
+        email: partner.email,
+        phone: partner.phone,
+      },
+      packName: pack.name,
+      credits: pack.credits,
+      priceHtva: financials.priceHtva,
+      vatAmount: financials.vatAmount,
+      priceTtc: financials.priceTtc,
+      transferReference,
+    })
+  } catch (e) {
+    console.error("[Credit Order Email] Erreur notification admin:", e)
   }
 
   return NextResponse.json({

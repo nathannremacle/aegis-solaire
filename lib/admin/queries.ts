@@ -1,6 +1,12 @@
 import { cache } from "react"
 import { unstable_cache } from "next/cache"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
+import {
+  computeLeadPurchaseFinancials,
+  formatLeadPurchaseLabel,
+  isTestPartnerAccount,
+  type AdminPartnerPurchaseSummary,
+} from "@/lib/admin/partner-purchases"
 
 export type AdminDashboardData = {
   generated_at: string
@@ -334,3 +340,167 @@ export const getAdminDashboardData = cache(async (options?: { fresh?: boolean })
   }
   return await getAdminKpisCached()
 })
+
+/**
+ * Agrège l'historique complet des achats de leads par installateur pour le dashboard admin.
+ * Exécuté en live sans Full-Table Scan sur `leads` (jointure ciblée sur `lead_purchases`).
+ */
+export const getAdminPartnersPurchaseSummaries = cache(
+  async (): Promise<AdminPartnerPurchaseSummary[]> => {
+    const supabase = createServiceRoleClient()
+
+    const [partnersRes, purchasesRes, mollieAuditRes, disputesRes] = await Promise.all([
+      supabase
+        .from("partners")
+        .select("id, company_name, email, phone, credits, segment, target_provinces, created_at, is_test")
+        .order("created_at", { ascending: false }),
+
+      (async () => {
+        const res = await supabase
+          .from("lead_purchases")
+          .select(
+            "id, partner_id, lead_id, credits_spent, purchased_at, notes, lead:leads(id, first_name, last_name, company, segment, province, city, pricing_version)"
+          )
+          .order("purchased_at", { ascending: false })
+          .limit(5000)
+
+        if (!res.error) return res
+
+        return supabase
+          .from("lead_purchases")
+          .select(
+            "id, partner_id, lead_id, credits_spent, purchased_at, notes, lead:leads(id, first_name, last_name, company, segment, province, city)"
+          )
+          .order("purchased_at", { ascending: false })
+          .limit(5000)
+      })(),
+
+      supabase
+        .from("audit_log")
+        .select("entity_id, details")
+        .eq("entity_type", "lead_purchase")
+        .eq("action", "lead_direct_paid_mollie")
+        .limit(2000),
+
+      supabase
+        .from("lead_disputes")
+        .select("purchase_id, status")
+        .eq("status", "approved"),
+    ])
+
+    const partners = partnersRes.data ?? []
+    const purchases = (purchasesRes.data ?? []) as any[]
+
+    const mollieByPurchaseId = new Map<string, Record<string, unknown>>()
+    for (const a of mollieAuditRes.data ?? []) {
+      if (a.entity_id && a.details && typeof a.details === "object") {
+        mollieByPurchaseId.set(a.entity_id, a.details as Record<string, unknown>)
+      }
+    }
+
+    const refundedPurchaseIds = new Set<string>(
+      (disputesRes.data ?? []).map((d: any) => d.purchase_id).filter(Boolean)
+    )
+
+    const purchasesByPartner = new Map<string, any[]>()
+    for (const lp of purchases) {
+      if (!lp.partner_id) continue
+      const arr = purchasesByPartner.get(lp.partner_id)
+      if (arr) arr.push(lp)
+      else purchasesByPartner.set(lp.partner_id, [lp])
+    }
+
+    const summaries: AdminPartnerPurchaseSummary[] = partners.map((p: any) => {
+      const partnerPurchases = purchasesByPartner.get(p.id) ?? []
+
+      let totalCreditsSpent = 0
+      let totalEurosHtva = 0
+      let totalEurosTtc = 0
+      let refundedLeadsCount = 0
+
+      for (const lp of partnerPurchases) {
+        const rawLead = Array.isArray(lp.lead) ? lp.lead[0] : lp.lead
+        const fin = computeLeadPurchaseFinancials({
+          creditsSpent: lp.credits_spent,
+          notes: lp.notes,
+          purchasedAt: lp.purchased_at,
+          leadPricingVersion: rawLead?.pricing_version ?? null,
+          mollieAuditDetails: mollieByPurchaseId.get(lp.id) ?? null,
+        })
+        totalCreditsSpent += Number(lp.credits_spent ?? 0)
+        totalEurosHtva += fin.amountHtva
+        totalEurosTtc += fin.amountTtc
+        if (refundedPurchaseIds.has(lp.id)) {
+          refundedLeadsCount += 1
+        }
+      }
+
+      const newest = partnerPurchases[0] ?? null
+      const oldest = partnerPurchases[partnerPurchases.length - 1] ?? null
+      const newestLead = newest
+        ? Array.isArray(newest.lead)
+          ? newest.lead[0]
+          : newest.lead
+        : null
+      const newestFin = newest
+        ? computeLeadPurchaseFinancials({
+            creditsSpent: newest.credits_spent,
+            notes: newest.notes,
+            purchasedAt: newest.purchased_at,
+            leadPricingVersion: newestLead?.pricing_version ?? null,
+            mollieAuditDetails: mollieByPurchaseId.get(newest.id) ?? null,
+          })
+        : null
+
+      return {
+        id: p.id,
+        company_name: p.company_name,
+        email: p.email,
+        phone: p.phone ?? null,
+        credits: Number(p.credits ?? 0),
+        segment: p.segment ?? null,
+        target_provinces: p.target_provinces ?? null,
+        created_at: p.created_at,
+        is_test: isTestPartnerAccount(p),
+        leads_purchased_count: partnerPurchases.length,
+        active_leads_count: partnerPurchases.length - refundedLeadsCount,
+        refunded_leads_count: refundedLeadsCount,
+        total_credits_spent: totalCreditsSpent,
+        total_euros_htva: Number(totalEurosHtva.toFixed(2)),
+        total_euros_ttc: Number(totalEurosTtc.toFixed(2)),
+        first_purchase_at: oldest?.purchased_at ?? null,
+        last_purchase_at: newest?.purchased_at ?? null,
+        last_purchase: newest && newestFin
+          ? {
+              purchase_id: newest.id,
+              lead_id: newest.lead_id,
+              lead_label: formatLeadPurchaseLabel(newestLead),
+              segment: newestLead?.segment ?? null,
+              province: newestLead?.province ?? null,
+              city: newestLead?.city ?? null,
+              purchased_at: newest.purchased_at,
+              credits_spent: Number(newest.credits_spent ?? 0),
+              amount_htva: newestFin.amountHtva,
+              amount_ttc: newestFin.amountTtc,
+              payment_mode: newestFin.paymentMode,
+            }
+          : null,
+      }
+    })
+
+    // Trier par dernier achat le plus récent, puis par volume de leads achetés, puis par solde crédits
+    summaries.sort((a, b) => {
+      if (a.last_purchase_at && b.last_purchase_at) {
+        return b.last_purchase_at.localeCompare(a.last_purchase_at)
+      }
+      if (a.last_purchase_at) return -1
+      if (b.last_purchase_at) return 1
+      if (b.leads_purchased_count !== a.leads_purchased_count) {
+        return b.leads_purchased_count - a.leads_purchased_count
+      }
+      return b.credits - a.credits
+    })
+
+    return summaries
+  }
+)

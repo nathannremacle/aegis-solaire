@@ -2,6 +2,11 @@ import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { Resend } from "resend"
 import type { Payment } from "@mollie/api-client"
 import { isShowcaseOnlyLeadId } from "@/lib/regional-leads-catalog"
+import {
+  sendAdminCreditOrderNotification,
+  sendAdminLeadSaleNotification,
+  type LeadSaleBuyerSummary,
+} from "@/lib/admin-sales-emails"
 
 export interface FulfillmentResult {
   success: boolean
@@ -95,20 +100,26 @@ export async function fulfillPaidCreditOrder(
   }
 
   // 7. Notification d'alerte pour l'administrateur
-  const adminEmail = process.env.ADMIN_ALERT_EMAIL || "contact@aegissolaire.com"
-  if (process.env.RESEND_API_KEY) {
-    try {
-      const resend = new Resend(process.env.RESEND_API_KEY)
-      const fromEmail = process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com"
-      await resend.emails.send({
-        from: fromEmail,
-        to: adminEmail,
-        subject: `[Aegis Solaire - Trésorerie] Recharge automatique reçue : ${order.partners?.company_name} (+${order.credits} crédits)`,
-        text: `Recharge automatique réussie par Mollie (${payment.method || "Bancontact"}) :\n\n- Entreprise : ${order.partners?.company_name}\n- Pack : ${order.pack_name} (${order.credits} crédits)\n- Montant TTC : ${order.price_ttc} €\n- Identifiant Mollie : ${payment.id}\n- Nouveau solde installateur : ${newCredits} crédits\n\nLes crédits ont été alloués instantanément sans action manuelle requise.`,
-      })
-    } catch {
-      /* silent */
-    }
+  try {
+    await sendAdminCreditOrderNotification({
+      mode: "mollie_paid",
+      orderId: order.id,
+      partner: {
+        id: order.partners?.id ?? order.partner_id,
+        company_name: order.partners?.company_name || "Partenaire",
+        email: order.partners?.email || "",
+      },
+      packName: order.pack_name,
+      credits: Number(order.credits || 0),
+      newCreditsBalance: newCredits,
+      priceHtva: order.price_htva ?? 0,
+      vatAmount: order.vat_amount ?? 0,
+      priceTtc: order.price_ttc ?? 0,
+      paymentMethod: payment.method || "Bancontact",
+      molliePaymentId: payment.id,
+    })
+  } catch {
+    /* silent */
   }
 
   return {
@@ -179,7 +190,9 @@ export async function fulfillPaidLeadDirectPurchase(
   // 3. Récupérer les informations du lead
   const { data: lead, error: leadErr } = await supabase
     .from("leads")
-    .select("id, segment, marketplace_status, credit_cost, province, city, postal_code, site_address, surface_type, surface_area, annual_electricity_bill, grd, project_details, message, first_name, last_name, email, phone, company, company_vat")
+    .select(
+      "id, segment, marketplace_status, credit_cost, province, city, postal_code, site_address, surface_type, surface_area, estimated_power_kwc, annual_electricity_bill, roof_material, project_timeline, lead_score, grd, project_details, message, first_name, last_name, email, phone, company, company_vat, qualification_metadata, created_at"
+    )
     .eq("id", leadId)
     .single()
 
@@ -284,21 +297,50 @@ export async function fulfillPaidLeadDirectPurchase(
     }
   }
 
-  // 9. Notification administrateur
-  const adminEmail = process.env.ADMIN_ALERT_EMAIL || "contact@aegissolaire.com"
-  if (process.env.RESEND_API_KEY) {
-    try {
-      const resend = new Resend(process.env.RESEND_API_KEY)
-      const fromEmail = process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com"
-      await resend.emails.send({
-        from: fromEmail,
-        to: adminEmail,
-        subject: `[Aegis Solaire - Ventes] Achat direct lead : ${partner.company_name} (${priceTtc} € TTC)`,
-        text: `Nouveau déblocage direct par lead en euros via Mollie (${payment.method || "Bancontact"}) :\n\n- Partenaire : ${partner.company_name} (${partner.email})\n- Dossier ID : ${lead.id} (${lead.segment} - ${lead.province || "Wallonie"})\n- Montant HTVA : ${priceHtva} €\n- Montant TTC : ${priceTtc} €\n- Transaction Mollie : ${payment.id}\n\nLe dossier a été immédiatement assigné dans le CRM du partenaire.`,
-      })
-    } catch {
-      /* silent */
-    }
+  // 9. Notification administrateur enrichie (nom du lead & lien, places restantes, localité, image, etc.)
+  try {
+    const { data: allLeadPurchases } = await supabase
+      .from("lead_purchases")
+      .select("id, partner_id, purchased_at, partners(id, company_name, is_test)")
+      .eq("lead_id", leadId)
+      .order("purchased_at", { ascending: true })
+
+    const buyers: LeadSaleBuyerSummary[] = (allLeadPurchases || []).map((row: any) => {
+      const pRel = Array.isArray(row.partners) ? row.partners[0] : row.partners
+      return {
+        partnerId: row.partner_id,
+        companyName: pRel?.company_name || "Partenaire",
+        purchasedAt: row.purchased_at,
+        isTest: Boolean(pRel?.is_test),
+        isCurrentBuyer: row.partner_id === partner.id,
+      }
+    })
+
+    const effectiveTaken = buyers.length > 0 ? buyers.length : currentTaken + 1
+
+    await sendAdminLeadSaleNotification({
+      mode: "direct_mollie",
+      purchaseId: purchase.id,
+      partner: {
+        id: partner.id,
+        company_name: partner.company_name,
+        email: partner.email,
+        phone: partner.phone,
+        credits: partner.credits,
+      },
+      lead,
+      priceHtva,
+      vatAmount,
+      priceTtc,
+      paymentMethod: payment.method || "Bancontact",
+      molliePaymentId: payment.id,
+      creditsSpent: creditsEquivalent,
+      takenSlots: effectiveTaken,
+      maxSlots,
+      buyers,
+    })
+  } catch (adminEmailErr) {
+    console.warn("[Mollie Lead Fulfillment] Notification admin échouée:", adminEmailErr)
   }
 
   return {

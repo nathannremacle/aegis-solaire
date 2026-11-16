@@ -48,6 +48,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AdminNetworkInviteHub } from "@/components/admin/admin-network-invite-hub"
+import { PartnerPurchasesDialog } from "@/components/admin/partner-purchases-dialog"
 import type { PartnerTelemetryAnalytics } from "@/lib/partner-telemetry"
 
 /* ═══════════════════════════════════════════════════════
@@ -95,6 +96,7 @@ type Partner = {
     leadsPurchased: number
     creditsSpent: number
     creditsTopupped: number
+    lastPurchaseAt?: string | null
   }
   telemetry?: PartnerTelemetryStats
 }
@@ -156,8 +158,7 @@ export default function AdminPartnersPage() {
 
   // Modale des achats de leads
   const [purchasesModalPartner, setPurchasesModalPartner] = useState<Partner | null>(null)
-  const [purchasesData, setPurchasesData] = useState<any[]>([])
-  const [loadingPurchases, setLoadingPurchases] = useState(false)
+  const [deepLinkHandled, setDeepLinkHandled] = useState(false)
 
   // Charger les partenaires
   const loadPartners = async () => {
@@ -196,6 +197,19 @@ export default function AdminPartnersPage() {
     loadPartners()
     loadTelemetry(false)
   }, [])
+
+  useEffect(() => {
+    if (deepLinkHandled || partners.length === 0 || typeof window === "undefined") return
+    const params = new URLSearchParams(window.location.search)
+    const partnerId = params.get("partnerId")
+    if (partnerId) {
+      const target = partners.find((p) => p.id === partnerId)
+      if (target) {
+        setPurchasesModalPartner(target)
+      }
+      setDeepLinkHandled(true)
+    }
+  }, [partners, deepLinkHandled])
 
   // Attribution manuelle de crédits
   async function handleAddCredits() {
@@ -237,22 +251,8 @@ export default function AdminPartnersPage() {
   }
 
   // Consulter les achats d'un partenaire
-  async function openPurchases(partner: Partner) {
+  function openPurchases(partner: Partner) {
     setPurchasesModalPartner(partner)
-    setLoadingPurchases(true)
-    setPurchasesData([])
-
-    try {
-      const res = await fetch(`/api/admin/partners/${partner.id}/purchases`, {
-        headers: { "x-admin-request": "true" },
-      })
-      const data = await res.json()
-      setPurchasesData(Array.isArray(data) ? data : [])
-    } catch {
-      toast.error("Impossible de charger l'historique des achats")
-    } finally {
-      setLoadingPurchases(false)
-    }
   }
 
   async function openPartnerActivity(partner: Partner) {
@@ -1137,9 +1137,14 @@ export default function AdminPartnersPage() {
                       <TableCell>
                         <div className="flex flex-col gap-0.5">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-foreground">
+                            <button
+                              type="button"
+                              onClick={() => openPurchases(partner)}
+                              className="font-medium text-foreground hover:text-accent hover:underline text-left cursor-pointer"
+                              title="Voir tous les leads achetés par cet installateur"
+                            >
                               {partner.company_name}
-                            </span>
+                            </button>
                             {partner.company_name.toLowerCase().includes("high tech") && (
                               <span className="text-[11px] text-muted-foreground font-normal">
                                 (alias Aitex Solar)
@@ -1231,12 +1236,30 @@ export default function AdminPartnersPage() {
 
                       {/* Leads Achetés */}
                       <TableCell className="text-right font-mono tabular-nums">
-                        <span className="font-semibold text-foreground">
-                          {partner.stats.leadsPurchased}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground block">
-                          ({partner.stats.creditsSpent} cr. dépensés)
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => openPurchases(partner)}
+                          className="text-right hover:text-accent transition-colors cursor-pointer group"
+                          title="Voir le détail de tous les leads achetés"
+                        >
+                          <span className="font-semibold text-foreground group-hover:text-accent group-hover:underline">
+                            {partner.stats.leadsPurchased}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground block">
+                            ({partner.stats.creditsSpent} cr. dépensés)
+                          </span>
+                          {partner.stats.lastPurchaseAt && (
+                            <span className="text-[10px] text-muted-foreground block">
+                              Dernier :{" "}
+                              {new Date(partner.stats.lastPurchaseAt).toLocaleString("fr-BE", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          )}
+                        </button>
                       </TableCell>
 
                       {/* Activité & Temps d'étude */}
@@ -1400,88 +1423,11 @@ export default function AdminPartnersPage() {
       </Dialog>
 
       {/* Dialogue d'Historique des Achats de Leads */}
-      <Dialog
+      <PartnerPurchasesDialog
+        partner={purchasesModalPartner}
         open={Boolean(purchasesModalPartner)}
         onOpenChange={(open) => !open && setPurchasesModalPartner(null)}
-      >
-        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5 text-primary" />
-              <span>Historique des leads débloqués</span>
-            </DialogTitle>
-            <DialogDescription>
-              Leads acquis par {purchasesModalPartner?.company_name} sur la marketplace.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="overflow-y-auto flex-1 my-2">
-            {loadingPurchases ? (
-              <div className="p-8 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
-                <RefreshCw className="h-4 w-4 animate-spin text-primary" />
-                <span>Chargement des achats…</span>
-              </div>
-            ) : purchasesData.length === 0 ? (
-              <div className="p-8 text-center text-xs text-muted-foreground italic">
-                Aucun lead n&apos;a encore été acheté par ce partenaire.
-              </div>
-            ) : (
-              <Table className="text-xs">
-                <TableHeader>
-                  <TableRow className="bg-secondary/40 border-b border-border">
-                    <TableHead className="w-28 font-mono text-[11px] text-muted-foreground">Date d&apos;achat</TableHead>
-                    <TableHead>Prospect / Contact</TableHead>
-                    <TableHead className="w-20 font-mono text-[11px] text-muted-foreground">Segment</TableHead>
-                    <TableHead className="w-28">Province</TableHead>
-                    <TableHead className="w-24 text-right font-mono text-[11px] text-muted-foreground">Crédits</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {purchasesData.map((item) => {
-                    const lead = item.leads || item
-                    return (
-                      <TableRow key={item.id} className="border-b border-border">
-                        <TableCell className="font-mono text-[11px] tabular-nums whitespace-nowrap text-muted-foreground">
-                          {new Date(item.purchased_at || item.created_at).toLocaleDateString("fr-BE")}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-medium text-foreground">
-                              {lead.first_name} {lead.last_name || lead.company || ""}
-                            </span>
-                            <span className="text-[11px] text-muted-foreground font-mono">
-                              {lead.phone || lead.email || "—"}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-mono text-[10px]">
-                          {lead.segment || "B2C"}
-                        </TableCell>
-                        <TableCell className="capitalize">
-                          {lead.province || "Wallonie"}
-                        </TableCell>
-                        <TableCell className="text-right font-mono tabular-nums font-semibold text-foreground">
-                          {item.credits_spent || (lead.segment === "B2B" ? 5 : 2)} cr.
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPurchasesModalPartner(null)}
-            >
-              Fermer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      />
 
       {/* Dialogue d'Analyse Comportementale Installateur */}
       <Dialog

@@ -18,10 +18,14 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { getAdminUser } from "@/lib/admin-auth"
-import { getAdminDashboardData } from "@/lib/admin/queries"
+import {
+  getAdminDashboardData,
+  getAdminPartnersPurchaseSummaries,
+} from "@/lib/admin/queries"
 import { AdminNetworkInviteHub } from "@/components/admin/admin-network-invite-hub"
 import { ActionRequiredTray } from "@/components/admin/action-required-tray"
 import { AdminKpiGrid } from "@/components/admin/admin-kpi-grid"
+import { AdminPartnersPurchasesWidget } from "@/components/admin/admin-partners-purchases-widget"
 import { AdminRecentActivity } from "@/components/admin/admin-recent-activity"
 import { AdminRelancesCockpitWidget } from "@/components/admin/admin-relances-cockpit-widget"
 import { AdminPartnerTelemetryWidget } from "@/components/admin/admin-partner-telemetry-widget"
@@ -128,9 +132,10 @@ async function AdminDashboardContent() {
   // sans bloquer le streaming des KPIs prioritaires ni créer de waterfall RSC.
   void getUpcomingRelancesSchedule().catch(() => [])
 
-  const [data, telemetry] = await Promise.all([
+  const [data, telemetry, partnerSummaries] = await Promise.all([
     getAdminDashboardData(),
     getPartnerTelemetryAnalyticsCached({ days: 30, includeTest: false }).catch(() => null),
+    getAdminPartnersPurchaseSummaries().catch(() => []),
   ])
 
   return (
@@ -151,7 +156,11 @@ async function AdminDashboardContent() {
         revenue={data.revenue}
         mediaPartners={data.media_partners}
         lists={data.lists}
+        partnerSummaries={partnerSummaries}
       />
+
+      {/* Achats de Leads par Installateur (Cliquable -> historique complet depuis le début) */}
+      <AdminPartnersPurchasesWidget partners={partnerSummaries} />
 
       {/* Télémétrie Comportementale Installateurs & Signaux Chauds */}
       {telemetry && <AdminPartnerTelemetryWidget telemetry={telemetry} />}

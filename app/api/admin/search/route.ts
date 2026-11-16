@@ -87,7 +87,7 @@ export async function GET(request: Request) {
         type: "partner",
         title: p.company_name,
         subtitle: `Acheteur Marketplace · ${p.email}`,
-        url: `/admin/partners`,
+        url: `/admin/partners?partnerId=${p.id}`,
       })
     })
   }

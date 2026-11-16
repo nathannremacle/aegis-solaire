@@ -13,7 +13,7 @@ export async function GET() {
 
   const [partnerRes, purchaseRes, txRes, telemetryAnalytics] = await Promise.all([
     supabase.from("partners").select("*").order("created_at", { ascending: false }),
-    supabase.from("lead_purchases").select("partner_id, credits_spent"),
+    supabase.from("lead_purchases").select("partner_id, credits_spent, purchased_at").order("purchased_at", { ascending: false }),
     supabase
       .from("credit_transactions")
       .select("partner_id, amount, type")
@@ -38,6 +38,7 @@ export async function GET() {
         leadsPurchased: myPurchases.length,
         creditsSpent: totalSpent,
         creditsTopupped: totalTopups,
+        lastPurchaseAt: myPurchases[0]?.purchased_at ?? null,
       },
       telemetry: partnerTelemetry
         ? {

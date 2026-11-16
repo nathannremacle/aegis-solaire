@@ -40,6 +40,11 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import type { AdminPartnerPurchaseSummary } from "@/lib/admin/partner-purchases"
+import {
+  PartnerPurchasesDialog,
+  type PartnerDialogTarget,
+} from "@/components/admin/partner-purchases-dialog"
 
 export type KpiModalType =
   | "revenue_paid"
@@ -107,6 +112,7 @@ interface AdminKpiGridProps {
     active_partners?: any[]
     available_leads?: any[]
   }
+  partnerSummaries?: AdminPartnerPurchaseSummary[]
 }
 
 export function AdminKpiGrid({
@@ -116,9 +122,12 @@ export function AdminKpiGrid({
   revenue,
   mediaPartners,
   lists,
+  partnerSummaries,
 }: AdminKpiGridProps) {
   const router = useRouter()
   const [selectedKpi, setSelectedKpi] = useState<KpiModalType | null>(null)
+  const [selectedPartnerForPurchases, setSelectedPartnerForPurchases] =
+    useState<PartnerDialogTarget | null>(null)
   const [togglingLeadId, setTogglingLeadId] = useState<string | null>(null)
   const [localLeadStatus, setLocalLeadStatus] = useState<
     Record<string, { marketplace_status: string; withdrawn?: boolean }>
@@ -830,20 +839,41 @@ export function AdminKpiGrid({
                   <span className="text-xs font-bold text-foreground uppercase tracking-wide">
                     Répertoire des Installateurs ({activePartnersList.length})
                   </span>
-                  <span className="text-[11px] text-muted-foreground">Soldes en direct</span>
+                  <span className="text-[11px] text-muted-foreground">Cliquez sur un installateur pour voir ses achats</span>
                 </div>
 
                 <div className="rounded-xl border border-border overflow-hidden divide-y divide-border text-xs max-h-60 overflow-y-auto">
                   {activePartnersList.map((p: any) => {
                     const isLow = Number(p.credits || 0) < 5
+                    const pSummary = partnerSummaries?.find((s) => s.id === p.id)
                     return (
-                      <div key={p.id} className="p-3 flex items-center justify-between hover:bg-muted/30 transition-colors">
-                        <div className="flex flex-col gap-0.5">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-foreground">{p.company_name}</span>
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedPartnerForPurchases({
+                            id: p.id,
+                            company_name: p.company_name,
+                            email: p.email,
+                            credits: p.credits,
+                            segment: p.segment,
+                          })
+                        }}
+                        className="w-full text-left p-3 flex items-center justify-between gap-3 hover:bg-muted/40 transition-colors cursor-pointer group"
+                      >
+                        <div className="flex flex-col gap-0.5 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-foreground group-hover:text-accent transition-colors">
+                              {p.company_name}
+                            </span>
                             <Badge variant="outline" className="text-[10px] uppercase font-mono">
                               {p.segment}
                             </Badge>
+                            {pSummary && (
+                              <Badge variant="secondary" className="text-[10px] font-mono tabular-nums">
+                                {pSummary.leads_purchased_count} lead{pSummary.leads_purchased_count > 1 ? "s" : ""}
+                              </Badge>
+                            )}
                             {isLow && (
                               <Badge variant="destructive" className="text-[10px] flex items-center gap-1">
                                 <AlertTriangle className="h-2.5 w-2.5" />
@@ -851,23 +881,27 @@ export function AdminKpiGrid({
                               </Badge>
                             )}
                           </div>
-                          <span className="text-[11px] text-muted-foreground">
+                          <span className="text-[11px] text-muted-foreground truncate">
                             {p.email} · Provinces :{" "}
                             {Array.isArray(p.target_provinces) && p.target_provinces.length > 0
                               ? p.target_provinces.join(", ")
                               : "Toute la Wallonie"}
                           </span>
                         </div>
-                        <div className="text-right flex flex-col items-end gap-0.5">
+                        <div className="text-right flex flex-col items-end gap-0.5 shrink-0">
                           <span className={cn(
                             "font-bold font-mono tabular-nums text-base",
                             isLow ? "text-destructive" : "text-foreground"
                           )}>
                             {p.credits} cr.
                           </span>
-                          <span className="text-[10px] text-muted-foreground">disponibles</span>
+                          <span className="text-[10px] text-muted-foreground font-mono tabular-nums group-hover:text-accent transition-colors">
+                            {pSummary && pSummary.total_euros_htva > 0
+                              ? `${pSummary.total_euros_htva.toLocaleString("fr-BE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € HT · Voir →`
+                              : "Voir achats →"}
+                          </span>
                         </div>
-                      </div>
+                      </button>
                     )
                   })}
                 </div>
@@ -1243,6 +1277,14 @@ export function AdminKpiGrid({
           )}
         </DialogContent>
       </Dialog>
+
+      <PartnerPurchasesDialog
+        partner={selectedPartnerForPurchases}
+        open={Boolean(selectedPartnerForPurchases)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedPartnerForPurchases(null)
+        }}
+      />
     </div>
   )
 }
