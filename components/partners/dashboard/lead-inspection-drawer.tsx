@@ -285,7 +285,7 @@ export function LeadInspectionDrawer({
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-foreground uppercase tracking-wider">
                   <Camera className="h-3.5 w-3.5 text-primary" />
-                  Visuel Façade &amp; Toiture (Street View)
+                  Visuel Façade &amp; Toiture
                 </span>
                 <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
                   <CheckCircle2 className="h-3 w-3" />

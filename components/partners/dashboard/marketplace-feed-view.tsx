@@ -871,7 +871,7 @@ export function MarketplaceFeedView({
                   <div className="flex items-center justify-between border-b border-border/70 pb-3">
                     <h3 className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
                       <Camera className="h-4 w-4 text-primary" />
-                      <span>Visuel Façade &amp; Toiture (Street View)</span>
+                      <span>Visuel Façade &amp; Toiture</span>
                     </h3>
                     <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                       <CheckCircle2 className="h-3 w-3" />
