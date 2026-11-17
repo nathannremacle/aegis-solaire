@@ -161,17 +161,52 @@ test("Prospect exclusive reassurance, reconfirm token, and platform update annou
   const exclEmail = exclusiveMod.buildProspectExclusiveMatchEmail({
     email: "prospect@example.be",
     firstName: "Marc",
+    leadId: "4a8f21cc-0000-4000-8000-000000000000",
     city: "Namur",
+    province: "namur",
     estimatedPowerKwc: 5.2,
+    surfaceArea: 45,
+    grd: "ores",
+    contactPreference: "written_first",
     partnerCompany: "Solar Wallonie SRL",
+    partnerEmail: "contact@aegissolaire.com",
+    partnerPhone: null,
   })
   assert.match(exclEmail.subject, /Namur/)
+  assert.match(exclEmail.subject, /sans engagement/i)
   assert.match(exclEmail.html, /Solar Wallonie SRL/)
   assert.match(exclEmail.html, /RESCERT/)
+  assert.match(exclEmail.html, /Dossier #4A8F21CC/)
+  assert.match(exclEmail.html, /Par écrit d'abord/)
+  assert.match(exclEmail.html, /tri comparatif/i)
+  assert.match(exclEmail.html, /25 à 35/i)
+  assert.match(exclEmail.html, /Transparence sur notre rémunération/i)
+  assert.equal(/2 autres devis/i.test(exclEmail.html), false)
+  assert.equal(/vérification tarifaire gratuite/i.test(exclEmail.html), false)
+  assert.match(exclEmail.html, /ORES/)
+  assert.equal(/Coordonnées directes<\/th>/i.test(exclEmail.html), false)
+  assert.equal(/<code>/i.test(exclEmail.html), false)
   assert.equal(/Fabrice Remacle/i.test(exclEmail.html), false)
   assert.equal(/#314b5f/i.test(exclEmail.html), false)
   assert.match(exclEmail.html, /#142D42/)
   assert.match(exclEmail.html, /font-size: 18px; line-height: 1\.25;/)
+  assert.match(exclEmail.text, /sans engagement/i)
+  assert.equal(/Coordonnées directes : contact@aegissolaire\.com/i.test(exclEmail.text), false)
+
+  const exclDirectEmail = exclusiveMod.buildProspectExclusiveMatchEmail({
+    email: "prospect2@example.be",
+    firstName: "Sophie",
+    province: "brabant_wallon",
+    contactPreference: "direct_call",
+    partnerCompany: "Brabant Solar SRL",
+    partnerEmail: "devis@brabantsolar.be",
+    partnerPhone: "010 22 33 44",
+    partnerRescertRef: "RC-2026-441",
+  })
+  assert.match(exclDirectEmail.subject, /Brabant wallon/)
+  assert.match(exclDirectEmail.html, /010 22 33 44 · devis@brabantsolar\.be/)
+  assert.match(exclDirectEmail.html, /RC-2026-441/)
+  assert.match(exclDirectEmail.html, /Appel téléphonique autorisé/)
 
   const reconfirmMod = loadTs("lib/prospect-reconfirm-email.ts", {
     resend: { Resend: class {} },

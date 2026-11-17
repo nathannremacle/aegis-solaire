@@ -107,15 +107,18 @@ async function runMetaAudit() {
     return
   }
 
-  const [campaign, adset, adsMeta, insightsAd, insightsPlacement, insightsDaily] = await Promise.all([
+  const [campaign, adsetsRes, adsMeta, insightsAd, insightsPlacement, insightsDaily] = await Promise.all([
     fetchMetaJson(CAMPAIGN_ID, { fields: "name,status,objective,daily_budget" }),
-    fetchMetaJson(ADSET_ID, { fields: "name,status,optimization_goal,targeting" }),
-    fetchMetaJson(`${AD_ACCOUNT_ID}/ads`, { fields: "id,name,status,effective_status", limit: 50 }),
+    fetchMetaJson(`${CAMPAIGN_ID}/adsets`, {
+      fields: "id,name,status,effective_status,optimization_goal,daily_min_spend_target,daily_spend_cap,targeting",
+      limit: 50,
+    }),
+    fetchMetaJson(`${AD_ACCOUNT_ID}/ads`, { fields: "id,name,adset_id,status,effective_status", limit: 50 }),
     fetchMetaJson(`${AD_ACCOUNT_ID}/insights`, {
       level: "ad",
       date_preset: "maximum",
       fields:
-        "ad_id,ad_name,impressions,reach,frequency,cpm,spend,clicks,ctr,cpc,inline_link_clicks,inline_link_click_ctr,cost_per_inline_link_click,actions",
+        "ad_id,ad_name,adset_id,impressions,reach,frequency,cpm,spend,clicks,ctr,cpc,inline_link_clicks,inline_link_click_ctr,cost_per_inline_link_click,actions",
       limit: 50,
     }),
     fetchMetaJson(`${CAMPAIGN_ID}/insights`, {
@@ -133,20 +136,32 @@ async function runMetaAudit() {
     }),
   ])
 
+  const adsetNameMap = new Map((adsetsRes?.data || []).map((a) => [a.id, a.name]))
   const adStatusMap = new Map(
-    (adsMeta?.data || []).map((a) => [a.id, `${a.status || "?"}/${a.effective_status || "?"}`])
+    (adsMeta?.data || []).map((a) => [
+      a.id,
+      `${a.status || "?"}/${a.effective_status || "?"}${a.adset_id ? ` · ${adsetNameMap.get(a.adset_id) || a.adset_id}` : ""}`,
+    ])
   )
-  const t = adset?.targeting || {}
 
   console.log(`1. STRUCTURE CAMPAGNE & CIBLAGE`)
   console.log(`   - Campagne : ${campaign?.name} [${campaign?.status}] (Budget: ${campaign?.daily_budget ? fmtEur(Number(campaign.daily_budget) / 100) + "/j" : "ABO"})`)
-  console.log(`   - AdSet    : ${adset?.name} [${adset?.status}] (Goal: ${adset?.optimization_goal})`)
-  console.log(
-    `   - Geo      : Inclus=${(t.geo_locations?.regions || []).map((r) => r.name).join(",")} (${(t.geo_locations?.location_types || []).join(",")}) | Exclu Regions=${(t.excluded_geo_locations?.regions || []).map((r) => r.name).join(",")} | Exclu Pays=${(t.excluded_geo_locations?.countries || []).join(",")} | Exclu Zips=${t.excluded_geo_locations?.zips?.length || 0}`
-  )
-  console.log(
-    `   - Placements : Platforms=${(t.publisher_platforms || []).join(",")} | FB=${(t.facebook_positions || ["ALL"]).join(",")} | IG=${(t.instagram_positions || ["ALL"]).join(",")} | AdvantageAudience=${t.targeting_automation?.advantage_audience ?? "unset"}\n`
-  )
+  for (const adset of adsetsRes?.data || []) {
+    const t = adset?.targeting || {}
+    const minCapParts = []
+    if (adset.daily_min_spend_target) minCapParts.push(`Min=${fmtEur(Number(adset.daily_min_spend_target) / 100)}/j`)
+    if (adset.daily_spend_cap) minCapParts.push(`Cap=${fmtEur(Number(adset.daily_spend_cap) / 100)}/j`)
+    console.log(
+      `   - AdSet    : ${adset?.name} (${adset?.id}) [${adset?.status}/${adset?.effective_status}] (Goal: ${adset?.optimization_goal}${minCapParts.length ? ` | ${minCapParts.join(", ")}` : ""})`
+    )
+    console.log(
+      `     Geo      : Inclus=${(t.geo_locations?.regions || []).map((r) => r.name).join(",")} (${(t.geo_locations?.location_types || []).join(",")}) | Exclu Regions=${(t.excluded_geo_locations?.regions || []).map((r) => r.name).join(",")} | Exclu Pays=${(t.excluded_geo_locations?.countries || []).join(",")} | Exclu Zips=${t.excluded_geo_locations?.zips?.length || 0}`
+    )
+    console.log(
+      `     Placements : Platforms=${(t.publisher_platforms || []).join(",")} | FB=${(t.facebook_positions || ["ALL"]).join(",")} | IG=${(t.instagram_positions || ["ALL"]).join(",")} | AdvantageAudience=${t.targeting_automation?.advantage_audience ?? "unset"}`
+    )
+  }
+  console.log("")
 
   console.log(`2. PERFORMANCE PAR ANNONCE (Metriques Reelles : Inline Link Clicks + LPV + Leads)`)
   let totalSpend = 0
@@ -199,7 +214,7 @@ async function runMetaAudit() {
   for (const ad of adsMeta?.data || []) {
     if (seenAdIds.has(ad.id)) continue
     if (ad.status !== "ACTIVE" && ad.effective_status !== "WITH_ISSUES") continue
-    const status = `${ad.status || "?"}/${ad.effective_status || "?"}`
+    const status = `${ad.status || "?"}/${ad.effective_status || "?"}${ad.adset_id ? ` · ${adsetNameMap.get(ad.adset_id) || ad.adset_id}` : ""}`
     console.log(`   * ${ad.name} (${ad.id}) [${status}]`)
     console.log(`     Depense: ${fmtEur(0)} | Impr: 0 (En validation ou demarrage recent)\n`)
   }
@@ -336,8 +351,8 @@ async function runSupabaseAudit() {
   console.log(`   - Sessions humaines dedupliquees : ${humanSessions.length}`)
   const STEP_LABELS = {
     1: "Vue landing (chargement)",
-    2: "Q1 facture repondue",
-    3: "Q2 batiment repondue",
+    2: "Q1 batiment repondue",
+    3: "Q2 facture repondue",
     4: "Q3 statut repondue",
     5: "Q4 toiture repondue",
     6: "Q5 CP valide -> coordonnees",

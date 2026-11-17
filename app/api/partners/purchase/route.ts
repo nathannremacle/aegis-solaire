@@ -117,7 +117,7 @@ export async function POST(request: Request) {
   const { data: lead } = await admin
     .from("leads")
     .select(
-      "id, first_name, last_name, email, phone, company, company_vat, province, postal_code, city, site_address, segment, max_slots, surface_type, surface_area, estimated_power_kwc, annual_electricity_bill, roof_material, project_timeline, lead_score, grd, project_details, message, qualification_metadata, created_at"
+      "id, first_name, last_name, email, phone, company, company_vat, province, postal_code, city, site_address, segment, max_slots, surface_type, surface_area, estimated_power_kwc, annual_electricity_bill, roof_material, project_timeline, lead_score, grd, contact_preference, project_details, message, qualification_metadata, created_at"
     )
     .eq("id", leadId)
     .single()
@@ -147,11 +147,25 @@ export async function POST(request: Request) {
 
   if (lead) {
     try {
-      const { data: allLeadPurchases } = await admin
-        .from("lead_purchases")
-        .select("id, partner_id, purchased_at, partners(id, company_name, is_test)")
-        .eq("lead_id", leadId)
-        .order("purchased_at", { ascending: true })
+      const shouldNotifyExclusiveProspect = Boolean(exclusive && lead.segment === "B2C" && lead.email)
+
+      const [{ data: allLeadPurchases }, partnerAppRes] = await Promise.all([
+        admin
+          .from("lead_purchases")
+          .select("id, partner_id, purchased_at, partners(id, company_name, is_test)")
+          .eq("lead_id", leadId)
+          .order("purchased_at", { ascending: true }),
+        shouldNotifyExclusiveProspect && partner.email
+          ? admin
+              .from("installer_applications")
+              .select("rescert_ref")
+              .eq("email", partner.email.toLowerCase().trim())
+              .eq("status", "approved")
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
+      ])
 
       const buyers: LeadSaleBuyerSummary[] = (allLeadPurchases || []).map((row: any) => {
         const pRel = Array.isArray(row.partners) ? row.partners[0] : row.partners
@@ -175,38 +189,56 @@ export async function POST(request: Request) {
               : 3
       const takenSlots = buyers.length > 0 ? buyers.length : 1
 
-      if (exclusive && lead.segment === "B2C" && lead.email) {
-        sendProspectExclusiveMatchEmail({
-          email: lead.email,
-          firstName: lead.first_name,
-          city: lead.city,
-          province: lead.province,
-          estimatedPowerKwc: lead.estimated_power_kwc,
-          partnerCompany: partner.company_name || "Installateur agréé RESCERT",
-          partnerEmail: partner.email,
-          partnerPhone: partner.phone,
-        }).catch((err) => {
-          console.warn("[purchase] Prospect exclusive reassurance warning:", err)
-        })
+      const notificationTasks: Promise<unknown>[] = [
+        sendAdminLeadSaleNotification({
+          mode: "credits",
+          purchaseId,
+          partner: {
+            id: partner.id,
+            company_name: partner.company_name,
+            email: partner.email,
+            phone: partner.phone,
+            credits: creditsRemaining ?? partner.credits,
+          },
+          lead,
+          creditsSpent: Number(creditsSpent ?? (lead.segment === "B2B" ? 9 : 3)),
+          creditsRemainingAfter: creditsRemaining ?? null,
+          takenSlots,
+          maxSlots,
+          buyers,
+        }),
+      ]
+
+      if (shouldNotifyExclusiveProspect) {
+        const contactPref =
+          (lead as { contact_preference?: string | null }).contact_preference ||
+          ((lead.qualification_metadata as Record<string, unknown> | null)?.contactPreference as
+            | string
+            | undefined) ||
+          null
+
+        notificationTasks.push(
+          sendProspectExclusiveMatchEmail({
+            email: lead.email,
+            firstName: lead.first_name,
+            leadId: lead.id,
+            city: lead.city,
+            province: lead.province,
+            estimatedPowerKwc: lead.estimated_power_kwc,
+            surfaceArea: lead.surface_area,
+            grd: lead.grd,
+            contactPreference: contactPref,
+            partnerCompany: partner.company_name || "Installateur agréé RESCERT",
+            partnerEmail: partner.email,
+            partnerPhone: partner.phone,
+            partnerRescertRef: partnerAppRes?.data?.rescert_ref ?? null,
+          }).catch((err) => {
+            console.warn("[purchase] Prospect exclusive reassurance warning:", err)
+          })
+        )
       }
 
-      await sendAdminLeadSaleNotification({
-        mode: "credits",
-        purchaseId,
-        partner: {
-          id: partner.id,
-          company_name: partner.company_name,
-          email: partner.email,
-          phone: partner.phone,
-          credits: creditsRemaining ?? partner.credits,
-        },
-        lead,
-        creditsSpent: Number(creditsSpent ?? (lead.segment === "B2B" ? 9 : 3)),
-        creditsRemainingAfter: creditsRemaining ?? null,
-        takenSlots,
-        maxSlots,
-        buyers,
-      })
+      await Promise.allSettled(notificationTasks)
     } catch (emailErr) {
       console.warn("[purchase] Admin sales notification warning:", emailErr)
     }

@@ -82,25 +82,25 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
 
   const bodyHtml = `
     ${renderFiguresBox(
-      {
-        label: "Surface disponible",
-        value: surface,
-        sublabel: typeLabel,
-      },
-      {
-        label: "Facture électrique annuelle",
-        value: facture,
-        sublabel: `GRD · ${grdLabel}`,
-      }
-    )}
+    {
+      label: "Surface disponible",
+      value: surface,
+      sublabel: typeLabel,
+    },
+    {
+      label: "Facture électrique annuelle",
+      value: facture,
+      sublabel: `GRD · ${grdLabel}`,
+    }
+  )}
 
     ${renderActionBox({
-      kicker: "Attribution B2B",
-      title: "Exclusivité 100 % garantie",
-      subtext: "1 seul installateur partenaire sur ce projet.",
-      ctaLabel: "Débloquer sur le Dashboard →",
-      ctaUrl: ctaUrl,
-    })}
+    kicker: "Attribution B2B",
+    title: "Exclusivité 100 % garantie",
+    subtext: "1 seul installateur partenaire sur ce projet.",
+    ctaLabel: "Débloquer sur le Dashboard →",
+    ctaUrl: ctaUrl,
+  })}
 
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 20px; width: 100%; border-collapse: collapse;">
       <tr>
@@ -110,21 +110,20 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
           </h2>
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width: 100%; border-collapse: collapse;">
             <tr>
-              ${
-                payload.roofImageUrl
-                  ? `<td class="photo-cell" width="42%" style="width: 42%; padding-right: 15px; vertical-align: top;">
+              ${payload.roofImageUrl
+      ? `<td class="photo-cell" width="42%" style="width: 42%; padding-right: 15px; vertical-align: top;">
                       <img src="${escapeEmailHtml(payload.roofImageUrl)}" alt="Visuel du bâtiment" width="230" style="display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 7px; border: 1px solid #e2eaf0;" />
                       <p style="margin: 4px 0 0 0; font-size: 12px; color: #4d6374;">Photo du bâtiment</p>
                     </td>`
-                  : ""
-              }
+      : ""
+    }
               <td class="spec-cell" style="vertical-align: top;">
                 ${renderSpecsTable([
-                  { label: "Implantation", value: typeLabel },
-                  { label: "Localisation", value: provinceLabel },
-                  { label: "Gestionnaire réseau", value: grdLabel },
-                  ...(precisions !== "—" ? [{ label: "Précisions", value: precisions, italic: true }] : []),
-                ])}
+      { label: "Implantation", value: typeLabel },
+      { label: "Localisation", value: provinceLabel },
+      { label: "Gestionnaire réseau", value: grdLabel },
+      ...(precisions !== "—" ? [{ label: "Précisions", value: precisions, italic: true }] : []),
+    ])}
               </td>
             </tr>
           </table>

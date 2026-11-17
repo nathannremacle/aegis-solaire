@@ -81,6 +81,10 @@ const BLACKLIST_TERMS = [
   "mcindustry",
   "batelex",
   "hotelec",
+  "etienne botman",
+  "giacomo zenoni",
+  "enolix",
+  "bryan lardinois",
 ]
 
 // Checked on neutral test payloads to ensure templates/leads never leak internal keys, prospect names, or personal names

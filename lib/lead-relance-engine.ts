@@ -2566,12 +2566,23 @@ export async function runAutoMatchForLead(leadId: string): Promise<AutoMatchResu
         }
 
         if (wantsExclusiveB2C && lead.email) {
-          sendProspectExclusiveMatchEmail({
+          const contactPref =
+            lead.contact_preference ||
+            ((lead.qualification_metadata as Record<string, unknown> | null)?.contactPreference as
+              | string
+              | undefined) ||
+            null
+
+          await sendProspectExclusiveMatchEmail({
             email: lead.email,
             firstName: lead.first_name,
+            leadId: lead.id,
             city: lead.city,
             province: lead.province,
             estimatedPowerKwc: lead.estimated_power_kwc,
+            surfaceArea: Number(lead.surface_area) || null,
+            grd: lead.grd,
+            contactPreference: contactPref,
             partnerCompany: partner.company_name || "Installateur RESCERT agréé",
             partnerEmail: partner.email,
             partnerPhone: partner.phone,

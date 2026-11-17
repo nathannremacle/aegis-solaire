@@ -99,8 +99,8 @@ const ROOF_SURFACES = [
 ]
 
 const STEP_TITLES = [
-  "PROFIL CONSOMMATION",
   "TYPE DE BÂTIMENT",
+  "PROFIL CONSOMMATION",
   "STATUT D'OCCUPATION",
   "SPÉCIFICATIONS TOITURE",
   "LOCALISATION EN WALLONIE",
@@ -108,8 +108,8 @@ const STEP_TITLES = [
 ]
 
 const STEP_QUESTIONS = [
-  "Combien payez-vous d'électricité par mois (environ) ?",
   "De quel type de bâtiment s'agit-il ?",
+  "Combien payez-vous d'électricité par mois (environ) ?",
   "Êtes-vous propriétaire du bâtiment ?",
   "Spécifications de votre toiture pour panneaux solaires",
   "Où se situe votre bâtiment en Wallonie ?",
@@ -380,8 +380,8 @@ export function DevisLandingClient() {
   }
 
   const isStepValid = () => {
-    if (step === 1) return !!consumption
-    if (step === 2) return !!propertyType
+    if (step === 1) return !!propertyType
+    if (step === 2) return !!consumption
     if (step === 3) return ownership === "proprietaire" || ownership === "copropriete"
     if (step === 4) return !!roofType && !!roofSurface
     if (step === 5) return isPostalCodeValid
@@ -389,13 +389,13 @@ export function DevisLandingClient() {
   }
 
   const handleNext = () => {
-    if (step === 1 && !hasTrackedStart.current && consumption) {
-      hasTrackedStart.current = true
-      trackSimulatorStart({ consumption })
-    }
-    if (step === 2 && propertyType === "immeuble_commercial") {
+    if (step === 1 && propertyType === "immeuble_commercial") {
       window.location.href = "/#simulateur"
       return
+    }
+    if (step === 1 && !hasTrackedStart.current && propertyType) {
+      hasTrackedStart.current = true
+      trackSimulatorStart({ consumption: consumption || propertyType })
     }
     if (step === 3 && ownership === "locataire") {
       return // Bloqué pour les locataires
@@ -462,15 +462,15 @@ export function DevisLandingClient() {
   // Auto-advance de 180 ms sur étapes à choix unique (style Bobex)
   const handleOptionSelect = (setter: (val: string) => void, val: string) => {
     setter(val)
-    if (step === 1 && !hasTrackedStart.current) {
-      hasTrackedStart.current = true
-      trackSimulatorStart({ consumption: val })
-    }
-    if (step === 2 && val === "immeuble_commercial") {
+    if (step === 1 && val === "immeuble_commercial") {
       setTimeout(() => {
         window.location.href = "/#simulateur"
       }, 150)
       return
+    }
+    if (step === 1 && !hasTrackedStart.current) {
+      hasTrackedStart.current = true
+      trackSimulatorStart({ consumption: val })
     }
     if (step === 3 && val === "locataire") {
       return // Ne pas avancer automatiquement pour afficher l'écran d'arrêt bienveillant
@@ -862,10 +862,48 @@ export function DevisLandingClient() {
 
                     <AnimatePresence mode="wait">
                       
-                      {/* ── ÉTAPE 1 : Consommation annuelle ── */}
+                      {/* ── ÉTAPE 1 : Type de bâtiment (0 friction cognitive) ── */}
                       {step === 1 && (
                         <motion.fieldset
                           key="step1"
+                          initial={{ opacity: 0, x: 8 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -8 }}
+                          transition={{ duration: 0.18 }}
+                          className="flex flex-col gap-2.5 border-none p-0 m-0"
+                        >
+                          {PROPERTY_TYPES.map((item) => {
+                            const isChecked = propertyType === item.id
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => handleOptionSelect(setPropertyType, item.id)}
+                                className={`w-full text-left min-h-[48px] py-3.5 px-4 sm:px-5 rounded-[8px] border transition-colors duration-150 cursor-pointer flex items-center justify-between gap-3 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] ${
+                                  isChecked
+                                    ? "border-2 border-[var(--aegis-preference-accent)] bg-[var(--aegis-preference-bg)] text-[var(--aegis-ink)] font-bold"
+                                    : "border-[var(--aegis-input-border)]/45 bg-[var(--aegis-surface)] text-[var(--aegis-ink)] hover:bg-[var(--aegis-surface-subtle)] hover:border-[var(--aegis-ink)]/50 font-medium"
+                                }`}
+                              >
+                                <div className="flex flex-col">
+                                  <span className="text-[15px] sm:text-[16px] font-bold text-[var(--aegis-ink)]">{item.label}</span>
+                                  <span className="text-[13px] text-[var(--aegis-muted)] mt-0.5 font-normal">{item.sublabel}</span>
+                                </div>
+                                {isChecked && (
+                                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent-solar text-accent-solar-foreground shrink-0">
+                                    <Check className="h-3.5 w-3.5 stroke-[3]" />
+                                  </span>
+                                )}
+                              </button>
+                            )
+                          })}
+                        </motion.fieldset>
+                      )}
+
+                      {/* ── ÉTAPE 2 : Consommation mensuelle / annuelle ── */}
+                      {step === 2 && (
+                        <motion.fieldset
+                          key="step2"
                           initial={{ opacity: 0, x: 8 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -8 }}
@@ -903,44 +941,6 @@ export function DevisLandingClient() {
                                     </span>
                                   )}
                                 </span>
-                              </button>
-                            )
-                          })}
-                        </motion.fieldset>
-                      )}
-
-                      {/* ── ÉTAPE 2 : Type de bâtiment ── */}
-                      {step === 2 && (
-                        <motion.fieldset
-                          key="step2"
-                          initial={{ opacity: 0, x: 8 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -8 }}
-                          transition={{ duration: 0.18 }}
-                          className="flex flex-col gap-2.5 border-none p-0 m-0"
-                        >
-                          {PROPERTY_TYPES.map((item) => {
-                            const isChecked = propertyType === item.id
-                            return (
-                              <button
-                                key={item.id}
-                                type="button"
-                                onClick={() => handleOptionSelect(setPropertyType, item.id)}
-                                className={`w-full text-left min-h-[48px] py-3.5 px-4 sm:px-5 rounded-[8px] border transition-colors duration-150 cursor-pointer flex items-center justify-between gap-3 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] ${
-                                  isChecked
-                                    ? "border-2 border-[var(--aegis-preference-accent)] bg-[var(--aegis-preference-bg)] text-[var(--aegis-ink)] font-bold"
-                                    : "border-[var(--aegis-input-border)]/45 bg-[var(--aegis-surface)] text-[var(--aegis-ink)] hover:bg-[var(--aegis-surface-subtle)] hover:border-[var(--aegis-ink)]/50 font-medium"
-                                }`}
-                              >
-                                <div className="flex flex-col">
-                                  <span className="text-[15px] sm:text-[16px] font-bold text-[var(--aegis-ink)]">{item.label}</span>
-                                  <span className="text-[13px] text-[var(--aegis-muted)] mt-0.5 font-normal">{item.sublabel}</span>
-                                </div>
-                                {isChecked && (
-                                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent-solar text-accent-solar-foreground shrink-0">
-                                    <Check className="h-3.5 w-3.5 stroke-[3]" />
-                                  </span>
-                                )}
                               </button>
                             )
                           })}
