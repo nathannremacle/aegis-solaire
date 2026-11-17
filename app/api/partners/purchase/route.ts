@@ -6,6 +6,7 @@ import {
   sendAdminLeadSaleNotification,
   type LeadSaleBuyerSummary,
 } from "@/lib/admin-sales-emails"
+import { sendProspectExclusiveMatchEmail } from "@/lib/prospect-exclusive-match-email"
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
   }
 
-  let body: { leadId?: string }
+  let body: { leadId?: string; exclusive?: boolean }
   try {
     body = await request.json()
   } catch {
@@ -23,6 +24,7 @@ export async function POST(request: Request) {
   }
 
   const leadId = typeof body.leadId === "string" ? body.leadId.trim() : ""
+  const exclusive = Boolean(body.exclusive)
   if (!leadId) {
     return NextResponse.json({ error: "leadId requis" }, { status: 400 })
   }
@@ -70,22 +72,34 @@ export async function POST(request: Request) {
   let purchaseResult: any = null
   let purchaseErr: any = null
 
-  // 1. Tenter la nouvelle RPC atomique avec verrouillage pessimiste
+  // 1. Tenter la nouvelle RPC atomique avec verrouillage pessimiste (avec p_exclusive)
   const { data: rpcData, error: rpcError } = await admin.rpc("purchase_marketplace_lead", {
     p_lead_id: leadId,
     p_partner_id: partner.id,
+    p_exclusive: exclusive,
   })
 
   if (!rpcError && rpcData) {
     purchaseResult = rpcData
   } else if (rpcError && (rpcError.code === "42883" || rpcError.message?.includes("does not exist"))) {
-    // 2. Fallback sur l'ancienne RPC purchase_lead
-    const { data: oldData, error: oldErr } = await admin.rpc("purchase_lead", {
-      p_lead_id: leadId,
-      p_partner_id: partner.id,
-    })
-    purchaseResult = oldData
-    purchaseErr = oldErr
+    // 2. Fallback sur l'ancienne RPC 2-arg si la migration 202611180001 n'est pas encore appliquée
+    const { data: retryData, error: retryErr } = !exclusive
+      ? await admin.rpc("purchase_marketplace_lead", {
+          p_lead_id: leadId,
+          p_partner_id: partner.id,
+        })
+      : { data: null, error: rpcError }
+
+    if (!retryErr && retryData) {
+      purchaseResult = retryData
+    } else {
+      const { data: oldData, error: oldErr } = await admin.rpc("purchase_lead", {
+        p_lead_id: leadId,
+        p_partner_id: partner.id,
+      })
+      purchaseResult = oldData
+      purchaseErr = oldErr
+    }
   } else {
     purchaseErr = rpcError
   }
@@ -103,7 +117,7 @@ export async function POST(request: Request) {
   const { data: lead } = await admin
     .from("leads")
     .select(
-      "id, first_name, last_name, email, phone, company, company_vat, province, postal_code, city, site_address, segment, surface_type, surface_area, estimated_power_kwc, annual_electricity_bill, roof_material, project_timeline, lead_score, grd, project_details, message, qualification_metadata, created_at"
+      "id, first_name, last_name, email, phone, company, company_vat, province, postal_code, city, site_address, segment, max_slots, surface_type, surface_area, estimated_power_kwc, annual_electricity_bill, roof_material, project_timeline, lead_score, grd, project_details, message, qualification_metadata, created_at"
     )
     .eq("id", leadId)
     .single()
@@ -150,8 +164,31 @@ export async function POST(request: Request) {
         }
       })
 
-      const maxSlots = lead.segment === "B2B" ? 1 : 3
+      const isExclusivePurchase = Boolean(result?.exclusive ?? (exclusive || lead.segment === "B2B"))
+      const maxSlots =
+        isExclusivePurchase
+          ? 1
+          : typeof lead.max_slots === "number"
+            ? lead.max_slots
+            : lead.segment === "B2B"
+              ? 1
+              : 3
       const takenSlots = buyers.length > 0 ? buyers.length : 1
+
+      if (exclusive && lead.segment === "B2C" && lead.email) {
+        sendProspectExclusiveMatchEmail({
+          email: lead.email,
+          firstName: lead.first_name,
+          city: lead.city,
+          province: lead.province,
+          estimatedPowerKwc: lead.estimated_power_kwc,
+          partnerCompany: partner.company_name || "Installateur agréé RESCERT",
+          partnerEmail: partner.email,
+          partnerPhone: partner.phone,
+        }).catch((err) => {
+          console.warn("[purchase] Prospect exclusive reassurance warning:", err)
+        })
+      }
 
       await sendAdminLeadSaleNotification({
         mode: "credits",
@@ -181,6 +218,7 @@ export async function POST(request: Request) {
     purchase_id: purchaseId,
     creditsSpent,
     creditsRemaining,
+    exclusive: Boolean(result?.exclusive ?? (exclusive || lead?.segment === "B2B")),
     lead,
   })
 }

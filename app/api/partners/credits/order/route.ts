@@ -6,7 +6,12 @@ import { sendAdminCreditOrderNotification } from "@/lib/admin-sales-emails"
 
 export const dynamic = "force-dynamic"
 
-import { CREDIT_PACKS, PRICING_VERSION, calculateOrderFinancials } from "@/lib/credit-pricing"
+import {
+  CREDIT_PACKS,
+  PRICING_VERSION,
+  calculateCreditPackFinancials,
+  resolveCreditPack,
+} from "@/lib/credit-pricing"
 
 const BANK_DETAILS = {
   beneficiary: "INIT42",
@@ -28,12 +33,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Corps de requête invalide" }, { status: 400 })
   }
 
-  const pack = body.packId ? CREDIT_PACKS[body.packId] : null
+  const pack = body.packId ? resolveCreditPack(body.packId) : null
   if (!pack) {
     return NextResponse.json({ error: "Pack de crédits introuvable" }, { status: 400 })
   }
 
-  const financials = calculateOrderFinancials(pack.credits)
+  const financials = calculateCreditPackFinancials(pack)
   const shortHex = randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()
   const transferReference = `AEGIS-${new Date().getFullYear()}-${shortHex}`
 

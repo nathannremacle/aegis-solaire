@@ -150,6 +150,44 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
     return 0
   })
 
+  const [autoBuyEnabled, setAutoBuyEnabled] = useState<boolean>(
+    Boolean(partner?.auto_buy_enabled)
+  )
+  const [autoBuyWeeklyCap, setAutoBuyWeeklyCap] = useState<number>(
+    Number(partner?.auto_buy_weekly_cap) || 3
+  )
+  const [autoBuyIncludeB2cExclusive, setAutoBuyIncludeB2cExclusive] = useState<boolean>(
+    Boolean(partner?.auto_buy_include_b2c_exclusive)
+  )
+  const [mollieMandateStatus, setMollieMandateStatus] = useState<string>(
+    partner?.mollie_mandate_status || "none"
+  )
+
+  useEffect(() => {
+    let active = true
+    fetch("/api/partners/preferences")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!active || !data?.preferences) return
+        if (typeof data.preferences.autoBuyEnabled === "boolean") {
+          setAutoBuyEnabled(data.preferences.autoBuyEnabled)
+        }
+        if (typeof data.preferences.autoBuyWeeklyCap === "number") {
+          setAutoBuyWeeklyCap(data.preferences.autoBuyWeeklyCap)
+        }
+        if (typeof data.preferences.autoBuyIncludeB2cExclusive === "boolean") {
+          setAutoBuyIncludeB2cExclusive(data.preferences.autoBuyIncludeB2cExclusive)
+        }
+        if (data.preferences.mollieMandateStatus) {
+          setMollieMandateStatus(data.preferences.mollieMandateStatus)
+        }
+      })
+      .catch(() => undefined)
+    return () => {
+      active = false
+    }
+  }, [])
+
   const [saving, setSaving] = useState(false)
 
   // Fermeture clavier avec Escape
@@ -210,6 +248,9 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
           minFacture,
           segment: selectedSegment,
           notificationMode,
+          autoBuyEnabled,
+          autoBuyWeeklyCap,
+          autoBuyIncludeB2cExclusive,
         }),
       })
 
@@ -224,6 +265,9 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
         partner.target_surfaces = data?.preferences?.targetSurfacesRaw ?? selectedSurfaces
         partner.min_facture = minFacture
         partner.segment = selectedSegment
+        partner.auto_buy_enabled = autoBuyEnabled
+        partner.auto_buy_weekly_cap = autoBuyWeeklyCap
+        partner.auto_buy_include_b2c_exclusive = autoBuyIncludeB2cExclusive
       }
 
       toast.success("Vos alertes et préférences d'e-mails ont été enregistrées !")
@@ -624,6 +668,91 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
                   </button>
                 )
               })}
+            </div>
+          </div>
+
+          {/* Section 5 : Auto-Pilot Plafonné & Mandat 1-Clic */}
+          <div className="rounded-xl border border-border bg-secondary/35 p-4 flex flex-col gap-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-foreground">
+                  Mode Auto-Pilot (Attribution prioritaire)
+                </h4>
+                <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                  Recevez automatiquement les dossiers conformes à vos critères dès validation, avec un plafond hebdomadaire strict.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={autoBuyEnabled}
+                onClick={() => setAutoBuyEnabled((v) => !v)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                  autoBuyEnabled ? "bg-emerald-600" : "bg-border"
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                    autoBuyEnabled ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {autoBuyEnabled && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-border/60">
+                <div className="flex flex-col gap-1">
+                  <label
+                    htmlFor="auto-buy-cap"
+                    className="text-[11px] font-bold text-foreground"
+                  >
+                    Plafond hebdomadaire (dossiers / sem.)
+                  </label>
+                  <select
+                    id="auto-buy-cap"
+                    value={autoBuyWeeklyCap}
+                    onChange={(e) => setAutoBuyWeeklyCap(Number(e.target.value) || 3)}
+                    className="h-9 rounded-lg border border-border bg-card px-2.5 text-xs font-mono font-bold text-foreground"
+                  >
+                    {[1, 2, 3, 5, 8, 10, 15, 20].map((cap) => (
+                      <option key={cap} value={cap}>
+                        Max {cap} dossier{cap > 1 ? "s" : ""} / semaine
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {selectedSegment !== "B2B" && (
+                  <label className="flex items-start gap-2 rounded-lg border border-border bg-card p-2.5 text-[11px] text-foreground cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={autoBuyIncludeB2cExclusive}
+                      onChange={(e) => setAutoBuyIncludeB2cExclusive(e.target.checked)}
+                      className="mt-0.5 h-3.5 w-3.5 accent-emerald-700 rounded cursor-pointer"
+                    />
+                    <span className="leading-snug">
+                      Activer l&apos;<strong>Exclusivité Totale B2C</strong> automatique (<span className="font-mono">7 cr.</span>) quand disponible
+                    </span>
+                  </label>
+                )}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground pt-1">
+              <span>
+                Source de débit : <strong className="text-foreground">Portefeuille crédits en priorité</strong>
+              </span>
+              <span
+                className={`rounded-md px-2 py-0.5 font-mono text-[10px] font-bold ${
+                  mollieMandateStatus === "valid"
+                    ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                    : "bg-card text-muted-foreground border border-border"
+                }`}
+              >
+                {mollieMandateStatus === "valid"
+                  ? "Mandat 1-clic Mollie actif"
+                  : "Mandat 1-clic optionnel non lié"}
+              </span>
             </div>
           </div>
         </form>

@@ -33,8 +33,13 @@ import {
   CreditCard,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  formatEurWithDecimals,
+  calculateLeadDirectFinancials,
+  B2C_EXCLUSIVE_CREDIT_COST,
+  B2C_EXCLUSIVE_PRICE_EUR,
+} from "@/lib/credit-pricing"
 import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
-import { formatEurWithDecimals, calculateLeadDirectFinancials } from "@/lib/credit-pricing"
 import {
   getLeadLocationInfo,
   sanitizeLeadNotes,
@@ -58,9 +63,11 @@ import { useLeadInspectionTimer } from "@/lib/client/partner-tracker"
 interface LeadInspectionDrawerProps {
   lead: any
   partnerCredits: number
+  hasValidMandate?: boolean
   isBuying: boolean
   onClose: () => void
-  onPurchase: (lead: any) => void
+  onPurchase: (lead: any, opts?: { exclusive?: boolean }) => void
+  onOneClickSuccess?: (lead: any, purchaseData: any) => void
   onRequestTopUp: () => void
   onRequestExpert?: (lead: any) => void
 }
@@ -68,14 +75,17 @@ interface LeadInspectionDrawerProps {
 export function LeadInspectionDrawer({
   lead,
   partnerCredits,
+  hasValidMandate = false,
   isBuying,
   onClose,
   onPurchase,
+  onOneClickSuccess,
   onRequestTopUp,
   onRequestExpert,
 }: LeadInspectionDrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null)
   const [isDirectPayOpen, setIsDirectPayOpen] = React.useState(false)
+  const [directPayExclusive, setDirectPayExclusive] = React.useState(false)
   const [isImageModalOpen, setIsImageModalOpen] = React.useState(false)
 
   const isLeadAlreadyPurchased = Boolean(
@@ -148,7 +158,12 @@ export function LeadInspectionDrawer({
   })
 
   const location = getLeadLocationInfo(lead)
-  const freshness = getLeadFreshness(lead.created_at, (lead as { freshness_label?: string }).freshness_label)
+  const freshness = getLeadFreshness(
+    lead.created_at,
+    (lead as { freshness_label?: string }).freshness_label,
+    lead.reconfirmed_at || lead.qualification_metadata?.reconfirmed_at
+  )
+  const canTakeExclusiveB2C = !isB2B && takenSlots === 0 && maxSlots > 1 && !isPurchased
   const sanitized = sanitizeLeadNotes(lead.project_details, lead.message)
   const specs = sanitized.specs
 
@@ -813,6 +828,7 @@ export function LeadInspectionDrawer({
                     type="button"
                     onClick={() => {
                       recordUnlockIntent("direct_pay")
+                      setDirectPayExclusive(false)
                       setIsDirectPayOpen(true)
                     }}
                     className="font-bold h-11 px-3.5 text-xs border-border hover:bg-secondary cursor-pointer w-full sm:w-auto shadow-2xs"
@@ -821,6 +837,29 @@ export function LeadInspectionDrawer({
                     <CreditCard className="h-4 w-4 mr-1.5 text-accent" />
                     <span>Payer {directFinancials.priceHtva.toFixed(2)} € HT</span>
                   </Button>
+                  {canTakeExclusiveB2C && (
+                    <Button
+                      variant="outline"
+                      disabled={isBuying}
+                      onClick={() => {
+                        if (partnerCredits >= B2C_EXCLUSIVE_CREDIT_COST) {
+                          recordUnlockIntent("credits")
+                          onPurchase(lead, { exclusive: true })
+                        } else {
+                          recordUnlockIntent("direct_pay")
+                          setDirectPayExclusive(true)
+                          setIsDirectPayOpen(true)
+                        }
+                      }}
+                      className="font-bold h-11 px-3.5 text-xs border-emerald-600/40 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 cursor-pointer w-full sm:w-auto shadow-2xs"
+                      title="Réserver ce dossier B2C pour vous seul (0 concurrent + e-mail prioritaire au prospect)"
+                    >
+                      <Unlock className="h-4 w-4 mr-1.5 text-emerald-700" />
+                      <span>
+                        Exclusivité 100 % ({B2C_EXCLUSIVE_CREDIT_COST} cr. · {B2C_EXCLUSIVE_PRICE_EUR.toFixed(0)} € HT)
+                      </span>
+                    </Button>
+                  )}
                   <Button
                     variant="default"
                     disabled={isBuying}
@@ -862,6 +901,7 @@ export function LeadInspectionDrawer({
                     type="button"
                     onClick={() => {
                       recordUnlockIntent("direct_pay")
+                      setDirectPayExclusive(false)
                       setIsDirectPayOpen(true)
                     }}
                     className="font-bold h-11 px-5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm w-full sm:w-auto gap-1.5"
@@ -869,6 +909,21 @@ export function LeadInspectionDrawer({
                     <CreditCard className="h-4 w-4" />
                     <span>Payer {directFinancials.priceHtva.toFixed(2)} € HT en direct</span>
                   </Button>
+                  {canTakeExclusiveB2C && (
+                    <Button
+                      variant="outline"
+                      type="button"
+                      onClick={() => {
+                        recordUnlockIntent("direct_pay")
+                        setDirectPayExclusive(true)
+                        setIsDirectPayOpen(true)
+                      }}
+                      className="font-bold h-11 px-3.5 text-xs border-emerald-600/40 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 cursor-pointer w-full sm:w-auto"
+                    >
+                      <Unlock className="h-4 w-4 mr-1.5 text-emerald-700" />
+                      <span>Exclusivité 100 % ({B2C_EXCLUSIVE_PRICE_EUR.toFixed(0)} € HT)</span>
+                    </Button>
+                  )}
                 </>
               )
             )}
@@ -879,15 +934,22 @@ export function LeadInspectionDrawer({
         <DirectLeadPaymentModal
           lead={lead}
           isOpen={isDirectPayOpen}
-          onClose={() => setIsDirectPayOpen(false)}
-          onSwitchToCredits={() => {
+          initialExclusive={directPayExclusive}
+          hasValidMandate={hasValidMandate}
+          onClose={() => {
             setIsDirectPayOpen(false)
-            if (hasEnoughCredits) {
-              onPurchase(lead)
+            setDirectPayExclusive(false)
+          }}
+          onSwitchToCredits={(exclusiveChoice) => {
+            setIsDirectPayOpen(false)
+            const needed = exclusiveChoice ? B2C_EXCLUSIVE_CREDIT_COST : cost
+            if (partnerCredits >= needed) {
+              onPurchase(lead, { exclusive: Boolean(exclusiveChoice) })
             } else {
               onRequestTopUp()
             }
           }}
+          onOneClickSuccess={onOneClickSuccess}
           partnerCredits={partnerCredits}
         />
       </div>

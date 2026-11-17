@@ -413,6 +413,7 @@ export function PartnerDashboardShell({
           <MarketplaceFeedView
             leads={marketplace}
             partnerCredits={credits}
+            hasValidMandate={initialPartner?.mollie_mandate_status === "valid"}
             targetLeadId={activeTargetLeadId}
             targetedClosedLead={targetedClosedLead}
             targetedPurchasedLead={targetedPurchasedLead}

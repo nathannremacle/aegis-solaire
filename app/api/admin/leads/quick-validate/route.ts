@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { evaluateLeadPublishability } from "@/lib/lead-quality"
-import { dispatchLeadWave } from "@/lib/lead-relance-engine"
+import { dispatchLeadWave, runAutoMatchForLead } from "@/lib/lead-relance-engine"
 import { verifyLeadValidationToken } from "@/lib/notify-admin-lead"
 
 function escapeHtml(s: string): string {
@@ -252,9 +252,16 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    void dispatchLeadWave(id, 1).catch((err) =>
-      console.error("[Quick Validate Email] Échec dispatchLeadWave Vague 1:", err)
-    )
+    void runAutoMatchForLead(id)
+      .then((autoRes) => {
+        if (!autoRes.isFullySold) {
+          return dispatchLeadWave(id, 1)
+        }
+        return null
+      })
+      .catch((err) =>
+        console.error("[Quick Validate Email] Échec Auto-Match / dispatchLeadWave Vague 1:", err)
+      )
   } catch (waveErr) {
     console.warn("[Quick Validate Email] dispatchLeadWave exception:", waveErr)
   }

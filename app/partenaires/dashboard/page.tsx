@@ -168,7 +168,7 @@ async function PartnerDashboardLoader({
           id, segment, province, city, postal_code, site_address, surface_type, surface_area, surface_area_m2,
           annual_electricity_bill, annual_bill_eur, estimated_power_kwc, roof_material, ownership_status,
           timeframe, project_timeline, project_driver, project_details, message, contact_preference, first_name, last_name,
-          credit_cost, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate,
+          credit_cost, max_slots, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate,
           qualification_metadata, wants_irve, lead_score,
           lead_purchases(id, partner_id, purchased_at, partners(id, company_name, email, is_test))
         `)
@@ -214,7 +214,8 @@ async function PartnerDashboardLoader({
           l.qualification_metadata?.is_showcase !== true
       )
       .map((l: any) => {
-        const maxSlots = l.segment === "B2B" ? 1 : 3
+        const maxSlots =
+          typeof l.max_slots === "number" ? l.max_slots : l.segment === "B2B" ? 1 : 3
         const testEmailEnv = (process.env.TEST_PARTNER_EMAIL || "").toLowerCase().trim()
         const realPurchases = (Array.isArray(l.lead_purchases) ? l.lead_purchases : []).filter((p: any) => {
           const partnerObj = Array.isArray(p.partners) ? p.partners[0] : p.partners
@@ -262,7 +263,7 @@ async function PartnerDashboardLoader({
             id, segment, province, city, postal_code, site_address, surface_type, surface_area, surface_area_m2,
             annual_electricity_bill, annual_bill_eur, estimated_power_kwc, roof_material, ownership_status,
             timeframe, project_timeline, project_driver, project_details, message, contact_preference, first_name, last_name,
-            credit_cost, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate,
+            credit_cost, max_slots, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate,
             qualification_metadata, wants_irve, lead_score,
             lead_purchases(id, partner_id, purchased_at, partners(id, company_name, email, is_test))
           `)
@@ -270,7 +271,12 @@ async function PartnerDashboardLoader({
           .maybeSingle()
 
         if (specificLead) {
-          const maxSlots = specificLead.segment === "B2B" ? 1 : 3
+          const maxSlots =
+            typeof specificLead.max_slots === "number"
+              ? specificLead.max_slots
+              : specificLead.segment === "B2B"
+                ? 1
+                : 3
           const testEmailEnv = (process.env.TEST_PARTNER_EMAIL || "").toLowerCase().trim()
           const realPurchases = (Array.isArray(specificLead.lead_purchases) ? specificLead.lead_purchases : []).filter((p: any) => {
             const partnerObj = Array.isArray(p.partners) ? p.partners[0] : p.partners

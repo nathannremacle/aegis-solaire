@@ -12,7 +12,11 @@ import {
   X,
 } from "lucide-react"
 import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
-import { calculateLeadDirectFinancials } from "@/lib/credit-pricing"
+import {
+  calculateLeadDirectFinancials,
+  B2C_EXCLUSIVE_CREDIT_COST,
+  B2C_EXCLUSIVE_PRICE_EUR,
+} from "@/lib/credit-pricing"
 import {
   getConsumptionLabel,
   getGrdLabel,
@@ -39,8 +43,8 @@ export interface PartnerFocusedLeadViewProps {
   availableLeadsCount: number
   onBackToMarketplace: () => void
   onOpenCrm?: () => void
-  onPurchaseWithCredits: (lead: any) => void
-  onOpenDirectPay: (lead: any) => void
+  onPurchaseWithCredits: (lead: any, exclusive?: boolean) => void
+  onOpenDirectPay: (lead: any, exclusive?: boolean) => void
   onRequestTopUp: () => void
   onOpenAlertPreferences?: () => void
   onOpenExpert?: (lead: any) => void
@@ -841,12 +845,31 @@ export function PartnerFocusedLeadView({
                         type="button"
                         onClick={() => {
                           handleTrackUnlock("direct_pay")
-                          onOpenDirectPay(lead)
+                          onOpenDirectPay(lead, false)
                         }}
                         className="block w-full text-center text-[13px] font-semibold text-[var(--aegis-link)] underline underline-offset-4 hover:text-[var(--aegis-ink)] cursor-pointer py-1 rounded-[5px] focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
                       >
                         Débloquer à l’unité ({unlockPriceEur} · Bancontact / Carte)
                       </button>
+
+                      {!isB2B && takenSlots === 0 && maxSlots > 1 && (
+                        <button
+                          type="button"
+                          disabled={isBuying}
+                          onClick={() => {
+                            if (partnerCredits >= B2C_EXCLUSIVE_CREDIT_COST) {
+                              handleTrackUnlock("credits")
+                              onPurchaseWithCredits(lead, true)
+                            } else {
+                              handleTrackUnlock("direct_pay")
+                              onOpenDirectPay(lead, true)
+                            }
+                          }}
+                          className="w-full min-h-[40px] rounded-[6px] border border-emerald-700/35 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 text-[13px] font-bold text-emerald-900 cursor-pointer transition-colors"
+                        >
+                          Réserver l&apos;Exclusivité 100 % ({B2C_EXCLUSIVE_CREDIT_COST} cr. · {B2C_EXCLUSIVE_PRICE_EUR} € HT)
+                        </button>
+                      )}
                     </>
                   ) : (
                     <>
@@ -854,12 +877,25 @@ export function PartnerFocusedLeadView({
                         type="button"
                         onClick={() => {
                           handleTrackUnlock("direct_pay")
-                          onOpenDirectPay(lead)
+                          onOpenDirectPay(lead, false)
                         }}
                         className="w-full min-h-[46px] rounded-[6px] bg-[var(--aegis-ink)] hover:bg-[var(--aegis-primary-hover)] px-4 py-2.5 text-[15px] font-bold text-white cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
                       >
                         Débloquer à l’unité ({unlockPriceEur})
                       </button>
+
+                      {!isB2B && takenSlots === 0 && maxSlots > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleTrackUnlock("direct_pay")
+                            onOpenDirectPay(lead, true)
+                          }}
+                          className="w-full min-h-[40px] rounded-[6px] border border-emerald-700/35 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 text-[13px] font-bold text-emerald-900 cursor-pointer transition-colors"
+                        >
+                          Option Exclusivité 100 % ({B2C_EXCLUSIVE_PRICE_EUR} € HT)
+                        </button>
+                      )}
 
                       <button
                         type="button"

@@ -9,6 +9,9 @@ import {
   CREDIT_UNIT_PRICE_CENTIMES,
   B2C_CREDIT_COST,
   B2B_CREDIT_COST,
+  B2C_EXCLUSIVE_CREDIT_COST,
+  B2C_EXCLUSIVE_PRICE_EUR,
+  calculateOrderFinancials,
 } from "./credit-pricing"
 import {
   calculateB2BSolarROI,
@@ -50,18 +53,140 @@ export interface FinancialEstimates {
 }
 
 /**
- * Calcule dynamiquement le coût en crédits d'un dossier selon le barème fixe V2 :
- * - B2C (partagé max 3 installateurs) : 3 crédits / acheteur (29,50 € HTVA)
- * - B2B professionnel exclusif : 9 crédits en exclusivité (88,50 € HTVA)
+ * Tarification dynamique basée sur la valeur intrinsèque du chantier (Value-Based Pricing).
+ */
+export type LeadPricingTier = "eco" | "standard" | "premium"
+
+/**
+ * Aucun rabais temporel (anti-attentisme). Tarif figé à la création/publication :
+ * - B2C Éco (2 cr. / 19,50 €) | Standard (3 cr. / 29,50 €) | Premium (4 cr. / 39,00 €)
+ * - B2B PME (6 cr. / 59,00 €) | Standard (9 cr. / 88,50 €) | Grand Compte (12 cr. / 118,00 €)
  */
 export function calculateLeadCreditCost(lead: {
   segment: "B2B" | "B2C" | string
   surfaceArea?: number | null
   surfaceType?: string | null
   annualBill?: number | null
+  timeframe?: string | null
+  projectTimeline?: string | null
+  wantsIrve?: boolean | null
+  projectDetails?: string | null
+  qualificationMetadata?: Record<string, unknown> | null
 }): number {
-  if (lead.segment === "B2C") return B2C_CREDIT_COST
-  return B2B_CREDIT_COST
+  const area = Number(lead.surfaceArea) || 0
+  const bill = Number(lead.annualBill) || 0
+  const surface = (lead.surfaceType || "").toLowerCase()
+  const horizon = `${lead.timeframe || ""} ${lead.projectTimeline || ""}`.toLowerCase()
+  const details = (lead.projectDetails || "").toLowerCase()
+  const metaBattery = lead.qualificationMetadata?.has_battery
+  const wantsBattery =
+    metaBattery === true ||
+    metaBattery === "oui" ||
+    details.includes("batterie: oui") ||
+    details.includes("avec batterie")
+  const wantsIrve =
+    Boolean(lead.wantsIrve) ||
+    lead.qualificationMetadata?.wants_irve === true ||
+    details.includes("borne")
+
+  if (lead.segment === "B2C") {
+    const isUrgent =
+      horizon.includes("immediat") ||
+      horizon.includes("asap") ||
+      horizon.includes("lt_3") ||
+      horizon.includes("urgent") ||
+      horizon.includes("3 mois")
+    const isExploring =
+      horizon.includes("explor") ||
+      horizon.includes("plus_6") ||
+      horizon.includes("gt_6") ||
+      horizon.includes("long") ||
+      horizon.includes("renseigne")
+
+    if (
+      (wantsBattery || (wantsIrve && bill >= 1800)) ||
+      area >= 75 ||
+      bill >= 2500 ||
+      (isUrgent && bill >= 1600)
+    ) {
+      return 4 // B2C Premium (39,00 € HTVA)
+    }
+
+    if (
+      (bill > 0 && bill < 1100 && !wantsIrve) ||
+      (area > 0 && area <= 25) ||
+      (isExploring && !wantsBattery && !wantsIrve)
+    ) {
+      return 2 // B2C Éco (19,50 € HTVA)
+    }
+
+    return B2C_CREDIT_COST // 3 crédits Standard (29,50 € HTVA)
+  }
+
+  // Segment B2B Exclusif
+  const isGroundOrBrownfield =
+    surface === "friche" || surface === "terrain" || surface === "sol"
+  if (isGroundOrBrownfield || area >= 1200 || bill >= 30000) {
+    return 12 // B2B Grand Compte (118,00 € HTVA)
+  }
+  if ((bill > 0 && bill < 8500) || (area > 0 && area < 400 && bill < 12000)) {
+    return 6 // B2B PME (59,00 € HTVA)
+  }
+  return B2B_CREDIT_COST // 9 crédits Standard (88,50 € HTVA)
+}
+
+export function getLeadPricingTierMeta(lead: {
+  segment: "B2B" | "B2C" | string
+  credit_cost?: number | null
+  creditCost?: number | null
+  pricing_tier?: string | null
+  pricingTier?: string | null
+  surfaceArea?: number | null
+  surfaceType?: string | null
+  annualBill?: number | null
+  timeframe?: string | null
+  projectTimeline?: string | null
+  wantsIrve?: boolean | null
+  projectDetails?: string | null
+  qualificationMetadata?: Record<string, unknown> | null
+}) {
+  const credits =
+    Number(lead.credit_cost ?? lead.creditCost) ||
+    calculateLeadCreditCost(lead)
+  const fin = calculateOrderFinancials(credits)
+
+  let tier: LeadPricingTier = "standard"
+  let label = lead.segment === "B2B" ? "B2B Standard" : "B2C Standard"
+
+  const rawTier = (lead.pricing_tier ?? lead.pricingTier ?? "").toLowerCase()
+  if (lead.segment === "B2B") {
+    if (credits <= 6 || rawTier === "eco") {
+      tier = "eco"
+      label = "B2B PME"
+    } else if (credits >= 12 || rawTier === "premium") {
+      tier = "premium"
+      label = "B2B Grand Compte"
+    }
+  } else {
+    if (credits <= 2 || rawTier === "eco") {
+      tier = "eco"
+      label = "B2C Éco"
+    } else if (credits >= 4 || rawTier === "premium") {
+      tier = "premium"
+      label = "B2C Premium"
+    }
+  }
+
+  return {
+    tier,
+    label,
+    credits,
+    directPriceHtva: fin.priceHtva,
+    exclusiveCreditCost:
+      lead.segment === "B2C" ? B2C_EXCLUSIVE_CREDIT_COST : credits,
+    exclusivePriceHtva:
+      lead.segment === "B2C" ? B2C_EXCLUSIVE_PRICE_EUR : fin.priceHtva,
+  }
 }
 
 const B2C_CONSUMPTION_BRACKET_MAP: Record<string, { kwh: number; bill: number }> = {
@@ -283,6 +408,9 @@ export function calculateMarketplaceFinancials(lead: {
   creditCost?: number | null | undefined
   estimatedPowerKwc?: number | null | undefined
   hasBattery?: boolean | string | null | undefined
+  wantsIrve?: boolean | null | undefined
+  timeframe?: string | null | undefined
+  projectTimeline?: string | null | undefined
   projectDetails?: string | string[] | null | undefined
   qualificationMetadata?: Record<string, unknown> | null | undefined
 }): FinancialEstimates {
@@ -344,6 +472,9 @@ export function calculateMarketplaceFinancials(lead: {
   }
 
   // Coût d'acquisition du dossier en crédits et en euros
+  const serializedProjectDetails = Array.isArray(lead.projectDetails)
+    ? lead.projectDetails.join(" | ")
+    : lead.projectDetails || undefined
   const credits =
     lead.creditCost ??
     calculateLeadCreditCost({
@@ -351,13 +482,13 @@ export function calculateMarketplaceFinancials(lead: {
       surfaceArea: normalizedSurfaceAreaM2,
       surfaceType: lead.surfaceType,
       annualBill: normalizedAnnualBill,
+      timeframe: lead.timeframe,
+      projectTimeline: lead.projectTimeline,
+      wantsIrve: lead.wantsIrve,
+      projectDetails: serializedProjectDetails,
+      qualificationMetadata: lead.qualificationMetadata ?? undefined,
     })
-  const leadCostEuros =
-    credits === 3
-      ? 29.5
-      : credits === 9
-      ? 88.5
-      : Math.round((credits * 2950) / 3) / 100
+  const leadCostEuros = calculateOrderFinancials(credits).priceHtva
 
   const dataQuality: "complete" | "partial" =
     rawArea > 0 && rawAnnualBill > 0 ? "complete" : "partial"

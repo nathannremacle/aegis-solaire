@@ -1,6 +1,11 @@
-import { createMollieClient, PaymentMethod, PaymentStatus } from "@mollie/api-client"
+import {
+  createMollieClient,
+  PaymentMethod,
+  PaymentStatus,
+  SequenceType,
+} from "@mollie/api-client"
 
-export { PaymentMethod, PaymentStatus }
+export { PaymentMethod, PaymentStatus, SequenceType }
 
 /**
  * Initialise le client officiel Mollie.
@@ -11,11 +16,70 @@ export function getMollieClient() {
 
   if (!apiKey) {
     throw new Error(
-      "MOLLIE_API_KEY non configurée. Veuillez ajouter votre clé API Mollie dans le fichier .env.local (ex: test_... ou live_...)."
+      "Variable d'environnement MOLLIE_API_KEY manquante pour les paiements Mollie."
     )
   }
 
   return createMollieClient({ apiKey })
+}
+
+/**
+ * Crée ou réutilise un identifiant Customer Mollie pour permettre le paiement 1-clic (mandats).
+ */
+export async function ensureMollieCustomer(params: {
+  partnerId: string
+  partnerEmail: string
+  partnerCompany: string
+  existingCustomerId?: string | null
+}): Promise<string> {
+  if (params.existingCustomerId) {
+    return params.existingCustomerId
+  }
+
+  const mollie = getMollieClient()
+  const customer = await mollie.customers.create({
+    name: (params.partnerCompany || params.partnerEmail || "Installateur Aegis Solaire").slice(0, 80),
+    email: params.partnerEmail,
+    metadata: {
+      partnerId: params.partnerId,
+    },
+  })
+
+  return customer.id
+}
+
+/**
+ * Vérifie si un partenaire dispose d'au moins un mandat Mollie valide pour les paiements récurrents / 1-clic.
+ */
+export async function getValidMollieMandate(
+  customerId: string,
+  preferredMandateId?: string | null
+): Promise<{ valid: boolean; mandateId: string | null; method: string | null }> {
+  const mollie = getMollieClient()
+  const page = await mollie.customerMandates.page({ customerId })
+  const validMandates = page.filter((m) => m.status === "valid" || m.status === "pending")
+
+  if (preferredMandateId) {
+    const preferred = validMandates.find((m) => m.id === preferredMandateId)
+    if (preferred) {
+      return {
+        valid: preferred.status === "valid",
+        mandateId: preferred.id,
+        method: preferred.method,
+      }
+    }
+  }
+
+  const firstValid = validMandates.find((m) => m.status === "valid") || validMandates[0]
+  if (!firstValid) {
+    return { valid: false, mandateId: null, method: null }
+  }
+
+  return {
+    valid: firstValid.status === "valid",
+    mandateId: firstValid.id,
+    method: firstValid.method,
+  }
 }
 
 export type CreateCreditOrderPaymentParams = {
@@ -27,11 +91,14 @@ export type CreateCreditOrderPaymentParams = {
   partnerEmail: string
   partnerCompany: string
   siteUrl: string
+  customerId?: string | null
+  enableOneClick?: boolean
 }
 
 /**
- * Crée un paiement Mollie pré-configuré pour le marché belge (Bancontact / Payconiq).
- * La commission est un forfait fixe d'environ 0,25 € HT par transaction (0 % variable).
+ * Crée un paiement Mollie pré-configuré pour le marché belge (Bancontact / Carte / KBC / Belfius).
+ * Si `enableOneClick` & `customerId` sont fournis, crée un premier paiement `sequenceType: first`
+ * générant un mandat récurrent réutilisable.
  */
 export async function createCreditOrderPayment(params: CreateCreditOrderPaymentParams) {
   const mollie = getMollieClient()
@@ -44,22 +111,19 @@ export async function createCreditOrderPayment(params: CreateCreditOrderPaymentP
     partnerEmail,
     partnerCompany,
     siteUrl,
+    customerId,
+    enableOneClick,
   } = params
 
   const cleanSiteUrl = siteUrl.replace(/\/$/, "")
-
-  // Montant formaté au centime près (obligatoire pour Mollie : '180.29')
   const amountValue = priceTtc.toFixed(2)
 
-  // Webhook Mollie : en local/développement sans tunnel public, Mollie ne peut pas joindre localhost.
-  // En production ou si NEXT_PUBLIC_SITE_URL est public, Mollie appellera ce webhook.
   const isLocalhost =
     cleanSiteUrl.includes("localhost") || cleanSiteUrl.includes("127.0.0.1")
-  const webhookUrl = isLocalhost
-    ? undefined // Mollie rejette les URLs localhost en webhook
-    : `${cleanSiteUrl}/api/webhooks/mollie`
-
+  const webhookUrl = isLocalhost ? undefined : `${cleanSiteUrl}/api/webhooks/mollie`
   const redirectUrl = `${cleanSiteUrl}/partenaires/dashboard/credits?payment=return&order_id=${orderId}`
+
+  const useFirstMandate = Boolean(enableOneClick && customerId)
 
   const payment = await mollie.payments.create({
     amount: {
@@ -69,12 +133,16 @@ export async function createCreditOrderPayment(params: CreateCreditOrderPaymentP
     description: `Aegis Solaire - ${packName} (${credits} crédits) - ${partnerCompany.slice(0, 20)}`,
     redirectUrl,
     webhookUrl,
-    method: [
-      PaymentMethod.bancontact,
-      PaymentMethod.creditcard,
-      PaymentMethod.kbc,
-      PaymentMethod.belfius,
-    ],
+    ...(customerId ? { customerId } : {}),
+    ...(useFirstMandate ? { sequenceType: SequenceType.first } : {}),
+    method: useFirstMandate
+      ? [PaymentMethod.bancontact, PaymentMethod.creditcard]
+      : [
+          PaymentMethod.bancontact,
+          PaymentMethod.creditcard,
+          PaymentMethod.kbc,
+          PaymentMethod.belfius,
+        ],
     metadata: {
       orderId,
       partnerId,
@@ -82,6 +150,7 @@ export async function createCreditOrderPayment(params: CreateCreditOrderPaymentP
       packName,
       partnerEmail,
       partnerCompany,
+      enableOneClick: useFirstMandate,
     },
   })
 
@@ -100,14 +169,17 @@ export type CreateLeadDirectPaymentParams = {
   priceHtva: number
   vatAmount: number
   credits: number
+  exclusive?: boolean
   partnerId: string
   partnerEmail: string
   partnerCompany: string
   siteUrl: string
+  customerId?: string | null
+  enableOneClick?: boolean
 }
 
 /**
- * Crée un paiement Mollie pré-configuré pour l'achat direct d'un dossier lead (Bancontact / Payconiq / Carte).
+ * Crée un paiement Mollie pré-configuré pour l'achat direct d'un dossier lead (standard ou exclusif B2C).
  */
 export async function createLeadDirectPayment(params: CreateLeadDirectPaymentParams) {
   const mollie = getMollieClient()
@@ -119,10 +191,13 @@ export async function createLeadDirectPayment(params: CreateLeadDirectPaymentPar
     priceHtva,
     vatAmount,
     credits,
+    exclusive,
     partnerId,
     partnerEmail,
     partnerCompany,
     siteUrl,
+    customerId,
+    enableOneClick,
   } = params
 
   const cleanSiteUrl = siteUrl.replace(/\/$/, "")
@@ -130,44 +205,112 @@ export async function createLeadDirectPayment(params: CreateLeadDirectPaymentPar
 
   const isLocalhost =
     cleanSiteUrl.includes("localhost") || cleanSiteUrl.includes("127.0.0.1")
-  const webhookUrl = isLocalhost
-    ? undefined
-    : `${cleanSiteUrl}/api/webhooks/mollie`
+  const webhookUrl = isLocalhost ? undefined : `${cleanSiteUrl}/api/webhooks/mollie`
 
   const locationSuffix = leadLocation ? ` (${leadLocation})` : ""
   const redirectUrl = `${cleanSiteUrl}/partenaires/dashboard?lead_payment=return&lead_id=${encodeURIComponent(leadId)}`
+  const useFirstMandate = Boolean(enableOneClick && customerId)
+  const modeTag = exclusive && leadSegment === "B2C" ? " EXCLUSIF" : ""
 
   const payment = await mollie.payments.create({
     amount: {
       currency: "EUR",
       value: amountValue,
     },
-    description: `Aegis Solaire - Déblocage Dossier ${leadSegment} #${leadId.slice(0, 8)}${locationSuffix}`,
+    description: `Aegis Solaire - Déblocage${modeTag} ${leadSegment} #${leadId.slice(0, 8)}${locationSuffix}`,
     redirectUrl,
     webhookUrl,
-    method: [
-      PaymentMethod.bancontact,
-      PaymentMethod.creditcard,
-      PaymentMethod.kbc,
-      PaymentMethod.belfius,
-    ],
+    ...(customerId ? { customerId } : {}),
+    ...(useFirstMandate ? { sequenceType: SequenceType.first } : {}),
+    method: useFirstMandate
+      ? [PaymentMethod.bancontact, PaymentMethod.creditcard]
+      : [
+          PaymentMethod.bancontact,
+          PaymentMethod.creditcard,
+          PaymentMethod.kbc,
+          PaymentMethod.belfius,
+        ],
     metadata: {
       type: "lead_direct_purchase",
       leadId,
       partnerId,
       credits,
+      exclusive: Boolean(exclusive && leadSegment === "B2C"),
       priceHtva,
       vatAmount,
       priceTtc,
       leadSegment,
       partnerEmail,
       partnerCompany,
+      enableOneClick: useFirstMandate,
     },
   })
 
   return {
     paymentId: payment.id,
     checkoutUrl: payment.getCheckoutUrl(),
+    status: payment.status,
+  }
+}
+
+export type CreateRecurringLeadPaymentParams = {
+  customerId: string
+  mandateId?: string | null
+  leadId: string
+  leadSegment: string
+  leadLocation?: string | null
+  priceTtc: number
+  priceHtva: number
+  vatAmount: number
+  credits: number
+  exclusive?: boolean
+  partnerId: string
+  partnerEmail: string
+  partnerCompany: string
+  siteUrl: string
+  channel?: "mollie_mandate_one_click" | "auto_pilot"
+}
+
+/**
+ * Débite un mandat Mollie récurrent existant (1-clic ou Auto-Pilot) sans passage par le checkout.
+ */
+export async function createRecurringLeadPayment(params: CreateRecurringLeadPaymentParams) {
+  const mollie = getMollieClient()
+  const cleanSiteUrl = params.siteUrl.replace(/\/$/, "")
+  const isLocalhost =
+    cleanSiteUrl.includes("localhost") || cleanSiteUrl.includes("127.0.0.1")
+  const webhookUrl = isLocalhost ? undefined : `${cleanSiteUrl}/api/webhooks/mollie`
+  const locationSuffix = params.leadLocation ? ` (${params.leadLocation})` : ""
+  const modeTag = params.exclusive && params.leadSegment === "B2C" ? " EXCLUSIF" : ""
+
+  const payment = await mollie.payments.create({
+    customerId: params.customerId,
+    ...(params.mandateId ? { mandateId: params.mandateId } : {}),
+    sequenceType: SequenceType.recurring,
+    amount: {
+      currency: "EUR",
+      value: params.priceTtc.toFixed(2),
+    },
+    description: `Aegis Solaire Auto - Déblocage${modeTag} ${params.leadSegment} #${params.leadId.slice(0, 8)}${locationSuffix}`,
+    webhookUrl,
+    metadata: {
+      type: "lead_direct_purchase",
+      channel: params.channel || "mollie_mandate_one_click",
+      leadId: params.leadId,
+      partnerId: params.partnerId,
+      credits: params.credits,
+      exclusive: Boolean(params.exclusive && params.leadSegment === "B2C"),
+      priceHtva: params.priceHtva,
+      vatAmount: params.vatAmount,
+      priceTtc: params.priceTtc,
+      leadSegment: params.leadSegment,
+      partnerEmail: params.partnerEmail,
+      partnerCompany: params.partnerCompany,
+    },
+  })
+
+  return {
+    paymentId: payment.id,
     status: payment.status,
   }
 }

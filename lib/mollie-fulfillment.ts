@@ -11,11 +11,56 @@ import {
   buildCreditOrderConfirmationEmail,
   buildLeadDirectPurchaseConfirmationEmail,
 } from "@/lib/email-templates/installer-transactional"
-import { calculateOrderFinancials } from "@/lib/credit-pricing"
+import {
+  calculateOrderFinancials,
+  B2C_EXCLUSIVE_CREDIT_COST,
+} from "@/lib/credit-pricing"
+import { getValidMollieMandate } from "@/lib/mollie"
+import { sendProspectExclusiveMatchEmail } from "@/lib/prospect-exclusive-match-email"
 import {
   ensureInvoiceForCreditOrder,
   ensureInvoiceForLeadPurchase,
 } from "@/lib/accounting/invoice-service"
+
+async function savePartnerMollieMandateIfPresent(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  partnerId: string,
+  payment: Payment
+) {
+  try {
+    const customerId = payment.customerId || null
+    const mandateId = payment.mandateId || null
+    if (!customerId) return
+    const meta = (payment.metadata as { enableOneClick?: boolean } | null) || null
+    if (!meta?.enableOneClick && !mandateId && payment.sequenceType !== "first") return
+
+    let finalMandateId = mandateId
+    let mandateStatus = finalMandateId ? "valid" : "pending"
+
+    if (!finalMandateId) {
+      try {
+        const res = await getValidMollieMandate(customerId)
+        if (res.mandateId) {
+          finalMandateId = res.mandateId
+          mandateStatus = res.valid ? "valid" : "pending"
+        }
+      } catch {
+        // Ignorer si Mollie n'a pas encore provisionné le mandat de manière synchrone
+      }
+    }
+
+    await supabase
+      .from("partners")
+      .update({
+        mollie_customer_id: customerId,
+        ...(finalMandateId ? { mollie_mandate_id: finalMandateId } : {}),
+        mollie_mandate_status: mandateStatus,
+      })
+      .eq("id", partnerId)
+  } catch (err) {
+    console.warn("[Mollie Mandate Save] Erreur non bloquante:", err)
+  }
+}
 
 export interface FulfillmentResult {
   success: boolean
@@ -64,6 +109,8 @@ export async function fulfillPaidCreditOrder(
   }
   const newCredits = result.newCredits as number
   if (result.alreadyPaid) return { success: true, alreadyPaid: true, newCredits }
+
+  await savePartnerMollieMandateIfPresent(supabase, order.partner_id, payment)
 
   // 5. Journal d'audit sécurisé
   try {
@@ -154,6 +201,8 @@ export interface LeadFulfillmentResult {
   purchaseId?: string
   purchase?: any
   lead?: any
+  exclusive?: boolean
+  maxSlots?: number
   error?: string
 }
 
@@ -211,7 +260,7 @@ export async function fulfillPaidLeadDirectPurchase(
   const { data: lead, error: leadErr } = await supabase
     .from("leads")
     .select(
-      "id, segment, marketplace_status, credit_cost, province, city, postal_code, site_address, surface_type, surface_area, estimated_power_kwc, annual_electricity_bill, roof_material, project_timeline, lead_score, grd, project_details, message, contact_preference, first_name, last_name, email, phone, company, company_vat, qualification_metadata, created_at"
+      "id, segment, marketplace_status, credit_cost, max_slots, province, city, postal_code, site_address, surface_type, surface_area, estimated_power_kwc, annual_electricity_bill, roof_material, project_timeline, lead_score, grd, project_details, message, contact_preference, first_name, last_name, email, phone, company, company_vat, qualification_metadata, created_at"
     )
     .eq("id", leadId)
     .single()
@@ -222,59 +271,138 @@ export async function fulfillPaidLeadDirectPurchase(
   }
 
   const isB2B = lead.segment === "B2B"
-  const maxSlots = isB2B ? 1 : 3
+  const meta = (payment.metadata as Record<string, unknown>) || {}
+  const isB2CExclusive = Boolean(meta.exclusive) && !isB2B
+  const baseMaxSlots =
+    typeof (lead as { max_slots?: number | null }).max_slots === "number"
+      ? Number((lead as { max_slots?: number | null }).max_slots)
+      : isB2B
+        ? 1
+        : 3
+  const maxSlots = isB2CExclusive ? 1 : baseMaxSlots
 
-  // 4. Vérifier les créneaux déjà pris
-  const { count: takenSlots } = await supabase
+  // 4. Vérifier les créneaux déjà pris par des partenaires réels
+  const { data: existingPurchases } = await supabase
     .from("lead_purchases")
-    .select("*", { count: "exact", head: true })
+    .select("partner_id, partners(is_test, company_name)")
     .eq("lead_id", leadId)
 
-  const currentTaken = Number(takenSlots || 0)
-  if (currentTaken >= maxSlots) {
-    // Si les créneaux se sont remplis avant la confirmation, marquer sold_out
-    await supabase.from("leads").update({ marketplace_status: "sold_out" }).eq("id", leadId)
-    console.warn("[Mollie Lead Fulfillment] Créneaux complets pour le lead:", leadId)
-    // On crédite les crédits sur le compte du partenaire en dédommagement immédiat
-    const meta = (payment.metadata as any) || {}
-    const creditsToCompensate = Number(meta.credits || (isB2B ? 9 : 3))
+  const currentTaken = (existingPurchases || []).filter((row: any) => {
+    const pRel = Array.isArray(row.partners) ? row.partners[0] : row.partners
+    const isTestPartner =
+      pRel?.is_test === true ||
+      (typeof pRel?.company_name === "string" && pRel.company_name.toLowerCase().includes("test"))
+    return !isTestPartner
+  }).length
+
+  if ((isB2CExclusive && currentTaken > 0) || currentTaken >= baseMaxSlots) {
+    if (currentTaken >= baseMaxSlots) {
+      await supabase.from("leads").update({ marketplace_status: "sold_out" }).eq("id", leadId)
+    }
+    console.warn("[Mollie Lead Fulfillment] Créneaux complets ou exclusivité expirée:", leadId)
+    const fallbackCredits = isB2CExclusive
+      ? B2C_EXCLUSIVE_CREDIT_COST
+      : Number(lead.credit_cost || (isB2B ? 9 : 3))
+    const creditsToCompensate = Number(meta.credits || fallbackCredits)
     await supabase.rpc("add_credits", { p_amount: creditsToCompensate, p_partner_id: partner.id })
     return {
       success: false,
-      error: `Créneaux déjà complets pour ce dossier. ${creditsToCompensate} crédits ont été crédités sur votre compte.`,
+      error: `Créneaux complets ou dossier déjà partagé avant validation. ${creditsToCompensate} crédits ont été crédités sur votre compte.`,
     }
   }
 
-  const meta = (payment.metadata as any) || {}
-  const creditsEquivalent = Number(meta.credits || lead.credit_cost || (isB2B ? 9 : 3))
+  const creditsEquivalent = isB2CExclusive
+    ? Number(meta.credits || B2C_EXCLUSIVE_CREDIT_COST)
+    : Number(meta.credits || lead.credit_cost || (isB2B ? 9 : 3))
   const v2Fallback = calculateOrderFinancials(creditsEquivalent)
   const priceHtva = meta.priceHtva ? Number(meta.priceHtva).toFixed(2) : v2Fallback.priceHtva.toFixed(2)
   const vatAmount = meta.vatAmount ? Number(meta.vatAmount).toFixed(2) : v2Fallback.vatAmount.toFixed(2)
   const priceTtc = meta.priceTtc ? Number(meta.priceTtc).toFixed(2) : v2Fallback.priceTtc.toFixed(2)
+  const purchaseChannel =
+    meta.channel === "auto_pilot" ? "auto_pilot" : "mollie_direct"
+  const exclusiveTag = isB2CExclusive ? " (EXCLUSIF)" : ""
 
-  // 5. Insérer l'achat dans lead_purchases
-  const { data: purchase, error: purchaseErr } = await supabase
+  // 5. Insérer l'achat dans lead_purchases (avec repli si nouvelles colonnes non migrées)
+  let purchase: any = null
+  let purchaseErr: any = null
+  const basePurchaseRow = {
+    lead_id: leadId,
+    partner_id: partnerId,
+    credits_spent: creditsEquivalent,
+    pipeline_status: "to_contact",
+    notes: `Achat direct en euros${exclusiveTag} (Mollie: ${payment.id}) · ${priceHtva} € HTVA (${payment.method || "Bancontact"})`,
+    purchased_at: new Date().toISOString(),
+  }
+
+  const resInsert = await supabase
     .from("lead_purchases")
     .insert({
-      lead_id: leadId,
-      partner_id: partnerId,
-      credits_spent: creditsEquivalent,
-      pipeline_status: "to_contact",
-      notes: `Achat direct en euros (Mollie: ${payment.id}) · ${priceHtva} € HTVA (${payment.method || "Bancontact"})`,
-      purchased_at: new Date().toISOString(),
+      ...basePurchaseRow,
+      is_exclusive: isB2CExclusive || isB2B,
+      purchase_channel: purchaseChannel,
     })
     .select()
     .single()
+
+  if (
+    resInsert.error &&
+    (resInsert.error.code === "42703" ||
+      resInsert.error.message?.includes("is_exclusive") ||
+      resInsert.error.message?.includes("purchase_channel"))
+  ) {
+    const fallbackInsert = await supabase
+      .from("lead_purchases")
+      .insert(basePurchaseRow)
+      .select()
+      .single()
+    purchase = fallbackInsert.data
+    purchaseErr = fallbackInsert.error
+  } else {
+    purchase = resInsert.data
+    purchaseErr = resInsert.error
+  }
 
   if (purchaseErr || !purchase) {
     console.error("[Mollie Lead Fulfillment] Erreur insertion lead_purchases:", purchaseErr)
     return { success: false, error: "Failed to record lead purchase" }
   }
 
-  // 6. Fermer le lead si dernier slot acquis
-  if (currentTaken + 1 >= maxSlots) {
+  // 6. Clôturer le dossier si exclusivité B2C ou dernier slot acquis
+  if (isB2CExclusive) {
+    const { error: exclErr } = await supabase
+      .from("leads")
+      .update({
+        max_slots: 1,
+        exclusive_buyout: true,
+        marketplace_status: "sold_out",
+      })
+      .eq("id", leadId)
+    if (exclErr && (exclErr.code === "42703" || exclErr.message?.includes("exclusive_buyout"))) {
+      await supabase
+        .from("leads")
+        .update({ max_slots: 1, marketplace_status: "sold_out" })
+        .eq("id", leadId)
+    }
+
+    if (lead.email) {
+      sendProspectExclusiveMatchEmail({
+        email: lead.email,
+        firstName: lead.first_name,
+        city: lead.city,
+        province: lead.province,
+        estimatedPowerKwc: lead.estimated_power_kwc,
+        partnerCompany: partner.company_name || "Notre installateur partenaire RESCERT",
+        partnerEmail: partner.email,
+        partnerPhone: partner.phone,
+      }).catch((err) => {
+        console.warn("[Mollie Lead Fulfillment] Erreur e-mail réassurance prospect:", err)
+      })
+    }
+  } else if (currentTaken + 1 >= baseMaxSlots) {
     await supabase.from("leads").update({ marketplace_status: "sold_out" }).eq("id", leadId)
   }
+
+  await savePartnerMollieMandateIfPresent(supabase, partnerId, payment)
 
   // 7. Journal d'audit
   try {
@@ -407,5 +535,7 @@ export async function fulfillPaidLeadDirectPurchase(
     purchaseId: purchase.id,
     purchase,
     lead,
+    exclusive: isB2CExclusive || isB2B,
+    maxSlots,
   }
 }

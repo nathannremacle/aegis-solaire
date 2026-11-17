@@ -102,11 +102,11 @@ async function syncPartnerFromApplication(
     return { created: false, partnerId: existing.id }
   }
 
-  // Vérifier si des crédits d'accueil / invitation ont été explicitement offerts dans admin_notes
-  let initialCredits = 0
+  // Crédits d'accueil par défaut : 3 crédits d'essai offerts sauf mention contraire explicite dans admin_notes
+  let initialCredits = 3
   const match = app.admin_notes?.match(/(\d+)\s*crédits?\s*offerts?/i)
   if (match) {
-    initialCredits = parseInt(match[1], 10) || 0
+    initialCredits = parseInt(match[1], 10)
   }
 
   const { data: inserted, error } = await supabase
@@ -142,7 +142,7 @@ async function syncPartnerFromApplication(
     }
   }
 
-  return { created: true, partnerId: inserted?.id }
+  return { created: true, partnerId: inserted?.id, initialCredits }
 }
 
 import {
@@ -293,6 +293,10 @@ export async function PATCH(
         setupPasswordUrl,
         availableLeads,
         closedTargetLead,
+        welcomeCredits:
+          partnerSync && "initialCredits" in partnerSync
+            ? Number(partnerSync.initialCredits || 0)
+            : 0,
       })
 
       const sendRes = await sendInstallerEmail({

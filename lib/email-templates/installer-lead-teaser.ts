@@ -532,7 +532,7 @@ ${contactPreferenceDisplay ? `• Premier contact souhaité : ${contactPreferenc
 • Secteur : ${provinceLabel}
 
 DÉBLOCAGE DES COORDONNÉES :
-• Tarif : ${creditCostEur} ou ${data.creditCost} crédits (Solde disponible : ${data.partner.credits} crédit${data.partner.credits > 1 ? "s" : ""})
+• Tarif : ${creditCostEur} ou ${data.creditCost} crédits (Solde disponible : ${data.partner.credits} crédit${data.partner.credits > 1 ? "s" : ""})${!isB2B && data.takenSlots === 0 && remainingSlots > 0 ? `\n• Option Exclusivité Totale B2C (0 concurrent) : 65,00 € HTVA ou 7 crédits` : ""}
 • Consulter le dossier : ${dashboardLeadUrl}
 • Débloquer à l'unité (Bancontact / Carte) : ${directCheckoutLeadUrl}
 • Gérer mes crédits : ${creditsOrderUrl}
@@ -698,6 +698,7 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                           <span style="display: block; color: #4d6374; font-size: 13px; line-height: 1.35;">Déblocage des coordonnées</span>
                           <strong class="tabular" style="display: block; margin: 2px 0; font-size: 19px; font-weight: bold; line-height: 1.2; letter-spacing: -0.02em; color: #142d42; font-variant-numeric: tabular-nums;">${escapeHtml(creditCostEur)} ou ${data.creditCost} crédits</strong>
                           <span class="tabular" style="display: block; color: #4d6374; font-size: 13px; line-height: 1.35; font-variant-numeric: tabular-nums;">Solde disponible &middot; ${data.partner.credits} crédit${data.partner.credits > 1 ? "s" : ""}</span>
+                          ${!isB2B && data.takenSlots === 0 && remainingSlots > 0 ? `<span class="tabular" style="display: block; margin-top: 4px; font-size: 12px; font-weight: bold; color: #1d5d45; font-variant-numeric: tabular-nums;">Exclusivit&eacute; totale possible (7 cr. &middot; 65 &euro; HT)</span>` : ""}
                         </td>
                         <td class="actions-td action-cell" width="47%" style="width: 47%; padding-left: 14px; text-align: center; vertical-align: middle;">
                           <a href="${escapeHtml(dashboardLeadUrl)}" target="_blank" style="display: block; padding: 10px 12px; border: 1px solid #142d42; border-radius: 6px; background-color: #142d42; color: #ffffff; font-size: 15px; font-weight: bold; text-decoration: none; text-align: center;">Consulter le dossier &rarr;</a>

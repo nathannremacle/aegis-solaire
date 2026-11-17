@@ -3,7 +3,7 @@ import { revalidatePath, revalidateTag } from "next/cache"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { evaluateLeadPublishability } from "@/lib/lead-quality"
-import { dispatchLeadWave } from "@/lib/lead-relance-engine"
+import { dispatchLeadWave, runAutoMatchForLead } from "@/lib/lead-relance-engine"
 
 export async function POST(
   request: Request,
@@ -94,11 +94,18 @@ export async function POST(
     console.warn("[admin publish] audit log insertion failed:", err)
   }
 
-  // 4. Déclenchement de la Vague 1 de relance intelligente via le moteur d'attribution
+  // 4. Auto-Pilot puis déclenchement Vague 1 si créneaux restants
   try {
-    void dispatchLeadWave(id, 1).catch((err) =>
-      console.error("[admin publish] Échec dispatchLeadWave Vague 1:", err)
-    )
+    void runAutoMatchForLead(id)
+      .then((autoRes) => {
+        if (!autoRes.isFullySold) {
+          return dispatchLeadWave(id, 1)
+        }
+        return null
+      })
+      .catch((err) =>
+        console.error("[admin publish] Échec Auto-Match / dispatchLeadWave Vague 1:", err)
+      )
   } catch (err) {
     console.warn("[admin publish] dispatchLeadWave exception:", err)
   }

@@ -3,8 +3,9 @@
 import { revalidateTag, revalidatePath } from "next/cache"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { getAdminUser } from "@/lib/admin-auth"
-import { dispatchLeadWave } from "@/lib/lead-relance-engine"
+import { dispatchLeadWave, runAutoMatchForLead } from "@/lib/lead-relance-engine"
 import { B2C_CREDIT_COST, B2B_CREDIT_COST } from "@/lib/credit-pricing"
+import { calculateLeadCreditCost } from "@/lib/marketplace-pricing"
 import { sendLeadAssignedEmail } from "@/lib/notify-installateur"
 import { evaluateLeadPublishability } from "@/lib/lead-quality"
 
@@ -89,7 +90,15 @@ export async function publishLeadAction(leadId: string, creditCost?: number) {
   const finalCost =
     creditCost && creditCost > 0
       ? creditCost
-      : lead?.credit_cost ?? (lead?.segment === "B2B" ? B2B_CREDIT_COST : B2C_CREDIT_COST)
+      : lead?.credit_cost && lead.credit_cost > 0
+        ? lead.credit_cost
+        : calculateLeadCreditCost({
+            segment: lead.segment || "B2C",
+            surfaceArea: lead.surface_area,
+            surfaceType: lead.surface_type,
+            annualBill: lead.annual_electricity_bill,
+            qualificationMetadata: (lead.qualification_metadata as Record<string, unknown>) ?? null,
+          }) || (lead?.segment === "B2B" ? B2B_CREDIT_COST : B2C_CREDIT_COST)
 
   const existingMeta =
     lead.qualification_metadata && typeof lead.qualification_metadata === "object"
@@ -132,10 +141,15 @@ export async function publishLeadAction(leadId: string, creditCost?: number) {
     // Non-blocking
   }
 
-  // Déclencher la Vague 1 de relance ciblée (Tier 1) de façon non bloquante
-  void dispatchLeadWave(leadId, 1).catch((err) =>
-    console.error("[publishLeadAction] dispatchLeadWave error:", err)
-  )
+  // Auto-Pilot d'abord ; puis Vague 1 si le dossier n'est pas déjà sold_out
+  void runAutoMatchForLead(leadId)
+    .then((autoRes) => {
+      if (!autoRes.isFullySold) {
+        return dispatchLeadWave(leadId, 1)
+      }
+      return null
+    })
+    .catch((err) => console.error("[publishLeadAction] Auto-Match / dispatchLeadWave error:", err))
 
   revalidateTag("admin-kpis", "max")
   revalidateTag("admin-badges", "max")
@@ -336,6 +350,15 @@ export async function bulkQualifyAndPublishAction(leadIds: string[]) {
           updated_at: nowIso,
         })
         .eq("id", lead.id)
+
+      void runAutoMatchForLead(lead.id)
+        .then((autoRes) => {
+          if (!autoRes.isFullySold) {
+            return dispatchLeadWave(lead.id, 1)
+          }
+          return null
+        })
+        .catch(() => undefined)
     }
   }
 

@@ -46,8 +46,15 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
-import { formatEurWithDecimals, calculateLeadDirectFinancials } from "@/lib/credit-pricing"
+import {
+  calculateMarketplaceFinancials,
+  getLeadPricingTierMeta,
+} from "@/lib/marketplace-pricing"
+import {
+  formatEurWithDecimals,
+  calculateLeadDirectFinancials,
+  B2C_EXCLUSIVE_CREDIT_COST,
+} from "@/lib/credit-pricing"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 import { isShowcaseOnlyLeadId } from "@/lib/regional-leads-catalog"
 import {
@@ -72,6 +79,7 @@ import { trackPartnerActivity } from "@/lib/client/partner-tracker"
 interface MarketplaceFeedViewProps {
   leads: any[]
   partnerCredits: number
+  hasValidMandate?: boolean
   targetLeadId?: string
   targetedClosedLead?: any
   targetedPurchasedLead?: any
@@ -135,6 +143,7 @@ import { CustomSelect } from "@/components/ui/custom-select"
 export function MarketplaceFeedView({
   leads,
   partnerCredits,
+  hasValidMandate = false,
   targetLeadId,
   targetedClosedLead,
   targetedPurchasedLead,
@@ -162,6 +171,7 @@ export function MarketplaceFeedView({
   const [selectedLeadForDrawer, setSelectedLeadForDrawer] = useState<any | null>(null)
   const [showTutorial, setShowTutorial] = useState(false)
   const [directPayLead, setDirectPayLead] = useState<any | null>(null)
+  const [directPayExclusive, setDirectPayExclusive] = useState(false)
 
   // État de focus exclusif sur un lead ciblé (Deep-linking direct depuis e-mail de relance)
   const [focusedLeadId, setFocusedLeadId] = useState<string | null>(targetLeadId || null)
@@ -396,7 +406,10 @@ export function MarketplaceFeedView({
   const hasActiveFilters =
     searchQuery !== "" || segmentFilter !== "ALL" || selectedProvince !== "ALL" || sortBy !== "recent"
 
-  const handlePurchase = async (lead: any, opts?: { skipConfirm?: boolean }) => {
+  const handlePurchase = async (
+    lead: any,
+    opts?: { skipConfirm?: boolean; exclusive?: boolean }
+  ) => {
     if (
       lead?.is_showcase_closed ||
       isShowcaseOnlyLeadId(lead?.id) ||
@@ -406,14 +419,22 @@ export function MarketplaceFeedView({
       return
     }
     const isB2B = lead.segment === "B2B"
-    const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
+    const isExclusiveBuyout = Boolean(opts?.exclusive) && !isB2B
+    const cost = isExclusiveBuyout
+      ? B2C_EXCLUSIVE_CREDIT_COST
+      : (lead.credit_cost ?? (isB2B ? 9 : 3))
+
     trackPartnerActivity({
       eventType: "unlock_intent",
       leadId: lead.id,
       leadRef: lead.id?.slice(0, 8) ?? null,
       source: selectedLeadForDrawer?.id === lead.id ? "marketplace_drawer" : "marketplace_card",
       metadata: {
-        method: partnerCredits >= cost ? "credits" : "insufficient_credits",
+        method: partnerCredits >= cost
+          ? isExclusiveBuyout
+            ? "credits_exclusive"
+            : "credits"
+          : "insufficient_credits",
         segment: lead.segment ?? null,
         province: lead.province ?? null,
         creditCost: cost,
@@ -422,16 +443,16 @@ export function MarketplaceFeedView({
     })
     if (partnerCredits < cost) {
       toast.info(`Solde insuffisant (${cost} crédits requis, ${partnerCredits} disponibles). Vous pouvez régler ce dossier directement par Bancontact / Carte.`)
+      setDirectPayExclusive(isExclusiveBuyout)
       setDirectPayLead(lead)
       return
     }
 
-    if (
-      !opts?.skipConfirm &&
-      !confirm(
-        `Débloquer ce dossier ${lead.segment} pour ${cost} crédits ?\nVous obtiendrez immédiatement le nom, téléphone direct vérifié, email et adresse exacte du prospect.`
-      )
-    ) {
+    const confirmMsg = isExclusiveBuyout
+      ? `Réserver l'EXCLUSIVITÉ TOTALE de ce dossier B2C pour ${cost} crédits ?\nVous serez le seul installateur à recevoir ses coordonnées et Aegis Solaire enverra un e-mail de sélection prioritaire au prospect.`
+      : `Débloquer ce dossier ${lead.segment} pour ${cost} crédits ?\nVous obtiendrez immédiatement le nom, téléphone direct vérifié, email et adresse exacte du prospect.`
+
+    if (!opts?.skipConfirm && !confirm(confirmMsg)) {
       return
     }
 
@@ -440,19 +461,28 @@ export function MarketplaceFeedView({
       const res = await fetch("/api/partners/purchase", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadId: lead.id }),
+        body: JSON.stringify({ leadId: lead.id, exclusive: isExclusiveBuyout }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Erreur lors de l'achat")
 
-      toast.success("Dossier débloqué avec succès ! Coordonnées ajoutées à votre CRM.")
-      const newCredits = partnerCredits - cost
+      toast.success(
+        isExclusiveBuyout
+          ? "Exclusivité B2C réservée ! E-mail prioritaire envoyé au prospect."
+          : "Dossier débloqué avec succès ! Coordonnées ajoutées à votre CRM."
+      )
+      const effectiveSpent = Number(data.creditsSpent ?? cost)
+      const newCredits =
+        typeof data.creditsRemaining === "number"
+          ? data.creditsRemaining
+          : partnerCredits - effectiveSpent
       const newRecord = {
         id: data.lead?.id || lead.id,
         lead_id: data.lead?.id || lead.id,
         purchase_id: data.purchaseId || data.purchase_id || data.purchase?.id || `purch_${Date.now()}`,
         purchased_at: new Date().toISOString(),
-        credits_spent: cost,
+        credits_spent: effectiveSpent,
+        is_exclusive: Boolean(data.exclusive || isExclusiveBuyout || isB2B),
         pipeline_status: "to_contact",
         first_name: data.lead?.first_name || lead.first_name || "Prospect",
         last_name: data.lead?.last_name || lead.last_name || "",
@@ -507,8 +537,13 @@ export function MarketplaceFeedView({
           availableLeadsCount={leads.length}
           onBackToMarketplace={handleClearFocus}
           onOpenCrm={onOpenCrm}
-          onPurchaseWithCredits={(leadToBuy) => handlePurchase(leadToBuy, { skipConfirm: true })}
-          onOpenDirectPay={(leadToPay) => setDirectPayLead(leadToPay)}
+          onPurchaseWithCredits={(leadToBuy, exclusive) =>
+            handlePurchase(leadToBuy, { skipConfirm: true, exclusive: Boolean(exclusive) })
+          }
+          onOpenDirectPay={(leadToPay, exclusive) => {
+            setDirectPayExclusive(Boolean(exclusive))
+            setDirectPayLead(leadToPay)
+          }}
           onRequestTopUp={onRequestTopUp}
           onOpenAlertPreferences={onOpenAlertPreferences}
           onOpenExpert={onOpenExpertModal}
@@ -830,7 +865,11 @@ export function MarketplaceFeedView({
                   })
 
                   const location = getLeadLocationInfo(lead)
-                  const freshness = getLeadFreshness(lead.created_at)
+                  const freshness = getLeadFreshness(
+                    lead.created_at,
+                    undefined,
+                    lead.reconfirmed_at || lead.qualification_metadata?.reconfirmed_at
+                  )
                   const powerKwc = financials.estimatedPowerKwc
                   const marginText = formatRoundedCurrency(financials.estimatedInstallerMargin || 0)
 
@@ -1032,7 +1071,7 @@ export function MarketplaceFeedView({
                       const isB2B = lead.segment === "B2B"
                       const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
                       const remainingSlots = lead.remaining_slots ?? maxSlots
-                      const cost = lead.credit_cost ?? (isB2B ? 8 : 2)
+                      const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
                       const isBuying = buyingId === lead.id
                       const surfaceArea = Math.max(0, Number(lead.surface_area || lead.surface_area_m2) || 0)
                       const annualBill = Math.max(0, Number(lead.annual_electricity_bill || lead.annual_bill_eur) || 0)
@@ -1050,7 +1089,11 @@ export function MarketplaceFeedView({
                       })
 
                       const location = getLeadLocationInfo(lead)
-                      const freshness = getLeadFreshness(lead.created_at)
+                      const freshness = getLeadFreshness(
+                    lead.created_at,
+                    undefined,
+                    lead.reconfirmed_at || lead.qualification_metadata?.reconfirmed_at
+                  )
                       const powerKwc = financials.estimatedPowerKwc
 
                       return (
@@ -1188,9 +1231,35 @@ export function MarketplaceFeedView({
         <LeadInspectionDrawer
           lead={selectedLeadForDrawer}
           partnerCredits={partnerCredits}
+          hasValidMandate={hasValidMandate}
           isBuying={buyingId === selectedLeadForDrawer.id}
           onClose={() => setSelectedLeadForDrawer(null)}
-          onPurchase={(lead) => handlePurchase(lead)}
+          onPurchase={(lead, opts) => handlePurchase(lead, opts)}
+          onOneClickSuccess={(purchasedLead, data) => {
+            const newRecord = {
+              id: data.lead?.id || purchasedLead.id,
+              lead_id: data.lead?.id || purchasedLead.id,
+              purchase_id: data.purchaseId || `purch_${Date.now()}`,
+              purchased_at: new Date().toISOString(),
+              credits_spent: data.exclusive && purchasedLead.segment === "B2C" ? B2C_EXCLUSIVE_CREDIT_COST : (purchasedLead.credit_cost ?? 3),
+              is_exclusive: Boolean(data.exclusive || purchasedLead.segment === "B2B"),
+              pipeline_status: "to_contact",
+              first_name: data.lead?.first_name || purchasedLead.first_name || "Prospect",
+              last_name: data.lead?.last_name || purchasedLead.last_name || "",
+              company: data.lead?.company || null,
+              email: data.lead?.email || "—",
+              phone: data.lead?.phone || "—",
+              site_address: data.lead?.site_address || purchasedLead.site_address,
+              segment: purchasedLead.segment,
+              province: purchasedLead.province,
+              city: purchasedLead.city,
+              postal_code: purchasedLead.postal_code || purchasedLead.masked_postal_code,
+              surface_area: purchasedLead.surface_area,
+              annual_electricity_bill: purchasedLead.annual_electricity_bill,
+            }
+            setSelectedLeadForDrawer(null)
+            onPurchaseSuccess(purchasedLead, partnerCredits, newRecord)
+          }}
           onRequestTopUp={onRequestTopUp}
           onRequestExpert={(lead) => onOpenExpertModal?.(lead)}
         />
@@ -1200,15 +1269,53 @@ export function MarketplaceFeedView({
       <DirectLeadPaymentModal
         lead={directPayLead}
         isOpen={Boolean(directPayLead)}
-        onClose={() => setDirectPayLead(null)}
-        onSwitchToCredits={() => {
-          const target = directPayLead
+        initialExclusive={directPayExclusive}
+        hasValidMandate={hasValidMandate}
+        onClose={() => {
           setDirectPayLead(null)
-          if (target && partnerCredits >= (target.credit_cost ?? (target.segment === "B2B" ? 9 : 3))) {
-            handlePurchase(target)
-          } else {
-            onRequestTopUp()
+          setDirectPayExclusive(false)
+        }}
+        onSwitchToCredits={(exclusiveChoice) => {
+          const target = directPayLead
+          const wantsExcl = Boolean(exclusiveChoice)
+          setDirectPayLead(null)
+          setDirectPayExclusive(false)
+          if (target) {
+            const needed = wantsExcl
+              ? B2C_EXCLUSIVE_CREDIT_COST
+              : (target.credit_cost ?? (target.segment === "B2B" ? 9 : 3))
+            if (partnerCredits >= needed) {
+              handlePurchase(target, { exclusive: wantsExcl })
+              return
+            }
           }
+          onRequestTopUp()
+        }}
+        onOneClickSuccess={(purchasedLead, data) => {
+          const newRecord = {
+            id: data.lead?.id || purchasedLead.id,
+            lead_id: data.lead?.id || purchasedLead.id,
+            purchase_id: data.purchaseId || `purch_${Date.now()}`,
+            purchased_at: new Date().toISOString(),
+            credits_spent: data.exclusive && purchasedLead.segment === "B2C" ? B2C_EXCLUSIVE_CREDIT_COST : (purchasedLead.credit_cost ?? 3),
+            is_exclusive: Boolean(data.exclusive || purchasedLead.segment === "B2B"),
+            pipeline_status: "to_contact",
+            first_name: data.lead?.first_name || purchasedLead.first_name || "Prospect",
+            last_name: data.lead?.last_name || purchasedLead.last_name || "",
+            company: data.lead?.company || null,
+            email: data.lead?.email || "—",
+            phone: data.lead?.phone || "—",
+            site_address: data.lead?.site_address || purchasedLead.site_address,
+            segment: purchasedLead.segment,
+            province: purchasedLead.province,
+            city: purchasedLead.city,
+            postal_code: purchasedLead.postal_code || purchasedLead.masked_postal_code,
+            surface_area: purchasedLead.surface_area,
+            annual_electricity_bill: purchasedLead.annual_electricity_bill,
+          }
+          setDirectPayLead(null)
+          setDirectPayExclusive(false)
+          onPurchaseSuccess(purchasedLead, partnerCredits, newRecord)
         }}
         partnerCredits={partnerCredits}
       />
@@ -1244,7 +1351,13 @@ function MarketplaceLeadCard({
   const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
   const hasEnoughCredits = partnerCredits >= cost
   const directFinancials = calculateLeadDirectFinancials({ segment: lead.segment, credit_cost: cost })
+  const tierMeta = getLeadPricingTierMeta({
+    segment: lead.segment,
+    credit_cost: cost,
+    pricing_tier: lead.pricing_tier,
+  })
   const slotIndicator = getB2CSlotIndicator(remainingSlots)
+  const canTakeExclusive = !isB2B && remainingSlots >= maxSlots && maxSlots > 1
 
   const rawSurfaceArea = Math.max(0, Number(lead.surface_area || lead.surface_area_m2) || 0)
   const rawAnnualBill = Math.max(0, Number(lead.annual_electricity_bill || lead.annual_bill_eur) || 0)
@@ -1262,7 +1375,11 @@ function MarketplaceLeadCard({
   })
 
   const location = getLeadLocationInfo(lead)
-  const freshness = getLeadFreshness(lead.created_at)
+  const freshness = getLeadFreshness(
+    lead.created_at,
+    undefined,
+    lead.reconfirmed_at || lead.qualification_metadata?.reconfirmed_at
+  )
   const powerKwc = financials.estimatedPowerKwc
   const surfaceArea = financials.normalizedSurfaceAreaM2
   const annualBill = financials.normalizedAnnualBill
@@ -1319,11 +1436,11 @@ function MarketplaceLeadCard({
             {/* Badge Modèle */}
             {isB2B ? (
               <span className="inline-flex items-center rounded-full bg-black/75 backdrop-blur-xs text-white text-xs font-semibold px-3 py-1.5 shadow-sm">
-                B2B • 100% Exclusif
+                {tierMeta.label} · 100 % Exclusif
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-black/75 backdrop-blur-xs text-white text-xs font-medium px-3 py-1.5 shadow-sm">
-                <span className="font-semibold">B2C</span>
+                <span className="font-semibold">{tierMeta.label}</span>
                 <span className="text-white/60" aria-hidden="true">•</span>
                 <span className="inline-flex items-center gap-1" aria-hidden="true">
                   {slotIndicator.dots.map((color, i) => (
@@ -1538,7 +1655,7 @@ function MarketplaceLeadCard({
               </span>
             </div>
             <span className="text-[10px] text-muted-foreground font-mono tabular-nums">
-              ({directFinancials.priceTtc.toFixed(2)} € TTC)
+              ({directFinancials.priceTtc.toFixed(2)} € TTC){canTakeExclusive ? " · Excl. 7 cr." : ""}
             </span>
           </div>
         </div>

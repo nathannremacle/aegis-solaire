@@ -21,11 +21,36 @@ export async function GET() {
   }
 
   const admin = createServiceRoleClient()
-  const { data, error } = await admin
+  let data: any = null
+  let error: any = null
+
+  const fullRes = await admin
     .from("partners")
-    .select("id, email, segment, target_provinces, target_surfaces, min_facture, email_notifications_enabled, email_relances_enabled")
+    .select(
+      "id, email, segment, target_provinces, target_surfaces, min_facture, email_notifications_enabled, email_relances_enabled, auto_buy_enabled, auto_buy_weekly_cap, auto_buy_include_b2c_exclusive, mollie_mandate_status"
+    )
     .eq("id", partner.id)
     .single()
+
+  if (
+    fullRes.error &&
+    (fullRes.error.code === "42703" ||
+      fullRes.error.message?.includes("auto_buy") ||
+      fullRes.error.message?.includes("mollie_mandate_status"))
+  ) {
+    const legacyRes = await admin
+      .from("partners")
+      .select(
+        "id, email, segment, target_provinces, target_surfaces, min_facture, email_notifications_enabled, email_relances_enabled"
+      )
+      .eq("id", partner.id)
+      .single()
+    data = legacyRes.data
+    error = legacyRes.error
+  } else {
+    data = fullRes.data
+    error = fullRes.error
+  }
 
   if (error) {
     console.error("[preferences] GET error:", error)
@@ -39,6 +64,10 @@ export async function GET() {
       minFacture: data?.min_facture ?? 5000,
       segment: getEffectivePartnerSegment(data ?? partner),
       notificationMode: getPartnerNotificationMode(data),
+      autoBuyEnabled: Boolean(data?.auto_buy_enabled),
+      autoBuyWeeklyCap: Number(data?.auto_buy_weekly_cap) || 3,
+      autoBuyIncludeB2cExclusive: Boolean(data?.auto_buy_include_b2c_exclusive),
+      mollieMandateStatus: data?.mollie_mandate_status || "none",
     },
   })
 }
@@ -55,6 +84,9 @@ async function handleUpdate(request: Request) {
     minFacture?: number
     segment?: PartnerSegmentPreference
     notificationMode?: PartnerNotificationMode
+    autoBuyEnabled?: boolean
+    autoBuyWeeklyCap?: number
+    autoBuyIncludeB2cExclusive?: boolean
   }
 
   try {
@@ -91,12 +123,24 @@ async function handleUpdate(request: Request) {
     baseUpdateData.segment = resolvedSegment
   }
 
+  const autoPilotFields: Record<string, unknown> = {}
+  if (typeof body.autoBuyEnabled === "boolean") {
+    autoPilotFields.auto_buy_enabled = body.autoBuyEnabled
+  }
+  if (typeof body.autoBuyWeeklyCap === "number") {
+    autoPilotFields.auto_buy_weekly_cap = Math.min(50, Math.max(1, Math.round(body.autoBuyWeeklyCap)))
+  }
+  if (typeof body.autoBuyIncludeB2cExclusive === "boolean") {
+    autoPilotFields.auto_buy_include_b2c_exclusive = body.autoBuyIncludeB2cExclusive
+  }
+
   const { error: fullError } = await admin
     .from("partners")
     .update({
       ...baseUpdateData,
       email_notifications_enabled: resolvedMode !== "none",
       email_relances_enabled: resolvedMode === "all",
+      ...autoPilotFields,
     })
     .eq("id", partner.id)
 
@@ -105,7 +149,8 @@ async function handleUpdate(request: Request) {
     fullError &&
     (fullError.code === "42703" ||
       fullError.message?.includes("email_notifications_enabled") ||
-      fullError.message?.includes("email_relances_enabled"))
+      fullError.message?.includes("email_relances_enabled") ||
+      fullError.message?.includes("auto_buy"))
   ) {
     const fallbackRes = await admin
       .from("partners")
@@ -128,8 +173,17 @@ async function handleUpdate(request: Request) {
       minFacture: body.minFacture ?? partner.min_facture,
       segment: resolvedSegment ?? getEffectivePartnerSegment(partner),
       notificationMode: resolvedMode,
+      autoBuyEnabled: typeof body.autoBuyEnabled === "boolean" ? body.autoBuyEnabled : undefined,
+      autoBuyWeeklyCap:
+        typeof body.autoBuyWeeklyCap === "number"
+          ? Math.min(50, Math.max(1, Math.round(body.autoBuyWeeklyCap)))
+          : undefined,
+      autoBuyIncludeB2cExclusive:
+        typeof body.autoBuyIncludeB2cExclusive === "boolean"
+          ? body.autoBuyIncludeB2cExclusive
+          : undefined,
     },
-    message: "Préférences d'alerte enregistrées avec succès.",
+    message: "Préférences d'alerte et Auto-Pilot enregistrés avec succès.",
   })
 }
 

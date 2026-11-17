@@ -17,7 +17,7 @@ export async function GET() {
 
   let leads: Array<Record<string, any>> | null = null
   const canonicalSelect =
-    "id, province, city, segment, surface_type, surface_area, annual_electricity_bill, credit_cost, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate, estimated_power_kwc, project_timeline, project_details, message, wants_irve, lead_score, first_name, last_name, company, postal_code, roof_material, ownership_status, project_driver, timeframe, qualification_metadata"
+    "id, province, city, segment, surface_type, surface_area, annual_electricity_bill, credit_cost, max_slots, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate, estimated_power_kwc, project_timeline, project_details, message, wants_irve, lead_score, first_name, last_name, company, postal_code, roof_material, ownership_status, project_driver, timeframe, qualification_metadata"
   const legacySelect =
     "id, province, segment, surface_type, surface_area, annual_electricity_bill, credit_cost, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate, project_timeline, project_details, message, wants_irve, lead_score, first_name, last_name, company"
 
@@ -99,7 +99,8 @@ export async function GET() {
   const enrichedLeads = validLeads.map((lead) => {
     const lp = purchases.filter((p) => p.lead_id === lead.id)
     const isB2C = lead.segment === "B2C"
-    const maxSlots = isB2C ? 3 : 1
+    const maxSlots =
+      typeof lead.max_slots === "number" ? lead.max_slots : isB2C ? 3 : 1
     const cost = lead.credit_cost ?? (isB2C ? 3 : 9)
 
     // Calculs de valorisation financière rigoureux et crédibles
@@ -156,6 +157,10 @@ export async function GET() {
       roof_image_url:
         (lead.qualification_metadata as Record<string, unknown> | null)?.roof_image_url ??
         (lead.qualification_metadata as Record<string, unknown> | null)?.site_image_url ??
+        null,
+      reconfirmed_at:
+        lead.reconfirmed_at ||
+        ((lead.qualification_metadata as Record<string, unknown> | null)?.reconfirmed_at as string | null) ||
         null,
       wantsIrve: hasIrve,
       badges: {

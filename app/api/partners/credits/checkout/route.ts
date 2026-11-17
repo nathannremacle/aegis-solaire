@@ -2,11 +2,15 @@ import { randomUUID } from "node:crypto"
 import { NextResponse } from "next/server"
 import { getPartner } from "@/lib/partner-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
-import { createCreditOrderPayment } from "@/lib/mollie"
+import { createCreditOrderPayment, ensureMollieCustomer } from "@/lib/mollie"
 
 export const dynamic = "force-dynamic"
 
-import { CREDIT_PACKS, PRICING_VERSION, calculateOrderFinancials } from "@/lib/credit-pricing"
+import {
+  CREDIT_PACKS,
+  PRICING_VERSION,
+  calculateCreditPackFinancials,
+} from "@/lib/credit-pricing"
 
 export async function POST(request: Request) {
   const partner = await getPartner()
@@ -17,7 +21,7 @@ export async function POST(request: Request) {
     )
   }
 
-  let body: { packId?: string }
+  let body: { packId?: string; enableOneClick?: boolean }
   try {
     body = await request.json()
   } catch {
@@ -29,11 +33,39 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Pack de crédits introuvable" }, { status: 400 })
   }
 
-  const financials = calculateOrderFinancials(pack.credits)
+  const enableOneClick = Boolean(body.enableOneClick)
+  const financials = calculateCreditPackFinancials(pack)
   const shortHex = randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()
   const transferReference = `AEGIS-${new Date().getFullYear()}-${shortHex}`
 
   const admin = createServiceRoleClient()
+
+  let mollieCustomerId: string | null = null
+  if (enableOneClick) {
+    try {
+      const { data: partnerRow } = await admin
+        .from("partners")
+        .select("mollie_customer_id")
+        .eq("id", partner.id)
+        .maybeSingle()
+
+      mollieCustomerId = await ensureMollieCustomer({
+        partnerId: partner.id,
+        partnerEmail: partner.email,
+        partnerCompany: partner.company_name,
+        existingCustomerId: (partnerRow as any)?.mollie_customer_id || null,
+      })
+
+      if (mollieCustomerId && !(partnerRow as any)?.mollie_customer_id) {
+        await admin
+          .from("partners")
+          .update({ mollie_customer_id: mollieCustomerId })
+          .eq("id", partner.id)
+      }
+    } catch (custErr) {
+      console.warn("[Mollie Credits Checkout] Customer provision warning:", custErr)
+    }
+  }
 
   // 1. Enregistrement initial de la commande
   const { data: order, error: insertError } = await admin
@@ -78,6 +110,8 @@ export async function POST(request: Request) {
       partnerEmail: partner.email,
       partnerCompany: partner.company_name,
       siteUrl,
+      customerId: mollieCustomerId,
+      enableOneClick,
     })
 
     // 3. Mise à jour de la commande avec l'identifiant de paiement Mollie

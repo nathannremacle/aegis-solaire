@@ -235,10 +235,10 @@ export function PartnersHero() {
           >
             Accédez à un flux continu de chantiers qualifiés sans démarchage à froid.
             <br className="hidden sm:inline" />
-            <strong className="font-semibold text-white">B2B 100% exclusif</strong> (1 seul acheteur à 9 crédits ou 88,50 € HT) et{" "}
+            <strong className="font-semibold text-white">B2B 100% exclusif</strong> (dès 6 crédits / 59 € HT) et{" "}
             <strong className="font-semibold text-white">B2C transparent</strong>
             <br className="hidden sm:inline" />
-            (max 3 installateurs à 3 crédits ou 29,50 € HT). Achat direct à l&apos;unité en euros ou par pack · Zéro abonnement forcé.
+            (dès 2 crédits / 19,50 € HT · Exclusivité Totale 7 cr.). Packs jusqu&apos;à -24 % · Zéro abonnement forcé.
           </motion.p>
 
           {/* Action CTAs */}

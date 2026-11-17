@@ -48,6 +48,10 @@ type CreditPack = {
   priceHtva: number
   priceTtc: number
   pricePerCredit: number
+  savingsPercent: number
+  savingsEur: number
+  badge?: string
+  description: string
   popular?: boolean
 }
 
@@ -85,6 +89,10 @@ const PACKS: CreditPack[] = CREDIT_PACKS_LIST.map((p) => ({
   priceHtva: p.priceHtva,
   priceTtc: p.priceTtc,
   pricePerCredit: p.pricePerCredit,
+  savingsPercent: p.savingsPercent,
+  savingsEur: p.savingsEur,
+  badge: p.badge,
+  description: p.description,
   popular: p.popular,
 }))
 
@@ -111,6 +119,7 @@ const itemVariants = {
 
 function OrderPackSection({ pack }: { pack: CreditPack }) {
   const [submitting, setSubmitting] = useState(false)
+  const [enableOneClick, setEnableOneClick] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const priceTtc = pack.priceTtc
@@ -123,7 +132,7 @@ function OrderPackSection({ pack }: { pack: CreditPack }) {
       const res = await fetch("/api/partners/credits/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packId: pack.id }),
+        body: JSON.stringify({ packId: pack.id, enableOneClick }),
       })
       const data = await res.json()
       if (!res.ok || !data.success) {
@@ -186,6 +195,17 @@ function OrderPackSection({ pack }: { pack: CreditPack }) {
           <span className="text-[11px] text-muted-foreground">
             Facture pro officielle conforme (TVA 21% déductible) transmise automatiquement par e-mail.
           </span>
+          <label className="mt-1.5 flex items-center gap-2 text-[11.5px] text-foreground cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={enableOneClick}
+              onChange={(e) => setEnableOneClick(e.target.checked)}
+              className="h-3.5 w-3.5 accent-primary rounded cursor-pointer"
+            />
+            <span>
+              Activer le paiement <strong>1-clic / Auto-Pilot</strong> chez Mollie (Bancontact / Carte)
+            </span>
+          </label>
         </div>
 
         <Button
@@ -230,7 +250,7 @@ export default function CreditsPage() {
   const [partner, setPartner] = useState<PartnerInfo | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedPack, setSelectedPack] = useState<string>("pack_10")
+  const [selectedPack, setSelectedPack] = useState<string>("pack_24")
   const [verifyingPayment, setVerifyingPayment] = useState(false)
   const [paymentFeedback, setPaymentFeedback] = useState<{
     type: "success" | "pending" | "cancelled" | null
@@ -467,28 +487,42 @@ export default function CreditsPage() {
                         : "border-border bg-card hover:border-border/80"
                     }`}
                   >
-                    {pack.popular && (
+                    {pack.popular ? (
                       <span className="absolute -top-2.5 right-3 rounded-md bg-accent px-2 py-0.5 text-[10px] font-bold uppercase text-accent-foreground tracking-wide">
-                        Recommandé
+                        Recommandé · -{pack.savingsPercent} %
                       </span>
-                    )}
+                    ) : pack.savingsPercent > 0 ? (
+                      <span className="absolute -top-2.5 right-3 rounded-md border border-emerald-600/30 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 font-mono tabular-nums">
+                        -{pack.savingsPercent.toString().replace(".", ",")} %
+                      </span>
+                    ) : null}
 
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <span className="font-mono text-3xl font-black text-foreground tabular-nums">
                         {pack.credits}
                       </span>
+                      <span className="rounded-md bg-secondary px-2 py-0.5 text-[11px] font-bold text-foreground">
+                        {pack.name}
+                      </span>
                     </div>
                     <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mt-1">
-                      crédits leads
+                      crédits leads · multiples de 3 &amp; 12
                     </p>
 
                     <div className="mt-4 border-t border-border pt-3">
-                      <p className="text-xl font-bold font-mono text-foreground tabular-nums">
-                        {pack.priceHtva.toFixed(2)} €{" "}
-                        <span className="text-xs font-normal text-muted-foreground">HTVA</span>
-                      </p>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="text-xl font-bold font-mono text-foreground tabular-nums">
+                          {pack.priceHtva.toFixed(0)} €{" "}
+                          <span className="text-xs font-normal text-muted-foreground">HTVA</span>
+                        </p>
+                        {pack.savingsEur > 0 && (
+                          <span className="font-mono text-xs font-bold text-emerald-700 tabular-nums">
+                            Économie {pack.savingsEur.toFixed(0)} €
+                          </span>
+                        )}
+                      </div>
                       <p className="mt-0.5 text-[11px] font-mono text-muted-foreground tabular-nums">
-                        ({pack.pricePerCredit.toFixed(2)} € / crédit · {pack.priceTtc.toFixed(2)} € TTC)
+                        ({pack.pricePerCredit.toFixed(2).replace(".", ",")} € / crédit · {pack.priceTtc.toFixed(2).replace(".", ",")} € TTC)
                       </p>
                     </div>
 
@@ -572,7 +606,7 @@ export default function CreditsPage() {
                     Vous préférez payer à l&apos;unité sans pack ?
                   </h4>
                   <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                    Sur la marketplace, vous pouvez également débloquer chaque chantier individuellement en euros par Bancontact ou Carte bancaire (29,50 € HT pour un B2C, 88,50 € HT pour un B2B exclusif).
+                    Sur la marketplace, vous pouvez également débloquer chaque chantier individuellement en euros par Bancontact ou Carte bancaire (dès 19,50 € HT en B2C, 65 € HT en Exclusivité Totale B2C, et dès 59,00 € HT en B2B exclusif). Les packs prépayés offrent jusqu&apos;à -24 % de remise immédiate.
                   </p>
                 </div>
               </div>

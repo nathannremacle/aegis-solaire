@@ -31,7 +31,7 @@ const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.aegissolaire.co
 export const metadata = {
   title: "Devenir Partenaire Installateur RESCERT | Marketplace Photovoltaïque Wallonie",
   description:
-    "Marketplace de chantiers solaires qualifiés pour installateurs certifiés RESCERT en Wallonie. B2B exclusif (1 seul acheteur à 9 crédits ou 88,50 € HTVA) et B2C transparent (max 3 installateurs à 3 crédits ou 29,50 € HTVA). Achat direct à l'unité en euros ou packs de crédits. Zéro abonnement forcé.",
+    "Marketplace de chantiers solaires qualifiés pour installateurs certifiés RESCERT en Wallonie. B2B exclusif (dès 59 € HTVA) et B2C transparent (dès 19,50 € HTVA, ou Exclusivité Totale à 65 € HTVA). Packs dégressifs jusqu'à -24 % et zéro abonnement forcé.",
   alternates: {
     canonical: `${baseUrl}/partenaires`,
   },
@@ -69,7 +69,7 @@ export default function PartenairesPage() {
                       SEGMENT B2B · 100% EXCLUSIF
                     </span>
                     <span className="font-mono text-xs font-bold text-accent tabular-nums">
-                      9 crédits (ou 88,50 € HT à l&apos;unité)
+                      6 à 12 crédits (dès 59 € HT à l&apos;unité)
                     </span>
                   </div>
                   <h3 className="text-lg sm:text-xl font-bold text-foreground font-heading">
@@ -94,7 +94,7 @@ export default function PartenairesPage() {
                       SEGMENT B2C · TRANSPARENCE TOTALE
                     </span>
                     <span className="font-mono text-xs font-bold text-accent tabular-nums">
-                      3 crédits (ou 29,50 € HT à l&apos;unité)
+                      2 à 4 crédits (dès 19,50 € HT) · Excl. 7 cr.
                     </span>
                   </div>
                   <h3 className="text-lg sm:text-xl font-bold text-foreground font-heading">
@@ -413,11 +413,11 @@ export default function PartenairesPage() {
                     <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-border">
                       <div className="flex items-center gap-2 text-xs">
                         <Check className="h-4 w-4 text-accent shrink-0 stroke-[2.5]" />
-                        <span>Chantier résidentiel B2C : <strong className="font-mono tabular-nums text-foreground">29,50 € HT</strong> (35,70 € TTC · max 3 devis)</span>
+                        <span>Chantier résidentiel B2C : <strong className="font-mono tabular-nums text-foreground">19,50 € à 39 € HT</strong> (ou Exclusivité Totale <strong className="font-mono tabular-nums">65 € HT</strong>)</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs">
                         <Check className="h-4 w-4 text-accent shrink-0 stroke-[2.5]" />
-                        <span>Dossier tertiaire / PME B2B : <strong className="font-mono tabular-nums text-foreground">88,50 € HT</strong> (107,09 € TTC · 100% exclusif)</span>
+                        <span>Dossier tertiaire / PME B2B : <strong className="font-mono tabular-nums text-foreground">59 € à 118 € HT</strong> (100 % exclusif)</span>
                       </div>
                     </div>
                   </div>
@@ -446,37 +446,37 @@ export default function PartenairesPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-              {/* Recharge 1 : 10 crédits (Présélectionné) */}
-              <div className="bg-card border-2 border-accent rounded-3xl p-6 shadow-sm flex flex-col justify-between gap-5 relative">
-                <div className="absolute -top-3 right-6 bg-accent text-accent-foreground px-3 py-0.5 rounded-full font-mono text-[10px] font-bold uppercase tracking-wider shadow-2xs">
-                  Recommandé · Démarrage
-                </div>
+              {/* Recharge 1 : 12 crédits */}
+              <div className="bg-card border border-border rounded-3xl p-6 shadow-xs flex flex-col justify-between gap-5 hover:border-accent/40 transition-colors">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-accent uppercase tracking-wider">
-                      Recharge Découverte (10 crédits)
+                    <span className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                      Pack Croissance (12 crédits)
+                    </span>
+                    <span className="rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 font-mono text-[10px] font-bold text-emerald-800">
+                      -8,5 %
                     </span>
                   </div>
                   <div>
                     <span className="text-3xl font-extrabold font-mono tabular-nums text-foreground">
-                      98,33 €
+                      108,00 €
                     </span>
                     <span className="text-xs text-muted-foreground ml-1.5 font-mono">HT</span>
                     <span className="block text-[11px] text-muted-foreground font-mono mt-0.5 tabular-nums">
-                      118,98 € TTC (TVA 21%)
+                      130,68 € TTC (TVA 21%)
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Idéal pour démarrer : permet <span className="font-mono tabular-nums font-semibold text-foreground">3 déblocages B2C</span> ou <span className="font-mono tabular-nums font-semibold text-foreground">1 B2B exclusif</span> (avec 1 crédit restant).
+                    Multiple exact de <span className="font-mono tabular-nums font-semibold text-foreground">2, 3, 4 et 6</span> : 4 dossiers B2C Standard, 6 Éco ou 2 B2B PME sans aucun crédit bloqué.
                   </p>
                   <ul className="flex flex-col gap-2 pt-2 border-t border-border text-xs text-foreground font-medium">
                     <li className="flex items-center gap-2">
                       <Check className="h-3.5 w-3.5 text-accent shrink-0 stroke-[3]" />
-                      <span><strong className="font-mono tabular-nums">10 crédits</strong> (9,83 € HT / crédit)</span>
+                      <span><strong className="font-mono tabular-nums">12 crédits</strong> (9,00 € HT / crédit)</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="h-3.5 w-3.5 text-accent shrink-0 stroke-[3]" />
-                      <span>Accès complet au portail Wallonie</span>
+                      <span>3 crédits d&apos;essai offerts à l&apos;activation</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="h-3.5 w-3.5 text-accent shrink-0 stroke-[3]" />
@@ -489,82 +489,88 @@ export default function PartenairesPage() {
                   </ul>
                 </div>
                 <a href="#candidature">
-                  <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90 rounded-xl text-xs font-bold shadow-xs cursor-pointer">
-                    Postuler &amp; activer 10 crédits
+                  <Button variant="outline" className="w-full rounded-xl text-xs font-semibold cursor-pointer">
+                    Sélectionner 12 crédits
                   </Button>
                 </a>
               </div>
 
-              {/* Recharge 2 : 20 crédits */}
-              <div className="bg-card border border-border rounded-3xl p-6 shadow-xs flex flex-col justify-between gap-5 hover:border-accent/40 transition-colors">
+              {/* Recharge 2 : 24 crédits (Recommandé) */}
+              <div className="bg-card border-2 border-accent rounded-3xl p-6 shadow-sm flex flex-col justify-between gap-5 relative">
+                <div className="absolute -top-3 right-6 bg-accent text-accent-foreground px-3 py-0.5 rounded-full font-mono text-[10px] font-bold uppercase tracking-wider shadow-2xs">
+                  Recommandé · -16 %
+                </div>
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                      Recharge Croissance (20 crédits)
+                    <span className="font-mono text-xs font-bold text-accent uppercase tracking-wider">
+                      Pack Accélération (24 crédits)
                     </span>
                   </div>
                   <div>
                     <span className="text-3xl font-extrabold font-mono tabular-nums text-foreground">
-                      196,67 €
+                      198,00 €
                     </span>
                     <span className="text-xs text-muted-foreground ml-1.5 font-mono">HT</span>
                     <span className="block text-[11px] text-muted-foreground font-mono mt-0.5 tabular-nums">
-                      237,97 € TTC (TVA 21%)
+                      239,58 € TTC (Économie 38 € HT)
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Alimentez régulièrement <span className="font-mono tabular-nums font-semibold text-foreground">1 équipe de pose</span> : permet 6 chantiers B2C ou 2 dossiers B2B exclusifs (avec 2 crédits restants).
+                    Alimentez régulièrement <span className="font-mono tabular-nums font-semibold text-foreground">1 équipe de pose</span> : jusqu&apos;à 8 chantiers B2C ou 3 B2C en Exclusivité Totale.
                   </p>
-                  <ul className="flex flex-col gap-2 pt-2 border-t border-border text-xs text-muted-foreground">
+                  <ul className="flex flex-col gap-2 pt-2 border-t border-border text-xs text-foreground font-medium">
                     <li className="flex items-center gap-2">
-                      <Check className="h-3.5 w-3.5 text-accent shrink-0" />
-                      <span><strong className="font-mono tabular-nums">20 crédits</strong> (9,83 € HT / crédit)</span>
+                      <Check className="h-3.5 w-3.5 text-accent shrink-0 stroke-[3]" />
+                      <span><strong className="font-mono tabular-nums">24 crédits</strong> (8,25 € HT / crédit)</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="h-3.5 w-3.5 text-accent shrink-0" />
-                      <span>Éligible B2B exclusif &amp; B2C</span>
+                      <Check className="h-3.5 w-3.5 text-accent shrink-0 stroke-[3]" />
+                      <span>Éligible Auto-Pilot &amp; Exclusivité B2C</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="h-3.5 w-3.5 text-accent shrink-0" />
-                      <span>Alertes chantiers par email</span>
+                      <Check className="h-3.5 w-3.5 text-accent shrink-0 stroke-[3]" />
+                      <span>Alertes Flash intra-journée prioritaires</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="h-3.5 w-3.5 text-accent shrink-0" />
+                      <Check className="h-3.5 w-3.5 text-accent shrink-0 stroke-[3]" />
                       <span>Zéro abonnement forcé</span>
                     </li>
                   </ul>
                 </div>
                 <a href="#candidature">
-                  <Button variant="outline" className="w-full rounded-xl text-xs font-semibold cursor-pointer">
-                    Sélectionner 20 crédits
+                  <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90 rounded-xl text-xs font-bold shadow-xs cursor-pointer">
+                    Postuler &amp; activer 24 crédits
                   </Button>
                 </a>
               </div>
 
-              {/* Recharge 3 : 50 crédits */}
+              {/* Recharge 3 : 60 crédits */}
               <div className="bg-card border border-border rounded-3xl p-6 shadow-xs flex flex-col justify-between gap-5 hover:border-accent/40 transition-colors">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                      Recharge Entreprise (50 crédits)
+                      Pack Régie (60 crédits)
+                    </span>
+                    <span className="rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 font-mono text-[10px] font-bold text-emerald-800">
+                      -24 %
                     </span>
                   </div>
                   <div>
                     <span className="text-3xl font-extrabold font-mono tabular-nums text-foreground">
-                      491,67 €
+                      450,00 €
                     </span>
                     <span className="text-xs text-muted-foreground ml-1.5 font-mono">HT</span>
                     <span className="block text-[11px] text-muted-foreground font-mono mt-0.5 tabular-nums">
-                      594,92 € TTC (TVA 21%)
+                      544,50 € TTC (Économie 140 € HT)
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Confort de trésorerie pour les installateurs actifs : permet <span className="font-mono tabular-nums font-semibold text-foreground">16 chantiers B2C</span> ou 5 dossiers B2B exclusifs.
+                    Tarif plancher pour équipes actives et <span className="font-mono tabular-nums font-semibold text-foreground">Auto-Pilot</span> : 20 chantiers B2C ou 5 Grands Comptes B2B.
                   </p>
                   <ul className="flex flex-col gap-2 pt-2 border-t border-border text-xs text-muted-foreground">
                     <li className="flex items-center gap-2">
                       <Check className="h-3.5 w-3.5 text-accent shrink-0" />
-                      <span><strong className="font-mono tabular-nums">50 crédits</strong> (9,83 € HT / crédit)</span>
+                      <span><strong className="font-mono tabular-nums">60 crédits</strong> (7,50 € HT / crédit)</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="h-3.5 w-3.5 text-accent shrink-0" />
@@ -582,7 +588,7 @@ export default function PartenairesPage() {
                 </div>
                 <a href="#candidature">
                   <Button variant="outline" className="w-full rounded-xl text-xs font-semibold cursor-pointer">
-                    Sélectionner 50 crédits
+                    Sélectionner 60 crédits
                   </Button>
                 </a>
               </div>
@@ -805,7 +811,7 @@ export default function PartenairesPage() {
               <div className="p-5 rounded-2xl bg-secondary/40 border border-border flex flex-col gap-2">
                 <h3 className="font-bold text-foreground font-heading">Puis-je acheter des chantiers à l&apos;unité sans pack de crédits ?</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Oui, absolument. L&apos;achat d&apos;un pack de crédits n&apos;est jamais obligatoire. Vous pouvez débloquer chaque chantier individuellement directement en euros par Bancontact ou Carte bancaire (<strong className="font-mono tabular-nums">29,50 € HT</strong> en B2C, <strong className="font-mono tabular-nums">88,50 € HT</strong> en B2B exclusif). Les packs de crédits servent uniquement de confort pour débloquer en 1 clic sans validation bancaire à chaque lead.
+                  Oui, absolument. L&apos;achat d&apos;un pack de crédits n&apos;est jamais obligatoire. Vous pouvez débloquer chaque chantier individuellement directement en euros par Bancontact ou Carte bancaire (<strong className="font-mono tabular-nums">dès 19,50 € HT</strong> en B2C ou <strong className="font-mono tabular-nums">65 € HT</strong> en Exclusivité Totale B2C, <strong className="font-mono tabular-nums">dès 59 € HT</strong> en B2B exclusif). Les packs dégressifs (<span className="font-mono tabular-nums">-8,5 % à -24 %</span>) vous permettent ensuite d&apos;abaisser votre coût par lead et de débloquer en 1 clic.
                 </p>
               </div>
 

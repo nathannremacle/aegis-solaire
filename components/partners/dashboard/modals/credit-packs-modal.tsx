@@ -71,11 +71,15 @@ export default function CreditPacksModal({ partner, onClose }: CreditPacksModalP
                   : "border-border bg-card hover:border-border/80"
               }`}
             >
-              {pack.popular && (
+              {pack.popular ? (
                 <span className="absolute -top-2.5 right-3 rounded-md bg-accent px-2 py-0.5 text-[10px] font-bold uppercase text-accent-foreground tracking-wide">
-                  Recommandé
+                  Recommandé · -{pack.savingsPercent} %
                 </span>
-              )}
+              ) : pack.savingsPercent > 0 ? (
+                <span className="absolute -top-2.5 right-3 rounded-md border border-emerald-600/30 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 font-mono tabular-nums">
+                  -{pack.savingsPercent.toString().replace(".", ",")} %
+                </span>
+              ) : null}
 
               <div>
                 <h4 className="font-bold text-sm text-foreground">{pack.name}</h4>
@@ -84,11 +88,14 @@ export default function CreditPacksModal({ partner, onClose }: CreditPacksModalP
                   <span className="text-xs text-muted-foreground"> crédits</span>
                 </div>
                 <p className="text-xs font-semibold text-foreground mt-1">
-                  <span className="font-mono tabular-nums">{pack.priceHtva} €</span>{" "}
+                  <span className="font-mono tabular-nums">{pack.priceHtva.toFixed(0)} €</span>{" "}
                   <span className="text-[10px] text-muted-foreground">HTVA</span>
+                  <span className="ml-1.5 font-mono text-[11px] font-bold text-emerald-700 tabular-nums">
+                    ({pack.pricePerCredit.toFixed(2).replace(".", ",")} €/cr.)
+                  </span>
                 </p>
                 <p className="text-[11px] font-mono text-muted-foreground tabular-nums">
-                  ({pack.priceTtc.toFixed(2).replace(".", ",")} € TTC)
+                  ({pack.priceTtc.toFixed(2).replace(".", ",")} € TTC · zéro crédit bloqué)
                 </p>
               </div>
 

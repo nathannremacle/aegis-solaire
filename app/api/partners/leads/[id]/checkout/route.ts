@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getPartner } from "@/lib/partner-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
-import { createLeadDirectPayment } from "@/lib/mollie"
+import { createLeadDirectPayment, ensureMollieCustomer } from "@/lib/mollie"
 import { calculateLeadDirectFinancials } from "@/lib/credit-pricing"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 import { isShowcaseOnlyLeadId } from "@/lib/regional-leads-catalog"
@@ -43,12 +43,22 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     )
   }
 
+  let body: { exclusive?: boolean; enableOneClick?: boolean } = {}
+  try {
+    const raw = await request.text()
+    if (raw) body = JSON.parse(raw)
+  } catch {
+    body = {}
+  }
+  const exclusive = Boolean(body?.exclusive)
+  const enableOneClick = Boolean(body?.enableOneClick)
+
   const supabase = createServiceRoleClient()
 
   // 1. Récupérer le lead
   const { data: lead, error: leadErr } = await supabase
     .from("leads")
-    .select("id, segment, marketplace_status, credit_cost, province, city, postal_code, surface_area, annual_electricity_bill, qualification_metadata")
+    .select("id, segment, marketplace_status, credit_cost, max_slots, province, city, postal_code, surface_area, annual_electricity_bill, qualification_metadata")
     .eq("id", leadId)
     .single()
 
@@ -81,19 +91,39 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     )
   }
 
-  // 3. Vérifier les créneaux disponibles
+  // 3. Vérifier les créneaux disponibles (hors comptes de test)
   const isB2B = lead.segment === "B2B"
-  const maxSlots = isB2B ? 1 : 3
+  const maxSlots =
+    typeof (lead as { max_slots?: number | null }).max_slots === "number"
+      ? Number((lead as { max_slots?: number | null }).max_slots)
+      : isB2B
+        ? 1
+        : 3
 
-  const { count: takenCount } = await supabase
+  const { data: existingPurchases } = await supabase
     .from("lead_purchases")
-    .select("*", { count: "exact", head: true })
+    .select("partner_id, partners(is_test, company_name)")
     .eq("lead_id", leadId)
 
-  if (Number(takenCount || 0) >= maxSlots) {
+  const realTakenCount = (existingPurchases || []).filter((row: any) => {
+    const pRel = Array.isArray(row.partners) ? row.partners[0] : row.partners
+    const isTest =
+      pRel?.is_test === true ||
+      (typeof pRel?.company_name === "string" && pRel.company_name.toLowerCase().includes("test"))
+    return !isTest
+  }).length
+
+  if (realTakenCount >= maxSlots) {
     await supabase.from("leads").update({ marketplace_status: "sold_out" }).eq("id", leadId)
     return NextResponse.json(
       { error: "Tous les créneaux pour ce dossier sont désormais réservés." },
+      { status: 400 }
+    )
+  }
+
+  if (exclusive && !isB2B && realTakenCount > 0) {
+    return NextResponse.json(
+      { error: "Ce dossier a déjà été partiellement attribué et ne peut plus être acheté en exclusivité." },
       { status: 400 }
     )
   }
@@ -102,7 +132,35 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
   const financials = calculateLeadDirectFinancials({
     segment: lead.segment,
     credit_cost: lead.credit_cost,
+    exclusive,
   })
+
+  let mollieCustomerId: string | null = null
+  if (enableOneClick) {
+    try {
+      const { data: partnerRow } = await supabase
+        .from("partners")
+        .select("mollie_customer_id")
+        .eq("id", partner.id)
+        .maybeSingle()
+
+      mollieCustomerId = await ensureMollieCustomer({
+        partnerId: partner.id,
+        partnerEmail: partner.email,
+        partnerCompany: partner.company_name,
+        existingCustomerId: (partnerRow as any)?.mollie_customer_id || null,
+      })
+
+      if (mollieCustomerId && !(partnerRow as any)?.mollie_customer_id) {
+        await supabase
+          .from("partners")
+          .update({ mollie_customer_id: mollieCustomerId })
+          .eq("id", partner.id)
+      }
+    } catch (custErr) {
+      console.warn("[Lead Direct Checkout] Provisionnement client Mollie ignoré:", custErr)
+    }
+  }
 
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
@@ -123,10 +181,13 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       priceHtva: financials.priceHtva,
       vatAmount: financials.vatAmount,
       credits: financials.credits,
+      exclusive: exclusive && !isB2B,
       partnerId: partner.id,
       partnerEmail: partner.email,
       partnerCompany: partner.company_name,
       siteUrl,
+      customerId: mollieCustomerId,
+      enableOneClick,
     })
 
     return NextResponse.json({

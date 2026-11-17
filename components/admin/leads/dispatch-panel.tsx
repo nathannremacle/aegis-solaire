@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { calculateOrderFinancials, formatEurWithDecimals } from "@/lib/credit-pricing"
 
 export type CompatiblePartner = {
   id: string
@@ -333,15 +334,15 @@ export function DispatchPanel({
         <div>
           <Label className="text-muted-foreground block font-medium">Coût du dossier</Label>
           <span className="text-[10px] text-muted-foreground font-mono">
-            Barème V2 · {segment === "B2B" ? "B2B exclusif" : "B2C résidentiel"}
+            Value-Based · {segment === "B2B" ? "B2B exclusif" : "B2C résidentiel (Excl. 7 cr.)"}
           </span>
         </div>
         <div className="flex items-center gap-1.5 font-mono">
           <span className="rounded-md bg-secondary px-2.5 py-1 text-xs font-bold text-foreground border border-border tabular-nums">
-            {segment === "B2B" ? 9 : 3} cr.
+            {creditCost || (segment === "B2B" ? 9 : 3)} cr.
           </span>
           <span className="text-[11px] text-muted-foreground tabular-nums">
-            ({segment === "B2B" ? "88,50" : "29,50"} € HT)
+            ({formatEurWithDecimals(calculateOrderFinancials(creditCost || (segment === "B2B" ? 9 : 3)).priceHtva)} € HT)
           </span>
         </div>
       </div>

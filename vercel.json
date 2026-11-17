@@ -1,4 +1,10 @@
 {
   "buildCommand": "npm run build",
-  "installCommand": "npm ci"
+  "installCommand": "npm ci",
+  "crons": [
+    {
+      "path": "/api/cron/lead-relances",
+      "schedule": "*/15 * * * *"
+    }
+  ]
 }

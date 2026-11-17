@@ -5,12 +5,20 @@ import { calculateMarketplaceFinancials, calculateLeadCreditCost } from "@/lib/m
 import { renderInstallerLeadTeaserEmail, buildLeadEmailSubject } from "@/lib/email-templates/installer-lead-teaser"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 import {
+  doesSurfaceMatchPreference,
   getEffectivePartnerSegment,
   getPartnerNotificationMode,
   OPTOUT_ALL_MARKER,
   OPTOUT_RELANCES_MARKER,
 } from "@/lib/partner-notification-prefs"
 import { buildPartnerNotificationUrls } from "@/lib/partner-notification-tokens"
+import { B2C_EXCLUSIVE_CREDIT_COST, calculateOrderFinancials } from "@/lib/credit-pricing"
+import { createRecurringLeadPayment, getMollieClient, getValidMollieMandate } from "@/lib/mollie"
+import { fulfillPaidLeadDirectPurchase } from "@/lib/mollie-fulfillment"
+import { sendLeadAssignedEmail } from "@/lib/notify-installateur"
+import { sendAdminLeadSaleNotification, type LeadSaleBuyerSummary } from "@/lib/admin-sales-emails"
+import { sendProspectExclusiveMatchEmail } from "@/lib/prospect-exclusive-match-email"
+import { sendProspectReconfirmEmail } from "@/lib/prospect-reconfirm-email"
 
 // ==============================================================================
 // 1. CONFIGURATION & CONSTANTES MÉTIER
@@ -24,25 +32,26 @@ const replyToEmail = process.env.RESEND_REPLY_TO ?? "contact@aegissolaire.com"
 export const MAX_SLOTS_B2C = 3 // Partagé 3 installateurs max
 export const MAX_SLOTS_B2B = 1 // Exclusivité 100%
 
-/** Cooldowns minimaux entre les vagues (en millisecondes) */
-export const COOLDOWN_WAVE_1_TO_2_MS = 4 * 60 * 60 * 1000 // 4 heures
-export const COOLDOWN_WAVE_2_TO_3_MS = 20 * 60 * 60 * 1000 // 20 heures
+/** Cooldowns resserrés intra-journée (Cascade Flash via Cron 15 min) */
+export const COOLDOWN_WAVE_1_TO_2_MS = 90 * 60 * 1000 // 90 minutes après Vague 1
+export const COOLDOWN_WAVE_2_TO_3_MS = 210 * 60 * 1000 // +3h30 après Vague 2 (soit ~H+5h)
+export const STALE_PROTOCOL_AGE_MS = 48 * 60 * 60 * 1000 // Protocole H+48h Zéro Déchet
 
 /** Limites anti-spam par installateur */
 export const MAX_NOTIFICATIONS_PER_LEAD_PER_PARTNER = 2 // Max 2 relances pour un même dossier
 export const MAX_DAILY_NOTIFICATIONS_PER_PARTNER = 4 // Max 4 notifications lead par jour au total
 
-/** Tailles cibles des vagues de dispatch */
+/** Tailles cibles élargies des vagues de dispatch */
 export const WAVE_TARGET_COUNTS = {
   B2C: {
-    wave1: 8, // 6 à 8 installateurs locaux Tier 1
-    wave2: 12, // Élargissement limitrophe Tier 2
-    wave3: 16, // Élargissement régional global Tier 3
+    wave1: 12, // Installateurs locaux chauds Tier 1
+    wave2: 18, // Élargissement limitrophe Tier 2
+    wave3: 25, // Élargissement régional global Tier 3
   },
   B2B: {
-    wave1: 4, // 3 à 4 spécialistes tertiaires Tier 1
-    wave2: 6, // Élargissement PME/Tertiaire Tier 2
-    wave3: 10, // Réseau d'ingénierie élargi
+    wave1: 6, // Spécialistes tertiaires Tier 1
+    wave2: 10, // Élargissement PME/Tertiaire Tier 2
+    wave3: 15, // Réseau d'ingénierie élargi
   },
 } as const
 
@@ -200,7 +209,10 @@ export function calculatePartnerMatchScore(
   const partnerSurfaces = (partner.target_surfaces || []).filter(
     (s) => s !== OPTOUT_ALL_MARKER && s !== OPTOUT_RELANCES_MARKER
   )
-  if (partnerSurfaces.length === 0 || partnerSurfaces.includes(lead.surface_type)) {
+  if (
+    partnerSurfaces.length === 0 ||
+    doesSurfaceMatchPreference(lead.surface_type, partnerSurfaces)
+  ) {
     score += 15
   } else {
     score += 5
@@ -235,11 +247,83 @@ export interface EligiblePartnerForDispatch {
   isTest?: boolean
 }
 
+export interface PartnerVelocityStats {
+  recentPurchases30d: number
+  recentPurchases7d: number
+  dispatches30d: number
+  clicks30d: number
+}
+
 export interface PreloadedRelanceWaveData {
   allPartners?: any[]
   purchasesByLeadId?: Map<string, any[]>
   dispatchesByLeadId?: Map<string, { partner_id: string; wave_number: number }[]>
   telemetryByLeadId?: Map<string, any[]>
+  velocityByPartnerId?: Map<string, PartnerVelocityStats>
+}
+
+export async function loadPartnerVelocityMap(
+  supabase: ReturnType<typeof createServiceRoleClient>
+): Promise<Map<string, PartnerVelocityStats>> {
+  const velocityMap = new Map<string, PartnerVelocityStats>()
+  const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+  const since7dMs = Date.now() - 7 * 24 * 60 * 60 * 1000
+
+  const ensure = (partnerId: string): PartnerVelocityStats => {
+    let row = velocityMap.get(partnerId)
+    if (!row) {
+      row = {
+        recentPurchases30d: 0,
+        recentPurchases7d: 0,
+        dispatches30d: 0,
+        clicks30d: 0,
+      }
+      velocityMap.set(partnerId, row)
+    }
+    return row
+  }
+
+  try {
+    const [purchasesRes, dispatchesRes, eventsRes] = await Promise.all([
+      supabase
+        .from("lead_purchases")
+        .select("partner_id, purchased_at")
+        .gte("purchased_at", since30d),
+      supabase
+        .from("lead_relance_dispatches")
+        .select("partner_id")
+        .gte("sent_at", since30d),
+      Promise.resolve(
+        supabase
+          .from("partner_activity_events")
+          .select("partner_id")
+          .gte("created_at", since30d)
+      ).catch(() => ({ data: [] as any[], error: null })),
+    ])
+
+    for (const row of purchasesRes.data || []) {
+      if (!row.partner_id) continue
+      const stats = ensure(String(row.partner_id))
+      stats.recentPurchases30d++
+      if (row.purchased_at && new Date(row.purchased_at).getTime() >= since7dMs) {
+        stats.recentPurchases7d++
+      }
+    }
+
+    for (const row of dispatchesRes.data || []) {
+      if (!row.partner_id) continue
+      ensure(String(row.partner_id)).dispatches30d++
+    }
+
+    for (const row of (eventsRes as any)?.data || []) {
+      if (!row.partner_id) continue
+      ensure(String(row.partner_id)).clicks30d++
+    }
+  } catch {
+    // Non bloquant
+  }
+
+  return velocityMap
 }
 
 /**
@@ -251,7 +335,12 @@ export async function getEligiblePartnersForWave(
   waveNumber: number,
   preloaded?: PreloadedRelanceWaveData
 ): Promise<EligiblePartnerForDispatch[]> {
-  const maxSlots = lead.segment === "B2B" ? MAX_SLOTS_B2B : MAX_SLOTS_B2C
+  const maxSlots =
+    typeof lead.max_slots === "number"
+      ? lead.max_slots
+      : lead.segment === "B2B"
+        ? MAX_SLOTS_B2B
+        : MAX_SLOTS_B2C
   const creditCost = lead.credit_cost || calculateLeadCreditCost(lead)
 
   // 1. Récupérer les achats existants pour ce lead (filtrer les comptes de test)
@@ -400,8 +489,10 @@ export async function getEligiblePartnersForWave(
   const activePartners = allPartners.filter((p) => !isUnreachableMockEmail(p.email))
   const realPartners = activePartners.filter((p) => !isDevTestPartner(p))
   const devTestPartners = activePartners.filter((p) => isDevTestPartner(p))
+  const velocityMap =
+    preloaded?.velocityByPartnerId ?? (await loadPartnerVelocityMap(supabase))
 
-  // 4. Calculer le score et filtrer les candidats réels
+  // 4. Calculer le score (avec Vélocité & Comportement) et filtrer les candidats réels
   const scoredCandidates: EligiblePartnerForDispatch[] = []
 
   for (const partner of realPartners) {
@@ -453,6 +544,27 @@ export async function getEligiblePartnersForWave(
         scoreInfo.tier = "tier_1"
       }
     }
+
+    // Score de Vélocité Acheteur (30 jours) : favorise les acheteurs actifs et pénalise les comptes dormants (>= 10 alertes sans aucun clic)
+    const velocity = velocityMap.get(partner.id)
+    if (velocity) {
+      if (velocity.recentPurchases7d >= 1) {
+        scoreInfo.score = Math.min(145, scoreInfo.score + 35)
+      } else if (velocity.recentPurchases30d >= 1) {
+        scoreInfo.score = Math.min(140, scoreInfo.score + 20)
+      }
+      if (velocity.clicks30d >= 1) {
+        scoreInfo.score = Math.min(145, scoreInfo.score + 15)
+      }
+      if (
+        velocity.dispatches30d >= 10 &&
+        velocity.recentPurchases30d === 0 &&
+        velocity.clicks30d === 0
+      ) {
+        scoreInfo.score = Math.max(10, scoreInfo.score - 30)
+      }
+    }
+
     scoreInfo.behavioralBoost = behavioralBoost
     scoreInfo.hasInspectedLead = Boolean(engagement?.hasInspected)
     scoreInfo.inspectedDurationMs = engagement?.totalDurationMs || 0
@@ -569,7 +681,12 @@ export async function dispatchLeadWave(
   }
 
   const isB2B = lead.segment === "B2B"
-  const maxSlots = isB2B ? MAX_SLOTS_B2B : MAX_SLOTS_B2C
+  const maxSlots =
+    typeof lead.max_slots === "number"
+      ? lead.max_slots
+      : isB2B
+        ? MAX_SLOTS_B2B
+        : MAX_SLOTS_B2C
 
   // 2. Vérifier les achats réels enregistrés (hors comptes de test)
   const { data: purchases } = await supabase
@@ -732,6 +849,17 @@ export async function dispatchLeadWave(
       console.log(`[Lead Relance DEV] Envoi simulé à ${partner.email} — Objet: ${subject}`)
     }
 
+    // Alerte SMS optionnelle (strictement activée uniquement si TWILIO_* est configuré en prod)
+    if (waveNumber === 1 && scoreInfo.tier === "tier_1" && partner.phone && !candidate.isTest) {
+      sendOptionalSmsUrgencyAlert({
+        toPhone: partner.phone,
+        city: lead.city || lead.province || "Wallonie",
+        segment: lead.segment || "B2C",
+        powerKwc: financials.estimatedPowerKwc,
+        creditCost,
+      }).catch(() => undefined)
+    }
+
     // Journalisation dans lead_relance_dispatches
     try {
       await supabase.from("lead_relance_dispatches").insert({
@@ -827,7 +955,12 @@ export async function dispatchLeadToSpecificPartners(
   }
 
   const isB2B = lead.segment === "B2B"
-  const maxSlots = isB2B ? MAX_SLOTS_B2B : MAX_SLOTS_B2C
+  const maxSlots =
+    typeof lead.max_slots === "number"
+      ? lead.max_slots
+      : isB2B
+        ? MAX_SLOTS_B2B
+        : MAX_SLOTS_B2C
 
   // 2. Vérifier les achats existants
   const { data: purchases } = await supabase
@@ -1063,10 +1196,13 @@ export interface CronRelanceSummary {
   processedLeads: number
   triggeredWaves: { leadId: string; waveNumber: number; sentCount: number }[]
   skippedLeadsCount: number
+  autoClosedStalePartialCount?: number
+  reconfirmEmailsSentCount?: number
 }
 
 /**
- * Scanne tous les leads disponibles et déclenche les Vagues 2 et 3 selon les cooldowns
+ * Scanne tous les leads disponibles, applique le Protocole H+48h (clôture B2C partielle
+ * ou réengagement prospect) et déclenche les Vagues 2 et 3 selon les cooldowns resserrés.
  */
 export async function processPendingLeadRelances(): Promise<CronRelanceSummary> {
   // Respecter les plages horaires de courtoisie professionnelle
@@ -1075,27 +1211,142 @@ export async function processPendingLeadRelances(): Promise<CronRelanceSummary> 
       processedLeads: 0,
       triggeredWaves: [],
       skippedLeadsCount: 0,
+      autoClosedStalePartialCount: 0,
+      reconfirmEmailsSentCount: 0,
     }
   }
 
   const supabase = createServiceRoleClient()
   const now = Date.now()
+  const nowIso = new Date(now).toISOString()
 
-  // 1. Récupérer tous les leads actuellement "available"
-  const { data: availableLeads, error } = await supabase
+  // 1. Récupérer tous les leads actuellement "available" (avec repli si colonnes 202611180001 pas encore migrées)
+  let availableLeads: any[] = []
+  const primaryLeadsRes = await supabase
     .from("leads")
-    .select("id, segment, marketplace_status, relance_wave, last_relance_at, created_at")
+    .select(
+      "id, segment, marketplace_status, relance_wave, last_relance_at, created_at, max_slots, first_name, email, city, province, reconfirmed_at, reconfirm_sent_at, qualification_metadata"
+    )
     .eq("marketplace_status", "available")
     .order("created_at", { ascending: false })
 
-  if (error || !availableLeads || availableLeads.length === 0) {
-    return { processedLeads: 0, triggeredWaves: [], skippedLeadsCount: 0 }
+  if (
+    primaryLeadsRes.error &&
+    (primaryLeadsRes.error.code === "42703" ||
+      primaryLeadsRes.error.message?.includes("reconfirm"))
+  ) {
+    const fallbackRes = await supabase
+      .from("leads")
+      .select(
+        "id, segment, marketplace_status, relance_wave, last_relance_at, created_at, max_slots, first_name, email, city, province, qualification_metadata"
+      )
+      .eq("marketplace_status", "available")
+      .order("created_at", { ascending: false })
+    availableLeads = fallbackRes.data || []
+  } else {
+    availableLeads = primaryLeadsRes.data || []
+  }
+
+  if (availableLeads.length === 0) {
+    return {
+      processedLeads: 0,
+      triggeredWaves: [],
+      skippedLeadsCount: 0,
+      autoClosedStalePartialCount: 0,
+      reconfirmEmailsSentCount: 0,
+    }
+  }
+
+  // Batch-fetch achats réels pour le Protocole H+48h (zéro N+1)
+  const leadIds = availableLeads.map((l) => l.id)
+  const realTakenByLead = new Map<string, number>()
+  try {
+    const { data: purchaseRows } = await supabase
+      .from("lead_purchases")
+      .select("lead_id, partners(is_test, company_name)")
+      .in("lead_id", leadIds)
+
+    for (const row of (purchaseRows as any[]) || []) {
+      const pRel = Array.isArray(row.partners) ? row.partners[0] : row.partners
+      const isTest =
+        pRel?.is_test === true ||
+        (typeof pRel?.company_name === "string" && pRel.company_name.toLowerCase().includes("test"))
+      if (!isTest) {
+        realTakenByLead.set(row.lead_id, (realTakenByLead.get(row.lead_id) || 0) + 1)
+      }
+    }
+  } catch {
+    // Non bloquant
   }
 
   const triggeredWaves: { leadId: string; waveNumber: number; sentCount: number }[] = []
   let skippedCount = 0
+  let autoClosedStalePartialCount = 0
+  let reconfirmEmailsSentCount = 0
 
   for (const lead of availableLeads) {
+    const takenSlots = realTakenByLead.get(lead.id) || 0
+    const maxSlots =
+      typeof lead.max_slots === "number"
+        ? lead.max_slots
+        : lead.segment === "B2B"
+          ? MAX_SLOTS_B2B
+          : MAX_SLOTS_B2C
+    const createdAgeMs = now - new Date(lead.created_at).getTime()
+
+    // Protocole H+48h "Zéro Déchet, Zéro Braderie"
+    if (createdAgeMs >= STALE_PROTOCOL_AGE_MS) {
+      if (lead.segment === "B2C" && takenSlots >= 1 && takenSlots < maxSlots) {
+        // B2C déjà vendu >= 1 fois à H+48h -> clôture propre pour préserver la valeur du(des) 1er(s) acheteur(s)
+        const { error: closeErr } = await supabase
+          .from("leads")
+          .update({
+            marketplace_status: "sold_out",
+            stale_closed_at: nowIso,
+          })
+          .eq("id", lead.id)
+        if (closeErr && (closeErr.code === "42703" || closeErr.message?.includes("stale_closed_at"))) {
+          await supabase.from("leads").update({ marketplace_status: "sold_out" }).eq("id", lead.id)
+        }
+        autoClosedStalePartialCount++
+        continue
+      }
+
+      const meta =
+        lead.qualification_metadata && typeof lead.qualification_metadata === "object"
+          ? (lead.qualification_metadata as Record<string, unknown>)
+          : {}
+      const alreadySentReconfirm = Boolean(lead.reconfirm_sent_at || meta.reconfirm_sent_at)
+
+      if (takenSlots === 0 && !alreadySentReconfirm && lead.email) {
+        const resReconfirm = await sendProspectReconfirmEmail({
+          leadId: lead.id,
+          email: lead.email,
+          firstName: lead.first_name,
+          city: lead.city,
+          province: lead.province,
+        })
+        if (resReconfirm.sent) {
+          reconfirmEmailsSentCount++
+        }
+        const { error: recErr } = await supabase
+          .from("leads")
+          .update({
+            reconfirm_sent_at: nowIso,
+            qualification_metadata: { ...meta, reconfirm_sent_at: nowIso },
+          })
+          .eq("id", lead.id)
+        if (recErr && (recErr.code === "42703" || recErr.message?.includes("reconfirm_sent_at"))) {
+          await supabase
+            .from("leads")
+            .update({
+              qualification_metadata: { ...meta, reconfirm_sent_at: nowIso },
+            })
+            .eq("id", lead.id)
+        }
+      }
+    }
+
     const currentWave = Number(lead.relance_wave) || 0
     const lastRelanceTime = lead.last_relance_at
       ? new Date(lead.last_relance_at).getTime()
@@ -1103,17 +1354,17 @@ export async function processPendingLeadRelances(): Promise<CronRelanceSummary> 
 
     const elapsed = now - lastRelanceTime
 
-    // Vérifier si une relance doit être déclenchée :
+    // Vérifier si une relance doit être déclenchée (cascade resserrée T+0 / T+90m / T+5h) :
     let nextWave = 0
 
     if (currentWave === 0) {
       // Vague 1 initiale n'a jamais été envoyée
       nextWave = 1
     } else if (currentWave === 1 && elapsed >= COOLDOWN_WAVE_1_TO_2_MS) {
-      // 4 heures écoulées depuis la Vague 1 -> Vague 2
+      // 90 minutes écoulées depuis la Vague 1 -> Vague 2
       nextWave = 2
     } else if (currentWave === 2 && elapsed >= COOLDOWN_WAVE_2_TO_3_MS) {
-      // 20 heures écoulées depuis la Vague 2 -> Vague 3
+      // 3h30 écoulées depuis la Vague 2 -> Vague 3 (~H+5h)
       nextWave = 3
     }
 
@@ -1139,6 +1390,8 @@ export async function processPendingLeadRelances(): Promise<CronRelanceSummary> 
     processedLeads: availableLeads.length,
     triggeredWaves,
     skippedLeadsCount: skippedCount,
+    autoClosedStalePartialCount,
+    reconfirmEmailsSentCount,
   }
 }
 
@@ -1467,11 +1720,13 @@ const getUpcomingRelancesScheduleCached = cache(async (): Promise<UpcomingRelanc
     telemetryByLeadId.set(ev.lead_id, list)
   }
 
+  const velocityByPartnerId = await loadPartnerVelocityMap(supabase)
   const preloaded: PreloadedRelanceWaveData = {
     allPartners: partnersRes.data || [],
     purchasesByLeadId: rawPurchasesByLeadId,
     dispatchesByLeadId: rawDispatchesByLeadId,
     telemetryByLeadId,
+    velocityByPartnerId,
   }
 
   const upcomingItems: UpcomingRelanceItem[] = []
@@ -1485,7 +1740,12 @@ const getUpcomingRelancesScheduleCached = cache(async (): Promise<UpcomingRelanc
 
     const nextWave = currentWave + 1
     const isB2B = lead.segment === "B2B"
-    const maxSlots = isB2B ? MAX_SLOTS_B2B : MAX_SLOTS_B2C
+    const maxSlots =
+      typeof lead.max_slots === "number"
+        ? lead.max_slots
+        : isB2B
+          ? MAX_SLOTS_B2B
+          : MAX_SLOTS_B2C
     const leadBuyers = purchasesByLead.get(lead.id) || []
     const takenSlots = leadBuyers.length
 
@@ -1496,17 +1756,17 @@ const getUpcomingRelancesScheduleCached = cache(async (): Promise<UpcomingRelanc
 
     const remainingSlots = Math.max(0, maxSlots - takenSlots)
 
-    // Calculer la date théorique selon les cooldowns
+    // Calculer la date théorique selon les cooldowns resserrés (90m / +3h30)
     let scheduledTimestamp = now
     if (currentWave === 0) {
       // Vague 1 : immédiat à la publication (ou maintenant si publication passée)
       scheduledTimestamp = new Date(lead.created_at).getTime()
     } else if (currentWave === 1) {
-      // Vague 2 : 4h après Vague 1
+      // Vague 2 : 90 min après Vague 1
       const base = lead.last_relance_at ? new Date(lead.last_relance_at).getTime() : new Date(lead.created_at).getTime()
       scheduledTimestamp = base + COOLDOWN_WAVE_1_TO_2_MS
     } else if (currentWave === 2) {
-      // Vague 3 : 20h après Vague 2
+      // Vague 3 : +3h30 après Vague 2 (~H+5h)
       const base = lead.last_relance_at ? new Date(lead.last_relance_at).getTime() : new Date(lead.created_at).getTime()
       scheduledTimestamp = base + COOLDOWN_WAVE_2_TO_3_MS
     }
@@ -1698,7 +1958,12 @@ export async function getSentRelancesHistory(limit = 100): Promise<SentRelanceIt
     const buyersList = purchasesMap.get(d.lead_id) || []
     const buyerPartnerIds = buyersList.map((b) => b.partnerId)
     const isB2B = lead?.segment === "B2B"
-    const maxSlots = isB2B ? MAX_SLOTS_B2B : MAX_SLOTS_B2C
+    const maxSlots =
+      typeof lead?.max_slots === "number"
+        ? lead.max_slots
+        : isB2B
+          ? MAX_SLOTS_B2B
+          : MAX_SLOTS_B2C
     const takenSlots = buyersList.length
     const isTest = isDevTestPartner({ ...d.partners, emailTo: d.email_to })
 
@@ -1953,7 +2218,12 @@ export async function getAvailableMatchingLeadsForPartner(
     if (partnerPurchasedLeads.has(lead.id)) continue
 
     const isB2B = lead.segment === "B2B"
-    const maxSlots = isB2B ? MAX_SLOTS_B2B : MAX_SLOTS_B2C
+    const maxSlots =
+      typeof lead.max_slots === "number"
+        ? lead.max_slots
+        : isB2B
+          ? MAX_SLOTS_B2B
+          : MAX_SLOTS_B2C
     const takenSlots = purchasesByLead.get(lead.id) || 0
     if (takenSlots >= maxSlots) continue
 
@@ -2050,5 +2320,349 @@ export async function recordCatchUpDispatches(
     }
   }
 }
+
+// ==============================================================================
+// 9. ALERTE SMS OPTIONNELLE (TWILIO SI CONFIGURÉ) & MOTEUR AUTO-PILOT
+// ==============================================================================
+
+async function sendOptionalSmsUrgencyAlert(params: {
+  toPhone: string
+  city: string
+  segment: string
+  powerKwc: number
+  creditCost: number
+}): Promise<void> {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID
+  const authToken = process.env.TWILIO_AUTH_TOKEN
+  const fromNumber = process.env.TWILIO_FROM_NUMBER
+  if (!accountSid || !authToken || !fromNumber || !params.toPhone) return
+
+  const cleanPhone = params.toPhone.replace(/[^+\d]/g, "")
+  if (!cleanPhone.startsWith("+") || cleanPhone.length < 10) return
+
+  const kwcLabel = params.powerKwc > 0 ? `${params.powerKwc} kWc` : "PV"
+  const body = `Aegis Solaire: Nouveau chantier ${params.segment} ${kwcLabel} a ${params.city} (${params.creditCost} cr.). Consultez votre espace partenaire.`
+  const credentials = Buffer.from(`${accountSid}:${authToken}`).toString("base64")
+
+  await fetch(
+    `https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(accountSid)}/Messages.json`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${credentials}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        From: fromNumber,
+        To: cleanPhone,
+        Body: body,
+      }).toString(),
+    }
+  )
+}
+
+export interface AutoMatchResult {
+  leadId: string
+  allocatedCount: number
+  isFullySold: boolean
+  allocations: { partnerId: string; companyName: string; mode: "wallet" | "mollie_mandate"; exclusive: boolean }[]
+}
+
+/**
+ * Exécuté immédiatement à la publication d'un lead :
+ * attribue automatiquement le dossier aux partenaires ayant activé l'Auto-Pilot
+ * dans le strict respect de leur plafond hebdomadaire (`auto_buy_weekly_cap`),
+ * de leurs critères géographiques/techniques, et de leur solde (wallet ou mandat 1-clic).
+ */
+export async function runAutoMatchForLead(leadId: string): Promise<AutoMatchResult> {
+  const supabase = createServiceRoleClient()
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.aegissolaire.com").replace(/\/$/, "")
+
+  const { data: lead, error: leadErr } = await supabase
+    .from("leads")
+    .select("*")
+    .eq("id", leadId)
+    .single()
+
+  if (leadErr || !lead || lead.marketplace_status !== "available") {
+    return { leadId, allocatedCount: 0, isFullySold: false, allocations: [] }
+  }
+
+  const isB2B = lead.segment === "B2B"
+  const maxSlots =
+    typeof lead.max_slots === "number"
+      ? lead.max_slots
+      : isB2B
+        ? MAX_SLOTS_B2B
+        : MAX_SLOTS_B2C
+  const creditCost = Number(lead.credit_cost) || calculateLeadCreditCost(lead)
+
+  // 1. Récupérer les achats actuels réels
+  const { data: existingPurchases } = await supabase
+    .from("lead_purchases")
+    .select("partner_id, purchased_at, partners(id, company_name, is_test)")
+    .eq("lead_id", leadId)
+
+  const existingBuyerIds = new Set((existingPurchases || []).map((p: any) => p.partner_id))
+  const realBuyers: LeadSaleBuyerSummary[] = (existingPurchases || [])
+    .filter((p: any) => {
+      const pRel = Array.isArray(p.partners) ? p.partners[0] : p.partners
+      return !pRel?.is_test && !pRel?.company_name?.toLowerCase().includes("test")
+    })
+    .map((p: any) => {
+      const pRel = Array.isArray(p.partners) ? p.partners[0] : p.partners
+      return {
+        partnerId: p.partner_id,
+        companyName: pRel?.company_name || "Partenaire",
+        purchasedAt: p.purchased_at,
+        isTest: false,
+      }
+    })
+
+  let takenSlots = realBuyers.length
+  if (takenSlots >= maxSlots) {
+    return { leadId, allocatedCount: 0, isFullySold: true, allocations: [] }
+  }
+
+  // 2. Récupérer les partenaires Auto-Pilot actifs (résilient si colonnes non migrées)
+  const { data: autoPartners, error: partnersErr } = await supabase
+    .from("partners")
+    .select(
+      "id, company_name, email, phone, credits, segment, target_provinces, target_surfaces, min_facture, is_test, auto_buy_enabled, auto_buy_weekly_cap, auto_buy_include_b2c_exclusive, mollie_customer_id, mollie_mandate_id, mollie_mandate_status"
+    )
+    .eq("auto_buy_enabled", true)
+
+  if (partnersErr) {
+    // Migration 202611180001 non encore appliquée ou aucun partenaire éligible
+    return { leadId, allocatedCount: 0, isFullySold: false, allocations: [] }
+  }
+
+  const eligiblePool = (autoPartners || []).filter(
+    (p: any) =>
+      p.email &&
+      p.email.includes("@") &&
+      !isUnreachableMockEmail(p.email) &&
+      !isDevTestPartner(p) &&
+      !existingBuyerIds.has(p.id)
+  )
+
+  if (eligiblePool.length === 0) {
+    return { leadId, allocatedCount: 0, isFullySold: false, allocations: [] }
+  }
+
+  // 3. Compter les achats des 7 derniers jours par partenaire pour appliquer le cap hebdomadaire
+  const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+  const partnerIds = eligiblePool.map((p: any) => p.id)
+  const weeklyCounts = new Map<string, number>()
+
+  try {
+    const { data: recentPurchases } = await supabase
+      .from("lead_purchases")
+      .select("partner_id")
+      .in("partner_id", partnerIds)
+      .gte("purchased_at", since7d)
+
+    for (const row of recentPurchases || []) {
+      weeklyCounts.set(row.partner_id, (weeklyCounts.get(row.partner_id) || 0) + 1)
+    }
+  } catch {
+    // Non bloquant
+  }
+
+  const annualBill = Number(lead.annual_bill_eur || lead.annual_electricity_bill) || 0
+  const filteredCandidates = eligiblePool
+    .filter((partner: any) => {
+      const cap = Math.max(1, Number(partner.auto_buy_weekly_cap) || 3)
+      const currentWeekCount = weeklyCounts.get(partner.id) || 0
+      if (currentWeekCount >= cap) return false
+
+      const effectiveSeg = getEffectivePartnerSegment(partner)
+      if (effectiveSeg !== "BOTH" && effectiveSeg !== lead.segment) return false
+
+      const provinces = Array.isArray(partner.target_provinces) ? partner.target_provinces : []
+      if (provinces.length > 0 && lead.province && !provinces.includes(lead.province)) {
+        return false
+      }
+
+      if (!doesSurfaceMatchPreference(lead.surface_type, partner.target_surfaces)) {
+        return false
+      }
+
+      if (partner.min_facture && annualBill > 0 && annualBill < Number(partner.min_facture)) {
+        return false
+      }
+
+      return true
+    })
+    .sort((a: any, b: any) => {
+      // Équité Round-Robin : celui qui a reçu le moins de leads cette semaine passe en premier
+      const countDiff = (weeklyCounts.get(a.id) || 0) - (weeklyCounts.get(b.id) || 0)
+      if (countDiff !== 0) return countDiff
+      // Priorité au portefeuille crédits prépayés (exécution atomique immédiate)
+      return (b.credits || 0) - (a.credits || 0)
+    })
+
+  const allocations: AutoMatchResult["allocations"] = []
+
+  for (const partner of filteredCandidates) {
+    if (takenSlots >= maxSlots) break
+
+    const wantsExclusiveB2C =
+      !isB2B && takenSlots === 0 && Boolean(partner.auto_buy_include_b2c_exclusive)
+    const requiredCredits = wantsExclusiveB2C ? B2C_EXCLUSIVE_CREDIT_COST : creditCost
+    const hasWalletCredits = (partner.credits || 0) >= requiredCredits
+
+    if (hasWalletCredits) {
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc(
+        "purchase_marketplace_lead",
+        {
+          p_lead_id: leadId,
+          p_partner_id: partner.id,
+          p_exclusive: wantsExclusiveB2C,
+        }
+      )
+
+      if (!rpcErr && rpcRes?.success) {
+        const purchaseId = rpcRes.purchase_id as string | undefined
+        if (purchaseId) {
+          await supabase
+            .from("lead_purchases")
+            .update({ purchase_channel: "auto_pilot" })
+            .eq("id", purchaseId)
+        }
+
+        allocations.push({
+          partnerId: partner.id,
+          companyName: partner.company_name || "Partenaire",
+          mode: "wallet",
+          exclusive: wantsExclusiveB2C || isB2B,
+        })
+
+        realBuyers.push({
+          partnerId: partner.id,
+          companyName: partner.company_name || "Partenaire",
+          purchasedAt: new Date().toISOString(),
+          isTest: false,
+          isCurrentBuyer: true,
+        })
+
+        // Envoyer le dossier complet débloqué à l'installateur
+        if (partner.email) {
+          sendLeadAssignedEmail(partner.email, {
+            first_name: lead.first_name || "Prospect",
+            last_name: lead.last_name || null,
+            email: lead.email || "",
+            phone: lead.phone || null,
+            job_title: lead.job_title || "Contact projet",
+            company: lead.company || null,
+            surface_type: lead.surface_type || "toiture",
+            surface_area: Number(lead.surface_area) || null,
+            annual_electricity_bill: annualBill || null,
+            project_timeline: lead.project_timeline || lead.timeframe || null,
+            estimated_roi_years: lead.estimated_roi_years ?? null,
+            estimated_savings: lead.estimated_savings ?? null,
+            message: lead.project_details || lead.message || null,
+          }).catch((e) => console.error("[Auto-Pilot] Erreur e-mail installateur:", e))
+        }
+
+        if (wantsExclusiveB2C && lead.email) {
+          sendProspectExclusiveMatchEmail({
+            email: lead.email,
+            firstName: lead.first_name,
+            city: lead.city,
+            province: lead.province,
+            estimatedPowerKwc: lead.estimated_power_kwc,
+            partnerCompany: partner.company_name || "Installateur RESCERT agréé",
+            partnerEmail: partner.email,
+            partnerPhone: partner.phone,
+          }).catch((e) => console.warn("[Auto-Pilot] Erreur réassurance prospect:", e))
+        }
+
+        const effectiveMaxSlots = wantsExclusiveB2C ? 1 : maxSlots
+        sendAdminLeadSaleNotification({
+          mode: "credits",
+          purchaseId,
+          partner: {
+            id: partner.id,
+            company_name: partner.company_name,
+            email: partner.email,
+            phone: partner.phone,
+            credits: Number(rpcRes.remaining_credits ?? (partner.credits - requiredCredits)),
+          },
+          lead,
+          creditsSpent: requiredCredits,
+          takenSlots: realBuyers.length,
+          maxSlots: effectiveMaxSlots,
+          buyers: realBuyers,
+        }).catch(() => undefined)
+
+        takenSlots = wantsExclusiveB2C ? maxSlots : takenSlots + 1
+        if (wantsExclusiveB2C) break
+        continue
+      }
+    }
+
+    // Fallback Mandat Mollie 1-Clic valide si solde crédits insuffisant
+    if (partner.mollie_customer_id && partner.mollie_mandate_status === "valid" && process.env.MOLLIE_API_KEY) {
+      try {
+        const mandateInfo = await getValidMollieMandate(
+          partner.mollie_customer_id,
+          partner.mollie_mandate_id
+        )
+        // Seuls les mandats par carte (creditcard) garantissent un règlement synchrone immédiat
+        if (mandateInfo.valid && mandateInfo.mandateId && mandateInfo.method === "creditcard") {
+          const fin = calculateOrderFinancials(requiredCredits)
+          const recurring = await createRecurringLeadPayment({
+            customerId: partner.mollie_customer_id,
+            mandateId: mandateInfo.mandateId,
+            leadId: lead.id,
+            leadSegment: lead.segment || "B2C",
+            leadLocation: lead.city || lead.province || "Wallonie",
+            priceTtc: fin.priceTtc,
+            priceHtva: fin.priceHtva,
+            vatAmount: fin.vatAmount,
+            credits: requiredCredits,
+            exclusive: wantsExclusiveB2C,
+            partnerId: partner.id,
+            partnerEmail: partner.email,
+            partnerCompany: partner.company_name || "Installateur",
+            siteUrl,
+            channel: "auto_pilot",
+          })
+
+          const mollie = getMollieClient()
+          const fullPayment = await mollie.payments.get(recurring.paymentId)
+          if (fullPayment.status === "paid") {
+            const fulfilled = await fulfillPaidLeadDirectPurchase(
+              lead.id,
+              partner.id,
+              fullPayment
+            )
+            if (fulfilled.success) {
+              allocations.push({
+                partnerId: partner.id,
+                companyName: partner.company_name || "Partenaire",
+                mode: "mollie_mandate",
+                exclusive: wantsExclusiveB2C || isB2B,
+              })
+              takenSlots = wantsExclusiveB2C ? maxSlots : takenSlots + 1
+              if (wantsExclusiveB2C) break
+            }
+          }
+        }
+      } catch (mandateErr) {
+        console.warn("[Auto-Pilot] Échec débit mandat 1-clic:", mandateErr)
+      }
+    }
+  }
+
+  return {
+    leadId,
+    allocatedCount: allocations.length,
+    isFullySold: takenSlots >= maxSlots,
+    allocations,
+  }
+}
+
 
 

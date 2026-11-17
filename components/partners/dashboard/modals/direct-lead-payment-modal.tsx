@@ -11,7 +11,11 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react"
-import { calculateLeadDirectFinancials } from "@/lib/credit-pricing"
+import {
+  calculateLeadDirectFinancials,
+  B2C_EXCLUSIVE_CREDIT_COST,
+  B2C_EXCLUSIVE_PRICE_EUR,
+} from "@/lib/credit-pricing"
 import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
 import { getLeadLocationInfo } from "@/lib/lead-display-helpers"
 import { toast } from "sonner"
@@ -20,8 +24,11 @@ interface DirectLeadPaymentModalProps {
   lead: any
   isOpen: boolean
   onClose: () => void
-  onSwitchToCredits?: () => void
+  onSwitchToCredits?: (exclusive?: boolean) => void
+  onOneClickSuccess?: (lead: any, purchaseData: any) => void
   partnerCredits?: number
+  initialExclusive?: boolean
+  hasValidMandate?: boolean
 }
 
 const ACCEPTED_PAYMENT_METHODS = [
@@ -51,10 +58,19 @@ export function DirectLeadPaymentModal({
   isOpen,
   onClose,
   onSwitchToCredits,
+  onOneClickSuccess,
   partnerCredits = 0,
+  initialExclusive = false,
+  hasValidMandate = false,
 }: DirectLeadPaymentModalProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [exclusiveMode, setExclusiveMode] = useState(initialExclusive)
+  const [enableOneClick, setEnableOneClick] = useState(false)
+
+  useEffect(() => {
+    setExclusiveMode(Boolean(initialExclusive))
+  }, [initialExclusive, isOpen, lead?.id])
 
   useEffect(() => {
     if (!isOpen) {
@@ -85,15 +101,25 @@ export function DirectLeadPaymentModal({
   const isB2B = lead.segment === "B2B"
   const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
   const remainingSlots = lead.remaining_slots ?? maxSlots
+  const takenSlots = lead.taken_slots ?? Math.max(0, maxSlots - remainingSlots)
+  const canBuyExclusive = !isB2B && takenSlots === 0 && maxSlots > 1
+  const isExclusive = canBuyExclusive && exclusiveMode
   const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
-  const hasEnoughCredits = partnerCredits >= cost
+  const activeCost = isExclusive ? B2C_EXCLUSIVE_CREDIT_COST : cost
+  const hasEnoughCredits = partnerCredits >= activeCost
 
   const location = getLeadLocationInfo(lead)
   const leadRefCode = lead.id ? String(lead.id).slice(0, 8).toUpperCase() : "SOLAIRE"
 
+  const standardFinancials = calculateLeadDirectFinancials({
+    segment: lead.segment,
+    credit_cost: cost,
+  })
+
   const financials = calculateLeadDirectFinancials({
     segment: lead.segment,
     credit_cost: cost,
+    exclusive: isExclusive,
   })
 
   const rawSurface = Math.max(0, Number(lead.surface_area || lead.surface_area_m2) || 0)
@@ -140,6 +166,10 @@ export function DirectLeadPaymentModal({
       const res = await fetch(`/api/partners/leads/${lead.id}/checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          exclusive: isExclusive,
+          enableOneClick,
+        }),
       })
 
       const data = await res.json()
@@ -158,6 +188,36 @@ export function DirectLeadPaymentModal({
       console.error("[Direct Lead Checkout Error]", err)
       setError(err.message || "Erreur de connexion au service bancaire.")
       toast.error(err.message || "Impossible d'initier le paiement direct.")
+      setLoading(false)
+    }
+  }
+
+  const handleOneClickCharge = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/partners/leads/${lead.id}/one-click-buy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ exclusive: isExclusive }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Impossible de débiter votre mandat 1-clic.")
+      }
+      if (data.status === "paid") {
+        toast.success("Dossier débloqué en 1 clic ! Coordonnées ajoutées à votre CRM.")
+        onOneClickSuccess?.(lead, data)
+        onClose()
+      } else {
+        toast.info(
+          data.message || "Prélèvement SEPA initié. Le dossier sera débloqué dès confirmation."
+        )
+        onClose()
+      }
+    } catch (err: any) {
+      setError(err.message || "Erreur lors du paiement 1-clic.")
+      toast.error(err.message || "Impossible de finaliser le paiement 1-clic.")
       setLoading(false)
     }
   }
@@ -295,6 +355,63 @@ export function DirectLeadPaymentModal({
               </div>
             </section>
 
+            {/* Option Mode Partagé vs Exclusivité Totale B2C */}
+            {canBuyExclusive && (
+              <section
+                aria-label="Option Exclusivité Totale"
+                className="rounded-[8px] border border-[var(--aegis-border)] bg-[var(--aegis-surface)] p-3 flex flex-col gap-2"
+              >
+                <span className="text-[11.5px] font-bold uppercase tracking-wider text-[var(--aegis-muted)]">
+                  Choisissez votre niveau de concurrence
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setExclusiveMode(false)}
+                    className={`rounded-[7px] border p-2.5 text-left transition-colors cursor-pointer ${
+                      !isExclusive
+                        ? "border-[var(--aegis-ink)] bg-[var(--aegis-summary)]"
+                        : "border-[var(--aegis-border)] hover:bg-[var(--aegis-surface-subtle)]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[12.5px] font-bold text-[var(--aegis-ink)]">
+                        Partagé (max {maxSlots})
+                      </span>
+                      <span className="font-mono text-[12px] font-bold tabular-nums text-[var(--aegis-ink)]">
+                        {formatEurDecimal(standardFinancials.priceHtva)} € HT
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-[11px] text-[var(--aegis-muted)] leading-snug">
+                      {cost} crédits · Jusqu&apos;à {maxSlots} installateurs.
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setExclusiveMode(true)}
+                    className={`rounded-[7px] border p-2.5 text-left transition-colors cursor-pointer ${
+                      isExclusive
+                        ? "border-emerald-700 bg-emerald-50/70"
+                        : "border-[var(--aegis-border)] hover:bg-[var(--aegis-surface-subtle)]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[12.5px] font-bold text-emerald-900">
+                        Exclusivité 100 %
+                      </span>
+                      <span className="font-mono text-[12px] font-bold tabular-nums text-emerald-800">
+                        {formatEurDecimal(B2C_EXCLUSIVE_PRICE_EUR)} € HT
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-[11px] text-emerald-800/85 leading-snug">
+                      {B2C_EXCLUSIVE_CREDIT_COST} crédits · 0 concurrent + e-mail prioritaire au prospect.
+                    </p>
+                  </button>
+                </div>
+              </section>
+            )}
+
             {/* Bloc B : Décompte comptable B2B */}
             <section
               aria-label="Décompte comptable B2B"
@@ -303,7 +420,9 @@ export function DirectLeadPaymentModal({
               <div className="px-3.5 py-1.5 sm:px-4">
                 <div className="py-1.5 flex items-baseline justify-between gap-3 border-b border-[var(--aegis-divider)]">
                   <span className="text-[12.5px] sm:text-[13px] text-[var(--aegis-muted)] min-w-0">
-                    Déblocage de contact qualifié
+                    {isExclusive
+                      ? "Déblocage Exclusivité Totale B2C (0 concurrent)"
+                      : "Déblocage de contact qualifié"}
                   </span>
                   <span className="shrink-0 whitespace-nowrap text-right font-mono text-[13.5px] sm:text-[14px] font-semibold tabular-nums text-[var(--aegis-ink)]">
                     {priceHtvaLabel}
@@ -362,6 +481,21 @@ export function DirectLeadPaymentModal({
                     </span>
                   ))}
                 </div>
+
+                {!hasValidMandate && (
+                  <label className="mt-1 flex items-start gap-2 rounded-[6px] border border-[var(--aegis-border)] bg-[var(--aegis-surface)] px-2.5 py-2 text-[11.5px] text-[var(--aegis-ink)] cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={enableOneClick}
+                      onChange={(e) => setEnableOneClick(e.target.checked)}
+                      className="mt-0.5 h-3.5 w-3.5 accent-[var(--aegis-ink)] rounded cursor-pointer"
+                    />
+                    <span className="leading-snug">
+                      Mémoriser mon moyen de paiement chez Mollie pour activer le déblocage en{" "}
+                      <strong>1 clic</strong> (et l&apos;Auto-Pilot si souhaité).
+                    </span>
+                  </label>
+                )}
               </div>
 
               <div className="pt-2 border-t border-[var(--aegis-divider)] flex items-start gap-2 text-[11.5px] sm:text-[12px] leading-[1.4] text-[var(--aegis-muted)]">
@@ -404,6 +538,23 @@ export function DirectLeadPaymentModal({
 
         {/* ── 3. Pied d'action fixe (toujours accessible sur mobile) ── */}
         <footer className="shrink-0 border-t border-[var(--aegis-divider)] bg-[var(--aegis-surface)] px-4 pt-3 pb-3 sm:px-6 sm:py-4 [padding-bottom:max(0.75rem,env(safe-area-inset-bottom))] flex flex-col gap-2">
+          {hasValidMandate && (
+            <button
+              type="button"
+              disabled={loading}
+              onClick={handleOneClickCharge}
+              className="w-full min-h-[44px] inline-flex items-center justify-center gap-2 rounded-[6px] bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 px-4 py-2.5 text-[14px] font-bold text-white cursor-pointer transition-colors"
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden="true" />
+              ) : (
+                <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden="true" />
+              )}
+              <span>
+                Débloquer en 1 clic ({priceTtcLabel})
+              </span>
+            </button>
+          )}
           <button
             type="button"
             disabled={loading}
@@ -437,7 +588,7 @@ export function DirectLeadPaymentModal({
                 disabled={loading}
                 onClick={() => {
                   onClose()
-                  onSwitchToCredits()
+                  onSwitchToCredits(isExclusive)
                 }}
                 className="w-full py-0.5 text-center text-[12.5px] sm:text-[13px] font-semibold text-[var(--aegis-link)] underline underline-offset-4 hover:text-[var(--aegis-ink)] cursor-pointer disabled:opacity-50 rounded-[5px] focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
               >
@@ -447,7 +598,7 @@ export function DirectLeadPaymentModal({
               </button>
             ) : (
               <p className="text-center text-[12px] sm:text-[12.5px] text-[var(--aegis-muted)] leading-[1.4]">
-                Vous préférez débloquer en 1 clic ?{" "}
+                Vous préférez recharger à tarif dégressif (-24 %) ?{" "}
                 <button
                   type="button"
                   disabled={loading}

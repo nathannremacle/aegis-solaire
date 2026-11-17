@@ -3,7 +3,11 @@ import { NextRequest, NextResponse } from "next/server"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { leadSubmitSchema } from "@/lib/leads-schema"
 import { calculateLeadScore } from "@/lib/lead-score"
-import { calculateLeadCreditCost, calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
+import {
+  calculateLeadCreditCost,
+  calculateMarketplaceFinancials,
+  getLeadPricingTierMeta,
+} from "@/lib/marketplace-pricing"
 import { canonicalizeProjectDetailsText } from "@/lib/lead-display-helpers"
 import { checkRateLimit } from "@/lib/rate-limit"
 import { sendProspectConfirmationEmail } from "@/lib/prospect-confirmation-email"
@@ -151,6 +155,15 @@ export async function POST(request: NextRequest) {
       surfaceArea: data.surfaceArea,
       surfaceType: data.surfaceType,
       annualBill: data.annualElectricityBill,
+      timeframe: data.timeframe || null,
+      projectTimeline: data.timeframe || null,
+      wantsIrve: Boolean(
+        data.projectDriver === "flotte_irve" ||
+          (data.qualificationMetadata as Record<string, unknown> | undefined)?.wants_irve
+      ),
+      projectDetails: rawProjectDetailsText,
+      qualificationMetadata:
+        (data.qualificationMetadata as Record<string, unknown>) ?? null,
     })
 
     const supabase = createServiceRoleClient()
@@ -177,6 +190,11 @@ export async function POST(request: NextRequest) {
       roofMaterial: safeRoofMaterial,
       annualBill: data.annualElectricityBill,
       creditCost: credit_cost,
+      wantsIrve: Boolean(
+        data.projectDriver === "flotte_irve" ||
+          (data.qualificationMetadata as Record<string, unknown> | undefined)?.wants_irve
+      ),
+      timeframe: data.timeframe || null,
       projectDetails: rawProjectDetailsText,
       qualificationMetadata: (data.qualificationMetadata as Record<string, unknown>) ?? null,
     })

@@ -155,3 +155,39 @@ export function isValidPartnerNotificationMode(value: unknown): value is Partner
   return value === "all" || value === "new_only" || value === "none"
 }
 
+/**
+ * Normalise un libellé de surface lead/partenaire vers sa famille canonique :
+ * - toiture, toiture_inclinee, toiture_plate -> "toiture"
+ * - parking, ombriere -> "parking"
+ * - sol, friche, terrain, agrivoltaisme -> "sol"
+ */
+export function normalizeSurfaceFamily(rawSurface: string | null | undefined): string {
+  const s = (rawSurface || "").toLowerCase().trim()
+  if (!s) return ""
+  if (s.includes("toit") || s === "roof") return "toiture"
+  if (s.includes("park") || s.includes("ombri")) return "parking"
+  if (s.includes("friche") || s.includes("terrain") || s === "sol" || s.includes("ground")) {
+    return "sol"
+  }
+  return s
+}
+
+/**
+ * Vérifie si la surface d'un lead correspond aux préférences d'un partenaire
+ * (gère les variations `toiture_inclinee` vs `toiture`, `friche` vs `sol`, etc.).
+ */
+export function doesSurfaceMatchPreference(
+  leadSurfaceType: string | null | undefined,
+  partnerSurfaces: string[] | null | undefined
+): boolean {
+  const cleanPartner = getCleanTargetSurfaces(partnerSurfaces)
+  if (cleanPartner.length === 0) return true
+  if (!leadSurfaceType) return true
+  const leadRaw = leadSurfaceType.toLowerCase().trim()
+  const leadFamily = normalizeSurfaceFamily(leadRaw)
+  return cleanPartner.some((pref) => {
+    const pRaw = pref.toLowerCase().trim()
+    return pRaw === leadRaw || normalizeSurfaceFamily(pRaw) === leadFamily
+  })
+}
+

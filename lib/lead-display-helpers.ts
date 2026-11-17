@@ -839,7 +839,8 @@ export function calculateLeadRoiRatio(estimatedMargin: number, creditCost: numbe
  */
 export function getLeadFreshness(
   createdAt?: string | null,
-  overrideLabel?: string | null
+  overrideLabel?: string | null,
+  reconfirmedAt?: string | null
 ): {
   label: string
   isHot: boolean
@@ -853,6 +854,20 @@ export function getLeadFreshness(
     }
   }
 
+  const now = new Date()
+
+  if (reconfirmedAt) {
+    const reconf = new Date(reconfirmedAt)
+    const reconfHours = Math.max(0, Math.floor((now.getTime() - reconf.getTime()) / (1000 * 60 * 60)))
+    if (reconfHours <= 72) {
+      return {
+        label: reconfHours < 1 ? "Reconfirmé à l'instant" : "Reconfirmé récemment",
+        isHot: true,
+        dotClass: "bg-emerald-500 animate-pulse",
+      }
+    }
+  }
+
   if (!createdAt) {
     return {
       label: "Vérifié aujourd'hui",
@@ -862,7 +877,6 @@ export function getLeadFreshness(
   }
 
   const created = new Date(createdAt)
-  const now = new Date()
   const diffHours = Math.max(0, Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60)))
 
   if (diffHours < 1) {
@@ -892,34 +906,25 @@ export function getLeadFreshness(
 
   if (diffHours <= 48) {
     return {
-      label: "Hier",
+      label: "Hier · Vérifié",
       isHot: false,
-      dotClass: "bg-slate-400",
+      dotClass: "bg-emerald-500/80",
     }
   }
 
   const days = Math.floor(diffHours / 24)
   if (days <= 7) {
     return {
-      label: `Il y a ${days} j`,
+      label: "Audit technique vérifié",
       isHot: false,
       dotClass: "bg-slate-400",
     }
   }
 
-  if (days <= 30) {
-    return {
-      label: "Ce mois-ci",
-      isHot: false,
-      dotClass: "bg-accent/60",
-    }
-  }
-
-  // Pour les leads actifs de longue durée sur le réseau
   return {
-    label: "Dossier vérifié",
+    label: "Dossier qualifié RESCERT",
     isHot: false,
-    dotClass: "bg-accent/60",
+    dotClass: "bg-slate-400",
   }
 }
 

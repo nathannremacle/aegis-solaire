@@ -682,11 +682,11 @@ export function AdminKpiGrid({
                 <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1.5">
                     <span className="h-2 w-2 rounded-full bg-primary" />
-                    <span>Lead B2B Professionnel : <strong className="font-mono tabular-nums text-foreground">9 crédits</strong> (88,50 € HTVA)</span>
+                    <span>Lead B2B Professionnel : <strong className="font-mono tabular-nums text-foreground">6 à 12 crédits</strong> (59 €–118 € HTVA)</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="h-2 w-2 rounded-full bg-accent" />
-                    <span>Lead B2C Résidentiel : <strong className="font-mono tabular-nums text-foreground">3 crédits</strong> (29,50 € HTVA)</span>
+                    <span>Lead B2C Résidentiel : <strong className="font-mono tabular-nums text-foreground">2 à 4 crédits</strong> (19,50 €–39 € · Excl. 7 cr.)</span>
                   </div>
                 </div>
               </div>

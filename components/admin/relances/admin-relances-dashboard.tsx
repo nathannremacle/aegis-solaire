@@ -92,6 +92,70 @@ export function AdminRelancesDashboard({
   const [triggeringLeadId, setTriggeringLeadId] = useState<string | null>(null)
   const [runningCron, setRunningCron] = useState(false)
 
+  // Modal diffusion e-mail nouveautés plateforme
+  const [announcementOpen, setAnnouncementOpen] = useState(false)
+  const [announcementLoading, setAnnouncementLoading] = useState(false)
+  const [announcementSending, setAnnouncementSending] = useState(false)
+  const [announcementData, setAnnouncementData] = useState<{
+    subject: string
+    html: string
+    activeRecipientCount: number
+    recipientsPreview: { id: string; companyName: string; email: string }[]
+  } | null>(null)
+  const [announcementTestEmail, setAnnouncementTestEmail] = useState("")
+
+  async function openAnnouncementModal() {
+    setAnnouncementOpen(true)
+    setAnnouncementLoading(true)
+    try {
+      const res = await fetch("/api/admin/partners/announcement")
+      if (res.ok) {
+        const json = await res.json()
+        setAnnouncementData(json)
+      }
+    } catch {
+      toast.error("Impossible de charger l'aperçu de l'e-mail explicatif.")
+    } finally {
+      setAnnouncementLoading(false)
+    }
+  }
+
+  async function sendAnnouncement(mode: "test" | "broadcast") {
+    if (
+      mode === "broadcast" &&
+      !confirm(
+        `Confirmer l'envoi de l'e-mail explicatif des nouveautés à ${announcementData?.activeRecipientCount ?? "tous les"} installateur(s) actif(s) ?`
+      )
+    ) {
+      return
+    }
+    setAnnouncementSending(true)
+    try {
+      const res = await fetch("/api/admin/partners/announcement", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode,
+          testEmail: announcementTestEmail.trim() || undefined,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        throw new Error(json.error || "Erreur d'envoi")
+      }
+      if (mode === "test") {
+        toast.success(`E-mail de test envoyé à ${json.sentTo}`)
+      } else {
+        toast.success(json.message || `Diffusion envoyée à ${json.sentCount} partenaire(s) !`)
+        setAnnouncementOpen(false)
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erreur lors de l'envoi")
+    } finally {
+      setAnnouncementSending(false)
+    }
+  }
+
   // Preview Drawer State
   const [previewDrawer, setPreviewDrawer] = useState<{
     isOpen: boolean
@@ -352,7 +416,7 @@ export function AdminRelancesDashboard({
                 <span>Supervision des Relances Mails &amp; Cascades</span>
               </div>
               <Badge variant="outline" className="text-[11px] font-mono tabular-nums">
-                Waterfall Séquentiel (H+0 / H+4h / H+24h)
+                Cascade Flash (H+0 / H+1h30 / H+5h · H+48h)
               </Badge>
             </div>
 
@@ -375,6 +439,16 @@ export function AdminRelancesDashboard({
             >
               <RotateCcw className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")} />
               <span>Actualiser</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openAnnouncementModal}
+              className="h-8 text-xs gap-1.5 border-border"
+            >
+              <Mail className="h-3.5 w-3.5 text-accent" />
+              <span>E-mail Nouveautés</span>
             </Button>
 
             <Button
@@ -1435,6 +1509,98 @@ export function AdminRelancesDashboard({
         isTriggering={triggeringLeadId === previewDrawer.leadId}
         isSentItem={previewDrawer.isSentItem}
       />
+
+      {/* 7. Modale Aperçu & Diffusion E-mail Explicatif Installateurs */}
+      {announcementOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/60 backdrop-blur-xs"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !announcementSending) setAnnouncementOpen(false)
+          }}
+        >
+          <div className="w-full max-w-3xl max-h-[90vh] flex flex-col rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border">
+              <div>
+                <h2 className="text-base font-bold text-foreground">
+                  E-mail explicatif des nouveautés installateurs
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  {announcementData
+                    ? `${announcementData.activeRecipientCount} partenaire(s) actif(s) opt-in destinataire(s)`
+                    : "Chargement des destinataires..."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAnnouncementOpen(false)}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5 bg-secondary/20">
+              {announcementLoading ? (
+                <div className="flex items-center justify-center py-12 text-xs text-muted-foreground gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Génération de l&apos;aperçu...</span>
+                </div>
+              ) : announcementData ? (
+                <div className="flex flex-col gap-3">
+                  <div className="rounded-xl border border-border bg-card px-4 py-2.5 text-xs">
+                    <span className="text-muted-foreground">Objet : </span>
+                    <strong className="text-foreground">{announcementData.subject}</strong>
+                  </div>
+                  <iframe
+                    title="Aperçu E-mail Nouveautés"
+                    srcDoc={announcementData.html}
+                    className="w-full h-[420px] rounded-xl border border-border bg-white"
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-5 py-4 border-t border-border bg-card">
+              <div className="flex items-center gap-2">
+                <Input
+                  type="email"
+                  value={announcementTestEmail}
+                  onChange={(e) => setAnnouncementTestEmail(e.target.value)}
+                  placeholder="E-mail de test (défaut : admin)"
+                  className="h-8 text-xs w-56"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={announcementSending || announcementLoading}
+                  onClick={() => sendAnnouncement("test")}
+                  className="h-8 text-xs shrink-0"
+                >
+                  Envoyer un test
+                </Button>
+              </div>
+
+              <Button
+                type="button"
+                size="sm"
+                disabled={announcementSending || announcementLoading || !announcementData?.activeRecipientCount}
+                onClick={() => sendAnnouncement("broadcast")}
+                className="h-8 text-xs gap-1.5 font-bold"
+              >
+                {announcementSending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Send className="h-3.5 w-3.5" />
+                )}
+                <span>
+                  Diffuser à {announcementData?.activeRecipientCount ?? 0} installateur(s)
+                </span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -169,6 +169,7 @@ export interface InstallerMarketplaceWelcomeData {
   baseUrl?: string
   availableLeads?: AvailableLeadSummary[]
   closedTargetLead?: InvitationLeadSummary | null
+  welcomeCredits?: number
 }
 
 export function buildInstallerMarketplaceWelcomeEmail(data: InstallerMarketplaceWelcomeData): {
@@ -180,6 +181,7 @@ export function buildInstallerMarketplaceWelcomeEmail(data: InstallerMarketplace
   const firstName = data.firstName?.trim() ? data.firstName.trim() : "Partenaire"
   const company = data.companyName?.trim() ? data.companyName.trim() : "votre société"
   const rescert = data.rescertRef?.trim() ? ` (Réf. RESCERT : ${data.rescertRef.trim()})` : ""
+  const welcomeCredits = Math.max(0, Number(data.welcomeCredits) || 0)
   const baseUrl = data.baseUrl || publicAssetBase
   let extractedLeadId: string | null = null
   if (data.marketplaceUrl) {
@@ -241,8 +243,8 @@ ${hasSetupPasswordUrl ? `Définir votre mot de passe et accéder à la Marketpla
 La Marketplace Aegis Solaire en bref :
 - Pas d’abonnement – vous ne payez que pour les demandes de devis que vous choisissez d'acquérir.
 - Fiches techniques vérifiées – toiture, consommation kWh, raccordement GRD et coordonnées complètes.
-- Concurrence maîtrisée – maximum 3 installateurs par projet résidentiel et exclusivité totale (1 seul installateur) en B2B.
-- Pas de chantiers sélectionnés ? Zéro frais.
+- Concurrence maîtrisée – maximum 3 installateurs par projet résidentiel (ou option Exclusivité Totale à 1 clic) et exclusivité native en B2B.
+${welcomeCredits > 0 ? `- Solde de bienvenue offert : ${welcomeCredits} crédits sont déjà disponibles sur votre compte pour débloquer votre 1er chantier gratuitement.\n` : ""}- Pas de chantiers sélectionnés ? Zéro frais.
 
 Des questions ? contact@aegissolaire.com
 
@@ -329,6 +331,12 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
       ctaLabel,
       ctaUrl: primaryActionUrl,
     })}
+
+    ${welcomeCredits > 0 ? `<div style="margin-bottom: 16px;">${renderCalloutBox({
+      label: `Cadeau de bienvenue · ${welcomeCredits} crédits déjà disponibles`,
+      value: `Votre portefeuille est déjà crédité de ${welcomeCredits} crédits offerts pour tester la Marketplace dès aujourd'hui et débloquer votre premier dossier résidentiel sans avance de frais.`,
+      tone: "success",
+    })}</div>` : ""}
 
     ${availableLeadsHtml}
 
