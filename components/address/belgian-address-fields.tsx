@@ -55,6 +55,7 @@ export interface BelgianLocalityFieldProps {
   className?: string
   inputClassName?: string
   showQuickChips?: boolean
+  editorial?: boolean
 }
 
 export function BelgianLocalityField({
@@ -66,6 +67,7 @@ export function BelgianLocalityField({
   className,
   inputClassName,
   showQuickChips = true,
+  editorial = false,
 }: BelgianLocalityFieldProps) {
   const [fetched, setFetched] = useState<{ cp: string; items: LocalityOption[] }>({
     cp: "",
@@ -155,7 +157,9 @@ export function BelgianLocalityField({
             onChange(e.target.value)
           }}
           className={cn(
-            "h-12 rounded-lg text-base border-input bg-background/50 focus:bg-background pr-8",
+            editorial
+              ? "h-[46px] rounded-[6px] text-[15px] bg-[var(--aegis-surface)] border-[var(--aegis-input-border)] text-[var(--aegis-ink)] placeholder:text-[var(--aegis-muted)]/85 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] focus-visible:ring-0 focus-visible:border-[var(--aegis-ink)] pr-8"
+              : "h-12 rounded-lg text-base border-input bg-background/50 focus:bg-background pr-8",
             inputClassName
           )}
         />
@@ -177,10 +181,16 @@ export function BelgianLocalityField({
                   onChange(loc.name)
                 }}
                 className={cn(
-                  "text-[11px] px-2 py-0.5 rounded-full border transition-colors",
+                  editorial
+                    ? "text-[11px] px-2.5 py-0.5 rounded-[5px] border transition-colors cursor-pointer"
+                    : "text-[11px] px-2 py-0.5 rounded-full border transition-colors",
                   active
-                    ? "bg-primary text-primary-foreground border-primary font-semibold"
-                    : "bg-secondary/60 text-muted-foreground border-border hover:bg-secondary hover:text-foreground"
+                    ? editorial
+                      ? "bg-[var(--aegis-ink)] text-white border-[var(--aegis-ink)] font-semibold"
+                      : "bg-primary text-primary-foreground border-primary font-semibold"
+                    : editorial
+                      ? "bg-[var(--aegis-surface-subtle)] text-[var(--aegis-muted)] border-[var(--aegis-border)] hover:bg-[var(--aegis-summary)] hover:text-[var(--aegis-ink)]"
+                      : "bg-secondary/60 text-muted-foreground border-border hover:bg-secondary hover:text-foreground"
                 )}
               >
                 {loc.name}
@@ -209,6 +219,7 @@ export interface BelgianStreetNumberFieldsProps {
   compact?: boolean
   className?: string
   inputHeightClass?: string
+  editorial?: boolean
 }
 
 export function BelgianStreetNumberFields({
@@ -227,6 +238,7 @@ export function BelgianStreetNumberFields({
   compact = false,
   className,
   inputHeightClass = "h-11",
+  editorial = false,
 }: BelgianStreetNumberFieldsProps) {
   const initialParsed = extractBelgianStreetAndNumber(value)
   const [streetInput, setStreetInput] = useState(initialParsed.street)
@@ -475,10 +487,16 @@ export function BelgianStreetNumberFields({
             aria-expanded={isOpen}
             className={cn(
               inputHeightClass,
-              "rounded-lg text-sm pr-7",
+              editorial
+                ? "rounded-[6px] text-[14px] pr-7 bg-[var(--aegis-surface)] text-[var(--aegis-ink)] placeholder:text-[var(--aegis-muted)]/85 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] focus-visible:ring-0"
+                : "rounded-lg text-sm pr-7",
               streetHasError
-                ? "border-destructive ring-1 ring-destructive"
-                : "border-input bg-background/50 focus:bg-background"
+                ? editorial
+                  ? "border-[var(--aegis-danger-text)] bg-[var(--aegis-danger-bg)]/40 focus-visible:border-[var(--aegis-danger-text)]"
+                  : "border-destructive ring-1 ring-destructive"
+                : editorial
+                  ? "border-[var(--aegis-input-border)] focus-visible:border-[var(--aegis-ink)]"
+                  : "border-input bg-background/50 focus:bg-background"
             )}
           />
 
@@ -489,7 +507,12 @@ export function BelgianStreetNumberFields({
           {isOpen && suggestions.length > 0 && (
             <div
               role="listbox"
-              className="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border border-border bg-card shadow-md overflow-hidden max-h-60 overflow-y-auto"
+              className={cn(
+                "absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden max-h-60 overflow-y-auto",
+                editorial
+                  ? "rounded-[8px] border border-[var(--aegis-border)] bg-[var(--aegis-surface)] shadow-sm"
+                  : "rounded-lg border border-border bg-card shadow-md"
+              )}
             >
               {suggestions.map((item, idx) => (
                 <button
@@ -502,16 +525,33 @@ export function BelgianStreetNumberFields({
                     selectSuggestion(item)
                   }}
                   className={cn(
-                    "w-full text-left px-3 py-2 text-xs flex items-start gap-2 border-b border-border/50 last:border-b-0 transition-colors",
+                    "w-full text-left px-3 py-2 text-xs flex items-start gap-2 last:border-b-0 transition-colors cursor-pointer",
+                    editorial
+                      ? "border-b border-[var(--aegis-divider)]"
+                      : "border-b border-border/50",
                     idx === highlightedIdx
-                      ? "bg-primary/10 text-foreground"
-                      : "hover:bg-secondary/70 text-foreground"
+                      ? editorial
+                        ? "bg-[var(--aegis-summary)] text-[var(--aegis-ink)]"
+                        : "bg-primary/10 text-foreground"
+                      : editorial
+                        ? "hover:bg-[var(--aegis-surface-subtle)] text-[var(--aegis-ink)]"
+                        : "hover:bg-secondary/70 text-foreground"
                   )}
                 >
-                  <MapPin className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                  <MapPin
+                    className={cn(
+                      "h-3.5 w-3.5 shrink-0 mt-0.5",
+                      editorial ? "text-[var(--aegis-context)]" : "text-primary"
+                    )}
+                  />
                   <div className="flex flex-col min-w-0">
                     <span className="font-semibold truncate">{item.street}</span>
-                    <span className="text-[11px] text-muted-foreground font-mono tabular-nums truncate">
+                    <span
+                      className={cn(
+                        "text-[11px] font-mono tabular-nums truncate",
+                        editorial ? "text-[var(--aegis-muted)]" : "text-muted-foreground"
+                      )}
+                    >
                       {item.postalCode} {item.section || item.city}
                       {item.section &&
                       item.city &&
@@ -538,10 +578,16 @@ export function BelgianStreetNumberFields({
             aria-label="Numéro de maison"
             className={cn(
               inputHeightClass,
-              "rounded-lg text-sm font-mono tabular-nums text-center",
+              editorial
+                ? "rounded-[6px] text-[14px] font-mono tabular-nums text-center bg-[var(--aegis-surface)] text-[var(--aegis-ink)] placeholder:text-[var(--aegis-muted)]/85 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] focus-visible:ring-0"
+                : "rounded-lg text-sm font-mono tabular-nums text-center",
               houseHasError
-                ? "border-destructive ring-1 ring-destructive"
-                : "border-input bg-background/50 focus:bg-background"
+                ? editorial
+                  ? "border-[var(--aegis-danger-text)] bg-[var(--aegis-danger-bg)]/40 focus-visible:border-[var(--aegis-danger-text)]"
+                  : "border-destructive ring-1 ring-destructive"
+                : editorial
+                  ? "border-[var(--aegis-input-border)] focus-visible:border-[var(--aegis-ink)]"
+                  : "border-input bg-background/50 focus:bg-background"
             )}
           />
         </div>
@@ -549,13 +595,24 @@ export function BelgianStreetNumberFields({
 
       {/* Feedback d'erreur ou de localisation SPW ICAR */}
       {(streetHasError || houseHasError) ? (
-        <p className="text-xs text-destructive font-medium">
+        <p
+          role="alert"
+          className={cn(
+            "text-xs font-medium",
+            editorial ? "text-[var(--aegis-danger-text)]" : "text-destructive"
+          )}
+        >
           {streetHasError
             ? "Saisissez le nom de votre rue ou avenue (min. 3 lettres)."
             : "Indiquez le numéro de maison (ex: 12 ou 12A) pour situer votre toiture."}
         </p>
       ) : activeVerifyResult?.houseVerified ? (
-        <p className="text-[11px] text-primary font-medium flex items-center gap-1.5">
+        <p
+          className={cn(
+            "text-[11px] font-medium flex items-center gap-1.5",
+            editorial ? "text-[var(--aegis-availability-text)]" : "text-primary"
+          )}
+        >
           <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
           <span>
             Adresse confirmée{" "}
@@ -566,8 +623,18 @@ export function BelgianStreetNumberFields({
           </span>
         </p>
       ) : activeVerifyResult?.streetVerified && !activeVerifyResult.houseVerified && !compact ? (
-        <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-          <Info className="h-3.5 w-3.5 shrink-0 text-accent" />
+        <p
+          className={cn(
+            "text-[11px] flex items-center gap-1.5",
+            editorial ? "text-[var(--aegis-muted)]" : "text-muted-foreground"
+          )}
+        >
+          <Info
+            className={cn(
+              "h-3.5 w-3.5 shrink-0",
+              editorial ? "text-[var(--aegis-context)]" : "text-accent"
+            )}
+          />
           <span>
             Voirie reconnue sur{" "}
             <span className="font-mono tabular-nums">

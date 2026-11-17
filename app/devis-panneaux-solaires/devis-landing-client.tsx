@@ -794,7 +794,7 @@ export function DevisLandingClient() {
 
           {/* ── BLOC 3 : CARTE DU QUESTIONNAIRE (Directement au-dessus de la ligne de flottaison mobile) ── */}
           <div ref={leadCardRef} className="order-2 lg:order-none lg:col-span-6 lg:col-start-7 lg:row-start-1 lg:row-span-2 w-full">
-            <div className="bg-card border border-border/80 rounded-2xl sm:rounded-3xl shadow-[0_2px_8px_rgba(0,0,0,0.04),0_12px_28px_-6px_rgba(15,23,42,0.06)] p-4 sm:p-8 flex flex-col justify-between max-w-xl mx-auto lg:max-w-none">
+            <div className="bg-[var(--aegis-surface)] border border-[var(--aegis-border)] rounded-[14px] shadow-2xs p-4 sm:p-8 flex flex-col justify-between max-w-xl mx-auto lg:max-w-none">
               
               {!submitted ? (
                 <>
@@ -812,9 +812,9 @@ export function DevisLandingClient() {
                   ) : (
                     <>
                       {/* En-tête de la carte unifié avec Étape X sur 6 */}
-                      <div className="flex flex-col gap-2 pb-2">
+                      <div className="flex flex-col gap-2.5 pb-3 border-b border-[var(--aegis-divider)]">
                         <div className="flex items-center justify-between gap-4">
-                          <div className="h-2 flex-1 bg-secondary rounded-full overflow-hidden">
+                          <div className="h-2 flex-1 bg-[var(--aegis-divider)] rounded-full overflow-hidden">
                             <motion.div
                               className="h-full bg-accent-solar rounded-full"
                               initial={{ width: 0 }}
@@ -822,20 +822,20 @@ export function DevisLandingClient() {
                               transition={{ duration: 0.25 }}
                             />
                           </div>
-                          <span className="text-xs sm:text-sm font-semibold text-foreground shrink-0 font-mono">
+                          <span className="text-[13px] font-bold text-[var(--aegis-ink)] shrink-0 font-mono tabular-nums">
                             Étape {step} sur {totalSteps}
                           </span>
                         </div>
 
                         {step < 6 && (
-                          <div className="hidden sm:flex flex-wrap items-center gap-2 pt-1">
-                            <span className="px-2.5 py-0.5 rounded-md bg-secondary text-[11px] font-medium text-muted-foreground border border-border/60">
+                          <div className="hidden sm:flex flex-wrap items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-[5px] bg-[var(--aegis-preference-bg)] text-[11px] font-semibold text-[var(--aegis-preference-label)] border border-[var(--aegis-preference-accent)]/40">
                               Certifiés RESCert
                             </span>
-                            <span className="px-2.5 py-0.5 rounded-md bg-secondary text-[11px] font-medium text-muted-foreground border border-border/60">
+                            <span className="px-2.5 py-0.5 rounded-[5px] bg-[var(--aegis-surface-subtle)] text-[11px] font-medium text-[var(--aegis-ink)] border border-[var(--aegis-border)]">
                               Gratuit &amp; sans engagement
                             </span>
-                            <span className="px-2.5 py-0.5 rounded-md bg-secondary text-[11px] font-medium text-muted-foreground border border-border/60">
+                            <span className="px-2.5 py-0.5 rounded-[5px] bg-[var(--aegis-surface-subtle)] text-[11px] font-medium text-[var(--aegis-ink)] border border-[var(--aegis-border)]">
                               Artisans locaux
                             </span>
                           </div>
@@ -843,7 +843,7 @@ export function DevisLandingClient() {
                       </div>
 
                       {/* Formulaire & Questions */}
-                      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4 pt-1">
+                      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4 pt-4">
                         {/* Honeypot invisible pour bloquer les spambots */}
                         <div className="sr-only" aria-hidden="true">
                           <input
@@ -855,10 +855,10 @@ export function DevisLandingClient() {
                           />
                         </div>
 
-                        {/* Question en titre */}
-                        <h3 className="text-lg sm:text-[20px] font-bold text-foreground font-heading tracking-tight leading-snug">
+                        {/* Question en titre (h2 dans la hiérarchie sous le h1 unique de page) */}
+                        <h2 className="text-[20px] sm:text-[22px] font-bold text-[var(--aegis-ink)] tracking-[-0.02em] leading-[1.25]">
                           {STEP_QUESTIONS[step - 1]}
-                        </h3>
+                        </h2>
 
                     <AnimatePresence mode="wait">
                       
@@ -879,21 +879,29 @@ export function DevisLandingClient() {
                                 key={item.id}
                                 type="button"
                                 onClick={() => handleOptionSelect(setConsumption, item.id)}
-                                className={`w-full text-left min-h-12 py-2.5 px-4 sm:py-3.5 sm:px-5 rounded-xl border transition-colors duration-150 cursor-pointer flex items-center justify-between gap-3 ${
+                                className={`w-full text-left min-h-[48px] py-3 px-4 sm:px-5 rounded-[8px] border transition-colors duration-150 cursor-pointer flex items-center justify-between gap-3 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] ${
                                   isChecked
-                                    ? "border-accent-solar bg-accent-solar/[0.10] text-foreground font-bold ring-2 ring-accent-solar/40 shadow-xs"
-                                    : "border-border/70 bg-secondary/50 text-foreground hover:bg-secondary/80 hover:border-border font-medium"
+                                    ? "border-2 border-[var(--aegis-preference-accent)] bg-[var(--aegis-preference-bg)] text-[var(--aegis-ink)] font-bold"
+                                    : "border-[var(--aegis-input-border)]/45 bg-[var(--aegis-surface)] text-[var(--aegis-ink)] hover:bg-[var(--aegis-surface-subtle)] hover:border-[var(--aegis-ink)]/50 font-medium"
                                 }`}
                               >
-                                <span className="text-[15px] sm:text-[16px] font-bold text-foreground font-mono tabular-nums whitespace-nowrap">
+                                <span className="text-[15px] sm:text-[16px] font-bold text-[var(--aegis-ink)] font-mono tabular-nums whitespace-nowrap">
                                   {item.label}
                                 </span>
-                                <span className="flex items-center gap-2 shrink-0">
-                                  <span className="text-[11px] sm:text-xs text-muted-foreground font-mono tabular-nums font-normal text-right">
+                                <span className="flex items-center gap-2.5 shrink-0">
+                                  <span
+                                    className={`text-[12px] font-mono tabular-nums text-right ${
+                                      isChecked ? "text-[var(--aegis-preference-label)] font-semibold" : "text-[var(--aegis-muted)] font-normal"
+                                    }`}
+                                  >
                                     {item.sublabel}
                                     <span className="hidden sm:inline"> · {item.kwhHint}</span>
                                   </span>
-                                  {isChecked && <Check className="h-5 w-5 text-accent-solar stroke-[3] shrink-0" />}
+                                  {isChecked && (
+                                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent-solar text-accent-solar-foreground shrink-0">
+                                      <Check className="h-3.5 w-3.5 stroke-[3]" />
+                                    </span>
+                                  )}
                                 </span>
                               </button>
                             )
@@ -918,17 +926,21 @@ export function DevisLandingClient() {
                                 key={item.id}
                                 type="button"
                                 onClick={() => handleOptionSelect(setPropertyType, item.id)}
-                                className={`w-full text-left py-3.5 px-4 sm:px-5 rounded-xl border transition-colors duration-150 cursor-pointer flex items-center justify-between ${
+                                className={`w-full text-left min-h-[48px] py-3.5 px-4 sm:px-5 rounded-[8px] border transition-colors duration-150 cursor-pointer flex items-center justify-between gap-3 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] ${
                                   isChecked
-                                    ? "border-accent-solar bg-accent-solar/[0.10] text-foreground font-bold ring-2 ring-accent-solar/40 shadow-xs"
-                                    : "border-border/70 bg-secondary/50 text-foreground hover:bg-secondary/80 hover:border-border font-medium"
+                                    ? "border-2 border-[var(--aegis-preference-accent)] bg-[var(--aegis-preference-bg)] text-[var(--aegis-ink)] font-bold"
+                                    : "border-[var(--aegis-input-border)]/45 bg-[var(--aegis-surface)] text-[var(--aegis-ink)] hover:bg-[var(--aegis-surface-subtle)] hover:border-[var(--aegis-ink)]/50 font-medium"
                                 }`}
                               >
                                 <div className="flex flex-col">
-                                  <span className="text-[15px] sm:text-[16px] font-bold text-foreground">{item.label}</span>
-                                  <span className="text-xs text-muted-foreground mt-0.5 font-normal">{item.sublabel}</span>
+                                  <span className="text-[15px] sm:text-[16px] font-bold text-[var(--aegis-ink)]">{item.label}</span>
+                                  <span className="text-[13px] text-[var(--aegis-muted)] mt-0.5 font-normal">{item.sublabel}</span>
                                 </div>
-                                {isChecked && <Check className="h-5 w-5 text-accent-solar stroke-[3] shrink-0" />}
+                                {isChecked && (
+                                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent-solar text-accent-solar-foreground shrink-0">
+                                    <Check className="h-3.5 w-3.5 stroke-[3]" />
+                                  </span>
+                                )}
                               </button>
                             )
                           })}
@@ -952,31 +964,45 @@ export function DevisLandingClient() {
                                 key={item.id}
                                 type="button"
                                 onClick={() => handleOptionSelect(setOwnership, item.id)}
-                                className={`w-full text-left py-3.5 px-4 sm:px-5 rounded-xl border transition-colors duration-150 cursor-pointer flex items-center justify-between ${
+                                className={`w-full text-left min-h-[48px] py-3.5 px-4 sm:px-5 rounded-[8px] border transition-colors duration-150 cursor-pointer flex items-center justify-between gap-3 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] ${
                                   isChecked
                                     ? item.id === "locataire"
-                                      ? "border-destructive bg-destructive/[0.06] text-foreground font-bold ring-2 ring-destructive/40 shadow-xs"
-                                      : "border-accent-solar bg-accent-solar/[0.10] text-foreground font-bold ring-2 ring-accent-solar/40 shadow-xs"
-                                    : "border-border/70 bg-secondary/50 text-foreground hover:bg-secondary/80 hover:border-border font-medium"
+                                      ? "border-2 border-[var(--aegis-danger-text)] bg-[var(--aegis-danger-bg)] text-[var(--aegis-danger-text)] font-bold"
+                                      : "border-2 border-[var(--aegis-preference-accent)] bg-[var(--aegis-preference-bg)] text-[var(--aegis-ink)] font-bold"
+                                    : "border-[var(--aegis-input-border)]/45 bg-[var(--aegis-surface)] text-[var(--aegis-ink)] hover:bg-[var(--aegis-surface-subtle)] hover:border-[var(--aegis-ink)]/50 font-medium"
                                 }`}
                               >
                                 <div className="flex flex-col">
-                                  <span className="text-[15px] sm:text-[16px] font-bold text-foreground">{item.label}</span>
-                                  <span className="text-xs text-muted-foreground mt-0.5 font-normal">{item.sublabel}</span>
+                                  <span
+                                    className={`text-[15px] sm:text-[16px] font-bold ${
+                                      isChecked && item.id === "locataire"
+                                        ? "text-[var(--aegis-danger-text)]"
+                                        : "text-[var(--aegis-ink)]"
+                                    }`}
+                                  >
+                                    {item.label}
+                                  </span>
+                                  <span className="text-[13px] text-[var(--aegis-muted)] mt-0.5 font-normal">{item.sublabel}</span>
                                 </div>
                                 {isChecked && (
-                                  <Check className={`h-5 w-5 stroke-[3] shrink-0 ${item.id === "locataire" ? "text-destructive" : "text-accent-solar"}`} />
+                                  item.id === "locataire" ? (
+                                    <Check className="h-4 w-4 stroke-[2.75] shrink-0 text-[var(--aegis-danger-text)]" />
+                                  ) : (
+                                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent-solar text-accent-solar-foreground shrink-0">
+                                      <Check className="h-3.5 w-3.5 stroke-[3]" />
+                                    </span>
+                                  )
                                 )}
                               </button>
                             )
                           })}
 
                           {ownership === "locataire" && (
-                            <div className="p-4 rounded-xl bg-destructive/[0.06] border border-destructive/25 flex flex-col gap-2.5 text-xs">
-                              <span className="font-bold text-foreground">
+                            <div className="p-4 rounded-[8px] bg-[var(--aegis-danger-bg)] border border-[var(--aegis-danger-text)]/25 flex flex-col gap-2.5 text-[13px]">
+                              <span className="font-bold text-[var(--aegis-danger-text)]">
                                 Audit réservé aux propriétaires du bien
                               </span>
-                              <p className="text-muted-foreground leading-relaxed">
+                              <p className="text-[var(--aegis-ink)] leading-[1.5]">
                                 En Wallonie, les démarches d&apos;installation photovoltaïque et de raccordement réseau ORES / RESA exigent d&apos;être le propriétaire légal du bâtiment. Transmettez ce lien à votre bailleur pour initier l&apos;étude.
                               </p>
                               <button
@@ -988,16 +1014,16 @@ export function DevisLandingClient() {
                                     setTimeout(() => setHasCopiedLink(false), 3000)
                                   }
                                 }}
-                                className="w-fit px-3 py-1.5 rounded-lg bg-card text-foreground border border-border text-xs font-semibold hover:bg-secondary flex items-center gap-1.5 transition-colors cursor-pointer"
+                                className="w-fit min-h-[40px] px-3.5 py-1.5 rounded-[6px] bg-[var(--aegis-surface)] text-[var(--aegis-ink)] border border-[var(--aegis-border)] text-[13px] font-semibold hover:bg-[var(--aegis-surface-subtle)] flex items-center gap-1.5 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
                               >
                                 {hasCopiedLink ? (
                                   <>
-                                    <Check className="h-3.5 w-3.5 text-accent stroke-[3]" />
-                                    <span className="text-accent">Lien copié !</span>
+                                    <Check className="h-3.5 w-3.5 text-[var(--aegis-availability-text)] stroke-[2.75]" />
+                                    <span className="text-[var(--aegis-availability-text)]">Lien copié !</span>
                                   </>
                                 ) : (
                                   <>
-                                    <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                    <Share2 className="h-3.5 w-3.5 text-[var(--aegis-muted)]" />
                                     <span>Copier le lien pour mon propriétaire</span>
                                   </>
                                 )}
@@ -1018,8 +1044,8 @@ export function DevisLandingClient() {
                           className="flex flex-col gap-4 border-none p-0 m-0"
                         >
                           <div className="flex flex-col gap-2">
-                            <span className="text-xs sm:text-sm font-bold text-foreground">
-                              Revêtement de toiture :
+                            <span className="text-[13px] font-semibold text-[var(--aegis-ink)]">
+                              Revêtement de toiture
                             </span>
                             <div className="grid grid-cols-2 gap-2.5">
                               {ROOF_OPTIONS.map((r) => {
@@ -1029,13 +1055,18 @@ export function DevisLandingClient() {
                                     type="button"
                                     key={r.id}
                                     onClick={() => setRoofType(r.id)}
-                                    className={`py-3.5 px-4 rounded-xl border text-sm font-semibold text-left transition-colors duration-150 cursor-pointer ${
+                                    className={`min-h-[48px] py-3 px-4 rounded-[8px] border text-[14px] text-left transition-colors duration-150 cursor-pointer flex items-center justify-between gap-2 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] ${
                                       isChecked
-                                        ? "border-accent-solar bg-accent-solar/[0.10] font-bold text-foreground ring-2 ring-accent-solar/40 shadow-xs"
-                                        : "border-border/70 bg-secondary/50 text-foreground hover:bg-secondary/80 hover:border-border"
+                                        ? "border-2 border-[var(--aegis-preference-accent)] bg-[var(--aegis-preference-bg)] font-bold text-[var(--aegis-ink)]"
+                                        : "border-[var(--aegis-input-border)]/45 bg-[var(--aegis-surface)] text-[var(--aegis-ink)] font-semibold hover:bg-[var(--aegis-surface-subtle)] hover:border-[var(--aegis-ink)]/50"
                                     }`}
                                   >
-                                    {r.label}
+                                    <span>{r.label}</span>
+                                    {isChecked && (
+                                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent-solar text-accent-solar-foreground shrink-0">
+                                        <Check className="h-3.5 w-3.5 stroke-[3]" />
+                                      </span>
+                                    )}
                                   </button>
                                 )
                               })}
@@ -1043,8 +1074,8 @@ export function DevisLandingClient() {
                           </div>
 
                           <div className="flex flex-col gap-2">
-                            <span className="text-xs sm:text-sm font-bold text-foreground">
-                              Surface de toiture disponible :
+                            <span className="text-[13px] font-semibold text-[var(--aegis-ink)]">
+                              Surface de toiture disponible
                             </span>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                               {ROOF_SURFACES.map((s) => {
@@ -1054,14 +1085,20 @@ export function DevisLandingClient() {
                                     type="button"
                                     key={s.id}
                                     onClick={() => setRoofSurface(s.id)}
-                                    className={`py-3 px-3 rounded-xl border text-center transition-colors duration-150 cursor-pointer ${
+                                    className={`min-h-[56px] py-3 px-3 rounded-[8px] border text-center transition-colors duration-150 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] ${
                                       isChecked
-                                        ? "border-accent-solar bg-accent-solar/[0.10] font-bold text-foreground ring-2 ring-accent-solar/40 shadow-xs"
-                                        : "border-border/70 bg-secondary/50 text-foreground hover:bg-secondary/80 hover:border-border font-medium"
+                                        ? "border-2 border-[var(--aegis-preference-accent)] bg-[var(--aegis-preference-bg)] font-bold text-[var(--aegis-ink)]"
+                                        : "border-[var(--aegis-input-border)]/45 bg-[var(--aegis-surface)] text-[var(--aegis-ink)] hover:bg-[var(--aegis-surface-subtle)] hover:border-[var(--aegis-ink)]/50 font-medium"
                                     }`}
                                   >
-                                    <span className="text-sm font-mono tabular-nums font-bold block">{s.label}</span>
-                                    <span className="text-[11px] text-muted-foreground font-mono block mt-0.5 font-normal">{s.sublabel}</span>
+                                    <span className="text-[15px] font-mono tabular-nums font-bold block text-[var(--aegis-ink)]">{s.label}</span>
+                                    <span
+                                      className={`text-[12px] font-mono tabular-nums block mt-0.5 ${
+                                        isChecked ? "text-[var(--aegis-preference-label)] font-semibold" : "text-[var(--aegis-muted)] font-normal"
+                                      }`}
+                                    >
+                                      {s.sublabel}
+                                    </span>
                                   </button>
                                 )
                               })}
@@ -1082,8 +1119,8 @@ export function DevisLandingClient() {
                         >
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                             <div className="flex flex-col gap-1.5">
-                              <Label htmlFor="postalCode" className="text-xs sm:text-sm font-bold text-foreground">
-                                Code postal (4 chiffres) <span className="text-destructive">*</span>
+                              <Label htmlFor="postalCode" className="text-[13px] font-semibold text-[var(--aegis-ink)]">
+                                Code postal (4 chiffres) <span className="text-[var(--aegis-danger-text)]">*</span>
                               </Label>
                               <Input
                                 id="postalCode"
@@ -1094,21 +1131,23 @@ export function DevisLandingClient() {
                                 placeholder="ex. 4000"
                                 value={postalCode}
                                 onChange={(e) => handlePostalCodeChange(e.target.value)}
-                                className={`h-12 rounded-lg font-mono tabular-nums text-base ${
-                                  showPostalCodeError ? "border-destructive ring-1 ring-destructive" : "border-input bg-background/50 focus:bg-background"
+                                className={`h-[46px] rounded-[6px] font-mono tabular-nums text-[15px] bg-[var(--aegis-surface)] text-[var(--aegis-ink)] placeholder:text-[var(--aegis-muted)]/85 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] focus-visible:ring-0 ${
+                                  showPostalCodeError
+                                    ? "border-[var(--aegis-danger-text)] bg-[var(--aegis-danger-bg)]/40 focus-visible:border-[var(--aegis-danger-text)]"
+                                    : "border-[var(--aegis-input-border)] focus-visible:border-[var(--aegis-ink)]"
                                 }`}
                               />
                               {showPostalCodeError && (
-                                <p className="text-[11px] text-destructive font-medium" role="alert">
+                                <p className="text-[12px] text-[var(--aegis-danger-text)] font-medium" role="alert">
                                   {isNonWalloonCompleteCp
-                                    ? "Zone hors Wallonie (CP wallon requis : 1300-1499 ou 4000-7999)."
+                                    ? "Zone hors Wallonie (code postal wallon requis : 1300-1499 ou 4000-7999)."
                                     : "Code postal wallon requis (4 chiffres)."}
                                 </p>
                               )}
                             </div>
 
                             <div className="flex flex-col gap-1.5">
-                              <Label htmlFor="city" className="text-xs sm:text-sm font-bold text-foreground">
+                              <Label htmlFor="city" className="text-[13px] font-semibold text-[var(--aegis-ink)]">
                                 Commune / Localité
                               </Label>
                               <BelgianLocalityField
@@ -1117,17 +1156,18 @@ export function DevisLandingClient() {
                                 value={city}
                                 onChange={setCity}
                                 placeholder="ex. Namêche / Andenne"
+                                editorial
                               />
                             </div>
                           </div>
 
                           {walloonProvinceKey && (
-                            <div className="p-3.5 rounded-xl bg-accent/[0.06] border border-accent/20 flex items-center justify-between">
-                              <span className="text-xs sm:text-sm text-foreground font-medium flex items-center gap-2">
-                                <MapPin className="h-4 w-4 text-accent" />
-                                <span>Province détectée :</span>
+                            <div className="px-3.5 py-3 rounded-[8px] bg-[var(--aegis-availability-bg)] border border-[var(--aegis-border)] flex items-center justify-between gap-3">
+                              <span className="text-[13px] text-[var(--aegis-availability-text)] font-medium flex items-center gap-2">
+                                <MapPin className="h-4 w-4 shrink-0" />
+                                <span>Province détectée</span>
                               </span>
-                              <span className="font-mono text-xs sm:text-sm font-semibold text-accent">
+                              <span className="font-mono tabular-nums text-[13px] font-semibold text-[var(--aegis-availability-text)]">
                                 {getProvinceDisplayLabel(walloonProvinceKey)} · Artisans actifs
                               </span>
                             </div>
@@ -1136,13 +1176,13 @@ export function DevisLandingClient() {
                           {isNonWalloonCompleteCp && (
                             <div
                               role="alert"
-                              className="p-3.5 rounded-xl bg-destructive/[0.06] border border-destructive/30 flex items-start gap-2.5 text-destructive"
+                              className="p-3.5 rounded-[8px] bg-[var(--aegis-danger-bg)] border border-[var(--aegis-danger-text)]/25 flex items-start gap-2.5 text-[var(--aegis-danger-text)]"
                             >
                               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-                              <div className="flex flex-col gap-0.5 text-xs leading-relaxed">
+                              <div className="flex flex-col gap-0.5 text-[13px] leading-[1.45]">
                                 <span className="font-bold">Zone non couverte ({cleanedPostalCode})</span>
-                                <span>
-                                  Notre comparateur RESCERT intervient exclusivement en Wallonie (codes postaux{" "}
+                                <span className="text-[var(--aegis-ink)]">
+                                  Notre comparateur RESCert intervient exclusivement en Wallonie (codes postaux{" "}
                                   <span className="font-mono tabular-nums font-semibold">1300-1499</span> et{" "}
                                   <span className="font-mono tabular-nums font-semibold">4000-7999</span>).
                                 </span>
@@ -1160,42 +1200,44 @@ export function DevisLandingClient() {
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -8 }}
                           transition={{ duration: 0.18 }}
-                          className="flex flex-col gap-3.5 border-none p-0 m-0"
+                          className="flex flex-col gap-4 border-none p-0 m-0"
                         >
-                          {/* ── RAPPEL VISUEL CRO : Effet de la mise en concurrence (-18 %) ── */}
-                          <div className="bg-card border-2 border-amber-500/30 rounded-xl p-3.5 sm:p-4 text-foreground flex flex-col gap-2.5 shadow-2xs">
+                          {/* ── RAPPEL VISUEL : Effet de la mise en concurrence (-18 %) ── */}
+                          <div className="bg-[var(--aegis-summary)] border border-[var(--aegis-preference-accent)]/50 rounded-[8px] p-3.5 sm:p-4 text-[var(--aegis-ink)] flex flex-col gap-2.5">
                             <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-foreground">
-                                <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 stroke-[3] shrink-0" />
+                              <div className="flex items-center gap-2 text-[13px] font-bold text-[var(--aegis-ink)]">
+                                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent-solar text-accent-solar-foreground shrink-0">
+                                  <Check className="h-3.5 w-3.5 stroke-[3]" />
+                                </span>
                                 <span>3 installateurs RESCert sélectionnés sur {postalCode} {city || getProvinceDisplayLabel(province)}</span>
                               </div>
-                              <span className="text-[11px] font-mono text-muted-foreground font-semibold shrink-0">
-                                ~{b2cCalc.installedPowerKwc} kWc
+                              <span className="px-2 py-0.5 rounded-[5px] bg-[var(--aegis-preference-bg)] border border-[var(--aegis-preference-accent)]/40 text-[12px] font-mono tabular-nums text-[var(--aegis-preference-label)] font-bold shrink-0">
+                                env. {b2cCalc.installedPowerKwc} kWc
                               </span>
                             </div>
 
                             {/* Jauge comparative claire 100 % vs 82 % */}
-                            <div className="bg-secondary/70 rounded-lg p-2.5 sm:p-3 flex flex-col gap-2 border border-border/70">
+                            <div className="bg-[var(--aegis-surface)] rounded-[6px] p-2.5 sm:p-3 flex flex-col gap-2 border border-[var(--aegis-border)]">
                               <div className="flex flex-col gap-1">
-                                <div className="flex items-center justify-between text-[11px]">
-                                  <span className="text-muted-foreground font-medium">Devis standard isolé</span>
-                                  <span className="font-mono text-muted-foreground font-semibold">100 % (marge standard)</span>
+                                <div className="flex items-center justify-between text-[12px]">
+                                  <span className="text-[var(--aegis-muted)] font-medium">Devis standard isolé</span>
+                                  <span className="font-mono tabular-nums text-[var(--aegis-muted)] font-semibold">100 % (marge standard)</span>
                                 </div>
-                                <div className="h-2.5 w-full bg-slate-300 dark:bg-slate-700 rounded-full overflow-hidden">
-                                  <div className="h-full w-full bg-slate-400 dark:bg-slate-500 rounded-full" />
+                                <div className="h-2 w-full bg-[var(--aegis-divider)] rounded-full overflow-hidden">
+                                  <div className="h-full w-full bg-[var(--aegis-input-border)] rounded-full" />
                                 </div>
                               </div>
 
                               <div className="flex flex-col gap-1 pt-0.5">
-                                <div className="flex items-center justify-between text-[11px]">
-                                  <span className="font-bold text-foreground">Mise en concurrence (3 devis)</span>
-                                  <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">82 % (tarif négocié)</span>
+                                <div className="flex items-center justify-between text-[12px]">
+                                  <span className="font-bold text-[var(--aegis-ink)]">Mise en concurrence (3 devis)</span>
+                                  <span className="font-mono tabular-nums text-[var(--aegis-availability-text)] font-bold">82 % (tarif négocié)</span>
                                 </div>
                                 <div className="flex items-center gap-2.5">
-                                  <div className="flex-1 h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700">
-                                    <div className="h-full w-[82%] bg-amber-500 rounded-full" />
+                                  <div className="flex-1 h-2.5 bg-[var(--aegis-surface-subtle)] rounded-full overflow-hidden border border-[var(--aegis-border)]">
+                                    <div className="h-full w-[82%] bg-accent-solar rounded-full" />
                                   </div>
-                                  <span className="px-2 py-0.5 rounded bg-emerald-600 text-white text-[11px] font-mono font-bold shrink-0 shadow-2xs">
+                                  <span className="px-2 py-0.5 rounded-[5px] bg-accent-solar text-accent-solar-foreground text-[12px] font-mono tabular-nums font-bold shrink-0">
                                     -18 %
                                   </span>
                                 </div>
@@ -1203,12 +1245,12 @@ export function DevisLandingClient() {
                             </div>
                           </div>
 
-                          {/* ── Rangée 1 : Prénom/Nom + Adresse E-mail (Compact 2 cols) ── */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {/* ── Rangée 1 : Prénom/Nom + Adresse E-mail ── */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                             {/* Champ 1 : fullName */}
-                            <div className="flex flex-col gap-1">
-                              <Label htmlFor="fullName" className="text-xs font-semibold text-foreground">
-                                Votre Prénom et Nom <span className="text-destructive">*</span>
+                            <div className="flex flex-col gap-1.5">
+                              <Label htmlFor="fullName" className="text-[13px] font-semibold text-[var(--aegis-ink)]">
+                                Prénom et nom <span className="text-[var(--aegis-danger-text)]">*</span>
                               </Label>
                               <Input
                                 id="fullName"
@@ -1222,23 +1264,23 @@ export function DevisLandingClient() {
                                   if (parts[0]) setFirstName(parts[0])
                                   if (parts.length > 1) setLastName(parts.slice(1).join(" "))
                                 }}
-                                className={`h-11 rounded-lg text-sm ${
+                                className={`h-[46px] rounded-[6px] text-[14px] bg-[var(--aegis-surface)] text-[var(--aegis-ink)] placeholder:text-[var(--aegis-muted)]/85 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] focus-visible:ring-0 ${
                                   showFullNameError
-                                    ? "border-destructive ring-1 ring-destructive"
-                                    : "border-input bg-background/50 focus:bg-background"
+                                    ? "border-[var(--aegis-danger-text)] bg-[var(--aegis-danger-bg)]/40 focus-visible:border-[var(--aegis-danger-text)]"
+                                    : "border-[var(--aegis-input-border)] focus-visible:border-[var(--aegis-ink)]"
                                 }`}
                               />
                               {showFullNameError && (
-                                <p className="text-[11px] text-destructive font-medium" role="alert">
-                                  Prénom et nom requis.
+                                <p className="text-[12px] text-[var(--aegis-danger-text)] font-medium" role="alert">
+                                  Indiquez votre prénom et votre nom.
                                 </p>
                               )}
                             </div>
 
                             {/* Champ 2 : email avec capture silencieuse onBlur */}
-                            <div className="flex flex-col gap-1">
-                              <Label htmlFor="email" className="text-xs font-semibold text-foreground">
-                                Votre adresse e-mail <span className="text-destructive">*</span>
+                            <div className="flex flex-col gap-1.5">
+                              <Label htmlFor="email" className="text-[13px] font-semibold text-[var(--aegis-ink)]">
+                                Adresse e-mail <span className="text-[var(--aegis-danger-text)]">*</span>
                               </Label>
                               <Input
                                 id="email"
@@ -1250,57 +1292,63 @@ export function DevisLandingClient() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 onBlur={handleEmailBlur}
-                                className={`h-11 rounded-lg text-sm ${
+                                className={`h-[46px] rounded-[6px] text-[14px] bg-[var(--aegis-surface)] text-[var(--aegis-ink)] placeholder:text-[var(--aegis-muted)]/85 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] focus-visible:ring-0 ${
                                   showEmailError
-                                    ? "border-destructive ring-1 ring-destructive"
-                                    : "border-input bg-background/50 focus:bg-background"
+                                    ? "border-[var(--aegis-danger-text)] bg-[var(--aegis-danger-bg)]/40 focus-visible:border-[var(--aegis-danger-text)]"
+                                    : "border-[var(--aegis-input-border)] focus-visible:border-[var(--aegis-ink)]"
                                 }`}
                               />
                               {showEmailError && (
-                                <p className="text-[11px] text-destructive font-medium" role="alert">
+                                <p className="text-[12px] text-[var(--aegis-danger-text)] font-medium" role="alert">
                                   {emailErr}
                                 </p>
                               )}
                             </div>
                           </div>
 
-                          {/* ── Rangée 2 : Sélecteur de règle de contact (Compact 2 cols) ── */}
+                          {/* ── Rangée 2 : Sélecteur de règle de contact ── */}
                           <div className="flex flex-col gap-1.5 pt-0.5">
-                            <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                              <ShieldCheck className="h-4 w-4 text-accent-solar shrink-0" />
-                              <span>Règle de contact avec les 3 installateurs :</span>
+                            <Label className="text-[13px] font-semibold text-[var(--aegis-ink)] flex items-center gap-1.5">
+                              <ShieldCheck className="h-4 w-4 text-[var(--aegis-focus)] shrink-0" />
+                              <span>Premier contact souhaité avec les 3 installateurs</span>
                             </Label>
-                            <div role="radiogroup" className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div role="radiogroup" className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                               {/* Option 1: written_first */}
                               <button
                                 type="button"
                                 role="radio"
                                 aria-checked={contactPreference === "written_first"}
                                 onClick={() => setContactPreference("written_first")}
-                                className={`p-2.5 rounded-lg border text-left transition-colors duration-150 cursor-pointer flex flex-col justify-between gap-1 ${
+                                className={`p-3 rounded-[8px] border text-left transition-colors duration-150 cursor-pointer flex flex-col justify-between gap-1.5 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] ${
                                   contactPreference === "written_first"
-                                    ? "border-emerald-500/50 bg-emerald-500/[0.08] ring-1 ring-emerald-500/30"
-                                    : "border-border/70 bg-secondary/40 hover:bg-secondary/70"
+                                    ? "border-2 border-[var(--aegis-preference-accent)] bg-[var(--aegis-preference-bg)]"
+                                    : "border-[var(--aegis-input-border)]/45 bg-[var(--aegis-surface)] hover:bg-[var(--aegis-surface-subtle)] hover:border-[var(--aegis-ink)]/50"
                                 }`}
                               >
                                 <div className="flex items-center justify-between gap-2">
-                                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                                  <span className="text-[13px] font-bold text-[var(--aegis-ink)] flex items-center gap-1.5">
                                     <span
-                                      className={`h-3.5 w-3.5 rounded-full border flex items-center justify-center shrink-0 ${
+                                      className={`h-4 w-4 rounded-full border flex items-center justify-center shrink-0 ${
                                         contactPreference === "written_first"
-                                          ? "border-emerald-600 bg-emerald-600 text-white"
-                                          : "border-muted-foreground/40 bg-background"
+                                          ? "border-[var(--aegis-preference-accent)] bg-accent-solar text-accent-solar-foreground"
+                                          : "border-[var(--aegis-input-border)] bg-[var(--aegis-surface)]"
                                       }`}
                                     >
-                                      {contactPreference === "written_first" && <Check className="h-2 w-2 stroke-[3]" />}
+                                      {contactPreference === "written_first" && <Check className="h-2.5 w-2.5 stroke-[3]" />}
                                     </span>
-                                    Écrit d&apos;abord (E-mail / SMS)
+                                    Écrit d&apos;abord (e-mail / SMS)
                                   </span>
-                                  <span className="px-1.5 py-0.5 rounded bg-secondary text-foreground text-[10px] font-mono font-medium border border-border/60">
+                                  <span className="px-1.5 py-0.5 rounded-[5px] bg-accent-solar text-accent-solar-foreground border border-[var(--aegis-preference-accent)] text-[11px] font-bold">
                                     Recommandé
                                   </span>
                                 </div>
-                                <span className="text-[11px] text-muted-foreground leading-snug pl-5">
+                                <span
+                                  className={`text-[12px] leading-[1.4] pl-5.5 ${
+                                    contactPreference === "written_first"
+                                      ? "text-[var(--aegis-preference-label)] font-medium"
+                                      : "text-[var(--aegis-muted)]"
+                                  }`}
+                                >
                                   Offres transmises par écrit avant tout appel ou visite.
                                 </span>
                               </button>
@@ -1311,39 +1359,45 @@ export function DevisLandingClient() {
                                 role="radio"
                                 aria-checked={contactPreference === "direct_call"}
                                 onClick={() => setContactPreference("direct_call")}
-                                className={`p-2.5 rounded-lg border text-left transition-colors duration-150 cursor-pointer flex flex-col justify-between gap-1 ${
+                                className={`p-3 rounded-[8px] border text-left transition-colors duration-150 cursor-pointer flex flex-col justify-between gap-1.5 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] ${
                                   contactPreference === "direct_call"
-                                    ? "border-emerald-500/50 bg-emerald-500/[0.08] ring-1 ring-emerald-500/30"
-                                    : "border-border/70 bg-secondary/40 hover:bg-secondary/70"
+                                    ? "border-2 border-[var(--aegis-preference-accent)] bg-[var(--aegis-preference-bg)]"
+                                    : "border-[var(--aegis-input-border)]/45 bg-[var(--aegis-surface)] hover:bg-[var(--aegis-surface-subtle)] hover:border-[var(--aegis-ink)]/50"
                                 }`}
                               >
                                 <div className="flex items-center justify-between gap-2">
-                                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                                  <span className="text-[13px] font-bold text-[var(--aegis-ink)] flex items-center gap-1.5">
                                     <span
-                                      className={`h-3.5 w-3.5 rounded-full border flex items-center justify-center shrink-0 ${
+                                      className={`h-4 w-4 rounded-full border flex items-center justify-center shrink-0 ${
                                         contactPreference === "direct_call"
-                                          ? "border-emerald-600 bg-emerald-600 text-white"
-                                          : "border-muted-foreground/40 bg-background"
+                                          ? "border-[var(--aegis-preference-accent)] bg-accent-solar text-accent-solar-foreground"
+                                          : "border-[var(--aegis-input-border)] bg-[var(--aegis-surface)]"
                                       }`}
                                     >
-                                      {contactPreference === "direct_call" && <Check className="h-2 w-2 stroke-[3]" />}
+                                      {contactPreference === "direct_call" && <Check className="h-2.5 w-2.5 stroke-[3]" />}
                                     </span>
                                     Contact direct autorisé
                                   </span>
                                 </div>
-                                <span className="text-[11px] text-muted-foreground leading-snug pl-5">
+                                <span
+                                  className={`text-[12px] leading-[1.4] pl-5.5 ${
+                                    contactPreference === "direct_call"
+                                      ? "text-[var(--aegis-preference-label)] font-medium"
+                                      : "text-[var(--aegis-muted)]"
+                                  }`}
+                                >
                                   Appel des 3 installateurs pour planifier l&apos;étude technique.
                                 </span>
                               </button>
                             </div>
                           </div>
 
-                          {/* ── Rangée 3 : Numéro de GSM + Adresse postale (Compact 2 cols) ── */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {/* ── Rangée 3 : Numéro de GSM + Adresse postale ── */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                             {/* Champ 4 : GSM belge */}
-                            <div className="flex flex-col gap-1">
-                              <Label htmlFor="phone" className="text-xs font-semibold text-foreground">
-                                Votre numéro de GSM <span className="text-destructive">*</span>
+                            <div className="flex flex-col gap-1.5">
+                              <Label htmlFor="phone" className="text-[13px] font-semibold text-[var(--aegis-ink)]">
+                                Numéro de GSM <span className="text-[var(--aegis-danger-text)]">*</span>
                               </Label>
                               <Input
                                 id="phone"
@@ -1360,27 +1414,27 @@ export function DevisLandingClient() {
                                     300
                                   )
                                 }
-                                className={`h-11 rounded-lg font-mono tabular-nums text-sm ${
+                                className={`h-[46px] rounded-[6px] font-mono tabular-nums text-[14px] bg-[var(--aegis-surface)] text-[var(--aegis-ink)] placeholder:text-[var(--aegis-muted)]/85 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] focus-visible:ring-0 ${
                                   showPhoneError
-                                    ? "border-destructive ring-1 ring-destructive"
-                                    : "border-input bg-background/50 focus:bg-background"
+                                    ? "border-[var(--aegis-danger-text)] bg-[var(--aegis-danger-bg)]/40 focus-visible:border-[var(--aegis-danger-text)]"
+                                    : "border-[var(--aegis-input-border)] focus-visible:border-[var(--aegis-ink)]"
                                 }`}
                               />
                               {showPhoneError ? (
-                                <p className="text-[11px] text-destructive font-medium" role="alert">
-                                  {phoneErr || "Numéro belge requis."}
+                                <p className="text-[12px] text-[var(--aegis-danger-text)] font-medium" role="alert">
+                                  {phoneErr || "Numéro belge requis (format 04XX XX XX XX)."}
                                 </p>
                               ) : (
-                                <span className="text-[10px] text-muted-foreground">
+                                <span className="text-[12px] text-[var(--aegis-muted)]">
                                   Pour certifier l&apos;appel d&apos;offres et vous notifier par SMS.
                                 </span>
                               )}
                             </div>
 
                             {/* Champ 5 : Adresse structurée (Rue + Numéro SPW ICAR) */}
-                            <div className="flex flex-col gap-1">
-                              <Label htmlFor="address" className="text-xs font-semibold text-foreground">
-                                Adresse du bien (Rue et n°) <span className="text-destructive">*</span>
+                            <div className="flex flex-col gap-1.5">
+                              <Label htmlFor="address" className="text-[13px] font-semibold text-[var(--aegis-ink)]">
+                                Adresse du bien (rue et n°) <span className="text-[var(--aegis-danger-text)]">*</span>
                               </Label>
                               <BelgianStreetNumberFields
                                 streetId="address"
@@ -1401,9 +1455,11 @@ export function DevisLandingClient() {
                                 showError={showAddressError}
                                 required
                                 requireHouseNumber
+                                inputHeightClass="h-[46px]"
+                                editorial
                               />
                               {!showAddressError && (
-                                <span className="text-[10px] text-muted-foreground">
+                                <span className="text-[12px] text-[var(--aegis-muted)]">
                                   Nécessaire pour situer votre toiture (étude satellite).
                                 </span>
                               )}
@@ -1411,19 +1467,19 @@ export function DevisLandingClient() {
                           </div>
 
                           {/* Consentement RGPD conforme APD & modale réseau */}
-                          <div className="flex flex-col gap-2 pt-2 border-t border-border/80">
+                          <div className="flex flex-col gap-2 pt-3 border-t border-[var(--aegis-divider)]">
                             <label className="flex items-start gap-2.5 cursor-pointer">
                               <Checkbox
                                 id="partnerConsent"
                                 checked={partnerConsent}
                                 onCheckedChange={(c) => setPartnerConsent(c === true)}
-                                className="mt-0.5"
+                                className="mt-0.5 border-[var(--aegis-input-border)] data-[state=checked]:bg-[var(--aegis-ink)] data-[state=checked]:border-[var(--aegis-ink)] focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
                               />
-                              <span className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
+                              <span className="text-[12px] text-[var(--aegis-muted)] leading-[1.5]">
                                 En validant, vous mandatez Aegis Solaire pour transmettre votre cahier des charges au lot indivisible de{" "}
-                                <span className="font-mono tabular-nums font-semibold text-foreground">3</span>{" "}
+                                <span className="font-mono tabular-nums font-semibold text-[var(--aegis-ink)]">3</span>{" "}
                                 installateurs partenaires certifiés RESCert actifs en province de{" "}
-                                <span className="font-semibold text-foreground">
+                                <span className="font-semibold text-[var(--aegis-ink)]">
                                   {getProvinceDisplayLabel(province)}
                                 </span>{" "}
                                 afin d&apos;établir vos offres comparatives (
@@ -1434,7 +1490,7 @@ export function DevisLandingClient() {
                                     e.stopPropagation()
                                     setIsNetworkModalOpen(true)
                                   }}
-                                  className="underline text-accent-solar font-semibold hover:text-accent-solar/80 inline cursor-pointer"
+                                  className="underline underline-offset-4 text-[var(--aegis-link)] font-semibold hover:text-[var(--aegis-ink)] inline cursor-pointer"
                                 >
                                   Consulter les critères et partenaires du réseau
                                 </button>
@@ -1442,7 +1498,7 @@ export function DevisLandingClient() {
                                 <Link
                                   href="/politique-confidentialite"
                                   target="_blank"
-                                  className="underline text-accent-solar font-semibold"
+                                  className="underline underline-offset-4 text-[var(--aegis-link)] font-semibold hover:text-[var(--aegis-ink)]"
                                 >
                                   politique de confidentialité
                                 </Link>
@@ -1450,14 +1506,17 @@ export function DevisLandingClient() {
                               </span>
                             </label>
                             {showConsentError && (
-                              <p className="text-[11px] text-destructive font-medium" role="alert">
-                                Veuillez accepter pour valider votre demande.
+                              <p className="text-[12px] text-[var(--aegis-danger-text)] font-medium" role="alert">
+                                Veuillez accepter ces conditions pour valider votre demande.
                               </p>
                             )}
                           </div>
 
                           {errorMessage && (
-                            <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs text-destructive font-medium">
+                            <div
+                              role="alert"
+                              className="p-3 rounded-[8px] bg-[var(--aegis-danger-bg)] border border-[var(--aegis-danger-text)]/25 text-[13px] text-[var(--aegis-danger-text)] font-medium"
+                            >
                               {errorMessage}
                             </div>
                           )}
@@ -1466,15 +1525,15 @@ export function DevisLandingClient() {
 
                     </AnimatePresence>
 
-                    {/* ── BARRE DE NAVIGATION INFÉRIEURE : Style et placement Bobex ── */}
-                    <div className="pt-4 border-t border-border/70 flex flex-col gap-2.5 mt-2">
+                    {/* ── BARRE DE NAVIGATION INFÉRIEURE ── */}
+                    <div className="pt-4 border-t border-[var(--aegis-divider)] flex flex-col gap-3 mt-1">
                       <div className="flex items-center justify-between gap-3">
                         {step > 1 ? (
                           <button
                             type="button"
                             onClick={handleBack}
                             disabled={isSubmitting}
-                            className="h-12 px-5 rounded-xl border border-border/80 bg-secondary/80 hover:bg-secondary text-foreground font-semibold text-sm transition-colors duration-150 cursor-pointer flex items-center justify-center gap-2 shrink-0"
+                            className="h-[46px] px-5 rounded-[6px] border border-[var(--aegis-border)] bg-[var(--aegis-surface)] hover:bg-[var(--aegis-surface-subtle)] text-[var(--aegis-ink)] font-semibold text-[14px] transition-colors duration-150 cursor-pointer flex items-center justify-center gap-2 shrink-0 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
                           >
                             <ArrowLeft className="h-4 w-4" />
                             <span>Retour</span>
@@ -1488,7 +1547,7 @@ export function DevisLandingClient() {
                             type="button"
                             onClick={handleNext}
                             disabled={!isStepValid()}
-                            className="h-12 px-7 sm:px-8 rounded-xl bg-accent-solar text-accent-solar-foreground hover:bg-accent-solar/90 font-bold text-sm sm:text-base shadow-xs hover:shadow-sm transition-colors duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
+                            className="h-[46px] px-7 sm:px-8 rounded-[6px] bg-accent-solar hover:bg-accent-solar/90 text-accent-solar-foreground border border-[var(--aegis-preference-accent)] font-bold text-[15px] transition-colors duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:bg-[var(--aegis-surface-subtle)] disabled:text-[var(--aegis-muted)] disabled:border-[var(--aegis-border)] disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
                           >
                             <span>Suivant</span>
                             <ArrowRight className="h-4 w-4" />
@@ -1497,17 +1556,17 @@ export function DevisLandingClient() {
                           <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="h-12 flex-1 px-5 rounded-xl bg-primary hover:bg-slate-800 text-primary-foreground font-bold text-sm sm:text-base shadow-xs hover:shadow-sm transition-colors duration-150 flex items-center justify-center gap-2 cursor-pointer text-center group"
+                            className="h-[48px] flex-1 px-5 rounded-[6px] bg-accent-solar hover:bg-accent-solar/90 disabled:opacity-65 text-accent-solar-foreground border border-[var(--aegis-preference-accent)] font-bold text-[15px] transition-colors duration-150 flex items-center justify-center gap-2 cursor-pointer text-center focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
                           >
                             {isSubmitting ? (
                               <>
-                                <Loader2 className="h-4 w-4 animate-spin shrink-0 text-amber-400" />
-                                <span>Lancement de l&apos;appel d&apos;offres...</span>
+                                <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                                <span>Envoi de votre demande…</span>
                               </>
                             ) : (
                               <>
                                 <span>Obtenir mes 3 devis comparatifs</span>
-                                <ArrowRight className="h-4 w-4 text-amber-400 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                                <ArrowRight className="h-4 w-4 shrink-0" />
                               </>
                             )}
                           </button>
@@ -1516,13 +1575,13 @@ export function DevisLandingClient() {
 
                       {/* Mention de réassurance sous les boutons */}
                       {step === totalSteps ? (
-                        <p className="text-center text-[11px] sm:text-xs text-muted-foreground flex items-center justify-center gap-1.5 pt-1 font-medium leading-relaxed">
+                        <p className="text-center text-[12px] text-[var(--aegis-muted)] flex items-center justify-center gap-1.5 pt-0.5 leading-[1.45]">
                           <Lock className="h-3.5 w-3.5 text-accent-solar shrink-0" />
-                          <span>Charte Aegis Solaire : Dossier transmis exclusivement aux 3 installateurs RESCert retenus pour votre secteur. Zéro centre d&apos;appels, zéro revente à des tiers.</span>
+                          <span>Charte Aegis Solaire : dossier transmis exclusivement aux 3 installateurs RESCert retenus pour votre secteur. Zéro centre d&apos;appels, zéro revente à des tiers.</span>
                         </p>
                       ) : (
-                        <p className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1.5 pt-2 font-medium">
-                          <Lock className="h-3.5 w-3.5 text-accent-solar" />
+                        <p className="text-center text-[12px] text-[var(--aegis-muted)] flex items-center justify-center gap-1.5 pt-0.5">
+                          <Lock className="h-3.5 w-3.5 text-accent-solar shrink-0" />
                           <span>100 % gratuit &amp; sans engagement · Pas de spam</span>
                         </p>
                       )}
@@ -1534,32 +1593,32 @@ export function DevisLandingClient() {
             </>
           ) : (
                 /* ── Écran de Succès : Confirmation Institutionnelle ── */
-                <div className="p-6 sm:p-8 text-center flex flex-col items-center gap-4">
-                  <div className="h-14 w-14 rounded-2xl bg-accent-solar/15 text-accent-solar flex items-center justify-center shadow-xs">
-                    <Check className="h-8 w-8 stroke-[3]" />
+                <div className="p-4 sm:p-6 text-center flex flex-col items-center gap-4">
+                  <div className="h-12 w-12 rounded-[14px] bg-[var(--aegis-preference-bg)] text-[var(--aegis-preference-accent)] border border-[var(--aegis-preference-accent)]/40 flex items-center justify-center">
+                    <Check className="h-6 w-6 stroke-[2.75]" />
                   </div>
                   <div>
-                    <h3 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight font-heading">
+                    <h2 className="text-[22px] sm:text-[24px] font-bold text-[var(--aegis-ink)] tracking-[-0.02em] leading-[1.2]">
                       Demande enregistrée avec succès
-                    </h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto leading-relaxed mt-1">
-                      Merci <strong className="text-foreground">{firstName}</strong>. Votre demande d&apos;audit pour la province de{" "}
-                      <strong className="text-foreground">{getProvinceDisplayLabel(province)}</strong> a bien été transmise.
+                    </h2>
+                    <p className="text-[14px] text-[var(--aegis-muted)] max-w-md mx-auto leading-[1.5] mt-1.5">
+                      Merci <strong className="text-[var(--aegis-ink)]">{firstName}</strong>. Votre demande d&apos;audit pour la province de{" "}
+                      <strong className="text-[var(--aegis-ink)]">{getProvinceDisplayLabel(province)}</strong> a bien été transmise.
                     </p>
                   </div>
 
-                  <div className="bg-secondary/60 border border-border rounded-xl p-4 text-left max-w-md w-full flex flex-col gap-2.5 text-xs">
-                    <p className="font-semibold text-foreground flex items-center gap-2">
-                      <Lock className="h-3.5 w-3.5 text-accent" />
+                  <div className="bg-[var(--aegis-summary)] border border-[var(--aegis-border)] rounded-[8px] p-4 text-left max-w-md w-full flex flex-col gap-2.5 text-[13px]">
+                    <p className="font-semibold text-[var(--aegis-ink)] flex items-center gap-2">
+                      <Lock className="h-3.5 w-3.5 text-accent-solar shrink-0" />
                       <span>
                         Prochaines étapes (sous{" "}
-                        <span className="font-mono tabular-nums font-semibold">48 h</span>) :
+                        <span className="font-mono tabular-nums font-bold text-[var(--aegis-ink)]">48 h</span>)
                       </span>
                     </p>
-                    <ul className="flex flex-col gap-1.5 text-muted-foreground list-disc pl-5">
+                    <ul className="flex flex-col gap-1.5 text-[var(--aegis-muted)] list-disc pl-5 leading-[1.45]">
                       <li>
                         Transmission de votre demande à jusqu&apos;à{" "}
-                        <span className="font-mono tabular-nums font-semibold text-foreground">3</span> installateurs agréés RESCERT de votre région.
+                        <span className="font-mono tabular-nums font-bold text-[var(--aegis-ink)]">3</span> installateurs agréés RESCert de votre région.
                       </li>
                       <li>Prise de contact rapide pour valider vos spécificités toiture et vos habitudes de consommation.</li>
                       <li>Réception et comparaison de vos devis gratuits : vous êtes totalement libre de choisir votre installateur — ou aucun.</li>
@@ -1569,7 +1628,7 @@ export function DevisLandingClient() {
                   <div className="pt-2">
                     <Link
                       href="/"
-                      className="inline-flex items-center gap-2 text-xs font-mono font-semibold text-accent hover:underline underline-offset-4"
+                      className="inline-flex items-center gap-2 text-[13px] font-semibold text-[var(--aegis-link)] underline underline-offset-4 hover:text-[var(--aegis-ink)] focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] rounded-[5px]"
                     >
                       Retourner sur la page d&apos;accueil
                     </Link>
