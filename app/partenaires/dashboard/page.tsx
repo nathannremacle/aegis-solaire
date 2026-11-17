@@ -177,7 +177,7 @@ async function PartnerDashboardLoader({
         .limit(60),
       admin
         .from("lead_purchases")
-        .select("id, credits_spent, purchased_at, pipeline_status, notes, next_action_at, leads(id, first_name, last_name, email, phone, company, company_vat, province, city, site_address, segment, surface_type, surface_area, surface_area_m2, annual_electricity_bill, annual_bill_eur, estimated_power_kwc, roof_material, ownership_status, timeframe, project_timeline, project_driver, grd, contact_preference, project_details, message, qualification_metadata, estimated_roi_years, estimated_savings, autoconsumption_rate, postal_code, lead_score)")
+        .select("id, credits_spent, purchased_at, pipeline_status, notes, next_action_at, leads(id, first_name, last_name, email, phone, company, company_vat, province, city, site_address, segment, surface_type, surface_area, surface_area_m2, annual_electricity_bill, annual_bill_eur, estimated_power_kwc, roof_material, ownership_status, timeframe, project_timeline, project_driver, grd, contact_preference, project_details, message, qualification_metadata, estimated_roi_years, estimated_savings, autoconsumption_rate, postal_code, lead_score, wants_irve, created_at)")
         .eq("partner_id", partnerId)
         .order("purchased_at", { ascending: false }),
       admin

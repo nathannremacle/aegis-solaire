@@ -87,20 +87,47 @@ function formatCompactSurface(
   surfaceTypeLabel: string,
   isB2B: boolean
 ): string {
-  if (specSurface) {
-    const parenMatch = specSurface.match(/\(([^)]+)\)/)
-    if (parenMatch) {
-      return parenMatch[1].trim().replace(/^~\s*/, "env. ")
-    }
-    return specSurface
-  }
   const area = leadSurfaceArea > 0 ? leadSurfaceArea : normalizedSurfaceM2
+  const areaLabel = area > 0 ? `env. ${area.toLocaleString("fr-BE")} m²` : null
+
+  if (specSurface) {
+    const cleanSpec = specSurface.trim()
+    const parenMatch = cleanSpec.match(/\(([^)]+)\)/)
+    if (parenMatch) {
+      const inside = parenMatch[1].trim().replace(/^~\s*/, "env. ")
+      const prefix = cleanSpec.replace(/\s*\([^)]+\)/, "").trim()
+      if (prefix && prefix.toLowerCase() !== inside.toLowerCase()) {
+        return `${inside} · ${prefix}`
+      }
+      return inside
+    }
+    if (/m²|m2/i.test(cleanSpec)) {
+      return cleanSpec
+    }
+    if (areaLabel) {
+      return `${areaLabel} · ${cleanSpec}`
+    }
+    return cleanSpec
+  }
+
   if (area > 0) {
     return isB2B
-      ? `${area.toLocaleString("fr-BE")} m² (${surfaceTypeLabel})`
+      ? `${area.toLocaleString("fr-BE")} m²`
       : `env. ${area.toLocaleString("fr-BE")} m²`
   }
   return surfaceTypeLabel
+}
+
+function formatQualifiedDate(rawDate?: string | null): string | null {
+  if (!rawDate) return null
+  const date = new Date(rawDate)
+  if (Number.isNaN(date.getTime())) return null
+  return date.toLocaleDateString("fr-BE", {
+    timeZone: "Europe/Brussels",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  })
 }
 
 export function PartnerFocusedLeadView({
@@ -226,10 +253,16 @@ export function PartnerFocusedLeadView({
   )
 
   const hasBattery = Boolean(
-    specs.hasBattery || lead.qualification_metadata?.battery === true || financials.includesBattery
+    specs.hasBattery ||
+      lead.wants_battery === true ||
+      lead.qualification_metadata?.battery === true ||
+      financials.includesBattery
   )
   const hasIrve = Boolean(
-    specs.hasIrve || lead.qualification_metadata?.ev_charger === true || financials.includesEv
+    specs.hasIrve ||
+      lead.wants_irve === true ||
+      lead.qualification_metadata?.ev_charger === true ||
+      financials.includesEv
   )
 
   const roofImageUrl = (lead.qualification_metadata?.roof_image_url ||
@@ -292,21 +325,47 @@ export function PartnerFocusedLeadView({
         ? "bg-[var(--aegis-preference-bg)] text-[var(--aegis-preference-label)]"
         : "bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)]"
 
-  // Lignes techniques du chantier
+  const qualifiedDateStr = formatQualifiedDate(lead.created_at)
+  const estimatedSavingsEur = Number(lead.estimated_savings) || 0
+  const estimatedRoiYears = Number(lead.estimated_roi_years) || 0
+  const autoconsumptionRate = Number(lead.autoconsumption_rate) || 0
+  const hasDistinctSurfaceType =
+    Boolean(surfaceTypeLabel) &&
+    surfaceTypeLabel.toLowerCase() !== "toiture" &&
+    surfaceTypeLabel.toLowerCase() !== propertyTypeDisplay.toLowerCase()
+  const roofTypeAndMaterial = hasDistinctSurfaceType
+    ? `${surfaceTypeLabel} · ${roofMaterialLabel}`
+    : roofMaterialLabel
+
+  // Lignes techniques du chantier (sans doublon avec le bandeau chiffré ou l’en-tête)
   const specRows: Array<{ label: string; value: string; italic?: boolean }> = [
-    { label: "Toiture", value: `${roofMaterialLabel} · ${compactSurface}` },
+    { label: "Toiture", value: roofTypeAndMaterial },
+    { label: "Surface estimée", value: compactSurface },
     ...(consumptionDisplay ? [{ label: "Consommation annuelle", value: consumptionDisplay }] : []),
     { label: "Facture annuelle", value: annualBillDisplay },
-    {
-      label: "Marge brute indicative",
-      value: `Env. ${financials.estimatedInstallerMargin.toLocaleString("fr-BE")} € HT`,
-    },
-    { label: "Statut d’occupation", value: ownershipLabel },
-    ...(explicitTimeframe ? [{ label: "Échéance souhaitée", value: explicitTimeframe }] : []),
-    ...(lead.grd ? [{ label: "Gestionnaire réseau", value: getGrdLabel(lead.grd) }] : []),
-    ...(lead.project_driver
-      ? [{ label: "Objectif du projet", value: getProjectDriverLabel(lead.project_driver) }]
-      : []),
+    ...(estimatedSavingsEur > 0
+      ? [
+          {
+            label: "Économies client estimées",
+            value: [
+              `Env. ${Math.round(estimatedSavingsEur).toLocaleString("fr-BE")} €/an`,
+              estimatedRoiYears > 0
+                ? `retour env. ${estimatedRoiYears.toLocaleString("fr-BE", { maximumFractionDigits: 1 })} ans`
+                : null,
+              autoconsumptionRate > 0 ? `${Math.round(autoconsumptionRate)} % d’autoconsommation` : null,
+            ]
+              .filter(Boolean)
+              .join(" · "),
+          },
+        ]
+      : estimatedRoiYears > 0
+        ? [
+            {
+              label: "Retour sur investissement client",
+              value: `Env. ${estimatedRoiYears.toLocaleString("fr-BE", { maximumFractionDigits: 1 })} ans`,
+            },
+          ]
+        : []),
     ...(hasBattery || hasIrve
       ? [
           {
@@ -320,6 +379,20 @@ export function PartnerFocusedLeadView({
           },
         ]
       : []),
+    ...(explicitTimeframe ? [{ label: "Échéance souhaitée", value: explicitTimeframe }] : []),
+    ...(lead.grd ? [{ label: "Gestionnaire réseau", value: getGrdLabel(lead.grd) }] : []),
+    ...(lead.project_driver
+      ? [{ label: "Objectif du projet", value: getProjectDriverLabel(lead.project_driver) }]
+      : []),
+    ...(isB2B && isPurchased && lead.company
+      ? [
+          {
+            label: "Entreprise",
+            value: lead.company_vat ? `${lead.company} · TVA ${lead.company_vat}` : String(lead.company),
+          },
+        ]
+      : []),
+    ...(qualifiedDateStr ? [{ label: "Demande qualifiée le", value: qualifiedDateStr }] : []),
     ...(sanitized.cleanRemarks
       ? [{ label: "Précisions du prospect", value: `« ${sanitized.cleanRemarks} »`, italic: true }]
       : []),
@@ -607,25 +680,34 @@ export function PartnerFocusedLeadView({
                 </div>
               </div>
             ) : (
-              <div className="mt-4 grid grid-cols-2 gap-3 pt-3 border-t border-[var(--aegis-divider)]">
-                <div>
-                  <span className="flex items-center gap-1.5 text-[13px] text-[var(--aegis-muted)]">
-                    <Phone className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
-                    <span>{phoneLabel}</span>
-                  </span>
-                  <strong className="mt-1 block text-[15px] font-bold text-[var(--aegis-ink)] font-mono tabular-nums">
-                    {maskedPhone}
-                  </strong>
+              <div className="mt-4 flex flex-col gap-3 pt-3 border-t border-[var(--aegis-divider)]">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="flex items-center gap-1.5 text-[13px] text-[var(--aegis-muted)]">
+                      <Phone className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
+                      <span>{phoneLabel}</span>
+                    </span>
+                    <strong className="mt-1 block text-[15px] font-bold text-[var(--aegis-ink)] font-mono tabular-nums">
+                      {maskedPhone}
+                    </strong>
+                  </div>
+
+                  <div className="pl-3 border-l border-[var(--aegis-divider)]">
+                    <span className="flex items-center gap-1.5 text-[13px] text-[var(--aegis-muted)]">
+                      <Mail className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
+                      <span>{emailLabel}</span>
+                    </span>
+                    <strong className="mt-1 block text-[15px] font-bold text-[var(--aegis-ink)] font-mono tabular-nums">
+                      ••••@••••.••
+                    </strong>
+                  </div>
                 </div>
 
-                <div className="pl-3 border-l border-[var(--aegis-divider)]">
-                  <span className="flex items-center gap-1.5 text-[13px] text-[var(--aegis-muted)]">
-                    <Mail className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
-                    <span>{emailLabel}</span>
+                <div className="pt-2.5 border-t border-[var(--aegis-divider)] text-[13px]">
+                  <span className="block text-[var(--aegis-muted)]">Adresse du chantier</span>
+                  <span className="mt-0.5 block font-mono tabular-nums font-medium text-[var(--aegis-ink)]">
+                    Rue masquée · {headlineLocation}
                   </span>
-                  <strong className="mt-1 block text-[15px] font-bold text-[var(--aegis-ink)] font-mono tabular-nums">
-                    ••••@••••.••
-                  </strong>
                 </div>
               </div>
             )}
@@ -795,6 +877,9 @@ export function PartnerFocusedLeadView({
 
                 <div className="mt-4 pt-3.5 border-t border-[var(--aegis-divider)] flex flex-col gap-2 text-[13px] text-[var(--aegis-muted)]">
                   <p>
+                    Coordonnées complètes affichées à l’écran et envoyées par e-mail dès validation.
+                  </p>
+                  <p>
                     {isB2B
                       ? "Exclusivité absolue : ce dossier est réservé à 1 seul installateur."
                       : `Attribution limitée à ${maxSlots} installateurs maximum (${remainingSlots} ${remainingSlots > 1 ? "places disponibles" : "place disponible"}).`}
@@ -814,7 +899,11 @@ export function PartnerFocusedLeadView({
                                 : "Disponible"}
                             </span>
                             {isTaken && buyer?.purchasedAt && (
-                              <span>{new Date(buyer.purchasedAt).toLocaleDateString("fr-BE")}</span>
+                              <span>
+                                {new Date(buyer.purchasedAt).toLocaleDateString("fr-BE", {
+                                  timeZone: "Europe/Brussels",
+                                })}
+                              </span>
                             )}
                           </div>
                         )
