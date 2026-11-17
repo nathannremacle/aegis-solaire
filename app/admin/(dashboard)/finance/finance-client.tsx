@@ -475,35 +475,35 @@ export function FinanceClient({
     icon: React.ComponentType<{ className?: string }>
     badge?: string
   }> = [
-    {
-      id: "sales",
-      label: "Factures & Commandes",
-      icon: FileText,
-      badge: `${periodInvoices.length}`,
-    },
-    {
-      id: "expenses",
-      label: "Dépenses & Récup. TVA",
-      icon: Receipt,
-      badge: `${iv.expensesCount}`,
-    },
-    {
-      id: "intervat",
-      label: "Déclaration TVA & Peppol",
-      icon: Calculator,
-    },
-    {
-      id: "checklist",
-      label: "Parcours & Rappels",
-      icon: CalendarClock,
-      badge: `${completedTasksCount}/${accounting.routineTasks.length}`,
-    },
-    {
-      id: "course",
-      label: "Cours TVA & NACE INIT42",
-      icon: BookOpen,
-    },
-  ]
+      {
+        id: "sales",
+        label: "Factures & Commandes",
+        icon: FileText,
+        badge: `${periodInvoices.length}`,
+      },
+      {
+        id: "expenses",
+        label: "Dépenses & Récup. TVA",
+        icon: Receipt,
+        badge: `${iv.expensesCount}`,
+      },
+      {
+        id: "intervat",
+        label: "Déclaration TVA & Peppol",
+        icon: Calculator,
+      },
+      {
+        id: "checklist",
+        label: "Parcours & Rappels",
+        icon: CalendarClock,
+        badge: `${completedTasksCount}/${accounting.routineTasks.length}`,
+      },
+      {
+        id: "course",
+        label: "Cours TVA & NACE INIT42",
+        icon: BookOpen,
+      },
+    ]
 
   const currentYear = new Date().getFullYear()
   const availableYears = [currentYear - 1, currentYear, currentYear + 1]
