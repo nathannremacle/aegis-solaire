@@ -41,19 +41,26 @@ export function PartnerDashboardShell({
   }, [targetLeadId])
 
   // Détection si le lead ciblé a déjà été acheté
-  const isAlreadyPurchased = Boolean(
-    activeTargetLeadId &&
-    (initialPortfolio ?? []).some(
-      (p: any) => p.id === activeTargetLeadId || p.lead_id === activeTargetLeadId || p.purchase_id === activeTargetLeadId
-    )
-  )
-
-  const [activeTab, setActiveTab] = React.useState<"marketplace" | "portfolio">(
-    isAlreadyPurchased ? "portfolio" : "marketplace"
-  )
   const [credits, setCredits] = React.useState<number>(initialPartner?.credits ?? 0)
   const [marketplace, setMarketplace] = React.useState(initialMarketplace ?? [])
   const [portfolio, setPortfolio] = React.useState(initialPortfolio ?? [])
+
+  const targetedPurchasedLead = React.useMemo(() => {
+    if (!activeTargetLeadId) return null
+    return (
+      portfolio.find(
+        (p: any) =>
+          p.id === activeTargetLeadId ||
+          p.lead_id === activeTargetLeadId ||
+          p.purchase_id === activeTargetLeadId
+      ) || null
+    )
+  }, [activeTargetLeadId, portfolio])
+
+  const isAlreadyPurchased = Boolean(targetedPurchasedLead)
+
+  const [activeTab, setActiveTab] = React.useState<"marketplace" | "portfolio">("marketplace")
+  const isFocusedLeadView = activeTab === "marketplace" && Boolean(activeTargetLeadId)
 
   // Modales lazy-loadées
   const [disputePurchase, setDisputePurchase] = React.useState<any | null>(null)
@@ -198,7 +205,7 @@ export function PartnerDashboardShell({
   }, [])
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`min-h-screen ${isFocusedLeadView ? "bg-[var(--aegis-canvas)]" : "bg-background"}`}>
       {/* ── 1. Topbar Applicative Unique (64px) — Gain de 220px utiles dès le chargement ── */}
       <header className="sticky top-0 z-40 w-full border-b border-border bg-card/95 backdrop-blur-md shadow-2xs">
         <div className="mx-auto flex h-14 sm:h-16 max-w-[1720px] items-center justify-between gap-2 px-3 sm:px-6 lg:px-8">
@@ -347,64 +354,60 @@ export function PartnerDashboardShell({
       </header>
 
       {/* ── 2. Contenu Principal ── */}
-      <main className="mx-auto max-w-[1720px] px-3 py-4 sm:px-6 sm:py-6 lg:px-8 pb-24 md:pb-8">
-        {/* En-tête Institutionnel avec H1 Unique et Bannière Énergie Propre */}
-        <div className="mb-4 sm:mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4 border-b border-border/80 pb-3 sm:pb-4">
-          <div className="flex flex-col gap-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-[10px] sm:text-xs uppercase tracking-wider text-accent font-semibold">
-                RÉSEAU OFFICIEL · INSTALLATEURS WALLONIE
-              </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Flux Direct
-              </span>
-            </div>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-extrabold tracking-tight text-foreground">
-              {activeTargetLeadId && activeTab === "marketplace"
-                ? targetedClosedLead?.id === activeTargetLeadId
-                  ? targetedClosedLead?.is_withdrawn_from_marketplace
-                    ? "Opportunité Solaire Indisponible & Catalogue Actif"
-                    : "Dossier Régional Clôturé & Opportunités Disponibles"
-                  : "Opportunité Solaire Ciblée"
-                : activeTab === "marketplace"
+      <main
+        className={
+          isFocusedLeadView
+            ? "pb-24 md:pb-12"
+            : "mx-auto max-w-[1720px] px-3 py-4 sm:px-6 sm:py-6 lg:px-8 pb-24 md:pb-8"
+        }
+      >
+        {/* En-tête Institutionnel avec H1 Unique (masqué en vue fiche dossier ciblée qui porte son propre H1 localité) */}
+        {!isFocusedLeadView && (
+          <div className="mb-4 sm:mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4 border-b border-border/80 pb-3 sm:pb-4">
+            <div className="flex flex-col gap-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[10px] sm:text-xs uppercase tracking-wider text-accent font-semibold">
+                  RÉSEAU OFFICIEL · INSTALLATEURS WALLONIE
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Flux Direct
+                </span>
+              </div>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-extrabold tracking-tight text-foreground">
+                {activeTab === "marketplace"
                   ? "Marketplace des Chantiers Photovoltaïques"
                   : "Portefeuille & Suivi Commercial"}
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              {activeTargetLeadId && activeTab === "marketplace"
-                ? targetedClosedLead?.id === activeTargetLeadId
-                  ? targetedClosedLead?.is_withdrawn_from_marketplace
-                    ? "Ce dossier n'est actuellement plus disponible sur la marketplace. Consultez son récapitulatif ainsi que les chantiers ouverts ci-dessous."
-                    : "Ce chantier a déjà atteint son quota d'attribution. Consultez le récapitulatif et les opportunités disponibles ci-dessous."
-                  : "Fiche technique d'ingénierie et accès prioritaire au chantier recommandé par e-mail."
-                : activeTab === "marketplace"
+              </h1>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                {activeTab === "marketplace"
                   ? "Projets solaires qualifiés en Wallonie : fiches techniques détaillées, puissance kWc et coordonnées directes vérifiées."
                   : "Dossiers débloqués, coordonnées complètes des décideurs et suivi des relances."}
-            </p>
-          </div>
-
-          {activeTab === "marketplace" && !activeTargetLeadId && (
-            <div className="hidden xl:flex relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-r from-emerald-50/70 via-card to-card p-3 sm:p-3.5 shadow-xs items-center gap-3.5 max-w-md shrink-0">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600">
-                <Leaf className="h-5 w-5" />
-              </div>
-              <div className="min-w-0 pr-12">
-                <h3 className="text-xs sm:text-sm font-bold text-foreground">Une énergie plus propre</h3>
-                <p className="text-[11px] text-muted-foreground truncate">
-                  Ensemble pour la transition énergétique en Wallonie.
-                </p>
-              </div>
-              <div
-                className="absolute right-0 top-0 bottom-0 w-24 opacity-25 pointer-events-none bg-cover bg-center"
-                style={{
-                  backgroundImage:
-                    "url('https://images.unsplash.com/photo-1509391365360-2e959784a276?q=40&w=300&auto=format&fit=crop')",
-                }}
-              />
+              </p>
             </div>
-          )}
-        </div>
+
+            {activeTab === "marketplace" && (
+              <div className="hidden xl:flex relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-r from-emerald-50/70 via-card to-card p-3 sm:p-3.5 shadow-xs items-center gap-3.5 max-w-md shrink-0">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600">
+                  <Leaf className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 pr-12">
+                  <h3 className="text-xs sm:text-sm font-bold text-foreground">Une énergie plus propre</h3>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    Ensemble pour la transition énergétique en Wallonie.
+                  </p>
+                </div>
+                <div
+                  className="absolute right-0 top-0 bottom-0 w-24 opacity-25 pointer-events-none bg-cover bg-center"
+                  style={{
+                    backgroundImage:
+                      "url('https://images.unsplash.com/photo-1509391365360-2e959784a276?q=40&w=300&auto=format&fit=crop')",
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         {activeTab === "marketplace" ? (
           <MarketplaceFeedView
@@ -412,15 +415,22 @@ export function PartnerDashboardShell({
             partnerCredits={credits}
             targetLeadId={activeTargetLeadId}
             targetedClosedLead={targetedClosedLead}
+            targetedPurchasedLead={targetedPurchasedLead}
             initialCheckoutDirect={initialCheckoutDirect}
             partnerProvinces={initialPartner?.target_provinces}
             partnerSegment={initialPartner?.segment}
             onClearTargetLead={() => setActiveTargetLeadId(undefined)}
+            onOpenCrm={() => {
+              setActiveTargetLeadId(undefined)
+              handleSelectTab("portfolio", "focused_lead_crm")
+            }}
             onPurchaseSuccess={(purchasedLead, newCredits, newPurchaseRecord) => {
               setCredits(newCredits)
               setMarketplace((prev) => prev.filter((item) => item.id !== purchasedLead.id))
               setPortfolio((prev) => [newPurchaseRecord, ...prev])
-              setActiveTab("portfolio")
+              if (!activeTargetLeadId) {
+                setActiveTab("portfolio")
+              }
             }}
             onRequestTopUp={() => openCreditsModal("marketplace")}
             onOpenAlertPreferences={() => setIsPrefsOpen(true)}

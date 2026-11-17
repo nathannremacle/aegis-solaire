@@ -167,7 +167,7 @@ async function PartnerDashboardLoader({
         .select(`
           id, segment, province, city, postal_code, site_address, surface_type, surface_area, surface_area_m2,
           annual_electricity_bill, annual_bill_eur, estimated_power_kwc, roof_material, ownership_status,
-          timeframe, project_timeline, project_driver, project_details, message, first_name, last_name,
+          timeframe, project_timeline, project_driver, project_details, message, contact_preference, first_name, last_name,
           credit_cost, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate,
           qualification_metadata, wants_irve, lead_score,
           lead_purchases(id, partner_id, purchased_at, partners(id, company_name, email, is_test))
@@ -177,7 +177,7 @@ async function PartnerDashboardLoader({
         .limit(60),
       admin
         .from("lead_purchases")
-        .select("id, credits_spent, purchased_at, pipeline_status, notes, next_action_at, leads(id, first_name, last_name, email, phone, company, company_vat, province, city, segment, surface_type, surface_area, annual_electricity_bill, estimated_power_kwc, roof_material, ownership_status, project_details, message, qualification_metadata, estimated_roi_years, estimated_savings, autoconsumption_rate, postal_code, lead_score)")
+        .select("id, credits_spent, purchased_at, pipeline_status, notes, next_action_at, leads(id, first_name, last_name, email, phone, company, company_vat, province, city, site_address, segment, surface_type, surface_area, surface_area_m2, annual_electricity_bill, annual_bill_eur, estimated_power_kwc, roof_material, ownership_status, timeframe, project_timeline, project_driver, grd, contact_preference, project_details, message, qualification_metadata, estimated_roi_years, estimated_savings, autoconsumption_rate, postal_code, lead_score)")
         .eq("partner_id", partnerId)
         .order("purchased_at", { ascending: false }),
       admin
@@ -261,7 +261,7 @@ async function PartnerDashboardLoader({
           .select(`
             id, segment, province, city, postal_code, site_address, surface_type, surface_area, surface_area_m2,
             annual_electricity_bill, annual_bill_eur, estimated_power_kwc, roof_material, ownership_status,
-            timeframe, project_timeline, project_driver, project_details, message, first_name, last_name,
+            timeframe, project_timeline, project_driver, project_details, message, contact_preference, first_name, last_name,
             credit_cost, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate,
             qualification_metadata, wants_irve, lead_score,
             lead_purchases(id, partner_id, purchased_at, partners(id, company_name, email, is_test))

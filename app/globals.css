@@ -63,6 +63,28 @@
   --sidebar-accent-foreground: #0F172A;
   --sidebar-border: #E2E8F0;
   --sidebar-ring: #2563EB;
+
+  /* Tokens Aegis Solaire — Guide de design v1.0 (e-mails & fiche dossier installateur) */
+  --aegis-canvas: #EEF2F4;
+  --aegis-surface: #FFFFFF;
+  --aegis-surface-subtle: #F6F8FA;
+  --aegis-summary: #F0F5F8;
+  --aegis-ink: #142D42;
+  --aegis-muted: #4D6374;
+  --aegis-context: #305A76;
+  --aegis-link: #194767;
+  --aegis-border: #DCE5EB;
+  --aegis-divider: #E6EDF1;
+  --aegis-availability-bg: #E8F2ED;
+  --aegis-availability-text: #1D5D45;
+  --aegis-preference-bg: #FFF5DF;
+  --aegis-preference-accent: #D69729;
+  --aegis-preference-label: #684916;
+  --aegis-focus: #935800;
+  --aegis-primary-hover: #203F57;
+  --aegis-danger-bg: #FFF1F0;
+  --aegis-danger-text: #9A2F2B;
+  --aegis-input-border: #7E919F;
 }
 
 @theme inline {
