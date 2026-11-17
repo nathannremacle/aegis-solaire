@@ -59,13 +59,13 @@ export function buildProspectReconfirmEmail(payload: ProspectReconfirmPayload): 
   const subject = `Votre étude solaire à ${cityLabel} — Confirmez votre projet en 1 clic`
 
   const bodyHtml = `
-    <p style="margin: 0 0 14px 0; font-size: 15px; line-height: 1.6; color: #314b5f;">
+    <p style="margin: 0 0 12px 0; font-size: 15px; line-height: 1.5; color: #142D42;">
       Bonjour <strong>${escapeEmailHtml(rawName)}</strong>,<br /><br />
-      Il y a 48 heures, vous avez réalisé une simulation photovoltaïque pour votre bâtiment à
+      Il y a <span style="font-variant-numeric: tabular-nums;">48</span> heures, vous avez réalisé une simulation photovoltaïque pour votre bâtiment à
       <strong>${escapeEmailHtml(cityLabel)}</strong> via Aegis Solaire.
     </p>
 
-    <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #314b5f;">
+    <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.5; color: #142D42;">
       Pour garantir la réactivité de nos installateurs certifiés <strong>RESCERT</strong> et éviter tout appel inutile,
       confirmez en <strong>un simple clic</strong> que votre projet est toujours actif afin que nous priorisions la mise en relation dès aujourd'hui.
     </p>

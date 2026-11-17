@@ -47,3 +47,9 @@ Tu agis comme un intégrateur front-end senior soumis au fichier `DESIGN.md` à 
   - Partout ailleurs (signatures d'e-mails, support, accompagnement, fiches de contact, présentations d'équipe), utiliser exclusivement des dénominations collectives et institutionnelles :
     - Signatures & Équipe : *"L'équipe Aegis Solaire"*, *"Le Support Partenaires Aegis Solaire"*, *"La Cellule Technique & Ingénierie"*.
     - Contact officiel unique : `contact@aegissolaire.com` (aucun numéro de téléphone personnel).
+
+## 6. RÉFÉRENCE OBLIGATOIRE : GUIDE DESIGN PORTAIL & E-MAILS (`docs/DESIGN-PORTAIL-EMAILS.md`)
+- Tout nouveau template d'e-mail (installateurs, prospects, notifications transactionnelles) et toute interface du portail partenaire / pages associées **doivent impérativement respecter `docs/DESIGN-PORTAIL-EMAILS.md`** sans dérogation :
+  - **Tokens couleur exacts :** fond extérieur `#EEF2F4`, carte `#FFFFFF`, zones secondaires `#F6F8FA`, synthèse chiffrée `#F0F5F8`, texte principal / titres / valeurs `#142D42`, libellés & texte secondaire `#4D6374`, contexte `#305A76`, liens `#194767`, bordures `#DCE5EB`, filets `#E6EDF1`, statut positif `#E8F2ED` / `#1D5D45`, préférence / alerte crème `#FFF5DF` / `#D69729` / `#684916`.
+  - **Typographie e-mails :** `Arial, Helvetica, sans-serif`, `<h2>` sections en `18px / 1.25 · bold · #142D42`, corps de texte `15px / 1.5 · #142D42`, libellés secondaires `13px / 1.4 · #4D6374`.
+  - **Balisage compatible clients mail :** réutiliser les briques partagées de `lib/email-templates/installer-email-layout.ts` (`renderInstallerEmailShell`, `renderSpecsTable`, `renderActionBox`, `renderCalloutBox`, `renderFiguresBox`), structures en tableaux + styles en ligne, et **ne jamais utiliser `<code>` brut** — styliser tout jeton ou ratio numérique en `<span style="... font-variant-numeric: tabular-nums;">`.

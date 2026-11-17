@@ -49,11 +49,11 @@ export function buildProspectExclusiveMatchEmail(
   const subject = `Votre projet solaire (${cityLabel}) — Partenaire RESCERT prioritaire sélectionné`
 
   const bodyHtml = `
-    <p style="margin: 0 0 14px 0; font-size: 16px; line-height: 1.5; font-weight: bold; color: #142d42;">
+    <h2 style="margin: 0 0 12px 0; font-size: 18px; line-height: 1.25; font-weight: bold; color: #142D42;">
       Partenaire technique prioritaire sélectionné pour votre projet à ${escapeEmailHtml(cityLabel)}
-    </p>
+    </h2>
 
-    <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #314b5f;">
+    <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.5; color: #142D42;">
       Bonjour <strong>${escapeEmailHtml(rawName)}</strong>,<br /><br />
       Suite à l'analyse de votre demande d'étude photovoltaïque par la Cellule Technique Aegis Solaire,
       nous avons choisi de confier votre dossier en <strong>attribution prioritaire exclusive</strong> à l'un de nos
@@ -78,8 +78,8 @@ export function buildProspectExclusiveMatchEmail(
       })}
     </div>
 
-    <p style="margin: 18px 0 0 0; font-size: 14px; line-height: 1.6; color: #4d6374;">
-      <strong>${escapeEmailHtml(payload.partnerCompany)}</strong> vous contactera très prochainement afin de convenir d'un créneau d'échange.<br />
+    <p style="margin: 16px 0 0 0; font-size: 13px; line-height: 1.4; color: #4D6374;">
+      <strong style="color: #142D42;">${escapeEmailHtml(payload.partnerCompany)}</strong> vous contactera très prochainement afin de convenir d'un créneau d'échange.<br />
       Une question ? Répondez directement à cet e-mail ou écrivez à
       <a href="mailto:contact@aegissolaire.com" style="color: #194767; font-weight: bold; text-decoration: underline;">contact@aegissolaire.com</a>.
     </p>
@@ -90,7 +90,7 @@ export function buildProspectExclusiveMatchEmail(
     preheader: `${payload.partnerCompany} (certifié RESCERT) a été sélectionné pour réaliser votre étude photovoltaïque à ${cityLabel}.`,
     reference: "Attribution prioritaire",
     context: "Sélection RESCERT exclusive",
-    contextColor: "#1d5d45",
+    contextColor: "#1D5D45",
     headline: "Votre partenaire solaire prioritaire",
     subtitle: `${payload.partnerCompany} · ${cityLabel}`,
     statusPill: { text: "Dossier transmis à 1 partenaire certifié", tone: "success" },

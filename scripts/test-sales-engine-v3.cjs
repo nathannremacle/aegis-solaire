@@ -169,10 +169,21 @@ test("Prospect exclusive reassurance, reconfirm token, and platform update annou
   assert.match(exclEmail.html, /Solar Wallonie SRL/)
   assert.match(exclEmail.html, /RESCERT/)
   assert.equal(/Fabrice Remacle/i.test(exclEmail.html), false)
+  assert.equal(/#314b5f/i.test(exclEmail.html), false)
+  assert.match(exclEmail.html, /#142D42/)
+  assert.match(exclEmail.html, /font-size: 18px; line-height: 1\.25;/)
 
   const reconfirmMod = loadTs("lib/prospect-reconfirm-email.ts", {
     resend: { Resend: class {} },
   })
+  const recEmail = reconfirmMod.buildProspectReconfirmEmail({
+    leadId: "lead-123",
+    email: "marc@example.be",
+    firstName: "Marc",
+    city: "Namur",
+  })
+  assert.equal(/#314b5f/i.test(recEmail.html), false)
+  assert.match(recEmail.html, /#142D42/)
   const token = reconfirmMod.createLeadReconfirmToken("lead-123", "marc@example.be")
   assert.equal(
     reconfirmMod.verifyLeadReconfirmToken("lead-123", "MARC@example.be", token),
@@ -194,10 +205,14 @@ test("Prospect exclusive reassurance, reconfirm token, and platform update annou
     companyName: "ElectroSolaire",
     credits: 3,
   })
-  assert.match(announcement.html, /-24 %/)
+  assert.match(announcement.html, /-24(&nbsp;| )%/)
   assert.match(announcement.html, /Exclusivit/)
   assert.match(announcement.html, /Auto-Pilot/)
   assert.equal(/Fabrice Remacle/i.test(announcement.html), false)
+  assert.equal(/#314b5f/i.test(announcement.html), false)
+  assert.equal(/<code>/i.test(announcement.html), false)
+  assert.match(announcement.html, /font-size: 18px; line-height: 1\.25;/)
+  assert.match(announcement.html, /font-variant-numeric: tabular-nums;">0\/3<\/span>/)
   // Legal footer only
   assert.match(announcement.text, /INIT42 \(Nathan Remacle\)/)
 })

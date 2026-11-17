@@ -48,24 +48,24 @@ export function buildInstallerPlatformUpdateEmail(
   }))
 
   const bodyHtml = `
-    <p style="margin: 0 0 14px 0; font-size: 16px; line-height: 1.5; font-weight: bold; color: #142d42;">
+    <p style="margin: 0 0 12px 0; font-size: 15px; line-height: 1.5; font-weight: bold; color: #142D42;">
       Bonjour ${escapeEmailHtml(company)},
     </p>
 
-    <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #314b5f;">
+    <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.5; color: #142D42;">
       Nous venons de déployer une mise à jour majeure de votre espace partenaire Aegis Solaire afin de
       <strong>réduire votre coût par chantier signé</strong>, éviter tout crédit inutilisé et vous donner un avantage décisif sur votre secteur en Wallonie.
     </p>
 
-    <h2 style="margin: 20px 0 10px 0; font-size: 17px; font-weight: bold; color: #142d42;">
-      1. Nouveaux Packs Prépayés Dégressifs (jusqu&rsquo;&agrave; -24 %)
+    <h2 style="margin: 24px 0 8px 0; padding-top: 16px; border-top: 1px solid #E6EDF1; font-size: 18px; line-height: 1.25; font-weight: bold; color: #142D42;">
+      1. Nouveaux Packs Prépayés Dégressifs (jusqu&rsquo;&agrave; -24&nbsp;%)
     </h2>
-    <p style="margin: 0 0 10px 0; font-size: 14px; line-height: 1.55; color: #4d6374;">
-      Tous nos nouveaux packs sont calibrés en multiples exacts de <strong>3 et 12</strong> : plus aucun crédit orphelin bloqué sur votre portefeuille.
+    <p style="margin: 0 0 12px 0; font-size: 13px; line-height: 1.4; color: #4D6374;">
+      Tous nos nouveaux packs sont calibrés en multiples exacts de <strong style="color: #142D42; font-variant-numeric: tabular-nums;">3</strong> et <strong style="color: #142D42; font-variant-numeric: tabular-nums;">12</strong> : plus aucun crédit orphelin bloqué sur votre portefeuille.
     </p>
     ${renderSpecsTable(packRows)}
 
-    <h2 style="margin: 22px 0 10px 0; font-size: 17px; font-weight: bold; color: #142d42;">
+    <h2 style="margin: 24px 0 12px 0; padding-top: 16px; border-top: 1px solid #E6EDF1; font-size: 18px; line-height: 1.25; font-weight: bold; color: #142D42;">
       2. Tarifs Calibrés sur la Valeur Réelle des Projets
     </h2>
     ${renderSpecsTable([
@@ -75,12 +75,12 @@ export function buildInstallerPlatformUpdateEmail(
       { label: "B2B Exclusif (PME / Standard / Grand Compte)", value: "6, 9 ou 12 crédits (59 € à 118 € HT)" },
     ])}
 
-    <h2 style="margin: 22px 0 10px 0; font-size: 17px; font-weight: bold; color: #142d42;">
+    <h2 style="margin: 24px 0 12px 0; padding-top: 16px; border-top: 1px solid #E6EDF1; font-size: 18px; line-height: 1.25; font-weight: bold; color: #142D42;">
       3. Exclusivité Totale B2C en 1 clic (0 concurrent)
     </h2>
-    <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.55; color: #314b5f;">
-      Lorsqu&rsquo;un nouveau dossier résidentiel n&rsquo;a encore aucun acheteur (<code>0/3</code>), vous pouvez désormais
-      <strong>réserver l&rsquo;exclusivité totale à 100 % pour 7 crédits (ou 65 € HT direct)</strong> au lieu de 3× le prix.
+    <p style="margin: 0 0 12px 0; font-size: 15px; line-height: 1.5; color: #142D42;">
+      Lorsqu&rsquo;un nouveau dossier résidentiel n&rsquo;a encore aucun acheteur (<span style="display: inline-block; padding: 1px 6px; border-radius: 5px; background-color: #E8F2ED; color: #1D5D45; font-weight: bold; font-variant-numeric: tabular-nums;">0/3</span>), vous pouvez désormais
+      <strong>réserver l&rsquo;exclusivité totale à 100&nbsp;% pour <span style="font-variant-numeric: tabular-nums;">7</span> crédits (ou <span style="font-variant-numeric: tabular-nums;">65&nbsp;€&nbsp;HT</span> direct)</strong> au lieu de <span style="font-variant-numeric: tabular-nums;">3×</span> le prix.
     </p>
     ${renderCalloutBox({
       label: "Protection automatique de votre taux de closing",
@@ -89,13 +89,13 @@ export function buildInstallerPlatformUpdateEmail(
       tone: "success",
     })}
 
-    <h2 style="margin: 22px 0 10px 0; font-size: 17px; font-weight: bold; color: #142d42;">
+    <h2 style="margin: 24px 0 12px 0; padding-top: 16px; border-top: 1px solid #E6EDF1; font-size: 18px; line-height: 1.25; font-weight: bold; color: #142D42;">
       4. Mode Auto-Pilot, Paiement 1-Clic &amp; Qualité H+48h
     </h2>
-    <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #314b5f;">
+    <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.5; color: #142D42;">
       &bull; <strong>Auto-Pilot avec plafond hebdomadaire :</strong> recevez automatiquement les dossiers correspondant à vos provinces et surfaces, sans jamais dépasser votre quota semaine.<br />
       &bull; <strong>Paiement 1-Clic (Bancontact / Carte) :</strong> mémorisez votre moyen de paiement lors de votre prochain achat pour débloquer instantanément les dossiers chauds.<br />
-      &bull; <strong>Protocole H+48h Zéro Déchet :</strong> les dossiers B2C partiellement pourvus sont automatiquement clôturés à 48 h pour protéger les premiers acheteurs, et les dossiers sans repreneur sont reconfirmés auprès du prospect.
+      &bull; <strong>Protocole H+48h Zéro Déchet :</strong> les dossiers B2C partiellement pourvus sont automatiquement clôturés à <span style="font-variant-numeric: tabular-nums;">48&nbsp;h</span> pour protéger les premiers acheteurs, et les dossiers sans repreneur sont reconfirmés auprès du prospect.
     </p>
 
     ${renderActionBox({
@@ -116,7 +116,7 @@ export function buildInstallerPlatformUpdateEmail(
       "Packs dégressifs dès 7,50 €/crédit (-24 %), exclusivité totale B2C à 7 crédits, tarifs dès 19,50 € HT et mode Auto-Pilot.",
     reference: "Mise à jour réseau",
     context: "Nouveautés Partenaires",
-    contextColor: "#1d5d45",
+    contextColor: "#1D5D45",
     headline: "Nouveaux packs jusqu'à -24 %, Exclusivité B2C & Auto-Pilot",
     subtitle: "Toutes les améliorations disponibles dès aujourd'hui sur votre espace installateur",
     statusPill: { text: "Déployé sur votre compte", tone: "success" },
@@ -140,7 +140,7 @@ export function buildInstallerPlatformUpdateEmail(
     "1. NOUVEAUX PACKS PRÉPAYÉS DÉGRESSIFS (multiples de 3/12, zéro crédit orphelin) :",
     ...CREDIT_PACKS_LIST.map(
       (p) =>
-        `- ${p.name} (${p.credits} crédits) : ${p.priceHtva.toFixed(0)} € HT (${p.pricePerCredit.toFixed(2).replace(".", ",")} €/cr., -${p.savingsPercent}%)`
+        `- ${p.name} (${p.credits} crédits) : ${p.priceHtva.toFixed(0)} € HT (${p.pricePerCredit.toFixed(2).replace(".", ",")} €/cr., -${p.savingsPercent.toString().replace(".", ",")} %)`
     ),
     "",
     "2. TARIFS CALIBRÉS SUR LA VALEUR RÉELLE DU PROJET :",
