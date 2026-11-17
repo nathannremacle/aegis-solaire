@@ -4,22 +4,15 @@ import * as React from "react"
 import { useState, useEffect } from "react"
 import {
   X,
-  CreditCard,
   ShieldCheck,
-  Zap,
-  CheckCircle2,
+  Check,
   Lock,
   ArrowRight,
   Loader2,
-  Building2,
-  Home,
-  MapPin,
-  FileText,
   AlertCircle,
-  Coins,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { calculateLeadDirectFinancials, formatEurWithDecimals } from "@/lib/credit-pricing"
+import { calculateLeadDirectFinancials } from "@/lib/credit-pricing"
+import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
 import { getLeadLocationInfo } from "@/lib/lead-display-helpers"
 import { toast } from "sonner"
 
@@ -29,6 +22,28 @@ interface DirectLeadPaymentModalProps {
   onClose: () => void
   onSwitchToCredits?: () => void
   partnerCredits?: number
+}
+
+const ACCEPTED_PAYMENT_METHODS = [
+  "Bancontact",
+  "Payconiq QR",
+  "Visa / Mastercard",
+  "Belfius",
+  "KBC / CBC",
+] as const
+
+function formatEurDecimal(amount: number): string {
+  return amount.toLocaleString("fr-BE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+}
+
+function formatPowerKwc(kwc: number): string {
+  return `${kwc.toLocaleString("fr-BE", {
+    minimumFractionDigits: kwc % 1 === 0 ? 0 : 1,
+    maximumFractionDigits: 1,
+  })} kWc`
 }
 
 export function DirectLeadPaymentModal({
@@ -49,29 +64,73 @@ export function DirectLeadPaymentModal({
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose()
+      if (e.key === "Escape") {
+        e.stopPropagation()
+        if (!loading) onClose()
+      }
     }
 
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
-    window.addEventListener("keydown", handleKeyDown)
+    window.addEventListener("keydown", handleKeyDown, true)
 
     return () => {
-      window.removeEventListener("keydown", handleKeyDown)
+      window.removeEventListener("keydown", handleKeyDown, true)
       document.body.style.overflow = prevOverflow
     }
-  }, [isOpen, onClose])
+  }, [isOpen, loading, onClose])
 
   if (!isOpen || !lead) return null
 
   const isB2B = lead.segment === "B2B"
+  const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
+  const remainingSlots = lead.remaining_slots ?? maxSlots
+  const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
+  const hasEnoughCredits = partnerCredits >= cost
+
   const location = getLeadLocationInfo(lead)
+  const leadRefCode = lead.id ? String(lead.id).slice(0, 8).toUpperCase() : "SOLAIRE"
+
   const financials = calculateLeadDirectFinancials({
     segment: lead.segment,
-    credit_cost: lead.credit_cost,
+    credit_cost: cost,
   })
 
-  const hasEnoughCredits = partnerCredits >= financials.credits
+  const rawSurface = Math.max(0, Number(lead.surface_area || lead.surface_area_m2) || 0)
+  const rawAnnualBill = Math.max(
+    0,
+    Number(lead.annual_electricity_bill || lead.annual_bill_eur) || 0
+  )
+
+  const projectFinancials = calculateMarketplaceFinancials({
+    segment: lead.segment,
+    surfaceArea: rawSurface,
+    surfaceType: lead.surface_type,
+    roofMaterial: lead.roof_material,
+    annualBill: rawAnnualBill,
+    creditCost: cost,
+    estimatedPowerKwc: lead.estimated_power_kwc,
+    projectDetails: lead.project_details ?? lead.message,
+    qualificationMetadata: lead.qualification_metadata,
+  })
+
+  const displaySurface = projectFinancials.normalizedSurfaceAreaM2 || rawSurface
+  const displayBill = projectFinancials.normalizedAnnualBill || rawAnnualBill
+  const minContractStr = projectFinancials.estimatedContractValueRange.min.toLocaleString("fr-BE")
+  const maxContractStr = projectFinancials.estimatedContractValueRange.max.toLocaleString("fr-BE")
+
+  const availabilityText = isB2B
+    ? "Exclusivité B2B · 1 seul installateur"
+    : `${remainingSlots} ${remainingSlots > 1 ? "places disponibles" : "place disponible"} sur ${maxSlots}`
+
+  const availabilityBadgeStyle =
+    !isB2B && remainingSlots <= 1
+      ? "bg-[var(--aegis-preference-bg)] text-[var(--aegis-preference-label)]"
+      : "bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)]"
+
+  const priceHtvaLabel = `${formatEurDecimal(financials.priceHtva)} € HT`
+  const vatAmountLabel = `+ ${formatEurDecimal(financials.vatAmount)} €`
+  const priceTtcLabel = `${formatEurDecimal(financials.priceTtc)} € TTC`
 
   const handleProceedToPayment = async () => {
     setLoading(true)
@@ -105,191 +164,305 @@ export function DirectLeadPaymentModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-[2px] animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget && !loading) onClose()
       }}
       role="dialog"
       aria-modal="true"
+      aria-labelledby="direct-pay-dialog-title"
+      aria-describedby="direct-pay-dialog-desc"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-200 overscroll-contain"
+        className="relative flex flex-col w-full sm:max-w-[540px] max-h-[94dvh] sm:max-h-[92dvh] overflow-hidden rounded-t-[14px] sm:rounded-[14px] border-t sm:border border-[var(--aegis-border)] bg-[var(--aegis-surface)] text-[var(--aegis-ink)] shadow-xl animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200"
       >
-        {/* Bouton de fermeture */}
-        <button
-          type="button"
-          disabled={loading}
-          onClick={onClose}
-          className="absolute right-4 top-4 rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer disabled:opacity-50"
-          aria-label="Fermer la modal"
-        >
-          <X className="h-5 w-5" />
-        </button>
+        {/* ── 1. En-tête fixe du dialogue ── */}
+        <header className="shrink-0 border-b border-[var(--aegis-divider)] bg-[var(--aegis-surface)] px-4 pt-2 pb-2.5 sm:px-6 sm:pt-4 sm:pb-3.5">
+          <div
+            className="sm:hidden mx-auto mb-1.5 h-1 w-9 rounded-full bg-[var(--aegis-border)]"
+            aria-hidden="true"
+          />
 
-        {/* En-tête */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
-            <CreditCard className="h-5 w-5" />
-          </div>
-          <div>
-            <h3 className="text-base sm:text-lg font-bold text-foreground">
-              Paiement Direct par Dossier (€)
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Sans pack requis • Déblocage immédiat & coordonnées complètes
-            </p>
-          </div>
-        </div>
-
-        {/* Fiche récapitulative du dossier */}
-        <div className="mt-4 rounded-xl border border-border bg-secondary/30 p-3.5 flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-background border border-border text-foreground">
-              {isB2B ? <Building2 className="h-3 w-3 text-accent" /> : <Home className="h-3 w-3 text-emerald-600" />}
-              <span>{isB2B ? "B2B Professionnel" : "B2C Résidentiel"}</span>
-            </span>
-            <span className="font-mono text-xs text-muted-foreground">
-              Réf : #{lead.id.slice(0, 8)}
-            </span>
-          </div>
+            <p className="text-[12px] sm:text-[13px] font-semibold text-[var(--aegis-context)] whitespace-nowrap">
+              Paiement à l&apos;unité
+            </p>
 
-          <div className="flex items-center gap-2 text-xs text-foreground font-semibold">
-            <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <span>
-              {location.fullTitle} • {location.provinceLabel}
-            </span>
-          </div>
-
-          {(lead.surface_area || lead.annual_electricity_bill) && (
-            <div className="flex items-center gap-4 text-xs text-muted-foreground font-mono tabular-nums pt-1 border-t border-border/60">
-              {lead.surface_area && (
-                <span>Toiture : <strong className="text-foreground">{lead.surface_area} m²</strong></span>
-              )}
-              {lead.annual_electricity_bill && (
-                <span>Facture : <strong className="text-foreground">{lead.annual_electricity_bill.toLocaleString("fr-BE")} €/an</strong></span>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Décomposition comptable B2B officielle */}
-        <div className="mt-4 rounded-xl border border-border bg-card p-4 flex flex-col gap-3 shadow-2xs">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Prestation déblocage de contact qualifié</span>
-            <span className="font-mono tabular-nums text-foreground font-semibold">
-              {financials.priceHtva.toFixed(2)} € HTVA
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>TVA légale belge (21 % déductible)</span>
-            <span className="font-mono tabular-nums text-foreground">
-              + {financials.vatAmount.toFixed(2)} €
-            </span>
-          </div>
-
-          <div className="pt-2 border-t border-border flex items-baseline justify-between">
-            <div>
-              <span className="text-xs font-bold text-foreground">Total à régler TTC :</span>
-              <p className="text-[10px] text-muted-foreground">Justificatif B2B acquitté envoyé par e-mail</p>
-            </div>
-            <div className="text-right">
-              <span className="font-mono text-2xl font-black text-foreground tabular-nums">
-                {financials.priceTtc.toFixed(2)} €
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="font-mono text-[12px] tabular-nums text-[var(--aegis-muted)] whitespace-nowrap">
+                Dossier #{leadRefCode}
               </span>
-              <span className="text-xs font-normal text-muted-foreground ml-1">TTC</span>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={onClose}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-[6px] text-[var(--aegis-muted)] hover:bg-[var(--aegis-surface-subtle)] hover:text-[var(--aegis-ink)] transition-colors cursor-pointer disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
+                aria-label="Fermer la fenêtre de paiement"
+              >
+                <X className="h-4.5 w-4.5" />
+              </button>
             </div>
           </div>
-        </div>
 
-        {/* Moyens de paiement acceptés (Belgique) */}
-        <div className="mt-4 rounded-xl border border-border/70 bg-secondary/20 p-3 flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-              Paiement 100% sécurisé via Mollie
+          <h2
+            id="direct-pay-dialog-title"
+            className="mt-0.5 text-[19px] sm:text-[22px] font-bold leading-[1.2] tracking-[-0.025em] text-[var(--aegis-ink)]"
+          >
+            Déblocage · <span className="font-mono tabular-nums">{location.fullTitle}</span>
+          </h2>
+
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <span
+              id="direct-pay-dialog-desc"
+              className="text-[12.5px] sm:text-[13px] text-[var(--aegis-muted)]"
+            >
+              {location.provinceLabel} · {isB2B ? "Projet B2B" : "Résidentiel B2C"}
             </span>
-            <span className="text-[10px] font-mono text-emerald-600 font-semibold flex items-center gap-1">
-              <Lock className="h-3 w-3" /> SSL 256-bit
+            <span
+              className={`inline-flex items-center rounded-[5px] px-2 py-0.5 text-[11px] font-bold tabular-nums ${availabilityBadgeStyle}`}
+            >
+              {availabilityText}
             </span>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-foreground font-medium">
-            <span className="rounded bg-background px-2 py-0.5 border border-border font-mono">Bancontact</span>
-            <span className="rounded bg-background px-2 py-0.5 border border-border font-mono">Payconiq QR</span>
-            <span className="rounded bg-background px-2 py-0.5 border border-border font-mono">Visa / Mastercard</span>
-            <span className="rounded bg-background px-2 py-0.5 border border-border font-mono">Belfius Direct</span>
-            <span className="rounded bg-background px-2 py-0.5 border border-border font-mono">KBC / CBC</span>
+        </header>
+
+        {/* ── 2. Corps déroulant (div interne bloque le flex-shrink des sections) ── */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3 sm:px-6 sm:py-4">
+          <div className="flex flex-col gap-2.5 sm:gap-3.5">
+            {/* Bloc A : Synthèse chiffrée & contenu débloqué */}
+            <section className="rounded-[8px] border border-[var(--aegis-border)] bg-[var(--aegis-summary)] overflow-hidden">
+              <div className="grid grid-cols-2 divide-x divide-[var(--aegis-divider)]">
+                <div className="p-2.5 sm:p-3.5 min-w-0">
+                  <span className="block text-[11.5px] sm:text-[12px] text-[var(--aegis-muted)] leading-[1.35]">
+                    Puissance estimée
+                  </span>
+                  <strong className="mt-0.5 block text-[16px] sm:text-[18px] font-bold leading-[1.2] tracking-[-0.02em] text-[var(--aegis-ink)] font-mono tabular-nums whitespace-nowrap">
+                    {projectFinancials.estimatedPowerKwc > 0
+                      ? `~${formatPowerKwc(projectFinancials.estimatedPowerKwc)}`
+                      : "À dimensionner"}
+                  </strong>
+                </div>
+
+                <div className="p-2.5 sm:p-3.5 min-w-0">
+                  <span className="block text-[11.5px] sm:text-[12px] text-[var(--aegis-muted)] leading-[1.35]">
+                    Devis estimé
+                  </span>
+                  <strong className="mt-0.5 block text-[14.5px] sm:text-[16.5px] font-bold leading-[1.25] tracking-[-0.02em] text-[var(--aegis-ink)] font-mono tabular-nums">
+                    {minContractStr} à{" "}
+                    <span className="whitespace-nowrap">{maxContractStr} € HT</span>
+                  </strong>
+                </div>
+              </div>
+
+              <div className="border-t border-[var(--aegis-divider)] bg-[var(--aegis-surface)] px-3 sm:px-3.5 py-2 sm:py-2.5 flex flex-col gap-1">
+                {(displaySurface > 0 || displayBill > 0) && (
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[12px] sm:text-[12.5px] text-[var(--aegis-muted)]">
+                    {displaySurface > 0 && (
+                      <span className="whitespace-nowrap">
+                        Toiture :{" "}
+                        <strong className="font-mono tabular-nums font-semibold text-[var(--aegis-ink)]">
+                          {displaySurface.toLocaleString("fr-BE")} m²
+                        </strong>
+                      </span>
+                    )}
+                    {displaySurface > 0 && displayBill > 0 && (
+                      <span className="text-[var(--aegis-muted)]" aria-hidden="true">
+                        ·
+                      </span>
+                    )}
+                    {displayBill > 0 && (
+                      <span className="whitespace-nowrap">
+                        Facture :{" "}
+                        <strong className="font-mono tabular-nums font-semibold text-[var(--aegis-ink)]">
+                          {displayBill.toLocaleString("fr-BE")} €/an
+                        </strong>
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex items-start gap-1.5 text-[12px] sm:text-[12.5px] leading-[1.4] text-[var(--aegis-ink)]">
+                  <Check
+                    className="h-3.5 w-3.5 shrink-0 mt-0.5 text-[var(--aegis-availability-text)]"
+                    strokeWidth={2.25}
+                    aria-hidden="true"
+                  />
+                  <span>
+                    Inclus : nom, téléphone, e-mail, adresse exacte et ajout au CRM.
+                  </span>
+                </div>
+              </div>
+            </section>
+
+            {/* Bloc B : Décompte comptable B2B */}
+            <section
+              aria-label="Décompte comptable B2B"
+              className="rounded-[8px] border border-[var(--aegis-border)] bg-[var(--aegis-surface)] overflow-hidden"
+            >
+              <div className="px-3.5 py-1.5 sm:px-4">
+                <div className="py-1.5 flex items-baseline justify-between gap-3 border-b border-[var(--aegis-divider)]">
+                  <span className="text-[12.5px] sm:text-[13px] text-[var(--aegis-muted)] min-w-0">
+                    Déblocage de contact qualifié
+                  </span>
+                  <span className="shrink-0 whitespace-nowrap text-right font-mono text-[13.5px] sm:text-[14px] font-semibold tabular-nums text-[var(--aegis-ink)]">
+                    {priceHtvaLabel}
+                  </span>
+                </div>
+
+                <div className="py-1.5 flex items-baseline justify-between gap-3">
+                  <span className="text-[12.5px] sm:text-[13px] text-[var(--aegis-muted)] min-w-0">
+                    TVA belge déductible (<span className="font-mono tabular-nums">21 %</span>)
+                  </span>
+                  <span className="shrink-0 whitespace-nowrap text-right font-mono text-[13.5px] sm:text-[14px] font-medium tabular-nums text-[var(--aegis-ink)]">
+                    {vatAmountLabel}
+                  </span>
+                </div>
+              </div>
+
+              <div className="border-t border-[var(--aegis-border)] bg-[var(--aegis-summary)] px-3.5 py-2.5 sm:px-4 sm:py-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <span className="block text-[13.5px] sm:text-[14px] font-bold leading-[1.3] text-[var(--aegis-ink)]">
+                    Total à régler
+                  </span>
+                  <span className="block text-[11.5px] sm:text-[12px] leading-[1.35] text-[var(--aegis-muted)]">
+                    Justificatif B2B acquitté envoyé par e-mail
+                  </span>
+                </div>
+
+                <strong className="shrink-0 whitespace-nowrap text-right font-mono text-[19px] sm:text-[22px] font-bold leading-[1.15] tracking-[-0.025em] tabular-nums text-[var(--aegis-ink)]">
+                  {priceTtcLabel}
+                </strong>
+              </div>
+            </section>
+
+            {/* Bloc C : Moyens de paiement Mollie & Garantie conformité */}
+            <section className="rounded-[8px] border border-[var(--aegis-border)] bg-[var(--aegis-surface-subtle)] px-3.5 py-2.5 sm:px-4 sm:py-3 flex flex-col gap-2.5">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1.5 text-[12px] sm:text-[12.5px] font-semibold text-[var(--aegis-ink)]">
+                    <Lock
+                      className="h-3.5 w-3.5 shrink-0 text-[var(--aegis-context)]"
+                      aria-hidden="true"
+                    />
+                    <span>Paiement sécurisé Mollie</span>
+                  </span>
+                  <span className="shrink-0 whitespace-nowrap rounded-[4px] bg-[var(--aegis-availability-bg)] px-2 py-0.5 font-mono text-[11px] font-bold tabular-nums text-[var(--aegis-availability-text)]">
+                    SSL 256-bit
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {ACCEPTED_PAYMENT_METHODS.map((method) => (
+                    <span
+                      key={method}
+                      className="rounded-[5px] border border-[var(--aegis-border)] bg-[var(--aegis-surface)] px-2 py-0.5 text-[11px] sm:text-[11.5px] font-medium text-[var(--aegis-ink)] whitespace-nowrap"
+                    >
+                      {method}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-[var(--aegis-divider)] flex items-start gap-2 text-[11.5px] sm:text-[12px] leading-[1.4] text-[var(--aegis-muted)]">
+                <ShieldCheck
+                  className="h-4 w-4 shrink-0 mt-0.5 text-[var(--aegis-context)]"
+                  aria-hidden="true"
+                />
+                <span>
+                  <strong className="font-semibold text-[var(--aegis-ink)]">
+                    Garantie conformité :
+                  </strong>{" "}
+                  numéro erroné ou prospect injoignable après{" "}
+                  <span className="font-mono tabular-nums font-medium text-[var(--aegis-ink)]">
+                    3
+                  </span>{" "}
+                  tentatives, signalé sous{" "}
+                  <span className="font-mono tabular-nums font-medium text-[var(--aegis-ink)]">
+                    7 jours
+                  </span>{" "}
+                  ouvrés, recrédité sous{" "}
+                  <span className="font-mono tabular-nums font-medium text-[var(--aegis-ink)]">
+                    24 h
+                  </span>{" "}
+                  ouvrées.
+                </span>
+              </div>
+            </section>
+
+            {error && (
+              <div
+                role="alert"
+                className="flex items-start gap-2 rounded-[8px] border border-[var(--aegis-danger-text)]/25 bg-[var(--aegis-danger-bg)] px-3.5 py-2.5 text-[12.5px] sm:text-[13px] leading-[1.4] text-[var(--aegis-danger-text)]"
+              >
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
+                <span>{error}</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Garanties Aegis Solaire */}
-        <div className="mt-3 flex items-start gap-2 text-xs text-muted-foreground px-1">
-          <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-          <span>
-            <strong>Garantie Sérénité 48h</strong> : si le numéro est erroné ou injoignable après 3 tentatives vérifiables, le dossier fait l&apos;objet d&apos;un avoir ou recrédit immédiat.
-          </span>
-        </div>
-
-        {error && (
-          <div className="mt-3 flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {/* Boutons d'action */}
-        <div className="mt-5 flex flex-col gap-2.5">
-          <Button
+        {/* ── 3. Pied d'action fixe (toujours accessible sur mobile) ── */}
+        <footer className="shrink-0 border-t border-[var(--aegis-divider)] bg-[var(--aegis-surface)] px-4 pt-3 pb-3 sm:px-6 sm:py-4 [padding-bottom:max(0.75rem,env(safe-area-inset-bottom))] flex flex-col gap-2">
+          <button
             type="button"
             disabled={loading}
             onClick={handleProceedToPayment}
-            className="w-full h-11 text-xs sm:text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm gap-2"
+            className="w-full min-h-[46px] sm:min-h-[48px] inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-[6px] bg-[var(--aegis-ink)] hover:bg-[var(--aegis-primary-hover)] disabled:opacity-60 px-3 sm:px-4 py-2.5 text-[14px] sm:text-[15px] font-bold text-white whitespace-nowrap cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
           >
             {loading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Initialisation bancaire sécurisée...</span>
+                <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden="true" />
+                <span>Redirection bancaire sécurisée…</span>
               </>
             ) : (
               <>
-                <CreditCard className="h-4 w-4" />
-                <span>Régler {financials.priceTtc.toFixed(2)} € TTC & Débloquer</span>
-                <ArrowRight className="h-4 w-4 ml-auto" />
+                <Lock className="h-4 w-4 shrink-0 opacity-90" aria-hidden="true" />
+                <span>
+                  Régler{" "}
+                  <span className="font-mono tabular-nums whitespace-nowrap">
+                    {priceTtcLabel}
+                  </span>{" "}
+                  &amp; débloquer
+                </span>
+                <ArrowRight className="h-4 w-4 shrink-0" aria-hidden="true" />
               </>
             )}
-          </Button>
+          </button>
 
-          {/* Option alternative : utiliser les crédits si le solde le permet ou recharger */}
-          {hasEnoughCredits && onSwitchToCredits ? (
-            <button
-              type="button"
-              disabled={loading}
-              onClick={() => {
-                onClose()
-                onSwitchToCredits()
-              }}
-              className="text-center text-xs text-accent hover:underline font-medium cursor-pointer py-1"
-            >
-              Ou débloquer en 1 clic avec mes crédits ({financials.credits} crédits sur {partnerCredits} disponibles)
-            </button>
-          ) : (
-            <div className="text-center text-[11px] text-muted-foreground pt-1">
-              Vous préférez débloquer en 1 clic ?{" "}
+          {onSwitchToCredits &&
+            (hasEnoughCredits ? (
               <button
                 type="button"
+                disabled={loading}
                 onClick={() => {
                   onClose()
-                  if (onSwitchToCredits) onSwitchToCredits()
+                  onSwitchToCredits()
                 }}
-                className="text-accent hover:underline font-semibold cursor-pointer"
+                className="w-full py-0.5 text-center text-[12.5px] sm:text-[13px] font-semibold text-[var(--aegis-link)] underline underline-offset-4 hover:text-[var(--aegis-ink)] cursor-pointer disabled:opacity-50 rounded-[5px] focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
               >
-                Recharger un pack de crédits
+                Utiliser mes crédits (
+                <span className="font-mono tabular-nums">{financials.credits}</span> sur{" "}
+                <span className="font-mono tabular-nums">{partnerCredits}</span> disponibles)
               </button>
-            </div>
-          )}
-        </div>
+            ) : (
+              <p className="text-center text-[12px] sm:text-[12.5px] text-[var(--aegis-muted)] leading-[1.4]">
+                Vous préférez débloquer en 1 clic ?{" "}
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => {
+                    onClose()
+                    onSwitchToCredits()
+                  }}
+                  className="font-semibold text-[var(--aegis-link)] underline underline-offset-4 hover:text-[var(--aegis-ink)] cursor-pointer disabled:opacity-50 rounded-[5px] focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
+                >
+                  Recharger des crédits
+                </button>
+              </p>
+            ))}
+        </footer>
       </div>
     </div>
   )
 }
-
