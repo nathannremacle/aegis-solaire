@@ -3,6 +3,7 @@ import { revalidateTag, revalidatePath } from "next/cache"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { isB2COptedOutEmail, resolvePartnerSegment } from "@/lib/partner-notification-prefs"
+import { enrichPartnerBceData } from "@/lib/accounting/invoice-service"
 
 type ApplicationRow = {
   id: string
@@ -232,6 +233,10 @@ export async function PATCH(
     const partnerId = partnerSync?.partnerId
 
     if (partnerId) {
+      // Enrichissement non bloquant BCE/TVA + siège social pour la facturation B2B Peppol
+      enrichPartnerBceData(partnerId, app.siret).catch((err) => {
+        console.warn("[admin/applications] enrichPartnerBceData warning:", err)
+      })
       try {
         const { data: fullPartner } = await supabase
           .from("partners")

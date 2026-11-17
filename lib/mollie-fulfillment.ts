@@ -11,6 +11,11 @@ import {
   buildCreditOrderConfirmationEmail,
   buildLeadDirectPurchaseConfirmationEmail,
 } from "@/lib/email-templates/installer-transactional"
+import { calculateOrderFinancials } from "@/lib/credit-pricing"
+import {
+  ensureInvoiceForCreditOrder,
+  ensureInvoiceForLeadPurchase,
+} from "@/lib/accounting/invoice-service"
 
 export interface FulfillmentResult {
   success: boolean
@@ -80,13 +85,14 @@ export async function fulfillPaidCreditOrder(
     console.warn("[Mollie Fulfillment] Audit log warning:", e)
   }
 
-  // 6. E-mail de confirmation & justificatif comptable B2B à l'installateur
+  // 6. Émission de la facture séquentielle conforme & e-mail à l'installateur
+  const issuedInvoice = await ensureInvoiceForCreditOrder(order.id)
   const partnerEmail = order.partners?.email
   if (partnerEmail && process.env.RESEND_API_KEY) {
     try {
       const resend = new Resend(process.env.RESEND_API_KEY)
       const fromEmail = process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com"
-      const invoiceRef = order.transfer_reference || `AEGIS-${order.id.slice(0, 8).toUpperCase()}`
+      const invoiceRef = issuedInvoice.invoiceNumber || order.transfer_reference || `AEGIS-${order.id.slice(0, 8).toUpperCase()}`
       const rendered = buildCreditOrderConfirmationEmail({
         orderId: order.id,
         invoiceRef,
@@ -241,9 +247,10 @@ export async function fulfillPaidLeadDirectPurchase(
 
   const meta = (payment.metadata as any) || {}
   const creditsEquivalent = Number(meta.credits || lead.credit_cost || (isB2B ? 9 : 3))
-  const priceHtva = meta.priceHtva ? Number(meta.priceHtva).toFixed(2) : ((creditsEquivalent * 1150) / 100).toFixed(2)
-  const vatAmount = meta.vatAmount ? Number(meta.vatAmount).toFixed(2) : (Number(priceHtva) * 0.21).toFixed(2)
-  const priceTtc = meta.priceTtc ? Number(meta.priceTtc).toFixed(2) : (Number(priceHtva) + Number(vatAmount)).toFixed(2)
+  const v2Fallback = calculateOrderFinancials(creditsEquivalent)
+  const priceHtva = meta.priceHtva ? Number(meta.priceHtva).toFixed(2) : v2Fallback.priceHtva.toFixed(2)
+  const vatAmount = meta.vatAmount ? Number(meta.vatAmount).toFixed(2) : v2Fallback.vatAmount.toFixed(2)
+  const priceTtc = meta.priceTtc ? Number(meta.priceTtc).toFixed(2) : v2Fallback.priceTtc.toFixed(2)
 
   // 5. Insérer l'achat dans lead_purchases
   const { data: purchase, error: purchaseErr } = await supabase
@@ -291,12 +298,21 @@ export async function fulfillPaidLeadDirectPurchase(
     console.warn("[Mollie Lead Fulfillment] Audit log warning:", auditErr)
   }
 
-  // 8. E-mail de confirmation & Justificatif comptable B2B à l'installateur
+  // 8. Émission de la facture séquentielle conforme & e-mail à l'installateur
+  const issuedLeadInvoice = await ensureInvoiceForLeadPurchase({
+    purchaseId: purchase.id,
+    paymentId: payment.id,
+    paymentMethod: payment.method || "Bancontact",
+    priceHtva: Number(priceHtva),
+    vatAmount: Number(vatAmount),
+    priceTtc: Number(priceTtc),
+  })
+
   if (partner.email && process.env.RESEND_API_KEY) {
     try {
       const resend = new Resend(process.env.RESEND_API_KEY)
       const fromEmail = process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com"
-      const invoiceRef = `AEGIS-LEAD-${payment.id.slice(-8).toUpperCase()}`
+      const invoiceRef = issuedLeadInvoice.invoiceNumber || `AEGIS-LEAD-${payment.id.slice(-8).toUpperCase()}`
       const leadName = `${lead.first_name || ""} ${lead.last_name || ""}`.trim() || "Prospect Photovoltaïque"
       const rawPref = (lead.contact_preference || (lead.qualification_metadata as any)?.contactPreference || "") as string
       const contactPreferenceLabel = rawPref === "direct_call"

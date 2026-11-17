@@ -5,6 +5,7 @@ import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { z } from "zod"
 import { Resend } from "resend"
 import { buildCreditOrderConfirmationEmail } from "@/lib/email-templates/installer-transactional"
+import { ensureInvoiceForCreditOrder } from "@/lib/accounting/invoice-service"
 
 export async function PATCH(
   request: NextRequest,
@@ -66,12 +67,13 @@ export async function PATCH(
       })
     } catch { /* silent */ }
 
-    // 5. Email de notification & justificatif comptable B2B au partenaire
+    // 5. Émission de la facture séquentielle & Email de notification au partenaire
+    const issuedInvoice = await ensureInvoiceForCreditOrder(id)
     const partnerEmail = order.partners?.email
     if (partnerEmail && process.env.RESEND_API_KEY) {
       try {
         const resend = new Resend(process.env.RESEND_API_KEY)
-        const invoiceRef = order.transfer_reference || `AEGIS-${order.id.slice(0, 8).toUpperCase()}`
+        const invoiceRef = issuedInvoice.invoiceNumber || order.transfer_reference || `AEGIS-${order.id.slice(0, 8).toUpperCase()}`
         const rendered = buildCreditOrderConfirmationEmail({
           orderId: order.id,
           invoiceRef,

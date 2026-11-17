@@ -2,13 +2,15 @@ import { redirect } from "next/navigation"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { getAdminDashboardData } from "@/lib/admin/queries"
+import { getUnifiedAccountingData } from "@/lib/accounting/invoice-service"
 import { FinanceClient, type CreditOrder, type FinanceKpis } from "./finance-client"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
 export const metadata = {
-  title: "Finances & Commandes",
-  description: "Contrôle financier, suivi des encaissements Mollie et facturation des packs de crédits",
+  title: "Cockpit Comptable, TVA & Finances | INIT42",
+  description:
+    "Comptabilité autonome INIT42, facturation séquentielle B2B, exports Peppol UBL 2.1, suivi TVA Intervat et journal des dépenses.",
 }
 
 export default async function AdminFinancePage() {
@@ -17,39 +19,39 @@ export default async function AdminFinancePage() {
 
   const supabase = createServiceRoleClient()
 
-  // 1. Charger les commandes de crédits avec le profil partenaire associé
-  const { data: ordersData } = await supabase
-    .from("credit_orders")
-    .select(`
-      id,
-      partner_id,
-      pack_id,
-      pack_name,
-      credits,
-      price_htva,
-      vat_amount,
-      price_ttc,
-      transfer_reference,
-      status,
-      created_at,
-      validated_at,
-      notes,
-      payment_provider,
-      payment_id,
-      checkout_url,
-      partners (
+  const [ordersRes, dashboardData, initialAccounting] = await Promise.all([
+    supabase
+      .from("credit_orders")
+      .select(`
         id,
-        company_name,
-        email,
-        phone,
-        credits
-      )
-    `)
-    .order("created_at", { ascending: false })
-    .limit(150)
-
-  // 2. Charger les KPIs financiers
-  const dashboardData = await getAdminDashboardData({ fresh: true })
+        partner_id,
+        pack_id,
+        pack_name,
+        credits,
+        price_htva,
+        vat_amount,
+        price_ttc,
+        transfer_reference,
+        status,
+        created_at,
+        validated_at,
+        notes,
+        payment_provider,
+        payment_id,
+        checkout_url,
+        partners (
+          id,
+          company_name,
+          email,
+          phone,
+          credits
+        )
+      `)
+      .order("created_at", { ascending: false })
+      .limit(150),
+    getAdminDashboardData({ fresh: true }),
+    getUnifiedAccountingData(),
+  ])
 
   const kpis: FinanceKpis = {
     paid_htva_month: dashboardData.revenue.paid_htva_month ?? 0,
@@ -61,7 +63,7 @@ export default async function AdminFinancePage() {
     total_partner_credits_balance: dashboardData.partners.total_partner_credits_balance ?? 0,
   }
 
-  const initialOrders: CreditOrder[] = ((ordersData as any) ?? []).map((o: any) => ({
+  const initialOrders: CreditOrder[] = ((ordersRes.data as any) ?? []).map((o: any) => ({
     id: o.id,
     partner_id: o.partner_id,
     pack_id: o.pack_id,
@@ -86,6 +88,7 @@ export default async function AdminFinancePage() {
       initialOrders={initialOrders}
       kpis={kpis}
       adminEmail={user.email}
+      initialAccounting={initialAccounting}
     />
   )
 }
