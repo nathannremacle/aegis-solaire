@@ -773,93 +773,65 @@ export function LeadInspectionDrawer({
           </div>
         </div>
 
-        {/* ── 3. Pied Fixe avec CTA Unique et Tarif Transparent (Sticky Bottom Bar Adaptatif) ── */}
-        <div className="shrink-0 border-t border-border bg-card p-3.5 sm:p-5 [padding-bottom:max(1rem,env(safe-area-inset-bottom))] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-          <div className="flex items-center justify-between sm:flex-col sm:items-start gap-1">
-            {!isPurchased ? (
-              <div className="flex sm:flex-col items-baseline sm:items-start justify-between w-full sm:w-auto gap-2">
-                <div className="flex flex-col">
-                  <div className="flex items-baseline gap-1.5 flex-wrap">
-                    <span className="font-mono text-2xl font-black text-foreground tabular-nums">{cost}</span>
-                    <span className="text-xs font-bold text-muted-foreground">crédits</span>
-                    <span className="text-xs text-muted-foreground font-medium">ou</span>
-                    <span className="font-mono text-base sm:text-lg font-black text-foreground tabular-nums">
-                      {directFinancials.priceHtva.toFixed(2)} € <span className="text-xs font-normal text-muted-foreground">HT</span>
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground font-mono tabular-nums">
-                    ({directFinancials.priceTtc.toFixed(2)} € TTC · TVA 21% comprise)
-                  </span>
-                </div>
-                <div className="text-[11px] text-muted-foreground text-right sm:text-left">
-                  {isDemo ? (
-                    <span className="font-semibold text-accent flex items-center gap-1">
-                      <ShieldCheck className="h-3.5 w-3.5" /> Réservé aux partenaires RESCERT
-                    </span>
-                  ) : (
-                    <>
-                      Solde : <strong className="font-mono text-foreground tabular-nums">{partnerCredits} crédits</strong>
-                    </>
-                  )}
-                </div>
+        {/* ── 3. Pied Fixe Compact & Hiérarchisé (Adapté au tiroir 540px et mobile) ── */}
+        <div className="shrink-0 border-t border-border bg-card p-3.5 sm:px-5 sm:py-4 [padding-bottom:max(1rem,env(safe-area-inset-bottom))] flex flex-col gap-2.5 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+          {/* Rangée 1 : Synthèse tarifaire nette sur 1 ligne */}
+          {!isPurchased ? (
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 min-w-0">
+                <span className="font-mono text-xl font-black text-foreground tabular-nums">
+                  {cost}
+                </span>
+                <span className="text-xs font-bold text-muted-foreground">
+                  crédit{cost > 1 ? "s" : ""}
+                </span>
+                <span className="text-xs text-muted-foreground">· ou</span>
+                <span className="font-mono text-sm sm:text-base font-extrabold text-foreground tabular-nums whitespace-nowrap">
+                  {directFinancials.priceHtva.toFixed(2).replace(".", ",")} € HT
+                </span>
+                <span className="text-[11px] font-mono text-muted-foreground tabular-nums whitespace-nowrap">
+                  ({directFinancials.priceTtc.toFixed(2).replace(".", ",")} € TTC)
+                </span>
               </div>
-            ) : (
-              <span className="text-xs font-semibold text-emerald-600">
-                ✓ Dossier présent dans votre CRM
-              </span>
-            )}
-          </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-            {!isPurchased && (
-              isDemo ? (
+              <div className="text-[11px] text-muted-foreground shrink-0 whitespace-nowrap">
+                {isDemo ? (
+                  <span className="font-semibold text-accent inline-flex items-center gap-1">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    <span>Réservé RESCERT</span>
+                  </span>
+                ) : (
+                  <>
+                    Solde :{" "}
+                    <strong className="font-mono text-foreground tabular-nums">
+                      {partnerCredits} cr.
+                    </strong>
+                  </>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-emerald-700">
+                ✓ Dossier déjà présent dans votre CRM
+              </span>
+            </div>
+          )}
+
+          {/* Rangée 2 : Actions empilées proprement (zéro écrasement / zéro bouton coupé) */}
+          {!isPurchased && (
+            <div className="flex flex-col gap-2 w-full">
+              {isDemo ? (
                 <Button
                   variant="default"
                   onClick={() => onPurchase(lead)}
-                  className="font-bold h-11 px-5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm w-full sm:w-auto"
+                  className="font-bold h-11 w-full px-4 text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm"
                 >
-                  <Unlock className="h-4 w-4 mr-1.5" />
+                  <Unlock className="h-4 w-4 mr-1.5 shrink-0" />
                   <span>Débloquer ce dossier ({cost} crédits)</span>
                 </Button>
               ) : hasEnoughCredits ? (
                 <>
-                  <Button
-                    variant="outline"
-                    type="button"
-                    onClick={() => {
-                      recordUnlockIntent("direct_pay")
-                      setDirectPayExclusive(false)
-                      setIsDirectPayOpen(true)
-                    }}
-                    className="font-bold h-11 px-3.5 text-xs border-border hover:bg-secondary cursor-pointer w-full sm:w-auto shadow-2xs"
-                    title="Payer directement en euros par Bancontact/Carte sans débiter vos crédits"
-                  >
-                    <CreditCard className="h-4 w-4 mr-1.5 text-accent" />
-                    <span>Payer {directFinancials.priceHtva.toFixed(2)} € HT</span>
-                  </Button>
-                  {canTakeExclusiveB2C && (
-                    <Button
-                      variant="outline"
-                      disabled={isBuying}
-                      onClick={() => {
-                        if (partnerCredits >= B2C_EXCLUSIVE_CREDIT_COST) {
-                          recordUnlockIntent("credits")
-                          onPurchase(lead, { exclusive: true })
-                        } else {
-                          recordUnlockIntent("direct_pay")
-                          setDirectPayExclusive(true)
-                          setIsDirectPayOpen(true)
-                        }
-                      }}
-                      className="font-bold h-11 px-3.5 text-xs border-emerald-600/40 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 cursor-pointer w-full sm:w-auto shadow-2xs"
-                      title="Réserver ce dossier B2C pour vous seul (0 concurrent + e-mail prioritaire au prospect)"
-                    >
-                      <Unlock className="h-4 w-4 mr-1.5 text-emerald-700" />
-                      <span>
-                        Exclusivité 100 % ({B2C_EXCLUSIVE_CREDIT_COST} cr. · {B2C_EXCLUSIVE_PRICE_EUR.toFixed(0)} € HT)
-                      </span>
-                    </Button>
-                  )}
                   <Button
                     variant="default"
                     disabled={isBuying}
@@ -867,35 +839,75 @@ export function LeadInspectionDrawer({
                       recordUnlockIntent("credits")
                       onPurchase(lead)
                     }}
-                    className="font-bold h-11 px-5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm w-full sm:w-auto"
+                    className="font-bold h-11 w-full px-4 text-xs sm:text-[13px] bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm"
                   >
                     {isBuying ? (
                       <>
-                        <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                        Déblocage...
+                        <Loader2 className="h-4 w-4 mr-1.5 animate-spin shrink-0" />
+                        <span>Déblocage en cours...</span>
                       </>
                     ) : (
                       <>
-                        <Unlock className="h-4 w-4 mr-1.5" />
-                        <span>Débloquer ({cost} crédits)</span>
+                        <Unlock className="h-4 w-4 mr-1.5 shrink-0" />
+                        <span>
+                          Débloquer ce dossier (
+                          <span className="font-mono tabular-nums">{cost}</span> crédits)
+                        </span>
                       </>
                     )}
                   </Button>
+
+                  <div
+                    className={`grid gap-2 ${
+                      canTakeExclusiveB2C ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
+                    }`}
+                  >
+                    <Button
+                      variant="outline"
+                      type="button"
+                      onClick={() => {
+                        recordUnlockIntent("direct_pay")
+                        setDirectPayExclusive(false)
+                        setIsDirectPayOpen(true)
+                      }}
+                      className="font-bold h-9.5 px-3 text-xs border-border hover:bg-secondary cursor-pointer w-full shadow-2xs"
+                      title="Payer directement en euros par Bancontact/Carte sans débiter vos crédits"
+                    >
+                      <CreditCard className="h-3.5 w-3.5 mr-1.5 text-accent shrink-0" />
+                      <span className="truncate font-mono tabular-nums">
+                        Payer {directFinancials.priceHtva.toFixed(2).replace(".", ",")} € HT
+                      </span>
+                    </Button>
+
+                    {canTakeExclusiveB2C && (
+                      <Button
+                        variant="outline"
+                        type="button"
+                        disabled={isBuying}
+                        onClick={() => {
+                          if (partnerCredits >= B2C_EXCLUSIVE_CREDIT_COST) {
+                            recordUnlockIntent("credits")
+                            onPurchase(lead, { exclusive: true })
+                          } else {
+                            recordUnlockIntent("direct_pay")
+                            setDirectPayExclusive(true)
+                            setIsDirectPayOpen(true)
+                          }
+                        }}
+                        className="font-bold h-9.5 px-3 text-xs border-[var(--aegis-availability-text)]/35 bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] hover:bg-[var(--aegis-availability-bg)]/80 cursor-pointer w-full shadow-2xs"
+                        title="Réserver ce dossier B2C pour vous seul (0 concurrent + e-mail prioritaire au prospect)"
+                      >
+                        <ShieldCheck className="h-3.5 w-3.5 mr-1.5 shrink-0" />
+                        <span className="truncate">
+                          Exclusivité 100 % (<span className="font-mono tabular-nums">{B2C_EXCLUSIVE_CREDIT_COST}</span> cr. ·{" "}
+                          <span className="font-mono tabular-nums">{B2C_EXCLUSIVE_PRICE_EUR.toFixed(0)}</span> € HT)
+                        </span>
+                      </Button>
+                    )}
+                  </div>
                 </>
               ) : (
                 <>
-                  <Button
-                    variant="outline"
-                    type="button"
-                    onClick={() => {
-                      recordUnlockIntent("insufficient_credits")
-                      onRequestTopUp()
-                    }}
-                    className="font-bold h-11 px-3.5 text-xs border-border hover:bg-secondary cursor-pointer w-full sm:w-auto"
-                  >
-                    <Coins className="h-4 w-4 mr-1.5 text-accent" />
-                    Recharger des crédits
-                  </Button>
                   <Button
                     variant="default"
                     type="button"
@@ -904,30 +916,59 @@ export function LeadInspectionDrawer({
                       setDirectPayExclusive(false)
                       setIsDirectPayOpen(true)
                     }}
-                    className="font-bold h-11 px-5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm w-full sm:w-auto gap-1.5"
+                    className="font-bold h-11 w-full px-4 text-xs sm:text-[13px] bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm gap-1.5"
                   >
-                    <CreditCard className="h-4 w-4" />
-                    <span>Payer {directFinancials.priceHtva.toFixed(2)} € HT en direct</span>
+                    <CreditCard className="h-4 w-4 shrink-0" />
+                    <span>
+                      Payer{" "}
+                      <span className="font-mono tabular-nums">
+                        {directFinancials.priceHtva.toFixed(2).replace(".", ",")} € HT
+                      </span>{" "}
+                      en direct
+                    </span>
                   </Button>
-                  {canTakeExclusiveB2C && (
+
+                  <div
+                    className={`grid gap-2 ${
+                      canTakeExclusiveB2C ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
+                    }`}
+                  >
                     <Button
                       variant="outline"
                       type="button"
                       onClick={() => {
-                        recordUnlockIntent("direct_pay")
-                        setDirectPayExclusive(true)
-                        setIsDirectPayOpen(true)
+                        recordUnlockIntent("insufficient_credits")
+                        onRequestTopUp()
                       }}
-                      className="font-bold h-11 px-3.5 text-xs border-emerald-600/40 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 cursor-pointer w-full sm:w-auto"
+                      className="font-bold h-9.5 px-3 text-xs border-border hover:bg-secondary cursor-pointer w-full shadow-2xs"
                     >
-                      <Unlock className="h-4 w-4 mr-1.5 text-emerald-700" />
-                      <span>Exclusivité 100 % ({B2C_EXCLUSIVE_PRICE_EUR.toFixed(0)} € HT)</span>
+                      <Coins className="h-3.5 w-3.5 mr-1.5 text-accent shrink-0" />
+                      <span className="truncate">Recharger des crédits</span>
                     </Button>
-                  )}
+
+                    {canTakeExclusiveB2C && (
+                      <Button
+                        variant="outline"
+                        type="button"
+                        onClick={() => {
+                          recordUnlockIntent("direct_pay")
+                          setDirectPayExclusive(true)
+                          setIsDirectPayOpen(true)
+                        }}
+                        className="font-bold h-9.5 px-3 text-xs border-[var(--aegis-availability-text)]/35 bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] hover:bg-[var(--aegis-availability-bg)]/80 cursor-pointer w-full shadow-2xs"
+                        title="Réserver ce dossier B2C pour vous seul (0 concurrent + e-mail prioritaire au prospect)"
+                      >
+                        <ShieldCheck className="h-3.5 w-3.5 mr-1.5 shrink-0" />
+                        <span className="truncate">
+                          Exclusivité 100 % (<span className="font-mono tabular-nums">{B2C_EXCLUSIVE_PRICE_EUR.toFixed(0)}</span> € HT)
+                        </span>
+                      </Button>
+                    )}
+                  </div>
                 </>
-              )
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Modal de confirmation de paiement direct en € */}

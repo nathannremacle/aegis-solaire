@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import {
   Bell,
   MapPin,
@@ -19,6 +20,7 @@ import {
   ShieldCheck,
   BellOff,
   MailCheck,
+  Wallet,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
@@ -672,27 +674,47 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
           </div>
 
           {/* Section 5 : Auto-Pilot Plafonné & Mandat 1-Clic */}
-          <div className="rounded-xl border border-border bg-secondary/35 p-4 flex flex-col gap-3">
+          <div
+            className={`rounded-2xl border p-4 sm:p-5 flex flex-col gap-4 transition-colors ${
+              autoBuyEnabled
+                ? "border-[var(--aegis-availability-text)]/35 bg-[var(--aegis-surface-subtle)]"
+                : "border-border bg-secondary/35"
+            }`}
+          >
+            {/* En-tête + Switch Principal */}
             <div className="flex items-start justify-between gap-3">
-              <div>
-                <h4 className="text-xs font-extrabold uppercase tracking-wider text-foreground">
-                  Mode Auto-Pilot (Attribution prioritaire)
-                </h4>
-                <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-                  Recevez automatiquement les dossiers conformes à vos critères dès validation, avec un plafond hebdomadaire strict.
+              <div className="flex flex-col gap-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-foreground">
+                    Mode Auto-Pilot (Attribution prioritaire)
+                  </h4>
+                  <span
+                    className={`rounded-md px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide tabular-nums ${
+                      autoBuyEnabled
+                        ? "bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] border border-[var(--aegis-availability-text)]/25"
+                        : "bg-card text-muted-foreground border border-border"
+                    }`}
+                  >
+                    {autoBuyEnabled ? "Actif" : "Désactivé"}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Dès qu&apos;un dossier validé correspond à vos critères ci-dessus (provinces, surfaces, segment et facture min.), il vous est réservé automatiquement{" "}
+                  <strong className="text-foreground">avant l&apos;e-mail d&apos;alerte envoyé aux autres installateurs</strong>.
                 </p>
               </div>
               <button
                 type="button"
                 role="switch"
                 aria-checked={autoBuyEnabled}
+                aria-label="Activer le mode Auto-Pilot"
                 onClick={() => setAutoBuyEnabled((v) => !v)}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                  autoBuyEnabled ? "bg-emerald-600" : "bg-border"
+                className={`relative mt-0.5 inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
+                  autoBuyEnabled ? "bg-[var(--aegis-availability-text)]" : "bg-border"
                 }`}
               >
                 <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-xs transition-transform ${
                     autoBuyEnabled ? "translate-x-5" : "translate-x-0"
                   }`}
                 />
@@ -700,59 +722,138 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
             </div>
 
             {autoBuyEnabled && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-border/60">
-                <div className="flex flex-col gap-1">
-                  <label
-                    htmlFor="auto-buy-cap"
-                    className="text-[11px] font-bold text-foreground"
+              <div className="flex flex-col gap-3.5 pt-3 border-t border-border/70">
+                {/* Plafond hebdomadaire : sélecteur de boutons nets en 1 clic */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-foreground">
+                      Plafond strict sur 7 jours glissants
+                    </span>
+                    <span className="rounded-md bg-card border border-border px-2 py-0.5 font-mono text-[11px] font-bold text-foreground tabular-nums">
+                      Max {autoBuyWeeklyCap} dossier{autoBuyWeeklyCap > 1 ? "s" : ""} / 7 j.
+                    </span>
+                  </div>
+                  <div
+                    role="group"
+                    aria-label="Plafond hebdomadaire Auto-Pilot"
+                    className="grid grid-cols-4 sm:grid-cols-8 gap-1.5"
                   >
-                    Plafond hebdomadaire (dossiers / sem.)
-                  </label>
-                  <select
-                    id="auto-buy-cap"
-                    value={autoBuyWeeklyCap}
-                    onChange={(e) => setAutoBuyWeeklyCap(Number(e.target.value) || 3)}
-                    className="h-9 rounded-lg border border-border bg-card px-2.5 text-xs font-mono font-bold text-foreground"
-                  >
-                    {[1, 2, 3, 5, 8, 10, 15, 20].map((cap) => (
-                      <option key={cap} value={cap}>
-                        Max {cap} dossier{cap > 1 ? "s" : ""} / semaine
-                      </option>
-                    ))}
-                  </select>
+                    {[1, 2, 3, 5, 8, 10, 15, 20].map((cap) => {
+                      const isCapSelected = autoBuyWeeklyCap === cap
+                      return (
+                        <button
+                          key={cap}
+                          type="button"
+                          aria-pressed={isCapSelected}
+                          onClick={() => setAutoBuyWeeklyCap(cap)}
+                          className={`h-9 rounded-lg border font-mono text-xs font-bold tabular-nums transition-all cursor-pointer ${
+                            isCapSelected
+                              ? "border-primary bg-primary text-primary-foreground shadow-2xs"
+                              : "border-border bg-card text-foreground hover:bg-secondary/70"
+                          }`}
+                        >
+                          {cap}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-snug">
+                    Une fois ce quota atteint sur les <span className="font-mono tabular-nums">7</span> derniers jours, l&apos;Auto-Pilot s&apos;arrête automatiquement jusqu&apos;à libération d&apos;un créneau (ordre équitable : le moins servi passe en premier).
+                  </p>
                 </div>
 
+                {/* Option Exclusivité Totale B2C (switch card homogène avec le modal) */}
                 {selectedSegment !== "B2B" && (
-                  <label className="flex items-start gap-2 rounded-lg border border-border bg-card p-2.5 text-[11px] text-foreground cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={autoBuyIncludeB2cExclusive}
-                      onChange={(e) => setAutoBuyIncludeB2cExclusive(e.target.checked)}
-                      className="mt-0.5 h-3.5 w-3.5 accent-emerald-700 rounded cursor-pointer"
-                    />
-                    <span className="leading-snug">
-                      Activer l&apos;<strong>Exclusivité Totale B2C</strong> automatique (<span className="font-mono">7 cr.</span>) quand disponible
-                    </span>
-                  </label>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={autoBuyIncludeB2cExclusive}
+                    onClick={() => setAutoBuyIncludeB2cExclusive((v) => !v)}
+                    className={`flex items-start justify-between gap-3 rounded-xl border p-3 text-left transition-all cursor-pointer ${
+                      autoBuyIncludeB2cExclusive
+                        ? "border-[var(--aegis-availability-text)]/45 bg-[var(--aegis-availability-bg)]/60 ring-1 ring-[var(--aegis-availability-text)]/20"
+                        : "border-border bg-card hover:bg-secondary/40"
+                    }`}
+                  >
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                      <span className="text-xs font-bold text-foreground">
+                        Exclusivité Totale B2C automatique ({" "}
+                        <span className="font-mono tabular-nums">7</span> crédits )
+                      </span>
+                      <span className="text-[11px] text-muted-foreground leading-snug">
+                        Si le particulier est encore à <span className="font-mono tabular-nums font-semibold text-foreground">0/3</span>, réserve les{" "}
+                        <span className="font-mono tabular-nums">3</span> places d&apos;un coup (<span className="font-mono tabular-nums">0</span> concurrent) et lui envoie un e-mail confirmant votre sélection prioritaire.
+                      </span>
+                    </div>
+                    <div
+                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors ${
+                        autoBuyIncludeB2cExclusive
+                          ? "border-[var(--aegis-availability-text)] bg-[var(--aegis-availability-text)] text-white"
+                          : "border-border bg-secondary/50"
+                      }`}
+                    >
+                      {autoBuyIncludeB2cExclusive && <Check className="h-3 w-3 stroke-[3]" />}
+                    </div>
+                  </button>
                 )}
               </div>
             )}
 
-            <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground pt-1">
-              <span>
-                Source de débit : <strong className="text-foreground">Portefeuille crédits en priorité</strong>
-              </span>
-              <span
-                className={`rounded-md px-2 py-0.5 font-mono text-[10px] font-bold ${
-                  mollieMandateStatus === "valid"
-                    ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                    : "bg-card text-muted-foreground border border-border"
-                }`}
-              >
-                {mollieMandateStatus === "valid"
-                  ? "Mandat 1-clic Mollie actif"
-                  : "Mandat 1-clic optionnel non lié"}
-              </span>
+            {/* Encart clair sur le fonctionnement du débit & du mandat 1-clic */}
+            <div className="rounded-xl border border-border bg-card p-3 flex flex-col gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-foreground">
+                  <Wallet className="h-3.5 w-3.5 text-accent shrink-0" />
+                  <span>Comment fonctionne le débit automatique ?</span>
+                </span>
+                <span
+                  className={`rounded-md px-2 py-0.5 font-mono text-[10.5px] font-bold tabular-nums ${
+                    mollieMandateStatus === "valid"
+                      ? "bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] border border-[var(--aegis-availability-text)]/25"
+                      : "bg-secondary text-muted-foreground border border-border"
+                  }`}
+                >
+                  {mollieMandateStatus === "valid"
+                    ? "Portefeuille + Relais 1-clic Mollie actif"
+                    : "Portefeuille crédits uniquement"}
+                </span>
+              </div>
+
+              <ul className="flex flex-col gap-1 text-[11px] text-muted-foreground leading-relaxed">
+                <li className="flex items-start gap-1.5">
+                  <span className="font-mono font-bold text-foreground shrink-0">1.</span>
+                  <span>
+                    <strong className="text-foreground">Vos crédits prépayés d&apos;abord :</strong> chaque dossier attribué débite en priorité votre solde (solde actuel :{" "}
+                    <strong className="font-mono text-foreground tabular-nums">
+                      {Number(partner?.credits ?? 0)} crédits
+                    </strong>
+                    {" "}— <span className="font-mono tabular-nums">2–4</span> cr. B2C partagé,{" "}
+                    <span className="font-mono tabular-nums">7</span> cr. B2C exclusif,{" "}
+                    <span className="font-mono tabular-nums">6–12</span> cr. B2B).
+                  </span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="font-mono font-bold text-foreground shrink-0">2.</span>
+                  <span>
+                    {mollieMandateStatus === "valid" ? (
+                      <>
+                        <strong className="text-foreground">Relais 1-clic Mollie actif :</strong> si votre solde de crédits est insuffisant, votre moyen de paiement mémorisé débloque le dossier au tarif direct TTC.
+                      </>
+                    ) : (
+                      <>
+                        <strong className="text-foreground">Zéro prélèvement bancaire sans mandat :</strong> si votre solde est insuffisant, rien n&apos;est débité sur votre compte bancaire — le dossier passe simplement aux confrères.{" "}
+                        <Link
+                          href="/partenaires/dashboard/credits"
+                          onClick={onClose}
+                          className="font-semibold text-foreground underline underline-offset-2 hover:text-accent"
+                        >
+                          Recharger ou lier le 1-clic Mollie
+                        </Link>
+                      </>
+                    )}
+                  </span>
+                </li>
+              </ul>
             </div>
           </div>
         </form>

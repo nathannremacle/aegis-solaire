@@ -483,13 +483,23 @@ export function DirectLeadPaymentModal({
                 </div>
 
                 {!hasValidMandate && (
-                  <label className="mt-1 flex items-start gap-2 rounded-[6px] border border-[var(--aegis-border)] bg-[var(--aegis-surface)] px-2.5 py-2 text-[11.5px] text-[var(--aegis-ink)] cursor-pointer select-none">
+                  <label className="mt-1 flex items-start gap-2.5 rounded-[6px] border border-[var(--aegis-border)] bg-[var(--aegis-surface)] px-2.5 py-2 text-[11.5px] text-[var(--aegis-ink)] cursor-pointer select-none">
                     <input
                       type="checkbox"
                       checked={enableOneClick}
                       onChange={(e) => setEnableOneClick(e.target.checked)}
-                      className="mt-0.5 h-3.5 w-3.5 accent-[var(--aegis-ink)] rounded cursor-pointer"
+                      className="sr-only"
                     />
+                    <span
+                      aria-hidden="true"
+                      className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border transition-colors ${
+                        enableOneClick
+                          ? "border-[var(--aegis-ink)] bg-[var(--aegis-ink)] text-white"
+                          : "border-[var(--aegis-input-border)] bg-[var(--aegis-surface)]"
+                      }`}
+                    >
+                      {enableOneClick && <Check className="h-2.5 w-2.5 stroke-[3]" />}
+                    </span>
                     <span className="leading-snug">
                       Mémoriser mon moyen de paiement chez Mollie pour activer le déblocage en{" "}
                       <strong>1 clic</strong> (et l&apos;Auto-Pilot si souhaité).
@@ -559,7 +569,7 @@ export function DirectLeadPaymentModal({
             type="button"
             disabled={loading}
             onClick={handleProceedToPayment}
-            className="w-full min-h-[46px] sm:min-h-[48px] inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-[6px] bg-[var(--aegis-ink)] hover:bg-[var(--aegis-primary-hover)] disabled:opacity-60 px-3 sm:px-4 py-2.5 text-[14px] sm:text-[15px] font-bold text-white whitespace-nowrap cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
+            className="w-full min-h-[46px] sm:min-h-[48px] inline-flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 rounded-[6px] bg-[var(--aegis-ink)] hover:bg-[var(--aegis-primary-hover)] disabled:opacity-60 px-3 sm:px-4 py-2.5 text-[14px] sm:text-[15px] font-bold text-white text-center cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
           >
             {loading ? (
               <>

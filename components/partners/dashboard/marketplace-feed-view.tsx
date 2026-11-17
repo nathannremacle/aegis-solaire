@@ -929,13 +929,13 @@ export function MarketplaceFeedView({
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between gap-2 pt-0.5">
-                        <div className="flex flex-col font-mono text-xs">
-                          <div className="flex items-baseline gap-1">
-                            <span className="font-bold text-foreground">{cost} crédits</span>
-                            <span className="text-[10px] text-muted-foreground font-medium">ou {directFinancials.priceHtva.toFixed(2)} € HT</span>
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                        <div className="flex flex-col font-mono text-xs min-w-0">
+                          <div className="flex flex-wrap items-baseline gap-1">
+                            <span className="font-bold text-foreground whitespace-nowrap">{cost} crédits</span>
+                            <span className="text-[10px] text-muted-foreground font-medium whitespace-nowrap">ou {directFinancials.priceHtva.toFixed(2).replace(".", ",")} € HT</span>
                           </div>
-                          <span className="text-[9px] text-muted-foreground">({directFinancials.priceTtc.toFixed(2)} € TTC)</span>
+                          <span className="text-[9px] text-muted-foreground whitespace-nowrap">({directFinancials.priceTtc.toFixed(2).replace(".", ",")} € TTC)</span>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                           <button

@@ -195,14 +195,24 @@ function OrderPackSection({ pack }: { pack: CreditPack }) {
           <span className="text-[11px] text-muted-foreground">
             Facture pro officielle conforme (TVA 21% déductible) transmise automatiquement par e-mail.
           </span>
-          <label className="mt-1.5 flex items-center gap-2 text-[11.5px] text-foreground cursor-pointer select-none">
+          <label className="mt-2 flex items-start gap-2.5 rounded-xl border border-border bg-secondary/40 px-3 py-2 text-[11.5px] text-foreground cursor-pointer select-none">
             <input
               type="checkbox"
               checked={enableOneClick}
               onChange={(e) => setEnableOneClick(e.target.checked)}
-              className="h-3.5 w-3.5 accent-primary rounded cursor-pointer"
+              className="sr-only"
             />
-            <span>
+            <span
+              aria-hidden="true"
+              className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border transition-colors ${
+                enableOneClick
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-input bg-card"
+              }`}
+            >
+              {enableOneClick && <Check className="h-2.5 w-2.5 stroke-[3]" />}
+            </span>
+            <span className="leading-snug">
               Activer le paiement <strong>1-clic / Auto-Pilot</strong> chez Mollie (Bancontact / Carte)
             </span>
           </label>
