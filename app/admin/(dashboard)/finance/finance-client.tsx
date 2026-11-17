@@ -53,7 +53,10 @@ import type {
   AccountingExpenseRecord,
   UnifiedInvoiceRecord,
 } from "@/lib/accounting/belgian-tax-rules"
-import { isDateInPeriod } from "@/lib/accounting/belgian-tax-rules"
+import {
+  isDateInPeriod,
+  STUDENT_TAX_THRESHOLDS_2026,
+} from "@/lib/accounting/belgian-tax-rules"
 import type { UnifiedAccountingBundle } from "@/lib/accounting/invoice-service"
 import {
   ExpensesTab,
@@ -518,6 +521,9 @@ export function FinanceClient({
               <Badge variant="outline" className="font-mono tabular-nums text-xs bg-[var(--aegis-summary)] text-[var(--aegis-ink)] border-[var(--aegis-border)]">
                 INIT42 · BE 1039.899.980
               </Badge>
+              <Badge variant="outline" className="font-mono tabular-nums text-xs bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] border-[var(--aegis-border)]">
+                Étudiant-Indépendant (100 % Aegis)
+              </Badge>
               {pendingCount > 0 && (
                 <Badge className="font-mono tabular-nums text-xs bg-[var(--aegis-preference-bg)] text-[var(--aegis-preference-label)] border border-[var(--aegis-preference-accent)]">
                   {pendingCount} virement(s) en attente
@@ -655,9 +661,117 @@ export function FinanceClient({
               <span className="text-xs text-[var(--aegis-preference-label)]">à ne pas toucher</span>
             </div>
             <span className="font-mono text-[11px] tabular-nums text-[var(--aegis-preference-label)]">
-              Cash 100 % net libre : {formatEur(iv.netCashInPocket)} €
+              TVA {formatEur(iv.grid71)} € · Social {formatEur(iv.estimatedSocialContributions)} € · IPP {formatEur(iv.estimatedIncomeTaxProvision)} € · Libre : {formatEur(iv.netCashInPocket)} €
             </span>
           </div>
+        </div>
+
+        {/* 2b. Jauge des 4 Plafonds Étudiant-Indépendant (Cumul Annuel exact) */}
+        <div className="rounded-xl border border-[var(--aegis-border)] bg-[var(--aegis-surface-subtle)] p-4 flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="font-heading text-sm font-bold text-[var(--aegis-ink)]">
+                Jauge Étudiant-Indépendant {selectedYear} — Bénéfice net cumulé :{" "}
+                <span className="font-mono tabular-nums">
+                  {formatEur(iv.studentStatus.annualNetProfit)} €
+                </span>
+              </h2>
+              <Badge
+                variant="outline"
+                className={cn(
+                  "font-mono tabular-nums text-[11px]",
+                  iv.studentStatus.bracket === "exempt_0"
+                    ? "bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)]"
+                    : iv.studentStatus.bracket === "reduced_tranche"
+                      ? "bg-[var(--aegis-preference-bg)] text-[var(--aegis-preference-label)]"
+                      : "bg-[var(--aegis-danger-bg)] text-[var(--aegis-danger-text)]"
+                )}
+              >
+                {iv.studentStatus.statusLabel}
+              </Badge>
+            </div>
+            <span className="font-mono text-[11px] tabular-nums text-[var(--aegis-muted)]">
+              CA annuel {formatEur(iv.studentStatus.annualSalesHtva)} € HTVA − Frais {formatEur(iv.studentStatus.annualExpensesDeductible)} €
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            {[
+              {
+                title: "1. Exonération Lois Sociales",
+                limit: STUDENT_TAX_THRESHOLDS_2026.socialExemptMaxNet,
+                remaining: iv.studentStatus.remainingBeforeSocial,
+                okText: `Marge à 0 € social : +${formatEur(iv.studentStatus.remainingBeforeSocial)} €`,
+                overText: `Cotisations estimées : ${formatEur(iv.studentStatus.annualSocialDue)} €/an`,
+                note: "Sous ce seuil : 0 € social + allocs OK sans limite d'heures.",
+              },
+              {
+                title: "2. Impôt IPP à 0 € (100 % Aegis)",
+                limit: STUDENT_TAX_THRESHOLDS_2026.ippExemptMaxNet,
+                remaining: iv.studentStatus.remainingBeforeIpp,
+                okText: `Marge à 0 € d'impôt : +${formatEur(iv.studentStatus.remainingBeforeIpp)} €`,
+                overText: `Impôt IPP estimé : ${formatEur(iv.studentStatus.annualIppDue)} €/an`,
+                note: "Quotité exemptée 2026 : 0 € d'impôt tant que tu restes sous ce seuil.",
+              },
+              {
+                title: "3. Rester à charge des parents",
+                limit: STUDENT_TAX_THRESHOLDS_2026.parentChargeMaxNet,
+                remaining: iv.studentStatus.remainingBeforeParentChargeLoss,
+                okText: `Marge fisc parents : +${formatEur(iv.studentStatus.remainingBeforeParentChargeLoss)} €`,
+                overText: "Dépassement : tes parents perdent la majoration fiscale.",
+                note: "Plafond unifié 2026 des ressources nettes enfant à charge.",
+              },
+              {
+                title: "4. Plafond Étudiant & Allocs",
+                limit: STUDENT_TAX_THRESHOLDS_2026.principalSwitchMinNet - 0.01,
+                remaining: iv.studentStatus.remainingBeforePrincipalSwitch,
+                okText: `Marge avant bascule : +${formatEur(iv.studentStatus.remainingBeforePrincipalSwitch)} €`,
+                overText: "Bascule indépendant principal + perte des allocs !",
+                note: iv.studentStatus.familyAllowancesRule,
+              },
+            ].map((gauge) => {
+              const pct = Math.min(
+                100,
+                Math.round((iv.studentStatus.annualNetProfit / gauge.limit) * 100)
+              )
+              const exceeded = gauge.remaining <= 0
+              return (
+                <div
+                  key={gauge.title}
+                  className="rounded-lg border border-[var(--aegis-border)] bg-card p-3 flex flex-col gap-1.5"
+                >
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <span className="font-semibold text-foreground">{gauge.title}</span>
+                    <span className="font-mono tabular-nums font-bold text-foreground">
+                      {formatEur(gauge.limit)} €
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full transition-all",
+                        exceeded ? "bg-destructive" : pct > 80 ? "bg-accent" : "bg-primary"
+                      )}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <span
+                    className={cn(
+                      "font-mono text-[11px] tabular-nums font-semibold",
+                      exceeded ? "text-destructive" : "text-[var(--aegis-availability-text)]"
+                    )}
+                  >
+                    {exceeded ? gauge.overText : gauge.okText}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground leading-snug">{gauge.note}</span>
+                </div>
+              )
+            })}
+          </div>
+
+          <p className="text-[11px] text-[var(--aegis-muted)]">
+            <strong>Levier Étudiant-Indépendant :</strong> chaque euro investi en frais pro déductibles (Meta Ads, matériel vidéo/IT, cloud) baisse ton <strong>bénéfice net</strong> et protège tes plafonds à 0 € de charges (tu peux encaisser <span className="font-mono tabular-nums">20 000 €+</span> de CA tant que tu réinvestis pour rester sous <span className="font-mono tabular-nums">8 687,03 €</span> net).
+          </p>
         </div>
 
         {/* Alerte actionnable si des n° TVA partenaires ou migration manquent */}

@@ -39,6 +39,7 @@ import {
   EXPENSE_PRESETS_MAP,
   INIT42_NACE_CODES,
   LEGAL_ENTITY,
+  STUDENT_TAX_THRESHOLDS_2026,
   isDateInPeriod,
   round2,
   type AccountingExpenseRecord,
@@ -136,7 +137,13 @@ export function ExpensesTab({
     const taxDeductibleBase = round2(
       (htva + nonDeductibleBeVat) * (preset.taxDeductiblePct / 100)
     )
-    const estimatedTaxAndSocialSaved = round2(taxDeductibleBase * 0.4)
+    const studentSaveRate =
+      intervat.studentStatus.annualNetProfit > STUDENT_TAX_THRESHOLDS_2026.ippExemptMaxNet
+        ? 0.4
+        : intervat.studentStatus.annualNetProfit > STUDENT_TAX_THRESHOLDS_2026.socialExemptMaxNet
+          ? 0.205
+          : 0
+    const estimatedTaxAndSocialSaved = round2(taxDeductibleBase * studentSaveRate)
     const grossCashOut = round2(htva + vatPaidBe)
     const netRealCost = round2(
       Math.max(0, grossCashOut - vatRecovered - estimatedTaxAndSocialSaved)
@@ -151,7 +158,7 @@ export function ExpensesTab({
       grossCashOut,
       netRealCost,
     }
-  }, [amountInput, inputMode, vatRate, preset])
+  }, [amountInput, inputMode, vatRate, preset, intervat.studentStatus.annualNetProfit])
 
   const periodExpenses = useMemo(
     () => expenses.filter((e) => isDateInPeriod(e.expense_date, year, quarter)),
@@ -442,13 +449,16 @@ export function ExpensesTab({
           <div className="md:col-span-5 rounded-xl border border-[var(--aegis-border)] bg-[var(--aegis-availability-bg)] px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-col">
               <span className="text-[11px] text-[var(--aegis-availability-text)] font-semibold">
-                Impact réel de cette dépense
+                Impact Étudiant-Indépendant de cette dépense
               </span>
               <span className="text-xs text-[var(--aegis-ink)]">
                 TVA récupérée :{" "}
                 <strong className="font-mono tabular-nums">{formatEur(simulation.vatRecovered)} €</strong>
-                {" · "}Impôt/Social économisé :{" "}
-                <strong className="font-mono tabular-nums">~{formatEur(simulation.estimatedTaxAndSocialSaved)} €</strong>
+                {" · "}Bénéfice net réduit de :{" "}
+                <strong className="font-mono tabular-nums">−{formatEur(simulation.taxDeductibleBase)} €</strong>
+                {simulation.estimatedTaxAndSocialSaved > 0
+                  ? ` (~${formatEur(simulation.estimatedTaxAndSocialSaved)} € économisés)`
+                  : " (protège tes plafonds à 0 €)"}
               </span>
             </div>
             <div className="text-right">
@@ -1085,23 +1095,36 @@ export function TaxCourseNaceTab() {
           <div className="flex items-center gap-2 text-[var(--aegis-ink)]">
             <Landmark className="h-4 w-4 text-[var(--aegis-availability-text)]" />
             <h2 className="font-heading text-base font-bold">
-              3. Où et quand déclarer (Personne Physique) ?
+              3. Tes seuils Étudiant-Indépendant 2026 (100 % Aegis)
             </h2>
           </div>
           <ul className="text-xs text-[var(--aegis-ink)] flex flex-col gap-1.5 leading-relaxed">
             <li>
-              • <strong>TVA (Intervat) :</strong> tous les trimestres avant les{" "}
-              <span className="font-mono tabular-nums font-semibold">20/04, 20/07, 20/10, 20/01</span>.
+              • <strong>&le; 8 687,03 € net/an :</strong>{" "}
+              <span className="font-mono tabular-nums font-semibold">0 €</span> de cotisations sociales + 100 % allocs sans limite d&apos;heures.
             </li>
             <li>
-              • <strong>Listing clients TVA :</strong> 1×/an avant le{" "}
-              <span className="font-mono tabular-nums font-semibold">31/03</span>.
+              • <strong>&le; 11 180 € net/an :</strong>{" "}
+              <span className="font-mono tabular-nums font-semibold">0 €</span> d&apos;impôt IPP (quotité exemptée 2026).
             </li>
             <li>
-              • <strong>Impôt IPP (MyMinfin) :</strong> 1×/an en juin/juillet (sur le bénéfice net = Ventes HTVA − Frais déductibles − Lois sociales).
+              • <strong>&le; 12 300 € net/an :</strong> tu restes <strong>fiscalement à charge</strong> de tes parents.
+            </li>
+            <li>
+              • <strong>8 687,04 € → 17 374,07 € net/an :</strong> <span className="font-mono tabular-nums">20,5 %</span> uniquement sur la tranche dépassée + garder &le; 240 h/trimestre pour les allocs.
             </li>
           </ul>
         </div>
+      </div>
+
+      {/* Encadré stratégique spécial Étudiant-Indépendant */}
+      <div className="rounded-2xl border border-[var(--aegis-border)] bg-[var(--aegis-summary)] p-5 flex flex-col gap-2">
+        <h2 className="font-heading text-base font-bold text-[var(--aegis-ink)]">
+          Comment encaisser beaucoup de CA tout en restant à 0 € de cotisations sociales et 0 € d&apos;impôt
+        </h2>
+        <p className="text-xs text-[var(--aegis-muted)] leading-relaxed">
+          Les plafonds ci-dessus s&apos;appliquent à ton <strong>Bénéfice Net Imposable</strong> (<span className="font-mono tabular-nums">CA HTVA − Frais pros déductibles</span>), pas à ton chiffre d&apos;affaires brut ! Exemple : si Aegis encaisse <span className="font-mono tabular-nums font-semibold text-[var(--aegis-ink)]">18 000 € HTVA</span> sur l&apos;année et que tu réinvestis <span className="font-mono tabular-nums font-semibold text-[var(--aegis-ink)]">10 000 € HTVA</span> en Meta Ads, matériel IT/vidéo utile et SaaS, ton bénéfice net est de <span className="font-mono tabular-nums font-semibold text-[var(--aegis-ink)]">8 000 €</span> &rarr; <strong>0 € de cotisations sociales, 0 € d&apos;impôt IPP, allocations familiales maintenues et 100 % à charge des parents</strong>. Tu ne paies donc que la TVA (qui n&apos;est pas à toi).
+        </p>
       </div>
 
       {/* Tableau complet des 10 codes NACE d'INIT42 */}

@@ -439,6 +439,35 @@ export function isDateInPeriod(isoDate: string, year: number, quarter: 0 | 1 | 2
   return getQuarterFromIsoDate(isoDate) === quarter
 }
 
+export const STUDENT_TAX_THRESHOLDS_2026 = {
+  /** Sous 8 687,03 € net/an : 0 € de cotisations sociales + maintien complet allocs sans limite d'heures */
+  socialExemptMaxNet: 8687.03,
+  /** Quotité exemptée d'impôt IPP 2026 : 0 € d'impôt sous ce seuil (si 100 % revenus via Aegis) */
+  ippExemptMaxNet: 11180.0,
+  /** Plafond unifié 2026 des ressources nettes pour rester fiscalement à charge des parents */
+  parentChargeMaxNet: 12300.0,
+  /** À partir de 17 374,08 € net/an : bascule en indépendant à titre principal + perte des allocs */
+  principalSwitchMinNet: 17374.08,
+  /** Taux de cotisation sociale belge */
+  socialRate: 0.205,
+} as const
+
+export interface StudentStatusSummary {
+  annualSalesHtva: number
+  annualExpensesDeductible: number
+  annualNetProfit: number
+  annualSocialDue: number
+  annualIppDue: number
+  remainingBeforeSocial: number
+  remainingBeforeIpp: number
+  remainingBeforeParentChargeLoss: number
+  remainingBeforePrincipalSwitch: number
+  bracket: "exempt_0" | "reduced_tranche" | "principal"
+  statusLabel: string
+  parentChargeSafe: boolean
+  familyAllowancesRule: string
+}
+
 export interface IntervatSummary {
   year: number
   quarter: 0 | 1 | 2 | 3 | 4
@@ -462,7 +491,7 @@ export interface IntervatSummary {
   grid64: number // TVA sur notes de crédit délivrées
   grid71: number // Solde TVA nette à payer à l'État
   grid72: number // Crédit de TVA à récupérer de l'État
-  // Synthèse trésorerie & économies
+  // Synthèse trésorerie & économies (Statut Étudiant-Indépendant)
   totalSalesHtva: number
   totalSalesTtc: number
   totalVatCollectedOnSales: number
@@ -476,6 +505,7 @@ export interface IntervatSummary {
   estimatedTaxSavedByExpenses: number
   totalReserveRecommended: number
   netCashInPocket: number
+  studentStatus: StudentStatusSummary
 }
 
 export function getPeriodDeadlineLabel(year: number, quarter: 0 | 1 | 2 | 3 | 4): {
@@ -495,6 +525,36 @@ export function getPeriodDeadlineLabel(year: number, quarter: 0 | 1 | 2 | 3 | 4)
     return { periodLabel: `T4 ${year} (Oct–Déc)`, deadlineLabel: `20 janvier ${year + 1}` }
   }
   return { periodLabel: `Année complète ${year}`, deadlineLabel: `Listing clients avant 31 mars ${year + 1}` }
+}
+
+function computeAnnualStudentSocialAndIpp(netProfitEur: number): {
+  socialEur: number
+  ippEur: number
+} {
+  const safeNet = Math.max(0, netProfitEur)
+  let socialEur = 0
+  if (safeNet >= STUDENT_TAX_THRESHOLDS_2026.principalSwitchMinNet) {
+    socialEur = round2(safeNet * STUDENT_TAX_THRESHOLDS_2026.socialRate)
+  } else if (safeNet > STUDENT_TAX_THRESHOLDS_2026.socialExemptMaxNet) {
+    socialEur = round2(
+      (safeNet - STUDENT_TAX_THRESHOLDS_2026.socialExemptMaxNet) *
+        STUDENT_TAX_THRESHOLDS_2026.socialRate
+    )
+  }
+
+  const ippTaxableBase = Math.max(0, safeNet - socialEur)
+  let ippEur = 0
+  if (ippTaxableBase > STUDENT_TAX_THRESHOLDS_2026.ippExemptMaxNet) {
+    const firstSliceLimit = 16320
+    const slice1 = Math.max(
+      0,
+      Math.min(ippTaxableBase, firstSliceLimit) - STUDENT_TAX_THRESHOLDS_2026.ippExemptMaxNet
+    )
+    const slice2 = Math.max(0, ippTaxableBase - firstSliceLimit)
+    ippEur = round2(slice1 * 0.25 + slice2 * 0.4)
+  }
+
+  return { socialEur, ippEur }
 }
 
 export function computeIntervatDeclaration(
@@ -596,17 +656,104 @@ export function computeIntervatDeclaration(
   const netSalesHtvaCents = Math.max(0, grid03Cents - grid49Cents)
   const netTaxableProfitCents = Math.max(0, netSalesHtvaCents - totalTaxDeductibleCents)
 
-  // En Personne Physique (BE) : ~20,5 % lois sociales sur le revenu net, puis provision IPP ~25-30 %
-  const estimatedSocialCents = Math.round(netTaxableProfitCents * 0.205)
-  const baseAfterSocialCents = Math.max(0, netTaxableProfitCents - estimatedSocialCents)
-  const estimatedIppCents = Math.round(baseAfterSocialCents * 0.25)
+  // Calcul annuel complet pour les seuils légaux Étudiant-Indépendant (sur toute l'année civile)
+  let annualSalesHtvaCents = 0
+  for (const inv of invoices) {
+    if (inv.status === "cancelled" || !isDateInPeriod(inv.issued_at, year, 0)) continue
+    const htvaCents = Math.round(Number(inv.amount_htva || 0) * 100)
+    annualSalesHtvaCents += inv.invoice_type === "credit_note" ? -Math.abs(htvaCents) : htvaCents
+  }
+  annualSalesHtvaCents = Math.max(0, annualSalesHtvaCents)
 
-  // Impôts + cotisations économisés grâce aux frais encodés (taux marginal combiné indicatif ~40 % en PP)
-  const estimatedTaxSavedByExpensesCents = Math.round(totalTaxDeductibleCents * 0.4)
+  let annualTaxDeductibleCents = 0
+  for (const exp of expenses) {
+    if (!isDateInPeriod(exp.expense_date, year, 0)) continue
+    const htvaCents = Math.round(Number(exp.amount_htva || 0) * 100)
+    const vatPaidBeCents = Math.round(Number(exp.vat_paid_be || 0) * 100)
+    const vatDedRatio = Math.max(0, Math.min(100, Number(exp.vat_deductible_pct ?? 100))) / 100
+    const taxDedRatio = Math.max(0, Math.min(100, Number(exp.tax_deductible_pct ?? 100))) / 100
+    const nonDedBeVat = exp.is_reverse_charge
+      ? 0
+      : vatPaidBeCents - Math.round(vatPaidBeCents * vatDedRatio)
+    annualTaxDeductibleCents += Math.round((htvaCents + Math.max(0, nonDedBeVat)) * taxDedRatio)
+  }
+
+  const annualSalesHtvaEur = round2(annualSalesHtvaCents / 100)
+  const annualNetProfitCents = Math.max(0, annualSalesHtvaCents - annualTaxDeductibleCents)
+  const annualNetProfitEur = round2(annualNetProfitCents / 100)
+
+  // Cotisations sociales & IPP Étudiant-Indépendant 2026 (avec calcul différentiel exact)
+  const { socialEur: annualSocialEur, ippEur: annualIppEur } =
+    computeAnnualStudentSocialAndIpp(annualNetProfitEur)
+  const { socialEur: noExpenseSocialEur, ippEur: noExpenseIppEur } =
+    computeAnnualStudentSocialAndIpp(annualSalesHtvaEur)
+
+  let bracket: StudentStatusSummary["bracket"] = "exempt_0"
+  let statusLabel = "Exonéré à 0 € (sous 8 687,03 € net/an)"
+  let familyAllowancesRule = "Maintien automatique à 100 % des allocations familiales (aucune limite d'heures)."
+
+  if (annualNetProfitEur >= STUDENT_TAX_THRESHOLDS_2026.principalSwitchMinNet) {
+    bracket = "principal"
+    statusLabel = "Bascule Indépendant Principal (>= 17 374,08 €)"
+    familyAllowancesRule = "Attention : dépassement du plafond 17 374,08 € → perte des allocations familiales et cotisation principale."
+  } else if (annualNetProfitEur > STUDENT_TAX_THRESHOLDS_2026.socialExemptMaxNet) {
+    bracket = "reduced_tranche"
+    statusLabel = "Cotisation réduite (20,5 % sur la tranche > 8 687,03 €)"
+    familyAllowancesRule = "Maintien des allocations familiales si tu ne dépasses pas 240 h/trimestre (attestation sur l'honneur)."
+  }
+
+  // Ventilation sur la période affichée (0 € tant que le cumul annuel reste sous les seuils !)
+  const periodRatio =
+    quarter === 0
+      ? 1
+      : annualNetProfitCents > 0
+        ? Math.min(1, netTaxableProfitCents / annualNetProfitCents)
+        : 0
+
+  const estimatedSocialCents = Math.round(annualSocialEur * periodRatio * 100)
+  const estimatedIppCents = Math.round(annualIppEur * periodRatio * 100)
+
+  const annualTotalSavedEur = Math.max(
+    0,
+    noExpenseSocialEur + noExpenseIppEur - (annualSocialEur + annualIppEur)
+  )
+  const expenseRatio =
+    quarter === 0
+      ? 1
+      : annualTaxDeductibleCents > 0
+        ? Math.min(1, totalTaxDeductibleCents / annualTaxDeductibleCents)
+        : 0
+  const estimatedTaxSavedByExpensesCents = Math.round(
+    annualTotalSavedEur * expenseRatio * 100
+  )
 
   const totalReserveCents = grid71Cents + estimatedSocialCents + estimatedIppCents
   const cashBeforeReserveCents = Math.max(0, totalSalesTtcCents - totalExpensesHtvaCents)
   const netCashInPocketCents = Math.max(0, cashBeforeReserveCents - totalReserveCents)
+
+  const studentStatus: StudentStatusSummary = {
+    annualSalesHtva: round2(annualSalesHtvaCents / 100),
+    annualExpensesDeductible: round2(annualTaxDeductibleCents / 100),
+    annualNetProfit: annualNetProfitEur,
+    annualSocialDue: annualSocialEur,
+    annualIppDue: annualIppEur,
+    remainingBeforeSocial: round2(
+      Math.max(0, STUDENT_TAX_THRESHOLDS_2026.socialExemptMaxNet - annualNetProfitEur)
+    ),
+    remainingBeforeIpp: round2(
+      Math.max(0, STUDENT_TAX_THRESHOLDS_2026.ippExemptMaxNet - annualNetProfitEur)
+    ),
+    remainingBeforeParentChargeLoss: round2(
+      Math.max(0, STUDENT_TAX_THRESHOLDS_2026.parentChargeMaxNet - annualNetProfitEur)
+    ),
+    remainingBeforePrincipalSwitch: round2(
+      Math.max(0, STUDENT_TAX_THRESHOLDS_2026.principalSwitchMinNet - 0.01 - annualNetProfitEur)
+    ),
+    bracket,
+    statusLabel,
+    parentChargeSafe: annualNetProfitEur <= STUDENT_TAX_THRESHOLDS_2026.parentChargeMaxNet,
+    familyAllowancesRule,
+  }
 
   const { periodLabel, deadlineLabel } = getPeriodDeadlineLabel(year, quarter)
 
@@ -645,6 +792,7 @@ export function computeIntervatDeclaration(
     estimatedTaxSavedByExpenses: round2(estimatedTaxSavedByExpensesCents / 100),
     totalReserveRecommended: round2(totalReserveCents / 100),
     netCashInPocket: round2(netCashInPocketCents / 100),
+    studentStatus,
   }
 }
 
@@ -721,12 +869,12 @@ export function getRoutineTasksForPeriod(year: number, quarter: 0 | 1 | 2 | 3 | 
     {
       id: "q_social_and_va",
       cadence: "quarterly",
-      title: "Payer les cotisations sociales & Versement Anticipé d'Impôt (VA)",
-      whenLabel: "Fin de chaque trimestre (10/04, 10/07, 10/10, 20/12)",
-      whereLabel: "Caisse d'assurances sociales + MyMinfin (Versements anticipés)",
+      title: "Étudiant-Indépendant : Demander la dispense/réduction de cotisations sociales (si < 8 687,03 €)",
+      whenLabel: "À la réception du courrier trimestriel (~102,55 €)",
+      whereLabel: "Portail Caisse d'assurances sociales (Partena / Xerius / UCM / Acerta)",
       whereUrl: "https://www.minfin.fgov.be",
       howTo:
-        "Encode ta quittance de cotisations sociales en dépense (100 % déductible de l'IPP). Effectue un Versement Anticipé basé sur la « Provision IPP » calculée dans le bandeau ci-dessus pour éviter la majoration fiscale.",
+        "Tant que ton bénéfice net annuel estimé reste sous 8 687,03 €, tu as le droit de demander l'exonération de la cotisation provisoire (~102,55 €/trim.) pour payer 0 €. Si tu es sous 11 180 € net/an, tu n'as aucun versement anticipé d'impôt (IPP = 0 €) à faire.",
     },
     {
       id: "a_client_listing",
