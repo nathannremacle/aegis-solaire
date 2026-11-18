@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { checkRateLimit } from "@/lib/rate-limit"
-import { getEmailError, getWalloonProvinceKeyFromPostalCode } from "@/lib/leads-validation"
+import {
+  detectCityPostalContradiction,
+  getEmailError,
+  getWalloonProvinceKeyFromPostalCode,
+} from "@/lib/leads-validation"
+import { verifyEmailDomainMx } from "@/lib/lead-verification-engine"
 import { sendMetaConversionApiEvent } from "@/lib/meta-capi"
 
 export async function POST(request: NextRequest) {
@@ -40,8 +45,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Identifiant de session requis" }, { status: 400 })
     }
 
-    if (!email || typeof email !== "string" || getEmailError(email)) {
+    if (!email || typeof email !== "string") {
       return NextResponse.json({ error: "Adresse e-mail valide requise" }, { status: 400 })
+    }
+
+    const emailErr = getEmailError(email)
+    if (emailErr) {
+      return NextResponse.json({ error: emailErr }, { status: 400 })
+    }
+
+    const mxCheck = await verifyEmailDomainMx(email)
+    if (!mxCheck.valid && !mxCheck.transientError) {
+      return NextResponse.json(
+        { error: mxCheck.reason || "Adresse e-mail non distribuable." },
+        { status: 400 }
+      )
     }
 
     const supabase = createServiceRoleClient()
@@ -82,6 +100,14 @@ export async function POST(request: NextRequest) {
     }
 
     const safeCity = city ? String(city).trim().slice(0, 100) : null
+    const draftGeoErr = detectCityPostalContradiction({
+      postalCode: safePostalCode,
+      city: safeCity,
+      walloniaOnly: true,
+    })
+    if (draftGeoErr) {
+      return NextResponse.json({ error: draftGeoErr }, { status: 400 })
+    }
     const safeProvince = derivedWalloonProvince || province || "liege"
     const parsedKwc = estimatedKwc ? Number(estimatedKwc) : null
 

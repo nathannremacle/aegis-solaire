@@ -1,9 +1,12 @@
 import {
-  isValidFrBePhone,
-  isValidBelgianVat,
-  normalizeBelgianVat,
-  isWalloonPostalCode,
+  detectCityPostalContradiction,
   extractBelgianStreetAndNumber,
+  getEmailError,
+  isSuspiciousPersonName,
+  isValidBelgianVat,
+  isValidFrBePhone,
+  isWalloonPostalCode,
+  normalizeBelgianVat,
 } from "../leads-validation"
 
 export { isWalloonPostalCode }
@@ -35,30 +38,12 @@ export type LeadRiskInput = {
   qualificationMetadata?: Record<string, unknown> | null
 }
 
-/**
- * Plages des codes postaux wallons (définies de façon canonique dans lib/leads-validation.ts) :
- * - Brabant wallon : 1300 - 1499
- * - Liège : 4000 - 4999
- * - Namur : 5000 - 5999
- * - Hainaut : 6000 - 6599 et 7000 - 7999
- * - Luxembourg : 6600 - 6999
- */
-
-function hasSuspiciousName(name: string): boolean {
-  const cleaned = name.trim().toLowerCase()
-  if (cleaned.length < 2) return true
-  const uniqueLetters = new Set(cleaned.replace(/\s/g, "").split("")).size
-  if (uniqueLetters <= 2) return true
-  const nonsense = /^(.)\1{3,}$|^[asdfqwer]+$|^[qwerty]+$|^[azerty]+$/i
-  if (nonsense.test(cleaned)) return true
-  if (/[0-9<>{}[\]\\|]/.test(cleaned)) return true
-  return false
-}
-
 export function detectLeadRiskFlags(lead: LeadRiskInput): RiskFlag[] {
   const flags: RiskFlag[] = []
+  const verifs =
+    (lead.qualificationMetadata?.verifications as Record<string, unknown> | undefined) ?? undefined
 
-  // 1. Contrôle Téléphone
+  // 1. Contrôle Téléphone (incluant suites factices type 10 20 30, 12 34 56, 11 22 33)
   if (!lead.phone || lead.phone.trim() === "") {
     flags.push({
       code: "NO_PHONE",
@@ -69,26 +54,69 @@ export function detectLeadRiskFlags(lead: LeadRiskInput): RiskFlag[] {
   } else if (!isValidFrBePhone(lead.phone)) {
     flags.push({
       code: "INVALID_PHONE",
-      label: "Numéro suspect / invalide",
+      label: "Numéro suspect / factice",
       severity: "critical",
-      description: "Le format de téléphone BE/FR est non conforme ou présente une répétition anormale.",
+      description:
+        "Numéro non conforme au plan BE/FR ou suite factice détectée (type 10 20 30, 12 34 56, répétition).",
+    })
+  }
+
+  // 1b. Contrôle E-mail (syntaxe, domaine jetable, typo, MX)
+  const emailStr = (lead.email ?? "").trim()
+  const emailSyntaxErr = emailStr ? getEmailError(emailStr) : "E-mail absent"
+  const emailMx = verifs?.emailMx as
+    | { valid?: boolean; isDisposable?: boolean; transientError?: boolean; reason?: string }
+    | undefined
+
+  if (emailMx?.isDisposable) {
+    flags.push({
+      code: "DISPOSABLE_EMAIL",
+      label: "E-mail temporaire / jetable",
+      severity: "critical",
+      description: "Le domaine de messagerie est un fournisseur d'e-mails jetables.",
+    })
+  } else if (emailMx && emailMx.valid === false && !emailMx.transientError) {
+    flags.push({
+      code: "INVALID_EMAIL_MX",
+      label: "Domaine e-mail sans serveur MX",
+      severity: "critical",
+      description: emailMx.reason || "Aucun serveur de messagerie actif détecté pour ce domaine.",
+    })
+  } else if (emailSyntaxErr) {
+    flags.push({
+      code: "INVALID_EMAIL",
+      label: "E-mail suspect ou mal orthographié",
+      severity: "critical",
+      description: emailSyntaxErr,
     })
   }
 
   // 2. Contrôle Nom & Prénom
   if (
-    (lead.firstName && hasSuspiciousName(lead.firstName)) ||
-    (lead.lastName && hasSuspiciousName(lead.lastName))
+    (lead.firstName && isSuspiciousPersonName(lead.firstName)) ||
+    (lead.lastName && isSuspiciousPersonName(lead.lastName))
   ) {
     flags.push({
       code: "SUSPICIOUS_NAME",
       label: "Nom / Prénom suspect",
       severity: "warning",
-      description: "Caractères aléatoires ou répétitions détectés.",
+      description: "Nom de test, chiffres ou caractères répétitifs détectés.",
+    })
+  } else if (
+    lead.firstName &&
+    lead.lastName &&
+    lead.firstName.trim().length >= 2 &&
+    lead.firstName.trim().toLowerCase() === lead.lastName.trim().toLowerCase()
+  ) {
+    flags.push({
+      code: "IDENTICAL_FIRST_LAST_NAME",
+      label: "Prénom et nom identiques",
+      severity: "warning",
+      description: "Le prénom et le nom renseignés sont strictement identiques.",
     })
   }
 
-  // 3. Localisation en Région Wallonne & Qualité de l'Adresse Chantier
+  // 3. Localisation en Région Wallonne & Contradictions Géographiques
   if (lead.postalCode && lead.postalCode.trim().length === 4) {
     if (!isWalloonPostalCode(lead.postalCode)) {
       flags.push({
@@ -100,11 +128,30 @@ export function detectLeadRiskFlags(lead: LeadRiskInput): RiskFlag[] {
     }
   }
 
+  const isWalloonClaim = [
+    "liege",
+    "hainaut",
+    "namur",
+    "luxembourg",
+    "brabant_wallon",
+  ].includes((lead.province ?? "").trim())
+  const geoContradiction = detectCityPostalContradiction({
+    postalCode: lead.postalCode,
+    city: lead.city,
+    siteAddress: lead.siteAddress,
+    walloniaOnly: lead.segment === "B2C" || isWalloonClaim,
+  })
+  if (geoContradiction) {
+    flags.push({
+      code: "GEO_CONTRADICTION",
+      label: "Contradiction géographique",
+      severity: "critical",
+      description: geoContradiction,
+    })
+  }
+
   // 3b. Adresse de voirie & numéro de bâtiment (requis pour Street View / étude satellite)
-  const spwVerif = (
-    (lead.qualificationMetadata?.verifications as Record<string, unknown> | undefined)
-      ?.walloniaAddress as Record<string, unknown> | undefined
-  )
+  const spwVerif = verifs?.walloniaAddress as Record<string, unknown> | undefined
   const trimmedAddr = (lead.siteAddress ?? "").trim()
   const isB2C = lead.segment === "B2C"
 
@@ -151,7 +198,7 @@ export function detectLeadRiskFlags(lead: LeadRiskInput): RiskFlag[] {
     }
   }
 
-  // 4. Contrôle B2B : TVA et Société
+  // 4. Contrôle B2B : TVA, Société & BCE
   if (lead.segment === "B2B") {
     if (!lead.company || lead.company.trim().length < 2) {
       flags.push({
@@ -179,6 +226,25 @@ export function detectLeadRiskFlags(lead: LeadRiskInput): RiskFlag[] {
         description: "Numéro d'entreprise / TVA non renseigné pour ce lead B2B.",
       })
     }
+
+    const cbe = verifs?.cbeCompany as
+      | { verified?: boolean; active?: boolean; officialName?: string; nameMatchesInput?: boolean }
+      | undefined
+    if (cbe?.verified && cbe.active === false) {
+      flags.push({
+        code: "CBE_INACTIVE",
+        label: "Société fermée ou radiée (BCE)",
+        severity: "critical",
+        description: "L'unité légale n'est plus active selon la Banque-Carrefour des Entreprises.",
+      })
+    } else if (cbe?.verified && cbe.nameMatchesInput === false) {
+      flags.push({
+        code: "CBE_NAME_MISMATCH",
+        label: "Raison sociale divergente (BCE)",
+        severity: "warning",
+        description: `Dénomination déclarée différente du registre BCE (« ${cbe.officialName || "?"} »).`,
+      })
+    }
   }
 
   // 5. Statut d'occupation
@@ -186,8 +252,26 @@ export function detectLeadRiskFlags(lead: LeadRiskInput): RiskFlag[] {
     flags.push({
       code: "TENANT_UNAUTHORIZED",
       label: "Locataire sans accord",
-      severity: "warning",
+      severity: isB2C ? "critical" : "warning",
       description: "Le signataire est locataire et n'a pas confirmé l'accord du propriétaire.",
+    })
+  }
+
+  // 5b. Contrôle Doublon (< 30 jours)
+  const dup = verifs?.duplicateCheck as
+    | { hasDuplicatePhone?: boolean; hasDuplicateEmail?: boolean }
+    | undefined
+  if (dup?.hasDuplicatePhone || dup?.hasDuplicateEmail) {
+    flags.push({
+      code: "DUPLICATE_CONTACT",
+      label: "Doublon détecté (< 30 j)",
+      severity: "warning",
+      description:
+        dup.hasDuplicatePhone && dup.hasDuplicateEmail
+          ? "Un dossier récent possède déjà le même numéro de téléphone et la même adresse e-mail."
+          : dup.hasDuplicatePhone
+            ? "Un autre dossier récent utilise déjà ce numéro de téléphone."
+            : "Un autre dossier récent utilise déjà cette adresse e-mail.",
     })
   }
 

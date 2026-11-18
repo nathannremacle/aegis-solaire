@@ -2,7 +2,11 @@ import { Resend } from "resend"
 import { createHmac } from "crypto"
 import { detectLeadRiskFlags } from "./admin/lead-risk"
 import { buildMapLinks, type AddressResolutionLevel } from "./address-spw"
-import { hasBelgianHouseNumber } from "./leads-validation"
+import { hasBelgianHouseNumber, isValidFrBePhone } from "./leads-validation"
+import type {
+  PhoneOtpVerificationResult,
+  TwilioLookupSnapshot,
+} from "./lead-verification-engine"
 import {
   getOwnershipLabel,
   getRoofMaterialLabel,
@@ -76,6 +80,8 @@ export type LeadEnrichedData = {
   emailMx?: EmailMxData | null
   walloniaAddress?: WalloniaAddressData | null
   cbeCompany?: CbeCompanyData | null
+  phoneOtp?: PhoneOtpVerificationResult | null
+  twilioLookup?: TwilioLookupSnapshot | null
   trustBadges?: string[]
   warningFlags?: string[]
 }
@@ -156,15 +162,11 @@ export function checkBelgianVatModulo97(input?: string | null): boolean {
 }
 
 /**
- * Valide un numéro belge ou français.
+ * Valide un numéro belge ou français via la règle canonique unifiée (bloque les suites factices).
  */
 export function checkBelgianOrFrPhone(phone?: string | null): boolean {
   if (!phone) return false
-  const cleaned = phone.replace(/[\s.-]/g, "")
-  if (!/^(\+33|\+32|0)[1-9][0-9]{7,9}$/.test(cleaned)) return false
-  const digits = cleaned.replace(/\D/g, "")
-  if (new Set(digits.split("")).size <= 2) return false
-  return true
+  return isValidFrBePhone(phone)
 }
 
 /**
@@ -344,8 +346,18 @@ export function buildAdminLeadAlertEmail(payload: AdminLeadAlertPayload): {
   if (isVatValid) {
     certifiedBadges.push("Numéro TVA conforme (Modulo 97)")
   }
-  if (isPhoneValid) {
-    certifiedBadges.push("Numéro de téléphone belge conforme")
+  if (verifs?.phoneOtp?.verified) {
+    certifiedBadges.push(
+      verifs.phoneOtp.channel === "call"
+        ? `Téléphone certifié par appel vocal OTP${verifs.twilioLookup?.carrierName ? ` (${verifs.twilioLookup.carrierName})` : ""}`
+        : `Téléphone certifié par SMS OTP${verifs.twilioLookup?.carrierName ? ` (${verifs.twilioLookup.carrierName})` : ""}`
+    )
+  } else if (verifs?.twilioLookup?.valid) {
+    certifiedBadges.push(
+      `Ligne vérifiée opérateur${verifs.twilioLookup.carrierName ? ` (${verifs.twilioLookup.carrierName})` : ""}`
+    )
+  } else if (isPhoneValid) {
+    certifiedBadges.push("Numéro de téléphone conforme (format BE/FR)")
   }
 
   const scoreNum = payload.leadScore != null ? Math.round(Number(payload.leadScore)) : null

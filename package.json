@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "test:labels": "node --test scripts/test-lead-display-labels.cjs",
+    "test:verification": "node --test scripts/test-lead-verification.cjs",
     "verify:onboarding": "node scripts/verify-partner-onboarding.mjs"
   },
   "dependencies": {

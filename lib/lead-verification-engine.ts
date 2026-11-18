@@ -3,29 +3,24 @@ import {
   verifyWalloniaAddressStrict,
   type AddressResolutionLevel,
 } from "./address-spw"
-
-/**
- * Liste non exhaustive des fournisseurs d'adresses temporaires/jetables connues.
- */
-const DISPOSABLE_EMAIL_DOMAINS = new Set([
-  "mailinator.com",
-  "tempmail.com",
-  "10minutemail.com",
-  "guerrillamail.com",
-  "sharklasers.com",
-  "throwawaymail.com",
-  "yopmail.com",
-  "yopmail.fr",
-  "trashmail.com",
-  "getairmail.com",
-  "dispostable.com",
-])
+import {
+  formatAndValidateBelgianPhone,
+  getEmailTypoSuggestion,
+  isDisposableEmailDomain,
+  isFakePhonePattern,
+  isPlaceholderEmail,
+  isSuspiciousPersonName,
+  isValidFrBePhone,
+  normalizeFrBePhone,
+} from "./leads-validation"
 
 export interface EmailMxVerificationResult {
   valid: boolean
   isDisposable: boolean
   domain: string
   mxServers: string[]
+  transientError?: boolean
+  typoSuggestion?: string | null
   reason?: string
 }
 
@@ -62,20 +57,71 @@ export interface CbeCompanyVerificationResult {
   isWalloniaHeadquarters?: boolean
   naceCode?: string
   naceDescription?: string
+  nameMatchesInput?: boolean
+  postalMatchesInput?: boolean
   error?: string
+}
+
+export interface PhoneVerificationResult {
+  valid: boolean
+  e164: string | null
+  lineType: "mobile" | "landline" | "unknown"
+  fakePattern: boolean
+  reason?: string
+}
+
+export interface IdentityVerificationResult {
+  suspiciousName: boolean
+  identicalFirstLast: boolean
+  reason?: string
+}
+
+export interface DuplicateLeadVerificationResult {
+  hasDuplicatePhone: boolean
+  hasDuplicateEmail: boolean
+  duplicateLeadIds: string[]
+  lastSubmittedAt?: string | null
+}
+
+export interface PhoneOtpVerificationResult {
+  verified: boolean
+  channel?: "sms" | "call" | "dev_mock" | null
+  verifiedAt?: string | null
+  required?: boolean
+}
+
+export interface TwilioLookupSnapshot {
+  valid: boolean
+  lineType?: string | null
+  carrierName?: string | null
+  smsPumpingRiskLevel?: string | null
 }
 
 export interface LeadEnrichedVerification {
   emailMx: EmailMxVerificationResult
   walloniaAddress: WalloniaAddressVerificationResult
   cbeCompany?: CbeCompanyVerificationResult | null
+  phoneAnalysis?: PhoneVerificationResult
+  phoneOtp?: PhoneOtpVerificationResult | null
+  twilioLookup?: TwilioLookupSnapshot | null
+  identityAnalysis?: IdentityVerificationResult
+  duplicateCheck?: DuplicateLeadVerificationResult | null
   globalTrustScoreDelta: number
   trustBadges: string[]
   warningFlags: string[]
 }
 
+const DNS_TIMEOUT_MS = 2500
+
+function isTransientDnsErrorCode(code: string): boolean {
+  return ["ETIMEOUT", "EAI_AGAIN", "ESERVFAIL", "ECONNREFUSED", "TIMEOUT"].includes(
+    code.toUpperCase()
+  )
+}
+
 /**
- * 1. Contrôle DNS MX : vérifie l'existence réelle des serveurs de messagerie du domaine e-mail.
+ * 1. Contrôle DNS MX : vérifie l'existence réelle des serveurs de messagerie du domaine e-mail
+ * (domaine jetable, typo, Null-MX RFC 7505, timeout borné).
  */
 export async function verifyEmailDomainMx(email: string): Promise<EmailMxVerificationResult> {
   const trimmed = email.trim().toLowerCase()
@@ -91,8 +137,20 @@ export async function verifyEmailDomainMx(email: string): Promise<EmailMxVerific
   }
 
   const domain = trimmed.slice(atIdx + 1)
+  const typoSuggestion = getEmailTypoSuggestion(trimmed)
 
-  if (DISPOSABLE_EMAIL_DOMAINS.has(domain)) {
+  if (typoSuggestion) {
+    return {
+      valid: false,
+      isDisposable: false,
+      domain,
+      mxServers: [],
+      typoSuggestion,
+      reason: `Faute de frappe probable dans le domaine (vouliez-vous écrire @${typoSuggestion} ?)`,
+    }
+  }
+
+  if (isDisposableEmailDomain(domain)) {
     return {
       valid: false,
       isDisposable: true,
@@ -102,19 +160,39 @@ export async function verifyEmailDomainMx(email: string): Promise<EmailMxVerific
     }
   }
 
+  if (isPlaceholderEmail(trimmed)) {
+    return {
+      valid: false,
+      isDisposable: false,
+      domain,
+      mxServers: [],
+      reason: "Adresse e-mail générique ou factice détectée",
+    }
+  }
+
   try {
-    const mxRecords = await resolveMx(domain)
-    if (!mxRecords || mxRecords.length === 0) {
+    const mxRecords = await Promise.race([
+      resolveMx(domain),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(Object.assign(new Error("DNS timeout"), { code: "ETIMEOUT" })), DNS_TIMEOUT_MS)
+      ),
+    ])
+
+    const validRecords = (mxRecords ?? []).filter(
+      (r) => typeof r.exchange === "string" && r.exchange.trim() !== "." && r.exchange.trim().length >= 3
+    )
+
+    if (validRecords.length === 0) {
       return {
         valid: false,
         isDisposable: false,
         domain,
         mxServers: [],
-        reason: "Aucun serveur de messagerie (MX) configuré pour ce domaine",
+        reason: "Aucun serveur de messagerie (MX) actif configuré pour ce domaine",
       }
     }
 
-    const sortedServers = mxRecords
+    const sortedServers = validRecords
       .sort((a, b) => a.priority - b.priority)
       .map((r) => r.exchange)
 
@@ -124,16 +202,19 @@ export async function verifyEmailDomainMx(email: string): Promise<EmailMxVerific
       domain,
       mxServers: sortedServers,
     }
-  } catch (err: any) {
-    const code = err?.code || "MX_LOOKUP_FAILED"
+  } catch (err: unknown) {
+    const code = String((err as { code?: string } | null)?.code || "MX_LOOKUP_FAILED")
+    const transientError = isTransientDnsErrorCode(code)
     return {
       valid: false,
       isDisposable: false,
       domain,
       mxServers: [],
-      reason: code === "ENOTFOUND" || code === "ENODATA"
-        ? "Nom de domaine inexistant ou sans serveur e-mail"
-        : `Échec de résolution DNS (${code})`,
+      transientError,
+      reason:
+        code === "ENOTFOUND" || code === "ENODATA" || code === "ENOTIMP"
+          ? "Nom de domaine inexistant ou sans serveur e-mail"
+          : `Échec de résolution DNS (${code})`,
     }
   }
 }
@@ -264,18 +345,99 @@ export async function verifyBelgianCompanyCbe(
   }
 }
 
+function normalizeCompanyTokens(name: string): string[] {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter(
+      (t) =>
+        t.length >= 2 &&
+        !["sa", "srl", "sprl", "bv", "nv", "vzw", "asbl", "sc", "scrl", "bvba"].includes(t)
+    )
+}
+
+export function verifyPhoneIntegrity(phone?: string | null): PhoneVerificationResult {
+  const raw = (phone ?? "").trim()
+  if (!raw) {
+    return { valid: false, e164: null, lineType: "unknown", fakePattern: false, reason: "Téléphone absent" }
+  }
+
+  const normalizedBe = formatAndValidateBelgianPhone(raw)
+  if (normalizedBe.isValid) {
+    const e164 = normalizedBe.normalized
+    const isBeMobile = /^\+324[56789]\d{7}$/.test(e164)
+    return {
+      valid: true,
+      e164,
+      lineType: isBeMobile ? "mobile" : "landline",
+      fakePattern: false,
+    }
+  }
+
+  if (isValidFrBePhone(raw)) {
+    const e164 = normalizeFrBePhone(raw)
+    const isFrMobile = Boolean(e164 && /^\+33[67]\d{8}$/.test(e164))
+    return {
+      valid: true,
+      e164,
+      lineType: isFrMobile ? "mobile" : "landline",
+      fakePattern: false,
+    }
+  }
+
+  const digits = raw.replace(/\D/g, "")
+  const subscriber = digits.length >= 6 ? digits.slice(-6) : digits
+  const fakePattern = isFakePhonePattern(subscriber)
+  return {
+    valid: false,
+    e164: null,
+    lineType: "unknown",
+    fakePattern,
+    reason: fakePattern ? "Séquence téléphonique factice détectée" : normalizedBe.errorMessage || "Format invalide",
+  }
+}
+
+export function verifyIdentityIntegrity(params: {
+  firstName?: string | null
+  lastName?: string | null
+}): IdentityVerificationResult {
+  const first = (params.firstName ?? "").trim()
+  const last = (params.lastName ?? "").trim()
+  const suspiciousName = isSuspiciousPersonName(first) || isSuspiciousPersonName(last)
+  const normFirst = first.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  const normLast = last.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  const identicalFirstLast = normFirst.length >= 2 && normFirst === normLast
+
+  return {
+    suspiciousName,
+    identicalFirstLast,
+    reason: suspiciousName
+      ? "Prénom ou nom suspect / générique"
+      : identicalFirstLast
+        ? "Prénom et nom strictement identiques"
+        : undefined,
+  }
+}
+
 /**
- * Moteur d'enrichissement global : exécute les 3 vérifications en parallèle (< 300 ms).
+ * Moteur d'enrichissement global : exécute les vérifications en parallèle (< 300 ms en nominal).
  */
 export async function enrichLeadVerifications(params: {
   email: string
+  phone?: string | null
+  firstName?: string | null
+  lastName?: string | null
   postalCode?: string | null
   city?: string | null
   streetAddress?: string | null
+  company?: string | null
   companyVat?: string | null
   segment?: string | null
 }): Promise<LeadEnrichedVerification> {
-  const { email, postalCode, city, streetAddress, companyVat, segment } = params
+  const { email, phone, firstName, lastName, postalCode, city, streetAddress, company, companyVat, segment } = params
 
   const [mxRes, spwRes, cbeRes] = await Promise.allSettled([
     verifyEmailDomainMx(email),
@@ -286,15 +448,33 @@ export async function enrichLeadVerifications(params: {
   const emailMx: EmailMxVerificationResult =
     mxRes.status === "fulfilled"
       ? mxRes.value
-      : { valid: true, isDisposable: false, domain: "", mxServers: [] }
+      : { valid: false, isDisposable: false, domain: "", mxServers: [], transientError: true, reason: "Lookup DNS indisponible" }
 
   const walloniaAddress: WalloniaAddressVerificationResult =
     spwRes.status === "fulfilled"
       ? spwRes.value
-      : { validInWallonia: true, confidenceScore: 50, source: "SPW_ICAR", rawCandidatesCount: 0 }
+      : { validInWallonia: false, confidenceScore: 0, source: "SPW_ICAR", rawCandidatesCount: 0 }
 
-  const cbeCompany: CbeCompanyVerificationResult | null =
+  let cbeCompany: CbeCompanyVerificationResult | null =
     cbeRes.status === "fulfilled" ? cbeRes.value : null
+
+  if (cbeCompany && cbeCompany.verified && company) {
+    const inputTokens = normalizeCompanyTokens(company)
+    const cbeTokens = normalizeCompanyTokens(cbeCompany.officialName || "")
+    const nameMatchesInput =
+      inputTokens.length === 0 ||
+      cbeTokens.length === 0 ||
+      inputTokens.some((t) => cbeTokens.some((ct) => ct.includes(t) || t.includes(ct)))
+    const postalMatchesInput =
+      !postalCode || !cbeCompany.postalCode || postalCode.trim() === cbeCompany.postalCode.trim()
+    cbeCompany = { ...cbeCompany, nameMatchesInput, postalMatchesInput }
+  }
+
+  const phoneAnalysis = phone !== undefined ? verifyPhoneIntegrity(phone) : undefined
+  const identityAnalysis =
+    firstName !== undefined || lastName !== undefined
+      ? verifyIdentityIntegrity({ firstName, lastName })
+      : undefined
 
   let globalTrustScoreDelta = 0
   const trustBadges: string[] = []
@@ -307,12 +487,36 @@ export async function enrichLeadVerifications(params: {
   } else if (emailMx.isDisposable) {
     globalTrustScoreDelta -= 40
     warningFlags.push("Adresse e-mail temporaire / jetable")
-  } else {
+  } else if (!emailMx.transientError) {
     globalTrustScoreDelta -= 30
     warningFlags.push(emailMx.reason || "Domaine e-mail sans serveur de messagerie")
+  } else {
+    warningFlags.push(emailMx.reason || "Contrôle DNS e-mail temporairement indisponible")
   }
 
-  // 2. Évaluation Localisation SPW & Complétude Adresse
+  // 2. Évaluation Téléphone & Identité
+  if (phoneAnalysis) {
+    if (phoneAnalysis.valid) {
+      trustBadges.push(
+        phoneAnalysis.lineType === "mobile"
+          ? `Téléphone mobile certifié (${phoneAnalysis.e164})`
+          : `Téléphone fixe certifié (${phoneAnalysis.e164})`
+      )
+    } else {
+      globalTrustScoreDelta -= phoneAnalysis.fakePattern ? 35 : 20
+      warningFlags.push(phoneAnalysis.reason || "Numéro de téléphone non conforme")
+    }
+  }
+
+  if (identityAnalysis?.suspiciousName) {
+    globalTrustScoreDelta -= 25
+    warningFlags.push("Identité suspecte ou nom de test détecté")
+  } else if (identityAnalysis?.identicalFirstLast) {
+    globalTrustScoreDelta -= 10
+    warningFlags.push("Prénom et nom strictement identiques")
+  }
+
+  // 3. Évaluation Localisation SPW & Complétude Adresse
   if (walloniaAddress.postalMismatch) {
     globalTrustScoreDelta -= 25
     warningFlags.push(
@@ -355,13 +559,19 @@ export async function enrichLeadVerifications(params: {
     warningFlags.push("Localisation non répertoriée dans le cadastre SPW Wallonie")
   }
 
-  // 3. Évaluation Entreprise BCE
+  // 4. Évaluation Entreprise BCE
   if (cbeCompany) {
     if (cbeCompany.verified && cbeCompany.active) {
       globalTrustScoreDelta += 15
       trustBadges.push(
         `BCE : Société active${cbeCompany.isWalloniaHeadquarters ? " (Siège en Wallonie)" : ""}`
       )
+      if (cbeCompany.nameMatchesInput === false) {
+        globalTrustScoreDelta -= 15
+        warningFlags.push(
+          `Raison sociale différente à la BCE ("${cbeCompany.officialName || "?"}" vs "${company || "?"}")`
+        )
+      }
     } else if (cbeCompany.verified && !cbeCompany.active) {
       globalTrustScoreDelta -= 50
       warningFlags.push("BCE : Entreprise radiée, fermée ou en faillite")
@@ -374,6 +584,8 @@ export async function enrichLeadVerifications(params: {
     emailMx,
     walloniaAddress,
     cbeCompany,
+    phoneAnalysis,
+    identityAnalysis,
     globalTrustScoreDelta,
     trustBadges,
     warningFlags,

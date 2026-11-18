@@ -1,10 +1,15 @@
 import { z } from "zod"
 import { BELGIUM_PROVINCE_KEYS, type BelgiumProvinceKey } from "@/lib/belgium-regions"
 import {
-  isValidFrBePhone,
-  isValidBelgianVat,
-  normalizeBelgianVat,
+  PHONE_FR_BE_MESSAGE,
+  detectCityPostalContradiction,
   getBelgianAddressError,
+  getEmailError,
+  isSuspiciousPersonName,
+  isValidBelgianVat,
+  isValidFrBePhone,
+  isWalloonPostalCode,
+  normalizeBelgianVat,
 } from "@/lib/leads-validation"
 
 const provinceEnum = z.enum(BELGIUM_PROVINCE_KEYS as unknown as [BelgiumProvinceKey, ...BelgiumProvinceKey[]])
@@ -70,17 +75,23 @@ export const leadSubmitSchema = z
       .string()
       .min(2, "Le prénom est requis (minimum 2 caractères)")
       .max(255)
-      .transform((s) => s.trim()),
+      .transform((s) => s.trim())
+      .refine((s) => !isSuspiciousPersonName(s), {
+        message: "Veuillez indiquer votre véritable prénom (sans chiffres ni texte de test).",
+      }),
     lastName: z
       .string()
       .min(2, "Le nom est requis (minimum 2 caractères)")
       .max(255)
-      .transform((s) => s.trim()),
+      .transform((s) => s.trim())
+      .refine((s) => !isSuspiciousPersonName(s), {
+        message: "Veuillez indiquer votre véritable nom (sans chiffres ni texte de test).",
+      }),
     email: z.string().email("Adresse e-mail valide requise."),
     phone: z
       .string()
       .min(1, "Le numéro de téléphone est requis.")
-      .refine(isValidFrBePhone, { message: "Veuillez indiquer un numéro de téléphone belge ou français valide." }),
+      .refine(isValidFrBePhone, { message: PHONE_FR_BE_MESSAGE }),
 
     // Localisation précise (Cruciale pour audit Google Maps & matching local)
     province: provinceEnum,
@@ -183,9 +194,20 @@ export const leadSubmitSchema = z
     form_opened_at: z.string().optional(),
     mediaPartnerCode: z.string().max(50).optional(),
     sessionId: z.string().optional(),
+    phoneVerificationToken: z.string().max(1024).optional(),
     contactPreference: z.enum(["written_first", "direct_call"]).default("written_first").optional(),
   })
   .superRefine((data, ctx) => {
+    // 0. Contrôle strict e-mail (typos fréquentes, domaines jetables, placeholders)
+    const emailValidationError = getEmailError(data.email)
+    if (emailValidationError) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: emailValidationError,
+        path: ["email"],
+      })
+    }
+
     // 1. Validation stricte du segment B2B
     if (data.segment === "B2B") {
       if (!data.company || data.company.trim().length < 2) {
@@ -221,8 +243,47 @@ export const leadSubmitSchema = z
       }
     }
 
-    // 2. Validation stricte de l'adresse de voirie B2C (rue + numéro requis pour localiser la toiture)
+    // 2. Validation stricte de l'adresse de voirie & périmètre Wallonie en B2C
+    const isWalloonProvinceClaim = [
+      "liege",
+      "hainaut",
+      "namur",
+      "luxembourg",
+      "brabant_wallon",
+    ].includes(data.province)
+
+    const addrContradiction = detectCityPostalContradiction({
+      postalCode: data.postalCode,
+      city: data.city,
+      siteAddress: data.siteAddress,
+      walloniaOnly: data.segment === "B2C" || isWalloonProvinceClaim,
+    })
+    if (addrContradiction) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: addrContradiction,
+        path: ["siteAddress"],
+      })
+    }
+
+    if (data.segment === "B2C" && data.postalCode && !isWalloonPostalCode(data.postalCode)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Zone non couverte : notre comparateur RESCERT couvre exclusivement la Wallonie (codes postaux 1300-1499 et 4000-7999).",
+        path: ["postalCode"],
+      })
+    }
+
     if (data.sourceForm === "b2c_devis_landing" || data.sourceForm === "b2c_simulator") {
+      if (!data.postalCode || !isWalloonPostalCode(data.postalCode)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            "Zone non couverte : notre comparateur RESCERT couvre exclusivement la Wallonie (codes postaux 1300-1499 et 4000-7999).",
+          path: ["postalCode"],
+        })
+      }
       const addrErr = getBelgianAddressError(data.siteAddress, {
         required: true,
         requireHouseNumber: true,

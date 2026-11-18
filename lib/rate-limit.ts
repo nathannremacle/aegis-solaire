@@ -80,3 +80,104 @@ export async function checkRateLimit(request: Request): Promise<boolean> {
   memoryStore.set(ip, timestamps)
   return true
 }
+
+const otpIpStore = new Map<string, number[]>()
+const otpPhoneStore = new Map<string, number[]>()
+const OTP_PHONE_WINDOW_MS = 30 * 60 * 1000
+const OTP_MAX_PER_PHONE = 3
+const OTP_MIN_COOLDOWN_MS = 25 * 1000
+const OTP_MAX_PER_IP_HOUR = 8
+
+let upstashOtpIpRatelimit: Ratelimit | null = null
+let upstashOtpPhoneRatelimit: Ratelimit | null = null
+
+if (url && token) {
+  try {
+    const redis = new Redis({ url, token })
+    upstashOtpIpRatelimit = new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(OTP_MAX_PER_IP_HOUR, "1 h"),
+      prefix: "aegis_otp_ip",
+    })
+    upstashOtpPhoneRatelimit = new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(OTP_MAX_PER_PHONE, "30 m"),
+      prefix: "aegis_otp_phone",
+    })
+  } catch {
+    // fallback in-memory déjà actif
+  }
+}
+
+/**
+ * Protection anti-SMS pumping dédiée aux endpoints OTP :
+ * - Max 8 envois / heure / IP
+ * - Max 3 envois / 30 min / numéro avec délai minimum de 25 s entre deux SMS
+ */
+export async function checkOtpSendRateLimit(
+  request: Request,
+  phoneE164: string
+): Promise<{ allowed: boolean; retryAfterSeconds?: number; reason?: string }> {
+  const ip = getClientIp(request)
+  const now = Date.now()
+
+  // 1. Délai minimal entre 2 envois sur le même numéro (mémoire rapide + Redis)
+  const phoneHistory = (otpPhoneStore.get(phoneE164) ?? []).filter(
+    (t) => now - t < OTP_PHONE_WINDOW_MS
+  )
+  const lastSend = phoneHistory[phoneHistory.length - 1]
+  if (lastSend && now - lastSend < OTP_MIN_COOLDOWN_MS) {
+    const waitSec = Math.ceil((OTP_MIN_COOLDOWN_MS - (now - lastSend)) / 1000)
+    return {
+      allowed: false,
+      retryAfterSeconds: waitSec,
+      reason: `Patientez encore ${waitSec} s avant de demander un nouveau code.`,
+    }
+  }
+
+  if (upstashOtpIpRatelimit && upstashOtpPhoneRatelimit) {
+    try {
+      const [ipRes, phoneRes] = await Promise.all([
+        upstashOtpIpRatelimit.limit(ip),
+        upstashOtpPhoneRatelimit.limit(phoneE164),
+      ])
+      if (!ipRes.success) {
+        return {
+          allowed: false,
+          reason: "Trop de demandes de code depuis votre connexion. Réessayez plus tard.",
+        }
+      }
+      if (!phoneRes.success) {
+        return {
+          allowed: false,
+          reason: "Trop de codes envoyés à ce numéro récemment. Réessayez dans quelques minutes.",
+        }
+      }
+      phoneHistory.push(now)
+      otpPhoneStore.set(phoneE164, phoneHistory)
+      return { allowed: true }
+    } catch {
+      // Fallback mémoire ci-dessous
+    }
+  }
+
+  const ipHistory = (otpIpStore.get(ip) ?? []).filter((t) => now - t < WINDOW_MS)
+  if (ipHistory.length >= OTP_MAX_PER_IP_HOUR) {
+    return {
+      allowed: false,
+      reason: "Trop de demandes de code depuis votre connexion. Réessayez dans une heure.",
+    }
+  }
+  if (phoneHistory.length >= OTP_MAX_PER_PHONE) {
+    return {
+      allowed: false,
+      reason: "Trop de codes envoyés à ce numéro récemment. Réessayez dans 30 minutes.",
+    }
+  }
+
+  ipHistory.push(now)
+  phoneHistory.push(now)
+  otpIpStore.set(ip, ipHistory)
+  otpPhoneStore.set(phoneE164, phoneHistory)
+  return { allowed: true }
+}

@@ -291,9 +291,24 @@ export function PartnerFocusedLeadView({
       : `Prospect ${ownershipLabel.toLowerCase()}`
 
   // Vérification factuelle des coordonnées (Guide §7 : "vérifié" uniquement si étayé)
-  const emailMxValid = Boolean(lead.qualification_metadata?.verifications?.emailMx?.valid)
+  const verifsObj = lead.qualification_metadata?.verifications as
+    | {
+        emailMx?: { valid?: boolean }
+        phoneOtp?: { verified?: boolean; channel?: string | null }
+        twilioLookup?: { valid?: boolean; carrierName?: string | null }
+      }
+    | undefined
+  const emailMxValid = Boolean(verifsObj?.emailMx?.valid)
+  const phoneOtpVerified = Boolean(verifsObj?.phoneOtp?.verified)
+  const twilioLookupValid = Boolean(verifsObj?.twilioLookup?.valid)
   const emailLabel = emailMxValid ? "E-mail vérifié" : "E-mail renseigné"
-  const phoneLabel = lead.phone || emailMxValid ? "Téléphone vérifié" : "Téléphone renseigné"
+  const phoneLabel = phoneOtpVerified
+    ? verifsObj?.phoneOtp?.channel === "call"
+      ? "Téléphone certifié (appel)"
+      : "Téléphone certifié SMS"
+    : twilioLookupValid
+      ? "Ligne active opérateur"
+      : "Téléphone validé (format)"
   const maskedPhone =
     lead.phone && String(lead.phone).replace(/\D/g, "").match(/^(?:324|04)/)
       ? "04•• •• •• ••"

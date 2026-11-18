@@ -678,7 +678,14 @@ export function LeadInspectionDrawer({
               )}
               <li className="flex items-center gap-2 text-foreground">
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                <span>Numéro de téléphone direct (contrôlé par SMS/appel)</span>
+                <span>
+                  {(lead.qualification_metadata?.verifications as { phoneOtp?: { verified?: boolean; channel?: string } } | undefined)
+                    ?.phoneOtp?.verified
+                    ? (lead.qualification_metadata?.verifications as { phoneOtp?: { channel?: string } })?.phoneOtp?.channel === "call"
+                      ? "Numéro de téléphone direct certifié par appel OTP"
+                      : "Numéro de téléphone direct certifié par SMS OTP"
+                    : "Numéro de téléphone direct (contrôlé par SMS/appel)"}
+                </span>
               </li>
               <li className="flex items-center gap-2 text-foreground">
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />

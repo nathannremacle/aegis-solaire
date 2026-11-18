@@ -71,7 +71,7 @@ export async function publishLeadAction(leadId: string, creditCost?: number) {
   const { data: lead } = await supabase
     .from("leads")
     .select(
-      "id, segment, credit_cost, province, postal_code, city, site_address, surface_area, surface_type, annual_electricity_bill, first_name, last_name, email, phone, company, qualification_metadata"
+      "id, segment, credit_cost, province, postal_code, city, site_address, surface_area, surface_type, annual_electricity_bill, first_name, last_name, email, phone, company, company_vat, ownership_status, qualification_metadata"
     )
     .eq("id", leadId)
     .single()
@@ -312,13 +312,31 @@ export async function bulkQualifyAndPublishAction(leadIds: string[]) {
 
   const supabase = createServiceRoleClient()
 
-  // Mettre à jour avec prix par défaut v2 selon segment pour les leads qui n'en ont pas
+  // Mettre à jour avec prix par défaut v2 selon segment après contrôle qualité strict de chaque dossier
   const { data: leads } = await supabase
     .from("leads")
-    .select("id, segment, credit_cost, qualification_metadata")
+    .select(
+      "id, segment, credit_cost, province, postal_code, city, site_address, surface_area, surface_type, annual_electricity_bill, first_name, last_name, email, phone, company, company_vat, ownership_status, qualification_metadata"
+    )
     .in("id", leadIds)
 
   const nowIso = new Date().toISOString()
+
+  const blockedReasons: string[] = []
+  for (const lead of leads ?? []) {
+    const q = evaluateLeadPublishability(lead)
+    if (!q.isPublishable) {
+      const label =
+        `${lead.first_name || ""} ${lead.last_name || ""}`.trim() || lead.company || lead.id
+      blockedReasons.push(`${label} (${q.missingFields[0]})`)
+    }
+  }
+
+  if (blockedReasons.length > 0) {
+    throw new Error(
+      `Publication groupée bloquée (${blockedReasons.length} dossier(s) non conforme(s)) : ${blockedReasons.slice(0, 3).join(" · ")}`
+    )
+  }
 
   if (leads) {
     for (const lead of leads) {

@@ -4,8 +4,15 @@ import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { sendLeadAssignedEmail } from "@/lib/notify-installateur"
 import { logAudit } from "@/lib/audit-log"
-import { verifyWalloniaAddressSpw } from "@/lib/lead-verification-engine"
-import { getWalloonProvinceKeyFromPostalCode } from "@/lib/leads-validation"
+import {
+  verifyBelgianCompanyCbe,
+  verifyEmailDomainMx,
+  verifyIdentityIntegrity,
+  verifyPhoneIntegrity,
+  verifyWalloniaAddressSpw,
+} from "@/lib/lead-verification-engine"
+import { getBelgiumProvinceKeyFromPostalCode } from "@/lib/belgium-regions"
+import { getEmailError, normalizeFrBePhone } from "@/lib/leads-validation"
 
 const LEAD_SELECT =
   "id, first_name, last_name, email, phone, job_title, company, company_vat, message, project_details, surface_type, surface_area, estimated_power_kwc, annual_electricity_bill, roof_material, ownership_status, project_timeline, estimated_roi_years, autoconsumption_rate, estimated_savings, status, marketplace_status, credit_cost, lead_score, installateur_id, wants_irve, segment, province, postal_code, city, site_address, grd, media_partner_code, admin_notes, qualification_metadata, created_at"
@@ -107,14 +114,27 @@ export async function PATCH(
 
   if (email !== undefined) {
     const cleanEmail = String(email || "").trim().toLowerCase().slice(0, 180)
-    if (!cleanEmail || !cleanEmail.includes("@") || !cleanEmail.includes(".")) {
-      return NextResponse.json({ error: "Adresse e-mail invalide." }, { status: 400 })
+    const emailErr = getEmailError(cleanEmail)
+    if (emailErr) {
+      return NextResponse.json({ error: emailErr }, { status: 400 })
     }
     updates.email = cleanEmail
   }
 
   if (phone !== undefined) {
-    updates.phone = String(phone || "").trim().slice(0, 40) || null
+    const cleanPhone = String(phone || "").trim().slice(0, 40)
+    if (!cleanPhone) {
+      updates.phone = null
+    } else {
+      const normalizedPhone = normalizeFrBePhone(cleanPhone)
+      if (!normalizedPhone) {
+        return NextResponse.json(
+          { error: "Numéro de téléphone belge ou français invalide ou factice." },
+          { status: 400 }
+        )
+      }
+      updates.phone = normalizedPhone
+    }
   }
 
   if (job_title !== undefined) {
@@ -190,10 +210,12 @@ export async function PATCH(
     city !== undefined ||
     province !== undefined
 
-  if (addressEdited) {
+  if (addressEdited || contactEdited) {
     const { data: existing } = await supabase
       .from("leads")
-      .select("site_address, postal_code, city, province, qualification_metadata")
+      .select(
+        "first_name, last_name, email, phone, company, company_vat, segment, site_address, postal_code, city, province, qualification_metadata"
+      )
       .eq("id", id)
       .single()
 
@@ -201,59 +223,90 @@ export async function PATCH(
       return NextResponse.json({ error: "Lead introuvable" }, { status: 404 })
     }
 
-    const nextPostal =
-      postal_code !== undefined
-        ? String(postal_code || "").replace(/\D/g, "").slice(0, 4) || null
-        : existing.postal_code
-    if (nextPostal && nextPostal.length !== 4) {
-      return NextResponse.json(
-        { error: "Le code postal belge doit comporter 4 chiffres." },
-        { status: 400 }
-      )
-    }
-
-    const nextCity =
-      city !== undefined
-        ? String(city || "").trim().slice(0, 100) || null
-        : existing.city
-    const nextSiteAddress =
-      site_address !== undefined
-        ? String(site_address || "").trim().slice(0, 255) || null
-        : existing.site_address
-
-    const derivedProvince = nextPostal
-      ? getWalloonProvinceKeyFromPostalCode(nextPostal)
-      : null
-    const nextProvince =
-      province !== undefined
-        ? String(province || "").trim() || derivedProvince || existing.province
-        : derivedProvince || existing.province
-
-    // Re-vérifier automatiquement via SPW ICAR Wallonie
-    const spwVerification = await verifyWalloniaAddressSpw({
-      postalCode: nextPostal,
-      city: nextCity,
-      streetAddress: nextSiteAddress,
-    })
-
     const existingMeta =
       (existing.qualification_metadata as Record<string, unknown> | null) ?? {}
     const existingVerifs =
       (existingMeta.verifications as Record<string, unknown> | undefined) ?? {}
+    const nextVerifs: Record<string, unknown> = { ...existingVerifs }
 
-    updates.postal_code = nextPostal
-    updates.city = nextCity || spwVerification.officialSection || spwVerification.officialCity || null
-    updates.site_address = nextSiteAddress
-    updates.province = nextProvince
-    updates.matched_province = nextProvince
+    if (addressEdited) {
+      const nextPostal =
+        postal_code !== undefined
+          ? String(postal_code || "").replace(/\D/g, "").slice(0, 4) || null
+          : existing.postal_code
+      if (nextPostal && nextPostal.length !== 4) {
+        return NextResponse.json(
+          { error: "Le code postal belge doit comporter 4 chiffres." },
+          { status: 400 }
+        )
+      }
+
+      const nextCity =
+        city !== undefined
+          ? String(city || "").trim().slice(0, 100) || null
+          : existing.city
+      const nextSiteAddress =
+        site_address !== undefined
+          ? String(site_address || "").trim().slice(0, 255) || null
+          : existing.site_address
+
+      const derivedProvince = nextPostal
+        ? getBelgiumProvinceKeyFromPostalCode(nextPostal)
+        : null
+      const nextProvince =
+        province !== undefined
+          ? String(province || "").trim() || derivedProvince || existing.province
+          : derivedProvince || existing.province
+
+      const spwVerification = await verifyWalloniaAddressSpw({
+        postalCode: nextPostal,
+        city: nextCity,
+        streetAddress: nextSiteAddress,
+      })
+
+      updates.postal_code = nextPostal
+      updates.city = nextCity || spwVerification.officialSection || spwVerification.officialCity || null
+      updates.site_address = nextSiteAddress
+      updates.province = nextProvince
+      updates.matched_province = nextProvince
+      nextVerifs.walloniaAddress = spwVerification
+      nextVerifs.addressManuallyCorrectedAt = new Date().toISOString()
+      nextVerifs.addressManuallyCorrectedBy = user.email
+    }
+
+    if (contactEdited) {
+      const nextEmail = String((updates.email ?? existing.email) || "")
+      const nextPhone = (updates.phone !== undefined ? updates.phone : existing.phone) as string | null
+      const nextFirst = String((updates.first_name ?? existing.first_name) || "")
+      const nextLast = String((updates.last_name ?? existing.last_name) || "")
+      const nextVat = (updates.company_vat !== undefined ? updates.company_vat : existing.company_vat) as string | null
+      const nextSegment = String((updates.segment ?? existing.segment) || "B2C")
+
+      const [nextMx, nextCbe] = await Promise.all([
+        email !== undefined ? verifyEmailDomainMx(nextEmail) : Promise.resolve(null),
+        (company_vat !== undefined || company !== undefined || segment !== undefined) &&
+        nextVat &&
+        nextSegment === "B2B"
+          ? verifyBelgianCompanyCbe(nextVat)
+          : Promise.resolve(null),
+      ])
+
+      if (nextMx) nextVerifs.emailMx = nextMx
+      if (phone !== undefined) nextVerifs.phoneAnalysis = verifyPhoneIntegrity(nextPhone)
+      if (first_name !== undefined || last_name !== undefined) {
+        nextVerifs.identityAnalysis = verifyIdentityIntegrity({
+          firstName: nextFirst,
+          lastName: nextLast,
+        })
+      }
+      if (nextCbe) nextVerifs.cbeCompany = nextCbe
+      nextVerifs.contactManuallyCorrectedAt = new Date().toISOString()
+      nextVerifs.contactManuallyCorrectedBy = user.email
+    }
+
     updates.qualification_metadata = {
       ...existingMeta,
-      verifications: {
-        ...existingVerifs,
-        walloniaAddress: spwVerification,
-        addressManuallyCorrectedAt: new Date().toISOString(),
-        addressManuallyCorrectedBy: user.email,
-      },
+      verifications: nextVerifs,
     }
   }
 

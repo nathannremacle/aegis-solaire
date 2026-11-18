@@ -33,15 +33,22 @@ import {
   Zap,
 } from "lucide-react"
 import {
+  detectCityPostalContradiction,
   getEmailError,
+  getPersonNameError,
   getPhoneError,
   getVatError,
   isValidBelgianVat,
+  normalizeFrBePhone,
 } from "@/lib/leads-validation"
 import { getStoredMediaPartnerRef } from "@/components/media-partner-ref-tracker"
 import { calculateB2BSolarROI } from "@/lib/solar-assumptions"
 import { trackLeadConversion } from "@/components/analytics/ad-tracking"
 import { BelgianStreetNumberFields } from "@/components/address/belgian-address-fields"
+import {
+  PhoneOtpVerificationCard,
+  useLeadPhoneOtp,
+} from "@/components/leads/phone-otp-verification-card"
 
 type FormData = {
   surfaceType: string
@@ -198,6 +205,7 @@ export function ROISimulator() {
   const [error, setError] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
   const [isCalculating, setIsCalculating] = useState(false)
+  const phoneOtp = useLeadPhoneOtp()
   /** Horodatage début de parcours — l’API exige >4 s entre ce moment et la soumission ; ne pas le fixer à l’étape contact seule (sinon soumission rapide = erreur). */
   const formContactOpenedAtRef = useRef<string | null>(null)
   const [utmParams, setUtmParams] = useState<Record<string, string | undefined>>({})
@@ -235,25 +243,23 @@ export function ROISimulator() {
   const emailError = getEmailError(formData.email)
   const phoneError = getPhoneError(formData.phone)
   const vatError = getVatError(formData.companyVat)
-  const firstNameError =
-    step === 5
-      ? formData.firstName.trim().length === 0
-        ? "Le prénom est requis."
-        : formData.firstName.trim().length < 2
-          ? "Le prénom doit contenir au moins 2 caractères."
-          : null
-      : null
-  const lastNameError =
-    step === 5
-      ? formData.lastName.trim().length === 0
-        ? "Le nom est requis."
-        : formData.lastName.trim().length < 2
-          ? "Le nom doit contenir au moins 2 caractères."
-          : null
-      : null
+  const firstNameError = step === 5 ? getPersonNameError(formData.firstName, "prénom") : null
+  const lastNameError = step === 5 ? getPersonNameError(formData.lastName, "nom") : null
+  const isWalloonProvinceSelected = [
+    "liege",
+    "hainaut",
+    "namur",
+    "luxembourg",
+    "brabant_wallon",
+  ].includes(formData.province)
+  const b2bGeoError = detectCityPostalContradiction({
+    postalCode: formData.postalCode,
+    siteAddress: formData.siteAddress,
+    walloniaOnly: isWalloonProvinceSelected,
+  })
   const jobTitleError = step === 5 && formData.jobTitle === "" ? "Veuillez sélectionner votre fonction." : null
   const companyError =
-    step === 5 && formData.company.trim().length === 0 ? "Le nom de l'entreprise est requis." : null
+    step === 5 && formData.company.trim().length < 2 ? "Le nom de l'entreprise est requis." : null
 
   const showFirstNameError = (hasAttemptedSubmit || touchedFields.firstName) ? firstNameError : null
   const showLastNameError = (hasAttemptedSubmit || touchedFields.lastName) ? lastNameError : null
@@ -272,6 +278,7 @@ export function ROISimulator() {
         if (formData.province === "") return false
         if (formData.province === "autre" && formData.provinceFreeText.trim().length < 2) return false
         if (formData.postalCode.trim().length > 0 && !/^[1-9][0-9]{3}$/.test(formData.postalCode.trim())) return false
+        if (b2bGeoError) return false
         return true
       case 3:
         return formData.electricityBillBracket !== "" || isCustomBillValid(formData.annualElectricityBillCustom)
@@ -282,11 +289,12 @@ export function ROISimulator() {
           emailError === null &&
           phoneError === null &&
           vatError === null &&
-          formData.firstName.trim().length >= 2 &&
-          formData.lastName.trim().length >= 2 &&
+          firstNameError === null &&
+          lastNameError === null &&
           formData.jobTitle !== "" &&
           formData.company.trim().length >= 2 &&
           formData.companyVat.trim().length > 0 &&
+          b2bGeoError === null &&
           formData.marketingConsent === true
         )
       default:
@@ -320,6 +328,7 @@ export function ROISimulator() {
 
   const handleBack = () => {
     if (isCalculating) return
+    phoneOtp.resetOtp()
     if (step > 1) {
       if (step === 5) {
         setHasAttemptedSubmit(false)
@@ -330,15 +339,12 @@ export function ROISimulator() {
     }
   }
 
-  const handleSubmit = async () => {
-    setHasAttemptedSubmit(true)
-    if (!validateStep(5)) return
-
+  const submitFinalB2BLead = async (
+    roiResults: ROIResults,
+    phoneVerificationToken?: string
+  ) => {
     setIsSubmitting(true)
     setError(null)
-
-    const roiResults = calculateROI(formData)
-    setResults(roiResults)
 
     const surfaceArea = getSurfaceAreaFromChoices(formData.surfaceType, formData.surfaceRange)
     const annualElectricityBill = getAnnualBillFromBracket(
@@ -351,10 +357,11 @@ export function ROISimulator() {
       const payload = {
         sourceForm: "b2b_simulator",
         segment: "B2B",
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim().toLowerCase(),
+        phone: normalizeFrBePhone(formData.phone) ?? formData.phone,
+        phoneVerificationToken,
         jobTitle: formData.jobTitle,
         company: formData.company,
         companyVat: formData.companyVat,
@@ -415,6 +422,45 @@ export function ROISimulator() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleSubmit = async () => {
+    setHasAttemptedSubmit(true)
+    if (!validateStep(5)) return
+
+    setIsSubmitting(true)
+    setError(null)
+
+    const roiResults = calculateROI(formData)
+    setResults(roiResults)
+
+    const targetPhone = normalizeFrBePhone(formData.phone) ?? formData.phone
+    const otpRes = await phoneOtp.sendOtpRequest({
+      phone: targetPhone,
+      segment: "B2B",
+      email: formData.email.trim().toLowerCase(),
+      firstName: formData.firstName.trim(),
+      lastName: formData.lastName.trim(),
+      postalCode: formData.postalCode.trim() || undefined,
+      fax_number: formData.fax_number ?? "",
+      form_opened_at: formContactOpenedAtRef.current ?? undefined,
+    })
+
+    if (otpRes.status === "error") {
+      setError(otpRes.message)
+      setIsSubmitting(false)
+      return
+    }
+
+    if (otpRes.status === "challenge_started") {
+      setIsSubmitting(false)
+      return
+    }
+
+    await submitFinalB2BLead(
+      roiResults,
+      otpRes.status === "verified_cached" ? otpRes.token : undefined
+    )
   }
 
   if (submitted && results) {
@@ -717,12 +763,18 @@ export function ROISimulator() {
                         value={formData.siteAddress}
                         onChange={(val) => updateFormData("siteAddress", val)}
                         postalCode={formData.postalCode}
+                        showError={Boolean(b2bGeoError)}
                         required={false}
                         requireHouseNumber={false}
                         streetPlaceholder="Rue ou nom du zoning"
                         housePlaceholder="12"
                         className="mt-1.5"
                       />
+                      {b2bGeoError && (
+                        <p role="alert" className="mt-1 text-xs text-destructive font-medium">
+                          {b2bGeoError}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -919,6 +971,41 @@ export function ROISimulator() {
                         Accès immédiat à votre simulation d&apos;autoconsommation, aides Easy&apos;Green et déduction fiscale à 40%.
                       </p>
                     </div>
+
+                    {phoneOtp.challenge.active ? (
+                      <PhoneOtpVerificationCard
+                        challenge={phoneOtp.challenge}
+                        cooldown={phoneOtp.cooldown}
+                        onCodeChange={phoneOtp.setCode}
+                        onVerify={async (codeOverride) => {
+                          const targetPhone =
+                            normalizeFrBePhone(formData.phone) ?? formData.phone
+                          const check = await phoneOtp.submitCode(targetPhone, codeOverride)
+                          if (check.ok) {
+                            const roiResults = results ?? calculateROI(formData)
+                            await submitFinalB2BLead(roiResults, check.token)
+                          }
+                        }}
+                        onResend={async (channel) => {
+                          const targetPhone =
+                            normalizeFrBePhone(formData.phone) ?? formData.phone
+                          await phoneOtp.sendOtpRequest({
+                            phone: targetPhone,
+                            segment: "B2B",
+                            email: formData.email.trim().toLowerCase(),
+                            firstName: formData.firstName.trim(),
+                            lastName: formData.lastName.trim(),
+                            postalCode: formData.postalCode.trim() || undefined,
+                            channel,
+                            fax_number: formData.fax_number ?? "",
+                            form_opened_at: formContactOpenedAtRef.current ?? undefined,
+                          })
+                        }}
+                        onEditPhone={phoneOtp.resetOtp}
+                        submitLabel="Valider et afficher mes résultats"
+                      />
+                    ) : (
+                      <>
 
                     {/* Sélecteur rapide de fonction en 1 tap */}
                     <div className="flex flex-col gap-2">
@@ -1197,6 +1284,8 @@ export function ROISimulator() {
                         </a>).
                       </p>
                     </div>
+                      </>
+                    )}
                   </div>
                 )
               })()}
@@ -1226,7 +1315,7 @@ export function ROISimulator() {
                   </Button>
                 )}
 
-                {step === 5 && (
+                {step === 5 && !phoneOtp.challenge.active && (
                   <Button
                     onClick={handleSubmit}
                     variant="accent"

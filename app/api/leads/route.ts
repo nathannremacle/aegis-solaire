@@ -14,12 +14,19 @@ import { sendProspectConfirmationEmail } from "@/lib/prospect-confirmation-email
 import { sendAdminNewLeadAlertEmail } from "@/lib/notify-admin-lead"
 import { sendMetaConversionApiLead } from "@/lib/meta-capi"
 import { enrichLeadVerifications } from "@/lib/lead-verification-engine"
+import { getBelgiumProvinceKeyFromPostalCode } from "@/lib/belgium-regions"
 import {
+  detectCityPostalContradiction,
   extractBelgianStreetAndNumber,
-  formatAndValidateBelgianPhone,
-  getWalloonProvinceKeyFromPostalCode,
   isWalloonPostalCode,
+  resolveLeadPhoneE164,
 } from "@/lib/leads-validation"
+import {
+  isTwilioLookupEnabled,
+  isTwilioPhoneOtpEnabled,
+  lookupPhoneNumberTwilio,
+  verifyPhoneVerificationProof,
+} from "@/lib/twilio-verify"
 import { createHmac } from "crypto"
 
 function sanitizeString(input: string, maxLength = 255): string {
@@ -105,17 +112,31 @@ export async function POST(request: NextRequest) {
     const last_name = sanitizeString(data.lastName)
     const email = data.email.toLowerCase().trim()
 
-    // Validation stricte du téléphone belge pour l'appel d'offres résidentiel
-    let phone = data.phone.replace(/[\s.-]/g, "")
-    if (data.segment === "B2C" || (data.postalCode && /^[1-9][0-9]{3}$/.test(data.postalCode))) {
-      const phoneCheck = formatAndValidateBelgianPhone(data.phone)
-      if (!phoneCheck.isValid) {
-        return NextResponse.json(
-          { error: phoneCheck.errorMessage || "Numéro de téléphone belge invalide." },
-          { status: 400 }
-        )
-      }
-      phone = phoneCheck.normalized
+    // Validation stricte du téléphone belge / français + preuve OTP Twilio si activée
+    const phoneResolved = resolveLeadPhoneE164(data.phone, data.segment)
+    if (!phoneResolved.valid || !phoneResolved.e164) {
+      return NextResponse.json(
+        { error: phoneResolved.error || "Numéro de téléphone invalide." },
+        { status: 400 }
+      )
+    }
+    const phone = phoneResolved.e164
+
+    const otpRequired = isTwilioPhoneOtpEnabled()
+    const verifiedPhoneProof = verifyPhoneVerificationProof(
+      data.phoneVerificationToken,
+      phone
+    )
+
+    if (otpRequired && !verifiedPhoneProof) {
+      return NextResponse.json(
+        {
+          error:
+            "Veuillez valider le code à 6 chiffres reçu sur votre téléphone avant d'envoyer votre demande.",
+          requirePhoneOtp: true,
+        },
+        { status: 400 }
+      )
     }
     const job_title = data.jobTitle
       ? sanitizeString(data.jobTitle)
@@ -207,6 +228,8 @@ export async function POST(request: NextRequest) {
     const extractedPostalCode =
       data.postalCode ??
       data.provinceFreeText?.match(/\b[1-9][0-9]{3}\b/)?.[0] ??
+      data.siteAddress?.match(/(?:^|[,\s])([1-9][0-9]{3})(?=\s+[a-zA-ZÀ-ÿ]{2,}|$)/)?.[1] ??
+      data.city?.match(/\b([1-9][0-9]{3})\b/)?.[1] ??
       null
 
     const validSourceForms = [
@@ -228,7 +251,15 @@ export async function POST(request: NextRequest) {
         ? extractedPostalCode
         : null
 
-    if (safeSourceForm === "b2c_devis_landing" && (!safePostalCode || !isWalloonPostalCode(safePostalCode))) {
+    const isB2cPublicWalloniaForm =
+      data.segment === "B2C" &&
+      safeSourceForm !== "manual_admin" &&
+      safeSourceForm !== "api_partner"
+
+    if (
+      (isB2cPublicWalloniaForm && (!safePostalCode || !isWalloonPostalCode(safePostalCode))) ||
+      (data.segment === "B2C" && safePostalCode && !isWalloonPostalCode(safePostalCode))
+    ) {
       return NextResponse.json(
         {
           error:
@@ -239,17 +270,162 @@ export async function POST(request: NextRequest) {
     }
 
     const canonicalProvince =
-      (safePostalCode && getWalloonProvinceKeyFromPostalCode(safePostalCode)) || data.province
+      (safePostalCode && getBelgiumProvinceKeyFromPostalCode(safePostalCode)) || data.province
 
-    // Enrichissement & Contrôles automatiques (DNS MX, SPW Wallonie ICAR, BCE cbeapi.be)
-    const verifications = await enrichLeadVerifications({
-      email,
+    const isClaimingWalloniaProvince = [
+      "liege",
+      "hainaut",
+      "namur",
+      "luxembourg",
+      "brabant_wallon",
+    ].includes(canonicalProvince)
+
+    const geoContradiction = detectCityPostalContradiction({
       postalCode: safePostalCode,
       city: data.city,
-      streetAddress: data.siteAddress,
-      companyVat: company_vat,
-      segment: data.segment,
+      siteAddress: data.siteAddress,
+      walloniaOnly: data.segment === "B2C" || isClaimingWalloniaProvince,
     })
+    if (geoContradiction) {
+      return NextResponse.json({ error: geoContradiction }, { status: 400 })
+    }
+
+    const duplicateSinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+    // Enrichissement & Contrôles automatiques en parallèle (DNS MX, SPW ICAR, BCE, Lookup opérateur, Doublons 30j)
+    const [verifications, dupByEmailRes, dupByPhoneRes, lookupFallback] = await Promise.all([
+      enrichLeadVerifications({
+        email,
+        phone,
+        firstName: first_name,
+        lastName: last_name,
+        postalCode: safePostalCode,
+        city: data.city,
+        streetAddress: data.siteAddress,
+        company,
+        companyVat: company_vat,
+        segment: data.segment,
+      }),
+      supabase
+        .from("leads")
+        .select("id, session_id, created_at, status")
+        .eq("email", email)
+        .gte("created_at", duplicateSinceIso)
+        .neq("status", "draft_email_only")
+        .limit(5),
+      supabase
+        .from("leads")
+        .select("id, session_id, created_at, status")
+        .eq("phone", phone)
+        .gte("created_at", duplicateSinceIso)
+        .neq("status", "draft_email_only")
+        .limit(5),
+      !verifiedPhoneProof && isTwilioLookupEnabled()
+        ? lookupPhoneNumberTwilio(phone)
+        : Promise.resolve(null),
+    ])
+
+    if (lookupFallback && lookupFallback.configured && !lookupFallback.valid && !lookupFallback.transientError) {
+      return NextResponse.json(
+        {
+          error:
+            lookupFallback.blockedReason ||
+            "Ce numéro de téléphone n'est pas attribué ou semble virtuel.",
+        },
+        { status: 400 }
+      )
+    }
+
+    if (verifiedPhoneProof) {
+      verifications.phoneOtp = {
+        verified: true,
+        channel: verifiedPhoneProof.channel,
+        verifiedAt: verifiedPhoneProof.verifiedAt,
+        required: otpRequired,
+      }
+      verifications.twilioLookup = {
+        valid: true,
+        lineType: verifiedPhoneProof.lineType ?? lookupFallback?.lineType ?? null,
+        carrierName: verifiedPhoneProof.carrierName ?? lookupFallback?.carrierName ?? null,
+      }
+      verifications.globalTrustScoreDelta += 15
+      verifications.trustBadges.push(
+        verifiedPhoneProof.channel === "call"
+          ? "Téléphone certifié par appel vocal OTP"
+          : "Téléphone certifié par SMS OTP"
+      )
+    } else {
+      verifications.phoneOtp = {
+        verified: false,
+        channel: null,
+        verifiedAt: null,
+        required: otpRequired,
+      }
+      if (lookupFallback?.configured) {
+        verifications.twilioLookup = {
+          valid: lookupFallback.valid,
+          lineType: lookupFallback.lineType,
+          carrierName: lookupFallback.carrierName,
+          smsPumpingRiskLevel: lookupFallback.smsPumpingRiskLevel,
+        }
+        if (lookupFallback.valid && !lookupFallback.transientError) {
+          verifications.trustBadges.push(
+            `Ligne vérifiée opérateur${lookupFallback.carrierName ? ` (${lookupFallback.carrierName})` : ""}`
+          )
+        }
+      }
+    }
+
+    // Blocage dur si le domaine e-mail n'existe pas / n'a pas de serveur MX ou est jetable
+    if (!verifications.emailMx.valid && !verifications.emailMx.transientError) {
+      return NextResponse.json(
+        {
+          error:
+            verifications.emailMx.reason ||
+            "Cette adresse e-mail ne peut pas recevoir de messages (domaine inexistant ou jetable).",
+        },
+        { status: 400 }
+      )
+    }
+
+    // Blocage dur B2C en cas d'incohérence flagrante adresse/code postal SPW
+    if (data.segment === "B2C" && verifications.walloniaAddress.postalMismatch) {
+      return NextResponse.json(
+        {
+          error:
+            "L'adresse saisie et le code postal ne correspondent pas en Wallonie. Veuillez vérifier votre rue et votre code postal.",
+        },
+        { status: 400 }
+      )
+    }
+
+    const emailDups = (dupByEmailRes.data ?? []).filter(
+      (r) => !data.sessionId || r.session_id !== data.sessionId
+    )
+    const phoneDups = (dupByPhoneRes.data ?? []).filter(
+      (r) => !data.sessionId || r.session_id !== data.sessionId
+    )
+    const duplicateLeadIds = Array.from(
+      new Set([...emailDups.map((r) => r.id), ...phoneDups.map((r) => r.id)])
+    )
+    const duplicateCheck = {
+      hasDuplicatePhone: phoneDups.length > 0,
+      hasDuplicateEmail: emailDups.length > 0,
+      duplicateLeadIds,
+      lastSubmittedAt:
+        emailDups[0]?.created_at || phoneDups[0]?.created_at || null,
+    }
+    verifications.duplicateCheck = duplicateCheck
+    if (duplicateCheck.hasDuplicatePhone || duplicateCheck.hasDuplicateEmail) {
+      verifications.globalTrustScoreDelta -= 20
+      verifications.warningFlags.push(
+        duplicateCheck.hasDuplicatePhone && duplicateCheck.hasDuplicateEmail
+          ? "Doublon exact détecté (< 30 jours : même e-mail et téléphone)"
+          : duplicateCheck.hasDuplicatePhone
+            ? "Doublon téléphone détecté (< 30 jours)"
+            : "Doublon e-mail détecté (< 30 jours)"
+      )
+    }
 
     const finalScore = Math.max(0, Math.min(100, score + verifications.globalTrustScoreDelta))
     for (const badge of verifications.trustBadges) {
@@ -258,6 +434,19 @@ export async function POST(request: NextRequest) {
     for (const warn of verifications.warningFlags) {
       factors.push({ label: `Alerte conformité : ${warn}`, delta: -15 })
     }
+
+    const needsManualQuarantine =
+      safeStatus === "NEEDS_HUMAN_REVIEW" ||
+      safeOwnership === "tenant_unauthorized" ||
+      finalScore < 45 ||
+      duplicateCheck.hasDuplicatePhone ||
+      duplicateCheck.hasDuplicateEmail ||
+      (verifications.cbeCompany?.verified && !verifications.cbeCompany.active) ||
+      (verifications.cbeCompany?.verified && verifications.cbeCompany.nameMatchesInput === false) ||
+      (data.segment === "B2C" && !verifications.walloniaAddress.validInWallonia) ||
+      Boolean(verifications.walloniaAddress.postalMismatch)
+
+    const effectiveLeadStatus = needsManualQuarantine ? "NEEDS_HUMAN_REVIEW" : safeStatus
 
     const spwRes = verifications.walloniaAddress
     const resolvedCityRaw =
@@ -301,7 +490,7 @@ export async function POST(request: NextRequest) {
       consent_date: data.marketingConsent ? consentDate.toISOString() : null,
       data_retention_until: dataRetentionUntil.toISOString(),
       source: "simulator",
-      status: safeStatus,
+      status: effectiveLeadStatus,
       lead_score: finalScore,
       wants_irve: financials.includesEv,
 
@@ -326,10 +515,34 @@ export async function POST(request: NextRequest) {
           emailMx: verifications.emailMx,
           walloniaAddress: verifications.walloniaAddress,
           cbeCompany: verifications.cbeCompany,
+          phoneAnalysis: verifications.phoneAnalysis,
+          phoneOtp: verifications.phoneOtp,
+          twilioLookup: verifications.twilioLookup,
+          identityAnalysis: verifications.identityAnalysis,
+          duplicateCheck: verifications.duplicateCheck,
           trustBadges: verifications.trustBadges,
           warningFlags: verifications.warningFlags,
         },
       },
+
+      // --- Certification Téléphonique (Migration 202611180004) ---
+      phone_verified: Boolean(verifiedPhoneProof),
+      phone_verified_at: verifiedPhoneProof?.verifiedAt ?? null,
+      phone_verification_method: verifiedPhoneProof
+        ? verifiedPhoneProof.channel === "call"
+          ? "twilio_call"
+          : verifiedPhoneProof.channel === "dev_mock"
+            ? "dev_mock"
+            : "twilio_sms"
+        : lookupFallback?.configured && lookupFallback.valid && !lookupFallback.transientError
+          ? "twilio_lookup"
+          : null,
+      phone_carrier: verifiedPhoneProof?.carrierName ?? lookupFallback?.carrierName ?? null,
+      phone_line_type:
+        verifiedPhoneProof?.lineType ??
+        lookupFallback?.lineType ??
+        verifications.phoneAnalysis?.lineType ??
+        null,
 
       // --- Tarification V2 Officielle ---
       pricing_version: "v2",
@@ -372,6 +585,11 @@ export async function POST(request: NextRequest) {
       delete fallbackPayload.project_driver
       delete fallbackPayload.timeframe
       delete fallbackPayload.qualification_metadata
+      delete fallbackPayload.phone_verified
+      delete fallbackPayload.phone_verified_at
+      delete fallbackPayload.phone_verification_method
+      delete fallbackPayload.phone_carrier
+      delete fallbackPayload.phone_line_type
 
       const fallbackResult = await supabase.from("leads").insert(fallbackPayload).select().single()
       inserted = fallbackResult.data
@@ -415,7 +633,7 @@ export async function POST(request: NextRequest) {
         annualElectricityBill: financials.normalizedAnnualBill,
         estimatedSavings: computedSavings,
         estimatedROIYears: computedRoiYears,
-        province: data.province,
+        province: canonicalProvince,
       }).catch((err) => {
         console.error("[Prospect confirmation] Envoi échoué:", err)
       })
@@ -443,7 +661,7 @@ export async function POST(request: NextRequest) {
         estimatedPanelCount: financials.estimatedPanelCount,
         autoconsumptionRate: computedAutoconsumption,
         wantsIrve: financials.includesEv,
-        province: data.province,
+        province: canonicalProvince,
         postalCode: safePostalCode,
         city: resolvedCityRaw,
         siteAddress: canonicalAddressText,
@@ -452,7 +670,7 @@ export async function POST(request: NextRequest) {
         timeframe: data.timeframe ?? null,
         roofMaterial: safeRoofMaterial,
         leadScore: finalScore,
-        scoreStatus: status,
+        scoreStatus: effectiveLeadStatus,
         scoreFactors: factors,
         creditCost: credit_cost,
         sourceForm: safeSourceForm,
@@ -473,7 +691,7 @@ export async function POST(request: NextRequest) {
             session_id: data.sessionId,
             step_number: 6,
             step_name: "STEP_6_SUBMITTED",
-            province: data.province,
+            province: canonicalProvince,
             utm_source: ((data.qualificationMetadata as Record<string, unknown>)?.utm_source as string) || null,
             utm_campaign: ((data.qualificationMetadata as Record<string, unknown>)?.utm_campaign as string) || null,
             utm_content: ((data.qualificationMetadata as Record<string, unknown>)?.utm_content as string) || null,

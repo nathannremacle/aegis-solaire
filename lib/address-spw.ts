@@ -1,4 +1,5 @@
 import {
+  detectCityPostalContradiction,
   extractBelgianStreetAndNumber,
   isWalloonPostalCode,
 } from "./leads-validation"
@@ -513,6 +514,30 @@ export async function verifyWalloniaAddressStrict(params: {
     city: cleanCity,
     coordinates: null,
   })
+
+  const cityPostalContradiction = detectCityPostalContradiction({
+    postalCode: cleanPostal || null,
+    city: cleanCity || null,
+    siteAddress: rawStreetAddr || null,
+    walloniaOnly: isWalloon || !cleanPostal,
+  })
+
+  if (cityPostalContradiction) {
+    return {
+      validInWallonia: false,
+      resolutionLevel: "none",
+      streetVerified: false,
+      houseVerified: false,
+      hasHouseNumber,
+      postalMismatch: true,
+      officialCity: cleanCity || undefined,
+      officialPostalCode: cleanPostal || undefined,
+      confidenceScore: 0,
+      source: "SPW_ICAR",
+      rawCandidatesCount: 0,
+      ...emptyLinks,
+    }
+  }
 
   if (!cleanPostal && !cleanCity && !parsed.street) {
     return {

@@ -1,0 +1,463 @@
+"use client"
+
+import { useState, useEffect, useCallback, useRef } from "react"
+import { REGEXP_ONLY_DIGITS } from "input-otp"
+import {
+  CheckCircle2,
+  Loader2,
+  MessageSquare,
+  Pencil,
+  PhoneCall,
+  RefreshCw,
+  ShieldCheck,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSeparator,
+  InputOTPSlot,
+} from "@/components/ui/input-otp"
+import { cn } from "@/lib/utils"
+
+export interface OtpChallengeState {
+  active: boolean
+  normalizedPhone: string
+  maskedPhone: string
+  channel: "sms" | "call" | "dev_mock"
+  lineType: string | null
+  carrierName: string | null
+  code: string
+  isSending: boolean
+  isVerifying: boolean
+  error: string | null
+}
+
+interface VerifiedPhoneCache {
+  phoneRaw: string
+  normalizedPhone: string
+  token: string
+}
+
+const INITIAL_CHALLENGE: OtpChallengeState = {
+  active: false,
+  normalizedPhone: "",
+  maskedPhone: "",
+  channel: "sms",
+  lineType: null,
+  carrierName: null,
+  code: "",
+  isSending: false,
+  isVerifying: false,
+  error: null,
+}
+
+export function useLeadPhoneOtp() {
+  const [challenge, setChallenge] = useState<OtpChallengeState>(INITIAL_CHALLENGE)
+  const [cooldown, setCooldown] = useState(0)
+  const [verifiedCache, setVerifiedCache] = useState<VerifiedPhoneCache | null>(null)
+  const lastMetaRef = useRef<{ segment: "B2B" | "B2C" }>({ segment: "B2C" })
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const t = setInterval(() => {
+      setCooldown((prev) => (prev <= 1 ? 0 : prev - 1))
+    }, 1000)
+    return () => clearInterval(t)
+  }, [cooldown])
+
+  const resetOtp = useCallback(() => {
+    setChallenge(INITIAL_CHALLENGE)
+    setCooldown(0)
+  }, [])
+
+  const getCachedTokenForPhone = useCallback(
+    (phoneInput: string): string | undefined => {
+      if (!verifiedCache) return undefined
+      const cleanInput = phoneInput.replace(/[\s.\-()/]/g, "")
+      const cleanRaw = verifiedCache.phoneRaw.replace(/[\s.\-()/]/g, "")
+      const cleanE164 = verifiedCache.normalizedPhone
+      if (cleanInput === cleanRaw || cleanInput === cleanE164) {
+        return verifiedCache.token
+      }
+      return undefined
+    },
+    [verifiedCache]
+  )
+
+  const sendOtpRequest = useCallback(
+    async (params: {
+      phone: string
+      segment: "B2B" | "B2C"
+      email?: string
+      firstName?: string
+      lastName?: string
+      postalCode?: string
+      channel?: "sms" | "call"
+      fax_number?: string
+      form_opened_at?: string
+    }): Promise<
+      | { status: "verified_cached"; token: string }
+      | { status: "not_required" }
+      | { status: "challenge_started" }
+      | { status: "error"; message: string }
+    > => {
+      const cached = !params.channel ? getCachedTokenForPhone(params.phone) : undefined
+      if (cached) {
+        return { status: "verified_cached", token: cached }
+      }
+
+      lastMetaRef.current = { segment: params.segment }
+      setChallenge((prev) => ({ ...prev, isSending: true, error: null }))
+
+      try {
+        const res = await fetch("/api/leads/phone-otp/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(params),
+        })
+        const data = (await res.json().catch(() => ({}))) as {
+          ok?: boolean
+          otpRequired?: boolean
+          channel?: "sms" | "call" | "dev_mock"
+          normalizedPhone?: string
+          maskedPhone?: string
+          lineType?: string | null
+          carrierName?: string | null
+          cooldownSeconds?: number
+          retryAfterSeconds?: number
+          error?: string
+        }
+
+        if (!res.ok) {
+          if (typeof data.retryAfterSeconds === "number" && data.retryAfterSeconds > 0) {
+            setCooldown(data.retryAfterSeconds)
+          }
+          setChallenge((prev) => ({
+            ...prev,
+            isSending: false,
+            error: prev.active ? data.error || "Envoi impossible." : null,
+          }))
+          return {
+            status: "error",
+            message: data.error || "Numéro impossible à vérifier. Contrôlez votre saisie.",
+          }
+        }
+
+        if (!data.otpRequired) {
+          setChallenge(INITIAL_CHALLENGE)
+          return { status: "not_required" }
+        }
+
+        setCooldown(data.cooldownSeconds ?? 30)
+        setChallenge({
+          active: true,
+          normalizedPhone: data.normalizedPhone || params.phone,
+          maskedPhone: data.maskedPhone || params.phone,
+          channel: data.channel || "sms",
+          lineType: data.lineType ?? null,
+          carrierName: data.carrierName ?? null,
+          code: "",
+          isSending: false,
+          isVerifying: false,
+          error: null,
+        })
+        return { status: "challenge_started" }
+      } catch {
+        setChallenge((prev) => ({ ...prev, isSending: false }))
+        return {
+          status: "error",
+          message: "Erreur réseau lors de la vérification du téléphone.",
+        }
+      }
+    },
+    [getCachedTokenForPhone]
+  )
+
+  const setCode = useCallback((nextCode: string) => {
+    setChallenge((prev) => ({
+      ...prev,
+      code: nextCode.replace(/\D/g, "").slice(0, 6),
+      error: null,
+    }))
+  }, [])
+
+  const submitCode = useCallback(
+    async (
+      rawPhone: string,
+      overrideCode?: string
+    ): Promise<{ ok: true; token: string } | { ok: false; message: string }> => {
+      const codeToCheck = (overrideCode ?? challenge.code).replace(/\D/g, "")
+      if (codeToCheck.length < 6) {
+        const msg = "Veuillez saisir les 6 chiffres reçus sur votre téléphone."
+        setChallenge((prev) => ({ ...prev, error: msg }))
+        return { ok: false, message: msg }
+      }
+
+      setChallenge((prev) => ({ ...prev, isVerifying: true, error: null }))
+      try {
+        const res = await fetch("/api/leads/phone-otp/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phone: challenge.normalizedPhone || rawPhone,
+            code: codeToCheck,
+            segment: lastMetaRef.current.segment,
+            channel: challenge.channel,
+            lineType: challenge.lineType,
+            carrierName: challenge.carrierName,
+          }),
+        })
+        const data = (await res.json().catch(() => ({}))) as {
+          ok?: boolean
+          verifiedPhone?: string
+          verificationToken?: string
+          error?: string
+        }
+
+        if (!res.ok || !data.verificationToken) {
+          const msg = data.error || "Code incorrect ou expiré. Réessayez."
+          setChallenge((prev) => ({ ...prev, isVerifying: false, error: msg }))
+          return { ok: false, message: msg }
+        }
+
+        setVerifiedCache({
+          phoneRaw: rawPhone,
+          normalizedPhone: data.verifiedPhone || challenge.normalizedPhone || rawPhone,
+          token: data.verificationToken,
+        })
+        setChallenge(INITIAL_CHALLENGE)
+        return { ok: true, token: data.verificationToken }
+      } catch {
+        const msg = "Erreur réseau lors du contrôle du code. Réessayez."
+        setChallenge((prev) => ({ ...prev, isVerifying: false, error: msg }))
+        return { ok: false, message: msg }
+      }
+    },
+    [challenge]
+  )
+
+  return {
+    challenge,
+    cooldown,
+    isPhoneOtpVerifiedFor: (phoneInput: string) => Boolean(getCachedTokenForPhone(phoneInput)),
+    sendOtpRequest,
+    setCode,
+    submitCode,
+    resetOtp,
+  }
+}
+
+export interface PhoneOtpVerificationCardProps {
+  challenge: OtpChallengeState
+  cooldown: number
+  onCodeChange: (code: string) => void
+  onVerify: (codeOverride?: string) => void
+  onResend: (channel: "sms" | "call") => void
+  onEditPhone: () => void
+  editorial?: boolean
+  submitLabel?: string
+}
+
+export function PhoneOtpVerificationCard({
+  challenge,
+  cooldown,
+  onCodeChange,
+  onVerify,
+  onResend,
+  onEditPhone,
+  editorial = false,
+  submitLabel = "Valider et recevoir mon étude",
+}: PhoneOtpVerificationCardProps) {
+  const isCall = challenge.channel === "call"
+  const lastAutoSubmittedRef = useRef<string>("")
+
+  useEffect(() => {
+    if (!challenge.code) {
+      lastAutoSubmittedRef.current = ""
+    }
+  }, [challenge.code])
+
+  const handleOtpComplete = (val: string) => {
+    const clean = val.replace(/\D/g, "")
+    onCodeChange(clean)
+    if (clean.length === 6 && !challenge.isVerifying && lastAutoSubmittedRef.current !== clean) {
+      lastAutoSubmittedRef.current = clean
+      onVerify(clean)
+    }
+  }
+
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-4 rounded-xl border p-4 sm:p-5",
+        editorial
+          ? "rounded-[10px] border-[var(--aegis-preference-accent)] bg-[var(--aegis-summary)] text-[var(--aegis-ink)]"
+          : "border-primary/30 bg-card text-foreground shadow-sm"
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-2.5">
+          <div
+            className={cn(
+              "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+              editorial
+                ? "bg-accent-solar text-accent-solar-foreground"
+                : "bg-primary/10 text-primary"
+            )}
+          >
+            {isCall ? (
+              <PhoneCall className="h-4 w-4" />
+            ) : (
+              <MessageSquare className="h-4 w-4" />
+            )}
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <h3 className="text-sm font-bold leading-snug">
+              {isCall
+                ? "Appel automatique en cours avec votre code"
+                : "Confirmez votre numéro par SMS"}
+            </h3>
+            <p
+              className={cn(
+                "text-xs leading-relaxed",
+                editorial ? "text-[var(--aegis-muted)]" : "text-muted-foreground"
+              )}
+            >
+              {isCall ? "Code dicté par appel sur le " : "Code à 6 chiffres envoyé au "}
+              <span className="font-mono tabular-nums font-semibold text-foreground">
+                {challenge.maskedPhone}
+              </span>
+              {challenge.carrierName ? ` (${challenge.carrierName})` : ""}.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onEditPhone}
+          disabled={challenge.isVerifying}
+          className={cn(
+            "inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors cursor-pointer",
+            editorial
+              ? "text-[var(--aegis-link)] hover:bg-[var(--aegis-surface)]"
+              : "text-primary hover:bg-secondary"
+          )}
+        >
+          <Pencil className="h-3 w-3" />
+          <span>Modifier</span>
+        </button>
+      </div>
+
+      <div className="flex flex-col items-center gap-3 py-1">
+        <InputOTP
+          maxLength={6}
+          pattern={REGEXP_ONLY_DIGITS}
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          autoFocus
+          value={challenge.code}
+          onChange={handleOtpComplete}
+          disabled={challenge.isVerifying}
+          aria-label="Code de vérification à 6 chiffres"
+        >
+          <InputOTPGroup>
+            <InputOTPSlot index={0} className="h-11 w-10 font-mono tabular-nums text-base font-bold bg-background" />
+            <InputOTPSlot index={1} className="h-11 w-10 font-mono tabular-nums text-base font-bold bg-background" />
+            <InputOTPSlot index={2} className="h-11 w-10 font-mono tabular-nums text-base font-bold bg-background" />
+          </InputOTPGroup>
+          <InputOTPSeparator />
+          <InputOTPGroup>
+            <InputOTPSlot index={3} className="h-11 w-10 font-mono tabular-nums text-base font-bold bg-background" />
+            <InputOTPSlot index={4} className="h-11 w-10 font-mono tabular-nums text-base font-bold bg-background" />
+            <InputOTPSlot index={5} className="h-11 w-10 font-mono tabular-nums text-base font-bold bg-background" />
+          </InputOTPGroup>
+        </InputOTP>
+
+        {challenge.error && (
+          <p
+            role="alert"
+            className={cn(
+              "text-center text-xs font-medium",
+              editorial ? "text-[var(--aegis-danger-text)]" : "text-destructive"
+            )}
+          >
+            {challenge.error}
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Button
+          type="button"
+          onClick={() => onVerify()}
+          disabled={challenge.isVerifying || challenge.code.length < 6}
+          className={cn(
+            "h-11 w-full font-bold cursor-pointer",
+            editorial
+              ? "rounded-[6px] bg-accent-solar hover:bg-accent-solar/90 text-accent-solar-foreground border border-[var(--aegis-preference-accent)]"
+              : "bg-accent text-accent-foreground hover:bg-accent/90"
+          )}
+        >
+          {challenge.isVerifying ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <span>Validation du code…</span>
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="mr-2 h-4 w-4" />
+              <span>{submitLabel}</span>
+            </>
+          )}
+        </Button>
+
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+          <button
+            type="button"
+            disabled={cooldown > 0 || challenge.isSending || challenge.isVerifying}
+            onClick={() => onResend(isCall ? "call" : "sms")}
+            className={cn(
+              "inline-flex items-center gap-1.5 font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
+              editorial ? "text-[var(--aegis-link)]" : "text-primary hover:underline"
+            )}
+          >
+            <RefreshCw className={cn("h-3 w-3", challenge.isSending && "animate-spin")} />
+            <span className="font-mono tabular-nums">
+              {cooldown > 0
+                ? `Renvoyer le code (${cooldown} s)`
+                : "Renvoyer le code"}
+            </span>
+          </button>
+
+          {!isCall && (
+            <button
+              type="button"
+              disabled={cooldown > 0 || challenge.isSending || challenge.isVerifying}
+              onClick={() => onResend("call")}
+              className={cn(
+                "inline-flex items-center gap-1.5 font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
+                editorial ? "text-[var(--aegis-muted)] hover:text-[var(--aegis-ink)]" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <PhoneCall className="h-3 w-3" />
+              <span>Recevoir plutôt par appel</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      <p
+        className={cn(
+          "flex items-center justify-center gap-1.5 border-t pt-2.5 text-center text-[11px]",
+          editorial
+            ? "border-[var(--aegis-divider)] text-[var(--aegis-muted)]"
+            : "border-border text-muted-foreground"
+        )}
+      >
+        <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+        <span>Validation unique gratuite · garantit l&apos;envoi de vos offres aux bons interlocuteurs.</span>
+      </p>
+    </div>
+  )
+}

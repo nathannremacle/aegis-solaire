@@ -1528,6 +1528,11 @@ function MarketplaceLeadCard({
 
   // Projet premium si puissance élevée ou score élevé
   const isPremium = isB2B || powerKwc >= 20 || (lead.lead_score && lead.lead_score >= 70)
+  const isPhoneOtpVerified = Boolean(
+    lead.phone_verified ||
+      (lead.qualification_metadata?.verifications as { phoneOtp?: { verified?: boolean } } | undefined)
+        ?.phoneOtp?.verified
+  )
 
   return (
     <div
@@ -1626,8 +1631,8 @@ function MarketplaceLeadCard({
             <span className="truncate">{location.subtitle}</span>
           </p>
 
-          {/* Ligne 3 : Badge Projet premium */}
-          <div className="-mt-1">
+          {/* Ligne 3 : Badge Projet & certification GSM */}
+          <div className="-mt-1 flex flex-wrap items-center gap-1.5">
             {isPremium ? (
               <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
                 <span className="text-emerald-500 font-bold">—</span>
@@ -1637,6 +1642,12 @@ function MarketplaceLeadCard({
               <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground text-xs font-semibold">
                 <span className="text-muted-foreground font-bold">—</span>
                 <span>Projet qualifié</span>
+              </div>
+            )}
+            {isPhoneOtpVerified && (
+              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-xs font-semibold">
+                <ShieldCheck className="h-3 w-3" />
+                <span>GSM certifié SMS</span>
               </div>
             )}
           </div>

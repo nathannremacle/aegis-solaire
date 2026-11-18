@@ -17,7 +17,7 @@ export async function GET() {
 
   let leads: Array<Record<string, any>> | null = null
   const canonicalSelect =
-    "id, province, city, segment, surface_type, surface_area, annual_electricity_bill, credit_cost, max_slots, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate, estimated_power_kwc, project_timeline, project_details, message, wants_irve, lead_score, first_name, last_name, company, postal_code, roof_material, ownership_status, project_driver, timeframe, qualification_metadata"
+    "id, province, city, segment, surface_type, surface_area, annual_electricity_bill, credit_cost, max_slots, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate, estimated_power_kwc, project_timeline, project_details, message, wants_irve, lead_score, first_name, last_name, email, phone, site_address, company, company_vat, postal_code, roof_material, ownership_status, project_driver, timeframe, qualification_metadata"
   const legacySelect =
     "id, province, segment, surface_type, surface_area, annual_electricity_bill, credit_cost, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate, project_timeline, project_details, message, wants_irve, lead_score, first_name, last_name, company"
 

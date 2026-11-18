@@ -25,7 +25,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
+  detectCityPostalContradiction,
   getEmailError,
+  getPersonNameError,
   formatAndValidateBelgianPhone,
   getWalloonProvinceKeyFromPostalCode,
   hasBelgianHouseNumber,
@@ -34,6 +36,10 @@ import {
   BelgianLocalityField,
   BelgianStreetNumberFields,
 } from "@/components/address/belgian-address-fields"
+import {
+  PhoneOtpVerificationCard,
+  useLeadPhoneOtp,
+} from "@/components/leads/phone-otp-verification-card"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 import { getStoredMediaPartnerRef } from "@/components/media-partner-ref-tracker"
 import {
@@ -156,6 +162,7 @@ export function DevisLandingClient() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const phoneOtp = useLeadPhoneOtp()
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false)
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null)
   const [hasCopiedLink, setHasCopiedLink] = useState(false)
@@ -343,16 +350,26 @@ export function DevisLandingClient() {
   const isPhoneValid = phone.trim().length > 0 && phoneValidation.isValid
 
   const nameParts = fullName.trim() ? fullName.trim().split(/\s+/) : [firstName.trim(), lastName.trim()]
-  const isFullNameValid =
-    (nameParts.length >= 2 && nameParts[0].length >= 2 && nameParts[1].length >= 2) ||
-    (firstName.trim().length >= 2 && lastName.trim().length >= 2)
+  const resolvedFirstName = nameParts[0] || firstName.trim()
+  const resolvedLastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : lastName.trim()
+  const fullNameErr =
+    resolvedFirstName.length < 2 || resolvedLastName.length < 2
+      ? "Indiquez votre prénom et votre nom."
+      : getPersonNameError(resolvedFirstName, "prénom") || getPersonNameError(resolvedLastName, "nom")
+  const isFullNameValid = !fullNameErr
 
   const cleanedPostalCode = postalCode.trim()
   const walloonProvinceKey =
     cleanedPostalCode.length === 4 ? getWalloonProvinceKeyFromPostalCode(cleanedPostalCode) : null
   const isPostalCodeValid = walloonProvinceKey !== null
   const isNonWalloonCompleteCp = cleanedPostalCode.length === 4 && walloonProvinceKey === null
-  const isAddressValid = hasBelgianHouseNumber(address)
+  const geoContradictionErr = detectCityPostalContradiction({
+    postalCode: cleanedPostalCode,
+    city,
+    siteAddress: address,
+    walloniaOnly: true,
+  })
+  const isAddressValid = hasBelgianHouseNumber(address) && !geoContradictionErr
 
   const showFullNameError = hasAttemptedSubmit && !isFullNameValid
   const showFirstNameError = hasAttemptedSubmit && !isFullNameValid
@@ -454,6 +471,7 @@ export function DevisLandingClient() {
 
   const handleBack = () => {
     if (isInterstitialRunning) return
+    phoneOtp.resetOtp()
     if (step > 1) {
       setStep((s) => s - 1)
     }
@@ -569,21 +587,7 @@ export function DevisLandingClient() {
     hasEv: false,
   })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setHasAttemptedSubmit(true)
-
-    if (
-      !isFullNameValid ||
-      !isPostalCodeValid ||
-      !isAddressValid ||
-      emailErr ||
-      !phoneValidation.isValid ||
-      !partnerConsent
-    ) {
-      return
-    }
-
+  const submitFinalLead = async (phoneVerificationToken?: string) => {
     setIsSubmitting(true)
     setErrorMessage(null)
 
@@ -599,6 +603,7 @@ export function DevisLandingClient() {
       lastName: finalLastName,
       email: email.trim().toLowerCase(),
       phone: phoneValidation.normalized,
+      phoneVerificationToken,
       contactPreference,
       surfaceType: "toiture",
       surfaceArea: calculatedSurface,
@@ -676,6 +681,53 @@ export function DevisLandingClient() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setHasAttemptedSubmit(true)
+
+    if (
+      !isFullNameValid ||
+      !isPostalCodeValid ||
+      !isAddressValid ||
+      emailErr ||
+      !phoneValidation.isValid ||
+      !partnerConsent
+    ) {
+      return
+    }
+
+    setErrorMessage(null)
+    setIsSubmitting(true)
+
+    const parts = fullName.trim() ? fullName.trim().split(/\s+/) : [firstName.trim(), lastName.trim()]
+    const finalFirstName = parts[0] || firstName.trim() || "Particulier"
+    const finalLastName = parts.slice(1).join(" ") || lastName.trim() || "Wallonie"
+
+    const otpRes = await phoneOtp.sendOtpRequest({
+      phone: phoneValidation.normalized,
+      segment: "B2C",
+      email: email.trim().toLowerCase(),
+      firstName: finalFirstName,
+      lastName: finalLastName,
+      postalCode: postalCode.trim(),
+      fax_number,
+      form_opened_at: formOpenedAt.current,
+    })
+
+    if (otpRes.status === "error") {
+      setErrorMessage(otpRes.message)
+      setIsSubmitting(false)
+      return
+    }
+
+    if (otpRes.status === "challenge_started") {
+      setIsSubmitting(false)
+      return
+    }
+
+    await submitFinalLead(otpRes.status === "verified_cached" ? otpRes.token : undefined)
   }
 
   const progressPercent = Math.round((step / totalSteps) * 100)
@@ -1202,6 +1254,42 @@ export function DevisLandingClient() {
                           transition={{ duration: 0.18 }}
                           className="flex flex-col gap-4 border-none p-0 m-0"
                         >
+                          {phoneOtp.challenge.active ? (
+                            <PhoneOtpVerificationCard
+                              challenge={phoneOtp.challenge}
+                              cooldown={phoneOtp.cooldown}
+                              onCodeChange={phoneOtp.setCode}
+                              onVerify={async (codeOverride) => {
+                                const check = await phoneOtp.submitCode(
+                                  phoneValidation.normalized,
+                                  codeOverride
+                                )
+                                if (check.ok) {
+                                  await submitFinalLead(check.token)
+                                }
+                              }}
+                              onResend={async (channel) => {
+                                const parts = fullName.trim()
+                                  ? fullName.trim().split(/\s+/)
+                                  : [firstName.trim(), lastName.trim()]
+                                await phoneOtp.sendOtpRequest({
+                                  phone: phoneValidation.normalized,
+                                  segment: "B2C",
+                                  email: email.trim().toLowerCase(),
+                                  firstName: parts[0] || firstName.trim(),
+                                  lastName: parts.slice(1).join(" ") || lastName.trim(),
+                                  postalCode: postalCode.trim(),
+                                  channel,
+                                  fax_number,
+                                  form_opened_at: formOpenedAt.current,
+                                })
+                              }}
+                              onEditPhone={phoneOtp.resetOtp}
+                              editorial
+                              submitLabel="Valider et obtenir mes 3 devis"
+                            />
+                          ) : (
+                            <>
                           {/* ── RAPPEL VISUEL : Effet de la mise en concurrence (-18 %) ── */}
                           <div className="bg-[var(--aegis-summary)] border border-[var(--aegis-preference-accent)]/50 rounded-[8px] p-3.5 sm:p-4 text-[var(--aegis-ink)] flex flex-col gap-2.5">
                             <div className="flex items-center justify-between gap-2">
@@ -1272,7 +1360,7 @@ export function DevisLandingClient() {
                               />
                               {showFullNameError && (
                                 <p className="text-[12px] text-[var(--aegis-danger-text)] font-medium" role="alert">
-                                  Indiquez votre prénom et votre nom.
+                                  {fullNameErr || "Indiquez votre prénom et votre nom."}
                                 </p>
                               )}
                             </div>
@@ -1458,11 +1546,15 @@ export function DevisLandingClient() {
                                 inputHeightClass="h-[46px]"
                                 editorial
                               />
-                              {!showAddressError && (
+                              {showAddressError && geoContradictionErr ? (
+                                <p className="text-[12px] text-[var(--aegis-danger-text)] font-medium" role="alert">
+                                  {geoContradictionErr}
+                                </p>
+                              ) : !showAddressError ? (
                                 <span className="text-[12px] text-[var(--aegis-muted)]">
                                   Nécessaire pour situer votre toiture (étude satellite).
                                 </span>
-                              )}
+                              ) : null}
                             </div>
                           </div>
 
@@ -1511,6 +1603,8 @@ export function DevisLandingClient() {
                               </p>
                             )}
                           </div>
+                            </>
+                          )}
 
                           {errorMessage && (
                             <div
@@ -1552,7 +1646,7 @@ export function DevisLandingClient() {
                             <span>Suivant</span>
                             <ArrowRight className="h-4 w-4" />
                           </button>
-                        ) : (
+                        ) : !phoneOtp.challenge.active ? (
                           <button
                             type="submit"
                             disabled={isSubmitting}
@@ -1570,7 +1664,7 @@ export function DevisLandingClient() {
                               </>
                             )}
                           </button>
-                        )}
+                        ) : null}
                       </div>
 
                       {/* Mention de réassurance sous les boutons */}

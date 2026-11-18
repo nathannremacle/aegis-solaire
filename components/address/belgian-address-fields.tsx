@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { MapPin, CheckCircle2, Loader2, Info } from "lucide-react"
+import { MapPin, CheckCircle2, Loader2, Info, AlertTriangle } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import {
@@ -605,6 +605,21 @@ export function BelgianStreetNumberFields({
           {streetHasError
             ? "Saisissez le nom de votre rue ou avenue (min. 3 lettres)."
             : "Indiquez le numéro de maison (ex: 12 ou 12A) pour situer votre toiture."}
+        </p>
+      ) : activeVerifyResult?.postalMismatch ? (
+        <p
+          role="alert"
+          className={cn(
+            "text-[11px] font-medium flex items-center gap-1.5",
+            editorial ? "text-[var(--aegis-danger-text)]" : "text-destructive"
+          )}
+        >
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          <span>
+            Adresse incohérente avec le code postal{" "}
+            <span className="font-mono tabular-nums">({postalCode || activeVerifyResult.officialPostalCode})</span>{" "}
+            — vérifiez la rue et le code postal.
+          </span>
         </p>
       ) : activeVerifyResult?.houseVerified ? (
         <p

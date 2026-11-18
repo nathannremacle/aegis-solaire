@@ -32,7 +32,19 @@ import {
 } from "@/lib/lead-display-helpers"
 import { trackLeadConversion } from "@/components/analytics/ad-tracking"
 import { BelgianStreetNumberFields } from "@/components/address/belgian-address-fields"
-import { getBelgianAddressError, hasBelgianHouseNumber } from "@/lib/leads-validation"
+import {
+  PhoneOtpVerificationCard,
+  useLeadPhoneOtp,
+} from "@/components/leads/phone-otp-verification-card"
+import {
+  detectCityPostalContradiction,
+  formatAndValidateBelgianPhone,
+  getBelgianAddressError,
+  getEmailError,
+  getPersonNameError,
+  hasBelgianHouseNumber,
+  isWalloonPostalCode,
+} from "@/lib/leads-validation"
 import {
   ArrowRight,
   ArrowLeft,
@@ -347,6 +359,7 @@ export function B2CSimulator() {
   const [isCalculating, setIsCalculating] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const phoneOtp = useLeadPhoneOtp()
   const [msgIdx, setMsgIdx] = useState(0)
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
@@ -392,12 +405,12 @@ export function B2CSimulator() {
         return true
       case 6:
         return (
-          fd.firstName.trim().length >= 2 &&
-          fd.lastName.trim().length >= 2 &&
-          /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fd.email) &&
-          fd.phone.trim().replace(/[\s.-]/g, "").length >= 8 &&
-          /^[1-9][0-9]{3}$/.test(fd.postalCode.trim()) &&
-          hasBelgianHouseNumber(fd.siteAddress) &&
+          firstNameError === null &&
+          lastNameError === null &&
+          emailError === null &&
+          phoneError === null &&
+          postalCodeError === null &&
+          siteAddressError === null &&
           fd.marketingConsent
         )
       default:
@@ -406,19 +419,38 @@ export function B2CSimulator() {
   }
 
   // Error helpers for Step 6
-  const firstNameError = fd.firstName.trim().length < 2 ? "Prénom requis (2 caractères minimum)" : null
-  const lastNameError = fd.lastName.trim().length < 2 ? "Nom requis (2 caractères minimum)" : null
-  const emailError = !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fd.email) ? "Format d'adresse e-mail invalide" : null
-  const phoneError = fd.phone.trim().replace(/[\s.-]/g, "").length < 8 ? "Numéro de téléphone requis (au moins 8 chiffres)" : null
-  const postalCodeError = !/^[1-9][0-9]{3}$/.test(fd.postalCode.trim()) ? "Code postal belge à 4 chiffres requis (ex: 4000)" : null
-  const siteAddressError = getBelgianAddressError(fd.siteAddress, { required: true, requireHouseNumber: true })
+  const firstNameError = getPersonNameError(fd.firstName, "prénom")
+  const lastNameError = getPersonNameError(fd.lastName, "nom")
+  const emailError = getEmailError(fd.email)
+  const phoneValidation = formatAndValidateBelgianPhone(fd.phone)
+  const phoneError = !fd.phone.trim()
+    ? "Numéro de téléphone requis."
+    : !phoneValidation.isValid
+      ? (phoneValidation.errorMessage || "Numéro de téléphone belge invalide.")
+      : null
+  const cleanCp = fd.postalCode.trim()
+  const postalCodeError = !/^[1-9][0-9]{3}$/.test(cleanCp)
+    ? "Code postal belge à 4 chiffres requis (ex: 4000)."
+    : !isWalloonPostalCode(cleanCp)
+      ? "Zone non couverte : service réservé à la Wallonie (1300-1499 et 4000-7999)."
+      : null
+  const addrContradiction = detectCityPostalContradiction({
+    postalCode: cleanCp,
+    siteAddress: fd.siteAddress,
+    walloniaOnly: true,
+  })
+  const siteAddressError =
+    addrContradiction || getBelgianAddressError(fd.siteAddress, { required: true, requireHouseNumber: true })
   const consentError = !fd.marketingConsent ? "Vous devez accepter d'être recontacté pour recevoir votre étude" : null
 
   const showFirstNameError = (hasAttemptedSubmit || touched.firstName) ? firstNameError : null
   const showLastNameError = (hasAttemptedSubmit || touched.lastName) ? lastNameError : null
   const showEmailError = (hasAttemptedSubmit || touched.email) ? emailError : null
   const showPhoneError = (hasAttemptedSubmit || touched.phone) ? phoneError : null
-  const showPostalCodeError = (hasAttemptedSubmit || touched.postalCode) ? postalCodeError : null
+  const showPostalCodeError =
+    (cleanCp.length === 4 && !isWalloonPostalCode(cleanCp)) || hasAttemptedSubmit || touched.postalCode
+      ? postalCodeError
+      : null
   const showSiteAddressError = (hasAttemptedSubmit || touched.siteAddress) ? siteAddressError : null
   const showConsentError = (hasAttemptedSubmit || touched.marketingConsent) ? consentError : null
 
@@ -450,14 +482,14 @@ export function B2CSimulator() {
 
   const back = () => {
     if (isCalculating) return
+    phoneOtp.resetOtp()
     if (step === 6) setStep(4)
     else if (step > 1) setStep(step - 1)
   }
 
   /* ── Submit ── */
-  const submit = async () => {
-    setHasAttemptedSubmit(true)
-    if (!valid(6) || !results) return
+  const submitFinalB2CLead = async (phoneVerificationToken?: string) => {
+    if (!results) return
     setIsSubmitting(true)
     setError(null)
 
@@ -488,10 +520,11 @@ export function B2CSimulator() {
       const payload = {
         sourceForm: "b2c_simulator",
         segment: "B2C",
-        firstName: fd.firstName,
-        lastName: fd.lastName,
-        email: fd.email,
-        phone: fd.phone,
+        firstName: fd.firstName.trim(),
+        lastName: fd.lastName.trim(),
+        email: fd.email.trim().toLowerCase(),
+        phone: phoneValidation.isValid ? phoneValidation.normalized : fd.phone,
+        phoneVerificationToken,
         surfaceType: "toiture" as const,
         surfaceArea,
         surfaceAreaM2: surfaceArea,
@@ -560,6 +593,38 @@ export function B2CSimulator() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const submit = async () => {
+    setHasAttemptedSubmit(true)
+    if (!valid(6) || !results) return
+    setIsSubmitting(true)
+    setError(null)
+
+    const targetPhone = phoneValidation.isValid ? phoneValidation.normalized : fd.phone
+    const otpRes = await phoneOtp.sendOtpRequest({
+      phone: targetPhone,
+      segment: "B2C",
+      email: fd.email.trim().toLowerCase(),
+      firstName: fd.firstName.trim(),
+      lastName: fd.lastName.trim(),
+      postalCode: fd.postalCode.trim(),
+      fax_number: fd.fax_number ?? "",
+      form_opened_at: openedAt.current,
+    })
+
+    if (otpRes.status === "error") {
+      setError(otpRes.message)
+      setIsSubmitting(false)
+      return
+    }
+
+    if (otpRes.status === "challenge_started") {
+      setIsSubmitting(false)
+      return
+    }
+
+    await submitFinalB2CLead(otpRes.status === "verified_cached" ? otpRes.token : undefined)
   }
 
   const anim = { initial: { opacity: 0, x: 20 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -20 } }
@@ -1053,6 +1118,41 @@ export function B2CSimulator() {
                   </div>
 
                   {/* Contact form */}
+                  {phoneOtp.challenge.active ? (
+                    <PhoneOtpVerificationCard
+                      challenge={phoneOtp.challenge}
+                      cooldown={phoneOtp.cooldown}
+                      onCodeChange={phoneOtp.setCode}
+                      onVerify={async (codeOverride) => {
+                        const targetPhone = phoneValidation.isValid
+                          ? phoneValidation.normalized
+                          : fd.phone
+                        const check = await phoneOtp.submitCode(targetPhone, codeOverride)
+                        if (check.ok) {
+                          await submitFinalB2CLead(check.token)
+                        }
+                      }}
+                      onResend={async (channel) => {
+                        const targetPhone = phoneValidation.isValid
+                          ? phoneValidation.normalized
+                          : fd.phone
+                        await phoneOtp.sendOtpRequest({
+                          phone: targetPhone,
+                          segment: "B2C",
+                          email: fd.email.trim().toLowerCase(),
+                          firstName: fd.firstName.trim(),
+                          lastName: fd.lastName.trim(),
+                          postalCode: fd.postalCode.trim(),
+                          channel,
+                          fax_number: fd.fax_number ?? "",
+                          form_opened_at: openedAt.current,
+                        })
+                      }}
+                      onEditPhone={phoneOtp.resetOtp}
+                      submitLabel="Valider et recevoir mon étude"
+                    />
+                  ) : (
+                    <>
                   <p className="font-medium text-foreground">
                     Recevez votre dossier complet gratuitement :
                   </p>
@@ -1181,6 +1281,11 @@ export function B2CSimulator() {
                         housePlaceholder="14"
                         inputHeightClass="h-12"
                       />
+                      {showSiteAddressError && addrContradiction && (
+                        <p role="alert" className="text-xs text-destructive">
+                          {addrContradiction}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -1243,6 +1348,8 @@ export function B2CSimulator() {
                       onChange={(e) => up("fax_number", e.target.value)}
                     />
                   </div>
+                    </>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -1278,7 +1385,7 @@ export function B2CSimulator() {
                     </button>
                   )}
 
-                  {step === 6 && (
+                  {step === 6 && !phoneOtp.challenge.active && (
                     <Button
                       type="button"
                       variant="accent"

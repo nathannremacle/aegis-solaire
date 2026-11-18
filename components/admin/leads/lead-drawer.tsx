@@ -1039,10 +1039,31 @@ export function LeadDrawer({
               </div>
 
               <div className="flex flex-col gap-1 p-2 rounded-lg bg-secondary/30 border border-border/50">
-                <span className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
-                  <Phone className="h-3 w-3 text-muted-foreground" />
-                  Téléphone
-                </span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+                    <Phone className="h-3 w-3 text-muted-foreground" />
+                    Téléphone
+                  </span>
+                  {(() => {
+                    const v = effectiveMeta?.verifications as Record<string, any> | undefined
+                    if (v?.phoneOtp?.verified) {
+                      return (
+                        <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-emerald-700 border border-emerald-500/20">
+                          <CheckCircle2 className="h-2.5 w-2.5" />
+                          {v.phoneOtp.channel === "call" ? "Certifié Appel OTP" : "Certifié SMS OTP"}
+                        </span>
+                      )
+                    }
+                    if (v?.twilioLookup?.valid) {
+                      return (
+                        <span className="inline-flex items-center gap-1 rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-blue-700 border border-blue-500/20">
+                          Lookup {v.twilioLookup.carrierName || "OK"}
+                        </span>
+                      )
+                    }
+                    return null
+                  })()}
+                </div>
                 <div className="flex items-center gap-2 font-mono tabular-nums">
                   {effectivePhone ? (
                     <>
