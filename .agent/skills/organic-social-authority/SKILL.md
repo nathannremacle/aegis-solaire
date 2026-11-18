@@ -5,10 +5,10 @@ description: Conçoit et rédige des contenus organiques à haute autorité et d
 
 # Organic Social Authority & Native Ads — Aegis Solaire
 
-## 1. La Philosophie "Native" : Vendre sans avoir l'air de vendre
+## 1. La Philosophie "Native" : L'Allié du Propriétaire (Vendre sans avoir l'air de vendre)
 Sur les réseaux sociaux, les propriétaires ignorent les publicités agressives ("-50% sur vos panneaux !"). En revanche, ils dévorent le contenu qui leur fait **gagner de l'argent et éviter des pièges**.
 
-Le positionnement d'Aegis Solaire n'est pas celui d'un vendeur, mais d'un **organe d'ingénierie et de contrôle impartial**.
+Le positionnement d'Aegis Solaire (cf. `.agent/rules/prospect-advocate-positioning.md`) n'est pas celui d'un vendeur de panneaux, mais celui d'un **allié protecteur et organe de contrôle impartial du côté du client** : nous mettons les installateurs certifiés **RESCERT** en concurrence sur un cahier des charges strict pour obtenir **le meilleur prix au kWc sans aucune contrepartie sur la qualité du matériel (Tier-1) ni sur la pose**.
 
 ---
 

@@ -763,7 +763,7 @@ export function DevisLandingClient() {
             <p className="text-xs sm:text-base text-muted-foreground leading-snug sm:leading-relaxed mt-0.5 sm:mt-1">
               {(utmData.utm_content && AD_HOOK_LINES[utmData.utm_content]) || (
                 <>
-                  Une seule demande, des installateurs certifiés <strong className="text-foreground font-semibold">RESCERT</strong> locaux.
+                  Nous mettons les installateurs certifiés <strong className="text-foreground font-semibold">RESCERT</strong> de votre région en concurrence pour vous obtenir le meilleur prix, sans aucun compromis sur la qualité.
                 </>
               )}
             </p>
@@ -778,21 +778,23 @@ export function DevisLandingClient() {
                 <div className="h-8 w-8 rounded-full bg-accent-solar text-accent-solar-foreground flex items-center justify-center shrink-0 shadow-2xs">
                   <MapPin className="h-4 w-4" />
                 </div>
-                <span>Installateurs locaux</span>
+                <span>Mise en concurrence directe : le meilleur prix négocié pour vous</span>
               </li>
 
               <li className="flex items-center gap-3">
                 <div className="h-8 w-8 rounded-full bg-accent-solar text-accent-solar-foreground flex items-center justify-center shrink-0 shadow-2xs">
                   <Check className="h-4 w-4 stroke-[3]" />
                 </div>
-                <span>Certificats vérifiés</span>
+                <span>Zéro compromis qualité : installateurs RESCERT &amp; matériel Tier-1 vérifiés</span>
               </li>
 
               <li className="flex items-center gap-3">
                 <div className="h-8 w-8 rounded-full bg-accent-solar text-accent-solar-foreground flex items-center justify-center shrink-0 shadow-2xs">
                   <Users className="h-4 w-4" />
                 </div>
-                <span>Gratuit et sans engagement</span>
+                <span>
+                  De votre côté : <span className="font-mono tabular-nums">100 %</span> gratuit, sans surcoût et sans engagement
+                </span>
               </li>
             </ul>
 
@@ -1291,46 +1293,23 @@ export function DevisLandingClient() {
                             />
                           ) : (
                             <>
-                          {/* ── RAPPEL VISUEL : Effet de la mise en concurrence (-18 %) ── */}
-                          <div className="bg-[var(--aegis-summary)] border border-[var(--aegis-preference-accent)]/50 rounded-[8px] p-3.5 sm:p-4 text-[var(--aegis-ink)] flex flex-col gap-2.5">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-2 text-[13px] font-bold text-[var(--aegis-ink)]">
-                                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent-solar text-accent-solar-foreground shrink-0">
-                                  <Check className="h-3.5 w-3.5 stroke-[3]" />
-                                </span>
-                                <span>3 installateurs RESCert sélectionnés sur {postalCode} {city || getProvinceDisplayLabel(province)}</span>
-                              </div>
-                              <span className="px-2 py-0.5 rounded-[5px] bg-[var(--aegis-preference-bg)] border border-[var(--aegis-preference-accent)]/40 text-[12px] font-mono tabular-nums text-[var(--aegis-preference-label)] font-bold shrink-0">
-                                env. {b2cCalc.installedPowerKwc} kWc
+                          {/* ── RAPPEL VISUEL COMPACT : Mise en concurrence (-18 %) ── */}
+                          <div className="bg-[var(--aegis-summary)] border border-[var(--aegis-preference-accent)]/50 rounded-[8px] px-3 py-2.5 text-[var(--aegis-ink)] flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 text-[12px] sm:text-[13px] font-bold text-[var(--aegis-ink)]">
+                              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-accent-solar text-accent-solar-foreground shrink-0">
+                                <Check className="h-3 w-3 stroke-[3]" />
+                              </span>
+                              <span>
+                                <span className="font-mono tabular-nums">3</span> installateurs RESCert sélectionnés ({postalCode}{city ? ` ${city}` : ""})
                               </span>
                             </div>
-
-                            {/* Jauge comparative claire 100 % vs 82 % */}
-                            <div className="bg-[var(--aegis-surface)] rounded-[6px] p-2.5 sm:p-3 flex flex-col gap-2 border border-[var(--aegis-border)]">
-                              <div className="flex flex-col gap-1">
-                                <div className="flex items-center justify-between text-[12px]">
-                                  <span className="text-[var(--aegis-muted)] font-medium">Devis standard isolé</span>
-                                  <span className="font-mono tabular-nums text-[var(--aegis-muted)] font-semibold">100 % (marge standard)</span>
-                                </div>
-                                <div className="h-2 w-full bg-[var(--aegis-divider)] rounded-full overflow-hidden">
-                                  <div className="h-full w-full bg-[var(--aegis-input-border)] rounded-full" />
-                                </div>
-                              </div>
-
-                              <div className="flex flex-col gap-1 pt-0.5">
-                                <div className="flex items-center justify-between text-[12px]">
-                                  <span className="font-bold text-[var(--aegis-ink)]">Mise en concurrence (3 devis)</span>
-                                  <span className="font-mono tabular-nums text-[var(--aegis-availability-text)] font-bold">82 % (tarif négocié)</span>
-                                </div>
-                                <div className="flex items-center gap-2.5">
-                                  <div className="flex-1 h-2.5 bg-[var(--aegis-surface-subtle)] rounded-full overflow-hidden border border-[var(--aegis-border)]">
-                                    <div className="h-full w-[82%] bg-accent-solar rounded-full" />
-                                  </div>
-                                  <span className="px-2 py-0.5 rounded-[5px] bg-accent-solar text-accent-solar-foreground text-[12px] font-mono tabular-nums font-bold shrink-0">
-                                    -18 %
-                                  </span>
-                                </div>
-                              </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="px-2 py-0.5 rounded-[5px] bg-[var(--aegis-preference-bg)] border border-[var(--aegis-preference-accent)]/40 text-[11px] font-mono tabular-nums text-[var(--aegis-preference-label)] font-bold">
+                                env. {b2cCalc.installedPowerKwc} kWc
+                              </span>
+                              <span className="px-2 py-0.5 rounded-[5px] bg-accent-solar text-accent-solar-foreground text-[11px] font-mono tabular-nums font-bold">
+                                -18 % en concurrence
+                              </span>
                             </div>
                           </div>
 
@@ -1395,29 +1374,31 @@ export function DevisLandingClient() {
                             </div>
                           </div>
 
-                          {/* ── Rangée 2 : Sélecteur de règle de contact ── */}
+                          {/* ── Rangée 2 : Sélecteur de règle de contact (compact 2 cols dès mobile) ── */}
                           <div className="flex flex-col gap-1.5 pt-0.5">
                             <Label className="text-[13px] font-semibold text-[var(--aegis-ink)] flex items-center gap-1.5">
                               <ShieldCheck className="h-4 w-4 text-[var(--aegis-focus)] shrink-0" />
-                              <span>Premier contact souhaité avec les 3 installateurs</span>
+                              <span>
+                                Premier contact souhaité (<span className="font-mono tabular-nums">3</span> installateurs)
+                              </span>
                             </Label>
-                            <div role="radiogroup" className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <div role="radiogroup" className="grid grid-cols-2 gap-2">
                               {/* Option 1: written_first */}
                               <button
                                 type="button"
                                 role="radio"
                                 aria-checked={contactPreference === "written_first"}
                                 onClick={() => setContactPreference("written_first")}
-                                className={`p-3 rounded-[8px] border text-left transition-colors duration-150 cursor-pointer flex flex-col justify-between gap-1.5 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] ${
+                                className={`p-2.5 rounded-[8px] border text-left transition-colors duration-150 cursor-pointer flex flex-col justify-between gap-1 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] ${
                                   contactPreference === "written_first"
                                     ? "border-2 border-[var(--aegis-preference-accent)] bg-[var(--aegis-preference-bg)]"
                                     : "border-[var(--aegis-input-border)]/45 bg-[var(--aegis-surface)] hover:bg-[var(--aegis-surface-subtle)] hover:border-[var(--aegis-ink)]/50"
                                 }`}
                               >
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="text-[13px] font-bold text-[var(--aegis-ink)] flex items-center gap-1.5">
+                                <div className="flex flex-wrap items-center justify-between gap-1">
+                                  <span className="text-[12px] sm:text-[13px] font-bold text-[var(--aegis-ink)] flex items-center gap-1.5 leading-tight">
                                     <span
-                                      className={`h-4 w-4 rounded-full border flex items-center justify-center shrink-0 ${
+                                      className={`h-3.5 w-3.5 rounded-full border flex items-center justify-center shrink-0 ${
                                         contactPreference === "written_first"
                                           ? "border-[var(--aegis-preference-accent)] bg-accent-solar text-accent-solar-foreground"
                                           : "border-[var(--aegis-input-border)] bg-[var(--aegis-surface)]"
@@ -1425,20 +1406,20 @@ export function DevisLandingClient() {
                                     >
                                       {contactPreference === "written_first" && <Check className="h-2.5 w-2.5 stroke-[3]" />}
                                     </span>
-                                    Écrit d&apos;abord (e-mail / SMS)
+                                    <span>Écrit d&apos;abord</span>
                                   </span>
-                                  <span className="px-1.5 py-0.5 rounded-[5px] bg-accent-solar text-accent-solar-foreground border border-[var(--aegis-preference-accent)] text-[11px] font-bold">
+                                  <span className="px-1.5 py-0.5 rounded-[4px] bg-accent-solar text-accent-solar-foreground border border-[var(--aegis-preference-accent)] text-[10px] font-bold leading-none">
                                     Recommandé
                                   </span>
                                 </div>
                                 <span
-                                  className={`text-[12px] leading-[1.4] pl-5.5 ${
+                                  className={`text-[11px] sm:text-[12px] leading-[1.35] pl-5 ${
                                     contactPreference === "written_first"
                                       ? "text-[var(--aegis-preference-label)] font-medium"
                                       : "text-[var(--aegis-muted)]"
                                   }`}
                                 >
-                                  Offres transmises par écrit avant tout appel ou visite.
+                                  Offres par e-mail/SMS avant appel.
                                 </span>
                               </button>
 
@@ -1448,16 +1429,16 @@ export function DevisLandingClient() {
                                 role="radio"
                                 aria-checked={contactPreference === "direct_call"}
                                 onClick={() => setContactPreference("direct_call")}
-                                className={`p-3 rounded-[8px] border text-left transition-colors duration-150 cursor-pointer flex flex-col justify-between gap-1.5 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] ${
+                                className={`p-2.5 rounded-[8px] border text-left transition-colors duration-150 cursor-pointer flex flex-col justify-between gap-1 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] ${
                                   contactPreference === "direct_call"
                                     ? "border-2 border-[var(--aegis-preference-accent)] bg-[var(--aegis-preference-bg)]"
                                     : "border-[var(--aegis-input-border)]/45 bg-[var(--aegis-surface)] hover:bg-[var(--aegis-surface-subtle)] hover:border-[var(--aegis-ink)]/50"
                                 }`}
                               >
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="text-[13px] font-bold text-[var(--aegis-ink)] flex items-center gap-1.5">
+                                <div className="flex items-center justify-between gap-1.5">
+                                  <span className="text-[12px] sm:text-[13px] font-bold text-[var(--aegis-ink)] flex items-center gap-1.5 leading-tight">
                                     <span
-                                      className={`h-4 w-4 rounded-full border flex items-center justify-center shrink-0 ${
+                                      className={`h-3.5 w-3.5 rounded-full border flex items-center justify-center shrink-0 ${
                                         contactPreference === "direct_call"
                                           ? "border-[var(--aegis-preference-accent)] bg-accent-solar text-accent-solar-foreground"
                                           : "border-[var(--aegis-input-border)] bg-[var(--aegis-surface)]"
@@ -1465,17 +1446,17 @@ export function DevisLandingClient() {
                                     >
                                       {contactPreference === "direct_call" && <Check className="h-2.5 w-2.5 stroke-[3]" />}
                                     </span>
-                                    Contact direct autorisé
+                                    <span>Appel direct</span>
                                   </span>
                                 </div>
                                 <span
-                                  className={`text-[12px] leading-[1.4] pl-5.5 ${
+                                  className={`text-[11px] sm:text-[12px] leading-[1.35] pl-5 ${
                                     contactPreference === "direct_call"
                                       ? "text-[var(--aegis-preference-label)] font-medium"
                                       : "text-[var(--aegis-muted)]"
                                   }`}
                                 >
-                                  Appel des 3 installateurs pour planifier l&apos;étude technique.
+                                  Appel pour planifier l&apos;étude.
                                 </span>
                               </button>
                             </div>
@@ -1560,7 +1541,7 @@ export function DevisLandingClient() {
                           </div>
 
                           {/* Consentement RGPD conforme APD & modale réseau */}
-                          <div className="flex flex-col gap-2 pt-3 border-t border-[var(--aegis-divider)]">
+                          <div className="flex flex-col gap-1.5 pt-2.5 border-t border-[var(--aegis-divider)]">
                             <label className="flex items-start gap-2.5 cursor-pointer">
                               <Checkbox
                                 id="partnerConsent"
@@ -1568,14 +1549,14 @@ export function DevisLandingClient() {
                                 onCheckedChange={(c) => setPartnerConsent(c === true)}
                                 className="mt-0.5 border-[var(--aegis-input-border)] data-[state=checked]:bg-[var(--aegis-ink)] data-[state=checked]:border-[var(--aegis-ink)] focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
                               />
-                              <span className="text-[12px] text-[var(--aegis-muted)] leading-[1.5]">
-                                En validant, vous mandatez Aegis Solaire pour transmettre votre cahier des charges au lot indivisible de{" "}
+                              <span className="text-[12px] text-[var(--aegis-muted)] leading-[1.45]">
+                                J&apos;accepte de recevoir gratuitement jusqu&apos;à{" "}
                                 <span className="font-mono tabular-nums font-semibold text-[var(--aegis-ink)]">3</span>{" "}
-                                installateurs partenaires certifiés RESCert actifs en province de{" "}
+                                devis d&apos;installateurs RESCert en province de{" "}
                                 <span className="font-semibold text-[var(--aegis-ink)]">
                                   {getProvinceDisplayLabel(province)}
                                 </span>{" "}
-                                afin d&apos;établir vos offres comparatives (
+                                (
                                 <button
                                   type="button"
                                   onClick={(e) => {
@@ -1585,15 +1566,15 @@ export function DevisLandingClient() {
                                   }}
                                   className="underline underline-offset-4 text-[var(--aegis-link)] font-semibold hover:text-[var(--aegis-ink)] inline cursor-pointer"
                                 >
-                                  Consulter les critères et partenaires du réseau
+                                  voir le réseau
                                 </button>
-                                ). Vos données sont traitées conformément au RGPD selon notre{" "}
+                                ) selon la{" "}
                                 <Link
                                   href="/politique-confidentialite"
                                   target="_blank"
                                   className="underline underline-offset-4 text-[var(--aegis-link)] font-semibold hover:text-[var(--aegis-ink)]"
                                 >
-                                  politique de confidentialité
+                                  politique RGPD
                                 </Link>
                                 .
                               </span>
@@ -1694,11 +1675,12 @@ export function DevisLandingClient() {
                   </div>
                   <div>
                     <h2 className="text-[22px] sm:text-[24px] font-bold text-[var(--aegis-ink)] tracking-[-0.02em] leading-[1.2]">
-                      Demande enregistrée avec succès
+                      Votre mise en concurrence est lancée
                     </h2>
                     <p className="text-[14px] text-[var(--aegis-muted)] max-w-md mx-auto leading-[1.5] mt-1.5">
-                      Merci <strong className="text-[var(--aegis-ink)]">{firstName}</strong>. Votre demande d&apos;audit pour la province de{" "}
-                      <strong className="text-[var(--aegis-ink)]">{getProvinceDisplayLabel(province)}</strong> a bien été transmise.
+                      Merci <strong className="text-[var(--aegis-ink)]">{firstName}</strong>. Aegis Solaire agit de votre côté en province de{" "}
+                      <strong className="text-[var(--aegis-ink)]">{getProvinceDisplayLabel(province)}</strong> : nous mettons jusqu&apos;à{" "}
+                      <span className="font-mono tabular-nums font-semibold text-[var(--aegis-ink)]">3</span> installateurs certifiés RESCERT en compétition sur votre dossier pour vous obtenir le meilleur prix, sans aucun compromis sur la qualité.
                     </p>
                   </div>
 
@@ -1712,11 +1694,15 @@ export function DevisLandingClient() {
                     </p>
                     <ul className="flex flex-col gap-1.5 text-[var(--aegis-muted)] list-disc pl-5 leading-[1.45]">
                       <li>
-                        Transmission de votre demande à jusqu&apos;à{" "}
-                        <span className="font-mono tabular-nums font-bold text-[var(--aegis-ink)]">3</span> installateurs agréés RESCert de votre région.
+                        Mise en concurrence de jusqu&apos;à{" "}
+                        <span className="font-mono tabular-nums font-bold text-[var(--aegis-ink)]">3</span> installateurs agréés RESCERT de votre région : sachant qu&apos;ils sont comparés, ils réduisent d&apos;eux-mêmes leur marge commerciale dès la première offre.
                       </li>
-                      <li>Prise de contact rapide pour valider vos spécificités toiture et vos habitudes de consommation.</li>
-                      <li>Réception et comparaison de vos devis gratuits : vous êtes totalement libre de choisir votre installateur — ou aucun.</li>
+                      <li>
+                        Cahier des charges qualité verrouillé (matériel Tier-1, conformité RGIE et garantie décennale) pour une installation irréprochable.
+                      </li>
+                      <li>
+                        Comparaison sereine de vos devis gratuits : vous gardez le contrôle et restez totalement libre de choisir l&apos;offre la plus avantageuse — ou aucune.
+                      </li>
                     </ul>
                   </div>
 
@@ -1774,13 +1760,13 @@ export function DevisLandingClient() {
 
             <div className="flex flex-col gap-1">
               <span className="font-mono text-xs uppercase tracking-wider text-accent font-semibold">
-                Méthode Aegis Solaire
+                Méthode Aegis Solaire · De votre côté
               </span>
               <h3 className="text-lg sm:text-xl font-bold text-foreground font-heading">
-                Comment fonctionne la mise en relation ?
+                Comment fonctionne la mise en concurrence ?
               </h3>
               <p className="text-xs text-muted-foreground">
-                Notre service de comparaison est 100 % gratuit et sans engagement pour les propriétaires en Wallonie.
+                Aegis Solaire organise la compétition entre installateurs pour vous obtenir le meilleur prix à qualité maximale (<span className="font-mono tabular-nums">100 %</span> gratuit et sans engagement).
               </p>
             </div>
 
@@ -1788,18 +1774,31 @@ export function DevisLandingClient() {
               {[
                 {
                   step: "01",
-                  title: "Remplissez votre demande en 45 secondes",
+                  title: (
+                    <>
+                      Remplissez votre demande en <span className="font-mono tabular-nums">45 s</span>
+                    </>
+                  ),
                   desc: "Indiquez votre toiture, commune et consommation approximative. Aucune carte bancaire requise.",
                 },
                 {
                   step: "02",
-                  title: "Sélection d'installateurs RESCERT locaux",
-                  desc: "Notre système sollicite jusqu'à 3 professionnels certifiés et audités de votre province pour votre projet.",
+                  title: "Mise en concurrence d'installateurs RESCERT locaux",
+                  desc: (
+                    <>
+                      Nos partenaires savent qu&apos;ils sont mis en compétition à armes égales via Aegis Solaire (ce qui fait baisser les tarifs de{" "}
+                      <span className="font-mono tabular-nums font-semibold text-foreground">-18 %</span> en moyenne), tandis que notre charte verrouille la qualité RESCERT &amp; Tier-1.
+                    </>
+                  ),
                 },
                 {
                   step: "03",
-                  title: "Comparez jusqu'à 3 devis et économisez",
-                  desc: "Vous recevez les offres chiffrées détaillées et choisissez librement la meilleure proposition — ou aucune.",
+                  title: (
+                    <>
+                      Comparez jusqu&apos;à <span className="font-mono tabular-nums">3</span> devis et gardez le meilleur prix
+                    </>
+                  ),
+                  desc: "Vous recevez les offres détaillées sans aucun compromis technique et choisissez librement la proposition la plus avantageuse — ou aucune.",
                 },
               ].map((item) => (
                 <li key={item.step} className="flex items-start gap-3 p-3 rounded-xl bg-secondary/50 border border-border">

@@ -140,9 +140,9 @@ export async function GET(request: NextRequest) {
   return new NextResponse(
     renderHtmlPage({
       ok: true,
-      title: `Merci ${firstName}, votre e-mail est certifié`,
+      title: `Merci ${firstName}, votre mise en concurrence est activée`,
       message:
-        "Votre adresse e-mail est désormais marquée comme vérifiée auprès des installateurs partenaires RESCERT pour la transmission écrite de vos devis.",
+        "Votre adresse e-mail est certifiée. Nous mettons désormais les installateurs agréés RESCERT de votre secteur en concurrence sur votre dossier : sachant qu'ils sont comparés via Aegis Solaire, ils vous proposeront leur meilleur tarif sans aucun compromis sur la qualité du matériel (Tier-1) ni sur les garanties.",
     }),
     { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }
   )

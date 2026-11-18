@@ -10,6 +10,10 @@ function renderReconfirmHtml(params: {
   subtitle: string
 }) {
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://aegissolaire.com").replace(/\/+$/, "")
+  const badgeBg = params.ok ? "#E8F2ED" : "#FFF1F0"
+  const badgeColor = params.ok ? "#1D5D45" : "#9A2F2B"
+  const badgeText = params.ok ? "Mise en concurrence activée" : "Lien invalide ou expiré"
+
   return `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -17,22 +21,23 @@ function renderReconfirmHtml(params: {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${escapeEmailHtml(params.title)} — Aegis Solaire</title>
 </head>
-<body style="margin:0; padding:32px 16px; background:#F8FAFC; color:#0F172A; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <div style="max-width:540px; margin:40px auto; background:#FFFFFF; border:1px solid #E2E8F0; border-radius:16px; overflow:hidden; box-shadow:0 4px 20px rgba(15,23,42,0.06);">
-    <div style="background:#0F172A; color:#FFFFFF; padding:24px 28px;">
-      <p style="margin:0 0 6px 0; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:#F59E0B; font-weight:700;">
-        Aegis Solaire · Cellule Technique
-      </p>
-      <h1 style="margin:0; font-size:20px; line-height:1.3;">${escapeEmailHtml(params.title)}</h1>
-    </div>
-    <div style="padding:28px;">
-      <p style="margin:0 0 20px 0; font-size:15px; line-height:1.6; color:#334155;">
-        ${escapeEmailHtml(params.subtitle)}
-      </p>
-      <a href="${escapeEmailHtml(siteUrl)}" style="display:inline-block; background:#0F172A; color:#FFFFFF; text-decoration:none; padding:12px 20px; border-radius:8px; font-size:14px; font-weight:600;">
-        Retour à Aegis Solaire
-      </a>
-    </div>
+<body style="margin:0; padding:32px 16px; background-color:#EEF2F4; color:#142D42; font-family:Arial,Helvetica,sans-serif;">
+  <div style="max-width:540px; margin:40px auto; background:#FFFFFF; border:1px solid #DCE5EB; border-radius:14px; padding:28px;">
+    <span style="display:inline-block; padding:4px 10px; border-radius:5px; background:${badgeBg}; color:${badgeColor}; font-size:12px; font-weight:bold;">
+      ${escapeEmailHtml(badgeText)}
+    </span>
+    <p style="margin:12px 0 4px 0; font-size:13px; font-weight:bold; color:#305A76;">
+      Aegis Solaire · Tiers de confiance de votre côté
+    </p>
+    <h1 style="margin:0 0 10px 0; font-size:22px; line-height:1.25; color:#142D42;">
+      ${escapeEmailHtml(params.title)}
+    </h1>
+    <p style="margin:0 0 22px 0; font-size:15px; line-height:1.5; color:#4D6374;">
+      ${escapeEmailHtml(params.subtitle)}
+    </p>
+    <a href="${escapeEmailHtml(siteUrl)}" style="display:inline-block; background:#142D42; color:#FFFFFF; text-decoration:none; padding:11px 18px; border-radius:6px; font-size:14px; font-weight:bold;">
+      Retourner sur Aegis Solaire
+    </a>
   </div>
 </body>
 </html>`
@@ -134,8 +139,8 @@ export async function GET(request: Request) {
     return new NextResponse(
       renderReconfirmHtml({
         ok: true,
-        title: "Projet confirmé en priorité",
-        subtitle: `Merci${lead.first_name ? ` ${lead.first_name}` : ""} ! Votre demande d'étude photovoltaïque à ${cityLabel} est désormais marquée comme « Reconfirmée en priorité » auprès de nos installateurs agréés RESCERT.`,
+        title: "Mise en concurrence relancée en priorité",
+        subtitle: `Merci${lead.first_name ? ` ${lead.first_name}` : ""} ! Votre dossier solaire à ${cityLabel} est relancé en priorité : nos installateurs certifiés RESCERT sont mis en concurrence pour vous remettre leur meilleur prix, sans aucun compromis sur la qualité de votre installation.`,
       }),
       { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }
     )

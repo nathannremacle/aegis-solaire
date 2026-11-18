@@ -70,7 +70,9 @@ export function buildProspectConfirmationEmail(payload: ProspectConfirmationPayl
     ? `~${payload.estimatedROIYears} ans`
     : "Selon autoconsommation"
 
-  const subject = `Votre estimation solaire personnalisée — Aegis Solaire Wallonie`
+  const subject = isB2C
+    ? "Votre étude solaire — Mise en concurrence RESCERT activée pour vous obtenir le meilleur prix"
+    : "Votre étude solaire B2B — Sélection du meilleur tarif RESCERT sans compromis qualité"
   const verifyUrl = payload.leadId
     ? `${baseUrl}/api/leads/verify-email?id=${encodeURIComponent(payload.leadId)}&token=${encodeURIComponent(
       createProspectEmailVerifyToken(payload.leadId, payload.email)
@@ -79,7 +81,7 @@ export function buildProspectConfirmationEmail(payload: ProspectConfirmationPayl
 
   const text = `Bonjour ${rawName},
 
-Merci d'avoir utilisé le simulateur solaire Aegis Solaire.
+Votre dossier est entre de bonnes mains. Chez Aegis Solaire, notre rôle est d'agir de votre côté : nous mettons en concurrence les installateurs certifiés RESCERT de votre région pour vous obtenir le meilleur prix du marché, sans aucune contrepartie sur la qualité de votre future installation.
 
 Synthèse de votre modélisation :
 - Segment : ${isB2C ? "Résidentiel (Particulier)" : "Professionnel & Entreprise (B2B)"}
@@ -88,13 +90,18 @@ Synthèse de votre modélisation :
 - Retour sur investissement estimé : ${roi}
 
 ${verifyUrl
-      ? `Confirmez votre adresse e-mail en 1 clic pour certifier votre dossier auprès des installateurs :\n${verifyUrl}\n\n`
+      ? `Confirmez votre adresse e-mail en 1 clic pour lancer vos devis en priorité :\n${verifyUrl}\n\n`
       : ""
-    }Prochaines étapes :
+    }Prochaines étapes & protection de votre budget :
 ${isB2C
-      ? "Votre projet a été transmis à jusqu'à 3 installateurs certifiés RESCERT de votre région en Wallonie afin de vous fournir un comparatif de devis gratuit et sans engagement."
-      : "Votre dossier technique a été qualifié et transmis en exclusivité à 1 installateur partenaire certifié RESCERT pour valider la faisabilité technique sur site (toiture, cabine HT, raccordement ORES/RESA)."
+      ? "- Mise en concurrence directe : jusqu'à 3 installateurs certifiés RESCERT locaux sont mis en compétition sur votre dossier. Sachant qu'ils sont comparés via Aegis Solaire, ils ajustent d'eux-mêmes leur marge commerciale dès le premier devis (en moyenne -18 % constatés en Wallonie)."
+      : "- Sélection comparative RESCERT : votre dossier technique est confié à l'opérateur tertiaire certifié RESCERT le plus compétitif sur votre cahier des charges (toiture, cabine HT, raccordement ORES/RESA) pour maximiser votre rentabilité."
     }
+- Zéro compromis sur la qualité : agrément RESCERT obligatoire, matériel Tier-1, assurance décennale et conformité RGIE / Synergrid C10/11 vérifiés.
+- Protection & liberté : service 100 % gratuit, zéro surcoût ajouté à vos devis et aucune obligation de signer.
+
+Pourquoi Aegis Solaire vous obtient un meilleur prix à qualité égale ?
+Lorsqu'un installateur répond via Aegis Solaire, il sait qu'il est comparé à armes égales sur un cahier des charges strict. Il ne peut ni rogner sur la qualité, ni gonfler ses prix : c'est vous qui gardez le pouvoir de négociation, en toute sérénité.
 
 Besoin d'une précision ? Répondez directement à cet e-mail ou écrivez à contact@aegissolaire.com.
 
@@ -102,8 +109,8 @@ Conformément au RGPD, vous disposez d'un droit d'accès, d'opposition et de rec
 Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique`
 
   const bodyHtml = `
-    <p style="margin: 14px 0 0 0; font-size: 15px; line-height: 1.5; color: #142d42;">
-      Bonjour <strong>${escapeEmailHtml(rawName)}</strong>, nous confirmons la bonne réception de votre demande d'étude photovoltaïque en Wallonie.
+    <p style="margin: 14px 0 0 0; font-size: 15px; line-height: 1.5; color: #142D42;">
+      Bonjour <strong>${escapeEmailHtml(rawName)}</strong>, votre dossier est entre de bonnes mains. Notre rôle chez Aegis Solaire est d'agir <strong>de votre côté</strong> : nous mettons en concurrence les installateurs certifiés <strong>RESCERT</strong> de votre région pour vous obtenir <strong>le meilleur prix du marché, sans aucune contrepartie sur la qualité</strong> de votre future installation.
     </p>
 
     ${renderFiguresBox(
@@ -115,25 +122,32 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
     {
       label: "Amortissement indicatif",
       value: roi,
-      sublabel: isB2C ? "Comparatif max 3 artisans" : "Exclusivité 1 artisan B2B",
+      sublabel: isB2C ? "3 devis mis en concurrence (-18 % moy.)" : "Sélection au meilleur rapport qualité/prix B2B",
     }
   )}
 
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 20px; width: 100%; border-collapse: collapse;">
       <tr>
-        <td style="padding-top: 16px; border-top: 1px solid #e4edf1;">
-          <h2 style="margin: 0 0 10px 0; font-size: 18px; line-height: 1.25; font-weight: bold; color: #142d42;">
-            Prochaines étapes de votre dossier
+        <td style="padding-top: 16px; border-top: 1px solid #E6EDF1;">
+          <h2 style="margin: 0 0 10px 0; font-size: 18px; line-height: 1.25; font-weight: bold; color: #142D42;">
+            Prochaines étapes &amp; protection de votre budget
           </h2>
           ${renderSpecsTable([
     { label: "Segment", value: isB2C ? "Résidentiel (Particulier)" : "Professionnel (B2B)" },
     {
-      label: "Mise en relation",
+      label: "Mécanisme de prix",
       value: isB2C
-        ? "Jusqu'à 3 installateurs certifiés RESCERT sans engagement"
-        : "1 installateur partenaire unique certifié RESCERT",
+        ? "Jusqu'à 3 installateurs RESCERT mis en concurrence directe (baisse des marges commerciales dès le 1er devis)"
+        : "Sélection comparative parmi nos installateurs RESCERT tertiaires pour retenir l'offre la plus compétitive",
     },
-    { label: "Certification requise", value: "Agrément RESCERT & conformité Synergrid C10/11" },
+    {
+      label: "Exigence qualité verrouillée",
+      value: "Zéro compromis : agrément RESCERT obligatoire, panneaux Tier-1, conformité RGIE & Synergrid C10/11",
+    },
+    {
+      label: "Protection & liberté",
+      value: "100 % gratuit, zéro surcoût sur vos devis et sans aucun engagement de votre part",
+    },
   ])}
         </td>
       </tr>
@@ -141,36 +155,43 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
 
     ${verifyUrl
       ? renderActionBox({
-        kicker: "Certification de votre dossier",
-        title: "Confirmez votre e-mail en 1 clic",
+        kicker: "Priorisation de votre appel d'offres",
+        title: "Confirmez votre e-mail en 1 clic pour lancer vos devis",
         subtext:
-          "Confirmez que vous recevez bien nos messages afin que vos devis écrits et dossiers techniques vous parviennent sans délai.",
-        ctaLabel: "Confirmer mon adresse e-mail →",
+          "En certifiant votre adresse, vous activez l'envoi prioritaire de vos offres chiffrées. Les installateurs savent que votre dossier est vérifié et qu'ils sont mis en concurrence : ils vous proposent d'emblée leur meilleur tarif.",
+        ctaLabel: "Activer ma mise en concurrence en 1 clic →",
         ctaUrl: verifyUrl,
       })
       : ""
     }
 
     ${renderCalloutBox({
-      label: "Garantie qualité Aegis Solaire",
+      label: "Pourquoi Aegis Solaire vous obtient un meilleur prix à qualité égale ?",
       value:
-        "Tous nos installateurs partenaires sont vérifiés pour leur agrément RESCERT Photovoltaïque, leur assurance décennale et l'utilisation de matériel Tier-1.",
+        "Lorsqu'un installateur répond via Aegis Solaire, il sait qu'il est comparé à armes égales sur un cahier des charges strict (matériel Tier-1, garantie décennale, certification RESCERT). Il ne peut ni rogner sur la qualité, ni gonfler ses prix : c'est vous qui gardez le pouvoir de négociation, en toute sérénité.",
       tone: "info",
     })}
 
-    <p style="margin: 14px 0 0 0; font-size: 14px; line-height: 1.5; color: #4d6374;">
-      Une question ou une modification à apporter ? Répondez directement à cet e-mail ou écrivez à <a href="mailto:contact@aegissolaire.com" style="color: #194767; text-decoration: underline;">contact@aegissolaire.com</a>.
+    <p style="margin: 14px 0 0 0; font-size: 14px; line-height: 1.5; color: #4D6374;">
+      Une question ou une précision à apporter ? Répondez directement à cet e-mail ou écrivez à <a href="mailto:contact@aegissolaire.com" style="color: #194767; text-decoration: underline;">contact@aegissolaire.com</a> : notre équipe veille sur votre dossier.
     </p>
   `
 
   const html = renderInstallerEmailShell({
     subject,
-    preheader: `Synthèse de votre étude solaire en Wallonie · Économies estimées : ${economies}.`,
+    preheader: isB2C
+      ? `Aegis Solaire met en concurrence les installateurs RESCERT de votre région pour vous obtenir le meilleur prix, sans compromis qualité · Économies estimées : ${economies}.`
+      : `Aegis Solaire sélectionne le meilleur tarif RESCERT B2B sans compromis sur la qualité · Économies estimées : ${economies}.`,
     reference: isB2C ? "Résidentiel" : "B2B Expert",
-    context: "Confirmation de votre demande",
-    headline: "Votre estimation solaire",
+    context: "Dossier pris en charge · Tiers de confiance de votre côté",
+    headline: "Votre estimation solaire & mise en concurrence",
     subtitle: isB2C ? "Étude résidentielle · Wallonie" : "Étude professionnelle B2B · Wallonie",
-    statusPill: { text: "Dossier transmis à nos partenaires RESCERT", tone: "success" },
+    statusPill: {
+      text: isB2C
+        ? "Mise en concurrence RESCERT activée · Zéro compromis qualité"
+        : "Sélection comparative RESCERT activée · Cahier des charges Tier-1",
+      tone: "success",
+    },
     bodyHtml,
     logoHref: baseUrl,
     footerLinks: [

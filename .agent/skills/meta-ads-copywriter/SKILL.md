@@ -9,11 +9,12 @@ Sortie : Markdown, français (Belgique/Wallonie), multi-variantes. Copy uniqueme
 
 ## Phase 1 — Contexte & Prérequis
 - **Cible (ICP)** : Propriétaires de maisons individuelles en Wallonie (Brabant wallon, Liège, Namur, Hainaut, Luxembourg) avec toiture exploitable, payant l'électricité et confrontés au tarif prosumer / hausse des coûts réseau.
-- **Offre Aegis** : Audit solaire & financier impartial, simulation gratuite en 45 secondes, mise en relation avec 1 à 3 installateurs locaux labellisés RESCERT sans démarchage agressif.
+- **Offre & Positionnement Allié (Règle `prospect-advocate-positioning.md`)** : Aegis Solaire se place **du côté du propriétaire** en mettant en concurrence jusqu'à 3 installateurs locaux labellisés **RESCERT** sur un cahier des charges strict afin de lui obtenir **le meilleur prix au kWc sans aucune contrepartie sur la qualité du matériel (Tier-1, RGIE, garantie décennale)**. Simulation gratuite en 45 secondes, zéro démarchage agressif, zéro surcoût.
 - **Angles dominants Wallonie** :
-  1. *Tarif Prosumer & Fin du compteur qui tourne à l'envers* : Démystification mathématique (autoconsommation + batterie = amortissement réel).
-  2. *Éviter les arnaques des démarcheurs agressifs* : Rassurer avec un tiers de confiance technique et la certification RESCERT.
-  3. *Rentabilité & Primes / Économies réelles* : Calcul précis selon la toiture et les profils de consommation réels.
+  1. *Mise en concurrence RESCERT ("De votre côté")* : Pourquoi les installateurs baissent leurs marges dès le premier devis quand ils savent qu'ils sont comparés à armes égales via Aegis Solaire — le meilleur prix sans rogner sur la qualité Tier-1.
+  2. *Tarif Prosumer & Fin du compteur qui tourne à l'envers* : Démystification mathématique (autoconsommation + batterie = amortissement réel).
+  3. *Éviter les arnaques des démarcheurs agressifs* : Rassurer avec un tiers de confiance technique, le contrôle RESCERT et le contact écrit d'abord.
+  4. *Rentabilité & Primes / Économies réelles* : Calcul précis selon la toiture et les profils de consommation réels.
 
 ## Phase 2 — Audit de l'offre
 Vérifier l'équation de valeur (Value Equation d'Alex Hormozi) :

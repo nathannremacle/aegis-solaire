@@ -645,10 +645,11 @@ export function B2CSimulator() {
             </motion.div>
           </div>
           <h3 className="text-center text-2xl font-bold text-foreground sm:text-3xl">
-            Votre étude est confirmée !
+            Votre mise en concurrence est confirmée !
           </h3>
           <p className="mx-auto mt-3 max-w-lg text-center text-muted-foreground leading-relaxed">
-            Un e-mail récapitulatif complet vient de vous être envoyé à <strong>{fd.email}</strong>. Jusqu&apos;à 3 installateurs certifiés RESCERT de votre région vous recontacteront avec vos devis comparatifs sans engagement.
+            Un e-mail récapitulatif complet vient de vous être envoyé à <strong>{fd.email}</strong>. Aegis Solaire met jusqu&apos;à{" "}
+            <span className="font-mono tabular-nums font-semibold text-foreground">3</span> installateurs certifiés RESCERT de votre région en concurrence sur votre dossier : sachant qu&apos;ils sont comparés, ils vous proposeront leur meilleur prix sans aucun compromis sur la qualité technique ni sur le matériel Tier-1.
           </p>
 
           <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
@@ -1155,9 +1156,16 @@ export function B2CSimulator() {
                     />
                   ) : (
                     <>
-                  <p className="font-medium text-foreground">
-                    Recevez votre dossier complet gratuitement :
-                  </p>
+                  <div className="rounded-xl border border-accent/25 bg-accent/5 p-3.5 sm:p-4">
+                    <p className="text-sm font-semibold text-foreground">
+                      Activez votre mise en concurrence gratuite (<span className="font-mono tabular-nums">100 %</span> de votre côté)
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      En validant votre dossier, Aegis Solaire met en concurrence jusqu&apos;à{" "}
+                      <span className="font-mono tabular-nums font-semibold text-foreground">3</span> installateurs certifiés{" "}
+                      <strong className="text-foreground">RESCERT</strong> locaux afin de vous obtenir le meilleur tarif sans aucune contrepartie sur la qualité du matériel (Tier-1, conformité RGIE).
+                    </p>
+                  </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">

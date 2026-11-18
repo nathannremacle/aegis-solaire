@@ -96,11 +96,11 @@ export function ParticuliersHero() {
             variants={itemVariants}
             className="mx-auto mt-5 max-w-2xl text-pretty text-sm leading-relaxed text-neutral-300 sm:mt-6 sm:text-lg md:text-xl"
           >
-            Nos experts et installateurs certifiés déploient chez vous des panneaux certifiés{" "}
+            Aegis Solaire est de votre côté : nous mettons en concurrence les meilleurs installateurs certifiés{" "}
             <strong className="font-semibold text-white">RESCERT</strong> et{" "}
-            <strong className="font-semibold text-white">RGIE</strong>. Matériel Premium,
-            primes habitation wallonnes et autoconsommation maximisée avec une batterie
-            de pointe.
+            <strong className="font-semibold text-white">RGIE</strong> de Wallonie pour vous obtenir{" "}
+            <strong className="font-semibold text-white">le prix le plus bas à qualité maximale</strong>{" "}
+            (matériel Tier-1, batterie haute performance, zéro démarchage abusif).
           </motion.p>
 
           {/* Dual CTAs */}

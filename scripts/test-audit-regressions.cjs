@@ -9,7 +9,7 @@ const path = require('node:path')
 function load(file, mocks = {}, env = {}, globals = {}) {
   const context = { exports: {}, console: { ...console, warn() {}, error() {} },
     process: { env }, ...globals,
-    require: name => Object.hasOwn(mocks, name) ? mocks[name] : (name.startsWith('@/') ? load(name.slice(2) + '.ts', mocks, env, globals) : require(name)) }
+    require: name => Object.hasOwn(mocks, name) ? mocks[name] : (name.startsWith('@/') ? load(name.slice(2) + '.ts', mocks, env, globals) : ((name.startsWith('./') || name.startsWith('../')) ? load(path.posix.join(path.posix.dirname(file.replace(/\\/g, '/')), name) + '.ts', mocks, env, globals) : require(name))) }
   const source = fs.readFileSync(path.join(__dirname, '..', file), 'utf8')
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: {
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true,
