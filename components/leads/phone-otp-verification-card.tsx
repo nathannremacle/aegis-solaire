@@ -22,6 +22,8 @@ import { cn } from "@/lib/utils"
 
 export interface OtpChallengeState {
   active: boolean
+  /** true quand le lead est enregistré mais que l'envoi du code a échoué (aucun code reçu) */
+  sendFailed: boolean
   normalizedPhone: string
   maskedPhone: string
   channel: "sms" | "call" | "dev_mock"
@@ -41,6 +43,7 @@ interface VerifiedPhoneCache {
 
 const INITIAL_CHALLENGE: OtpChallengeState = {
   active: false,
+  sendFailed: false,
   normalizedPhone: "",
   maskedPhone: "",
   channel: "sms",
@@ -61,6 +64,7 @@ export function useLeadPhoneOtp() {
     leadId?: string
     sessionId?: string
   }>({ segment: "B2C" })
+  const pendingCompleteRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     if (cooldown <= 0) return
@@ -71,6 +75,7 @@ export function useLeadPhoneOtp() {
   }, [cooldown])
 
   const resetOtp = useCallback(() => {
+    pendingCompleteRef.current = null
     setChallenge(INITIAL_CHALLENGE)
     setCooldown(0)
   }, [])
@@ -143,25 +148,28 @@ export function useLeadPhoneOtp() {
           if (typeof data.retryAfterSeconds === "number" && data.retryAfterSeconds > 0) {
             setCooldown(data.retryAfterSeconds)
           }
+          const message = data.error || "Numéro impossible à vérifier. Contrôlez votre saisie."
+          console.warn("[PhoneOtp] Envoi du code refusé:", res.status, message)
           setChallenge((prev) => ({
             ...prev,
             isSending: false,
-            error: prev.active ? data.error || "Envoi impossible." : null,
+            error: prev.active ? message : null,
           }))
-          return {
-            status: "error",
-            message: data.error || "Numéro impossible à vérifier. Contrôlez votre saisie.",
-          }
+          return { status: "error", message }
         }
 
         if (!data.otpRequired) {
           setChallenge(INITIAL_CHALLENGE)
+          const pendingComplete = pendingCompleteRef.current
+          pendingCompleteRef.current = null
+          pendingComplete?.()
           return { status: "not_required" }
         }
 
         setCooldown(data.cooldownSeconds ?? 30)
         setChallenge({
           active: true,
+          sendFailed: false,
           normalizedPhone: data.normalizedPhone || params.phone,
           maskedPhone: data.maskedPhone || params.phone,
           channel: data.channel || "sms",
@@ -173,12 +181,15 @@ export function useLeadPhoneOtp() {
           error: null,
         })
         return { status: "challenge_started" }
-      } catch {
-        setChallenge((prev) => ({ ...prev, isSending: false }))
-        return {
-          status: "error",
-          message: "Erreur réseau lors de la vérification du téléphone.",
-        }
+      } catch (err) {
+        const message = "Erreur réseau lors de l'envoi du code. Réessayez."
+        console.warn("[PhoneOtp] Erreur réseau à l'envoi du code:", err)
+        setChallenge((prev) => ({
+          ...prev,
+          isSending: false,
+          error: prev.active ? message : null,
+        }))
+        return { status: "error", message }
       }
     },
     [getCachedTokenForPhone]
@@ -292,6 +303,21 @@ export function useLeadPhoneOtp() {
         return
       }
 
+      if (otpRes.status === "error") {
+        // Lead déjà enregistré : on n'affiche jamais un faux succès silencieux.
+        // L'utilisateur voit l'erreur et choisit : réessayer (SMS / appel) ou continuer sans confirmer.
+        pendingCompleteRef.current = params.onComplete
+        setChallenge({
+          ...INITIAL_CHALLENGE,
+          active: true,
+          sendFailed: true,
+          normalizedPhone: params.phone,
+          maskedPhone: params.phone,
+          error: otpRes.message,
+        })
+        return
+      }
+
       params.onComplete()
     },
     [getCachedTokenForPhone, sendOtpRequest]
@@ -395,9 +421,11 @@ export function PhoneOtpVerificationCard({
               </span>
             )}
             <h3 className="text-sm font-bold leading-snug">
-              {isCall
-                ? "Appel automatique en cours avec votre code"
-                : "Confirmez votre numéro par SMS"}
+              {challenge.sendFailed
+                ? "Le code de confirmation n'a pas pu être envoyé"
+                : isCall
+                  ? "Appel automatique en cours avec votre code"
+                  : "Confirmez votre numéro par SMS"}
             </h3>
             <p
               className={cn(
@@ -405,7 +433,11 @@ export function PhoneOtpVerificationCard({
                 editorial ? "text-[var(--aegis-muted)]" : "text-muted-foreground"
               )}
             >
-              {isCall ? "Code dicté par appel sur le " : "Code à 6 chiffres envoyé au "}
+              {challenge.sendFailed
+                ? "Votre demande est bien enregistrée. Réessayez l'envoi ou recevez le code par appel vocal sur le "
+                : isCall
+                  ? "Code dicté par appel sur le "
+                  : "Code à 6 chiffres envoyé au "}
               <span className="font-mono tabular-nums font-semibold text-foreground">
                 {challenge.maskedPhone}
               </span>
@@ -431,6 +463,7 @@ export function PhoneOtpVerificationCard({
       </div>
 
       <div className="flex flex-col items-center gap-3 py-1">
+        {!challenge.sendFailed && (
         <InputOTP
           maxLength={6}
           pattern={REGEXP_ONLY_DIGITS}
@@ -454,6 +487,7 @@ export function PhoneOtpVerificationCard({
             <InputOTPSlot index={5} className="h-11 w-10 font-mono tabular-nums text-base font-bold bg-background" />
           </InputOTPGroup>
         </InputOTP>
+        )}
 
         {challenge.error && (
           <p
@@ -469,6 +503,28 @@ export function PhoneOtpVerificationCard({
       </div>
 
       <div className="flex flex-col gap-2">
+        {challenge.sendFailed ? (
+          <Button
+            type="button"
+            onClick={() => onResend("sms")}
+            disabled={cooldown > 0 || challenge.isSending}
+            className={cn(
+              "h-11 w-full font-bold cursor-pointer",
+              editorial
+                ? "rounded-[6px] bg-accent-solar hover:bg-accent-solar/90 text-accent-solar-foreground border border-[var(--aegis-preference-accent)]"
+                : "bg-accent text-accent-foreground hover:bg-accent/90"
+            )}
+          >
+            {challenge.isSending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            <span className="font-mono tabular-nums">
+              {cooldown > 0 ? `Réessayer l'envoi par SMS (${cooldown} s)` : "Réessayer l'envoi par SMS"}
+            </span>
+          </Button>
+        ) : (
         <Button
           type="button"
           onClick={() => onVerify()}
@@ -492,8 +548,10 @@ export function PhoneOtpVerificationCard({
             </>
           )}
         </Button>
+        )}
 
         <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+          {!challenge.sendFailed && (
           <button
             type="button"
             disabled={cooldown > 0 || challenge.isSending || challenge.isVerifying}
@@ -510,6 +568,7 @@ export function PhoneOtpVerificationCard({
                 : "Renvoyer le code"}
             </span>
           </button>
+          )}
 
           {!isCall && (
             <button

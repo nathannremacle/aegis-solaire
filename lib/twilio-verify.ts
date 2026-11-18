@@ -137,6 +137,13 @@ export async function lookupPhoneNumberTwilio(
     }
 
     if (!res.ok) {
+      console.error("[Twilio Lookup] Réponse non exploitable:", {
+        httpStatus: res.status,
+        hint:
+          res.status === 401
+            ? "Identifiants Twilio invalides (TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN)"
+            : undefined,
+      })
       return {
         configured: true,
         valid: true,
@@ -223,7 +230,13 @@ export async function lookupPhoneNumberTwilio(
 export async function sendTwilioVerifyOtp(params: {
   phoneE164: string
   channel: "sms" | "call"
-}): Promise<{ ok: boolean; channel: "sms" | "call" | "dev_mock"; error?: string }> {
+}): Promise<{
+  ok: boolean
+  channel: "sms" | "call" | "dev_mock"
+  error?: string
+  twilioCode?: number | null
+  accountRestricted?: boolean
+}> {
   const creds = getTwilioCredentials()
 
   if ((!creds || !creds.verifyServiceSid) && isDevMockOtpEnabled()) {
@@ -261,10 +274,29 @@ export async function sendTwilioVerifyOtp(params: {
     }
 
     if (!res.ok) {
+      console.error("[Twilio Verify] Envoi OTP refusé:", {
+        httpStatus: res.status,
+        twilioCode: json.code ?? null,
+        twilioMessage: json.message ?? null,
+        channel: params.channel,
+      })
+      if (json.code === 21608 || res.status === 401 || res.status === 403) {
+        return {
+          ok: false,
+          channel: params.channel,
+          twilioCode: json.code ?? null,
+          accountRestricted: true,
+          error:
+            json.code === 21608
+              ? "Compte Twilio en attente de validation TrustHub (code 21608) ou numéro absent des Verified Caller IDs."
+              : "Service d'envoi SMS momentanément indisponible.",
+        }
+      }
       if (json.code === 60203) {
         return {
           ok: false,
           channel: params.channel,
+          twilioCode: json.code,
           error: "Trop de tentatives d'envoi. Patientez quelques minutes avant de réessayer.",
         }
       }
@@ -272,12 +304,14 @@ export async function sendTwilioVerifyOtp(params: {
         return {
           ok: false,
           channel: params.channel,
+          twilioCode: json.code,
           error: "Ce numéro ne peut pas recevoir ce code. Vérifiez votre saisie ou passez par appel vocal.",
         }
       }
       return {
         ok: false,
         channel: params.channel,
+        twilioCode: json.code ?? null,
         error: "Impossible d'envoyer le code de vérification sur ce numéro. Vérifiez le numéro saisi.",
       }
     }

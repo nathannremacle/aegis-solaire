@@ -9,9 +9,11 @@ import { NextRequest } from "next/server"
 const WINDOW_MS = 60 * 60 * 1000 // 1 heure
 const MAX_REQUESTS_PER_WINDOW = 3
 
-// 1. Initialisation Upstash Redis (si les clés sont présentes)
-const url = process.env.UPSTASH_REDIS_REST_URL
-const token = process.env.UPSTASH_REDIS_REST_TOKEN
+// 1. Initialisation Upstash Redis (supporte UPSTASH_REDIS_REST_* et le préfixe Vercel Marketplace KV_REST_API_*)
+const url =
+  process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL
+const token =
+  process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN
 
 let upstashRatelimit: Ratelimit | null = null
 

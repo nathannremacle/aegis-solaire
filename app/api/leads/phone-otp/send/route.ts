@@ -132,6 +132,11 @@ export async function POST(request: NextRequest) {
 
     // 3. Si Twilio Verify n'est pas configuré dans l'environnement, ne pas bloquer le tunnel
     if (!isTwilioPhoneOtpEnabled()) {
+      if (process.env.NODE_ENV === "production" && process.env.LEAD_PHONE_OTP_DISABLED !== "true") {
+        console.error(
+          "[API phone-otp/send] OTP désactivé silencieusement : TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN ou TWILIO_VERIFY_SERVICE_SID manquant en production."
+        )
+      }
       return NextResponse.json({
         ok: true,
         otpRequired: false,
@@ -163,6 +168,22 @@ export async function POST(request: NextRequest) {
 
     const sendRes = await sendTwilioVerifyOtp({ phoneE164, channel })
     if (!sendRes.ok) {
+      console.error("[API phone-otp/send] Échec d'envoi OTP:", {
+        channel,
+        lineType: lookup.lineType,
+        lookupTransientError: Boolean(lookup.transientError),
+        twilioCode: sendRes.twilioCode ?? null,
+        accountRestricted: Boolean(sendRes.accountRestricted),
+        error: sendRes.error,
+      })
+      if (sendRes.accountRestricted && hasAlreadySavedLead) {
+        return NextResponse.json({
+          ok: true,
+          otpRequired: false,
+          normalizedPhone: phoneE164,
+          lookup,
+        })
+      }
       return NextResponse.json(
         { error: sendRes.error || "Impossible d'envoyer le code de vérification." },
         { status: 400 }
