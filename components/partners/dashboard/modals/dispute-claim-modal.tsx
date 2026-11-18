@@ -8,14 +8,16 @@ import { toast } from "sonner"
 
 interface DisputeClaimModalProps {
   purchase: {
+    id?: string
     purchase_id: string
-    lead_id: string
+    lead_id?: string
     first_name: string
     last_name: string
     company?: string | null
     credits_spent?: number
     segment?: string | null
   }
+  onSuccess?: (dispute: { id: string; status: string; purchase_id: string }) => void
   onClose: () => void
 }
 
@@ -54,7 +56,7 @@ const DISPUTE_REASONS = [
   },
 ] as const
 
-export default function DisputeClaimModal({ purchase, onClose }: DisputeClaimModalProps) {
+export default function DisputeClaimModal({ purchase, onSuccess, onClose }: DisputeClaimModalProps) {
   const [reason, setReason] = useState<string>("wrong_number")
   const [details, setDetails] = useState<string>("")
   const [submitting, setSubmitting] = useState(false)
@@ -86,6 +88,12 @@ export default function DisputeClaimModal({ purchase, onClose }: DisputeClaimMod
       return
     }
 
+    const resolvedLeadId = purchase.lead_id || purchase.id
+    if (!resolvedLeadId || !purchase.purchase_id) {
+      toast.error("Identifiant du dossier manquant. Actualisez la page et réessayez.")
+      return
+    }
+
     setSubmitting(true)
     try {
       const res = await fetch("/api/partners/disputes", {
@@ -93,7 +101,7 @@ export default function DisputeClaimModal({ purchase, onClose }: DisputeClaimMod
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           purchaseId: purchase.purchase_id,
-          leadId: purchase.lead_id,
+          leadId: resolvedLeadId,
           reason,
           details: details.trim(),
         }),
@@ -102,6 +110,13 @@ export default function DisputeClaimModal({ purchase, onClose }: DisputeClaimMod
       if (!res.ok) throw new Error(data.error || "Erreur lors du dépôt du litige")
 
       toast.success("Réclamation enregistrée ! Traitement sous 24h ouvrées par notre équipe conformité.")
+      if (data.dispute) {
+        onSuccess?.({
+          id: data.dispute.id,
+          status: data.dispute.status || "pending",
+          purchase_id: purchase.purchase_id,
+        })
+      }
       onClose()
     } catch (err: any) {
       toast.error(err.message || "Erreur")

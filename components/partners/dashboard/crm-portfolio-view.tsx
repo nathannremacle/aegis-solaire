@@ -1358,10 +1358,22 @@ function CrmPortfolioCard({
             onClick={onOpenDispute}
             disabled={Boolean(item.dispute_id)}
             className="rounded-full border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 text-destructive px-2.5 py-1.5 text-xs font-semibold disabled:opacity-50 transition-all flex items-center gap-1 shrink-0 cursor-pointer"
-            title="Signaler un numéro invalide ou faux lead sous 24h"
+            title={
+              item.dispute_id
+                ? "Réclamation déjà enregistrée pour ce dossier"
+                : "Signaler un numéro invalide ou faux lead sous 24h"
+            }
           >
             <ShieldAlert className="h-3.5 w-3.5" />
-            <span>{item.dispute_id ? "Litige" : "24h"}</span>
+            <span>
+              {item.dispute_status === "approved"
+                ? "Remboursé"
+                : item.dispute_status === "rejected"
+                  ? "Clôturé"
+                  : item.dispute_id
+                    ? "Litige"
+                    : "24h"}
+            </span>
           </button>
         </div>
       </div>

@@ -161,7 +161,7 @@ async function PartnerDashboardLoader({
 
   if (!rpcSuccess) {
     // 2. Fallback résilient côté serveur si la migration SQL est en attente
-    const [marketRes, purchasesRes, partnerCurrentRes] = await Promise.all([
+    const [marketRes, purchasesRes, disputesRes, partnerCurrentRes] = await Promise.all([
       admin
         .from("leads")
         .select(`
@@ -177,9 +177,13 @@ async function PartnerDashboardLoader({
         .limit(60),
       admin
         .from("lead_purchases")
-        .select("id, credits_spent, purchased_at, pipeline_status, notes, next_action_at, leads(id, first_name, last_name, email, phone, company, company_vat, province, city, site_address, segment, surface_type, surface_area, surface_area_m2, annual_electricity_bill, annual_bill_eur, estimated_power_kwc, roof_material, ownership_status, timeframe, project_timeline, project_driver, grd, contact_preference, project_details, message, qualification_metadata, estimated_roi_years, estimated_savings, autoconsumption_rate, postal_code, lead_score, wants_irve, created_at)")
+        .select("id, lead_id, credits_spent, purchased_at, pipeline_status, notes, next_action_at, leads(id, first_name, last_name, email, phone, company, company_vat, province, city, site_address, segment, surface_type, surface_area, surface_area_m2, annual_electricity_bill, annual_bill_eur, estimated_power_kwc, roof_material, ownership_status, timeframe, project_timeline, project_driver, grd, contact_preference, project_details, message, qualification_metadata, estimated_roi_years, estimated_savings, autoconsumption_rate, postal_code, lead_score, wants_irve, created_at)")
         .eq("partner_id", partnerId)
         .order("purchased_at", { ascending: false }),
+      admin
+        .from("lead_disputes")
+        .select("id, purchase_id, status, credits_refunded")
+        .eq("partner_id", partnerId),
       admin
         .from("partners")
         .select("id, company_name, email, phone, credits, segment, target_provinces")
@@ -191,20 +195,32 @@ async function PartnerDashboardLoader({
       initialPartner = { ...partnerRow, ...partnerCurrentRes.data }
     }
 
+    const disputesByPurchase = new Map<string, any>()
+    for (const d of disputesRes.data ?? []) {
+      if (d.purchase_id) disputesByPurchase.set(d.purchase_id, d)
+    }
+
     const myPurchases = purchasesRes.data ?? []
     const myPurchasedLeadIds = new Set(myPurchases.map((p: any) => p.leads?.id).filter(Boolean))
 
     initialPortfolio = myPurchases
       .filter((p: any) => Boolean(p.leads))
-      .map((p: any) => ({
-        purchase_id: p.id,
-        purchased_at: p.purchased_at,
-        credits_spent: p.credits_spent,
-        pipeline_status: p.pipeline_status || "to_contact",
-        notes: p.notes,
-        next_action_at: p.next_action_at,
-        ...p.leads,
-      }))
+      .map((p: any) => {
+        const d = disputesByPurchase.get(p.id)
+        return {
+          purchase_id: p.id,
+          lead_id: p.lead_id || p.leads.id,
+          purchased_at: p.purchased_at,
+          credits_spent: p.credits_spent,
+          pipeline_status: p.pipeline_status || "to_contact",
+          notes: p.notes,
+          next_action_at: p.next_action_at,
+          dispute_id: d?.id ?? null,
+          dispute_status: d?.status ?? null,
+          dispute_credits_refunded: d?.credits_refunded ?? 0,
+          ...p.leads,
+        }
+      })
 
     initialMarketplace = (marketRes.data ?? [])
       .filter(

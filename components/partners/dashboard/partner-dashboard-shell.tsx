@@ -534,6 +534,19 @@ export function PartnerDashboardShell({
       {disputePurchase && (
         <DisputeClaimModal
           purchase={disputePurchase}
+          onSuccess={(createdDispute) => {
+            setPortfolio((prev) =>
+              prev.map((item) =>
+                item.purchase_id === createdDispute.purchase_id
+                  ? {
+                      ...item,
+                      dispute_id: createdDispute.id,
+                      dispute_status: createdDispute.status,
+                    }
+                  : item
+              )
+            )
+          }}
           onClose={() => setDisputePurchase(null)}
         />
       )}
