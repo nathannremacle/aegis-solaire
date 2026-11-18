@@ -67,8 +67,20 @@ export function detectLeadRiskFlags(lead: LeadRiskInput): RiskFlag[] {
   const emailMx = verifs?.emailMx as
     | { valid?: boolean; isDisposable?: boolean; transientError?: boolean; reason?: string }
     | undefined
+  const emailDelivery = verifs?.emailDelivery as
+    | { status?: string; reason?: string }
+    | undefined
 
-  if (emailMx?.isDisposable) {
+  if (emailDelivery?.status === "bounced" || emailDelivery?.status === "complained") {
+    flags.push({
+      code: "EMAIL_BOUNCED",
+      label: "E-mail en rebond (boîte inexistante)",
+      severity: "critical",
+      description:
+        emailDelivery.reason ||
+        "L'e-mail récapitulatif envoyé au prospect a rebondi (boîte introuvable).",
+    })
+  } else if (emailMx?.isDisposable) {
     flags.push({
       code: "DISPOSABLE_EMAIL",
       label: "E-mail temporaire / jetable",

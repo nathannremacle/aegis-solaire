@@ -69,6 +69,7 @@ import {
   sanitizeLeadNotes,
   getB2CSlotIndicator,
 } from "@/lib/lead-display-helpers"
+import { getLeadVerificationSummary } from "@/lib/lead-verification-display"
 import { LeadInspectionDrawer } from "./lead-inspection-drawer"
 import { MarketplaceInteractiveTour } from "./marketplace-interactive-tour"
 import { LeadGeoRadarMap } from "./lead-geo-radar-map"
@@ -1528,11 +1529,17 @@ function MarketplaceLeadCard({
 
   // Projet premium si puissance élevée ou score élevé
   const isPremium = isB2B || powerKwc >= 20 || (lead.lead_score && lead.lead_score >= 70)
-  const isPhoneOtpVerified = Boolean(
-    lead.phone_verified ||
-      (lead.qualification_metadata?.verifications as { phoneOtp?: { verified?: boolean } } | undefined)
-        ?.phoneOtp?.verified
-  )
+  const verifSummary = getLeadVerificationSummary({
+    segment: lead.segment,
+    phone: lead.phone,
+    email: lead.email,
+    postal_code: lead.postal_code,
+    company_vat: lead.company_vat,
+    phone_verified: lead.phone_verified,
+    email_verified: lead.email_verified,
+    email_delivery_status: lead.email_delivery_status,
+    qualification_metadata: lead.qualification_metadata,
+  })
 
   return (
     <div
@@ -1644,10 +1651,21 @@ function MarketplaceLeadCard({
                 <span>Projet qualifié</span>
               </div>
             )}
-            {isPhoneOtpVerified && (
+            {verifSummary.phone.tier === "verified" && verifSummary.phone.shortLabel && (
               <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-xs font-semibold">
                 <ShieldCheck className="h-3 w-3" />
-                <span>GSM certifié SMS</span>
+                <span>{verifSummary.phone.shortLabel}</span>
+              </div>
+            )}
+            {verifSummary.email.tier === "verified" && verifSummary.email.shortLabel && (
+              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-xs font-semibold">
+                <CheckCircle2 className="h-3 w-3" />
+                <span>{verifSummary.email.shortLabel}</span>
+              </div>
+            )}
+            {verifSummary.phone.tier === "plausible" && verifSummary.email.tier === "plausible" && (
+              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border text-[11px] font-medium">
+                <span>Contact plausible (MX / BE)</span>
               </div>
             )}
           </div>

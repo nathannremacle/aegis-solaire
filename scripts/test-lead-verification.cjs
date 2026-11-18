@@ -62,6 +62,8 @@ const quality = loadTs("lib/lead-quality.ts")
 const risk = loadTs("lib/admin/lead-risk.ts")
 const engine = loadTs("lib/lead-verification-engine.ts")
 const twilioVerify = loadTs("lib/twilio-verify.ts")
+const display = loadTs("lib/lead-verification-display.ts")
+const confirmEmail = loadTs("lib/prospect-confirmation-email.ts")
 
 test("Téléphone BE/FR : rejette +32470102030 et toutes les suites/répétitions factices", () => {
   const fakeNumbers = [
@@ -391,5 +393,92 @@ test("Preuve HMAC Twilio Verify & résolution téléphone par segment : anti-spo
   assert.equal(validation.resolveLeadPhoneE164("+33 6 82 41 73 59", "B2C").valid, false)
   assert.equal(validation.resolveLeadPhoneE164("+33 6 82 41 73 59", "B2B").e164, "+33682417359")
   assert.equal(validation.resolveLeadPhoneE164("0495 25 63 01", "B2C").e164, "+32495256301")
+})
+
+test("Transparence Vérifié vs Plausible vs Aucun badge + Token e-mail 1-clic", () => {
+  // 1. Dossier totalement certifié (OTP SMS + clic e-mail + SPW bâtiment + BCE active)
+  const verifiedLead = display.getLeadVerificationSummary({
+    segment: "B2B",
+    phone: "+32495256301",
+    email: "marc@entreprise.be",
+    postal_code: "4000",
+    company_vat: "BE0403170701",
+    phone_verified: true,
+    email_verified: true,
+    qualification_metadata: {
+      verifications: {
+        phoneOtp: { verified: true, channel: "sms" },
+        emailProof: { verified: true, method: "confirmation_link" },
+        emailMx: { valid: true },
+        walloniaAddress: { validInWallonia: true, houseVerified: true, streetVerified: true },
+        cbeCompany: { verified: true, active: true, officialName: "ENTREPRISE SOLAIRE SA" },
+      },
+    },
+  })
+  assert.equal(verifiedLead.phone.tier, "verified")
+  assert.equal(verifiedLead.email.tier, "verified")
+  assert.equal(verifiedLead.address.tier, "verified")
+  assert.equal(verifiedLead.company.tier, "verified")
+  assert.equal(verifiedLead.verifiedCount, 4)
+
+  // 2. Dossier uniquement plausible (MX + Lookup opérateur sans OTP ni clic)
+  const plausibleLead = display.getLeadVerificationSummary({
+    segment: "B2C",
+    phone: "+32495256301",
+    email: "jean@gmail.com",
+    postal_code: "5300",
+    qualification_metadata: {
+      verifications: {
+        emailMx: { valid: true },
+        twilioLookup: { valid: true, carrierName: "TELENET n.v." },
+        walloniaAddress: { validInWallonia: true, streetVerified: true, houseVerified: false },
+      },
+    },
+  })
+  assert.equal(plausibleLead.phone.tier, "plausible")
+  assert.match(plausibleLead.phone.shortLabel, /plausible/i)
+  assert.equal(plausibleLead.email.tier, "plausible")
+  assert.match(plausibleLead.email.shortLabel, /plausible/i)
+  assert.equal(plausibleLead.address.tier, "plausible")
+
+  // 3. Donnée fausse / rebond SMTP : aucun badge positif
+  const suspectLead = display.getLeadVerificationSummary({
+    segment: "B2C",
+    phone: "+32470102030",
+    email: "fake@yopmail.com",
+    postal_code: "1780",
+    email_delivery_status: "bounced",
+    qualification_metadata: {
+      verifications: {
+        emailMx: { valid: false, isDisposable: true },
+        emailDelivery: { status: "bounced" },
+        walloniaAddress: { postalMismatch: true },
+      },
+    },
+  })
+  assert.equal(suspectLead.phone.tier, "none")
+  assert.equal(suspectLead.phone.shortLabel, null)
+  assert.equal(suspectLead.email.tier, "none")
+  assert.equal(suspectLead.email.shortLabel, null)
+  assert.equal(suspectLead.address.tier, "none")
+  assert.equal(suspectLead.verifiedCount, 0)
+  assert.equal(suspectLead.plausibleCount, 0)
+
+  // 4. Token HMAC confirmation e-mail 1-clic & rendu dans l'e-mail
+  const tok = confirmEmail.createProspectEmailVerifyToken("lead-uuid-1", "Jean@Gmail.com")
+  assert.equal(confirmEmail.verifyProspectEmailVerifyToken("lead-uuid-1", "jean@gmail.com", tok), true)
+  assert.equal(confirmEmail.verifyProspectEmailVerifyToken("lead-uuid-2", "jean@gmail.com", tok), false)
+
+  const built = confirmEmail.buildProspectConfirmationEmail({
+    leadId: "lead-uuid-1",
+    email: "jean@gmail.com",
+    firstName: "Jean",
+    segment: "B2C",
+    surfaceArea: 50,
+    estimatedSavings: 1450,
+    estimatedROIYears: 5.2,
+  })
+  assert.match(built.html, /\/api\/leads\/verify-email\?id=lead-uuid-1&(?:amp;)?token=/)
+  assert.match(built.text, /\/api\/leads\/verify-email\?id=lead-uuid-1&token=/)
 })
 

@@ -1,7 +1,9 @@
+import crypto from "node:crypto"
 import { Resend } from "resend"
 import {
   escapeEmailHtml,
   getEmailSiteBaseUrl,
+  renderActionBox,
   renderCalloutBox,
   renderFiguresBox,
   renderInstallerEmailShell,
@@ -12,7 +14,32 @@ const resendApiKey = process.env.RESEND_API_KEY
 const fromEmail = process.env.RESEND_FROM_EMAIL ?? "contact@aegissolaire.com"
 const replyToEmail = process.env.RESEND_REPLY_TO ?? "contact@aegissolaire.com"
 
+function getEmailVerifySecret(): string {
+  return (
+    process.env.PARTNER_NOTIFY_SECRET ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    "aegis-solaire-prospect-email-verify-dev-salt"
+  )
+}
+
+export function createProspectEmailVerifyToken(leadId: string, email: string): string {
+  const payload = `${leadId}:${email.toLowerCase().trim()}:email_verify`
+  return crypto.createHmac("sha256", getEmailVerifySecret()).update(payload).digest("hex").slice(0, 32)
+}
+
+export function verifyProspectEmailVerifyToken(
+  leadId: string,
+  email: string,
+  token: string
+): boolean {
+  if (!leadId || !email || !token) return false
+  const expected = createProspectEmailVerifyToken(leadId, email)
+  if (expected.length !== token.length) return false
+  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(token))
+}
+
 export type ProspectConfirmationPayload = {
+  leadId?: string | null
   email: string
   firstName: string
   lastName?: string | null
@@ -44,6 +71,11 @@ export function buildProspectConfirmationEmail(payload: ProspectConfirmationPayl
     : "Selon autoconsommation"
 
   const subject = `Votre estimation solaire personnalisée — Aegis Solaire Wallonie`
+  const verifyUrl = payload.leadId
+    ? `${baseUrl}/api/leads/verify-email?id=${encodeURIComponent(payload.leadId)}&token=${encodeURIComponent(
+      createProspectEmailVerifyToken(payload.leadId, payload.email)
+    )}`
+    : null
 
   const text = `Bonjour ${rawName},
 
@@ -55,12 +87,14 @@ Synthèse de votre modélisation :
 - Économies annuelles potentielles : ${economies}
 - Retour sur investissement estimé : ${roi}
 
-Prochaines étapes :
-${
-  isB2C
-    ? "Votre projet a été transmis à jusqu'à 3 installateurs certifiés RESCERT de votre région en Wallonie afin de vous fournir un comparatif de devis gratuit et sans engagement."
-    : "Votre dossier technique a été qualifié et transmis en exclusivité à 1 installateur partenaire certifié RESCERT pour valider la faisabilité technique sur site (toiture, cabine HT, raccordement ORES/RESA)."
-}
+${verifyUrl
+      ? `Confirmez votre adresse e-mail en 1 clic pour certifier votre dossier auprès des installateurs :\n${verifyUrl}\n\n`
+      : ""
+    }Prochaines étapes :
+${isB2C
+      ? "Votre projet a été transmis à jusqu'à 3 installateurs certifiés RESCERT de votre région en Wallonie afin de vous fournir un comparatif de devis gratuit et sans engagement."
+      : "Votre dossier technique a été qualifié et transmis en exclusivité à 1 installateur partenaire certifié RESCERT pour valider la faisabilité technique sur site (toiture, cabine HT, raccordement ORES/RESA)."
+    }
 
 Besoin d'une précision ? Répondez directement à cet e-mail ou écrivez à contact@aegissolaire.com.
 
@@ -73,17 +107,17 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
     </p>
 
     ${renderFiguresBox(
-      {
-        label: "Économies estimées",
-        value: economies,
-        sublabel: `Surface projetée · ${surface}`,
-      },
-      {
-        label: "Amortissement indicatif",
-        value: roi,
-        sublabel: isB2C ? "Comparatif max 3 artisans" : "Exclusivité 1 artisan B2B",
-      }
-    )}
+    {
+      label: "Économies estimées",
+      value: economies,
+      sublabel: `Surface projetée · ${surface}`,
+    },
+    {
+      label: "Amortissement indicatif",
+      value: roi,
+      sublabel: isB2C ? "Comparatif max 3 artisans" : "Exclusivité 1 artisan B2B",
+    }
+  )}
 
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 20px; width: 100%; border-collapse: collapse;">
       <tr>
@@ -92,18 +126,30 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
             Prochaines étapes de votre dossier
           </h2>
           ${renderSpecsTable([
-            { label: "Segment", value: isB2C ? "Résidentiel (Particulier)" : "Professionnel (B2B)" },
-            {
-              label: "Mise en relation",
-              value: isB2C
-                ? "Jusqu'à 3 installateurs certifiés RESCERT sans engagement"
-                : "1 installateur partenaire unique certifié RESCERT",
-            },
-            { label: "Certification requise", value: "Agrément RESCERT & conformité Synergrid C10/11" },
-          ])}
+    { label: "Segment", value: isB2C ? "Résidentiel (Particulier)" : "Professionnel (B2B)" },
+    {
+      label: "Mise en relation",
+      value: isB2C
+        ? "Jusqu'à 3 installateurs certifiés RESCERT sans engagement"
+        : "1 installateur partenaire unique certifié RESCERT",
+    },
+    { label: "Certification requise", value: "Agrément RESCERT & conformité Synergrid C10/11" },
+  ])}
         </td>
       </tr>
     </table>
+
+    ${verifyUrl
+      ? renderActionBox({
+        kicker: "Certification de votre dossier",
+        title: "Confirmez votre e-mail en 1 clic",
+        subtext:
+          "Confirmez que vous recevez bien nos messages afin que vos devis écrits et dossiers techniques vous parviennent sans délai.",
+        ctaLabel: "Confirmer mon adresse e-mail →",
+        ctaUrl: verifyUrl,
+      })
+      : ""
+    }
 
     ${renderCalloutBox({
       label: "Garantie qualité Aegis Solaire",
@@ -139,12 +185,12 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
 
 export async function sendProspectConfirmationEmail(
   payload: ProspectConfirmationPayload
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; emailId?: string | null; error?: string }> {
   if (!resendApiKey) {
     if (process.env.NODE_ENV === "development") {
       console.log("[Prospect confirmation] RESEND_API_KEY non configurée — envoi ignoré en dev pour:", payload.email)
     }
-    return { success: true }
+    return { success: true, emailId: null }
   }
 
   try {
@@ -165,7 +211,7 @@ export async function sendProspectConfirmationEmail(
       return { success: false, error: res.error.message }
     }
 
-    return { success: true }
+    return { success: true, emailId: res.data?.id ?? null }
   } catch (err) {
     console.error("[Prospect confirmation] Exception Resend:", err)
     return { success: false, error: err instanceof Error ? err.message : String(err) }

@@ -55,6 +55,7 @@ import {
   getRoofSurfaceLabel,
   getConsumptionLabel,
 } from "@/lib/lead-display-helpers"
+import { getLeadVerificationSummary } from "@/lib/lead-verification-display"
 import { LeadGeoRadarMap } from "./lead-geo-radar-map"
 import { downloadLeadVCard } from "./lib/vcard-export"
 import { DirectLeadPaymentModal } from "./modals/direct-lead-payment-modal"
@@ -654,6 +655,73 @@ export function LeadInspectionDrawer({
               </div>
             )}
           </div>
+
+          {/* D2. Niveau factuel de vérification (Vérifié vs Plausible — transparence totale) */}
+          {(() => {
+            const summary = getLeadVerificationSummary({
+              segment: lead.segment,
+              phone: lead.phone,
+              email: lead.email,
+              postal_code: lead.postal_code,
+              company_vat: lead.company_vat,
+              phone_verified: lead.phone_verified,
+              email_verified: lead.email_verified,
+              email_delivery_status: lead.email_delivery_status,
+              qualification_metadata: lead.qualification_metadata,
+            })
+            const rows = [
+              { title: "Téléphone", badge: summary.phone },
+              { title: "Adresse e-mail", badge: summary.email },
+              { title: "Localisation / Toiture", badge: summary.address },
+              ...(summary.company ? [{ title: "Entreprise B2B", badge: summary.company }] : []),
+            ].filter((r) => r.badge.tier !== "none" && r.badge.shortLabel)
+
+            if (rows.length === 0) return null
+
+            return (
+              <div className="rounded-xl border border-border bg-card p-3.5 flex flex-col gap-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <ShieldCheck className="h-4 w-4 text-primary" />
+                    <span>Contrôle qualité &amp; vérifications</span>
+                  </span>
+                  <span className="text-[10px] font-mono tabular-nums text-muted-foreground">
+                    {summary.verifiedCount} vérifié(s) · {summary.plausibleCount} plausible(s)
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {rows.map((item) => (
+                    <div
+                      key={item.title}
+                      className={`rounded-lg border px-2.5 py-2 flex flex-col gap-0.5 ${
+                        item.badge.tier === "verified"
+                          ? "border-emerald-500/25 bg-emerald-500/5"
+                          : "border-border bg-secondary/35"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span className="text-[11px] font-medium text-muted-foreground">
+                          {item.title}
+                        </span>
+                        <span
+                          className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                            item.badge.tier === "verified"
+                              ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                              : "bg-secondary text-muted-foreground border border-border"
+                          }`}
+                        >
+                          {item.badge.tier === "verified" ? "Vérifié" : "Plausible"}
+                        </span>
+                      </div>
+                      <span className="text-xs font-semibold text-foreground leading-snug">
+                        {item.badge.shortLabel}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
 
           {/* E. Checklist de ce qui est débloqué après achat */}
           <div className="rounded-xl border border-border bg-card p-3.5 flex flex-col gap-2.5">

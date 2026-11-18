@@ -1089,10 +1089,46 @@ export function LeadDrawer({
               </div>
 
               <div className="flex flex-col gap-1 p-2 rounded-lg bg-secondary/30 border border-border/50 sm:col-span-2">
-                <span className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
-                  <Mail className="h-3 w-3 text-muted-foreground" />
-                  Adresse e-mail
-                </span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+                    <Mail className="h-3 w-3 text-muted-foreground" />
+                    Adresse e-mail
+                  </span>
+                  {(() => {
+                    const v = effectiveMeta?.verifications as Record<string, any> | undefined
+                    if (v?.emailDelivery?.status === "bounced" || v?.emailDelivery?.status === "complained") {
+                      return (
+                        <span className="inline-flex items-center gap-1 rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-destructive border border-destructive/20">
+                          <AlertTriangle className="h-2.5 w-2.5" />
+                          Rebond SMTP
+                        </span>
+                      )
+                    }
+                    if (v?.emailProof?.verified) {
+                      return (
+                        <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-emerald-700 border border-emerald-500/20">
+                          <CheckCircle2 className="h-2.5 w-2.5" />
+                          E-mail vérifié (clic)
+                        </span>
+                      )
+                    }
+                    if (v?.emailDelivery?.status === "delivered") {
+                      return (
+                        <span className="inline-flex items-center gap-1 rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-blue-700 border border-blue-500/20">
+                          Remis · MX plausible
+                        </span>
+                      )
+                    }
+                    if (v?.emailMx?.valid) {
+                      return (
+                        <span className="inline-flex items-center gap-1 rounded bg-secondary px-1.5 py-0.5 text-[10px] font-mono font-medium text-muted-foreground border border-border">
+                          MX plausible
+                        </span>
+                      )
+                    }
+                    return null
+                  })()}
+                </div>
                 <div className="flex items-center justify-between gap-2 font-mono">
                   <a
                     href={`mailto:${effectiveEmail}`}

@@ -106,9 +106,13 @@ export async function lookupPhoneNumberTwilio(
   }
 
   try {
+    const includePumpingRisk = process.env.TWILIO_LOOKUP_PUMPING_RISK === "true"
+    const fields = includePumpingRisk
+      ? "line_type_intelligence,sms_pumping_risk"
+      : "line_type_intelligence"
     const url = `https://lookups.twilio.com/v2/PhoneNumbers/${encodeURIComponent(
       phoneE164
-    )}?Fields=line_type_intelligence,sms_pumping_risk`
+    )}?Fields=${fields}`
 
     const res = await fetch(url, {
       method: "GET",
@@ -155,6 +159,7 @@ export async function lookupPhoneNumberTwilio(
       sms_pumping_risk?: {
         carrier_risk_category?: string
         sms_pumping_risk_score?: number
+        number_blocked?: boolean
       } | null
     }
 
@@ -167,6 +172,7 @@ export async function lookupPhoneNumberTwilio(
       typeof data.sms_pumping_risk?.sms_pumping_risk_score === "number"
         ? data.sms_pumping_risk.sms_pumping_risk_score
         : null
+    const isNumberBlocked = data.sms_pumping_risk?.number_blocked === true
 
     let blockedReason: string | null = null
 
@@ -176,7 +182,7 @@ export async function lookupPhoneNumberTwilio(
       blockedReason =
         "Les numéros virtuels ou spéciaux ne sont pas acceptés. Veuillez indiquer un numéro GSM ou fixe réel."
     } else if (
-      smsPumpingRiskLevel === "high" ||
+      isNumberBlocked ||
       (smsPumpingRiskScore !== null && smsPumpingRiskScore >= 85)
     ) {
       blockedReason =

@@ -18,6 +18,7 @@ import {
   buildPartnerNotificationUrls,
   buildPartnerExpressLeadUrls,
 } from "@/lib/partner-notification-tokens"
+import { getLeadVerificationSummary } from "@/lib/lead-verification-display"
 
 export interface InstallerLeadTeaserData {
   partner: {
@@ -48,6 +49,10 @@ export interface InstallerLeadTeaserData {
     lastName?: string | null
     grd?: string | null
     roofImageUrl?: string | null
+    phoneVerified?: boolean | null
+    emailVerified?: boolean | null
+    emailDeliveryStatus?: string | null
+    qualificationMetadata?: Record<string, unknown> | null
     createdAt: string
   }
   waveNumber: 1 | 2 | 3 | number
@@ -352,6 +357,30 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
     specs.contactPreference || data.lead.contactPreference
   )
 
+  const verifSummary = getLeadVerificationSummary({
+    segment: data.lead.segment,
+    phone: data.lead.phone,
+    postalCode: data.lead.postalCode,
+    phone_verified: data.lead.phoneVerified,
+    email_verified: data.lead.emailVerified,
+    email_delivery_status: data.lead.emailDeliveryStatus,
+    qualificationMetadata: data.lead.qualificationMetadata,
+  })
+  const phoneDisplayLabel = verifSummary.phone.shortLabel ?? "Téléphone renseigné"
+  const emailDisplayLabel = verifSummary.email.shortLabel ?? "E-mail renseigné"
+  const phoneDotHtml =
+    verifSummary.phone.tier === "verified"
+      ? `<span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background-color: #1d5d45; margin-right: 5px; vertical-align: middle;"></span>`
+      : verifSummary.phone.tier === "plausible"
+        ? `<span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background-color: #305a76; margin-right: 5px; vertical-align: middle;"></span>`
+        : ""
+  const emailDotHtml =
+    verifSummary.email.tier === "verified"
+      ? `<span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background-color: #1d5d45; margin-right: 5px; vertical-align: middle;"></span>`
+      : verifSummary.email.tier === "plausible"
+        ? `<span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background-color: #305a76; margin-right: 5px; vertical-align: middle;"></span>`
+        : ""
+
   const powerKwcShort = formatPowerKwc(data.financials.estimatedPowerKwc)
   const panelCount = data.financials.estimatedPanelCount
   const displayBill = data.financials.normalizedAnnualBill || data.lead.annualElectricityBill
@@ -528,8 +557,8 @@ CHIFFRES CLÉS :
 • Devis estimé : ${estimatedContractShort}
 
 PROSPECT : ${leadMaskedName}
-${contactPreferenceDisplay ? `• Premier contact souhaité : ${contactPreferenceDisplay}\n` : ""}• Téléphone vérifié : ${maskedPhoneDisplay}
-• E-mail vérifié : ••••@••••.••
+${contactPreferenceDisplay ? `• Premier contact souhaité : ${contactPreferenceDisplay}\n` : ""}• ${phoneDisplayLabel} : ${maskedPhoneDisplay}
+• ${emailDisplayLabel} : ••••@••••.••
 • Secteur : ${provinceLabel}
 
 DÉBLOCAGE DES COORDONNÉES :
@@ -673,13 +702,13 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                       <tr>
                         <td width="50%" style="width: 50%; vertical-align: top; padding-right: 10px;">
                           <span style="display: block; color: #4d6374; font-size: 13px; line-height: 1.35;">
-                            <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background-color: #1d5d45; margin-right: 5px; vertical-align: middle;"></span>Téléphone vérifié
+                            ${phoneDotHtml}${escapeHtml(phoneDisplayLabel)}
                           </span>
                           <strong class="tabular" style="display: block; margin-top: 2px; font-size: 15px; font-weight: bold; line-height: 1.35; color: #142d42; font-variant-numeric: tabular-nums;">${escapeHtml(maskedPhoneDisplay)}</strong>
                         </td>
                         <td width="50%" style="width: 50%; vertical-align: top; padding-left: 12px; border-left: 1px solid #e2eaf0;">
                           <span style="display: block; color: #4d6374; font-size: 13px; line-height: 1.35;">
-                            <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background-color: #1d5d45; margin-right: 5px; vertical-align: middle;"></span>E-mail vérifié
+                            ${emailDotHtml}${escapeHtml(emailDisplayLabel)}
                           </span>
                           <strong class="tabular" style="display: block; margin-top: 2px; font-size: 15px; font-weight: bold; line-height: 1.35; color: #142d42; font-variant-numeric: tabular-nums;">••••@••••.••</strong>
                         </td>

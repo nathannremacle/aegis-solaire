@@ -36,6 +36,7 @@ export function evaluateLeadPublishability(lead: {
   company?: string | null
   company_vat?: string | null
   ownership_status?: string | null
+  email_delivery_status?: string | null
   qualification_metadata?: Record<string, unknown> | null
 }): LeadQualityCheckResult {
   const missingFields: string[] = []
@@ -104,7 +105,16 @@ export function evaluateLeadPublishability(lead: {
   const emailMx = verifs?.emailMx as
     | { valid?: boolean; isDisposable?: boolean; transientError?: boolean; reason?: string }
     | undefined
-  if (emailMx) {
+  const emailDelivery = verifs?.emailDelivery as
+    | { status?: string; reason?: string }
+    | undefined
+  if (
+    lead.email_delivery_status === "bounced" ||
+    emailDelivery?.status === "bounced" ||
+    emailDelivery?.status === "complained"
+  ) {
+    missingFields.push("E-mail inexistant (rebond SMTP détecté)")
+  } else if (emailMx) {
     if (emailMx.isDisposable) {
       missingFields.push("Adresse e-mail jetable bloquée")
     } else if (emailMx.valid === false && !emailMx.transientError) {

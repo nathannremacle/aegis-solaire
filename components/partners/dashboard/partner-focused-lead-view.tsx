@@ -33,6 +33,7 @@ import {
 import { LeadGeoRadarMap } from "./lead-geo-radar-map"
 import { buildWhatsAppLink, downloadLeadVCard } from "./lib/vcard-export"
 import { useLeadInspectionTimer } from "@/lib/client/partner-tracker"
+import { getLeadVerificationSummary } from "@/lib/lead-verification-display"
 
 export interface PartnerFocusedLeadViewProps {
   lead: any
@@ -290,25 +291,20 @@ export function PartnerFocusedLeadView({
       ? `Prospect · ****** ${cleanLastName}`
       : `Prospect ${ownershipLabel.toLowerCase()}`
 
-  // Vérification factuelle des coordonnées (Guide §7 : "vérifié" uniquement si étayé)
-  const verifsObj = lead.qualification_metadata?.verifications as
-    | {
-        emailMx?: { valid?: boolean }
-        phoneOtp?: { verified?: boolean; channel?: string | null }
-        twilioLookup?: { valid?: boolean; carrierName?: string | null }
-      }
-    | undefined
-  const emailMxValid = Boolean(verifsObj?.emailMx?.valid)
-  const phoneOtpVerified = Boolean(verifsObj?.phoneOtp?.verified)
-  const twilioLookupValid = Boolean(verifsObj?.twilioLookup?.valid)
-  const emailLabel = emailMxValid ? "E-mail vérifié" : "E-mail renseigné"
-  const phoneLabel = phoneOtpVerified
-    ? verifsObj?.phoneOtp?.channel === "call"
-      ? "Téléphone certifié (appel)"
-      : "Téléphone certifié SMS"
-    : twilioLookupValid
-      ? "Ligne active opérateur"
-      : "Téléphone validé (format)"
+  // Vérification factuelle des coordonnées (distinction stricte Vérifié vs Plausible vs aucune étiquette)
+  const verifSummary = getLeadVerificationSummary({
+    segment: lead.segment,
+    phone: lead.phone,
+    email: lead.email,
+    postal_code: lead.postal_code,
+    company_vat: lead.company_vat,
+    phone_verified: lead.phone_verified,
+    email_verified: lead.email_verified,
+    email_delivery_status: lead.email_delivery_status,
+    qualification_metadata: lead.qualification_metadata,
+  })
+  const emailLabel = verifSummary.email.shortLabel ?? "E-mail renseigné"
+  const phoneLabel = verifSummary.phone.shortLabel ?? "Téléphone renseigné"
   const maskedPhone =
     lead.phone && String(lead.phone).replace(/\D/g, "").match(/^(?:324|04)/)
       ? "04•• •• •• ••"
@@ -706,9 +702,21 @@ export function PartnerFocusedLeadView({
                       <Phone className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
                       <span>{phoneLabel}</span>
                     </span>
-                    <strong className="mt-1 block text-[15px] font-bold text-[var(--aegis-ink)] font-mono tabular-nums">
-                      {maskedPhone}
-                    </strong>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      <strong className="text-[15px] font-bold text-[var(--aegis-ink)] font-mono tabular-nums">
+                        {maskedPhone}
+                      </strong>
+                      {verifSummary.phone.tier === "verified" && (
+                        <span className="rounded bg-[var(--aegis-availability-bg)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--aegis-availability-text)]">
+                          Vérifié
+                        </span>
+                      )}
+                      {verifSummary.phone.tier === "plausible" && (
+                        <span className="rounded bg-[var(--aegis-surface-subtle)] border border-[var(--aegis-border)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--aegis-muted)]">
+                          Plausible
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="pl-3 border-l border-[var(--aegis-divider)]">
@@ -716,9 +724,21 @@ export function PartnerFocusedLeadView({
                       <Mail className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
                       <span>{emailLabel}</span>
                     </span>
-                    <strong className="mt-1 block text-[15px] font-bold text-[var(--aegis-ink)] font-mono tabular-nums">
-                      ••••@••••.••
-                    </strong>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      <strong className="text-[15px] font-bold text-[var(--aegis-ink)] font-mono tabular-nums">
+                        ••••@••••.••
+                      </strong>
+                      {verifSummary.email.tier === "verified" && (
+                        <span className="rounded bg-[var(--aegis-availability-bg)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--aegis-availability-text)]">
+                          Vérifié
+                        </span>
+                      )}
+                      {verifSummary.email.tier === "plausible" && (
+                        <span className="rounded bg-[var(--aegis-surface-subtle)] border border-[var(--aegis-border)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--aegis-muted)]">
+                          Plausible
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 

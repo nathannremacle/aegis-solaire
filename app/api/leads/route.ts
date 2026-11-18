@@ -624,6 +624,7 @@ export async function POST(request: NextRequest) {
 
     emailTasks.push(
       sendProspectConfirmationEmail({
+        leadId: inserted.id,
         email: data.email,
         firstName: first_name,
         lastName: last_name,
@@ -634,9 +635,22 @@ export async function POST(request: NextRequest) {
         estimatedSavings: computedSavings,
         estimatedROIYears: computedRoiYears,
         province: canonicalProvince,
-      }).catch((err) => {
-        console.error("[Prospect confirmation] Envoi échoué:", err)
       })
+        .then(async (res) => {
+          if (res.success && res.emailId) {
+            await supabase
+              .from("leads")
+              .update({
+                resend_last_email_id: res.emailId,
+                email_delivery_status: "sent",
+              })
+              .eq("id", inserted.id)
+              .then(() => undefined, () => undefined)
+          }
+        })
+        .catch((err) => {
+          console.error("[Prospect confirmation] Envoi échoué:", err)
+        })
     )
 
     // Alerte immédiate à l'administrateur avec lien de validation 1-clic direct

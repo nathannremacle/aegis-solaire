@@ -120,13 +120,25 @@ export async function PATCH(
         .eq("id", id)
     }
 
-    // 2b. Mettre à jour le statut du lead sur la Marketplace selon le motif
+    // 2b. Mettre à jour le statut du lead sur la Marketplace selon le motif et l'historique des litiges
     try {
-      if (dispute.reason === "wrong_number" || dispute.reason === "already_equipped") {
-        // Retirer immédiatement le dossier de la marketplace pour éviter qu'un autre installateur n'achète un faux numéro
+      const { count: approvedDisputesCount } = await supabase
+        .from("lead_disputes")
+        .select("id", { count: "exact", head: true })
+        .eq("lead_id", dispute.lead_id)
+        .eq("status", "approved")
+
+      const shouldArchiveLead =
+        dispute.reason === "wrong_number" ||
+        dispute.reason === "already_equipped" ||
+        dispute.reason === "unreachable" ||
+        (approvedDisputesCount ?? 0) >= 2
+
+      if (shouldArchiveLead) {
+        // Retirer immédiatement le dossier de la marketplace (injoignable, faux numéro, déjà équipé ou >= 2 litiges approuvés)
         await supabase
           .from("leads")
-          .update({ marketplace_status: "archived", status: "lost" })
+          .update({ marketplace_status: "rejected", status: "lost" })
           .eq("id", dispute.lead_id)
       } else if (dispute.reason === "out_of_scope") {
         // Si le dossier était sold_out mais valide pour un autre installateur de la bonne zone, libérer le slot
@@ -170,7 +182,9 @@ export async function PATCH(
 
     revalidateTag("admin-badges", "max")
     revalidateTag("admin-kpis", "max")
+    revalidateTag("marketplace-feed", "max")
     revalidatePath("/admin", "layout")
+    revalidatePath("/partenaires/dashboard")
 
     return NextResponse.json({
       success: true,
@@ -218,7 +232,9 @@ export async function PATCH(
 
     revalidateTag("admin-badges", "max")
     revalidateTag("admin-kpis", "max")
+    revalidateTag("marketplace-feed", "max")
     revalidatePath("/admin", "layout")
+    revalidatePath("/partenaires/dashboard")
 
     return NextResponse.json({
       success: true,
