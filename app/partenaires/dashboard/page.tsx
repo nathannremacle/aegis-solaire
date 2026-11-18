@@ -169,6 +169,7 @@ async function PartnerDashboardLoader({
           annual_electricity_bill, annual_bill_eur, estimated_power_kwc, roof_material, ownership_status,
           timeframe, project_timeline, project_driver, project_details, message, contact_preference, first_name, last_name,
           credit_cost, max_slots, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate,
+          phone_verified, phone_verification_method, phone_carrier, phone_line_type, email_verified, email_delivery_status,
           qualification_metadata, wants_irve, lead_score,
           lead_purchases(id, partner_id, purchased_at, partners(id, company_name, email, is_test))
         `)
@@ -177,7 +178,7 @@ async function PartnerDashboardLoader({
         .limit(60),
       admin
         .from("lead_purchases")
-        .select("id, lead_id, credits_spent, purchased_at, pipeline_status, notes, next_action_at, leads(id, first_name, last_name, email, phone, company, company_vat, province, city, site_address, segment, surface_type, surface_area, surface_area_m2, annual_electricity_bill, annual_bill_eur, estimated_power_kwc, roof_material, ownership_status, timeframe, project_timeline, project_driver, grd, contact_preference, project_details, message, qualification_metadata, estimated_roi_years, estimated_savings, autoconsumption_rate, postal_code, lead_score, wants_irve, created_at)")
+        .select("id, lead_id, credits_spent, purchased_at, pipeline_status, notes, next_action_at, leads(id, first_name, last_name, email, phone, company, company_vat, province, city, site_address, segment, surface_type, surface_area, surface_area_m2, annual_electricity_bill, annual_bill_eur, estimated_power_kwc, roof_material, ownership_status, timeframe, project_timeline, project_driver, grd, contact_preference, project_details, message, phone_verified, phone_verification_method, phone_carrier, phone_line_type, email_verified, email_delivery_status, qualification_metadata, estimated_roi_years, estimated_savings, autoconsumption_rate, postal_code, lead_score, wants_irve, created_at)")
         .eq("partner_id", partnerId)
         .order("purchased_at", { ascending: false }),
       admin

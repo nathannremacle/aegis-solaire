@@ -90,7 +90,8 @@ export function maskPhoneForDisplay(phoneE164: string): string {
  * Détecte les numéros non attribués, lignes virtuelles jetables (nonFixedVoip) et numéros à haut risque.
  */
 export async function lookupPhoneNumberTwilio(
-  phoneE164: string
+  phoneE164: string,
+  options?: { allowVoip?: boolean }
 ): Promise<TwilioLookupResult> {
   const creds = getTwilioCredentials()
   if (!creds) {
@@ -175,10 +176,15 @@ export async function lookupPhoneNumberTwilio(
     const isNumberBlocked = data.sms_pumping_risk?.number_blocked === true
 
     let blockedReason: string | null = null
+    const isVoipType = lineType === "voip" || lineType === "nonFixedVoip"
 
     if (!valid) {
       blockedReason = "Ce numéro n'est pas attribué sur le réseau téléphonique."
-    } else if (lineType && DISALLOWED_LINE_TYPES.has(lineType)) {
+    } else if (
+      lineType &&
+      DISALLOWED_LINE_TYPES.has(lineType) &&
+      !(options?.allowVoip && isVoipType)
+    ) {
       blockedReason =
         "Les numéros virtuels ou spéciaux ne sont pas acceptés. Veuillez indiquer un numéro GSM ou fixe réel."
     } else if (

@@ -68,9 +68,9 @@ const CRM_TOUR_STEPS = [
   {
     stepNumber: "05",
     badge: "SÉCURITÉ & GARANTIE 100%",
-    title: "Bouton « 24h / Litige » : Zéro achat à perte",
+    title: "Bouton « Litige » : Zéro achat à perte",
     subtitle:
-      "Numéro erroné ou prospect injoignable ? Cliquez sur « 24h » sous la carte : nos auditeurs traitent votre signalement et recréditent immédiatement votre solde.",
+      "Numéro erroné ou prospect injoignable après relances ? Cliquez sur « Litige » sous la carte dans les 7 jours ouvrés : arbitrage sous 24h ouvrées et recrédit immédiat.",
   },
 ]
 
@@ -586,39 +586,39 @@ export function CrmInteractiveTour({
                       </div>
                       <div>
                         <h4 className="font-bold text-xs text-foreground">
-                          Bouton « 24h / Litige » : Protection Intégrale
+                          Bouton « Litige » : Garantie 7 jours ouvrés
                         </h4>
                         <p className="text-[11px] text-muted-foreground">
-                          Votre investissement est protégé à 100% sans discussion fastidieuse
+                          Votre investissement est protégé à 100% selon l&apos;Art. 5 des CGV
                         </p>
                       </div>
                     </div>
 
                     <span className="rounded-full border border-destructive/30 bg-destructive/5 text-destructive px-2.5 py-1 text-xs font-semibold">
-                      Bouton « 24h »
+                      Bouton « Litige »
                     </span>
                   </div>
 
                   <div className="rounded-lg bg-secondary/50 p-3 flex flex-col gap-2 text-xs">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground block">
-                      Motifs légitimes de remboursement immédiat :
+                      Motifs légitimes couverts par la garantie :
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
                       <div className="flex items-center gap-1.5 text-foreground">
                         <CheckCircle2 className="h-3.5 w-3.5 text-destructive shrink-0" />
-                        <span>Numéro non attribué ou faux contact</span>
+                        <span>Numéro non attribué ou e-mail en erreur</span>
                       </div>
                       <div className="flex items-center gap-1.5 text-foreground">
                         <CheckCircle2 className="h-3.5 w-3.5 text-destructive shrink-0" />
-                        <span>Client injoignable après relances</span>
+                        <span>Client injoignable (≥ 24h et 3 relances)</span>
                       </div>
                       <div className="flex items-center gap-1.5 text-foreground">
                         <CheckCircle2 className="h-3.5 w-3.5 text-destructive shrink-0" />
-                        <span>Projet déjà installé ou hors critères</span>
+                        <span>Projet déjà équipé ou hors critères</span>
                       </div>
                       <div className="flex items-center gap-1.5 text-foreground">
                         <CheckCircle2 className="h-3.5 w-3.5 text-destructive shrink-0" />
-                        <span>Demande test / faux prospect</span>
+                        <span>Doublon &lt; 30 jours ou fausse identité</span>
                       </div>
                     </div>
                   </div>

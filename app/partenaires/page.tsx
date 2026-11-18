@@ -832,7 +832,7 @@ export default function PartenairesPage() {
               <div className="p-5 rounded-2xl bg-secondary/40 border border-border flex flex-col gap-2">
                 <h3 className="font-bold text-foreground font-heading">Que se passe-t-il si un prospect est injoignable ?</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Si un numéro est erroné ou si le prospect ne répond pas après <span className="font-mono tabular-nums">3</span> tentatives documentées, la réclamation s&apos;effectue sous <span className="font-mono tabular-nums">7 jours</span> ouvrés suivant l&apos;acquisition depuis votre tableau de bord, avec traitement et recrédit sous <span className="font-mono tabular-nums">24h</span> ouvrées.
+                  Si un numéro est non attribué ou déjà équipé, le signalement est immédiat. S&apos;il reste injoignable après <span className="font-mono tabular-nums">3</span> tentatives documentées sur au moins <span className="font-mono tabular-nums">24 h</span> (espacées de <span className="font-mono tabular-nums">4 h</span> min., incluant <span className="font-mono tabular-nums">1</span> SMS/e-mail si le prospect a choisi l&apos;approche écrite d&apos;abord), la réclamation s&apos;effectue sous <span className="font-mono tabular-nums">7 jours</span> ouvrés depuis votre tableau de bord, avec arbitrage et recrédit sous <span className="font-mono tabular-nums">24 h</span> ouvrées.
                 </p>
               </div>
 

@@ -148,51 +148,54 @@ export default function CGV() {
             Dès lors que le Partenaire clique sur le bouton de déblocage d&apos;un Lead, le débit des Crédits s&apos;opère de manière instantanée et irréversible, et l&apos;ensemble des données nominatives du Prospect (nom, prénom, numéro de téléphone, adresse e-mail, localisation et descriptif technique) est immédiatement affiché et mis à disposition dans son Dashboard.
           </p>
 
-          <h3 className="mt-6 text-lg font-medium text-foreground">5.2. Conditions cumulatives strictes de recevabilité d&apos;une contestation de Lead</h3>
+          <h3 className="mt-6 text-lg font-medium text-foreground">5.2. Conditions cumulatives de recevabilité d&apos;une contestation de Lead</h3>
           <p className="mt-3 leading-relaxed">
-            Afin de préserver l&apos;intégrité de la marketplace et d&apos;empêcher toute manœuvre opportuniste d&apos;appropriation frauduleuse des coordonnées des Prospects, une contestation de Lead n&apos;est recevable que sous réserve de satisfaire cumulativement aux conditions impératives suivantes :
+            Afin de préserver l&apos;intégrité de la marketplace et d&apos;empêcher toute manœuvre opportuniste d&apos;appropriation des coordonnées des Prospects, une contestation de Lead n&apos;est recevable que sous réserve de satisfaire cumulativement aux conditions impératives suivantes :
           </p>
           <ul className="mt-3 list-disc space-y-2 pl-6">
             <li>
-              <strong className="text-foreground">Délai forclos de sept (7) jours ouvrés :</strong> La réclamation doit obligatoirement être soumise par voie électronique via le module dédié du Dashboard ou par e-mail motivé à <a href="mailto:cgv@aegissolaire.com" className="text-primary font-medium hover:underline">cgv@aegissolaire.com</a> dans un délai strict et impératif de <strong className="font-mono tabular-nums text-foreground">sept (7) jours ouvrés</strong> suivant l&apos;achat du Lead. Tout signalement intervenant au-delà de ce délai de 7 jours ouvrés est frappé de forclusion absolue et sera rejeté de plein droit sans examen.
+              <strong className="text-foreground">Délai forclos de sept (7) jours ouvrés :</strong> La réclamation doit obligatoirement être soumise par voie électronique via le module dédié du Dashboard ou par e-mail motivé à <a href="mailto:contact@aegissolaire.com" className="text-primary font-medium hover:underline">contact@aegissolaire.com</a> dans un délai strict et impératif de <strong className="font-mono tabular-nums text-foreground">sept (7) jours ouvrés</strong> (<span className="font-mono tabular-nums">10 jours</span> calendaires max.) suivant l&apos;achat du Lead. Tout signalement intervenant au-delà de ce délai est frappé de forclusion absolue.
             </li>
             <li>
-              <strong className="text-foreground">Diligence commerciale minimale documentée :</strong> Le Partenaire doit prouver avoir tenté de joindre le Prospect au moins deux (2) fois par téléphone dans les premières 48 heures suivant l&apos;acquisition du dossier, avec un intervalle d&apos;au moins quatre (4) heures entre les appels (capture d&apos;écran horodatée du journal d&apos;appels du standard ou du téléphone d&apos;entreprise faisant foi).
+              <strong className="text-foreground">Délai minimal et diligence commerciale documentée (motif « Injoignable ») :</strong> Pour déclarer un Prospect injoignable, le Partenaire doit respecter un délai minimal de <strong className="font-mono tabular-nums text-foreground">24 heures</strong> suivant l&apos;acquisition du Lead et confirmer avoir effectué au moins <strong className="font-mono tabular-nums text-foreground">trois (3) tentatives</strong> espacées d&apos;au moins <strong className="font-mono tabular-nums text-foreground">quatre (4) heures</strong> (incluant obligatoirement au moins un message écrit par SMS, WhatsApp ou e-mail lorsque le Prospect a choisi la préférence « Approche écrite d&apos;abord »). Les motifs techniques immédiats (numéro non attribué, déjà équipé, hors zone ou doublon) sont recevables sans délai minimal.
             </li>
             <li>
-              <strong className="text-foreground">Exclusivité des motifs admissibles (Art. 5.3) :</strong> La réclamation doit reposer exclusivement sur l&apos;un des motifs limitativement énoncés à l&apos;article 5.3 ci-dessous, à l&apos;exclusion de tout autre motif.
+              <strong className="text-foreground">Exclusivité des motifs admissibles (Art. 5.3) :</strong> La réclamation doit reposer exclusivement sur l&apos;un des motifs limitativement énoncés à l&apos;article 5.3 ci-dessous, accompagné d&apos;une justification circonstanciée.
             </li>
           </ul>
 
           <h3 className="mt-6 text-lg font-medium text-foreground">5.3. Motifs exhaustifs admissibles au titre de la garantie Lead</h3>
           <p className="mt-3 leading-relaxed">
-            Seules les trois (3) situations objectives suivantes peuvent donner lieu à l&apos;attribution d&apos;un recrédit de compensation après validation par la Cellule Technique d&apos;Aegis Solaire :
+            Seules les cinq (5) situations objectives suivantes peuvent donner lieu à l&apos;attribution d&apos;un recrédit de compensation après validation par la Cellule Technique d&apos;Aegis Solaire :
           </p>
           <ol className="mt-3 list-decimal space-y-2 pl-6">
             <li>
-              <strong className="text-foreground">Numéro technique non attribué ou inexistant :</strong> Le numéro de téléphone fourni par le Prospect est formellement non attribué, non en service ou invalide au niveau du réseau de télécommunication belge (message d&apos;erreur standard d&apos;opérateur télécom : « ce numéro n&apos;est pas attribué »). La preuve doit être fournie par le Partenaire (enregistrement court ou journal d&apos;appel probant).
+              <strong className="text-foreground">Numéro non attribué ou e-mail inexistant :</strong> Le numéro de téléphone fourni par le Prospect est formellement non attribué ou hors service sur le réseau belge, ou son adresse e-mail génère un rebond technique permanent.
             </li>
             <li>
-              <strong className="text-foreground">Doublon strict interne à la Plateforme :</strong> Le Lead délivré comporte la même identité, le même numéro de téléphone et la même adresse postale qu&apos;un Lead déjà acheté par le même Partenaire sur la Plateforme au cours des <span className="font-mono tabular-nums">trente (30) jours calendaires</span> précédents.
+              <strong className="text-foreground">Prospect injoignable après diligence commerciale :</strong> Après un minimum de <span className="font-mono tabular-nums">24 heures</span> suivant l&apos;acquisition et au moins trois (3) tentatives espacées d&apos;au moins quatre (4) heures (incluant obligatoirement au moins un SMS, WhatsApp ou e-mail lorsque la fiche indique « Approche écrite d&apos;abord »), le Prospect demeure totalement sans réponse.
             </li>
             <li>
-              <strong className="text-foreground">Projet situé hors territoire géographique contractuel :</strong> L&apos;adresse du projet renseignée est située hors de Belgique ou hors des zones territoriales expressément couvertes par le service.
+              <strong className="text-foreground">Prospect déjà équipé ou ayant déjà signé ailleurs avant l&apos;achat :</strong> Le Prospect confirme avoir déjà fait installer ses panneaux photovoltaïques ou avoir signé un bon de commande ferme antérieurement à l&apos;acquisition du dossier.
+            </li>
+            <li>
+              <strong className="text-foreground">Projet hors périmètre géographique ou critère rédhibitoire non filtré :</strong> L&apos;adresse du projet est située hors Wallonie (ou hors de la zone contractuelle affichée sur la fiche) ou le contact est un locataire dépourvu de l&apos;autorisation du propriétaire.
+            </li>
+            <li>
+              <strong className="text-foreground">Doublon strict interne ou anomalie d&apos;identité manifeste :</strong> Le Lead délivré comporte la même identité, le même numéro de téléphone et la même adresse postale qu&apos;un Lead déjà acheté par le même Partenaire au cours des <span className="font-mono tabular-nums">trente (30) jours calendaires</span> précédents, ou résulte d&apos;une fausse identité manifeste.
             </li>
           </ol>
 
-          <h3 className="mt-6 text-lg font-medium text-foreground">5.4. Motifs formellement inopérants et rejets automatiques (Absence de garantie commerciale)</h3>
+          <h3 className="mt-6 text-lg font-medium text-foreground">5.4. Motifs inopérants et exclusions de garantie</h3>
           <p className="mt-3 leading-relaxed">
             <strong className="text-foreground">AUCUNE DEMANDE DE REMPLACEMENT OU DE RECRÉDIT NE SERA ACCEPTÉE DANS LES CAS SUIVANTS (LISTE NON LIMITATIVE) :</strong>
           </p>
           <ul className="mt-3 list-disc space-y-1.5 pl-6">
-            <li>Le Prospect ne décroche pas, filtre ses appels, bascule sur messagerie vocale ou demande à être rappelé plus tard ;</li>
-            <li>Le Prospect a changé d&apos;avis, renonce temporairement ou définitivement à son projet pour des convenances personnelles, familiales ou financières ;</li>
-            <li>Le Prospect a déjà signé un bon de commande avec un autre prestataire ou installateur concurrent ;</li>
-            <li>Le Prospect refuse de communiquer avec le commercial du Partenaire, refuse de fixer un rendez-vous ou n&apos;apprécie pas le contact commercial ;</li>
-            <li>Le Prospect conteste ou refuse la proposition tarifaire, le dimensionnement ou le devis transmis par le Partenaire ;</li>
-            <li>Le Prospect s&apos;avère être locataire, usufruitier ou en indivision sans l&apos;accord des co-décisionnaires, ou ne dispose pas du pouvoir de décision final (les informations techniques étant fournies de bonne foi par le Prospect sous sa seule responsabilité déclarative) ;</li>
-            <li>La toiture ou le bâtiment présente des contraintes techniques imprévues (présence d&apos;amiante, toiture en ardoises naturelles friables, charpente dégradée, impossibilité d&apos;ancrage, armoire électrique obsolète nécessitant mise en conformité RGIE, puissance réseau insuffisante ou refus du GRD / ORES / RESA) ;</li>
-            <li>Le Partenaire n&apos;a pas contacté le Prospect dans un délai de 48 heures ouvrées suivant l&apos;achat du Lead, entraînant la déperdition de l&apos;intérêt du prospect par la faute exclusive du Partenaire.</li>
+            <li>Le Prospect a été joint (par téléphone ou par écrit) et a changé d&apos;avis après prise de contact ou renonce à son projet pour convenances personnelles ou budgétaires ;</li>
+            <li>Le Prospect refuse la proposition tarifaire, le dimensionnement, les délais de pose ou le devis transmis par le Partenaire ;</li>
+            <li>Le Prospect a signé avec un autre installateur sollicité dans le cadre normal de la mise en concurrence ou suite à un rappel tardif du Partenaire (&gt; <span className="font-mono tabular-nums">48 heures</span> ouvrées) ;</li>
+            <li>Le signalement « Prospect injoignable » est déposé moins de <span className="font-mono tabular-nums">24 heures</span> après l&apos;achat ou sans avoir tenté au moins un contact écrit lorsque la fiche mentionnait « Approche écrite d&apos;abord » ;</li>
+            <li>La toiture ou le bâtiment présente des contraintes techniques découvertes lors de la visite technique (amiante, ardoises friables, mise en conformité RGIE, capacité réseau GRD / ORES / RESA).</li>
           </ul>
 
           <h3 className="mt-6 text-lg font-medium text-foreground">5.5. Modalité unique de compensation : Recrédit interne exclusif (Zéro remboursement en numéraire)</h3>
@@ -389,10 +392,6 @@ export default function CGV() {
             </p>
             <p>
               <strong className="text-foreground">Canal de contact contractuel :</strong>{" "}
-              <a href="mailto:cgv@aegissolaire.com" className="text-primary font-medium hover:underline">
-                cgv@aegissolaire.com
-              </a>{" "}
-              ou{" "}
               <a href="mailto:contact@aegissolaire.com" className="text-primary font-medium hover:underline">
                 contact@aegissolaire.com
               </a>

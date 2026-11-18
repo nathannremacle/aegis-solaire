@@ -208,12 +208,16 @@ export function ROISimulator() {
   const phoneOtp = useLeadPhoneOtp()
   /** Horodatage début de parcours — l’API exige >4 s entre ce moment et la soumission ; ne pas le fixer à l’étape contact seule (sinon soumission rapide = erreur). */
   const formContactOpenedAtRef = useRef<string | null>(null)
+  const sessionIdRef = useRef<string>("")
   const [utmParams, setUtmParams] = useState<Record<string, string | undefined>>({})
 
   const totalSteps = 5
 
   useEffect(() => {
     formContactOpenedAtRef.current = new Date().toISOString()
+    if (!sessionIdRef.current && typeof crypto !== "undefined" && crypto.randomUUID) {
+      sessionIdRef.current = crypto.randomUUID()
+    }
     try {
       const sp = new URLSearchParams(window.location.search)
       setUtmParams({
@@ -342,7 +346,7 @@ export function ROISimulator() {
   const submitFinalB2BLead = async (
     roiResults: ROIResults,
     phoneVerificationToken?: string
-  ) => {
+  ): Promise<{ ok: true; leadId: string } | { ok: false }> => {
     setIsSubmitting(true)
     setError(null)
 
@@ -355,6 +359,7 @@ export function ROISimulator() {
 
     try {
       const payload = {
+        sessionId: sessionIdRef.current || undefined,
         sourceForm: "b2b_simulator",
         segment: "B2B",
         firstName: formData.firstName.trim(),
@@ -415,10 +420,13 @@ export function ROISimulator() {
       }
 
       const resData = await response.json().catch(() => ({}))
-      trackLeadConversion({ segment: "B2B", leadId: resData?.leadId, value: 103.5 })
-      setSubmitted(true)
+      if (!resData?.alreadyTracked) {
+        trackLeadConversion({ segment: "B2B", leadId: resData?.leadId, value: 103.5 })
+      }
+      return { ok: true, leadId: String(resData?.leadId || "") }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue")
+      return { ok: false }
     } finally {
       setIsSubmitting(false)
     }
@@ -428,14 +436,13 @@ export function ROISimulator() {
     setHasAttemptedSubmit(true)
     if (!validateStep(5)) return
 
-    setIsSubmitting(true)
     setError(null)
 
     const roiResults = calculateROI(formData)
     setResults(roiResults)
 
     const targetPhone = normalizeFrBePhone(formData.phone) ?? formData.phone
-    const otpRes = await phoneOtp.sendOtpRequest({
+    await phoneOtp.executeSoftOtpSubmit({
       phone: targetPhone,
       segment: "B2B",
       email: formData.email.trim().toLowerCase(),
@@ -444,23 +451,10 @@ export function ROISimulator() {
       postalCode: formData.postalCode.trim() || undefined,
       fax_number: formData.fax_number ?? "",
       form_opened_at: formContactOpenedAtRef.current ?? undefined,
+      sessionId: sessionIdRef.current || undefined,
+      saveLead: (cachedToken) => submitFinalB2BLead(roiResults, cachedToken),
+      onComplete: () => setSubmitted(true),
     })
-
-    if (otpRes.status === "error") {
-      setError(otpRes.message)
-      setIsSubmitting(false)
-      return
-    }
-
-    if (otpRes.status === "challenge_started") {
-      setIsSubmitting(false)
-      return
-    }
-
-    await submitFinalB2BLead(
-      roiResults,
-      otpRes.status === "verified_cached" ? otpRes.token : undefined
-    )
   }
 
   if (submitted && results) {
@@ -982,8 +976,7 @@ export function ROISimulator() {
                             normalizeFrBePhone(formData.phone) ?? formData.phone
                           const check = await phoneOtp.submitCode(targetPhone, codeOverride)
                           if (check.ok) {
-                            const roiResults = results ?? calculateROI(formData)
-                            await submitFinalB2BLead(roiResults, check.token)
+                            setSubmitted(true)
                           }
                         }}
                         onResend={async (channel) => {
@@ -999,10 +992,15 @@ export function ROISimulator() {
                             channel,
                             fax_number: formData.fax_number ?? "",
                             form_opened_at: formContactOpenedAtRef.current ?? undefined,
+                            sessionId: sessionIdRef.current || undefined,
                           })
                         }}
                         onEditPhone={phoneOtp.resetOtp}
-                        submitLabel="Valider et afficher mes résultats"
+                        onSkip={() => {
+                          phoneOtp.resetOtp()
+                          setSubmitted(true)
+                        }}
+                        submitLabel="Confirmer et finaliser en priorité"
                       />
                     ) : (
                       <>

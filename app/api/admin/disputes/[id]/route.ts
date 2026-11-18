@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { revalidateTag, revalidatePath } from "next/cache"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
+import { getDisputeReasonConfig } from "@/lib/disputes-policy"
 import { Resend } from "resend"
 import { buildLeadDisputeResolutionEmail } from "@/lib/email-templates/installer-transactional"
 
@@ -129,9 +130,7 @@ export async function PATCH(
         .eq("status", "approved")
 
       const shouldArchiveLead =
-        dispute.reason === "wrong_number" ||
-        dispute.reason === "already_equipped" ||
-        dispute.reason === "unreachable" ||
+        getDisputeReasonConfig(dispute.reason).autoRetiresLeadFromMarketplace ||
         (approvedDisputesCount ?? 0) >= 2
 
       if (shouldArchiveLead) {

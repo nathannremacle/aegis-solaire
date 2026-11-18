@@ -364,9 +364,13 @@ export function B2CSimulator() {
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const openedAt = useRef(new Date().toISOString())
+  const sessionIdRef = useRef<string>("")
   const [utmParams, setUtmParams] = useState<Record<string, string | undefined>>({})
 
   useEffect(() => {
+    if (!sessionIdRef.current && typeof crypto !== "undefined" && crypto.randomUUID) {
+      sessionIdRef.current = crypto.randomUUID()
+    }
     try {
       const sp = new URLSearchParams(window.location.search)
       setUtmParams({
@@ -488,8 +492,10 @@ export function B2CSimulator() {
   }
 
   /* ── Submit ── */
-  const submitFinalB2CLead = async (phoneVerificationToken?: string) => {
-    if (!results) return
+  const submitFinalB2CLead = async (
+    phoneVerificationToken?: string
+  ): Promise<{ ok: true; leadId: string } | { ok: false }> => {
+    if (!results) return { ok: false }
     setIsSubmitting(true)
     setError(null)
 
@@ -518,6 +524,7 @@ export function B2CSimulator() {
           : "owner"
 
       const payload = {
+        sessionId: sessionIdRef.current || undefined,
         sourceForm: "b2c_simulator",
         segment: "B2C",
         firstName: fd.firstName.trim(),
@@ -584,12 +591,13 @@ export function B2CSimulator() {
         throw new Error(data.error || "Erreur lors de l'envoi")
       }
       const resData = await res.json().catch(() => ({}))
-      if (fd.ownershipStatus !== "locataire_sans_accord") {
+      if (fd.ownershipStatus !== "locataire_sans_accord" && !resData?.alreadyTracked) {
         trackLeadConversion({ segment: "B2C", leadId: resData?.leadId, value: 75.9 })
       }
-      setSubmitted(true)
+      return { ok: true, leadId: String(resData?.leadId || "") }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Une erreur est survenue")
+      return { ok: false }
     } finally {
       setIsSubmitting(false)
     }
@@ -598,11 +606,10 @@ export function B2CSimulator() {
   const submit = async () => {
     setHasAttemptedSubmit(true)
     if (!valid(6) || !results) return
-    setIsSubmitting(true)
     setError(null)
 
     const targetPhone = phoneValidation.isValid ? phoneValidation.normalized : fd.phone
-    const otpRes = await phoneOtp.sendOtpRequest({
+    await phoneOtp.executeSoftOtpSubmit({
       phone: targetPhone,
       segment: "B2C",
       email: fd.email.trim().toLowerCase(),
@@ -611,20 +618,10 @@ export function B2CSimulator() {
       postalCode: fd.postalCode.trim(),
       fax_number: fd.fax_number ?? "",
       form_opened_at: openedAt.current,
+      sessionId: sessionIdRef.current || undefined,
+      saveLead: submitFinalB2CLead,
+      onComplete: () => setSubmitted(true),
     })
-
-    if (otpRes.status === "error") {
-      setError(otpRes.message)
-      setIsSubmitting(false)
-      return
-    }
-
-    if (otpRes.status === "challenge_started") {
-      setIsSubmitting(false)
-      return
-    }
-
-    await submitFinalB2CLead(otpRes.status === "verified_cached" ? otpRes.token : undefined)
   }
 
   const anim = { initial: { opacity: 0, x: 20 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -20 } }
@@ -1129,7 +1126,7 @@ export function B2CSimulator() {
                           : fd.phone
                         const check = await phoneOtp.submitCode(targetPhone, codeOverride)
                         if (check.ok) {
-                          await submitFinalB2CLead(check.token)
+                          setSubmitted(true)
                         }
                       }}
                       onResend={async (channel) => {
@@ -1146,10 +1143,15 @@ export function B2CSimulator() {
                           channel,
                           fax_number: fd.fax_number ?? "",
                           form_opened_at: openedAt.current,
+                          sessionId: sessionIdRef.current || undefined,
                         })
                       }}
                       onEditPhone={phoneOtp.resetOtp}
-                      submitLabel="Valider et recevoir mon étude"
+                      onSkip={() => {
+                        phoneOtp.resetOtp()
+                        setSubmitted(true)
+                      }}
+                      submitLabel="Confirmer et finaliser en priorité"
                     />
                   ) : (
                     <>

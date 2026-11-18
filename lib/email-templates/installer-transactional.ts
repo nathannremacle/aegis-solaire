@@ -8,6 +8,7 @@ import {
   renderSpecsTable,
   type EmailSpecRow,
 } from "@/lib/email-templates/installer-email-layout"
+import { getDisputeReasonConfig } from "@/lib/disputes-policy"
 
 /* ==========================================================================
    1. CONFIRMATION & JUSTIFICATIF TVA — RECHARGE DE CRÉDITS (MOLLIE / VIREMENT)
@@ -367,14 +368,17 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
     return { subject, text, html }
   }
 
+  const resolvedReasonLabel = data.reasonLabel
+    ? getDisputeReasonConfig(data.reasonLabel).label
+    : null
   const decisionReason =
     data.adminNotes?.trim() ||
-    "Réclamation non conforme aux conditions de la Garantie Lead Conforme (Article 4.1 des CGV)."
+    "Réclamation non conforme aux conditions de la Garantie Lead Conforme (Article 5 des CGV)."
   const subject = `Décision concernant votre réclamation (Dossier #${leadRefCode})`
 
   const bodyHtml = `
     ${renderCalloutBox({
-      label: "Motif de la décision · Article 4.1 des CGV",
+      label: "Motif de la décision · Article 5 des CGV",
       value: decisionReason,
       tone: "warning",
     })}
@@ -384,7 +388,7 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
         <td style="padding-top: 14px; border-top: 1px solid #e4edf1;">
           ${renderSpecsTable([
             { label: "Dossier concerné", value: `#${leadRefCode}` },
-            ...(data.reasonLabel ? [{ label: "Motif déclaré", value: data.reasonLabel }] : []),
+            ...(resolvedReasonLabel ? [{ label: "Motif déclaré", value: resolvedReasonLabel }] : []),
             { label: "Statut", value: "Clôturée · Non retenue" },
             { label: "Recours / Précisions", value: "Répondez à contact@aegissolaire.com" },
           ])}

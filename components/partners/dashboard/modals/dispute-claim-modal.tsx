@@ -1,64 +1,42 @@
 "use client"
 
 import * as React from "react"
-import { useState, useEffect } from "react"
-import { AlertCircle, ShieldAlert, Loader2, X } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { AlertCircle, ShieldAlert, Loader2, X, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
+import {
+  DISPUTE_REASONS,
+  MIN_DISPUTE_DETAILS_LENGTH,
+  checkDisputeEligibility,
+  type DisputeReasonId,
+} from "@/lib/disputes-policy"
 
 interface DisputeClaimModalProps {
   purchase: {
     id?: string
     purchase_id: string
     lead_id?: string
+    purchased_at?: string | null
     first_name: string
     last_name: string
     company?: string | null
     credits_spent?: number
     segment?: string | null
+    contact_preference?: string | null
+    qualification_metadata?: {
+      contactPreference?: string | null
+    } | null
   }
   onSuccess?: (dispute: { id: string; status: string; purchase_id: string }) => void
   onClose: () => void
 }
 
-const MIN_DETAILS_LENGTH = 20
-
-const DISPUTE_REASONS = [
-  {
-    id: "wrong_number",
-    label: "Numéro de téléphone / email erroné ou non attribué",
-    placeholder:
-      "Ex : Appelé le 18/11 à 10h15, message opérateur « numéro non attribué » et e-mail en erreur...",
-  },
-  {
-    id: "unreachable",
-    label: "Prospect injoignable après plusieurs tentatives (appels + SMS)",
-    placeholder:
-      "Ex : 3 appels sans réponse (dates/heures à +4h d'intervalle) et SMS envoyé resté sans retour...",
-  },
-  {
-    id: "out_of_scope",
-    label: "Hors critères (locataire, hors zone, pas de projet réel)",
-    placeholder:
-      "Ex : Adresse réelle située hors de la zone convenue / le contact indique être locataire sans accord...",
-  },
-  {
-    id: "already_equipped",
-    label: "Déjà équipé ou déjà signé avec un concurrent",
-    placeholder:
-      "Ex : Le prospect confirme au téléphone avoir déjà fait installer ses panneaux ou signé ailleurs...",
-  },
-  {
-    id: "other",
-    label: "Autre anomalie (faux prospect, demande non sollicitée)",
-    placeholder:
-      "Ex : Précisez concrètement l'anomalie constatée (identité incorrecte, demande jamais effectuée, erreur toiture)...",
-  },
-] as const
-
 export default function DisputeClaimModal({ purchase, onSuccess, onClose }: DisputeClaimModalProps) {
-  const [reason, setReason] = useState<string>("wrong_number")
+  const [reason, setReason] = useState<DisputeReasonId>("wrong_number")
   const [details, setDetails] = useState<string>("")
+  const [diligenceConfirmed, setDiligenceConfirmed] = useState<boolean>(false)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -75,16 +53,38 @@ export default function DisputeClaimModal({ purchase, onSuccess, onClose }: Disp
   }, [onClose])
 
   const trimmedLength = details.trim().length
-  const isDetailsValid = trimmedLength >= MIN_DETAILS_LENGTH
+  const isDetailsValid = trimmedLength >= MIN_DISPUTE_DETAILS_LENGTH
   const activeReasonMeta =
     DISPUTE_REASONS.find((r) => r.id === reason) ?? DISPUTE_REASONS[0]
 
+  const contactPreference =
+    purchase.contact_preference || purchase.qualification_metadata?.contactPreference || null
+
+  const eligibility = useMemo(
+    () =>
+      checkDisputeEligibility({
+        reason,
+        purchasedAt: purchase.purchased_at,
+        details,
+        contactPreference,
+        diligenceConfirmed: reason === "unreachable" ? diligenceConfirmed : true,
+        skipDetailsCheck: true,
+      }),
+    [reason, purchase.purchased_at, details, contactPreference, diligenceConfirmed]
+  )
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!isDetailsValid) {
-      toast.error(
-        `Veuillez détailler le motif en au moins ${MIN_DETAILS_LENGTH} caractères (ex : date/heure des appels ou anomalie précise).`
-      )
+    const fullCheck = checkDisputeEligibility({
+      reason,
+      purchasedAt: purchase.purchased_at,
+      details,
+      contactPreference,
+      diligenceConfirmed: reason === "unreachable" ? diligenceConfirmed : true,
+    })
+
+    if (!fullCheck.eligible) {
+      toast.error(fullCheck.error || "Veuillez compléter votre signalement.")
       return
     }
 
@@ -104,6 +104,7 @@ export default function DisputeClaimModal({ purchase, onSuccess, onClose }: Disp
           leadId: resolvedLeadId,
           reason,
           details: details.trim(),
+          diligenceConfirmed: reason === "unreachable" ? diligenceConfirmed : true,
         }),
       })
       const data = await res.json()
@@ -152,7 +153,9 @@ export default function DisputeClaimModal({ purchase, onSuccess, onClose }: Disp
             <ShieldAlert className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-foreground">Signaler un Litige (Garantie 24h)</h3>
+            <h3 className="text-lg font-bold text-foreground">
+              Déclarer un litige (Garantie Lead · <span className="font-mono tabular-nums">7 j</span> ouvrés)
+            </h3>
             <p className="text-xs text-muted-foreground">
               Lead : {purchase.first_name} {purchase.last_name} ({purchase.company || purchase.segment})
             </p>
@@ -163,8 +166,9 @@ export default function DisputeClaimModal({ purchase, onSuccess, onClose }: Disp
           <div className="rounded-xl border border-accent/30 bg-accent/10 p-3 text-xs text-foreground flex items-start gap-2">
             <AlertCircle className="h-4 w-4 text-accent shrink-0 mt-0.5" />
             <span>
-              Les réclamations sont examinées sous <span className="font-mono tabular-nums">24h</span> ouvrées. En cas de validation, les{" "}
-              <strong className="font-mono tabular-nums">{purchase.credits_spent || (purchase.segment === "B2B" ? 9 : 3)} crédits</strong> vous seront automatiquement recrédités.
+              Délai de réclamation : <strong className="font-mono tabular-nums">7 jours ouvrés</strong> après l&apos;achat. Examen sous{" "}
+              <strong className="font-mono tabular-nums">24 h</strong> ouvrées et recrédit intégral de vos{" "}
+              <strong className="font-mono tabular-nums">{purchase.credits_spent || (purchase.segment === "B2B" ? 9 : 3)} crédits</strong> si recevable.
             </span>
           </div>
 
@@ -184,7 +188,10 @@ export default function DisputeClaimModal({ purchase, onSuccess, onClose }: Disp
                     name="reason"
                     value={r.id}
                     checked={reason === r.id}
-                    onChange={(e) => setReason(e.target.value)}
+                    onChange={(e) => {
+                      setReason(e.target.value as DisputeReasonId)
+                      setDiligenceConfirmed(false)
+                    }}
                     className="accent-destructive"
                   />
                   <span>{r.label}</span>
@@ -192,6 +199,39 @@ export default function DisputeClaimModal({ purchase, onSuccess, onClose }: Disp
               ))}
             </div>
           </div>
+
+          {!eligibility.eligible && (eligibility.code === "TOO_EARLY_FOR_UNREACHABLE" || eligibility.code === "WINDOW_EXPIRED") && (
+            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-foreground flex items-start gap-2">
+              <Clock className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+              <span>{eligibility.error}</span>
+            </div>
+          )}
+
+          {reason === "unreachable" && eligibility.code !== "TOO_EARLY_FOR_UNREACHABLE" && eligibility.code !== "WINDOW_EXPIRED" && (
+            <div className="rounded-xl border border-border bg-secondary/40 p-3 flex flex-col gap-2.5 text-xs">
+              {contactPreference === "written_first" && (
+                <p className="text-foreground font-medium">
+                  Ce prospect a demandé une <strong className="text-foreground">approche écrite (SMS / e-mail) d&apos;abord</strong> : un message écrit avant ou après les appels est requis.
+                </p>
+              )}
+              <label className="flex items-start gap-2.5 cursor-pointer text-foreground">
+                <Checkbox
+                  checked={diligenceConfirmed}
+                  onCheckedChange={(checked) => setDiligenceConfirmed(checked === true)}
+                  className="mt-0.5"
+                />
+                <span className="leading-snug">
+                  Je confirme avoir effectué au moins{" "}
+                  <strong className="font-mono tabular-nums">3 tentatives</strong> sur{" "}
+                  <strong className="font-mono tabular-nums">≥ 24 h</strong> espacées de{" "}
+                  <strong className="font-mono tabular-nums">4 h</strong> min.
+                  {contactPreference === "written_first"
+                    ? " (incluant au moins 1 SMS, WhatsApp ou e-mail écrit)."
+                    : " (appels et SMS/e-mail)."}
+                </span>
+              </label>
+            </div>
+          )}
 
           <div>
             <div className="flex items-center justify-between gap-2">
@@ -203,13 +243,13 @@ export default function DisputeClaimModal({ purchase, onSuccess, onClose }: Disp
                   isDetailsValid ? "text-status-qualified font-semibold" : "text-muted-foreground"
                 }`}
               >
-                {trimmedLength}/{MIN_DETAILS_LENGTH} car. min.
+                {trimmedLength}/{MIN_DISPUTE_DETAILS_LENGTH} car. min.
               </span>
             </div>
             <textarea
               rows={3}
               required
-              minLength={MIN_DETAILS_LENGTH}
+              minLength={MIN_DISPUTE_DETAILS_LENGTH}
               value={details}
               onChange={(e) => setDetails(e.target.value)}
               placeholder={activeReasonMeta.placeholder}
@@ -221,12 +261,26 @@ export default function DisputeClaimModal({ purchase, onSuccess, onClose }: Disp
             <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={submitting}>
               Annuler
             </Button>
-            <Button type="submit" variant="destructive" size="sm" disabled={submitting}>
+            <Button
+              type="submit"
+              variant="destructive"
+              size="sm"
+              disabled={
+                submitting ||
+                eligibility.code === "TOO_EARLY_FOR_UNREACHABLE" ||
+                eligibility.code === "WINDOW_EXPIRED" ||
+                (reason === "unreachable" && !diligenceConfirmed)
+              }
+            >
               {submitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
                   <span>Envoi en cours...</span>
                 </>
+              ) : eligibility.code === "TOO_EARLY_FOR_UNREACHABLE" ? (
+                <span className="font-mono tabular-nums">
+                  Disponible dans {eligibility.remainingHoursForUnreachable} h
+                </span>
               ) : (
                 <span>Envoyer la réclamation</span>
               )}

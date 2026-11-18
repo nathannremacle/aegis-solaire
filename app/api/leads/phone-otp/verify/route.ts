@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { resolveLeadPhoneE164 } from "@/lib/leads-validation"
+import { createServiceRoleClient } from "@/lib/supabase/admin"
 import {
   checkTwilioVerifyOtp,
   createPhoneVerificationProof,
   isTwilioPhoneOtpEnabled,
 } from "@/lib/twilio-verify"
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,6 +22,8 @@ export async function POST(request: NextRequest) {
     const channelRaw = body.channel
     const lineType = typeof body.lineType === "string" ? body.lineType : null
     const carrierName = typeof body.carrierName === "string" ? body.carrierName : null
+    const rawLeadId = typeof body.leadId === "string" ? body.leadId.trim() : ""
+    const rawSessionId = typeof body.sessionId === "string" ? body.sessionId.trim() : ""
 
     if (!isTwilioPhoneOtpEnabled()) {
       return NextResponse.json(
@@ -65,11 +70,106 @@ export async function POST(request: NextRequest) {
       carrierName,
     })
 
+    // Mise à niveau Soft OTP en base si le dossier lead vient d'être enregistré
+    let leadUpdated = false
+    if (rawLeadId && UUID_REGEX.test(rawLeadId)) {
+      try {
+        const supabase = createServiceRoleClient()
+        const { data: existingLead } = await supabase
+          .from("leads")
+          .select(
+            "id, phone, session_id, phone_verified, phone_carrier, phone_line_type, lead_score, qualification_metadata"
+          )
+          .eq("id", rawLeadId)
+          .maybeSingle()
+
+        const canUpgradeLead =
+          Boolean(existingLead) &&
+          (existingLead!.phone === phoneE164 ||
+            (rawSessionId !== "" && existingLead!.session_id === rawSessionId))
+
+        if (existingLead && canUpgradeLead) {
+          const nowIso = new Date().toISOString()
+          const existingMeta =
+            existingLead.qualification_metadata &&
+            typeof existingLead.qualification_metadata === "object"
+              ? (existingLead.qualification_metadata as Record<string, unknown>)
+              : {}
+          const existingVerifs =
+            existingMeta.verifications && typeof existingMeta.verifications === "object"
+              ? (existingMeta.verifications as Record<string, unknown>)
+              : {}
+          const existingLookup =
+            existingVerifs.twilioLookup && typeof existingVerifs.twilioLookup === "object"
+              ? (existingVerifs.twilioLookup as Record<string, unknown>)
+              : {}
+          const existingBadges = Array.isArray(existingVerifs.trustBadges)
+            ? (existingVerifs.trustBadges as string[])
+            : []
+          const otpBadge =
+            safeChannel === "call"
+              ? "Téléphone certifié par appel vocal OTP"
+              : "Téléphone certifié par SMS OTP"
+          const mergedBadges = Array.from(new Set([...existingBadges, otpBadge]))
+          const nextScore = existingLead.phone_verified
+            ? Number(existingLead.lead_score || 0)
+            : Math.min(100, Number(existingLead.lead_score || 0) + 15)
+
+          const method =
+            safeChannel === "call"
+              ? "twilio_call"
+              : safeChannel === "dev_mock"
+                ? "dev_mock"
+                : "twilio_sms"
+
+          const { error: upErr } = await supabase
+            .from("leads")
+            .update({
+              phone: phoneE164,
+              phone_verified: true,
+              phone_verified_at: nowIso,
+              phone_verification_method: method,
+              phone_carrier: carrierName ?? existingLead.phone_carrier ?? null,
+              phone_line_type: lineType ?? existingLead.phone_line_type ?? null,
+              lead_score: nextScore,
+              qualification_metadata: {
+                ...existingMeta,
+                verifications: {
+                  ...existingVerifs,
+                  phoneOtp: {
+                    verified: true,
+                    channel: safeChannel,
+                    verifiedAt: nowIso,
+                    required: false,
+                  },
+                  twilioLookup: {
+                    ...existingLookup,
+                    valid: true,
+                    ...(lineType ? { lineType } : {}),
+                    ...(carrierName ? { carrierName } : {}),
+                  },
+                  trustBadges: mergedBadges,
+                },
+              },
+              updated_at: nowIso,
+            })
+            .eq("id", rawLeadId)
+
+          if (!upErr) {
+            leadUpdated = true
+          }
+        }
+      } catch (upgradeErr) {
+        console.warn("[API phone-otp/verify] Upgrade lead non bloquant:", upgradeErr)
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       verifiedPhone: phoneE164,
       channel: safeChannel,
       verificationToken,
+      leadUpdated,
     })
   } catch (err) {
     console.error("[API phone-otp/verify] Erreur inattendue:", err)

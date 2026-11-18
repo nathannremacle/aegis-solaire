@@ -23,7 +23,6 @@ import {
 } from "@/lib/leads-validation"
 import {
   isTwilioLookupEnabled,
-  isTwilioPhoneOtpEnabled,
   lookupPhoneNumberTwilio,
   verifyPhoneVerificationProof,
 } from "@/lib/twilio-verify"
@@ -122,22 +121,12 @@ export async function POST(request: NextRequest) {
     }
     const phone = phoneResolved.e164
 
-    const otpRequired = isTwilioPhoneOtpEnabled()
     const verifiedPhoneProof = verifyPhoneVerificationProof(
       data.phoneVerificationToken,
       phone
     )
-
-    if (otpRequired && !verifiedPhoneProof) {
-      return NextResponse.json(
-        {
-          error:
-            "Veuillez valider le code à 6 chiffres reçu sur votre téléphone avant d'envoyer votre demande.",
-          requirePhoneOtp: true,
-        },
-        { status: 400 }
-      )
-    }
+    // Mode Soft OTP : l'absence de jeton OTP ne bloque jamais la capture du lead.
+    // L'étape de confirmation SMS/appel s'exécute en post-sauvegarde ou de façon optionnelle.
     const job_title = data.jobTitle
       ? sanitizeString(data.jobTitle)
       : data.segment === "B2C"
@@ -321,7 +310,7 @@ export async function POST(request: NextRequest) {
         .neq("status", "draft_email_only")
         .limit(5),
       !verifiedPhoneProof && isTwilioLookupEnabled()
-        ? lookupPhoneNumberTwilio(phone)
+        ? lookupPhoneNumberTwilio(phone, { allowVoip: data.segment === "B2B" })
         : Promise.resolve(null),
     ])
 
@@ -341,7 +330,7 @@ export async function POST(request: NextRequest) {
         verified: true,
         channel: verifiedPhoneProof.channel,
         verifiedAt: verifiedPhoneProof.verifiedAt,
-        required: otpRequired,
+        required: false,
       }
       verifications.twilioLookup = {
         valid: true,
@@ -359,7 +348,7 @@ export async function POST(request: NextRequest) {
         verified: false,
         channel: null,
         verifiedAt: null,
-        required: otpRequired,
+        required: false,
       }
       if (lookupFallback?.configured) {
         verifications.twilioLookup = {
@@ -368,7 +357,10 @@ export async function POST(request: NextRequest) {
           carrierName: lookupFallback.carrierName,
           smsPumpingRiskLevel: lookupFallback.smsPumpingRiskLevel,
         }
-        if (lookupFallback.valid && !lookupFallback.transientError) {
+        if (lookupFallback.lineType === "voip" || lookupFallback.lineType === "nonFixedVoip") {
+          verifications.globalTrustScoreDelta -= 10
+          verifications.warningFlags.push("Ligne VoIP détectée (confirmation recommandée)")
+        } else if (lookupFallback.valid && !lookupFallback.transientError) {
           verifications.trustBadges.push(
             `Ligne vérifiée opérateur${lookupFallback.carrierName ? ` (${lookupFallback.carrierName})` : ""}`
           )
@@ -553,6 +545,19 @@ export async function POST(request: NextRequest) {
       matched_province: canonicalProvince,
     }
 
+    let existingSessionLead: { id: string; status: string | null; email: string | null } | null = null
+    if (data.sessionId) {
+      const { data: ex } = await supabase
+        .from("leads")
+        .select("id, status, email")
+        .eq("session_id", data.sessionId)
+        .maybeSingle()
+      existingSessionLead = ex ?? null
+    }
+    const isResubmitSameFinalizedSession = Boolean(
+      existingSessionLead && existingSessionLead.status !== "draft_email_only"
+    )
+
     let inserted: any = null
     let error: any = null
 
@@ -621,100 +626,106 @@ export async function POST(request: NextRequest) {
 
     // Notifications transactionnelles critiques avec attente (garantit l'envoi sous serverless Vercel)
     const emailTasks: Promise<unknown>[] = []
+    const shouldSendProspectConfirmation =
+      !isResubmitSameFinalizedSession || existingSessionLead?.email !== email
 
-    emailTasks.push(
-      sendProspectConfirmationEmail({
-        leadId: inserted.id,
-        email: data.email,
-        firstName: first_name,
-        lastName: last_name,
-        segment: data.segment,
-        surfaceType: data.surfaceType,
-        surfaceArea: financials.normalizedSurfaceAreaM2,
-        annualElectricityBill: financials.normalizedAnnualBill,
-        estimatedSavings: computedSavings,
-        estimatedROIYears: computedRoiYears,
-        province: canonicalProvince,
-      })
-        .then(async (res) => {
-          if (res.success && res.emailId) {
-            await supabase
-              .from("leads")
-              .update({
-                resend_last_email_id: res.emailId,
-                email_delivery_status: "sent",
-              })
-              .eq("id", inserted.id)
-              .then(() => undefined, () => undefined)
-          }
-        })
-        .catch((err) => {
-          console.error("[Prospect confirmation] Envoi échoué:", err)
-        })
-    )
-
-    // Alerte immédiate à l'administrateur avec lien de validation 1-clic direct
-    emailTasks.push(
-      sendAdminNewLeadAlertEmail({
-        leadId: inserted.id,
-        firstName: first_name,
-        lastName: last_name,
-        email,
-        phone,
-        company,
-        companyVat: company_vat,
-        jobTitle: job_title,
-        segment: data.segment,
-        surfaceType: data.surfaceType,
-        surfaceArea: financials.normalizedSurfaceAreaM2,
-        annualBill: financials.normalizedAnnualBill,
-        estimatedSavings: computedSavings,
-        estimatedROIYears: computedRoiYears,
-        estimatedPowerKwc,
-        annualProductionKwh: financials.annualProductionKwh,
-        estimatedPanelCount: financials.estimatedPanelCount,
-        autoconsumptionRate: computedAutoconsumption,
-        wantsIrve: financials.includesEv,
-        province: canonicalProvince,
-        postalCode: safePostalCode,
-        city: resolvedCityRaw,
-        siteAddress: canonicalAddressText,
-        grd: data.grd ?? null,
-        ownershipStatus: safeOwnership,
-        timeframe: data.timeframe ?? null,
-        roofMaterial: safeRoofMaterial,
-        leadScore: finalScore,
-        scoreStatus: effectiveLeadStatus,
-        scoreFactors: factors,
-        creditCost: credit_cost,
-        sourceForm: safeSourceForm,
-        mediaPartnerCode,
-        message: projectDetailsText,
-        verifications,
-        contactPreference: data.contactPreference || "written_first",
-      }).catch((err) => {
-        console.error("[Admin Lead Alert] Envoi échoué:", err)
-      })
-    )
-
-    // Télémétrie d'entonnoir final (Step 6 submitted)
-    if (data.sessionId) {
+    if (shouldSendProspectConfirmation) {
       emailTasks.push(
-        Promise.resolve(
-          supabase.from("funnel_step_events").insert({
-            session_id: data.sessionId,
-            step_number: 6,
-            step_name: "STEP_6_SUBMITTED",
-            province: canonicalProvince,
-            utm_source: ((data.qualificationMetadata as Record<string, unknown>)?.utm_source as string) || null,
-            utm_campaign: ((data.qualificationMetadata as Record<string, unknown>)?.utm_campaign as string) || null,
-            utm_content: ((data.qualificationMetadata as Record<string, unknown>)?.utm_content as string) || null,
-            utm_term: ((data.qualificationMetadata as Record<string, unknown>)?.utm_term as string) || null,
+        sendProspectConfirmationEmail({
+          leadId: inserted.id,
+          email: data.email,
+          firstName: first_name,
+          lastName: last_name,
+          segment: data.segment,
+          surfaceType: data.surfaceType,
+          surfaceArea: financials.normalizedSurfaceAreaM2,
+          annualElectricityBill: financials.normalizedAnnualBill,
+          estimatedSavings: computedSavings,
+          estimatedROIYears: computedRoiYears,
+          province: canonicalProvince,
+        })
+          .then(async (res) => {
+            if (res.success && res.emailId) {
+              await supabase
+                .from("leads")
+                .update({
+                  resend_last_email_id: res.emailId,
+                  email_delivery_status: "sent",
+                })
+                .eq("id", inserted.id)
+                .then(() => undefined, () => undefined)
+            }
           })
-        ).catch((err) => {
-          console.error("[Funnel Step] Step 6 event failed:", err)
+          .catch((err) => {
+            console.error("[Prospect confirmation] Envoi échoué:", err)
+          })
+      )
+    }
+
+    if (!isResubmitSameFinalizedSession) {
+      // Alerte immédiate à l'administrateur avec lien de validation 1-clic direct
+      emailTasks.push(
+        sendAdminNewLeadAlertEmail({
+          leadId: inserted.id,
+          firstName: first_name,
+          lastName: last_name,
+          email,
+          phone,
+          company,
+          companyVat: company_vat,
+          jobTitle: job_title,
+          segment: data.segment,
+          surfaceType: data.surfaceType,
+          surfaceArea: financials.normalizedSurfaceAreaM2,
+          annualBill: financials.normalizedAnnualBill,
+          estimatedSavings: computedSavings,
+          estimatedROIYears: computedRoiYears,
+          estimatedPowerKwc,
+          annualProductionKwh: financials.annualProductionKwh,
+          estimatedPanelCount: financials.estimatedPanelCount,
+          autoconsumptionRate: computedAutoconsumption,
+          wantsIrve: financials.includesEv,
+          province: canonicalProvince,
+          postalCode: safePostalCode,
+          city: resolvedCityRaw,
+          siteAddress: canonicalAddressText,
+          grd: data.grd ?? null,
+          ownershipStatus: safeOwnership,
+          timeframe: data.timeframe ?? null,
+          roofMaterial: safeRoofMaterial,
+          leadScore: finalScore,
+          scoreStatus: effectiveLeadStatus,
+          scoreFactors: factors,
+          creditCost: credit_cost,
+          sourceForm: safeSourceForm,
+          mediaPartnerCode,
+          message: projectDetailsText,
+          verifications,
+          contactPreference: data.contactPreference || "written_first",
+        }).catch((err) => {
+          console.error("[Admin Lead Alert] Envoi échoué:", err)
         })
       )
+
+      // Télémétrie d'entonnoir final (Step 6 submitted)
+      if (data.sessionId) {
+        emailTasks.push(
+          Promise.resolve(
+            supabase.from("funnel_step_events").insert({
+              session_id: data.sessionId,
+              step_number: 6,
+              step_name: "STEP_6_SUBMITTED",
+              province: canonicalProvince,
+              utm_source: ((data.qualificationMetadata as Record<string, unknown>)?.utm_source as string) || null,
+              utm_campaign: ((data.qualificationMetadata as Record<string, unknown>)?.utm_campaign as string) || null,
+              utm_content: ((data.qualificationMetadata as Record<string, unknown>)?.utm_content as string) || null,
+              utm_term: ((data.qualificationMetadata as Record<string, unknown>)?.utm_term as string) || null,
+            })
+          ).catch((err) => {
+            console.error("[Funnel Step] Step 6 event failed:", err)
+          })
+        )
+      }
     }
 
     // On attend que les notifications et la télémétrie se finalisent avant de fermer la réponse HTTP
@@ -723,7 +734,7 @@ export async function POST(request: NextRequest) {
     const webhookUrl = process.env.LEAD_WEBHOOK_URL
     const webhookSecret = process.env.LEAD_WEBHOOK_SECRET
 
-    if (webhookUrl) {
+    if (webhookUrl && !isResubmitSameFinalizedSession) {
       const payload = {
         id: inserted.id,
         first_name: inserted.first_name,
@@ -775,7 +786,8 @@ export async function POST(request: NextRequest) {
 
     // Déclenchement serveur Meta Conversions API (CAPI) pour tracking sans perte
     // Seuls les propriétaires confirmés (ou prospects B2B) nourrissent l'IA Meta pour ne pas fausser le ciblage
-    const isMetaLeadEligible = data.segment === "B2B" || safeOwnership === "owner"
+    const isMetaLeadEligible =
+      !isResubmitSameFinalizedSession && (data.segment === "B2B" || safeOwnership === "owner")
     if (isMetaLeadEligible) {
       const qualificationMeta = (data.qualificationMetadata || {}) as Record<string, unknown>
       const rawFbclid =
@@ -814,6 +826,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: "Lead enregistré avec succès",
       leadId: inserted.id,
+      alreadyTracked: isResubmitSameFinalizedSession,
     })
   } catch (error) {
     console.error("API error:", error)

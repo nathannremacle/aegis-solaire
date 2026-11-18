@@ -56,7 +56,11 @@ export function useLeadPhoneOtp() {
   const [challenge, setChallenge] = useState<OtpChallengeState>(INITIAL_CHALLENGE)
   const [cooldown, setCooldown] = useState(0)
   const [verifiedCache, setVerifiedCache] = useState<VerifiedPhoneCache | null>(null)
-  const lastMetaRef = useRef<{ segment: "B2B" | "B2C" }>({ segment: "B2C" })
+  const lastMetaRef = useRef<{
+    segment: "B2B" | "B2C"
+    leadId?: string
+    sessionId?: string
+  }>({ segment: "B2C" })
 
   useEffect(() => {
     if (cooldown <= 0) return
@@ -96,6 +100,8 @@ export function useLeadPhoneOtp() {
       channel?: "sms" | "call"
       fax_number?: string
       form_opened_at?: string
+      leadId?: string
+      sessionId?: string
     }): Promise<
       | { status: "verified_cached"; token: string }
       | { status: "not_required" }
@@ -107,7 +113,11 @@ export function useLeadPhoneOtp() {
         return { status: "verified_cached", token: cached }
       }
 
-      lastMetaRef.current = { segment: params.segment }
+      lastMetaRef.current = {
+        segment: params.segment,
+        leadId: params.leadId ?? lastMetaRef.current.leadId,
+        sessionId: params.sessionId ?? lastMetaRef.current.sessionId,
+      }
       setChallenge((prev) => ({ ...prev, isSending: true, error: null }))
 
       try {
@@ -185,7 +195,8 @@ export function useLeadPhoneOtp() {
   const submitCode = useCallback(
     async (
       rawPhone: string,
-      overrideCode?: string
+      overrideCode?: string,
+      options?: { leadId?: string | null; sessionId?: string | null }
     ): Promise<{ ok: true; token: string } | { ok: false; message: string }> => {
       const codeToCheck = (overrideCode ?? challenge.code).replace(/\D/g, "")
       if (codeToCheck.length < 6) {
@@ -196,6 +207,8 @@ export function useLeadPhoneOtp() {
 
       setChallenge((prev) => ({ ...prev, isVerifying: true, error: null }))
       try {
+        const resolvedLeadId = options?.leadId ?? lastMetaRef.current.leadId
+        const resolvedSessionId = options?.sessionId ?? lastMetaRef.current.sessionId
         const res = await fetch("/api/leads/phone-otp/verify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -206,6 +219,8 @@ export function useLeadPhoneOtp() {
             channel: challenge.channel,
             lineType: challenge.lineType,
             carrierName: challenge.carrierName,
+            leadId: resolvedLeadId || undefined,
+            sessionId: resolvedSessionId || undefined,
           }),
         })
         const data = (await res.json().catch(() => ({}))) as {
@@ -237,11 +252,58 @@ export function useLeadPhoneOtp() {
     [challenge]
   )
 
+  const executeSoftOtpSubmit = useCallback(
+    async (params: {
+      phone: string
+      segment: "B2B" | "B2C"
+      email?: string
+      firstName?: string
+      lastName?: string
+      postalCode?: string
+      fax_number?: string
+      form_opened_at?: string
+      sessionId?: string
+      saveLead: (cachedToken?: string) => Promise<{ ok: true; leadId: string } | { ok: false }>
+      onComplete: () => void
+    }) => {
+      const cachedToken = getCachedTokenForPhone(params.phone)
+      const saveRes = await params.saveLead(cachedToken)
+      if (!saveRes.ok) return
+
+      if (cachedToken) {
+        params.onComplete()
+        return
+      }
+
+      const otpRes = await sendOtpRequest({
+        phone: params.phone,
+        segment: params.segment,
+        email: params.email,
+        firstName: params.firstName,
+        lastName: params.lastName,
+        postalCode: params.postalCode,
+        fax_number: params.fax_number,
+        form_opened_at: params.form_opened_at,
+        leadId: saveRes.leadId || undefined,
+        sessionId: params.sessionId || undefined,
+      })
+
+      if (otpRes.status === "challenge_started") {
+        return
+      }
+
+      params.onComplete()
+    },
+    [getCachedTokenForPhone, sendOtpRequest]
+  )
+
   return {
     challenge,
     cooldown,
+    getCachedTokenForPhone,
     isPhoneOtpVerifiedFor: (phoneInput: string) => Boolean(getCachedTokenForPhone(phoneInput)),
     sendOtpRequest,
+    executeSoftOtpSubmit,
     setCode,
     submitCode,
     resetOtp,
@@ -255,6 +317,9 @@ export interface PhoneOtpVerificationCardProps {
   onVerify: (codeOverride?: string) => void
   onResend: (channel: "sms" | "call") => void
   onEditPhone: () => void
+  onSkip?: () => void
+  skipLabel?: string
+  savedNotice?: string
   editorial?: boolean
   submitLabel?: string
 }
@@ -266,6 +331,9 @@ export function PhoneOtpVerificationCard({
   onVerify,
   onResend,
   onEditPhone,
+  onSkip,
+  skipLabel = "Continuer sans confirmer par SMS →",
+  savedNotice = "Demande enregistrée · étape optionnelle pour passer en priorité",
   editorial = false,
   submitLabel = "Valider et recevoir mon étude",
 }: PhoneOtpVerificationCardProps) {
@@ -312,7 +380,20 @@ export function PhoneOtpVerificationCard({
               <MessageSquare className="h-4 w-4" />
             )}
           </div>
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-1">
+            {onSkip && (
+              <span
+                className={cn(
+                  "inline-flex w-fit items-center gap-1 rounded px-2 py-0.5 text-[11px] font-semibold",
+                  editorial
+                    ? "bg-[var(--aegis-status-ok-bg)] text-[var(--aegis-status-ok-text)]"
+                    : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20"
+                )}
+              >
+                <CheckCircle2 className="h-3 w-3 shrink-0" />
+                <span>{savedNotice}</span>
+              </span>
+            )}
             <h3 className="text-sm font-bold leading-snug">
               {isCall
                 ? "Appel automatique en cours avec votre code"
@@ -445,6 +526,22 @@ export function PhoneOtpVerificationCard({
             </button>
           )}
         </div>
+
+        {onSkip && (
+          <button
+            type="button"
+            disabled={challenge.isVerifying}
+            onClick={onSkip}
+            className={cn(
+              "mt-1 w-full rounded-lg border py-2 text-center text-xs font-medium transition-colors cursor-pointer disabled:opacity-50",
+              editorial
+                ? "border-[var(--aegis-border)] bg-[var(--aegis-surface)] text-[var(--aegis-muted)] hover:text-[var(--aegis-ink)]"
+                : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary/70"
+            )}
+          >
+            {skipLabel}
+          </button>
+        )}
       </div>
 
       <p

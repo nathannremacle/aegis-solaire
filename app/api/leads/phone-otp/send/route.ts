@@ -37,6 +37,8 @@ export async function POST(request: NextRequest) {
     }
 
     const segment = body.segment === "B2B" ? "B2B" : "B2C"
+    const hasAlreadySavedLead =
+      typeof body.leadId === "string" && body.leadId.trim().length > 0
     const rawPhone = typeof body.phone === "string" ? body.phone.trim() : ""
     const rawEmail = typeof body.email === "string" ? body.email.trim() : ""
     const rawFirstName = typeof body.firstName === "string" ? body.firstName.trim() : ""
@@ -79,8 +81,18 @@ export async function POST(request: NextRequest) {
     const phoneE164 = phoneResolved.e164
 
     // 2. Twilio Lookup v2 (Line Type + SMS Pumping Risk + Attribution opérateur)
-    const lookup = await lookupPhoneNumberTwilio(phoneE164)
+    const lookup = await lookupPhoneNumberTwilio(phoneE164, {
+      allowVoip: segment === "B2B",
+    })
     if (lookup.configured && !lookup.valid && !lookup.transientError) {
+      if (hasAlreadySavedLead) {
+        return NextResponse.json({
+          ok: true,
+          otpRequired: false,
+          normalizedPhone: phoneE164,
+          lookup,
+        })
+      }
       return NextResponse.json(
         {
           error:
@@ -90,7 +102,28 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+    if (
+      lookup.configured &&
+      (lookup.lineType === "voip" || lookup.lineType === "nonFixedVoip") &&
+      hasAlreadySavedLead
+    ) {
+      // Éviter d'envoyer un SMS payant sur une ligne VoIP déjà enregistrée en mode Soft OTP
+      return NextResponse.json({
+        ok: true,
+        otpRequired: false,
+        normalizedPhone: phoneE164,
+        lookup,
+      })
+    }
     if (segment === "B2C" && lookup.configured && lookup.countryCode && lookup.countryCode !== "BE") {
+      if (hasAlreadySavedLead) {
+        return NextResponse.json({
+          ok: true,
+          otpRequired: false,
+          normalizedPhone: phoneE164,
+          lookup,
+        })
+      }
       return NextResponse.json(
         { error: "Un numéro de téléphone belge (+32) est requis en Wallonie." },
         { status: 400 }

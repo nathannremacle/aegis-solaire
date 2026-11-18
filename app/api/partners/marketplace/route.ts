@@ -17,7 +17,7 @@ export async function GET() {
 
   let leads: Array<Record<string, any>> | null = null
   const canonicalSelect =
-    "id, province, city, segment, surface_type, surface_area, annual_electricity_bill, credit_cost, max_slots, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate, estimated_power_kwc, project_timeline, project_details, message, wants_irve, lead_score, first_name, last_name, email, phone, site_address, company, company_vat, postal_code, roof_material, ownership_status, project_driver, timeframe, qualification_metadata"
+    "id, province, city, segment, surface_type, surface_area, annual_electricity_bill, credit_cost, max_slots, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate, estimated_power_kwc, project_timeline, project_details, message, wants_irve, lead_score, first_name, last_name, email, phone, site_address, company, company_vat, postal_code, roof_material, ownership_status, project_driver, timeframe, contact_preference, phone_verified, phone_verification_method, phone_carrier, phone_line_type, email_verified, email_delivery_status, qualification_metadata"
   const legacySelect =
     "id, province, segment, surface_type, surface_area, annual_electricity_bill, credit_cost, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate, project_timeline, project_details, message, wants_irve, lead_score, first_name, last_name, company"
 
@@ -152,6 +152,13 @@ export async function GET() {
       ownershipStatus: lead.ownership_status ?? null,
       projectDriver: lead.project_driver ?? null,
       timeframe: lead.timeframe ?? null,
+      contact_preference: lead.contact_preference ?? null,
+      phone_verified: Boolean(lead.phone_verified),
+      phone_verification_method: lead.phone_verification_method ?? null,
+      phone_carrier: lead.phone_carrier ?? null,
+      phone_line_type: lead.phone_line_type ?? null,
+      email_verified: Boolean(lead.email_verified),
+      email_delivery_status: lead.email_delivery_status ?? null,
       qualificationMetadata: lead.qualification_metadata ?? null,
       qualification_metadata: lead.qualification_metadata ?? null,
       roof_image_url:

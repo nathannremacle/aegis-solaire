@@ -64,6 +64,7 @@ const engine = loadTs("lib/lead-verification-engine.ts")
 const twilioVerify = loadTs("lib/twilio-verify.ts")
 const display = loadTs("lib/lead-verification-display.ts")
 const confirmEmail = loadTs("lib/prospect-confirmation-email.ts")
+const disputesPolicy = loadTs("lib/disputes-policy.ts")
 
 test("Téléphone BE/FR : rejette +32470102030 et toutes les suites/répétitions factices", () => {
   const fakeNumbers = [
@@ -481,4 +482,119 @@ test("Transparence Vérifié vs Plausible vs Aucun badge + Token e-mail 1-clic",
   assert.match(built.html, /\/api\/leads\/verify-email\?id=lead-uuid-1&(?:amp;)?token=/)
   assert.match(built.text, /\/api\/leads\/verify-email\?id=lead-uuid-1&token=/)
 })
+
+test("Soft OTP & Politique de Litiges alignée : non-bloquant à la soumission, délai 24h injoignable, written_first et seuil 8 %", () => {
+  // 1. Contrat Soft OTP : app/api/leads/route.ts ne bloque plus avec requirePhoneOtp: true
+  const leadsApiSrc = fs.readFileSync(
+    path.join(__dirname, "..", "app", "api", "leads", "route.ts"),
+    "utf8"
+  )
+  assert.equal(/requirePhoneOtp:\s*true/.test(leadsApiSrc), false)
+
+  const verifyApiSrc = fs.readFileSync(
+    path.join(__dirname, "..", "app", "api", "leads", "phone-otp", "verify", "route.ts"),
+    "utf8"
+  )
+  assert.match(verifyApiSrc, /phone_verified:\s*true/)
+
+  // 2. Politique de litiges : 24h minimum pour 'unreachable', immédiat pour 'wrong_number' / 'already_equipped'
+  const now = Date.UTC(2026, 10, 18, 12, 0, 0)
+  const twoHoursAgo = new Date(now - 2 * 60 * 60 * 1000).toISOString()
+  const thirtyHoursAgo = new Date(now - 30 * 60 * 60 * 1000).toISOString()
+  const elevenDaysAgo = new Date(now - 11 * 24 * 60 * 60 * 1000).toISOString()
+  const validDetails = "Appelé le 18/11 à 10h, 15h et 19/11 à 11h + SMS envoyé sans réponse."
+
+  const tooEarlyUnreachable = disputesPolicy.checkDisputeEligibility({
+    reason: "unreachable",
+    purchasedAt: twoHoursAgo,
+    nowMs: now,
+    details: validDetails,
+    contactPreference: "written_first",
+    diligenceConfirmed: true,
+  })
+  assert.equal(tooEarlyUnreachable.eligible, false)
+  assert.equal(tooEarlyUnreachable.code, "TOO_EARLY_FOR_UNREACHABLE")
+  assert.equal(tooEarlyUnreachable.remainingHoursForUnreachable, 22)
+  assert.match(tooEarlyUnreachable.error, /Approche écrite d'abord/)
+
+  const immediateWrongNumber = disputesPolicy.checkDisputeEligibility({
+    reason: "wrong_number",
+    purchasedAt: twoHoursAgo,
+    nowMs: now,
+    details: validDetails,
+  })
+  assert.equal(immediateWrongNumber.eligible, true)
+
+  const missingDiligence = disputesPolicy.checkDisputeEligibility({
+    reason: "unreachable",
+    purchasedAt: thirtyHoursAgo,
+    nowMs: now,
+    details: validDetails,
+    contactPreference: "written_first",
+    diligenceConfirmed: false,
+  })
+  assert.equal(missingDiligence.eligible, false)
+  assert.equal(missingDiligence.code, "DILIGENCE_NOT_CONFIRMED")
+
+  const okUnreachable = disputesPolicy.checkDisputeEligibility({
+    reason: "unreachable",
+    purchasedAt: thirtyHoursAgo,
+    nowMs: now,
+    details: validDetails,
+    contactPreference: "written_first",
+    diligenceConfirmed: true,
+  })
+  assert.equal(okUnreachable.eligible, true)
+
+  const expiredWindow = disputesPolicy.checkDisputeEligibility({
+    reason: "wrong_number",
+    purchasedAt: elevenDaysAgo,
+    nowMs: now,
+    details: validDetails,
+  })
+  assert.equal(expiredWindow.eligible, false)
+  assert.equal(expiredWindow.code, "WINDOW_EXPIRED")
+
+  // 3. Calcul anti-abus 30 jours (> 8 % avec >= 2 litiges sur 30j)
+  const stats = disputesPolicy.computePartnerDisputeStats30d({
+    nowMs: now,
+    purchases: [
+      ...Array.from({ length: 10 }, (_, i) => ({
+        partner_id: "p-abuser",
+        purchased_at: new Date(now - (i + 1) * 86400000).toISOString(),
+      })),
+      {
+        partner_id: "p-new-partner",
+        purchased_at: twoHoursAgo,
+      },
+      ...Array.from({ length: 20 }, (_, i) => ({
+        partner_id: "p-clean",
+        purchased_at: new Date(now - (i + 1) * 86400000).toISOString(),
+      })),
+    ],
+    disputes: [
+      { partner_id: "p-abuser", status: "pending", created_at: twoHoursAgo },
+      { partner_id: "p-abuser", status: "approved", created_at: thirtyHoursAgo },
+      // 1 seul achat / 1 litige ne déclenche pas d'alerte fausse sur un nouveau compte
+      { partner_id: "p-new-partner", status: "pending", created_at: twoHoursAgo },
+      // 1/20 = 5% <= 8%
+      { partner_id: "p-clean", status: "approved", created_at: thirtyHoursAgo },
+    ],
+  })
+
+  const abuser = stats.get("p-abuser")
+  assert.equal(abuser.purchases30d, 10)
+  assert.equal(abuser.disputes30d, 2)
+  assert.equal(abuser.disputeRatePct, 20)
+  assert.equal(abuser.exceedsAbuseThreshold, true)
+
+  const newbie = stats.get("p-new-partner")
+  assert.equal(newbie.disputeRatePct, 100)
+  assert.equal(newbie.exceedsAbuseThreshold, false)
+
+  const clean = stats.get("p-clean")
+  assert.equal(clean.disputeRatePct, 5)
+  assert.equal(clean.exceedsAbuseThreshold, false)
+})
+
 

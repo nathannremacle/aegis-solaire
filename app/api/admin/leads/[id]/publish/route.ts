@@ -25,7 +25,7 @@ export async function POST(
   const { data: leadToPublish, error: fetchError } = await admin
     .from("leads")
     .select(
-      "id, province, postal_code, city, site_address, surface_area, surface_type, annual_electricity_bill, segment, first_name, last_name, email, phone, company, company_vat, ownership_status, qualification_metadata"
+      "id, province, postal_code, city, site_address, surface_area, surface_type, annual_electricity_bill, segment, first_name, last_name, email, email_delivery_status, phone, company, company_vat, ownership_status, qualification_metadata"
     )
     .eq("id", id)
     .single()

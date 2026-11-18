@@ -41,63 +41,13 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import type { AdminDisputeRecord } from "@/lib/admin/disputes-data"
+import {
+  DISPUTE_ABUSE_THRESHOLD_PERCENT,
+  getDisputeReasonConfig,
+} from "@/lib/disputes-policy"
 
-export type DisputeItem = {
-  id: string
-  purchase_id: string
-  lead_id: string
-  partner_id: string
-  reason: "unreachable" | "wrong_number" | "out_of_scope" | "already_equipped" | "other"
-  details: string
-  status: "pending" | "approved" | "rejected"
-  admin_notes?: string | null
-  credits_refunded: number
-  created_at: string
-  resolved_at?: string | null
-  partners?: {
-    id: string
-    company_name: string
-    email: string
-    phone?: string | null
-  } | null
-  leads?: {
-    id: string
-    first_name: string
-    last_name?: string
-    company?: string
-    segment: string
-    province?: string
-    surface_type?: string
-    surface_area?: number
-  } | null
-  lead_purchases?: {
-    credits_spent: number
-    purchased_at?: string
-  } | null
-}
-
-const REASON_LABELS: Record<string, { label: string; description: string }> = {
-  unreachable: {
-    label: "Injoignable (> 5 tentatives)",
-    description: "Le prospect ne répond à aucun appel ni SMS",
-  },
-  wrong_number: {
-    label: "Numéro erroné / invalide",
-    description: "Le numéro de téléphone attribué n'existe pas ou est faux",
-  },
-  out_of_scope: {
-    label: "Hors zone géographique",
-    description: "Adresse située hors de la zone d'intervention convenue",
-  },
-  already_equipped: {
-    label: "Déjà équipé / Signé",
-    description: "Le client a déjà installé ou signé avec un concurrent",
-  },
-  other: {
-    label: "Autre motif",
-    description: "Motif circonstancié détaillé par le partenaire",
-  },
-}
+export type DisputeItem = AdminDisputeRecord
 
 interface DisputesClientProps {
   initialDisputes: DisputeItem[]
@@ -297,7 +247,7 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-3">
             <h1 className="font-heading text-xl font-semibold tracking-tight text-foreground">
-              Arbitrage des Litiges &amp; Garantie Qualité 48h
+              Arbitrage des Litiges &amp; Garantie Lead (SLA 24 h)
             </h1>
             <span className="font-mono text-xs tabular-nums text-muted-foreground bg-secondary px-2 py-0.5 rounded-sm border border-border">
               {disputes.length} réclamations
@@ -514,10 +464,8 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
                 const isPending = dispute.status === "pending"
                 const isApproved = dispute.status === "approved"
                 const isRejected = dispute.status === "rejected"
-                const reasonMeta = REASON_LABELS[dispute.reason] || {
-                  label: dispute.reason,
-                  description: "",
-                }
+                const reasonMeta = getDisputeReasonConfig(dispute.reason)
+                const stats30d = dispute.partnerStats30d
 
                 return (
                   <TableRow
@@ -549,6 +497,22 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
                         <span className="text-[11px] text-muted-foreground truncate pl-5">
                           {dispute.partners?.email || "—"}
                         </span>
+                        {stats30d && stats30d.purchases30d > 0 && (
+                          <div className="pl-5 pt-0.5 flex flex-wrap items-center gap-1.5">
+                            <span
+                              className={cn(
+                                "inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[10px] tabular-nums font-medium border",
+                                stats30d.exceedsAbuseThreshold
+                                  ? "bg-destructive/10 text-destructive border-destructive/30 font-semibold"
+                                  : "bg-secondary text-muted-foreground border-border"
+                              )}
+                              title={`Taux de litiges sur 30 jours glissants (seuil CGV Art. 5.6 : ${DISPUTE_ABUSE_THRESHOLD_PERCENT} %)`}
+                            >
+                              30j : {stats30d.disputes30d}/{stats30d.purchases30d} ({stats30d.disputeRatePct}%)
+                              {stats30d.exceedsAbuseThreshold ? ` · >${DISPUTE_ABUSE_THRESHOLD_PERCENT}%` : ""}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </TableCell>
 
@@ -571,15 +535,34 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
                         <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
                           {dispute.leads?.segment || "B2C"} · {dispute.leads?.province || "Wallonie"}
                         </span>
+                        {dispute.leads && (
+                          <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                            <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground border border-border">
+                              {dispute.leads.contact_preference === "direct_call"
+                                ? "Appel direct"
+                                : "Écrit d'abord"}
+                            </span>
+                            {dispute.leads.phone_verified && (
+                              <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary border border-primary/20 font-medium">
+                                Tél OTP
+                              </span>
+                            )}
+                            {dispute.leads.email_verified && (
+                              <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary border border-primary/20 font-medium">
+                                Mail OK
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </TableCell>
 
                     {/* Motif */}
                     <TableCell>
                       <div className="flex flex-col gap-0.5">
-                        <span className="font-medium text-foreground">{reasonMeta.label}</span>
+                        <span className="font-medium text-foreground">{reasonMeta.adminLabel}</span>
                         <span className="text-[10px] text-muted-foreground leading-tight">
-                          {reasonMeta.description}
+                          {reasonMeta.adminDescription}
                         </span>
                       </div>
                     </TableCell>
@@ -689,7 +672,7 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
               <span>Approuver le litige &amp; Rembourser</span>
             </DialogTitle>
             <DialogDescription>
-              Cette décision recréditera instantanément le compte de l&apos;installateur au titre de la Garantie 48h.
+              Cette décision recréditera instantanément le compte de l&apos;installateur au titre de la Garantie Lead (Art. 5 CGV).
             </DialogDescription>
           </DialogHeader>
 
@@ -705,7 +688,7 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Motif invoqué :</span>
                   <span className="font-medium text-foreground">
-                    {REASON_LABELS[selectedDisputeToApprove.reason]?.label || selectedDisputeToApprove.reason}
+                    {getDisputeReasonConfig(selectedDisputeToApprove.reason).adminLabel}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -779,7 +762,7 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Motif invoqué :</span>
                   <span className="font-medium text-foreground">
-                    {REASON_LABELS[selectedDisputeToReject.reason]?.label}
+                    {getDisputeReasonConfig(selectedDisputeToReject.reason).adminLabel}
                   </span>
                 </div>
               </div>

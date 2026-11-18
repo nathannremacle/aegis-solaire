@@ -587,7 +587,9 @@ export function DevisLandingClient() {
     hasEv: false,
   })
 
-  const submitFinalLead = async (phoneVerificationToken?: string) => {
+  const submitFinalLead = async (
+    phoneVerificationToken?: string
+  ): Promise<{ ok: true; leadId: string } | { ok: false }> => {
     setIsSubmitting(true)
     setErrorMessage(null)
 
@@ -664,7 +666,7 @@ export function DevisLandingClient() {
       }
 
       const resData = await res.json().catch(() => ({}))
-      if (ownership === "proprietaire") {
+      if (ownership === "proprietaire" && !resData?.alreadyTracked) {
         trackLeadConversion({
           segment: "B2C",
           leadId: resData?.leadId,
@@ -674,13 +676,18 @@ export function DevisLandingClient() {
       try {
         sessionStorage.removeItem("aegis_funnel_saved_state")
       } catch {}
-      setSubmitted(true)
-      window.scrollTo({ top: 0, behavior: "smooth" })
+      return { ok: true, leadId: String(resData?.leadId || "") }
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "Une erreur est survenue")
+      return { ok: false }
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const finishSubmissionSuccess = () => {
+    setSubmitted(true)
+    window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -699,13 +706,12 @@ export function DevisLandingClient() {
     }
 
     setErrorMessage(null)
-    setIsSubmitting(true)
 
     const parts = fullName.trim() ? fullName.trim().split(/\s+/) : [firstName.trim(), lastName.trim()]
     const finalFirstName = parts[0] || firstName.trim() || "Particulier"
     const finalLastName = parts.slice(1).join(" ") || lastName.trim() || "Wallonie"
 
-    const otpRes = await phoneOtp.sendOtpRequest({
+    await phoneOtp.executeSoftOtpSubmit({
       phone: phoneValidation.normalized,
       segment: "B2C",
       email: email.trim().toLowerCase(),
@@ -714,20 +720,10 @@ export function DevisLandingClient() {
       postalCode: postalCode.trim(),
       fax_number,
       form_opened_at: formOpenedAt.current,
+      sessionId: sessionIdRef.current,
+      saveLead: submitFinalLead,
+      onComplete: finishSubmissionSuccess,
     })
-
-    if (otpRes.status === "error") {
-      setErrorMessage(otpRes.message)
-      setIsSubmitting(false)
-      return
-    }
-
-    if (otpRes.status === "challenge_started") {
-      setIsSubmitting(false)
-      return
-    }
-
-    await submitFinalLead(otpRes.status === "verified_cached" ? otpRes.token : undefined)
   }
 
   const progressPercent = Math.round((step / totalSteps) * 100)
@@ -1265,7 +1261,7 @@ export function DevisLandingClient() {
                                   codeOverride
                                 )
                                 if (check.ok) {
-                                  await submitFinalLead(check.token)
+                                  finishSubmissionSuccess()
                                 }
                               }}
                               onResend={async (channel) => {
@@ -1282,11 +1278,16 @@ export function DevisLandingClient() {
                                   channel,
                                   fax_number,
                                   form_opened_at: formOpenedAt.current,
+                                  sessionId: sessionIdRef.current,
                                 })
                               }}
                               onEditPhone={phoneOtp.resetOtp}
+                              onSkip={() => {
+                                phoneOtp.resetOtp()
+                                finishSubmissionSuccess()
+                              }}
                               editorial
-                              submitLabel="Valider et obtenir mes 3 devis"
+                              submitLabel="Confirmer et finaliser en priorité"
                             />
                           ) : (
                             <>

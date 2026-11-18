@@ -1352,7 +1352,7 @@ function CrmPortfolioCard({
             <span>Expert</span>
           </button>
 
-          {/* Litige 24h */}
+          {/* Litige Garantie Lead */}
           <button
             type="button"
             onClick={onOpenDispute}
@@ -1361,7 +1361,7 @@ function CrmPortfolioCard({
             title={
               item.dispute_id
                 ? "Réclamation déjà enregistrée pour ce dossier"
-                : "Signaler un numéro invalide ou faux lead sous 24h"
+                : "Signaler un litige ou demander un recrédit (sous 7 j ouvrés)"
             }
           >
             <ShieldAlert className="h-3.5 w-3.5" />
@@ -1371,8 +1371,8 @@ function CrmPortfolioCard({
                 : item.dispute_status === "rejected"
                   ? "Clôturé"
                   : item.dispute_id
-                    ? "Litige"
-                    : "24h"}
+                    ? "En cours"
+                    : "Litige"}
             </span>
           </button>
         </div>
