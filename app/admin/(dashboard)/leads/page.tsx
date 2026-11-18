@@ -37,11 +37,17 @@ async function getLeadCounts() {
       ? `marketplace_status.eq.sold_out,status.eq.converted,id.in.(${partialPurchasedIds.join(",")})`
       : "marketplace_status.eq.sold_out,status.eq.converted"
 
-  const [triageRes, marketplaceRes, soldOutRes, totalRes] = await Promise.all([
+  const [triageRes, pausedRes, marketplaceRes, soldOutRes, totalRes] = await Promise.all([
     supabase
       .from("leads")
       .select("id", { count: "exact", head: true })
-      .or("status.eq.NEEDS_HUMAN_REVIEW,marketplace_status.eq.pending_review,status.eq.new"),
+      .or("status.eq.NEEDS_HUMAN_REVIEW,marketplace_status.eq.pending_review,status.eq.new")
+      .or("qualification_metadata->>withdrawn_from_marketplace.is.null,qualification_metadata->>withdrawn_from_marketplace.neq.true"),
+    supabase
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .eq("marketplace_status", "pending_review")
+      .eq("qualification_metadata->>withdrawn_from_marketplace", "true"),
     supabase
       .from("leads")
       .select("id", { count: "exact", head: true })
@@ -57,6 +63,7 @@ async function getLeadCounts() {
 
   return {
     triage: triageRes.count ?? 0,
+    paused: pausedRes.count ?? 0,
     marketplace: marketplaceRes.count ?? 0,
     assigned: soldOutRes.count ?? 0,
     total: totalRes.count ?? 0,
@@ -107,10 +114,17 @@ async function getLeads(
         { count: "exact" }
       )
 
-    // Vues principales : Triage, Marketplace live, Attribués / Vendus, ou Tous
+    // Vues principales : Triage, En pause, Marketplace live, Attribués / Vendus, ou Tous
     if (view === "triage") {
-      q = q.or("status.eq.NEEDS_HUMAN_REVIEW,marketplace_status.eq.pending_review,status.eq.new")
+      q = q
+        .or("status.eq.NEEDS_HUMAN_REVIEW,marketplace_status.eq.pending_review,status.eq.new")
+        .or("qualification_metadata->>withdrawn_from_marketplace.is.null,qualification_metadata->>withdrawn_from_marketplace.neq.true")
       q = q.order("created_at", { ascending: true })
+    } else if (view === "paused") {
+      q = q
+        .eq("marketplace_status", "pending_review")
+        .eq("qualification_metadata->>withdrawn_from_marketplace", "true")
+      q = q.order("updated_at", { ascending: false })
     } else if (view === "marketplace") {
       q = q.eq("marketplace_status", "available")
       q = q.order("created_at", { ascending: false })

@@ -23,6 +23,7 @@ export type AdminDashboardData = {
     available_credits_pool: number
     sold_out_count: number
     pending_review_count: number
+    paused_count?: number
     status_new_count: number
     status_qualified_count: number
     publishable_pool_count: number
@@ -191,7 +192,7 @@ async function fetchAdminKpisRaw(): Promise<AdminDashboardData> {
   ] = await Promise.all([
     supabase.from("leads").select("id, created_at, segment, status, marketplace_status, credit_cost"),
     supabase.from("leads").select("id, first_name, last_name, company, postal_code, city, province, credit_cost, segment, surface_area, annual_electricity_bill, status, marketplace_status, qualification_metadata, created_at").eq("marketplace_status", "available").order("created_at", { ascending: false }).limit(20),
-    supabase.from("leads").select("id, created_at, first_name, last_name, company, segment, province, city, postal_code, surface_area, annual_electricity_bill, lead_score, status, marketplace_status, credit_cost, qualification_metadata").or("marketplace_status.eq.pending_review,status.eq.NEEDS_HUMAN_REVIEW").order("created_at", { ascending: false }).limit(10),
+    supabase.from("leads").select("id, created_at, first_name, last_name, company, segment, province, city, postal_code, surface_area, annual_electricity_bill, lead_score, status, marketplace_status, credit_cost, qualification_metadata").or("marketplace_status.eq.pending_review,status.eq.NEEDS_HUMAN_REVIEW").or("qualification_metadata->>withdrawn_from_marketplace.is.null,qualification_metadata->>withdrawn_from_marketplace.neq.true").order("created_at", { ascending: false }).limit(10),
     supabase.from("leads").select("id, created_at, first_name, last_name, email, phone, company, segment, province, city, postal_code, status, marketplace_status, credit_cost, lead_score, media_partner_code, surface_type, surface_area, estimated_roi_years, qualification_metadata").order("created_at", { ascending: false }).limit(15),
     supabase.from("installer_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("media_partner_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),

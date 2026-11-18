@@ -124,6 +124,7 @@ export function LeadsTable({
   currentLeadFromList?: LeadDetail | null
   tabCounts?: {
     triage: number
+    paused?: number
     marketplace: number
     assigned: number
     total: number
@@ -280,8 +281,8 @@ export function LeadsTable({
     const shouldHideFromCurrentView =
       action === "rejected" ||
       action === "archived" ||
-      (action === "qualified" && view === "triage") ||
-      (action === "unpublished" && view === "marketplace")
+      (action === "qualified" && (view === "triage" || view === "paused")) ||
+      (action === "unpublished" && (view === "marketplace" || view === "triage"))
 
     if (action === "qualified") {
       setLocalStatusMap((prev) => ({
@@ -524,11 +525,13 @@ export function LeadsTable({
           <h1 className="font-heading text-xl font-semibold tracking-tight text-foreground">
             {currentView === "triage"
               ? "File de Triage des Leads"
-              : currentView === "marketplace"
-                ? "Vivier Marketplace Live"
-                : currentView === "assigned"
-                  ? "Leads Attribués & Vendus"
-                  : "Contrôle des Leads"}
+              : currentView === "paused"
+                ? "Dossiers en Pause (Hors Marketplace)"
+                : currentView === "marketplace"
+                  ? "Vivier Marketplace Live"
+                  : currentView === "assigned"
+                    ? "Leads Attribués & Vendus"
+                    : "Contrôle des Leads"}
           </h1>
           <span className="font-mono text-xs tabular-nums text-muted-foreground bg-secondary px-2 py-0.5 rounded-sm border border-border">
             {currentTotal} lead{currentTotal > 1 ? "s" : ""}
@@ -562,6 +565,34 @@ export function LeadsTable({
                   )}
                 >
                   {tabCounts.triage}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => applyFilters({ view: "paused", page: 1 })}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1 rounded-sm font-medium transition-colors",
+                currentView === "paused"
+                  ? "bg-primary text-primary-foreground font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <PauseCircle className="h-3.5 w-3.5" />
+              <span>En pause</span>
+              {tabCounts?.paused !== undefined && (
+                <span
+                  className={cn(
+                    "font-mono text-[10px] tabular-nums px-1.5 py-0.2 rounded-full",
+                    currentView === "paused"
+                      ? "bg-primary-foreground/20 text-primary-foreground"
+                      : tabCounts.paused > 0
+                        ? "bg-secondary text-foreground font-semibold"
+                        : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {tabCounts.paused}
                 </span>
               )}
             </button>

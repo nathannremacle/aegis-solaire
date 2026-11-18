@@ -45,7 +45,11 @@ export async function GET() {
   ] = await Promise.all([
     supabase.from("installer_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("media_partner_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
-    supabase.from("leads").select("*", { count: "exact", head: true }).or("marketplace_status.eq.pending_review,status.eq.NEEDS_HUMAN_REVIEW"),
+    supabase
+      .from("leads")
+      .select("*", { count: "exact", head: true })
+      .or("marketplace_status.eq.pending_review,status.eq.NEEDS_HUMAN_REVIEW")
+      .or("qualification_metadata->>withdrawn_from_marketplace.is.null,qualification_metadata->>withdrawn_from_marketplace.neq.true"),
     supabase.from("credit_orders").select("*", { count: "exact", head: true }).eq("status", "pending"),
     // Garantir qu'un litige n'est comptabilisé que si son lead existe toujours
     supabase.from("lead_disputes").select("id, leads!inner(id)").eq("status", "pending"),
