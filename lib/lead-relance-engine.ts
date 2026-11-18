@@ -35,7 +35,40 @@ export const MAX_SLOTS_B2B = 1 // Exclusivité 100%
 /** Cooldowns resserrés intra-journée (Cascade Flash via Cron 15 min) */
 export const COOLDOWN_WAVE_1_TO_2_MS = 90 * 60 * 1000 // 90 minutes après Vague 1
 export const COOLDOWN_WAVE_2_TO_3_MS = 210 * 60 * 1000 // +3h30 après Vague 2 (soit ~H+5h)
-export const STALE_PROTOCOL_AGE_MS = 48 * 60 * 60 * 1000 // Protocole H+48h Zéro Déchet
+export const RECONFIRM_PROTOCOL_AGE_MS = 48 * 60 * 60 * 1000 // Reconfirmation prospect 1-clic à H+48h si 0 achat
+export const STALE_PARTIAL_CLOSE_AGE_MS = 168 * 60 * 60 * 1000 // 7 jours avant clôture d'un B2C partiel (1/3 ou 2/3)
+export const STALE_PARTIAL_LAST_BUY_GRACE_MS = 48 * 60 * 60 * 1000 // Délai de grâce 48 h après le dernier achat réel
+
+export interface PartialCloseCheckInput {
+  segment?: string | null
+  createdAtMs: number
+  reconfirmedAtMs?: number | null
+  takenSlots: number
+  maxSlots: number
+  lastPurchaseAtMs?: number | null
+  nowMs?: number
+}
+
+/**
+ * Détermine si un dossier B2C partiellement vendu (1/3 ou 2/3) doit être clôturé proprement.
+ * Exige >= 7 jours d'ancienneté (depuis création ou reconfirmation) ET >= 48 h de calme depuis le dernier achat.
+ */
+export function shouldAutoClosePartialLead(input: PartialCloseCheckInput): boolean {
+  if ((input.segment || "").toUpperCase() !== "B2C") return false
+  if (input.takenSlots < 1 || input.takenSlots >= input.maxSlots) return false
+
+  const now = input.nowMs ?? Date.now()
+  const referenceStartMs = Math.max(input.createdAtMs, input.reconfirmedAtMs ?? 0)
+  if (!Number.isFinite(referenceStartMs) || now - referenceStartMs < STALE_PARTIAL_CLOSE_AGE_MS) {
+    return false
+  }
+
+  if (input.lastPurchaseAtMs && now - input.lastPurchaseAtMs < STALE_PARTIAL_LAST_BUY_GRACE_MS) {
+    return false
+  }
+
+  return true
+}
 
 /** Limites anti-spam par installateur */
 export const MAX_NOTIFICATIONS_PER_LEAD_PER_PARTNER = 2 // Max 2 relances pour un même dossier
@@ -1257,22 +1290,48 @@ export async function processPendingLeadRelances(): Promise<CronRelanceSummary> 
     }
   }
 
-  // Batch-fetch achats réels pour le Protocole H+48h (zéro N+1)
+  // Batch-fetch achats réels et historique des vagues (zéro N+1)
   const leadIds = availableLeads.map((l) => l.id)
   const realTakenByLead = new Map<string, number>()
-  try {
-    const { data: purchaseRows } = await supabase
-      .from("lead_purchases")
-      .select("lead_id, partners(is_test, company_name)")
-      .in("lead_id", leadIds)
+  const lastRealBuyAtByLead = new Map<string, number>()
+  const maxDispatchedWaveByLead = new Map<string, number>()
+  const lastDispatchAtByLead = new Map<string, number>()
 
-    for (const row of (purchaseRows as any[]) || []) {
+  try {
+    const [purchaseRes, dispatchRes] = await Promise.all([
+      supabase
+        .from("lead_purchases")
+        .select("lead_id, purchased_at, partners(is_test, company_name)")
+        .in("lead_id", leadIds),
+      supabase
+        .from("lead_relance_dispatches")
+        .select("lead_id, wave_number, sent_at")
+        .in("lead_id", leadIds)
+        .in("wave_number", [1, 2, 3]),
+    ])
+
+    for (const row of (purchaseRes.data as any[]) || []) {
       const pRel = Array.isArray(row.partners) ? row.partners[0] : row.partners
       const isTest =
         pRel?.is_test === true ||
         (typeof pRel?.company_name === "string" && pRel.company_name.toLowerCase().includes("test"))
       if (!isTest) {
         realTakenByLead.set(row.lead_id, (realTakenByLead.get(row.lead_id) || 0) + 1)
+        const buyTs = row.purchased_at ? new Date(row.purchased_at).getTime() : 0
+        if (buyTs > (lastRealBuyAtByLead.get(row.lead_id) || 0)) {
+          lastRealBuyAtByLead.set(row.lead_id, buyTs)
+        }
+      }
+    }
+
+    for (const row of (dispatchRes.data as any[]) || []) {
+      const wave = Number(row.wave_number) || 0
+      if (wave > (maxDispatchedWaveByLead.get(row.lead_id) || 0)) {
+        maxDispatchedWaveByLead.set(row.lead_id, wave)
+      }
+      const sentTs = row.sent_at ? new Date(row.sent_at).getTime() : 0
+      if (sentTs > (lastDispatchAtByLead.get(row.lead_id) || 0)) {
+        lastDispatchAtByLead.set(row.lead_id, sentTs)
       }
     }
   } catch {
@@ -1292,26 +1351,39 @@ export async function processPendingLeadRelances(): Promise<CronRelanceSummary> 
         : lead.segment === "B2B"
           ? MAX_SLOTS_B2B
           : MAX_SLOTS_B2C
-    const createdAgeMs = now - new Date(lead.created_at).getTime()
+    const createdAtMs = new Date(lead.created_at).getTime()
+    const createdAgeMs = now - createdAtMs
+    const reconfirmedAtMs = lead.reconfirmed_at ? new Date(lead.reconfirmed_at).getTime() : null
+    const lastRealBuyAtMs = lastRealBuyAtByLead.get(lead.id) || null
 
-    // Protocole H+48h "Zéro Déchet, Zéro Braderie"
-    if (createdAgeMs >= STALE_PROTOCOL_AGE_MS) {
-      if (lead.segment === "B2C" && takenSlots >= 1 && takenSlots < maxSlots) {
-        // B2C déjà vendu >= 1 fois à H+48h -> clôture propre pour préserver la valeur du(des) 1er(s) acheteur(s)
-        const { error: closeErr } = await supabase
-          .from("leads")
-          .update({
-            marketplace_status: "sold_out",
-            stale_closed_at: nowIso,
-          })
-          .eq("id", lead.id)
-        if (closeErr && (closeErr.code === "42703" || closeErr.message?.includes("stale_closed_at"))) {
-          await supabase.from("leads").update({ marketplace_status: "sold_out" }).eq("id", lead.id)
-        }
-        autoClosedStalePartialCount++
-        continue
+    // 1. Clôture douce des B2C partiels uniquement après 7 jours ET >= 48 h de calme depuis le dernier achat
+    if (
+      shouldAutoClosePartialLead({
+        segment: lead.segment,
+        createdAtMs,
+        reconfirmedAtMs,
+        takenSlots,
+        maxSlots,
+        lastPurchaseAtMs: lastRealBuyAtMs,
+        nowMs: now,
+      })
+    ) {
+      const { error: closeErr } = await supabase
+        .from("leads")
+        .update({
+          marketplace_status: "sold_out",
+          stale_closed_at: nowIso,
+        })
+        .eq("id", lead.id)
+      if (closeErr && (closeErr.code === "42703" || closeErr.message?.includes("stale_closed_at"))) {
+        await supabase.from("leads").update({ marketplace_status: "sold_out" }).eq("id", lead.id)
       }
+      autoClosedStalePartialCount++
+      continue
+    }
 
+    // 2. À H+48h sans aucun achat (0/3), envoyer l'e-mail de reconfirmation prospect en 1 clic
+    if (createdAgeMs >= RECONFIRM_PROTOCOL_AGE_MS) {
       const meta =
         lead.qualification_metadata && typeof lead.qualification_metadata === "object"
           ? (lead.qualification_metadata as Record<string, unknown>)
@@ -1347,10 +1419,15 @@ export async function processPendingLeadRelances(): Promise<CronRelanceSummary> 
       }
     }
 
-    const currentWave = Number(lead.relance_wave) || 0
-    const lastRelanceTime = lead.last_relance_at
-      ? new Date(lead.last_relance_at).getTime()
-      : new Date(lead.created_at).getTime()
+    const currentWave = Math.max(
+      Number(lead.relance_wave) || 0,
+      maxDispatchedWaveByLead.get(lead.id) || 0
+    )
+    const lastRelanceTime = Math.max(
+      lead.last_relance_at ? new Date(lead.last_relance_at).getTime() : 0,
+      lastDispatchAtByLead.get(lead.id) || 0,
+      createdAtMs
+    )
 
     const elapsed = now - lastRelanceTime
 

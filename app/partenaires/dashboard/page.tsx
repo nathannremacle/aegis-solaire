@@ -330,11 +330,39 @@ async function PartnerDashboardLoader({
     }
   }
 
+  // 4. Charger les derniers dossiers récemment attribués (sold_out) pour preuve sociale vitrine
+  let initialRecentlyClosedLeads: any[] = []
+  try {
+    const purchasedSet = new Set(
+      (initialPortfolio || []).map((p: any) => p.id || p.lead_id).filter(Boolean)
+    )
+    const { data: closedRows } = await admin
+      .from("leads")
+      .select(
+        "id, segment, province, city, postal_code, surface_type, surface_area, surface_area_m2, annual_electricity_bill, annual_bill_eur, estimated_power_kwc, credit_cost, max_slots, marketplace_status, created_at, qualification_metadata"
+      )
+      .eq("marketplace_status", "sold_out")
+      .order("created_at", { ascending: false })
+      .limit(12)
+
+    initialRecentlyClosedLeads = (closedRows ?? [])
+      .filter(
+        (l: any) =>
+          !purchasedSet.has(l.id) &&
+          !isShowcaseOnlyLeadId(l.id) &&
+          l.qualification_metadata?.is_showcase !== true
+      )
+      .slice(0, 6)
+  } catch (closedErr) {
+    console.warn("[partner-dashboard] recently closed leads fallback:", closedErr)
+  }
+
   return (
     <PartnerDashboardShell
       initialPartner={initialPartner}
       initialMarketplace={initialMarketplace}
       initialPortfolio={initialPortfolio}
+      initialRecentlyClosedLeads={initialRecentlyClosedLeads}
       targetLeadId={targetLeadId ?? undefined}
       targetedClosedLead={targetedClosedLead ?? undefined}
       initialCheckoutDirect={initialCheckoutDirect}

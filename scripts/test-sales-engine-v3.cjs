@@ -24,6 +24,7 @@ function loadTs(relPath, mocks = {}) {
     process: { env: { ...process.env } },
     Buffer,
     URL,
+    URLSearchParams,
     require: (name) => {
       if (Object.hasOwn(mocks, name)) return mocks[name]
       if (name.endsWith(".json")) {
@@ -250,4 +251,131 @@ test("Prospect exclusive reassurance, reconfirm token, and platform update annou
   assert.match(announcement.html, /font-variant-numeric: tabular-nums;">0\/3<\/span>/)
   // Legal footer only
   assert.match(announcement.text, /INIT42 \(Nathan Remacle\)/)
+})
+
+test("Partial lead closure rule (7j + 48h grace) & RESCERT outreach invite template", () => {
+  const noop = () => ({})
+  const engine = loadTs("lib/lead-relance-engine.ts", {
+    react: { cache: (fn) => fn },
+    resend: { Resend: class {} },
+    "@/lib/supabase/admin": { createServiceRoleClient: noop },
+    "@/lib/marketplace-pricing": { calculateMarketplaceFinancials: noop, calculateLeadCreditCost: () => 3 },
+    "@/lib/email-templates/installer-lead-teaser": { renderInstallerLeadTeaserEmail: noop, buildLeadEmailSubject: () => "" },
+    "@/lib/belgium-regions": { getProvinceDisplayLabel: (p) => p },
+    "@/lib/partner-notification-prefs": {
+      doesSurfaceMatchPreference: () => true,
+      getEffectivePartnerSegment: () => "BOTH",
+      getPartnerNotificationMode: () => "all",
+      OPTOUT_ALL_MARKER: "",
+      OPTOUT_RELANCES_MARKER: "",
+    },
+    "@/lib/partner-notification-tokens": { buildPartnerNotificationUrls: noop },
+    "@/lib/credit-pricing": { B2C_EXCLUSIVE_CREDIT_COST: 7, calculateOrderFinancials: noop },
+    "@/lib/mollie": { createRecurringLeadPayment: noop, getMollieClient: noop, getValidMollieMandate: noop },
+    "@/lib/mollie-fulfillment": { fulfillPaidLeadDirectPurchase: noop },
+    "@/lib/notify-installateur": { sendLeadAssignedEmail: noop },
+    "@/lib/admin-sales-emails": { sendAdminLeadSaleNotification: noop },
+    "@/lib/prospect-exclusive-match-email": { sendProspectExclusiveMatchEmail: noop },
+    "@/lib/prospect-reconfirm-email": { sendProspectReconfirmEmail: noop },
+  })
+
+  const DAY_MS = 24 * 60 * 60 * 1000
+  const HOUR_MS = 60 * 60 * 1000
+  const now = 1_795_000_000_000
+
+  // 49h après création (< 7 jours) -> NE PAS fermer
+  assert.equal(
+    engine.shouldAutoClosePartialLead({
+      segment: "B2C",
+      createdAtMs: now - 49 * HOUR_MS,
+      takenSlots: 2,
+      maxSlots: 3,
+      lastPurchaseAtMs: now - 2 * HOUR_MS,
+      nowMs: now,
+    }),
+    false
+  )
+
+  // >= 7 jours mais dernier achat il y a 10h (< 48h grâce) -> NE PAS fermer
+  assert.equal(
+    engine.shouldAutoClosePartialLead({
+      segment: "B2C",
+      createdAtMs: now - 8 * DAY_MS,
+      takenSlots: 2,
+      maxSlots: 3,
+      lastPurchaseAtMs: now - 10 * HOUR_MS,
+      nowMs: now,
+    }),
+    false
+  )
+
+  // >= 7 jours ET dernier achat il y a 50h (>= 48h grâce) -> fermer proprement
+  assert.equal(
+    engine.shouldAutoClosePartialLead({
+      segment: "B2C",
+      createdAtMs: now - 8 * DAY_MS,
+      takenSlots: 1,
+      maxSlots: 3,
+      lastPurchaseAtMs: now - 50 * HOUR_MS,
+      nowMs: now,
+    }),
+    true
+  )
+
+  // Reconfirmation repousse le point de départ : créé il y a 9 jours, reconfirmé il y a 3 jours -> NE PAS fermer
+  assert.equal(
+    engine.shouldAutoClosePartialLead({
+      segment: "B2C",
+      createdAtMs: now - 9 * DAY_MS,
+      reconfirmedAtMs: now - 3 * DAY_MS,
+      takenSlots: 1,
+      maxSlots: 3,
+      lastPurchaseAtMs: now - 3 * DAY_MS,
+      nowMs: now,
+    }),
+    false
+  )
+
+  const optoutMod = loadTs("lib/rescert-optout-tokens.ts")
+  const optToken = optoutMod.createRescertOptoutToken("Contact@SolarTest.be")
+  assert.equal(optoutMod.verifyRescertOptoutToken("contact@solartest.be", optToken), true)
+  assert.equal(optoutMod.verifyRescertOptoutToken("autre@solartest.be", optToken), false)
+
+  const waveMod = loadTs("lib/email-templates/rescert-wave-invite.ts", {
+    "@/lib/rescert-optout-tokens": optoutMod,
+  })
+  const inviteEmail = waveMod.buildRescertWaveInviteEmail({
+    companyName: "Solar Liège SRL",
+    certifiedPerson: "Laurent",
+    email: "laurent@solarliege.be",
+    phone: "+32477001122",
+    postalCode: "4000",
+    city: "Liège",
+    provinceKey: "liege",
+    provinceLabel: "Liège",
+    totalOpenWalloniaCount: 6,
+    provinceOpenCount: 2,
+    sampleLead: {
+      id: "98c09b29-675c-4000-9a81-3c6c5351eb6b",
+      city: "Bovenistier",
+      postalCode: "4300",
+      provinceLabel: "Liège",
+      surfaceAreaM2: 65,
+      estimatedPowerKwc: 6.1,
+      annualBillEur: 2300,
+      creditCost: 3,
+    },
+  })
+
+  assert.match(inviteEmail.subject, /Solar Liège SRL/)
+  assert.match(inviteEmail.html, /Bovenistier/)
+  assert.match(inviteEmail.html, /#142D42/)
+  assert.match(inviteEmail.html, /#4D6374/)
+  assert.match(inviteEmail.html, /font-size: 18px; line-height: 1\.25;/)
+  assert.equal(/#314b5f/i.test(inviteEmail.html), false)
+  assert.equal(/<code>/i.test(inviteEmail.html), false)
+  assert.equal(/Fabrice Remacle/i.test(inviteEmail.html), false)
+  assert.match(inviteEmail.inviteUrl, /\/partenaires\/invitation\?/)
+  assert.match(inviteEmail.inviteUrl, /leadId=98c09b29/)
+  assert.match(inviteEmail.optoutUrl, /\/api\/partners\/rescert-optout\?/)
 })

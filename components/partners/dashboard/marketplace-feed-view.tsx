@@ -78,6 +78,7 @@ import { trackPartnerActivity } from "@/lib/client/partner-tracker"
 
 interface MarketplaceFeedViewProps {
   leads: any[]
+  recentlyClosedLeads?: any[]
   partnerCredits: number
   hasValidMandate?: boolean
   targetLeadId?: string
@@ -142,6 +143,7 @@ import { CustomSelect } from "@/components/ui/custom-select"
 
 export function MarketplaceFeedView({
   leads,
+  recentlyClosedLeads = [],
   partnerCredits,
   hasValidMandate = false,
   targetLeadId,
@@ -786,6 +788,42 @@ export function MarketplaceFeedView({
             </div>
           </div>
 
+          {/* Bandeau incitatif contextuel si solde insuffisant pour un lead standard (< 3 cr.) */}
+          {partnerCredits < 3 && filteredLeads.length > 0 && (
+            <div className="rounded-xl border border-[var(--aegis-border)] bg-[var(--aegis-summary)] px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-start gap-2.5 min-w-0">
+                <Coins className="h-4 w-4 text-[var(--aegis-context)] shrink-0 mt-0.5" />
+                <div className="text-xs text-[var(--aegis-ink)] leading-relaxed">
+                  {partnerCredits > 0 ? (
+                    <>
+                      <strong className="font-bold">
+                        Solde : <span className="font-mono tabular-nums">{partnerCredits}</span> crédit
+                        {partnerCredits > 1 ? "s" : ""}
+                      </strong>{" "}
+                      — Débloquez n&apos;importe quel dossier à l&apos;unité par Bancontact / Carte dès{" "}
+                      <span className="font-mono font-bold tabular-nums">29,50 € HT</span> sans toucher à vos crédits, ou complétez avec un Pack (<span className="font-mono font-bold tabular-nums">jusqu&apos;à -24 %</span>).
+                    </>
+                  ) : (
+                    <>
+                      <strong className="font-bold">Mode paiement à la carte actif</strong> — Débloquez chaque chantier par Bancontact / Carte dès{" "}
+                      <span className="font-mono font-bold tabular-nums">29,50 € HT</span> (ou{" "}
+                      <span className="font-mono font-bold tabular-nums">65 € HT</span> en Exclusivité B2C) sans pack préalable, ou réduisez vos coûts avec un Pack Crédits (<span className="font-mono font-bold tabular-nums">-24 %</span>).
+                    </>
+                  )}
+                </div>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={onRequestTopUp}
+                className="shrink-0 h-8 text-xs font-bold border-[var(--aegis-border)] bg-[var(--aegis-surface)] hover:bg-secondary text-[var(--aegis-ink)] cursor-pointer whitespace-nowrap"
+              >
+                Voir les packs (-24 %)
+              </Button>
+            </div>
+          )}
+
           {/* ── 2. Rendu des Opportunités : Grille de Cartes Réalistes ou Tableau ── */}
           {filteredLeads.length === 0 ? (
             <div className="rounded-2xl border border-border bg-card p-12 text-center shadow-xs">
@@ -1223,6 +1261,98 @@ export function MarketplaceFeedView({
               </div>
             </div>
           )}
+          {/* ── 2b. Vitrine « Derniers chantiers récemment attribués » (Preuve sociale & anti-page vide) ── */}
+          {recentlyClosedLeads.length > 0 && (
+            <section
+              aria-label="Derniers chantiers récemment attribués"
+              className="mt-4 pt-6 border-t border-border flex flex-col gap-3.5"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-[var(--aegis-availability-text)] shrink-0" />
+                    <h2 className="text-sm sm:text-base font-bold text-foreground">
+                      Derniers chantiers récemment attribués
+                    </h2>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Dossiers dont tous les créneaux ont été réservés ces derniers jours par le réseau Aegis Solaire.
+                  </p>
+                </div>
+
+                {onOpenAlertPreferences && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={onOpenAlertPreferences}
+                    className="shrink-0 h-8.5 text-xs font-bold border-border bg-card hover:bg-secondary text-foreground cursor-pointer whitespace-nowrap self-start sm:self-auto gap-1.5"
+                  >
+                    <Bell className="h-3.5 w-3.5 text-accent" />
+                    <span>Activer Auto-Pilot / alertes</span>
+                  </Button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {recentlyClosedLeads.map((closedLead) => {
+                  const isClosedB2B = closedLead.segment === "B2B"
+                  const loc = getLeadLocationInfo(closedLead)
+                  const closedSurface = Math.max(0, Number(closedLead.surface_area || closedLead.surface_area_m2) || 0)
+                  const closedBill = Math.max(0, Number(closedLead.annual_electricity_bill || closedLead.annual_bill_eur) || 0)
+                  const closedFin = calculateMarketplaceFinancials({
+                    segment: closedLead.segment,
+                    surfaceArea: closedSurface,
+                    surfaceType: closedLead.surface_type,
+                    roofMaterial: closedLead.roof_material,
+                    annualBill: closedBill,
+                    creditCost: closedLead.credit_cost ?? (isClosedB2B ? 9 : 3),
+                    estimatedPowerKwc: closedLead.estimated_power_kwc,
+                    qualificationMetadata: closedLead.qualification_metadata,
+                  })
+                  const maxSlotsLabel = isClosedB2B ? "1/1 exclusif" : `${closedLead.max_slots || 3}/${closedLead.max_slots || 3} réservé`
+
+                  return (
+                    <div
+                      key={closedLead.id}
+                      className="rounded-xl border border-[var(--aegis-border)] bg-[var(--aegis-surface-subtle)] p-3.5 flex flex-col justify-between gap-2.5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <span className="inline-flex items-center gap-1 rounded-[5px] bg-[var(--aegis-summary)] px-2 py-0.5 text-[10.5px] font-bold text-[var(--aegis-context)] font-mono tabular-nums">
+                            Clôturé · {maxSlotsLabel}
+                          </span>
+                          <h3 className="mt-1.5 text-xs sm:text-sm font-bold text-[var(--aegis-ink)] truncate">
+                            {loc.fullTitle}
+                          </h3>
+                          <p className="text-[11px] text-[var(--aegis-muted)] truncate">
+                            {loc.provinceLabel} · {isClosedB2B ? "Tertiaire / B2B" : "Résidentiel B2C"}
+                          </p>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <span className="font-mono text-base font-extrabold text-[var(--aegis-ink)] tabular-nums">
+                            {closedFin.estimatedPowerKwc > 0 ? `${closedFin.estimatedPowerKwc.toString().replace(".", ",")}` : "—"}
+                          </span>
+                          <span className="text-[10px] font-bold text-[var(--aegis-muted)] ml-1">kWc</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-[var(--aegis-divider)] flex items-center justify-between gap-2 text-[11px] text-[var(--aegis-muted)] font-mono tabular-nums">
+                        <span>
+                          {closedSurface > 0 ? `${closedSurface} m²` : "Toiture"}{closedBill > 0 ? ` · ${closedBill.toLocaleString("fr-BE")} €/an` : ""}
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-[var(--aegis-ink)] font-semibold">
+                          <Lock className="h-3 w-3 shrink-0 opacity-70" />
+                          <span>Attribué</span>
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )}
         </>
       )}
 
@@ -1651,11 +1781,11 @@ function MarketplaceLeadCard({
               </span>
               <span className="text-[11px] text-muted-foreground font-medium">ou</span>
               <span className="font-bold text-xs sm:text-sm text-foreground font-mono tabular-nums">
-                {directFinancials.priceHtva.toFixed(2)} € <span className="text-[10px] text-muted-foreground font-normal">HT</span>
+                {directFinancials.priceHtva.toFixed(2).replace(".", ",")} € <span className="text-[10px] text-muted-foreground font-normal">HT</span>
               </span>
             </div>
             <span className="text-[10px] text-muted-foreground font-mono tabular-nums">
-              ({directFinancials.priceTtc.toFixed(2)} € TTC){canTakeExclusive ? " · Excl. 7 cr." : ""}
+              ({directFinancials.priceTtc.toFixed(2).replace(".", ",")} € TTC){canTakeExclusive ? " · Excl. 7 cr." : ""}
             </span>
           </div>
         </div>
@@ -1712,7 +1842,7 @@ function MarketplaceLeadCard({
               title="Payer directement ce lead par Bancontact / Carte"
             >
               <CreditCard className="h-3.5 w-3.5 text-primary-foreground" />
-              <span>Payer {directFinancials.priceHtva.toFixed(2)} € HT</span>
+              <span>Payer {directFinancials.priceHtva.toFixed(2).replace(".", ",")} € HT</span>
             </button>
           )}
         </div>

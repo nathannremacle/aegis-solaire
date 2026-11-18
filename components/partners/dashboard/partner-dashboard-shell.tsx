@@ -21,6 +21,7 @@ export interface PartnerDashboardShellProps {
   initialPartner: any
   initialMarketplace: any[]
   initialPortfolio: any[]
+  initialRecentlyClosedLeads?: any[]
   targetLeadId?: string
   targetedClosedLead?: any
   initialCheckoutDirect?: boolean
@@ -30,6 +31,7 @@ export function PartnerDashboardShell({
   initialPartner,
   initialMarketplace,
   initialPortfolio,
+  initialRecentlyClosedLeads = [],
   targetLeadId,
   targetedClosedLead,
   initialCheckoutDirect,
@@ -412,6 +414,7 @@ export function PartnerDashboardShell({
         {activeTab === "marketplace" ? (
           <MarketplaceFeedView
             leads={marketplace}
+            recentlyClosedLeads={initialRecentlyClosedLeads}
             partnerCredits={credits}
             hasValidMandate={initialPartner?.mollie_mandate_status === "valid"}
             targetLeadId={activeTargetLeadId}

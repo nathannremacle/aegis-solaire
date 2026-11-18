@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { processPendingLeadRelances } from "@/lib/lead-relance-engine"
 
 export const dynamic = "force-dynamic"
+export const maxDuration = 300
 
 export async function GET(request: NextRequest) {
   // Vérification de sécurité optionnelle par Bearer Token ou CRON_SECRET Vercel
