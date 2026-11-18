@@ -1,5 +1,6 @@
 import { FinancialEstimates } from "@/lib/marketplace-pricing"
 import {
+  formatProvinceLocative,
   getBelgiumProvinceKeyFromPostalCode,
   getProvinceDisplayLabel,
 } from "@/lib/belgium-regions"
@@ -249,7 +250,7 @@ function getLeadLocationInfo(lead: {
   } else if (rawPostal && rawProvince) {
     locPhrase = `à ${rawPostal} (${rawProvince})`
   } else if (rawProvince) {
-    locPhrase = `en ${rawProvince}`
+    locPhrase = formatProvinceLocative(rawProvince)
   }
 
   return { city, provinceLabel, postalCode, headlineLocation, locPhrase }

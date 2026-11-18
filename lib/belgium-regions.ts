@@ -124,3 +124,48 @@ export function getBelgiumProvinceKeyFromPostalCode(
 
   return null
 }
+
+/**
+ * Formate une localisation provinciale belge avec la préposition française naturelle
+ * (ex: "en province de Liège", "en province de Namur", "en Hainaut", "à Bruxelles").
+ */
+export function formatProvinceLocative(provinceKeyOrLabel?: string | null): string {
+  const raw = (provinceKeyOrLabel || "").trim()
+  if (!raw) return "en Wallonie"
+
+  const normalized = raw
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+
+  if (normalized === "liege" || normalized === "province de liege") {
+    return "en province de Liège"
+  }
+  if (normalized === "namur" || normalized === "province de namur") {
+    return "en province de Namur"
+  }
+  if (normalized === "luxembourg" || normalized === "province de luxembourg") {
+    return "en province de Luxembourg"
+  }
+  if (normalized === "hainaut" || normalized === "province du hainaut") {
+    return "en Hainaut"
+  }
+  if (
+    normalized === "brabant_wallon" ||
+    normalized === "brabant wallon" ||
+    normalized === "brabant-wallon"
+  ) {
+    return "en Brabant wallon"
+  }
+  if (
+    normalized === "bruxelles" ||
+    normalized === "bruxelles-capitale" ||
+    normalized === "bruxelles capitale"
+  ) {
+    return "à Bruxelles"
+  }
+
+  const label = getProvinceDisplayLabel(raw)
+  if (/^province /i.test(label)) return `en ${label}`
+  return `en ${label}`
+}

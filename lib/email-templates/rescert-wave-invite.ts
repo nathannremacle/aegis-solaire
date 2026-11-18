@@ -7,6 +7,7 @@ import {
   renderInstallerEmailShell,
   renderSpecsTable,
 } from "@/lib/email-templates/installer-email-layout"
+import { formatProvinceLocative } from "@/lib/belgium-regions"
 import { buildRescertOptoutUrl } from "@/lib/rescert-optout-tokens"
 
 export interface RescertSampleLeadPreview {
@@ -60,6 +61,7 @@ export function buildRescertWaveInviteEmail(params: RescertWaveInviteParams): {
   const company = decodeBasicEntities(params.companyName) || "Votre entreprise"
   const certifiedPersonClean = decodeBasicEntities(params.certifiedPerson)
   const provinceLabel = params.provinceLabel.trim() || "Wallonie"
+  const provinceLocative = formatProvinceLocative(params.provinceKey || provinceLabel)
   const optoutUrl = buildRescertOptoutUrl(baseUrl, params.email)
 
   const inviteQuery = new URLSearchParams()
@@ -76,13 +78,13 @@ export function buildRescertWaveInviteEmail(params: RescertWaveInviteParams): {
   const hasLocalSample = Boolean(params.sampleLead?.id)
   const localLabel =
     params.provinceOpenCount > 0
-      ? `dont ${params.provinceOpenCount} ouvert${params.provinceOpenCount > 1 ? "s" : ""} en ${provinceLabel}`
+      ? `dont ${params.provinceOpenCount} ouvert${params.provinceOpenCount > 1 ? "s" : ""} ${provinceLocative}`
       : `Wallonie · demandes en cours de qualification`
 
   const subject =
     params.provinceOpenCount > 0
-      ? `${company} — ${params.provinceOpenCount} chantier${params.provinceOpenCount > 1 ? "s" : ""} solaire${params.provinceOpenCount > 1 ? "s" : ""} en ${provinceLabel} (accès RESCERT gratuit)`
-      : `Sélection réseau RESCERT ${provinceLabel} — Accès chantiers sans abonnement pour ${company}`
+      ? `${company} — ${params.provinceOpenCount} chantier${params.provinceOpenCount > 1 ? "s" : ""} solaire${params.provinceOpenCount > 1 ? "s" : ""} ${provinceLocative} (accès RESCERT gratuit)`
+      : `Sélection réseau RESCERT · ${provinceLabel} — Accès chantiers sans abonnement pour ${company}`
 
   const preheader = `Zéro abonnement fixe · Max 3 installateurs B2C (ou exclusivité 65 € HT) · 3 crédits d'accueil offerts après validation RESCERT.`
 
@@ -112,7 +114,7 @@ export function buildRescertWaveInviteEmail(params: RescertWaveInviteParams): {
       Bonjour <strong>${escapeEmailHtml(greetingName)}</strong>,
     </p>
     <p style="margin: 10px 0 0 0; font-size: 15px; line-height: 1.5; color: #142D42;">
-      Votre entreprise figurant au registre officiel <strong>RESCERT photovoltaïque</strong> en ${escapeEmailHtml(provinceLabel)}, nous vous ouvrons un accès prioritaire au réseau <strong>Aegis Solaire</strong> pour recevoir nos demandes résidentielles et tertiaires vérifiées par notre Cellule Technique.
+      Votre entreprise figurant au registre officiel <strong>RESCERT photovoltaïque</strong> ${escapeEmailHtml(provinceLocative)}, nous vous ouvrons un accès prioritaire au réseau <strong>Aegis Solaire</strong> pour recevoir nos demandes résidentielles et tertiaires vérifiées par notre Cellule Technique.
     </p>
 
     ${renderFiguresBox(
@@ -131,7 +133,7 @@ export function buildRescertWaveInviteEmail(params: RescertWaveInviteParams): {
     ${
       hasLocalSample && sampleParts.length > 0
         ? renderCalloutBox({
-            label: `Exemple de chantier actuellement ouvert sur ${provinceLabel}`,
+            label: `Exemple de chantier actuellement ouvert ${provinceLocative}`,
             value: sampleParts.join(" · "),
             tone: "info",
           })
@@ -177,7 +179,7 @@ export function buildRescertWaveInviteEmail(params: RescertWaveInviteParams): {
     })}
 
     <p style="margin: 18px 0 0 0; font-size: 13px; line-height: 1.45; color: #4D6374;">
-      Une question sur nos dossiers en ${escapeEmailHtml(provinceLabel)} ? Répondez simplement à ce message ou écrivez à <a href="mailto:contact@aegissolaire.com" style="color: #194767; text-decoration: underline;">contact@aegissolaire.com</a>.
+      Une question sur nos dossiers ${escapeEmailHtml(provinceLocative)} ? Répondez simplement à ce message ou écrivez à <a href="mailto:contact@aegissolaire.com" style="color: #194767; text-decoration: underline;">contact@aegissolaire.com</a>.
     </p>
   `
 
@@ -187,7 +189,7 @@ export function buildRescertWaveInviteEmail(params: RescertWaveInviteParams): {
     reference: `RÉSEAU RESCERT · ${provinceLabel.toUpperCase()}`,
     context: `SÉLECTION RÉSEAU AGRÉÉ · ${provinceLabel.toUpperCase()}`,
     contextColor: "#305A76",
-    headline: `Chantiers vérifiés en ${provinceLabel}`,
+    headline: `Chantiers vérifiés ${provinceLocative}`,
     subtitle: `Accès réservé aux installateurs RESCERT pour ${company}`,
     statusPill: {
       text: "0 €/mois · 3 crédits d'accueil après validation RESCERT",
@@ -208,9 +210,9 @@ export function buildRescertWaveInviteEmail(params: RescertWaveInviteParams): {
     `SÉLECTION RÉSEAU RESCERT — ${provinceLabel.toUpperCase()}`,
     `Bonjour ${greetingName},`,
     "",
-    `Votre entreprise étant certifiée RESCERT en ${provinceLabel}, nous vous ouvrons l'accès au portail Aegis Solaire (0 €/mois, sans abonnement).`,
+    `Votre entreprise étant certifiée RESCERT ${provinceLocative}, nous vous ouvrons l'accès au portail Aegis Solaire (0 €/mois, sans abonnement).`,
     sampleParts.length > 0
-      ? `Exemple de chantier ouvert actuellement en ${provinceLabel} : ${sampleParts.join(" · ")}`
+      ? `Exemple de chantier ouvert actuellement ${provinceLocative} : ${sampleParts.join(" · ")}`
       : "",
     "",
     "Conditions partenaires :",

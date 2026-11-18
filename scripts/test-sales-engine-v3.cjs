@@ -336,12 +336,20 @@ test("Partial lead closure rule (7j + 48h grace) & RESCERT outreach invite templ
     false
   )
 
+  const belgiumMod = loadTs("lib/belgium-regions.ts")
+  assert.equal(belgiumMod.formatProvinceLocative("liege"), "en province de Liège")
+  assert.equal(belgiumMod.formatProvinceLocative("namur"), "en province de Namur")
+  assert.equal(belgiumMod.formatProvinceLocative("luxembourg"), "en province de Luxembourg")
+  assert.equal(belgiumMod.formatProvinceLocative("hainaut"), "en Hainaut")
+  assert.equal(belgiumMod.formatProvinceLocative("bruxelles"), "à Bruxelles")
+
   const optoutMod = loadTs("lib/rescert-optout-tokens.ts")
   const optToken = optoutMod.createRescertOptoutToken("Contact@SolarTest.be")
   assert.equal(optoutMod.verifyRescertOptoutToken("contact@solartest.be", optToken), true)
   assert.equal(optoutMod.verifyRescertOptoutToken("autre@solartest.be", optToken), false)
 
   const waveMod = loadTs("lib/email-templates/rescert-wave-invite.ts", {
+    "@/lib/belgium-regions": belgiumMod,
     "@/lib/rescert-optout-tokens": optoutMod,
   })
   const inviteEmail = waveMod.buildRescertWaveInviteEmail({
@@ -368,6 +376,11 @@ test("Partial lead closure rule (7j + 48h grace) & RESCERT outreach invite templ
   })
 
   assert.match(inviteEmail.subject, /Solar Liège SRL/)
+  assert.match(inviteEmail.subject, /en province de Liège/)
+  assert.equal(/en Liège/i.test(inviteEmail.subject), false)
+  assert.equal(/en Liège/i.test(inviteEmail.html), false)
+  assert.equal(/en Liège/i.test(inviteEmail.text), false)
+  assert.match(inviteEmail.html, /en province de Liège/)
   assert.match(inviteEmail.html, /Bovenistier/)
   assert.match(inviteEmail.html, /#142D42/)
   assert.match(inviteEmail.html, /#4D6374/)
