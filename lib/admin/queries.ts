@@ -3,8 +3,11 @@ import { unstable_cache } from "next/cache"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import {
   computeLeadPurchaseFinancials,
+  createEmptyPipelineCounts,
   formatLeadPurchaseLabel,
   isTestPartnerAccount,
+  normalizePipelineStatus,
+  type AdminPartnerPurchaseCrmItem,
   type AdminPartnerPurchaseSummary,
 } from "@/lib/admin/partner-purchases"
 
@@ -359,7 +362,7 @@ export const getAdminPartnersPurchaseSummaries = cache(
         const res = await supabase
           .from("lead_purchases")
           .select(
-            "id, partner_id, lead_id, credits_spent, purchased_at, notes, lead:leads(id, first_name, last_name, company, segment, province, city, pricing_version)"
+            "id, partner_id, lead_id, credits_spent, purchased_at, updated_at, pipeline_status, notes, lead:leads(id, first_name, last_name, company, segment, province, city, postal_code, phone, email, pricing_version)"
           )
           .order("purchased_at", { ascending: false })
           .limit(5000)
@@ -369,7 +372,7 @@ export const getAdminPartnersPurchaseSummaries = cache(
         return supabase
           .from("lead_purchases")
           .select(
-            "id, partner_id, lead_id, credits_spent, purchased_at, notes, lead:leads(id, first_name, last_name, company, segment, province, city)"
+            "id, partner_id, lead_id, credits_spent, purchased_at, notes, lead:leads(id, first_name, last_name, company, segment, province, city, postal_code, phone, email)"
           )
           .order("purchased_at", { ascending: false })
           .limit(5000)
@@ -384,8 +387,7 @@ export const getAdminPartnersPurchaseSummaries = cache(
 
       supabase
         .from("lead_disputes")
-        .select("purchase_id, status")
-        .eq("status", "approved"),
+        .select("purchase_id, status, reason"),
     ])
 
     const partners = partnersRes.data ?? []
@@ -398,9 +400,15 @@ export const getAdminPartnersPurchaseSummaries = cache(
       }
     }
 
-    const refundedPurchaseIds = new Set<string>(
-      (disputesRes.data ?? []).map((d: any) => d.purchase_id).filter(Boolean)
-    )
+    const disputeByPurchaseId = new Map<string, { status: string; reason: string | null }>()
+    for (const d of disputesRes.data ?? []) {
+      if (d.purchase_id) {
+        disputeByPurchaseId.set(d.purchase_id, {
+          status: d.status,
+          reason: d.reason ?? null,
+        })
+      }
+    }
 
     const purchasesByPartner = new Map<string, any[]>()
     for (const lp of purchases) {
@@ -417,6 +425,9 @@ export const getAdminPartnersPurchaseSummaries = cache(
       let totalEurosHtva = 0
       let totalEurosTtc = 0
       let refundedLeadsCount = 0
+      let pipelineUpdatedCount = 0
+      const pipelineCounts = createEmptyPipelineCounts()
+      const crmItems: AdminPartnerPurchaseCrmItem[] = []
 
       for (const lp of partnerPurchases) {
         const rawLead = Array.isArray(lp.lead) ? lp.lead[0] : lp.lead
@@ -427,12 +438,41 @@ export const getAdminPartnersPurchaseSummaries = cache(
           leadPricingVersion: rawLead?.pricing_version ?? null,
           mollieAuditDetails: mollieByPurchaseId.get(lp.id) ?? null,
         })
+        const dispute = disputeByPurchaseId.get(lp.id) ?? null
+        const pipelineStatus = normalizePipelineStatus(lp.pipeline_status)
+
+        pipelineCounts[pipelineStatus] += 1
+        if (pipelineStatus !== "to_contact") {
+          pipelineUpdatedCount += 1
+        }
+
         totalCreditsSpent += Number(lp.credits_spent ?? 0)
         totalEurosHtva += fin.amountHtva
         totalEurosTtc += fin.amountTtc
-        if (refundedPurchaseIds.has(lp.id)) {
+        if (dispute?.status === "approved") {
           refundedLeadsCount += 1
         }
+
+        crmItems.push({
+          purchase_id: lp.id,
+          lead_id: lp.lead_id,
+          lead_label: formatLeadPurchaseLabel(rawLead),
+          segment: rawLead?.segment ?? null,
+          province: rawLead?.province ?? null,
+          city: rawLead?.city ?? null,
+          postal_code: rawLead?.postal_code ?? null,
+          phone: rawLead?.phone ?? null,
+          email: rawLead?.email ?? null,
+          purchased_at: lp.purchased_at,
+          crm_updated_at: lp.updated_at ?? null,
+          pipeline_status: pipelineStatus,
+          credits_spent: Number(lp.credits_spent ?? 0),
+          amount_htva: fin.amountHtva,
+          amount_ttc: fin.amountTtc,
+          payment_mode: fin.paymentMode,
+          dispute_status: dispute?.status ?? null,
+          dispute_reason: dispute?.reason ?? null,
+        })
       }
 
       const newest = partnerPurchases[0] ?? null
@@ -470,6 +510,9 @@ export const getAdminPartnersPurchaseSummaries = cache(
         total_euros_ttc: Number(totalEurosTtc.toFixed(2)),
         first_purchase_at: oldest?.purchased_at ?? null,
         last_purchase_at: newest?.purchased_at ?? null,
+        pipeline_counts: pipelineCounts,
+        pipeline_updated_count: pipelineUpdatedCount,
+        purchases: crmItems,
         last_purchase: newest && newestFin
           ? {
               purchase_id: newest.id,
@@ -483,6 +526,7 @@ export const getAdminPartnersPurchaseSummaries = cache(
               amount_htva: newestFin.amountHtva,
               amount_ttc: newestFin.amountTtc,
               payment_mode: newestFin.paymentMode,
+              pipeline_status: normalizePipelineStatus(newest.pipeline_status),
             }
           : null,
       }

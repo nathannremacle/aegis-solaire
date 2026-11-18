@@ -2,17 +2,113 @@ import { calculateOrderFinancials } from "@/lib/credit-pricing"
 
 export type PurchasePaymentMode = "direct_mollie" | "credits" | "free_assigned"
 
+export type PipelineStatusKey =
+  | "to_contact"
+  | "contacted"
+  | "meeting_scheduled"
+  | "quote_sent"
+  | "won"
+  | "lost"
+
+export type PipelineCounts = Record<PipelineStatusKey, number>
+
+export const PIPELINE_STATUS_ORDER: PipelineStatusKey[] = [
+  "to_contact",
+  "contacted",
+  "meeting_scheduled",
+  "quote_sent",
+  "won",
+  "lost",
+]
+
+export const PIPELINE_STATUS_META: Record<
+  PipelineStatusKey,
+  {
+    label: string
+    shortLabel: string
+    badgeClass: string
+    activeFilterClass: string
+    dotClass: string
+  }
+> = {
+  to_contact: {
+    label: "À contacter",
+    shortLabel: "À contacter",
+    badgeClass: "bg-status-review/10 text-status-review border-status-review/25",
+    activeFilterClass: "bg-status-review text-primary-foreground border-status-review",
+    dotClass: "bg-status-review",
+  },
+  contacted: {
+    label: "Contacté",
+    shortLabel: "Contacté",
+    badgeClass: "bg-status-new/10 text-status-new border-status-new/25",
+    activeFilterClass: "bg-status-new text-accent-foreground border-status-new",
+    dotClass: "bg-status-new",
+  },
+  meeting_scheduled: {
+    label: "RDV fixé",
+    shortLabel: "RDV",
+    badgeClass: "bg-chart-5/10 text-chart-5 border-chart-5/25",
+    activeFilterClass: "bg-chart-5 text-accent-foreground border-chart-5",
+    dotClass: "bg-chart-5",
+  },
+  quote_sent: {
+    label: "Devis envoyé",
+    shortLabel: "Devis",
+    badgeClass: "bg-accent-solar/15 text-foreground border-accent-solar/40",
+    activeFilterClass: "bg-accent-solar text-accent-solar-foreground border-accent-solar",
+    dotClass: "bg-accent-solar",
+  },
+  won: {
+    label: "Gagné / Signé",
+    shortLabel: "Gagné",
+    badgeClass: "bg-status-converted/10 text-status-converted border-status-converted/25",
+    activeFilterClass: "bg-status-converted text-accent-foreground border-status-converted",
+    dotClass: "bg-status-converted",
+  },
+  lost: {
+    label: "Perdu",
+    shortLabel: "Perdu",
+    badgeClass: "bg-status-disputed/10 text-status-disputed border-status-disputed/25",
+    activeFilterClass: "bg-status-disputed text-destructive-foreground border-status-disputed",
+    dotClass: "bg-status-disputed",
+  },
+}
+
+const VALID_PIPELINE_SET = new Set<string>(PIPELINE_STATUS_ORDER)
+
+export function normalizePipelineStatus(
+  status: string | null | undefined
+): PipelineStatusKey {
+  if (status && VALID_PIPELINE_SET.has(status)) {
+    return status as PipelineStatusKey
+  }
+  return "to_contact"
+}
+
+export function createEmptyPipelineCounts(): PipelineCounts {
+  return {
+    to_contact: 0,
+    contacted: 0,
+    meeting_scheduled: 0,
+    quote_sent: 0,
+    won: 0,
+    lost: 0,
+  }
+}
+
 export interface PartnerPurchaseLeadItem {
   purchaseId: string
   leadId: string
   purchasedAt: string
+  crmUpdatedAt: string | null
   creditsSpent: number
   amountHtva: number
   amountTtc: number
   paymentMode: PurchasePaymentMode
   paymentMethod: string | null
   molliePaymentId: string | null
-  pipelineStatus: string | null
+  pipelineStatus: PipelineStatusKey
   notes: string | null
   dispute: {
     id: string
@@ -62,6 +158,7 @@ export interface PartnerPurchasesSummary {
   totalCreditsOrdered: number
   firstPurchaseAt: string | null
   lastPurchaseAt: string | null
+  pipelineCounts: PipelineCounts
 }
 
 export interface PartnerPurchasesResponse {
@@ -78,6 +175,27 @@ export interface PartnerPurchasesResponse {
   }
   summary: PartnerPurchasesSummary
   purchases: PartnerPurchaseLeadItem[]
+}
+
+export interface AdminPartnerPurchaseCrmItem {
+  purchase_id: string
+  lead_id: string
+  lead_label: string
+  segment: string | null
+  province: string | null
+  city: string | null
+  postal_code: string | null
+  phone: string | null
+  email: string | null
+  purchased_at: string
+  crm_updated_at: string | null
+  pipeline_status: PipelineStatusKey
+  credits_spent: number
+  amount_htva: number
+  amount_ttc: number
+  payment_mode: PurchasePaymentMode
+  dispute_status: string | null
+  dispute_reason: string | null
 }
 
 export interface AdminPartnerPurchaseSummary {
@@ -98,6 +216,9 @@ export interface AdminPartnerPurchaseSummary {
   total_euros_ttc: number
   first_purchase_at: string | null
   last_purchase_at: string | null
+  pipeline_counts: PipelineCounts
+  pipeline_updated_count: number
+  purchases: AdminPartnerPurchaseCrmItem[]
   last_purchase: {
     purchase_id: string
     lead_id: string
@@ -110,6 +231,7 @@ export interface AdminPartnerPurchaseSummary {
     amount_htva: number
     amount_ttc: number
     payment_mode: PurchasePaymentMode
+    pipeline_status: PipelineStatusKey
   } | null
 }
 

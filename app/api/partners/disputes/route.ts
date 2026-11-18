@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic"
 
 /** Fenêtre maximale de contestation : 7 jours ouvrés (~10 jours calendaires) */
 const MAX_DISPUTE_WINDOW_MS = 10 * 24 * 60 * 60 * 1000
+const MIN_DISPUTE_DETAILS_LENGTH = 20
 
 export async function GET() {
   const partner = await getPartner()
@@ -60,9 +61,19 @@ export async function POST(request: Request) {
   }
 
   const { leadId, purchaseId, reason, details } = body
+  const trimmedDetails = details?.trim() || ""
 
-  if (!leadId || !purchaseId || !reason || !details?.trim()) {
+  if (!leadId || !purchaseId || !reason || !trimmedDetails) {
     return NextResponse.json({ error: "Veuillez renseigner un motif et décrire le problème rencontré." }, { status: 400 })
+  }
+
+  if (trimmedDetails.length < MIN_DISPUTE_DETAILS_LENGTH) {
+    return NextResponse.json(
+      {
+        error: `Veuillez préciser le motif en au moins ${MIN_DISPUTE_DETAILS_LENGTH} caractères (ex : date/heure des appels ou anomalie constatée).`,
+      },
+      { status: 400 }
+    )
   }
 
   const validReasons = ["unreachable", "wrong_number", "out_of_scope", "already_equipped", "other"]
@@ -117,7 +128,7 @@ export async function POST(request: Request) {
       purchase_id: purchaseId,
       lead_id: leadId,
       reason,
-      details: details.trim(),
+      details: trimmedDetails,
       status: "pending",
       credits_refunded: 0,
     })
@@ -155,12 +166,12 @@ export async function POST(request: Request) {
       const adminDisputesUrl = `${baseUrl}/admin/disputes`
       const leadRef = leadId.slice(0, 8).toUpperCase()
       const subject = `[Aegis Solaire - Litige] Nouvelle réclamation de ${partner.company_name} (Lead #${leadRef})`
-      const text = `Une nouvelle demande de Garantie Lead Conforme a été ouverte :\n\n- Installateur : ${partner.company_name} (${partner.email})\n- Lead ID : ${leadId}\n- Motif : ${reason}\n- Crédits engagés : ${purchase.credits_spent ?? 0}\n- Détails : ${details.trim()}\n\nTraiter sous 24h ouvrées dans l'interface d'administration :\n${adminDisputesUrl}`
+      const text = `Une nouvelle demande de Garantie Lead Conforme a été ouverte :\n\n- Installateur : ${partner.company_name} (${partner.email})\n- Lead ID : ${leadId}\n- Motif : ${reason}\n- Crédits engagés : ${purchase.credits_spent ?? 0}\n- Détails : ${trimmedDetails}\n\nTraiter sous 24h ouvrées dans l'interface d'administration :\n${adminDisputesUrl}`
 
       const bodyHtml = `
         ${renderCalloutBox({
           label: "Détails du signalement",
-          value: details.trim(),
+          value: trimmedDetails,
           tone: "warning",
         })}
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 16px; width: 100%; border-collapse: collapse;">

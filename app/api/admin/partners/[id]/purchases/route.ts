@@ -3,6 +3,8 @@ import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { getAdminUser } from "@/lib/admin-auth"
 import {
   computeLeadPurchaseFinancials,
+  createEmptyPipelineCounts,
+  normalizePipelineStatus,
   type PartnerPurchaseLeadItem,
   type PartnerPurchasesResponse,
   type PartnerPurchasesSummary,
@@ -40,7 +42,7 @@ export async function GET(
       const fullRes = await supabase
         .from("lead_purchases")
         .select(
-          `id, lead_id, partner_id, purchased_at, credits_spent, pipeline_status, notes, lead:leads(${leadFields})`
+          `id, lead_id, partner_id, purchased_at, updated_at, credits_spent, pipeline_status, notes, lead:leads(${leadFields})`
         )
         .eq("partner_id", partnerId)
         .order("purchased_at", { ascending: false })
@@ -118,13 +120,14 @@ export async function GET(
       purchaseId: row.id,
       leadId: row.lead_id,
       purchasedAt: row.purchased_at,
+      crmUpdatedAt: row.updated_at ?? null,
       creditsSpent: Number(row.credits_spent ?? 0),
       amountHtva: financials.amountHtva,
       amountTtc: financials.amountTtc,
       paymentMode: financials.paymentMode,
       paymentMethod: financials.paymentMethod,
       molliePaymentId: financials.molliePaymentId,
-      pipelineStatus: row.pipeline_status ?? null,
+      pipelineStatus: normalizePipelineStatus(row.pipeline_status),
       notes: row.notes ?? null,
       dispute: disputeRow
         ? {
@@ -171,8 +174,10 @@ export async function GET(
   let freeAssignedCount = 0
   let b2bCount = 0
   let b2cCount = 0
+  const pipelineCounts = createEmptyPipelineCounts()
 
   for (const item of items) {
+    pipelineCounts[item.pipelineStatus] += 1
     const isRefunded = item.dispute?.status === "approved"
     if (isRefunded) refundedCount += 1
 
@@ -227,6 +232,7 @@ export async function GET(
     totalCreditsOrdered,
     firstPurchaseAt: items.length > 0 ? items[items.length - 1].purchasedAt : null,
     lastPurchaseAt: items.length > 0 ? items[0].purchasedAt : null,
+    pipelineCounts,
   }
 
   const response: PartnerPurchasesResponse = {

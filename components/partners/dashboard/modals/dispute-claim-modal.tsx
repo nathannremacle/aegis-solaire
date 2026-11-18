@@ -19,13 +19,40 @@ interface DisputeClaimModalProps {
   onClose: () => void
 }
 
+const MIN_DETAILS_LENGTH = 20
+
 const DISPUTE_REASONS = [
-  { id: "wrong_number", label: "Numéro de téléphone / email erroné ou non attribué" },
-  { id: "unreachable", label: "Prospect injoignable après plusieurs tentatives (appels + SMS)" },
-  { id: "out_of_scope", label: "Hors critères (locataire, hors zone, pas de projet réel)" },
-  { id: "already_equipped", label: "Déjà équipé ou déjà signé avec un concurrent" },
-  { id: "other", label: "Autre anomalie (faux prospect, demande non sollicitée)" },
-]
+  {
+    id: "wrong_number",
+    label: "Numéro de téléphone / email erroné ou non attribué",
+    placeholder:
+      "Ex : Appelé le 18/11 à 10h15, message opérateur « numéro non attribué » et e-mail en erreur...",
+  },
+  {
+    id: "unreachable",
+    label: "Prospect injoignable après plusieurs tentatives (appels + SMS)",
+    placeholder:
+      "Ex : 3 appels sans réponse (dates/heures à +4h d'intervalle) et SMS envoyé resté sans retour...",
+  },
+  {
+    id: "out_of_scope",
+    label: "Hors critères (locataire, hors zone, pas de projet réel)",
+    placeholder:
+      "Ex : Adresse réelle située hors de la zone convenue / le contact indique être locataire sans accord...",
+  },
+  {
+    id: "already_equipped",
+    label: "Déjà équipé ou déjà signé avec un concurrent",
+    placeholder:
+      "Ex : Le prospect confirme au téléphone avoir déjà fait installer ses panneaux ou signé ailleurs...",
+  },
+  {
+    id: "other",
+    label: "Autre anomalie (faux prospect, demande non sollicitée)",
+    placeholder:
+      "Ex : Précisez concrètement l'anomalie constatée (identité incorrecte, demande jamais effectuée, erreur toiture)...",
+  },
+] as const
 
 export default function DisputeClaimModal({ purchase, onClose }: DisputeClaimModalProps) {
   const [reason, setReason] = useState<string>("wrong_number")
@@ -45,10 +72,17 @@ export default function DisputeClaimModal({ purchase, onClose }: DisputeClaimMod
     }
   }, [onClose])
 
+  const trimmedLength = details.trim().length
+  const isDetailsValid = trimmedLength >= MIN_DETAILS_LENGTH
+  const activeReasonMeta =
+    DISPUTE_REASONS.find((r) => r.id === reason) ?? DISPUTE_REASONS[0]
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!details.trim() || details.trim().length < 10) {
-      toast.error("Veuillez fournir au moins 10 caractères d'explications.")
+    if (!isDetailsValid) {
+      toast.error(
+        `Veuillez détailler le motif en au moins ${MIN_DETAILS_LENGTH} caractères (ex : date/heure des appels ou anomalie précise).`
+      )
       return
     }
 
@@ -145,15 +179,25 @@ export default function DisputeClaimModal({ purchase, onClose }: DisputeClaimMod
           </div>
 
           <div>
-            <label className="text-xs font-bold text-foreground">
-              Précisions &amp; Tentatives de contact (obligatoire)
-            </label>
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-xs font-bold text-foreground">
+                Précisions &amp; Tentatives de contact (obligatoire)
+              </label>
+              <span
+                className={`font-mono text-[11px] tabular-nums ${
+                  isDetailsValid ? "text-status-qualified font-semibold" : "text-muted-foreground"
+                }`}
+              >
+                {trimmedLength}/{MIN_DETAILS_LENGTH} car. min.
+              </span>
+            </div>
             <textarea
               rows={3}
               required
+              minLength={MIN_DETAILS_LENGTH}
               value={details}
               onChange={(e) => setDetails(e.target.value)}
-              placeholder="Ex: J'ai appelé à 3 reprises le 14/10 à 10h et 16h, le numéro n'est pas attribué..."
+              placeholder={activeReasonMeta.placeholder}
               className="mt-1.5 w-full rounded-lg border border-border bg-background p-2.5 text-xs text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-hidden"
             />
           </div>

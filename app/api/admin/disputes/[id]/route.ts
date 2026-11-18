@@ -5,6 +5,41 @@ import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { Resend } from "resend"
 import { buildLeadDisputeResolutionEmail } from "@/lib/email-templates/installer-transactional"
 
+const SUPPORT_REPLY_TO = "contact@aegissolaire.com"
+
+async function sendDisputeResolutionEmail(params: {
+  partnerEmail: string | null | undefined
+  leadId: string
+  companyName: string
+  approved: boolean
+  refundedCredits?: number
+  adminNotes?: string
+  reasonLabel?: string | null
+}) {
+  if (!params.partnerEmail || !process.env.RESEND_API_KEY) return
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    const rendered = buildLeadDisputeResolutionEmail({
+      leadId: params.leadId,
+      companyName: params.companyName,
+      approved: params.approved,
+      refundedCredits: params.refundedCredits,
+      adminNotes: params.adminNotes,
+      reasonLabel: params.reasonLabel ?? null,
+    })
+    await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL || SUPPORT_REPLY_TO,
+      replyTo: SUPPORT_REPLY_TO,
+      to: params.partnerEmail,
+      subject: rendered.subject,
+      text: rendered.text,
+      html: rendered.html,
+    })
+  } catch {
+    /* silent */
+  }
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -123,29 +158,15 @@ export async function PATCH(
     }
 
     // 4. Notification email à l'installateur
-    const partnerEmail = dispute.partners?.email
-    if (partnerEmail && process.env.RESEND_API_KEY) {
-      try {
-        const resend = new Resend(process.env.RESEND_API_KEY)
-        const rendered = buildLeadDisputeResolutionEmail({
-          leadId: String(dispute.lead_id),
-          companyName: dispute.partners?.company_name || "Partenaire Installateur",
-          approved: true,
-          refundedCredits,
-          adminNotes,
-          reasonLabel: dispute.reason || null,
-        })
-        await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com",
-          to: partnerEmail,
-          subject: rendered.subject,
-          text: rendered.text,
-          html: rendered.html,
-        })
-      } catch {
-        /* silent */
-      }
-    }
+    await sendDisputeResolutionEmail({
+      partnerEmail: dispute.partners?.email,
+      leadId: String(dispute.lead_id),
+      companyName: dispute.partners?.company_name || "Partenaire Installateur",
+      approved: true,
+      refundedCredits,
+      adminNotes,
+      reasonLabel: dispute.reason || null,
+    })
 
     revalidateTag("admin-badges", "max")
     revalidateTag("admin-kpis", "max")
@@ -186,28 +207,14 @@ export async function PATCH(
     }
 
     // Notification email à l'installateur
-    const partnerEmail = dispute.partners?.email
-    if (partnerEmail && process.env.RESEND_API_KEY) {
-      try {
-        const resend = new Resend(process.env.RESEND_API_KEY)
-        const rendered = buildLeadDisputeResolutionEmail({
-          leadId: String(dispute.lead_id),
-          companyName: dispute.partners?.company_name || "Partenaire Installateur",
-          approved: false,
-          adminNotes,
-          reasonLabel: dispute.reason || null,
-        })
-        await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com",
-          to: partnerEmail,
-          subject: rendered.subject,
-          text: rendered.text,
-          html: rendered.html,
-        })
-      } catch {
-        /* silent */
-      }
-    }
+    await sendDisputeResolutionEmail({
+      partnerEmail: dispute.partners?.email,
+      leadId: String(dispute.lead_id),
+      companyName: dispute.partners?.company_name || "Partenaire Installateur",
+      approved: false,
+      adminNotes,
+      reasonLabel: dispute.reason || null,
+    })
 
     revalidateTag("admin-badges", "max")
     revalidateTag("admin-kpis", "max")

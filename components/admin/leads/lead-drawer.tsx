@@ -124,6 +124,8 @@ export type LeadDetail = {
     id: string
     partner_id: string
     purchased_at?: string
+    pipeline_status?: string | null
+    updated_at?: string | null
     partners?:
       | {
           id: string

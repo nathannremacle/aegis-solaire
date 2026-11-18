@@ -41,10 +41,19 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
+  PIPELINE_STATUS_META,
+  createEmptyPipelineCounts,
   formatLeadPurchaseLabel,
+  normalizePipelineStatus,
   type PartnerPurchaseLeadItem,
   type PartnerPurchasesResponse,
+  type PipelineStatusKey,
 } from "@/lib/admin/partner-purchases"
+import {
+  PipelineStatusBadge,
+  PipelineStatusFilterBar,
+  extractCustomPartnerNotes,
+} from "@/components/admin/pipeline-status-badge"
 
 export interface PartnerDialogTarget {
   id: string
@@ -58,15 +67,7 @@ interface PartnerPurchasesDialogProps {
   partner: PartnerDialogTarget | null
   open: boolean
   onOpenChange: (open: boolean) => void
-}
-
-const PIPELINE_STATUS_LABELS: Record<string, string> = {
-  to_contact: "À contacter",
-  contacted: "Contacté",
-  meeting_scheduled: "RDV planifié",
-  quote_sent: "Devis envoyé",
-  won: "Signé / Gagné",
-  lost: "Perdu",
+  initialPipelineFilter?: PipelineStatusKey | "ALL"
 }
 
 function formatEur(value: number): string {
@@ -104,12 +105,16 @@ export function PartnerPurchasesDialog({
   partner,
   open,
   onOpenChange,
+  initialPipelineFilter = "ALL",
 }: PartnerPurchasesDialogProps) {
   const [data, setData] = useState<PartnerPurchasesResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [segmentFilter, setSegmentFilter] = useState<"ALL" | "B2B" | "B2C">("ALL")
+  const [pipelineFilter, setPipelineFilter] = useState<PipelineStatusKey | "ALL">(
+    initialPipelineFilter
+  )
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "amount_desc">("newest")
 
   const fetchPurchases = useCallback(async (partnerId: string) => {
@@ -136,11 +141,21 @@ export function PartnerPurchasesDialog({
     if (open && partner?.id) {
       setSearch("")
       setSegmentFilter("ALL")
+      setPipelineFilter(initialPipelineFilter)
       setSortBy("newest")
       setData(null)
       void fetchPurchases(partner.id)
     }
-  }, [open, partner?.id, fetchPurchases])
+  }, [open, partner?.id, initialPipelineFilter, fetchPurchases])
+
+  const pipelineCounts = useMemo(() => {
+    if (data?.summary?.pipelineCounts) return data.summary.pipelineCounts
+    const counts = createEmptyPipelineCounts()
+    for (const item of data?.purchases ?? []) {
+      counts[normalizePipelineStatus(item.pipelineStatus)] += 1
+    }
+    return counts
+  }, [data])
 
   const filteredPurchases = useMemo(() => {
     const list = data?.purchases ?? []
@@ -150,6 +165,12 @@ export function PartnerPurchasesDialog({
       if (segmentFilter !== "ALL" && item.lead?.segment !== segmentFilter) {
         return false
       }
+      if (
+        pipelineFilter !== "ALL" &&
+        normalizePipelineStatus(item.pipelineStatus) !== pipelineFilter
+      ) {
+        return false
+      }
       if (!q) return true
       const label = formatLeadPurchaseLabel(item.lead).toLowerCase()
       const email = (item.lead?.email || "").toLowerCase()
@@ -157,13 +178,16 @@ export function PartnerPurchasesDialog({
       const city = (item.lead?.city || "").toLowerCase()
       const province = (item.lead?.province || "").toLowerCase()
       const postal = (item.lead?.postalCode || "").toLowerCase()
+      const statusLabel =
+        PIPELINE_STATUS_META[normalizePipelineStatus(item.pipelineStatus)].label.toLowerCase()
       return (
         label.includes(q) ||
         email.includes(q) ||
         phone.includes(q) ||
         city.includes(q) ||
         province.includes(q) ||
-        postal.includes(q)
+        postal.includes(q) ||
+        statusLabel.includes(q)
       )
     })
 
@@ -176,7 +200,7 @@ export function PartnerPurchasesDialog({
       sorted.sort((a, b) => b.purchasedAt.localeCompare(a.purchasedAt))
     }
     return sorted
-  }, [data?.purchases, search, segmentFilter, sortBy])
+  }, [data?.purchases, search, segmentFilter, pipelineFilter, sortBy])
 
   function handleExportCsv() {
     if (!data || filteredPurchases.length === 0) return
@@ -201,6 +225,7 @@ export function PartnerPurchasesDialog({
       "Montant HTVA (€)",
       "Montant TTC (€)",
       "Statut CRM",
+      "MàJ CRM",
       "Litige",
     ]
 
@@ -215,6 +240,12 @@ export function PartnerPurchasesDialog({
       const disputeLabel = item.dispute
         ? `${item.dispute.status} (${item.dispute.creditsRefunded ?? 0} cr.)`
         : ""
+      const statusLabel =
+        PIPELINE_STATUS_META[normalizePipelineStatus(item.pipelineStatus)].label
+      const crmUpdatedLabel =
+        item.crmUpdatedAt && item.crmUpdatedAt !== item.purchasedAt
+          ? formatDateTimeInline(item.crmUpdatedAt)
+          : ""
       return [
         date,
         time,
@@ -230,7 +261,8 @@ export function PartnerPurchasesDialog({
         item.creditsSpent,
         item.amountHtva.toFixed(2),
         item.amountTtc.toFixed(2),
-        item.pipelineStatus ? PIPELINE_STATUS_LABELS[item.pipelineStatus] || item.pipelineStatus : "",
+        statusLabel,
+        crmUpdatedLabel,
         disputeLabel,
       ]
         .map(escapeCell)
@@ -373,6 +405,22 @@ export function PartnerPurchasesDialog({
                 {summary.totalCreditsOrdered} crédits rechargés
               </span>
             </div>
+          </div>
+        )}
+
+        {/* Barre CRM par statut (filtrage 1 clic) */}
+        {data && data.purchases.length > 0 && (
+          <div className="rounded-lg border border-border bg-muted/30 px-3 py-2.5 flex flex-col gap-1.5">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Suivi CRM déclaré par l&apos;installateur
+            </span>
+            <PipelineStatusFilterBar
+              counts={pipelineCounts}
+              totalCount={data.purchases.length}
+              selectedStatus={pipelineFilter}
+              onSelectStatus={setPipelineFilter}
+              compact
+            />
           </div>
         )}
 
@@ -577,7 +625,42 @@ export function PartnerPurchasesDialog({
 
                       {/* Mode d'achat & statut CRM / litige */}
                       <TableCell className="align-top">
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex flex-wrap items-center gap-1">
+                            <PipelineStatusBadge status={item.pipelineStatus} />
+                            {item.dispute && (
+                              <Badge
+                                variant={isRefunded ? "destructive" : "outline"}
+                                className="text-[10px] font-mono py-0 h-5"
+                              >
+                                {isRefunded
+                                  ? `Remboursé (+${item.dispute.creditsRefunded ?? item.creditsSpent} cr.)`
+                                  : item.dispute.status === "pending"
+                                    ? "Litige en cours"
+                                    : `Litige : ${item.dispute.status}`}
+                              </Badge>
+                            )}
+                          </div>
+
+                          {item.crmUpdatedAt &&
+                            item.crmUpdatedAt.slice(0, 16) !== item.purchasedAt.slice(0, 16) && (
+                              <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+                                MàJ CRM : {formatDateTimeInline(item.crmUpdatedAt)}
+                              </span>
+                            )}
+
+                          {(() => {
+                            const customNote = extractCustomPartnerNotes(item.notes)
+                            return customNote ? (
+                              <span
+                                className="text-[11px] text-muted-foreground italic line-clamp-2"
+                                title={customNote}
+                              >
+                                « {customNote} »
+                              </span>
+                            ) : null
+                          })()}
+
                           {item.paymentMode === "direct_mollie" ? (
                             <Badge
                               variant="outline"
@@ -599,26 +682,6 @@ export function PartnerPurchasesDialog({
                               <span>Crédits marketplace</span>
                             </Badge>
                           )}
-
-                          <div className="flex flex-wrap items-center gap-1">
-                            {item.pipelineStatus && (
-                              <span className="text-[10px] font-medium text-muted-foreground">
-                                CRM : {PIPELINE_STATUS_LABELS[item.pipelineStatus] || item.pipelineStatus}
-                              </span>
-                            )}
-                            {item.dispute && (
-                              <Badge
-                                variant={isRefunded ? "destructive" : "outline"}
-                                className="text-[10px] font-mono py-0 h-4"
-                              >
-                                {isRefunded
-                                  ? `Remboursé (+${item.dispute.creditsRefunded ?? item.creditsSpent} cr.)`
-                                  : item.dispute.status === "pending"
-                                    ? "Litige en cours"
-                                    : `Litige : ${item.dispute.status}`}
-                              </Badge>
-                            )}
-                          </div>
                         </div>
                       </TableCell>
 

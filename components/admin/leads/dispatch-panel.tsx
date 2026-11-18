@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { calculateOrderFinancials, formatEurWithDecimals } from "@/lib/credit-pricing"
+import { PipelineStatusBadge } from "@/components/admin/pipeline-status-badge"
 
 export type CompatiblePartner = {
   id: string
@@ -61,6 +62,8 @@ export function DispatchPanel({
     partner_id: string
     credits_spent?: number
     purchased_at?: string
+    pipeline_status?: string | null
+    updated_at?: string | null
     partners?: any
   }[]
 }) {
@@ -311,11 +314,14 @@ export function DispatchPanel({
               return (
                 <div
                   key={pur.id || idx}
-                  className="flex items-center justify-between text-[11px] bg-card border border-border/80 rounded-md px-2.5 py-1.5"
+                  className="flex flex-wrap items-center justify-between gap-2 text-[11px] bg-card border border-border/80 rounded-md px-2.5 py-1.5"
                 >
-                  <span className="font-semibold text-foreground">
-                    Place {idx + 1} : {partnerName}
-                  </span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-semibold text-foreground truncate">
+                      Place {idx + 1} : {partnerName}
+                    </span>
+                    <PipelineStatusBadge status={pur.pipeline_status} compact />
+                  </div>
                   <div className="flex items-center gap-2 text-muted-foreground font-mono">
                     {pur.credits_spent !== undefined && (
                       <span className="text-primary font-bold">{pur.credits_spent} cr.</span>
