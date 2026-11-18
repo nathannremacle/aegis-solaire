@@ -5,6 +5,7 @@ import { Header } from "@/components/header"
 
 const HIDDEN_PREFIXES = [
   "/admin",
+  "/astuce",
   "/devis-panneaux-solaires",
   "/partenaires/dashboard",
   "/partenaires/invitation",

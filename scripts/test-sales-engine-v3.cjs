@@ -392,3 +392,187 @@ test("Partial lead closure rule (7j + 48h grace) & RESCERT outreach invite templ
   assert.match(inviteEmail.inviteUrl, /leadId=98c09b29/)
   assert.match(inviteEmail.optoutUrl, /\/api\/partners\/rescert-optout\?/)
 })
+
+test("Prospect referral email ('L'astuce propriétaire') & 24h anti-misclick trigger", async () => {
+  const belgiumMod = loadTs("lib/belgium-regions.ts")
+  const referralMod = loadTs("lib/prospect-referral-email.ts", {
+    resend: { Resend: class {} },
+    "@/lib/belgium-regions": belgiumMod,
+  })
+
+  const referralEmail = referralMod.buildProspectReferralEmail({
+    email: "julien.dubois@example.be",
+    firstName: "Julien",
+    lastName: "Dubois",
+    leadId: "9f3d2a10-0000-4000-8000-000000000001",
+    city: "Chaudfontaine",
+    province: "liege",
+    segment: "B2C",
+    estimatedPowerKwc: 6.2,
+    partnerCompany: "SolarTech Liège SRL",
+  })
+
+  assert.match(referralEmail.subject, /Chaudfontaine/)
+  assert.match(referralEmail.subject, /astuce/i)
+  assert.match(referralEmail.html, /#142D42/)
+  assert.match(referralEmail.html, /#FFF5DF/)
+  assert.match(referralEmail.html, /#D69729/)
+  assert.match(referralEmail.html, /font-size: 18px; line-height: 1\.25;/)
+  assert.match(referralEmail.html, /https:\/\/wa\.me\/\?text=/)
+  assert.match(referralEmail.html, /aegissolaire\.com\/astuce/)
+  assert.match(referralEmail.html, /RESCERT/)
+  assert.match(referralEmail.html, /SolarTech Liège SRL/)
+  assert.equal(/<code>/i.test(referralEmail.html), false)
+  assert.equal(/#314b5f/i.test(referralEmail.html), false)
+  assert.equal(/Fabrice Remacle/i.test(referralEmail.html), false)
+  assert.match(referralEmail.text, /https:\/\/www\.aegissolaire\.com\/astuce/)
+
+  const noop = () => ({})
+  const sentTo = []
+  const updatedLeads = []
+  const now = 1_800_000_000_000
+  const HOUR_MS = 60 * 60 * 1000
+
+  const fakeRows = [
+    // Éligible : won depuis 26h (> 24h)
+    {
+      id: "purch-eligible",
+      lead_id: "lead-eligible",
+      partner_id: "partner-real",
+      pipeline_status: "won",
+      updated_at: new Date(now - 26 * HOUR_MS).toISOString(),
+      partners: { id: "partner-real", company_name: "SolarTech Liège SRL", email: "contact@solartech.be", is_test: false },
+      leads: {
+        id: "lead-eligible",
+        first_name: "Julien",
+        last_name: "Dubois",
+        email: "julien@example.be",
+        city: "Chaudfontaine",
+        province: "liege",
+        segment: "B2C",
+        estimated_power_kwc: 6.2,
+        qualification_metadata: {},
+      },
+    },
+    // Déjà envoyé -> doit être ignoré
+    {
+      id: "purch-already-sent",
+      lead_id: "lead-already-sent",
+      partner_id: "partner-real",
+      pipeline_status: "won",
+      updated_at: new Date(now - 48 * HOUR_MS).toISOString(),
+      partners: { id: "partner-real", company_name: "SolarTech Liège SRL", email: "contact@solartech.be", is_test: false },
+      leads: {
+        id: "lead-already-sent",
+        first_name: "Claire",
+        email: "claire@example.be",
+        city: "Namur",
+        province: "namur",
+        segment: "B2C",
+        estimated_power_kwc: 5.0,
+        qualification_metadata: { referral_invite_sent_at: "2026-11-10T10:00:00.000Z" },
+      },
+    },
+    // Opt-out -> doit être ignoré
+    {
+      id: "purch-optout",
+      lead_id: "lead-optout",
+      partner_id: "partner-real",
+      pipeline_status: "won",
+      updated_at: new Date(now - 30 * HOUR_MS).toISOString(),
+      partners: { id: "partner-real", company_name: "SolarTech Liège SRL", email: "contact@solartech.be", is_test: false },
+      leads: {
+        id: "lead-optout",
+        first_name: "Daniel",
+        email: "daniel.castroviejo@cgs-energies.be",
+        city: "Liège",
+        province: "liege",
+        segment: "B2C",
+        qualification_metadata: {},
+      },
+    },
+    // Compte test -> doit être ignoré
+    {
+      id: "purch-test-partner",
+      lead_id: "lead-test-partner",
+      partner_id: "partner-test",
+      pipeline_status: "won",
+      updated_at: new Date(now - 30 * HOUR_MS).toISOString(),
+      partners: { id: "partner-test", company_name: "Test Partner", email: "mrnathanrem@gmail.com", is_test: true },
+      leads: {
+        id: "lead-test-partner",
+        first_name: "Test",
+        email: "prospect.test@example.be",
+        city: "Liège",
+        province: "liege",
+        segment: "B2C",
+        qualification_metadata: {},
+      },
+    },
+  ]
+
+  const mockSupabase = {
+    from: (table) => {
+      if (table === "lead_purchases") {
+        const chain = {
+          select: () => chain,
+          eq: () => chain,
+          lte: () => chain,
+          gte: () => chain,
+          order: async () => ({ data: fakeRows, error: null }),
+        }
+        return chain
+      }
+      if (table === "leads") {
+        return {
+          update: (payload) => ({
+            eq: async (_col, id) => {
+              updatedLeads.push({ id, payload })
+              return { error: null }
+            },
+          }),
+        }
+      }
+      return {}
+    },
+  }
+
+  const engine = loadTs("lib/lead-relance-engine.ts", {
+    react: { cache: (fn) => fn },
+    resend: { Resend: class {} },
+    "@/lib/supabase/admin": { createServiceRoleClient: () => mockSupabase },
+    "@/lib/marketplace-pricing": { calculateMarketplaceFinancials: noop, calculateLeadCreditCost: () => 3 },
+    "@/lib/email-templates/installer-lead-teaser": { renderInstallerLeadTeaserEmail: noop, buildLeadEmailSubject: () => "" },
+    "@/lib/belgium-regions": belgiumMod,
+    "@/lib/partner-notification-prefs": {
+      doesSurfaceMatchPreference: () => true,
+      getEffectivePartnerSegment: () => "BOTH",
+      getPartnerNotificationMode: () => "all",
+      OPTOUT_ALL_MARKER: "",
+      OPTOUT_RELANCES_MARKER: "",
+    },
+    "@/lib/partner-notification-tokens": { buildPartnerNotificationUrls: noop },
+    "@/lib/credit-pricing": { B2C_EXCLUSIVE_CREDIT_COST: 7, calculateOrderFinancials: noop },
+    "@/lib/mollie": { createRecurringLeadPayment: noop, getMollieClient: noop, getValidMollieMandate: noop },
+    "@/lib/mollie-fulfillment": { fulfillPaidLeadDirectPurchase: noop },
+    "@/lib/notify-installateur": { sendLeadAssignedEmail: noop },
+    "@/lib/admin-sales-emails": { sendAdminLeadSaleNotification: noop },
+    "@/lib/prospect-exclusive-match-email": { sendProspectExclusiveMatchEmail: noop },
+    "@/lib/prospect-reconfirm-email": { sendProspectReconfirmEmail: noop },
+    "@/lib/prospect-referral-email": {
+      sendProspectReferralEmail: async (p) => {
+        sentTo.push(p.email)
+        return { sent: true, emailId: "mock-id-1" }
+      },
+    },
+  })
+
+  assert.equal(engine.REFERRAL_WON_STABILIZATION_MS, 24 * 60 * 60 * 1000)
+  const sentCount = await engine.processPendingProspectReferralEmails(mockSupabase, now)
+  assert.equal(sentCount, 1)
+  assert.deepEqual(sentTo, ["julien@example.be"])
+  assert.equal(updatedLeads.length, 1)
+  assert.equal(updatedLeads[0].id, "lead-eligible")
+  assert.ok(updatedLeads[0].payload.qualification_metadata.referral_invite_sent_at)
+  assert.equal(updatedLeads[0].payload.qualification_metadata.referral_trigger_purchase_id, "purch-eligible")
+})

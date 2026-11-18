@@ -19,6 +19,8 @@ import { sendLeadAssignedEmail } from "@/lib/notify-installateur"
 import { sendAdminLeadSaleNotification, type LeadSaleBuyerSummary } from "@/lib/admin-sales-emails"
 import { sendProspectExclusiveMatchEmail } from "@/lib/prospect-exclusive-match-email"
 import { sendProspectReconfirmEmail } from "@/lib/prospect-reconfirm-email"
+import { sendProspectReferralEmail } from "@/lib/prospect-referral-email"
+import b2cOptoutEmails from "@/lib/data/b2c-optout-emails.json"
 
 // ==============================================================================
 // 1. CONFIGURATION & CONSTANTES MÉTIER
@@ -38,6 +40,14 @@ export const COOLDOWN_WAVE_2_TO_3_MS = 210 * 60 * 1000 // +3h30 après Vague 2 (
 export const RECONFIRM_PROTOCOL_AGE_MS = 48 * 60 * 60 * 1000 // Reconfirmation prospect 1-clic à H+48h si 0 achat
 export const STALE_PARTIAL_CLOSE_AGE_MS = 168 * 60 * 60 * 1000 // 7 jours avant clôture d'un B2C partiel (1/3 ou 2/3)
 export const STALE_PARTIAL_LAST_BUY_GRACE_MS = 48 * 60 * 60 * 1000 // Délai de grâce 48 h après le dernier achat réel
+export const REFERRAL_WON_STABILIZATION_MS = 24 * 60 * 60 * 1000 // Délai anti-misclick 24 h après passage en 'won'
+const REFERRAL_WON_LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000
+
+const REFERRAL_OPTOUT_EMAIL_SET = new Set(
+  (Array.isArray(b2cOptoutEmails) ? b2cOptoutEmails : [])
+    .map((e) => (typeof e === "string" ? e.toLowerCase().trim() : ""))
+    .filter(Boolean)
+)
 
 export interface PartialCloseCheckInput {
   segment?: string | null
@@ -1239,6 +1249,126 @@ export interface CronRelanceSummary {
   skippedLeadsCount: number
   autoClosedStalePartialCount?: number
   reconfirmEmailsSentCount?: number
+  referralEmailsSentCount?: number
+}
+
+/**
+ * Envoie les e-mails d'invitation au partage ("l'astuce propriétaire") aux prospects
+ * dont le dossier est resté en statut CRM `won` (Devis signé) pendant au moins 24 h
+ * sans correction (protection anti-misclick installateur).
+ */
+export async function processPendingProspectReferralEmails(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  nowMs = Date.now()
+): Promise<number> {
+  const stabilizedBeforeIso = new Date(nowMs - REFERRAL_WON_STABILIZATION_MS).toISOString()
+  const lookbackAfterIso = new Date(nowMs - REFERRAL_WON_LOOKBACK_MS).toISOString()
+  const nowIso = new Date(nowMs).toISOString()
+
+  let sentCount = 0
+  const processedLeadIds = new Set<string>()
+
+  try {
+    const { data: wonPurchases, error } = await supabase
+      .from("lead_purchases")
+      .select(
+        `
+          id,
+          lead_id,
+          partner_id,
+          pipeline_status,
+          updated_at,
+          partners(id, company_name, email, is_test),
+          leads(id, first_name, last_name, email, city, province, segment, estimated_power_kwc, qualification_metadata)
+        `
+      )
+      .eq("pipeline_status", "won")
+      .lte("updated_at", stabilizedBeforeIso)
+      .gte("updated_at", lookbackAfterIso)
+      .order("updated_at", { ascending: true })
+
+    if (error || !wonPurchases || wonPurchases.length === 0) {
+      return 0
+    }
+
+    for (const purchase of wonPurchases as any[]) {
+      if (purchase.pipeline_status !== "won") continue
+
+      const partner = Array.isArray(purchase.partners) ? purchase.partners[0] : purchase.partners
+      const lead = Array.isArray(purchase.leads) ? purchase.leads[0] : purchase.leads
+
+      if (!lead || !lead.id || !lead.email) continue
+      if (processedLeadIds.has(lead.id)) continue
+
+      if (
+        isDevTestPartner({
+          is_test: partner?.is_test,
+          company_name: partner?.company_name,
+          email: partner?.email,
+        })
+      ) {
+        continue
+      }
+
+      const prospectEmail = String(lead.email).toLowerCase().trim()
+      if (
+        !prospectEmail ||
+        !prospectEmail.includes("@") ||
+        isUnreachableMockEmail(prospectEmail) ||
+        REFERRAL_OPTOUT_EMAIL_SET.has(prospectEmail)
+      ) {
+        continue
+      }
+
+      const meta =
+        lead.qualification_metadata && typeof lead.qualification_metadata === "object"
+          ? (lead.qualification_metadata as Record<string, unknown>)
+          : {}
+
+      if (meta.referral_invite_sent_at) {
+        continue
+      }
+
+      processedLeadIds.add(lead.id)
+
+      const sendRes = await sendProspectReferralEmail({
+        email: prospectEmail,
+        firstName: lead.first_name,
+        lastName: lead.last_name,
+        leadId: lead.id,
+        city: lead.city,
+        province: lead.province,
+        segment: lead.segment,
+        estimatedPowerKwc: lead.estimated_power_kwc,
+        partnerCompany: partner?.company_name || null,
+      })
+
+      if (sendRes.sent) {
+        sentCount++
+        const { error: updateErr } = await supabase
+          .from("leads")
+          .update({
+            qualification_metadata: {
+              ...meta,
+              referral_invite_sent_at: nowIso,
+              referral_trigger_purchase_id: purchase.id,
+            },
+          })
+          .eq("id", lead.id)
+
+        if (updateErr) {
+          console.warn(
+            `[Cron Parrainage] Impossible d'horodater referral_invite_sent_at sur le lead #${lead.id}:`,
+            updateErr.message
+          )
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[Cron Parrainage] Erreur lors du traitement des recommandations:", err)
+  }
+
+  return sentCount
 }
 
 /**
@@ -1254,12 +1384,15 @@ export async function processPendingLeadRelances(): Promise<CronRelanceSummary> 
       skippedLeadsCount: 0,
       autoClosedStalePartialCount: 0,
       reconfirmEmailsSentCount: 0,
+      referralEmailsSentCount: 0,
     }
   }
 
   const supabase = createServiceRoleClient()
   const now = Date.now()
   const nowIso = new Date(now).toISOString()
+
+  const referralEmailsSentCount = await processPendingProspectReferralEmails(supabase, now)
 
   // 1. Récupérer tous les leads actuellement "available" (avec repli si colonnes 202611180001 pas encore migrées)
   let availableLeads: any[] = []
@@ -1295,6 +1428,7 @@ export async function processPendingLeadRelances(): Promise<CronRelanceSummary> 
       skippedLeadsCount: 0,
       autoClosedStalePartialCount: 0,
       reconfirmEmailsSentCount: 0,
+      referralEmailsSentCount,
     }
   }
 
@@ -1477,6 +1611,7 @@ export async function processPendingLeadRelances(): Promise<CronRelanceSummary> 
     skippedLeadsCount: skippedCount,
     autoClosedStalePartialCount,
     reconfirmEmailsSentCount,
+    referralEmailsSentCount,
   }
 }
 

@@ -77,6 +77,8 @@ const AD_HOOK_LINES: Record<string, string> = {
   V2_AD1_ECART_1850_GPT: "Jusqu'à 1 850 € d'écart entre deux devis pour une installation équivalente.",
   V2_AD2_RENTABILITE_2026_GPT: "Ce que le solaire rapporte vraiment en 2026, chiffré par des installateurs locaux.",
   V2_AD3_ANTI_DEMARCHAGE_GPT: "Sans démarchage : vous êtes contacté par écrit d'abord, et restez libre de tout refuser.",
+  ASTUCE_PROPRIETAIRE:
+    "L'astuce entre propriétaires : en mettant jusqu'à 3 installateurs RESCERT en concurrence sur un cahier des charges Tier-1 identique, ils réduisent leur marge dès le 1er devis (-18 % en moyenne, jusqu'à 1 850 € d'écart).",
 }
 
 const PROPERTY_TYPES = [
@@ -128,7 +130,7 @@ const TOOLTIPS = {
   sansEngagement: "Recevez jusqu'à 3 devis gratuits et sans aucun engagement. Vous comparez les offres tranquillement chez vous et restez totalement libre de choisir l'installateur de votre choix — ou aucun.",
 }
 
-export function DevisLandingClient() {
+export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string } = {}) {
   const [step, setStep] = useState(1)
   const totalSteps = 6
 
@@ -189,7 +191,18 @@ export function DevisLandingClient() {
     utm_content?: string
     utm_term?: string
     fbclid?: string
-  }>({})
+  }>(() =>
+    initialHookKey === "ASTUCE_PROPRIETAIRE"
+      ? {
+          utm_source: "parrainage_prospect",
+          utm_medium: "lien_astuce",
+          utm_campaign: "astuce_devis_signe",
+          utm_content: initialHookKey,
+        }
+      : initialHookKey
+        ? { utm_content: initialHookKey }
+        : {}
+  )
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -202,11 +215,12 @@ export function DevisLandingClient() {
       sessionIdRef.current = sid
 
       const searchParams = new URLSearchParams(window.location.search)
+      const isAstuceDefault = initialHookKey === "ASTUCE_PROPRIETAIRE"
       const utm = {
-        utm_source: searchParams.get("utm_source") || undefined,
-        utm_medium: searchParams.get("utm_medium") || undefined,
-        utm_campaign: searchParams.get("utm_campaign") || undefined,
-        utm_content: searchParams.get("utm_content") || undefined,
+        utm_source: searchParams.get("utm_source") || (isAstuceDefault ? "parrainage_prospect" : undefined),
+        utm_medium: searchParams.get("utm_medium") || (isAstuceDefault ? "lien_astuce" : undefined),
+        utm_campaign: searchParams.get("utm_campaign") || (isAstuceDefault ? "astuce_devis_signe" : undefined),
+        utm_content: searchParams.get("utm_content") || initialHookKey || undefined,
         utm_term: searchParams.get("utm_term") || undefined,
         fbclid: searchParams.get("fbclid") || undefined,
       }
@@ -263,7 +277,7 @@ export function DevisLandingClient() {
     } finally {
       setIsUtmReady(true)
     }
-  }, [])
+  }, [initialHookKey])
 
   // Sauvegarde continue de l'état en sessionStorage
   useEffect(() => {
@@ -761,7 +775,8 @@ export function DevisLandingClient() {
             </h1>
 
             <p className="text-xs sm:text-base text-muted-foreground leading-snug sm:leading-relaxed mt-0.5 sm:mt-1">
-              {(utmData.utm_content && AD_HOOK_LINES[utmData.utm_content]) || (
+              {(utmData.utm_content && AD_HOOK_LINES[utmData.utm_content]) ||
+                (initialHookKey && AD_HOOK_LINES[initialHookKey]) || (
                 <>
                   Nous mettons les installateurs certifiés <strong className="text-foreground font-semibold">RESCERT</strong> de votre région en concurrence pour vous obtenir le meilleur prix, sans aucun compromis sur la qualité.
                 </>

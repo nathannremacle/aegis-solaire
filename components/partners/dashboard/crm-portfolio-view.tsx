@@ -83,7 +83,7 @@ export const PIPELINE_STAGES = [
   },
   {
     id: "won",
-    label: "Gagné",
+    label: "Devis signé",
     color: "emerald",
     badgeClass: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800",
     pillActiveClass: "bg-emerald-600 text-white border-emerald-600 shadow-2xs font-bold",
