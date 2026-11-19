@@ -4,6 +4,7 @@ import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
 import { evaluateLeadPublishability } from "@/lib/lead-quality"
 import { isShowcaseOnlyLeadId } from "@/lib/regional-leads-catalog"
+import { getLeadImages } from "@/lib/lead-images"
 
 export const dynamic = "force-dynamic"
 
@@ -121,6 +122,7 @@ export async function GET() {
     const isFastRoi = financials.estimatedRoiYears <= 5.5
     const isHighVolume = financials.normalizedSurfaceAreaM2 >= 400 || financials.estimatedPowerKwc >= 65
     const hasIrve = Boolean(lead.wants_irve) || financials.includesEv
+    const leadImages = getLeadImages(lead)
 
     return {
       id: lead.id,
@@ -161,10 +163,8 @@ export async function GET() {
       email_delivery_status: lead.email_delivery_status ?? null,
       qualificationMetadata: lead.qualification_metadata ?? null,
       qualification_metadata: lead.qualification_metadata ?? null,
-      roof_image_url:
-        (lead.qualification_metadata as Record<string, unknown> | null)?.roof_image_url ??
-        (lead.qualification_metadata as Record<string, unknown> | null)?.site_image_url ??
-        null,
+      roof_image_url: leadImages[0] ?? null,
+      roof_images: leadImages,
       reconfirmed_at:
         lead.reconfirmed_at ||
         ((lead.qualification_metadata as Record<string, unknown> | null)?.reconfirmed_at as string | null) ||

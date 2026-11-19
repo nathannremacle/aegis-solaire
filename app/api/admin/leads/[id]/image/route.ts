@@ -1,7 +1,19 @@
+import crypto from "crypto"
 import { NextRequest, NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { logAudit } from "@/lib/audit-log"
+import {
+  appendLeadImages,
+  getLeadImagesFromMetadata,
+  isValidLeadImageUrl,
+  MAX_LEAD_IMAGES,
+  removeLeadImage,
+  reorderLeadImages,
+  setPrimaryLeadImage,
+  syncLeadImagesMetadata,
+} from "@/lib/lead-images"
 
 export const dynamic = "force-dynamic"
 
@@ -42,7 +54,6 @@ export async function POST(
   try {
     const supabase = createServiceRoleClient()
 
-    // Vérifier l'existence du lead
     const { data: lead, error: leadErr } = await supabase
       .from("leads")
       .select("id, qualification_metadata")
@@ -53,35 +64,108 @@ export async function POST(
       return NextResponse.json({ error: "Lead introuvable" }, { status: 404 })
     }
 
-    let publicUrl: string | null = null
+    const currentMeta = (lead.qualification_metadata as Record<string, unknown>) || {}
+    const existingImages = getLeadImagesFromMetadata(currentMeta)
+
+    let setAsPrimary = false
+    const filesToUpload: File[] = []
+    const candidateUrls: string[] = []
 
     const contentType = request.headers.get("content-type") || ""
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData()
-      const file = formData.get("file") as File | null
-      const directUrl = formData.get("imageUrl") as string | null
+      setAsPrimary = formData.get("setAsPrimary") === "true"
 
-      if (directUrl && directUrl.trim()) {
-        publicUrl = directUrl.trim()
-      } else if (file) {
-        if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      const rawEntries = [...formData.getAll("files"), ...formData.getAll("file")]
+      const seenFiles = new Set<File>()
+      for (const entry of rawEntries) {
+        if (entry instanceof File && entry.size > 0 && !seenFiles.has(entry)) {
+          seenFiles.add(entry)
+          filesToUpload.push(entry)
+        }
+      }
+
+      const rawDirectUrl = formData.get("imageUrl")
+      if (typeof rawDirectUrl === "string" && rawDirectUrl.trim()) {
+        if (!isValidLeadImageUrl(rawDirectUrl)) {
           return NextResponse.json(
-            { error: "Format invalide. Seuls JPEG, PNG et WebP sont acceptés." },
+            { error: "URL d'image invalide (http://, https:// ou / requis)." },
             { status: 400 }
           )
         }
-        if (file.size > MAX_FILE_SIZE_BYTES) {
+        candidateUrls.push(rawDirectUrl.trim())
+      }
+
+      if (filesToUpload.length === 0 && candidateUrls.length === 0) {
+        return NextResponse.json({ error: "Aucun fichier ou URL fourni" }, { status: 400 })
+      }
+    } else {
+      const body = await request.json().catch(() => ({}))
+      setAsPrimary = body?.setAsPrimary === true
+
+      const rawList: unknown[] = []
+      if (typeof body?.imageUrl === "string" && body.imageUrl.trim()) {
+        rawList.push(body.imageUrl)
+      }
+      if (Array.isArray(body?.imageUrls)) {
+        rawList.push(...body.imageUrls)
+      }
+
+      if (rawList.length === 0) {
+        return NextResponse.json({ error: "Champ imageUrl manquant" }, { status: 400 })
+      }
+
+      for (const item of rawList) {
+        if (!isValidLeadImageUrl(item)) {
           return NextResponse.json(
-            { error: "Image trop volumineuse (max 10 Mo)." },
+            { error: "URL d'image invalide (http://, https:// ou / requis)." },
             { status: 400 }
           )
         }
+        candidateUrls.push(item.trim())
+      }
+    }
 
-        await ensureBucketExists(supabase)
+    // Valider tous les fichiers avant tout upload vers Storage
+    for (const file of filesToUpload) {
+      if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+        return NextResponse.json(
+          { error: `Format invalide (${file.name}). Seuls JPEG, PNG et WebP sont acceptés.` },
+          { status: 400 }
+        )
+      }
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        return NextResponse.json(
+          { error: `Image trop volumineuse (${file.name}, max 10 Mo).` },
+          { status: 400 }
+        )
+      }
+    }
 
-        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg"
-        const storagePath = `leads/${leadId}/${Date.now()}.${ext}`
+    // Vérifier la limite maximale avant d'uploader
+    const uniqueNewUrls = Array.from(new Set(candidateUrls)).filter(
+      (url) => !existingImages.includes(url)
+    )
+    const projectedTotal = existingImages.length + uniqueNewUrls.length + filesToUpload.length
+    if (projectedTotal > MAX_LEAD_IMAGES) {
+      return NextResponse.json(
+        { error: `Limite atteinte : maximum ${MAX_LEAD_IMAGES} photos par dossier.` },
+        { status: 400 }
+      )
+    }
+
+    const addedUrls: string[] = [...candidateUrls]
+
+    if (filesToUpload.length > 0) {
+      await ensureBucketExists(supabase)
+      const batchTs = Date.now()
+
+      for (let idx = 0; idx < filesToUpload.length; idx++) {
+        const file = filesToUpload[idx]
+        const rawExt = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "")
+        const ext = rawExt || "jpg"
+        const storagePath = `leads/${leadId}/${batchTs}-${idx}-${crypto.randomUUID().slice(0, 8)}.${ext}`
         const arrayBuffer = await file.arrayBuffer()
         const buffer = Buffer.from(arrayBuffer)
 
@@ -104,31 +188,12 @@ export async function POST(
           .from(BUCKET_NAME)
           .getPublicUrl(storagePath)
 
-        publicUrl = publicUrlData.publicUrl
-      } else {
-        return NextResponse.json({ error: "Aucun fichier ou URL fourni" }, { status: 400 })
+        addedUrls.push(publicUrlData.publicUrl)
       }
-    } else {
-      // JSON payload avec imageUrl
-      const body = await request.json().catch(() => ({}))
-      if (!body.imageUrl || typeof body.imageUrl !== "string") {
-        return NextResponse.json({ error: "Champ imageUrl manquant" }, { status: 400 })
-      }
-      publicUrl = body.imageUrl.trim()
     }
 
-    if (!publicUrl) {
-      return NextResponse.json({ error: "Impossible de déterminer l'URL de l'image" }, { status: 400 })
-    }
-
-    // Mettre à jour qualification_metadata
-    const currentMeta = (lead.qualification_metadata as Record<string, unknown>) || {}
-    const updatedMeta = {
-      ...currentMeta,
-      roof_image_url: publicUrl,
-      site_image_url: publicUrl,
-      roof_image_updated_at: new Date().toISOString(),
-    }
+    const nextImages = appendLeadImages(existingImages, addedUrls, { makeFirst: setAsPrimary })
+    const updatedMeta = syncLeadImagesMetadata(currentMeta, nextImages)
 
     const { data: updatedLead, error: updateErr } = await supabase
       .from("leads")
@@ -143,10 +208,13 @@ export async function POST(
     if (updateErr) {
       console.error("[lead-image-api] Update error:", updateErr)
       return NextResponse.json(
-        { error: "Échec de l'association de l'image au lead" },
+        { error: "Échec de l'association des images au lead" },
         { status: 500 }
       )
     }
+
+    revalidatePath("/admin/leads")
+    revalidatePath("/partenaires/dashboard")
 
     await logAudit({
       adminEmail: user.email!,
@@ -154,13 +222,17 @@ export async function POST(
       entityType: "lead",
       entityId: leadId,
       details: {
-        imageUrl: publicUrl,
+        addedUrls,
+        totalImages: nextImages.length,
+        primaryImageUrl: nextImages[0] ?? null,
       },
     })
 
     return NextResponse.json({
       success: true,
-      imageUrl: publicUrl,
+      imageUrl: nextImages[0] ?? null,
+      addedUrls,
+      images: nextImages,
       qualification_metadata: updatedLead.qualification_metadata,
     })
   } catch (err: any) {
@@ -172,8 +244,8 @@ export async function POST(
   }
 }
 
-export async function DELETE(
-  _request: NextRequest,
+export async function PATCH(
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await getAdminUser()
@@ -187,6 +259,7 @@ export async function DELETE(
   }
 
   try {
+    const body = await request.json().catch(() => ({}))
     const supabase = createServiceRoleClient()
 
     const { data: lead, error: leadErr } = await supabase
@@ -200,10 +273,117 @@ export async function DELETE(
     }
 
     const currentMeta = (lead.qualification_metadata as Record<string, unknown>) || {}
-    const updatedMeta = { ...currentMeta }
-    delete updatedMeta.roof_image_url
-    delete updatedMeta.site_image_url
-    delete updatedMeta.roof_image_updated_at
+    const existingImages = getLeadImagesFromMetadata(currentMeta)
+
+    let nextImages: string[]
+    if (typeof body?.primaryUrl === "string") {
+      const targetUrl = body.primaryUrl.trim()
+      if (!targetUrl || !existingImages.includes(targetUrl)) {
+        return NextResponse.json(
+          { error: "Photo introuvable dans ce dossier." },
+          { status: 404 }
+        )
+      }
+      nextImages = setPrimaryLeadImage(existingImages, targetUrl)
+    } else if (Array.isArray(body?.images)) {
+      const ordered = body.images.filter((u: unknown): u is string => typeof u === "string")
+      nextImages = reorderLeadImages(existingImages, ordered)
+    } else {
+      return NextResponse.json(
+        { error: "Paramètre primaryUrl ou images manquant." },
+        { status: 400 }
+      )
+    }
+
+    const updatedMeta = syncLeadImagesMetadata(currentMeta, nextImages)
+
+    const { data: updatedLead, error: updateErr } = await supabase
+      .from("leads")
+      .update({
+        qualification_metadata: updatedMeta,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", leadId)
+      .select("id, qualification_metadata")
+      .single()
+
+    if (updateErr) {
+      console.error("[lead-image-api] Patch error:", updateErr)
+      return NextResponse.json(
+        { error: "Échec de la mise à jour de l'ordre des photos" },
+        { status: 500 }
+      )
+    }
+
+    revalidatePath("/admin/leads")
+    revalidatePath("/partenaires/dashboard")
+
+    await logAudit({
+      adminEmail: user.email!,
+      action: "lead_images_reordered",
+      entityType: "lead",
+      entityId: leadId,
+      details: {
+        primaryImageUrl: nextImages[0] ?? null,
+        totalImages: nextImages.length,
+      },
+    })
+
+    return NextResponse.json({
+      success: true,
+      imageUrl: nextImages[0] ?? null,
+      images: nextImages,
+      qualification_metadata: updatedLead.qualification_metadata,
+    })
+  } catch (err: any) {
+    console.error("[lead-image-api] Patch unexpected error:", err)
+    return NextResponse.json(
+      { error: err.message || "Erreur interne lors du réordonnancement" },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const user = await getAdminUser()
+  if (!user) {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+  }
+
+  const { id: leadId } = await params
+  if (!leadId) {
+    return NextResponse.json({ error: "ID du lead manquant" }, { status: 400 })
+  }
+
+  try {
+    const queryImageUrl = request.nextUrl.searchParams.get("imageUrl")
+    const body = await request.json().catch(() => ({}))
+    const bodyImageUrl = typeof body?.imageUrl === "string" ? body.imageUrl : null
+    const targetUrl = (queryImageUrl ?? bodyImageUrl)?.trim() || null
+    const removeAll = body?.removeAll === true || !targetUrl
+
+    const supabase = createServiceRoleClient()
+
+    const { data: lead, error: leadErr } = await supabase
+      .from("leads")
+      .select("id, qualification_metadata")
+      .eq("id", leadId)
+      .single()
+
+    if (leadErr || !lead) {
+      return NextResponse.json({ error: "Lead introuvable" }, { status: 404 })
+    }
+
+    const currentMeta = (lead.qualification_metadata as Record<string, unknown>) || {}
+    const existingImages = getLeadImagesFromMetadata(currentMeta)
+
+    // Ne jamais supprimer les objets du bucket Supabase Storage :
+    // des e-mails déjà envoyés aux partenaires peuvent encore référencer ces URLs.
+    const nextImages = removeAll ? [] : removeLeadImage(existingImages, targetUrl!)
+    const updatedMeta = syncLeadImagesMetadata(currentMeta, nextImages)
 
     const { error: updateErr } = await supabase
       .from("leads")
@@ -217,16 +397,25 @@ export async function DELETE(
       return NextResponse.json({ error: "Échec de la suppression de l'image" }, { status: 500 })
     }
 
+    revalidatePath("/admin/leads")
+    revalidatePath("/partenaires/dashboard")
+
     await logAudit({
       adminEmail: user.email!,
       action: "lead_image_removed",
       entityType: "lead",
       entityId: leadId,
-      details: {},
+      details: {
+        removedUrl: removeAll ? "ALL" : targetUrl,
+        remainingCount: nextImages.length,
+        primaryImageUrl: nextImages[0] ?? null,
+      },
     })
 
     return NextResponse.json({
       success: true,
+      imageUrl: nextImages[0] ?? null,
+      images: nextImages,
       qualification_metadata: updatedMeta,
     })
   } catch (err: any) {

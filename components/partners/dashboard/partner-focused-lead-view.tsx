@@ -1,9 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
   Download,
   Loader2,
   Mail,
@@ -34,6 +36,7 @@ import { LeadGeoRadarMap } from "./lead-geo-radar-map"
 import { buildWhatsAppLink, downloadLeadVCard } from "./lib/vcard-export"
 import { useLeadInspectionTimer } from "@/lib/client/partner-tracker"
 import { getLeadVerificationSummary } from "@/lib/lead-verification-display"
+import { getLeadImages } from "@/lib/lead-images"
 
 export interface PartnerFocusedLeadViewProps {
   lead: any
@@ -153,6 +156,31 @@ export function PartnerFocusedLeadView({
 }: PartnerFocusedLeadViewProps) {
   const [confirmingCredits, setConfirmingCredits] = useState(false)
   const [isPhotoLightboxOpen, setIsPhotoLightboxOpen] = useState(false)
+  const [activePhotoIndex, setActivePhotoIndex] = useState(0)
+
+  const roofImages = getLeadImages(lead)
+
+  useEffect(() => {
+    setActivePhotoIndex(0)
+    setIsPhotoLightboxOpen(false)
+  }, [lead?.id])
+
+  useEffect(() => {
+    if (!isPhotoLightboxOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsPhotoLightboxOpen(false)
+      } else if (e.key === "ArrowLeft" && roofImages.length > 1) {
+        e.preventDefault()
+        setActivePhotoIndex((prev) => (prev - 1 + roofImages.length) % roofImages.length)
+      } else if (e.key === "ArrowRight" && roofImages.length > 1) {
+        e.preventDefault()
+        setActivePhotoIndex((prev) => (prev + 1) % roofImages.length)
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [isPhotoLightboxOpen, roofImages.length])
 
   const { recordRoofZoom, recordUnlockIntent } = useLeadInspectionTimer({
     lead,
@@ -270,12 +298,9 @@ export function PartnerFocusedLeadView({
     financials.includesEv
   )
 
-  const roofImageUrl = (lead.qualification_metadata?.roof_image_url ||
-    lead.qualification_metadata?.site_image_url ||
-    lead.qualificationMetadata?.roof_image_url ||
-    lead.qualificationMetadata?.site_image_url ||
-    lead.roof_image_url ||
-    lead.site_image_url) as string | undefined
+  const safePhotoIndex =
+    roofImages.length > 0 ? Math.min(activePhotoIndex, roofImages.length - 1) : 0
+  const activeRoofImageUrl = roofImages[safePhotoIndex] ?? null
 
   // Identité du prospect selon statut d'achat et présence du nom (Guide §8 + règle d'anonymat ******)
   const cleanLastName = (lead.last_name?.trim() || "")
@@ -520,30 +545,75 @@ export function PartnerFocusedLeadView({
 
               <div
                 className={
-                  roofImageUrl
+                  activeRoofImageUrl
                     ? "grid grid-cols-1 sm:grid-cols-[42%_minmax(0,1fr)] gap-5 items-start"
                     : "block"
                 }
               >
-                {roofImageUrl && (
+                {activeRoofImageUrl && (
                   <div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        recordRoofZoom()
-                        setIsPhotoLightboxOpen(true)
-                      }}
-                      className="group block w-full text-left rounded-[8px] overflow-hidden border border-[var(--aegis-border)] bg-[var(--aegis-surface-subtle)] cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={roofImageUrl}
-                        alt={`Photo du bâtiment concerné par le projet à ${headlineLocation}`}
-                        className="w-full aspect-[3/2] object-cover transition-opacity group-hover:opacity-95"
-                      />
-                    </button>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          recordRoofZoom()
+                          setIsPhotoLightboxOpen(true)
+                        }}
+                        className="group block w-full text-left rounded-[8px] overflow-hidden border border-[var(--aegis-border)] bg-[var(--aegis-surface-subtle)] cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={activeRoofImageUrl}
+                          alt={`Photo ${safePhotoIndex + 1} du bâtiment concerné par le projet à ${headlineLocation}`}
+                          className="w-full aspect-[3/2] object-cover transition-opacity group-hover:opacity-95"
+                        />
+                      </button>
+                      {roofImages.length > 1 && (
+                        <span className="pointer-events-none absolute top-2 right-2 rounded-[5px] bg-[var(--aegis-ink)]/85 px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-white">
+                          {safePhotoIndex + 1} / {roofImages.length}
+                        </span>
+                      )}
+                    </div>
+
+                    {roofImages.length > 1 && (
+                      <div className="mt-2 grid grid-cols-4 gap-1.5">
+                        {roofImages.map((url, idx) => {
+                          const isSelected = idx === safePhotoIndex
+                          return (
+                            <button
+                              key={url}
+                              type="button"
+                              onClick={() => setActivePhotoIndex(idx)}
+                              aria-label={`Afficher la photo ${idx + 1}`}
+                              className={`relative rounded-[6px] overflow-hidden border aspect-[3/2] cursor-pointer transition-opacity focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] ${
+                                isSelected
+                                  ? "border-[var(--aegis-ink)] ring-1 ring-[var(--aegis-ink)] opacity-100"
+                                  : "border-[var(--aegis-border)] opacity-75 hover:opacity-100"
+                              }`}
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={url}
+                                alt={`Miniature ${idx + 1} du bâtiment`}
+                                className="w-full h-full object-cover"
+                              />
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+
                     <div className="mt-1.5 flex items-center justify-between text-[12px] text-[var(--aegis-muted)]">
-                      <span>Photo du bâtiment</span>
+                      <span>
+                        {roofImages.length > 1 ? (
+                          <>
+                            Photos du bâtiment (
+                            <span className="font-mono tabular-nums">{roofImages.length}</span>)
+                          </>
+                        ) : (
+                          "Photo du bâtiment"
+                        )}
+                      </span>
                       <button
                         type="button"
                         onClick={() => {
@@ -1028,7 +1098,7 @@ export function PartnerFocusedLeadView({
       </div>
 
       {/* Lightbox photo bâtiment */}
-      {isPhotoLightboxOpen && roofImageUrl && (
+      {isPhotoLightboxOpen && activeRoofImageUrl && (
         <div
           role="dialog"
           aria-modal="true"
@@ -1041,24 +1111,86 @@ export function PartnerFocusedLeadView({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-2 mb-2 border-b border-[var(--aegis-divider)]">
-              <span className="text-[14px] font-semibold text-[var(--aegis-ink)]">
-                Photo du bâtiment · {headlineLocation}
-              </span>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-[14px] font-semibold text-[var(--aegis-ink)] truncate">
+                  Photo du bâtiment · {headlineLocation}
+                </span>
+                {roofImages.length > 1 && (
+                  <span className="font-mono text-[12px] tabular-nums text-[var(--aegis-muted)] shrink-0">
+                    {safePhotoIndex + 1} / {roofImages.length}
+                  </span>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={() => setIsPhotoLightboxOpen(false)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-[6px] text-[var(--aegis-ink)] hover:bg-[var(--aegis-surface-subtle)] cursor-pointer"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-[6px] text-[var(--aegis-ink)] hover:bg-[var(--aegis-surface-subtle)] cursor-pointer shrink-0"
                 aria-label="Fermer l’aperçu photo"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={roofImageUrl}
-              alt={`Photo du bâtiment à ${headlineLocation}`}
-              className="w-full max-h-[78vh] object-contain rounded-[8px] bg-[var(--aegis-surface-subtle)]"
-            />
+            <div className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={activeRoofImageUrl}
+                alt={`Photo ${safePhotoIndex + 1} du bâtiment à ${headlineLocation}`}
+                className="w-full max-h-[70vh] object-contain rounded-[8px] bg-[var(--aegis-surface-subtle)]"
+              />
+              {roofImages.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setActivePhotoIndex(
+                        (safePhotoIndex - 1 + roofImages.length) % roofImages.length
+                      )
+                    }
+                    aria-label="Photo précédente"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--aegis-surface)]/95 border border-[var(--aegis-border)] text-[var(--aegis-ink)] hover:bg-[var(--aegis-surface-subtle)] cursor-pointer shadow-sm"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setActivePhotoIndex((safePhotoIndex + 1) % roofImages.length)
+                    }
+                    aria-label="Photo suivante"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--aegis-surface)]/95 border border-[var(--aegis-border)] text-[var(--aegis-ink)] hover:bg-[var(--aegis-surface-subtle)] cursor-pointer shadow-sm"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </>
+              )}
+            </div>
+            {roofImages.length > 1 && (
+              <div className="mt-2 flex items-center gap-2 overflow-x-auto pb-1">
+                {roofImages.map((url, idx) => {
+                  const isSelected = idx === safePhotoIndex
+                  return (
+                    <button
+                      key={url}
+                      type="button"
+                      onClick={() => setActivePhotoIndex(idx)}
+                      aria-label={`Afficher la photo ${idx + 1}`}
+                      className={`shrink-0 w-20 aspect-[3/2] rounded-[6px] overflow-hidden border cursor-pointer transition-opacity ${
+                        isSelected
+                          ? "border-[var(--aegis-ink)] ring-1 ring-[var(--aegis-ink)] opacity-100"
+                          : "border-[var(--aegis-border)] opacity-70 hover:opacity-100"
+                      }`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={url}
+                        alt={`Miniature ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

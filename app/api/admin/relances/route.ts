@@ -10,6 +10,7 @@ import {
 } from "@/lib/lead-relance-engine"
 import { renderInstallerLeadTeaserEmail } from "@/lib/email-templates/installer-lead-teaser"
 import { calculateMarketplaceFinancials, calculateLeadCreditCost } from "@/lib/marketplace-pricing"
+import { getLeadImages, getPrimaryLeadImage } from "@/lib/lead-images"
 
 export const dynamic = "force-dynamic"
 
@@ -167,7 +168,8 @@ export async function POST(request: NextRequest) {
           firstName: lead.first_name || "Client",
           lastName: lead.last_name || "",
           grd: lead.grd || null,
-          roofImageUrl: (lead.qualification_metadata?.roof_image_url || lead.qualification_metadata?.site_image_url || null) as string | null,
+          roofImageUrl: getPrimaryLeadImage(lead),
+          roofImagesCount: getLeadImages(lead).length,
           phoneVerified: Boolean(lead.phone_verified),
           phoneVerificationMethod: lead.phone_verification_method ?? null,
           phoneCarrier: lead.phone_carrier ?? null,

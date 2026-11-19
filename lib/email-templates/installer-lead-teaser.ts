@@ -19,6 +19,7 @@ import {
   buildPartnerExpressLeadUrls,
 } from "@/lib/partner-notification-tokens"
 import { getLeadVerificationSummary } from "@/lib/lead-verification-display"
+import { getLeadImages } from "@/lib/lead-images"
 
 export interface InstallerLeadTeaserData {
   partner: {
@@ -49,6 +50,7 @@ export interface InstallerLeadTeaserData {
     lastName?: string | null
     grd?: string | null
     roofImageUrl?: string | null
+    roofImagesCount?: number
     phoneVerified?: boolean | null
     phoneVerificationMethod?: string | null
     phoneCarrier?: string | null
@@ -550,6 +552,17 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
     })
     .join("")
 
+  const resolvedRoofImagesCount =
+    typeof data.lead.roofImagesCount === "number"
+      ? data.lead.roofImagesCount
+      : data.lead.roofImageUrl
+        ? Math.max(1, getLeadImages(data.lead).length)
+        : 0
+  const extraRoofImagesCount =
+    data.lead.roofImageUrl && resolvedRoofImagesCount > 1
+      ? resolvedRoofImagesCount - 1
+      : 0
+
   // Version texte brut sobre et structurée
   const text = `AEGIS SOLAIRE — ${contextText.toUpperCase()}
 Dossier #${leadRefCode}
@@ -574,7 +587,13 @@ DÉBLOCAGE DES COORDONNÉES :
 • Gérer mes crédits : ${creditsOrderUrl}
 
 DÉTAILS DU CHANTIER :
-${specRows.map((r) => `• ${r.label} : ${r.value}`).join("\n")}${data.lead.roofImageUrl ? "\n• Photo du bâtiment disponible sur la fiche dossier" : ""}
+${specRows.map((r) => `• ${r.label} : ${r.value}`).join("\n")}${
+    data.lead.roofImageUrl
+      ? resolvedRoofImagesCount > 1
+        ? `\n• ${resolvedRoofImagesCount} photos du bâtiment disponibles sur la fiche dossier`
+        : "\n• Photo du bâtiment disponible sur la fiche dossier"
+      : ""
+  }
 
 Assistance technique : contact@aegissolaire.com
 Gérer mes alertes : ${notifUrls.manageUrl}
@@ -758,7 +777,7 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                         ${data.lead.roofImageUrl ? `
                         <td class="photo-cell" width="42%" style="width: 42%; padding-right: 15px; vertical-align: top;">
                           <img src="${escapeHtml(data.lead.roofImageUrl)}" alt="Façade du bâtiment concerné par le projet" width="230" style="display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 7px; border: 1px solid #e2eaf0;" />
-                          <p style="margin: 4px 0 0 0; font-size: 12px; color: #4d6374;">Photo du bâtiment</p>
+                          <p style="margin: 4px 0 0 0; font-size: 12px; color: #4d6374;">${extraRoofImagesCount > 0 ? `Photo du bâtiment · +<span style="font-variant-numeric: tabular-nums;">${extraRoofImagesCount}</span> autre${extraRoofImagesCount > 1 ? "s" : ""} sur le dossier` : "Photo du bâtiment"}</p>
                         </td>
                         ` : ""}
                         <td class="spec-cell" style="vertical-align: top;">

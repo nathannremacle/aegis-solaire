@@ -6,6 +6,7 @@ import {
   type InvitationLeadSummary,
 } from "@/lib/regional-leads-catalog"
 import { getRoofMaterialLabel } from "@/lib/lead-display-helpers"
+import { getPrimaryLeadImage } from "@/lib/lead-images"
 import { InvitationClient } from "./invitation-client"
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -96,7 +97,7 @@ async function resolveInvitationLeadSummary(
           grd: data.grd ? String(data.grd) : "ORES / RESA",
           creditCost: typeof data.credit_cost === "number" && data.credit_cost > 0 ? data.credit_cost : segment === "B2B" ? 9 : 3,
           maxSlots,
-          imageUrl: typeof qualMeta.roof_image_url === "string" ? qualMeta.roof_image_url : "",
+          imageUrl: getPrimaryLeadImage(qualMeta) ?? "",
           projectDetails: String(data.project_details || data.message || "").trim(),
           isShowcaseOnly: Boolean(qualMeta.is_showcase),
           createdAt: data.created_at ? String(data.created_at) : new Date().toISOString(),

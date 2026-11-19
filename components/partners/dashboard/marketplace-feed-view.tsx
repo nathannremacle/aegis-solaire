@@ -57,6 +57,7 @@ import {
 } from "@/lib/credit-pricing"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 import { isShowcaseOnlyLeadId } from "@/lib/regional-leads-catalog"
+import { getLeadImages } from "@/lib/lead-images"
 import {
   getLeadLocationInfo,
   formatRoundedCurrency,
@@ -968,6 +969,7 @@ export function MarketplaceFeedView({
                     email_delivery_status: lead.email_delivery_status,
                     qualification_metadata: lead.qualification_metadata,
                   })
+                  const photoCount = getLeadImages(lead).length
 
                   return (
                     <div
@@ -1007,10 +1009,10 @@ export function MarketplaceFeedView({
                                 <span>{mobileVerif.phone.compactLabel}</span>
                               </span>
                             )}
-                            {(lead.qualification_metadata?.roof_image_url || lead.qualificationMetadata?.roof_image_url) && (
-                              <span className="inline-flex items-center gap-1 font-mono text-[10px] text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded font-semibold">
+                            {photoCount > 0 && (
+                              <span className="inline-flex items-center gap-1 font-mono tabular-nums text-[10px] text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded font-semibold">
                                 <Camera className="h-2.5 w-2.5" />
-                                Photo
+                                {photoCount > 1 ? `${photoCount} photos` : "Photo"}
                               </span>
                             )}
                           </div>

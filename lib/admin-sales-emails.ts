@@ -16,6 +16,7 @@ import {
   renderSpecsTable,
   type EmailSpecRow,
 } from "@/lib/email-templates/installer-email-layout"
+import { getPrimaryLeadImage } from "@/lib/lead-images"
 
 function escapeHtml(value: unknown): string {
   const s = String(value ?? "")
@@ -191,9 +192,7 @@ export async function sendAdminLeadSaleNotification(
     : null
 
   const qualMeta = (lead.qualification_metadata || {}) as Record<string, unknown>
-  const roofImageUrl =
-    normalizeImageUrl(qualMeta.roof_image_url, baseUrl) ||
-    normalizeImageUrl(qualMeta.site_image_url, baseUrl)
+  const roofImageUrl = normalizeImageUrl(getPrimaryLeadImage(qualMeta), baseUrl)
 
   // Statut des places restantes
   const slotIndicator = !isB2B ? getB2CSlotIndicator(remainingSlots) : null

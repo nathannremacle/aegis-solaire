@@ -25,6 +25,8 @@ import {
   ExternalLink,
   ChevronUp,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Check,
   X,
   Archive,
@@ -43,6 +45,8 @@ import {
   UploadCloud,
   Trash2,
   ImageIcon,
+  Star,
+  Plus,
   Home,
   CheckCircle2,
   Ruler,
@@ -74,6 +78,7 @@ import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
 import { parseLeadProjectDetails } from "@/lib/lead-display-helpers"
 import { getPhoneVerificationDiagnostic } from "@/lib/lead-verification-display"
 import { detectLeadRiskFlags } from "@/lib/admin/lead-risk"
+import { getLeadImages, MAX_LEAD_IMAGES, moveLeadImage } from "@/lib/lead-images"
 import { formatBceNumber, BCE_PUBLIC_SEARCH_URL } from "@/lib/leads-schema"
 import {
   publishLeadAction,
@@ -190,9 +195,8 @@ export function LeadDrawer({
   )
   const [dispatchMode, setDispatchMode] = useState<"marketplace" | "direct">("marketplace")
   const [selectedPartnerIds, setSelectedPartnerIds] = useState<string[]>([])
-  const [roofImageUrl, setRoofImageUrl] = useState<string | null>(
-    ((lead?.qualification_metadata?.roof_image_url || lead?.qualification_metadata?.site_image_url) as string) ?? null
-  )
+  const [leadImages, setLeadImages] = useState<string[]>(() => getLeadImages(lead))
+  const [activeImageIndex, setActiveImageIndex] = useState<number>(0)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [urlInputOpen, setUrlInputOpen] = useState(false)
   const [customUrlInput, setCustomUrlInput] = useState("")
@@ -246,8 +250,8 @@ export function LeadDrawer({
       setNotes(lead.admin_notes ?? "")
       setCreditCost(lead.credit_cost ?? (lead.segment === "B2B" ? 9 : 3))
       setSelectedPartnerIds([])
-      const currentImg = ((lead.qualification_metadata?.roof_image_url || lead.qualification_metadata?.site_image_url) as string) ?? null
-      setRoofImageUrl(currentImg)
+      setLeadImages(getLeadImages(lead))
+      setActiveImageIndex(0)
       setCustomUrlInput("")
       setUrlInputOpen(false)
       setAddressPatch(null)
@@ -471,13 +475,55 @@ export function LeadDrawer({
     }
   }
 
-  const handleUploadImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !lead) return
+  const safeActiveIndex =
+    leadImages.length > 0 ? Math.min(activeImageIndex, leadImages.length - 1) : 0
+  const activeImageUrl = leadImages[safeActiveIndex] ?? null
+
+  function syncLocalLeadImages(
+    nextImages: string[],
+    nextMeta?: Record<string, unknown> | null,
+    nextActiveIdx?: number
+  ) {
+    setLeadImages(nextImages)
+    if (typeof nextActiveIdx === "number") {
+      setActiveImageIndex(
+        nextImages.length > 0 ? Math.max(0, Math.min(nextActiveIdx, nextImages.length - 1)) : 0
+      )
+    } else {
+      setActiveImageIndex((prev) =>
+        nextImages.length > 0 ? Math.min(prev, nextImages.length - 1) : 0
+      )
+    }
+
+    if (nextMeta && typeof nextMeta === "object") {
+      if (lead) {
+        lead.qualification_metadata = nextMeta
+      }
+      setAddressPatch((prev) =>
+        prev ? { ...prev, qualification_metadata: nextMeta } : prev
+      )
+    }
+    router.refresh()
+  }
+
+  const handleUploadImageFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? [])
+    if (files.length === 0 || !lead) return
+
+    if (leadImages.length + files.length > MAX_LEAD_IMAGES) {
+      const remaining = Math.max(0, MAX_LEAD_IMAGES - leadImages.length)
+      toast.error(
+        `Limite atteinte : maximum ${MAX_LEAD_IMAGES} photos par dossier (${remaining} emplacement${remaining > 1 ? "s" : ""} disponible${remaining > 1 ? "s" : ""}).`
+      )
+      e.target.value = ""
+      return
+    }
 
     setIsUploadingImage(true)
     const formData = new FormData()
-    formData.append("file", file)
+    for (const file of files) {
+      formData.append("files", file)
+    }
 
     try {
       const res = await fetch(`/api/admin/leads/${lead.id}/image`, {
@@ -491,13 +537,16 @@ export function LeadDrawer({
       if (!res.ok) {
         throw new Error(data.error || "Erreur lors de l'upload")
       }
-      setRoofImageUrl(data.imageUrl)
-      if (lead.qualification_metadata) {
-        lead.qualification_metadata.roof_image_url = data.imageUrl
-        lead.qualification_metadata.site_image_url = data.imageUrl
-      }
-      toast.success("Photo de toiture / façade enregistrée avec succès")
-      router.refresh()
+      const nextImages: string[] = Array.isArray(data.images)
+        ? data.images
+        : getLeadImages(data.qualification_metadata)
+      const firstNewIdx = leadImages.length === 0 ? 0 : Math.min(leadImages.length, Math.max(0, nextImages.length - 1))
+      syncLocalLeadImages(nextImages, data.qualification_metadata, firstNewIdx)
+      toast.success(
+        files.length > 1
+          ? `${files.length} photos ajoutées au dossier`
+          : "Photo ajoutée au dossier"
+      )
     } catch (err: any) {
       toast.error(err.message || "Impossible de télécharger l'image")
     } finally {
@@ -507,7 +556,14 @@ export function LeadDrawer({
   }
 
   const handleAttachImageUrl = async () => {
-    if (!customUrlInput.trim() || !lead) return
+    const trimmed = customUrlInput.trim()
+    if (!trimmed || !lead) return
+
+    if (leadImages.length >= MAX_LEAD_IMAGES && !leadImages.includes(trimmed)) {
+      toast.error(`Limite atteinte : maximum ${MAX_LEAD_IMAGES} photos par dossier.`)
+      return
+    }
+
     setIsUploadingImage(true)
     try {
       const res = await fetch(`/api/admin/leads/${lead.id}/image`, {
@@ -516,21 +572,24 @@ export function LeadDrawer({
           "Content-Type": "application/json",
           "x-admin-request": "true",
         },
-        body: JSON.stringify({ imageUrl: customUrlInput.trim() }),
+        body: JSON.stringify({ imageUrl: trimmed }),
       })
       const data = await res.json()
       if (!res.ok) {
         throw new Error(data.error || "Erreur lors de l'enregistrement de l'URL")
       }
-      setRoofImageUrl(data.imageUrl)
-      if (lead.qualification_metadata) {
-        lead.qualification_metadata.roof_image_url = data.imageUrl
-        lead.qualification_metadata.site_image_url = data.imageUrl
-      }
+      const nextImages: string[] = Array.isArray(data.images)
+        ? data.images
+        : getLeadImages(data.qualification_metadata)
+      const targetIdx = nextImages.indexOf(trimmed)
+      syncLocalLeadImages(
+        nextImages,
+        data.qualification_metadata,
+        targetIdx >= 0 ? targetIdx : 0
+      )
       setUrlInputOpen(false)
       setCustomUrlInput("")
-      toast.success("URL de photo enregistrée avec succès")
-      router.refresh()
+      toast.success("URL de photo ajoutée au dossier")
     } catch (err: any) {
       toast.error(err.message || "Erreur lors de l'enregistrement de l'URL")
     } finally {
@@ -538,28 +597,99 @@ export function LeadDrawer({
     }
   }
 
-  const handleDeleteImage = async () => {
-    if (!lead || !roofImageUrl) return
-    if (!confirm("Voulez-vous vraiment retirer cette photo du lead ?")) return
+  const handleSetPrimaryImage = async (targetUrl: string) => {
+    if (!lead || !targetUrl) return
+    setIsUploadingImage(true)
+    try {
+      const res = await fetch(`/api/admin/leads/${lead.id}/image`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-request": "true",
+        },
+        body: JSON.stringify({ primaryUrl: targetUrl }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || "Erreur lors de la sélection de l'image principale")
+      }
+      const nextImages: string[] = Array.isArray(data.images)
+        ? data.images
+        : getLeadImages(data.qualification_metadata)
+      syncLocalLeadImages(nextImages, data.qualification_metadata, 0)
+      toast.success("Photo définie en n°1 (envoyée dans les e-mails)")
+    } catch (err: any) {
+      toast.error(err.message || "Impossible de définir cette image en n°1")
+    } finally {
+      setIsUploadingImage(false)
+    }
+  }
+
+  const handleMoveImage = async (index: number, direction: "left" | "right") => {
+    if (!lead) return
+    const reordered = moveLeadImage(leadImages, index, direction)
+    if (reordered.every((u, i) => u === leadImages[i])) return
+    const targetNewIndex = direction === "left" ? index - 1 : index + 1
 
     setIsUploadingImage(true)
     try {
       const res = await fetch(`/api/admin/leads/${lead.id}/image`, {
-        method: "DELETE",
+        method: "PATCH",
         headers: {
+          "Content-Type": "application/json",
           "x-admin-request": "true",
         },
+        body: JSON.stringify({ images: reordered }),
       })
+      const data = await res.json()
       if (!res.ok) {
-        throw new Error("Erreur lors de la suppression")
+        throw new Error(data.error || "Erreur lors du réordonnancement")
       }
-      setRoofImageUrl(null)
-      if (lead.qualification_metadata) {
-        delete lead.qualification_metadata.roof_image_url
-        delete lead.qualification_metadata.site_image_url
+      const nextImages: string[] = Array.isArray(data.images)
+        ? data.images
+        : reordered
+      syncLocalLeadImages(nextImages, data.qualification_metadata, targetNewIndex)
+      toast.success(
+        targetNewIndex === 0
+          ? "Photo placée en n°1 (envoyée dans les e-mails)"
+          : "Ordre des photos mis à jour"
+      )
+    } catch (err: any) {
+      toast.error(err.message || "Impossible de réordonner les photos")
+    } finally {
+      setIsUploadingImage(false)
+    }
+  }
+
+  const handleDeleteImage = async (targetUrl: string) => {
+    if (!lead || !targetUrl) return
+    if (!confirm("Voulez-vous vraiment retirer cette photo du lead ?")) return
+
+    const wasPrimary = leadImages[0] === targetUrl
+    setIsUploadingImage(true)
+    try {
+      const res = await fetch(
+        `/api/admin/leads/${lead.id}/image?imageUrl=${encodeURIComponent(targetUrl)}`,
+        {
+          method: "DELETE",
+          headers: {
+            "x-admin-request": "true",
+          },
+        }
+      )
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data.error || "Erreur lors de la suppression")
       }
-      toast.success("Photo retirée du dossier")
-      router.refresh()
+      const nextImages: string[] = Array.isArray(data.images)
+        ? data.images
+        : []
+      syncLocalLeadImages(nextImages, data.qualification_metadata)
+      if (wasPrimary && nextImages.length > 0) {
+        toast.success("Photo n°1 retirée. La photo suivante devient la photo n°1 des e-mails.")
+      } else {
+        toast.success("Photo retirée du dossier")
+      }
     } catch (err: any) {
       toast.error(err.message || "Impossible de supprimer la photo")
     } finally {
@@ -1529,30 +1659,47 @@ export function LeadDrawer({
               )
             })()}
 
-            {/* Visuel du Bâtiment & Toiture (Street View) */}
+            {/* Visuels du Bâtiment & Toiture (Galerie Multi-Photos) */}
             <div className="rounded-lg bg-secondary/50 border border-border p-3 flex flex-col gap-2.5">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-1.5 text-[11px] font-bold text-foreground uppercase tracking-wider font-mono">
                   <Camera className="h-3.5 w-3.5 text-primary" />
-                  Visuel Façade & Toiture (Street View)
+                  <span>Visuels Façade &amp; Toiture</span>
+                  {leadImages.length > 0 && (
+                    <span className="font-mono tabular-nums text-[10px] px-1.5 py-0.5 rounded bg-card text-foreground border border-border font-semibold normal-case">
+                      {leadImages.length}/{MAX_LEAD_IMAGES}
+                    </span>
+                  )}
                 </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 font-semibold">
-                  Marketplace &amp; E-mails
+                <span className="font-mono tabular-nums text-[10px] px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 font-semibold shrink-0">
+                  1ère = E-mail
                 </span>
               </div>
 
-              {roofImageUrl ? (
-                <div className="flex flex-col gap-2">
-                  <div className="relative rounded-lg overflow-hidden border border-border bg-card group aspect-[4/5] max-h-[500px]">
+              {leadImages.length > 0 && activeImageUrl ? (
+                <div className="flex flex-col gap-2.5">
+                  <div className="relative rounded-lg overflow-hidden border border-border bg-card group aspect-[3/2]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={roofImageUrl}
-                      alt="Visuel Street View du bâtiment"
-                      className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.02]"
+                      src={activeImageUrl}
+                      alt={`Visuel bâtiment n°${safeActiveIndex + 1}`}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                     />
+                    <div className="absolute top-2 left-2 flex items-center gap-1.5">
+                      {safeActiveIndex === 0 ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold bg-primary text-primary-foreground shadow-xs font-mono tabular-nums">
+                          <Star className="h-3 w-3 fill-current" />
+                          <span>Photo #1 · E-mail &amp; Vignette</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold bg-foreground/80 text-background shadow-xs backdrop-blur-xs font-mono tabular-nums">
+                          <span>Photo #{safeActiveIndex + 1} · Galerie portail</span>
+                        </span>
+                      )}
+                    </div>
                     <div className="absolute top-2 right-2 flex items-center gap-1.5">
                       <a
-                        href={roofImageUrl}
+                        href={activeImageUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold bg-foreground/80 hover:bg-foreground text-background shadow-xs transition-colors backdrop-blur-xs"
@@ -1562,35 +1709,222 @@ export function LeadDrawer({
                         <span>Agrandir</span>
                       </a>
                     </div>
+                    {leadImages.length > 1 && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setActiveImageIndex(
+                              (safeActiveIndex - 1 + leadImages.length) % leadImages.length
+                            )
+                          }
+                          aria-label="Photo précédente"
+                          className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-foreground/75 hover:bg-foreground text-background shadow-xs transition-colors cursor-pointer"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setActiveImageIndex((safeActiveIndex + 1) % leadImages.length)
+                          }
+                          aria-label="Photo suivante"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-foreground/75 hover:bg-foreground text-background shadow-xs transition-colors cursor-pointer"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </>
+                    )}
                   </div>
 
-                  <div className="flex items-center justify-between gap-2 pt-1">
-                    <label className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border border-border bg-card hover:bg-muted text-foreground cursor-pointer transition-colors">
-                      {isUploadingImage ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                  {/* Barre d'actions sur la photo active */}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {safeActiveIndex > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => handleSetPrimaryImage(activeImageUrl)}
+                          disabled={isUploadingImage}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          {isUploadingImage ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Star className="h-3.5 w-3.5" />
+                          )}
+                          <span className="font-mono tabular-nums">
+                            Définir comme photo n°1 (e-mail)
+                          </span>
+                        </button>
                       ) : (
-                        <UploadCloud className="h-3.5 w-3.5 text-primary" />
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20">
+                          <Star className="h-3 w-3 fill-current" />
+                          <span>Envoyée en priorité dans les e-mails</span>
+                        </span>
                       )}
-                      <span>{isUploadingImage ? "Mise à jour..." : "Remplacer l'image"}</span>
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,image/jpg"
-                        onChange={handleUploadImageFile}
-                        disabled={isUploadingImage}
-                        className="sr-only"
-                      />
-                    </label>
+
+                      {leadImages.length > 1 && (
+                        <div className="inline-flex items-center rounded-md border border-border bg-card overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() => handleMoveImage(safeActiveIndex, "left")}
+                            disabled={isUploadingImage || safeActiveIndex === 0}
+                            title="Déplacer avant"
+                            aria-label="Déplacer la photo vers la gauche"
+                            className="px-2 py-1.5 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 transition-colors cursor-pointer"
+                          >
+                            <ChevronLeft className="h-3.5 w-3.5" />
+                          </button>
+                          <span className="px-1.5 text-[11px] font-mono tabular-nums text-muted-foreground border-x border-border">
+                            {safeActiveIndex + 1}/{leadImages.length}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveImage(safeActiveIndex, "right")}
+                            disabled={isUploadingImage || safeActiveIndex === leadImages.length - 1}
+                            title="Déplacer après"
+                            aria-label="Déplacer la photo vers la droite"
+                            className="px-2 py-1.5 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 transition-colors cursor-pointer"
+                          >
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
 
                     <button
                       type="button"
-                      onClick={handleDeleteImage}
+                      onClick={() => handleDeleteImage(activeImageUrl)}
                       disabled={isUploadingImage}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-destructive hover:bg-destructive/10 border border-transparent transition-colors"
-                      title="Retirer la photo du lead"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-destructive hover:bg-destructive/10 border border-transparent transition-colors cursor-pointer disabled:opacity-50"
+                      title="Retirer cette photo du lead"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                       <span>Retirer</span>
                     </button>
+                  </div>
+
+                  {/* Grille de miniatures */}
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                    {leadImages.map((url, idx) => {
+                      const isActive = idx === safeActiveIndex
+                      return (
+                        <div
+                          key={url}
+                          className={cn(
+                            "relative rounded-md overflow-hidden border bg-card aspect-[3/2] transition-all",
+                            isActive
+                              ? "ring-2 ring-primary border-primary"
+                              : "border-border hover:border-primary/50"
+                          )}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setActiveImageIndex(idx)}
+                            className="block w-full h-full cursor-pointer"
+                            aria-label={`Afficher la photo ${idx + 1}`}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={url}
+                              alt={`Miniature ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </button>
+
+                          <span
+                            className={cn(
+                              "absolute top-1 left-1 px-1 py-0.5 rounded text-[9px] font-mono tabular-nums font-bold pointer-events-none",
+                              idx === 0
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-foreground/75 text-background"
+                            )}
+                          >
+                            #{idx + 1}
+                          </span>
+
+                          <div className="absolute top-1 right-1 flex items-center gap-0.5">
+                            {idx > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => handleSetPrimaryImage(url)}
+                                disabled={isUploadingImage}
+                                title="Mettre en photo n°1 (e-mails)"
+                                aria-label={`Définir la photo ${idx + 1} comme principale`}
+                                className="p-0.5 rounded bg-foreground/75 hover:bg-primary text-background hover:text-primary-foreground transition-colors cursor-pointer disabled:opacity-50"
+                              >
+                                <Star className="h-2.5 w-2.5" />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteImage(url)}
+                              disabled={isUploadingImage}
+                              title="Retirer cette photo"
+                              aria-label={`Supprimer la photo ${idx + 1}`}
+                              className="p-0.5 rounded bg-foreground/75 hover:bg-destructive text-background transition-colors cursor-pointer disabled:opacity-50"
+                            >
+                              <X className="h-2.5 w-2.5" />
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+
+                    {leadImages.length < MAX_LEAD_IMAGES && (
+                      <label className="aspect-[3/2] rounded-md border border-dashed border-border bg-card/60 hover:bg-muted/70 flex flex-col items-center justify-center gap-1 cursor-pointer text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors">
+                        {isUploadingImage ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                        ) : (
+                          <Plus className="h-3.5 w-3.5 text-primary" />
+                        )}
+                        <span>Ajouter</span>
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/jpeg,image/png,image/webp,image/jpg"
+                          onChange={handleUploadImageFiles}
+                          disabled={isUploadingImage}
+                          className="sr-only"
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* Actions d'ajout et explication */}
+                  <div className="flex flex-col gap-1.5 pt-1 border-t border-border/60">
+                    {leadImages.length < MAX_LEAD_IMAGES && (
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <label className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border border-border bg-card hover:bg-muted text-foreground cursor-pointer transition-colors">
+                          {isUploadingImage ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                          ) : (
+                            <UploadCloud className="h-3.5 w-3.5 text-primary" />
+                          )}
+                          <span>{isUploadingImage ? "Envoi en cours..." : "Ajouter photo(s)"}</span>
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/jpeg,image/png,image/webp,image/jpg"
+                            onChange={handleUploadImageFiles}
+                            disabled={isUploadingImage}
+                            className="sr-only"
+                          />
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={() => setUrlInputOpen(!urlInputOpen)}
+                          className="text-xs font-medium text-muted-foreground hover:text-foreground underline decoration-dotted cursor-pointer"
+                        >
+                          {urlInputOpen ? "Annuler URL" : "+ Coller une URL"}
+                        </button>
+                      </div>
+                    )}
+
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      La photo <span className="font-mono tabular-nums font-semibold text-foreground">#1</span> est envoyée dans les e-mails ; toutes les photos sont consultables sur le portail installateur.
+                    </p>
                   </div>
                 </div>
               ) : (
@@ -1604,7 +1938,7 @@ export function LeadDrawer({
                         Aucun visuel associé
                       </p>
                       <p className="text-[11px] text-muted-foreground">
-                        Capturez la maison sur Google Street View et ajoutez-la pour rassurer les installateurs.
+                        Ajoutez une ou plusieurs photos (Street View, vue aérienne, toiture). La 1ère sera envoyée dans les e-mails.
                       </p>
                     </div>
 
@@ -1615,11 +1949,12 @@ export function LeadDrawer({
                         ) : (
                           <UploadCloud className="h-3.5 w-3.5" />
                         )}
-                        <span>{isUploadingImage ? "Envoi en cours..." : "Télécharger une photo"}</span>
+                        <span>{isUploadingImage ? "Envoi en cours..." : "Télécharger photo(s)"}</span>
                         <input
                           type="file"
+                          multiple
                           accept="image/jpeg,image/png,image/webp,image/jpg"
-                          onChange={handleUploadImageFile}
+                          onChange={handleUploadImageFiles}
                           disabled={isUploadingImage}
                           className="sr-only"
                         />
@@ -1628,33 +1963,33 @@ export function LeadDrawer({
                       <button
                         type="button"
                         onClick={() => setUrlInputOpen(!urlInputOpen)}
-                        className="text-xs font-medium text-muted-foreground hover:text-foreground underline decoration-dotted"
+                        className="text-xs font-medium text-muted-foreground hover:text-foreground underline decoration-dotted cursor-pointer"
                       >
                         {urlInputOpen ? "Annuler" : "Ou coller une URL"}
                       </button>
                     </div>
                   </div>
+                </div>
+              )}
 
-                  {urlInputOpen && (
-                    <div className="flex items-center gap-1.5 pt-1">
-                      <input
-                        type="url"
-                        value={customUrlInput}
-                        onChange={(e) => setCustomUrlInput(e.target.value)}
-                        placeholder="https://.../photo.jpg"
-                        className="flex-1 text-xs px-2.5 py-1.5 rounded-md border border-input bg-card text-foreground font-mono focus:outline-hidden focus:ring-1 focus:ring-ring"
-                      />
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={handleAttachImageUrl}
-                        disabled={isUploadingImage || !customUrlInput.trim()}
-                        className="text-xs h-8"
-                      >
-                        {isUploadingImage ? <Loader2 className="h-3 w-3 animate-spin" /> : "Associer"}
-                      </Button>
-                    </div>
-                  )}
+              {urlInputOpen && leadImages.length < MAX_LEAD_IMAGES && (
+                <div className="flex items-center gap-1.5 pt-1">
+                  <input
+                    type="url"
+                    value={customUrlInput}
+                    onChange={(e) => setCustomUrlInput(e.target.value)}
+                    placeholder="https://.../photo.jpg"
+                    className="flex-1 text-xs px-2.5 py-1.5 rounded-md border border-input bg-card text-foreground font-mono focus:outline-hidden focus:ring-1 focus:ring-ring"
+                  />
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={handleAttachImageUrl}
+                    disabled={isUploadingImage || !customUrlInput.trim()}
+                    className="text-xs h-8"
+                  >
+                    {isUploadingImage ? <Loader2 className="h-3 w-3 animate-spin" /> : "Associer"}
+                  </Button>
                 </div>
               )}
             </div>

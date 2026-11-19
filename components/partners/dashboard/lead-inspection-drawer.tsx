@@ -31,6 +31,8 @@ import {
   Layers,
   MessageSquare,
   CreditCard,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -60,6 +62,7 @@ import { LeadGeoRadarMap } from "./lead-geo-radar-map"
 import { downloadLeadVCard } from "./lib/vcard-export"
 import { DirectLeadPaymentModal } from "./modals/direct-lead-payment-modal"
 import { useLeadInspectionTimer } from "@/lib/client/partner-tracker"
+import { getLeadImages } from "@/lib/lead-images"
 
 interface LeadInspectionDrawerProps {
   lead: any
@@ -88,6 +91,14 @@ export function LeadInspectionDrawer({
   const [isDirectPayOpen, setIsDirectPayOpen] = React.useState(false)
   const [directPayExclusive, setDirectPayExclusive] = React.useState(false)
   const [isImageModalOpen, setIsImageModalOpen] = React.useState(false)
+  const [activeImageIndex, setActiveImageIndex] = React.useState(0)
+
+  const roofImages = getLeadImages(lead)
+
+  useEffect(() => {
+    setActiveImageIndex(0)
+    setIsImageModalOpen(false)
+  }, [lead?.id])
 
   const isLeadAlreadyPurchased = Boolean(
     !lead?.is_demo_preview &&
@@ -103,11 +114,23 @@ export function LeadInspectionDrawer({
     enabled: Boolean(lead),
   })
 
-  // Fermeture clavier (Escape) & Verrouillage du scroll arrière-plan
+  // Fermeture clavier (Escape : ferme d'abord la lightbox si ouverte, sinon le drawer) & navigation photo
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        onClose()
+        if (isImageModalOpen) {
+          setIsImageModalOpen(false)
+        } else {
+          onClose()
+        }
+      } else if (isImageModalOpen && roofImages.length > 1) {
+        if (e.key === "ArrowLeft") {
+          e.preventDefault()
+          setActiveImageIndex((prev) => (prev - 1 + roofImages.length) % roofImages.length)
+        } else if (e.key === "ArrowRight") {
+          e.preventDefault()
+          setActiveImageIndex((prev) => (prev + 1) % roofImages.length)
+        }
       }
     }
     const prevOverflow = document.body.style.overflow
@@ -118,7 +141,7 @@ export function LeadInspectionDrawer({
       window.removeEventListener("keydown", handleKeyDown)
       document.body.style.overflow = prevOverflow
     }
-  }, [onClose])
+  }, [onClose, isImageModalOpen, roofImages.length])
 
   if (!lead) return null
 
@@ -213,12 +236,9 @@ export function LeadInspectionDrawer({
   const displaySurfaceArea = financials.normalizedSurfaceAreaM2
   const displayAnnualBill = financials.normalizedAnnualBill
   const roi = calculateLeadRoiRatio(financials.estimatedInstallerMargin, cost, financials.estimatedContractValue)
-  const roofImageUrl = (lead.qualification_metadata?.roof_image_url ||
-    lead.qualification_metadata?.site_image_url ||
-    lead.qualificationMetadata?.roof_image_url ||
-    lead.qualificationMetadata?.site_image_url ||
-    lead.roof_image_url ||
-    lead.site_image_url) as string | undefined
+  const safeImageIndex =
+    roofImages.length > 0 ? Math.min(activeImageIndex, roofImages.length - 1) : 0
+  const activeRoofImageUrl = roofImages[safeImageIndex] ?? null
 
   const verificationSummary = getLeadVerificationSummary({
     segment: lead.segment,
@@ -309,13 +329,18 @@ export function LeadInspectionDrawer({
             />
           </div>
 
-          {/* Visuel Street View du Bâtiment & Toiture (si disponible) */}
-          {roofImageUrl && (
+          {/* Visuels Street View / Toiture du Bâtiment (si disponible) */}
+          {activeRoofImageUrl && (
             <div className="rounded-xl border border-border bg-card p-3 flex flex-col gap-2 shadow-2xs">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-foreground uppercase tracking-wider">
                   <Camera className="h-3.5 w-3.5 text-primary" />
-                  Visuel Façade &amp; Toiture
+                  <span>Visuel Façade &amp; Toiture</span>
+                  {roofImages.length > 1 && (
+                    <span className="font-mono tabular-nums text-[10px] px-1.5 py-0.5 rounded bg-secondary text-foreground border border-border normal-case">
+                      {roofImages.length}
+                    </span>
+                  )}
                 </span>
                 <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
                   <CheckCircle2 className="h-3 w-3" />
@@ -324,7 +349,7 @@ export function LeadInspectionDrawer({
               </div>
 
               <div
-                className="relative rounded-lg overflow-hidden border border-border bg-secondary/30 group cursor-pointer aspect-[4/5] max-h-[500px]"
+                className="relative rounded-lg overflow-hidden border border-border bg-secondary/30 group cursor-pointer aspect-[3/2]"
                 onClick={() => {
                   setIsImageModalOpen(true)
                   recordRoofZoom()
@@ -332,11 +357,16 @@ export function LeadInspectionDrawer({
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={roofImageUrl}
-                  alt="Aperçu Street View de la toiture et façade"
-                  className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.02]"
+                  src={activeRoofImageUrl}
+                  alt={`Aperçu ${safeImageIndex + 1} de la toiture et façade`}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                   loading="lazy"
                 />
+                {roofImages.length > 1 && (
+                  <span className="absolute top-2 right-2 rounded-md bg-foreground/80 px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-background backdrop-blur-xs">
+                    {safeImageIndex + 1} / {roofImages.length}
+                  </span>
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between p-3">
                   <span className="text-xs font-semibold text-white drop-shadow-sm flex items-center gap-1.5">
                     <Maximize2 className="h-3.5 w-3.5" />
@@ -348,7 +378,35 @@ export function LeadInspectionDrawer({
                 </div>
               </div>
 
-              <p className="text-[11px] text-muted-foreground flex items-center justify-between">
+              {roofImages.length > 1 && (
+                <div className="grid grid-cols-4 gap-1.5">
+                  {roofImages.map((url, idx) => {
+                    const isSelected = idx === safeImageIndex
+                    return (
+                      <button
+                        key={url}
+                        type="button"
+                        onClick={() => setActiveImageIndex(idx)}
+                        aria-label={`Afficher la photo ${idx + 1}`}
+                        className={`relative rounded-md overflow-hidden border aspect-[3/2] cursor-pointer transition-opacity ${
+                          isSelected
+                            ? "border-primary ring-1 ring-primary opacity-100"
+                            : "border-border opacity-75 hover:opacity-100"
+                        }`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={url}
+                          alt={`Miniature ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
+              <p className="text-[11px] text-muted-foreground flex items-center justify-between gap-2">
                 <span>Vérification technique préalable : pente, couverture &amp; orientation visibles.</span>
                 <button
                   type="button"
@@ -356,7 +414,7 @@ export function LeadInspectionDrawer({
                     setIsImageModalOpen(true)
                     recordRoofZoom()
                   }}
-                  className="text-xs font-semibold text-primary hover:underline shrink-0"
+                  className="text-xs font-semibold text-primary hover:underline shrink-0 cursor-pointer"
                 >
                   Voir en grand &rarr;
                 </button>
@@ -365,7 +423,7 @@ export function LeadInspectionDrawer({
           )}
 
           {/* Modal Lightbox Agrandie */}
-          {isImageModalOpen && roofImageUrl && (
+          {isImageModalOpen && activeRoofImageUrl && (
             <div
               className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150"
               onClick={() => setIsImageModalOpen(false)}
@@ -375,34 +433,93 @@ export function LeadInspectionDrawer({
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between p-3.5 border-b border-border bg-secondary/50">
-                  <div className="flex items-center gap-2">
-                    <Camera className="h-4 w-4 text-primary" />
-                    <span className="font-bold text-sm text-foreground">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Camera className="h-4 w-4 text-primary shrink-0" />
+                    <span className="font-bold text-sm text-foreground truncate">
                       Visuel de la maison &amp; toiture — {location.city || "Chantier"}
                     </span>
+                    {roofImages.length > 1 && (
+                      <span className="font-mono text-xs tabular-nums text-muted-foreground shrink-0">
+                        {safeImageIndex + 1} / {roofImages.length}
+                      </span>
+                    )}
                   </div>
                   <button
                     type="button"
                     onClick={() => setIsImageModalOpen(false)}
-                    className="p-1 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                    className="p-1 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer shrink-0"
+                    aria-label="Fermer l’aperçu"
                   >
                     <X className="h-5 w-5" />
                   </button>
                 </div>
-                <div className="p-2 overflow-auto flex items-center justify-center bg-black/10">
+                <div className="relative p-2 overflow-auto flex items-center justify-center bg-black/10">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={roofImageUrl}
-                    alt="Visuel agrandi"
-                    className="max-h-[75vh] w-auto max-w-full object-contain rounded-lg"
+                    src={activeRoofImageUrl}
+                    alt={`Visuel agrandi ${safeImageIndex + 1}`}
+                    className="max-h-[68vh] w-auto max-w-full object-contain rounded-lg"
                   />
+                  {roofImages.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActiveImageIndex(
+                            (safeImageIndex - 1 + roofImages.length) % roofImages.length
+                          )
+                        }
+                        aria-label="Photo précédente"
+                        className="absolute left-4 top-1/2 -translate-y-1/2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-card/90 border border-border text-foreground hover:bg-card shadow-sm cursor-pointer"
+                      >
+                        <ChevronLeft className="h-5 w-5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActiveImageIndex((safeImageIndex + 1) % roofImages.length)
+                        }
+                        aria-label="Photo suivante"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-card/90 border border-border text-foreground hover:bg-card shadow-sm cursor-pointer"
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </button>
+                    </>
+                  )}
                 </div>
+                {roofImages.length > 1 && (
+                  <div className="px-3 py-2 border-t border-border bg-secondary/30 flex items-center gap-2 overflow-x-auto">
+                    {roofImages.map((url, idx) => {
+                      const isSelected = idx === safeImageIndex
+                      return (
+                        <button
+                          key={url}
+                          type="button"
+                          onClick={() => setActiveImageIndex(idx)}
+                          aria-label={`Afficher la photo ${idx + 1}`}
+                          className={`shrink-0 w-16 aspect-[3/2] rounded-md overflow-hidden border cursor-pointer transition-opacity ${
+                            isSelected
+                              ? "border-primary ring-1 ring-primary opacity-100"
+                              : "border-border opacity-70 hover:opacity-100"
+                          }`}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={url}
+                            alt={`Miniature ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
                 <div className="p-3 border-t border-border bg-card flex items-center justify-between text-xs text-muted-foreground">
                   <span className="font-mono text-[11px]">
-                    Réf #{lead.id ? lead.id.slice(0, 8).toUpperCase() : ""} · Google Street View
+                    Réf #{lead.id ? lead.id.slice(0, 8).toUpperCase() : ""} · Visuel chantier
                   </span>
                   <a
-                    href={roofImageUrl}
+                    href={activeRoofImageUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"

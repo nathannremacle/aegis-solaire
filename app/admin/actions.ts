@@ -8,6 +8,7 @@ import { B2C_CREDIT_COST, B2B_CREDIT_COST } from "@/lib/credit-pricing"
 import { calculateLeadCreditCost } from "@/lib/marketplace-pricing"
 import { sendLeadAssignedEmail } from "@/lib/notify-installateur"
 import { evaluateLeadPublishability } from "@/lib/lead-quality"
+import { getPrimaryLeadImage } from "@/lib/lead-images"
 
 export async function validateCreditOrderAction(orderId: string, adminEmail?: string) {
   const adminUser = await getAdminUser()
@@ -516,7 +517,7 @@ export async function assignLeadAction(
   const { data: lead, error: leadErr } = await supabase
     .from("leads")
     .select(
-      "id, first_name, last_name, email, phone, job_title, company, segment, surface_type, surface_area, annual_electricity_bill, estimated_roi_years, estimated_savings, message, credit_cost, status, marketplace_status"
+      "id, first_name, last_name, email, phone, job_title, company, segment, surface_type, surface_area, annual_electricity_bill, estimated_roi_years, estimated_savings, message, credit_cost, status, marketplace_status, qualification_metadata"
     )
     .eq("id", leadId)
     .single()
@@ -627,6 +628,7 @@ export async function assignLeadAction(
         annual_electricity_bill: lead.annual_electricity_bill,
         estimated_roi_years: lead.estimated_roi_years ?? null,
         estimated_savings: lead.estimated_savings ?? null,
+        roof_image_url: getPrimaryLeadImage(lead),
         message: lead.message ?? null,
       }).catch((emailErr) => {
         console.error("[assignLeadAction] Notification email failed:", emailErr)
