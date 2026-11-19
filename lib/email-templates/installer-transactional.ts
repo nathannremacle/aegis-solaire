@@ -78,7 +78,7 @@ export function buildCreditOrderConfirmationEmail(data: CreditOrderConfirmationE
     ${renderActionBox({
       kicker: "Compte crédité immédiatement",
       title: `Solde disponible : ${data.newCreditsBalance} crédits`,
-      subtext: "Vos crédits n'expirent pas et sont utilisables dès maintenant.",
+      subtext: "Vos crédits sont utilisables dès maintenant (validité 12 mois · Art. 4.3 des CGV).",
       ctaLabel: "Accéder aux dossiers →",
       ctaUrl: dashboardUrl,
     })}
@@ -117,6 +117,7 @@ Pièce ${data.invoiceRef}
 +${data.credits} crédits activés pour ${company}
 Pack : ${data.packName}
 Nouveau solde disponible : ${data.newCreditsBalance} crédits
+Validité des crédits : 12 mois à compter de l'achat (Art. 4.3 des CGV).
 
 JUSTIFICATIF COMPTABLE B2B (ACQUITTÉ) :
 ${accountingRows.map((r) => `• ${r.label} : ${r.value}`).join("\n")}

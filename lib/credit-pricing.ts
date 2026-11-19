@@ -20,6 +20,12 @@ export const CREDIT_UNIT_PRICE_EUR = 29.5 / 3 // ~9,8333 € HTVA
 /** Taux de TVA belge standard */
 export const BELGIAN_VAT_RATE = 0.21
 
+/** Durée de validité contractuelle des crédits achetés en pack (Art. 4.3 CGV) */
+export const CREDIT_VALIDITY_MONTHS = 12
+
+/** Période maximale d'inactivité continue avant péremption du solde (Art. 4.3 CGV) */
+export const CREDIT_INACTIVITY_MONTHS = 6
+
 /** Tarification B2C Résidentiel (référence Standard) */
 export const B2C_CREDIT_COST = 3
 export const B2C_MAX_SLOTS = 3

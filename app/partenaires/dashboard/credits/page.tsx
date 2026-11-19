@@ -461,7 +461,11 @@ export default function CreditsPage() {
               Approvisionner mon compte installateur
             </h2>
             <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
-              Sélectionnez un pack de crédits. Traitement transparent sur facture officielle avec TVA 21% déductible.
+              Sélectionnez un pack de crédits (valables <span className="font-mono tabular-nums">12 mois</span>,{" "}
+              <Link href="/cgv" className="underline underline-offset-4 hover:text-foreground">
+                Art. 4.3 CGV
+              </Link>
+              ). Traitement transparent sur facture officielle avec TVA <span className="font-mono tabular-nums">21 %</span> déductible.
             </p>
 
             {/* Alerte solde faible si applicable */}

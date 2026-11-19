@@ -329,7 +329,7 @@ export function InvitationClient({
                     </li>
                     <li className="flex items-start gap-2 text-sm">
                       <span className="font-mono text-primary font-semibold tabular-nums">03.</span>
-                      <span><strong>Modèle sans engagement :</strong> aucun abonnement fixe obligatoire. Vous gérez vos acquisitions au rythme de vos plannings de pose, grâce à un système de crédits sans date d'expiration.</span>
+                      <span><strong>Modèle sans engagement :</strong> aucun abonnement fixe obligatoire. Vous gérez vos acquisitions au rythme de vos plannings de pose, à l&apos;unité en euros ou via des packs de crédits valables <span className="font-mono tabular-nums font-semibold">12 mois</span>.</span>
                     </li>
                     <li className="flex items-start gap-2 text-sm">
                       <span className="font-mono text-primary font-semibold tabular-nums">04.</span>
@@ -483,7 +483,7 @@ export function InvitationClient({
                         <div className="flex items-start gap-2.5">
                           <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                           <span>
-                            <strong className="text-primary font-mono tabular-nums font-bold">0 €</strong> d'abonnement, <strong className="text-primary font-bold">0 commission</strong> sur devis · Achat à l'acte aux crédits, <strong className="text-primary font-semibold">sans aucune date d'expiration</strong>
+                            <strong className="text-primary font-mono tabular-nums font-bold">0 €</strong> d&apos;abonnement, <strong className="text-primary font-bold">0 commission</strong> sur devis · Paiement à l&apos;unité en euros ou packs de crédits valables <strong className="font-mono tabular-nums text-primary font-semibold">12 mois</strong>
                           </span>
                         </div>
                       </td>

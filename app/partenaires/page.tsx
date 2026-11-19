@@ -381,7 +381,7 @@ export default function PartenairesPage() {
                 Zéro abonnement forcé : débloquez à l&apos;unité en euros ou par packs de crédits
               </h2>
               <p className="text-sm sm:text-base text-muted-foreground">
-                Aucun abonnement mensuel imposé, zéro prélèvement récurrent. Débloquez les chantiers uniquement quand votre carnet de commandes a de la place. Choisissez le paiement direct à l&apos;unité en euros (Bancontact / CB) ou nos recharges de crédits sans date de péremption. Facture avec TVA <span className="font-mono tabular-nums">21 %</span> déductible transmise automatiquement par e-mail.
+                Aucun abonnement mensuel imposé, zéro prélèvement récurrent. Débloquez les chantiers uniquement quand votre carnet de commandes a de la place. Choisissez le paiement direct à l&apos;unité en euros (Bancontact / CB) ou nos recharges de crédits dégressives (valables <span className="font-mono tabular-nums">12 mois</span>). Facture avec TVA <span className="font-mono tabular-nums">21 %</span> déductible transmise automatiquement par e-mail.
               </p>
             </div>
 
@@ -480,7 +480,7 @@ export default function PartenairesPage() {
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="h-3.5 w-3.5 text-accent shrink-0 stroke-[3]" />
-                      <span>Crédits sans date de péremption</span>
+                      <span>Crédits valables <span className="font-mono tabular-nums">12 mois</span> (Art. 4.3 CGV)</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="h-3.5 w-3.5 text-accent shrink-0 stroke-[3]" />
@@ -844,9 +844,13 @@ export default function PartenairesPage() {
               </div>
 
               <div className="p-5 rounded-2xl bg-secondary/40 border border-border flex flex-col gap-2">
-                <h3 className="font-bold text-foreground font-heading">Mes crédits ont-ils une date limite ?</h3>
+                <h3 className="font-bold text-foreground font-heading">Quelle est la durée de validité de mes crédits ?</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Non. Vos crédits acquis restent valables sans limitation de durée. Vous pouvez les consommer en une semaine ou sur plusieurs mois selon votre carnet de commandes.
+                  Les crédits achetés en pack sont valables <strong className="font-mono tabular-nums text-foreground">12 mois</strong> à compter de leur date d&apos;achat (sous réserve d&apos;au moins une activité du compte sur <span className="font-mono tabular-nums">6 mois</span> consécutifs, Art. 4.3 des{" "}
+                  <Link href="/cgv" className="font-semibold text-foreground underline underline-offset-4 hover:text-accent">
+                    CGV
+                  </Link>
+                  ). Si vous préférez ne conserver aucun solde, vous pouvez aussi débloquer chaque chantier à l&apos;unité directement en euros.
                 </p>
               </div>
             </div>
