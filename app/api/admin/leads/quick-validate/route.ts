@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { evaluateLeadPublishability } from "@/lib/lead-quality"
-import { dispatchLeadWave, runAutoMatchForLead } from "@/lib/lead-relance-engine"
+import { triggerPostPublishDispatch } from "@/lib/lead-relance-engine"
 import { verifyLeadValidationToken } from "@/lib/notify-admin-lead"
+
+export const maxDuration = 60
 
 function escapeHtml(s: string): string {
   return s
@@ -251,26 +253,19 @@ export async function GET(request: NextRequest) {
     console.warn("[Quick Validate Email] Audit log insertion failed:", auditErr)
   }
 
-  try {
-    void runAutoMatchForLead(id)
-      .then((autoRes) => {
-        if (!autoRes.isFullySold) {
-          return dispatchLeadWave(id, 1)
-        }
-        return null
-      })
-      .catch((err) =>
-        console.error("[Quick Validate Email] Échec Auto-Match / dispatchLeadWave Vague 1:", err)
-      )
-  } catch (waveErr) {
-    console.warn("[Quick Validate Email] dispatchLeadWave exception:", waveErr)
-  }
+  const dispatch = await triggerPostPublishDispatch(id)
+
+  const subtitle = dispatch.autoMatch.isFullySold
+    ? `Le lead de ${fullName} a été publié sur la marketplace et attribué intégralement en Auto-Pilot (${dispatch.autoMatch.allocatedCount} partenaire(s)).`
+    : dispatch.wave1 && dispatch.wave1.sentCount > 0
+      ? `Le lead de ${fullName} a été publié sur la marketplace. La Vague 1 a été envoyée à ${dispatch.wave1.sentCount} destinataire(s).`
+      : `Le lead de ${fullName} a été publié sur la marketplace (aucun envoi Vague 1 immédiat requis ou éligible pour l'instant).`
 
   return new NextResponse(
     renderResponseHtml({
       status: "success",
       title: "Dossier validé et publié",
-      subtitle: `Le lead de ${fullName} a été publié sur la marketplace. La Vague 1 d'attribution aux installateurs partenaires a été déclenchée.`,
+      subtitle,
       leadSummary: {
         name: fullName,
         segment: lead.segment === "B2B" ? "B2B Professionnel" : "B2C Résidentiel",

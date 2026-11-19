@@ -4,6 +4,8 @@ import { verifyLeadReconfirmToken } from "@/lib/prospect-reconfirm-email"
 import { escapeEmailHtml } from "@/lib/email-templates/installer-email-layout"
 import { dispatchLeadWave } from "@/lib/lead-relance-engine"
 
+export const maxDuration = 60
+
 function renderReconfirmHtml(params: {
   ok: boolean
   title: string
@@ -130,9 +132,11 @@ export async function GET(request: Request) {
 
     // Si le dossier est encore disponible, déclencher une vague prioritaire fraîchement reconfirmée
     if (lead.marketplace_status === "available" && !lead.reconfirmed_at) {
-      dispatchLeadWave(lead.id, 1).catch((err) => {
+      try {
+        await dispatchLeadWave(lead.id, 1)
+      } catch (err) {
         console.error("[Reconfirm] Erreur dispatch vague post-reconfirmation:", err)
-      })
+      }
     }
 
     const cityLabel = lead.city || lead.province || "Wallonie"

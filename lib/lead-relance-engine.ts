@@ -809,6 +809,7 @@ export async function dispatchLeadWave(
   // 6. Envoi des e-mails via Resend et journalisation
   const resend = resendApiKey ? new Resend(resendApiKey) : null
   const dispatchedRecipients: { email: string; companyName: string; score: number; tier: string; isTest?: boolean }[] = []
+  const pendingSmsPromises: Promise<unknown>[] = []
 
   for (const candidate of candidates) {
     const partner = candidate.partner
@@ -904,13 +905,15 @@ export async function dispatchLeadWave(
 
     // Alerte SMS optionnelle (strictement activée uniquement si TWILIO_* est configuré en prod)
     if (waveNumber === 1 && scoreInfo.tier === "tier_1" && partner.phone && !candidate.isTest) {
-      sendOptionalSmsUrgencyAlert({
-        toPhone: partner.phone,
-        city: lead.city || lead.province || "Wallonie",
-        segment: lead.segment || "B2C",
-        powerKwc: financials.estimatedPowerKwc,
-        creditCost,
-      }).catch(() => undefined)
+      pendingSmsPromises.push(
+        sendOptionalSmsUrgencyAlert({
+          toPhone: partner.phone,
+          city: lead.city || lead.province || "Wallonie",
+          segment: lead.segment || "B2C",
+          powerKwc: financials.estimatedPowerKwc,
+          creditCost,
+        }).catch(() => undefined)
+      )
     }
 
     // Journalisation dans lead_relance_dispatches
@@ -937,6 +940,10 @@ export async function dispatchLeadWave(
       tier: scoreInfo.tier,
       isTest: Boolean(candidate.isTest || partner.is_test || partner.company_name?.toLowerCase().includes("test")),
     })
+  }
+
+  if (pendingSmsPromises.length > 0) {
+    await Promise.allSettled(pendingSmsPromises)
   }
 
   // 7. Mettre à jour l'état de relance sur le lead
@@ -2777,25 +2784,29 @@ export async function runAutoMatchForLead(leadId: string): Promise<AutoMatchResu
           isCurrentBuyer: true,
         })
 
+        const postBuyNotifications: Promise<unknown>[] = []
+
         // Envoyer le dossier complet débloqué à l'installateur
         if (partner.email) {
-          sendLeadAssignedEmail(partner.email, {
-            first_name: lead.first_name || "Prospect",
-            last_name: lead.last_name || null,
-            email: lead.email || "",
-            phone: lead.phone || null,
-            job_title: lead.job_title || "Contact projet",
-            company: lead.company || null,
-            surface_type: lead.surface_type || "toiture",
-            surface_area: Number(lead.surface_area) || null,
-            annual_electricity_bill: annualBill || null,
-            project_timeline: lead.project_timeline || lead.timeframe || null,
-            estimated_roi_years: lead.estimated_roi_years ?? null,
-            estimated_savings: lead.estimated_savings ?? null,
-            roof_image_url: getPrimaryLeadImageItem(lead)?.url ?? null,
-            roof_image_is_ai_projection: Boolean(getPrimaryLeadImageItem(lead)?.isAiProjection),
-            message: lead.project_details || lead.message || null,
-          }).catch((e) => console.error("[Auto-Pilot] Erreur e-mail installateur:", e))
+          postBuyNotifications.push(
+            sendLeadAssignedEmail(partner.email, {
+              first_name: lead.first_name || "Prospect",
+              last_name: lead.last_name || null,
+              email: lead.email || "",
+              phone: lead.phone || null,
+              job_title: lead.job_title || "Contact projet",
+              company: lead.company || null,
+              surface_type: lead.surface_type || "toiture",
+              surface_area: Number(lead.surface_area) || null,
+              annual_electricity_bill: annualBill || null,
+              project_timeline: lead.project_timeline || lead.timeframe || null,
+              estimated_roi_years: lead.estimated_roi_years ?? null,
+              estimated_savings: lead.estimated_savings ?? null,
+              roof_image_url: getPrimaryLeadImageItem(lead)?.url ?? null,
+              roof_image_is_ai_projection: Boolean(getPrimaryLeadImageItem(lead)?.isAiProjection),
+              message: lead.project_details || lead.message || null,
+            }).catch((e) => console.error("[Auto-Pilot] Erreur e-mail installateur:", e))
+          )
         }
 
         if (wantsExclusiveB2C && lead.email) {
@@ -2806,39 +2817,47 @@ export async function runAutoMatchForLead(leadId: string): Promise<AutoMatchResu
               | undefined) ||
             null
 
-          await sendProspectExclusiveMatchEmail({
-            email: lead.email,
-            firstName: lead.first_name,
-            leadId: lead.id,
-            city: lead.city,
-            province: lead.province,
-            estimatedPowerKwc: lead.estimated_power_kwc,
-            surfaceArea: Number(lead.surface_area) || null,
-            grd: lead.grd,
-            contactPreference: contactPref,
-            partnerCompany: partner.company_name || "Installateur RESCERT agréé",
-            partnerEmail: partner.email,
-            partnerPhone: partner.phone,
-          }).catch((e) => console.warn("[Auto-Pilot] Erreur réassurance prospect:", e))
+          postBuyNotifications.push(
+            sendProspectExclusiveMatchEmail({
+              email: lead.email,
+              firstName: lead.first_name,
+              leadId: lead.id,
+              city: lead.city,
+              province: lead.province,
+              estimatedPowerKwc: lead.estimated_power_kwc,
+              surfaceArea: Number(lead.surface_area) || null,
+              grd: lead.grd,
+              contactPreference: contactPref,
+              partnerCompany: partner.company_name || "Installateur RESCERT agréé",
+              partnerEmail: partner.email,
+              partnerPhone: partner.phone,
+            }).catch((e) => console.warn("[Auto-Pilot] Erreur réassurance prospect:", e))
+          )
         }
 
         const effectiveMaxSlots = wantsExclusiveB2C ? 1 : maxSlots
-        sendAdminLeadSaleNotification({
-          mode: "credits",
-          purchaseId,
-          partner: {
-            id: partner.id,
-            company_name: partner.company_name,
-            email: partner.email,
-            phone: partner.phone,
-            credits: Number(rpcRes.remaining_credits ?? (partner.credits - requiredCredits)),
-          },
-          lead,
-          creditsSpent: requiredCredits,
-          takenSlots: realBuyers.length,
-          maxSlots: effectiveMaxSlots,
-          buyers: realBuyers,
-        }).catch(() => undefined)
+        postBuyNotifications.push(
+          sendAdminLeadSaleNotification({
+            mode: "credits",
+            purchaseId,
+            partner: {
+              id: partner.id,
+              company_name: partner.company_name,
+              email: partner.email,
+              phone: partner.phone,
+              credits: Number(rpcRes.remaining_credits ?? (partner.credits - requiredCredits)),
+            },
+            lead,
+            creditsSpent: requiredCredits,
+            takenSlots: realBuyers.length,
+            maxSlots: effectiveMaxSlots,
+            buyers: realBuyers,
+          }).catch(() => undefined)
+        )
+
+        if (postBuyNotifications.length > 0) {
+          await Promise.allSettled(postBuyNotifications)
+        }
 
         takenSlots = wantsExclusiveB2C ? maxSlots : takenSlots + 1
         if (wantsExclusiveB2C) break
@@ -2906,6 +2925,46 @@ export async function runAutoMatchForLead(leadId: string): Promise<AutoMatchResu
     isFullySold: takenSlots >= maxSlots,
     allocations,
   }
+}
+
+export interface PostPublishDispatchResult {
+  autoMatch: AutoMatchResult
+  wave1: DispatchWaveResult | null
+}
+
+/**
+ * Exécute de façon fiable et séquentielle la chaîne post-publication :
+ * 1) Attribution automatique Auto-Pilot
+ * 2) Si des créneaux restent disponibles, envoi de la Vague 1
+ */
+export async function triggerPostPublishDispatch(
+  leadId: string
+): Promise<PostPublishDispatchResult> {
+  let autoMatch: AutoMatchResult = {
+    leadId,
+    allocatedCount: 0,
+    isFullySold: false,
+    allocations: [],
+  }
+
+  try {
+    autoMatch = await runAutoMatchForLead(leadId)
+  } catch (err) {
+    console.error(`[PostPublishDispatch] Erreur runAutoMatchForLead(${leadId}):`, err)
+  }
+
+  if (autoMatch.isFullySold) {
+    return { autoMatch, wave1: null }
+  }
+
+  let wave1: DispatchWaveResult | null = null
+  try {
+    wave1 = await dispatchLeadWave(leadId, 1)
+  } catch (err) {
+    console.error(`[PostPublishDispatch] Erreur dispatchLeadWave(${leadId}, 1):`, err)
+  }
+
+  return { autoMatch, wave1 }
 }
 
 

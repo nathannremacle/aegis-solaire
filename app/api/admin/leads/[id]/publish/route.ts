@@ -3,7 +3,9 @@ import { revalidatePath, revalidateTag } from "next/cache"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { evaluateLeadPublishability } from "@/lib/lead-quality"
-import { dispatchLeadWave, runAutoMatchForLead } from "@/lib/lead-relance-engine"
+import { triggerPostPublishDispatch } from "@/lib/lead-relance-engine"
+
+export const maxDuration = 60
 
 export async function POST(
   request: Request,
@@ -95,20 +97,7 @@ export async function POST(
   }
 
   // 4. Auto-Pilot puis déclenchement Vague 1 si créneaux restants
-  try {
-    void runAutoMatchForLead(id)
-      .then((autoRes) => {
-        if (!autoRes.isFullySold) {
-          return dispatchLeadWave(id, 1)
-        }
-        return null
-      })
-      .catch((err) =>
-        console.error("[admin publish] Échec Auto-Match / dispatchLeadWave Vague 1:", err)
-      )
-  } catch (err) {
-    console.warn("[admin publish] dispatchLeadWave exception:", err)
-  }
+  const dispatch = await triggerPostPublishDispatch(id)
 
   revalidateTag("admin-kpis", "max")
   revalidateTag("admin-badges", "max")
@@ -122,6 +111,7 @@ export async function POST(
     success: true,
     lead: updatedLead,
     warnings: qualityCheck.warnings,
+    dispatch,
   })
 }
 

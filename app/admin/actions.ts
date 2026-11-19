@@ -1,9 +1,10 @@
 "use server"
 
+import { after } from "next/server"
 import { revalidateTag, revalidatePath } from "next/cache"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { getAdminUser } from "@/lib/admin-auth"
-import { dispatchLeadWave, runAutoMatchForLead } from "@/lib/lead-relance-engine"
+import { triggerPostPublishDispatch } from "@/lib/lead-relance-engine"
 import { B2C_CREDIT_COST, B2B_CREDIT_COST } from "@/lib/credit-pricing"
 import { calculateLeadCreditCost } from "@/lib/marketplace-pricing"
 import { sendLeadAssignedEmail } from "@/lib/notify-installateur"
@@ -143,14 +144,7 @@ export async function publishLeadAction(leadId: string, creditCost?: number) {
   }
 
   // Auto-Pilot d'abord ; puis Vague 1 si le dossier n'est pas déjà sold_out
-  void runAutoMatchForLead(leadId)
-    .then((autoRes) => {
-      if (!autoRes.isFullySold) {
-        return dispatchLeadWave(leadId, 1)
-      }
-      return null
-    })
-    .catch((err) => console.error("[publishLeadAction] Auto-Match / dispatchLeadWave error:", err))
+  const dispatch = await triggerPostPublishDispatch(leadId)
 
   revalidateTag("admin-kpis", "max")
   revalidateTag("admin-badges", "max")
@@ -159,6 +153,8 @@ export async function publishLeadAction(leadId: string, creditCost?: number) {
   revalidatePath("/admin/leads")
   revalidateTag("marketplace-feed", "max")
   revalidatePath("/partenaires/dashboard")
+
+  return { success: true, dispatch }
 }
 
 export async function unpublishLeadAction(leadId: string) {
@@ -339,6 +335,7 @@ export async function bulkQualifyAndPublishAction(leadIds: string[]) {
     )
   }
 
+  const publishedLeadIds: string[] = []
   if (leads) {
     for (const lead of leads) {
       const finalCost =
@@ -353,7 +350,7 @@ export async function bulkQualifyAndPublishAction(leadIds: string[]) {
           ? (lead.qualification_metadata as Record<string, unknown>)
           : {}
 
-      await supabase
+      const { error: updateErr } = await supabase
         .from("leads")
         .update({
           status: "qualified",
@@ -370,14 +367,9 @@ export async function bulkQualifyAndPublishAction(leadIds: string[]) {
         })
         .eq("id", lead.id)
 
-      void runAutoMatchForLead(lead.id)
-        .then((autoRes) => {
-          if (!autoRes.isFullySold) {
-            return dispatchLeadWave(lead.id, 1)
-          }
-          return null
-        })
-        .catch(() => undefined)
+      if (!updateErr) {
+        publishedLeadIds.push(lead.id)
+      }
     }
   }
 
@@ -391,6 +383,14 @@ export async function bulkQualifyAndPublishAction(leadIds: string[]) {
     })
   } catch {
     // Non-blocking
+  }
+
+  if (publishedLeadIds.length > 0) {
+    after(async () => {
+      for (const publishedId of publishedLeadIds) {
+        await triggerPostPublishDispatch(publishedId)
+      }
+    })
   }
 
   revalidateTag("admin-kpis", "max")

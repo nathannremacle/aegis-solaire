@@ -5,6 +5,7 @@ import { LeadsTable } from "./leads-table"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
+export const maxDuration = 60
 
 export const metadata = {
   title: "Gestion des Leads",
