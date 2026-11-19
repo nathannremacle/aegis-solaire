@@ -226,9 +226,9 @@ export function PartnerFocusedLeadView({
 
   const compactSurface = formatCompactSurface(
     specs.roofSurface ||
-      (lead.qualification_metadata?.roofSurface
-        ? getRoofSurfaceLabel(String(lead.qualification_metadata.roofSurface))
-        : undefined),
+    (lead.qualification_metadata?.roofSurface
+      ? getRoofSurfaceLabel(String(lead.qualification_metadata.roofSurface))
+      : undefined),
     rawSurface,
     financials.normalizedSurfaceAreaM2,
     surfaceTypeLabel,
@@ -259,15 +259,15 @@ export function PartnerFocusedLeadView({
 
   const hasBattery = Boolean(
     specs.hasBattery ||
-      lead.wants_battery === true ||
-      lead.qualification_metadata?.battery === true ||
-      financials.includesBattery
+    lead.wants_battery === true ||
+    lead.qualification_metadata?.battery === true ||
+    financials.includesBattery
   )
   const hasIrve = Boolean(
     specs.hasIrve ||
-      lead.wants_irve === true ||
-      lead.qualification_metadata?.ev_charger === true ||
-      financials.includesEv
+    lead.wants_irve === true ||
+    lead.qualification_metadata?.ev_charger === true ||
+    financials.includesEv
   )
 
   const roofImageUrl = (lead.qualification_metadata?.roof_image_url ||
@@ -299,6 +299,9 @@ export function PartnerFocusedLeadView({
     postal_code: lead.postal_code,
     company_vat: lead.company_vat,
     phone_verified: lead.phone_verified,
+    phone_verification_method: lead.phone_verification_method,
+    phone_carrier: lead.phone_carrier,
+    phone_line_type: lead.phone_line_type,
     email_verified: lead.email_verified,
     email_delivery_status: lead.email_delivery_status,
     qualification_metadata: lead.qualification_metadata,
@@ -360,39 +363,39 @@ export function PartnerFocusedLeadView({
     { label: "Facture annuelle", value: annualBillDisplay },
     ...(estimatedSavingsEur > 0
       ? [
-          {
-            label: "Économies client estimées",
-            value: [
-              `Env. ${Math.round(estimatedSavingsEur).toLocaleString("fr-BE")} €/an`,
-              estimatedRoiYears > 0
-                ? `retour env. ${estimatedRoiYears.toLocaleString("fr-BE", { maximumFractionDigits: 1 })} ans`
-                : null,
-              autoconsumptionRate > 0 ? `${Math.round(autoconsumptionRate)} % d’autoconsommation` : null,
-            ]
-              .filter(Boolean)
-              .join(" · "),
-          },
-        ]
+        {
+          label: "Économies client estimées",
+          value: [
+            `Env. ${Math.round(estimatedSavingsEur).toLocaleString("fr-BE")} €/an`,
+            estimatedRoiYears > 0
+              ? `retour env. ${estimatedRoiYears.toLocaleString("fr-BE", { maximumFractionDigits: 1 })} ans`
+              : null,
+            autoconsumptionRate > 0 ? `${Math.round(autoconsumptionRate)} % d’autoconsommation` : null,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+        },
+      ]
       : estimatedRoiYears > 0
         ? [
-            {
-              label: "Retour sur investissement client",
-              value: `Env. ${estimatedRoiYears.toLocaleString("fr-BE", { maximumFractionDigits: 1 })} ans`,
-            },
-          ]
+          {
+            label: "Retour sur investissement client",
+            value: `Env. ${estimatedRoiYears.toLocaleString("fr-BE", { maximumFractionDigits: 1 })} ans`,
+          },
+        ]
         : []),
     ...(hasBattery || hasIrve
       ? [
-          {
-            label: "Équipements souhaités",
-            value: [
-              hasBattery ? "Batterie domestique" : null,
-              hasIrve ? "Borne de recharge VE" : null,
-            ]
-              .filter(Boolean)
-              .join(" · "),
-          },
-        ]
+        {
+          label: "Équipements souhaités",
+          value: [
+            hasBattery ? "Batterie domestique" : null,
+            hasIrve ? "Borne de recharge VE" : null,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+        },
+      ]
       : []),
     ...(explicitTimeframe ? [{ label: "Échéance souhaitée", value: explicitTimeframe }] : []),
     ...(lead.grd ? [{ label: "Gestionnaire réseau", value: getGrdLabel(lead.grd) }] : []),
@@ -401,11 +404,11 @@ export function PartnerFocusedLeadView({
       : []),
     ...(isB2B && isPurchased && lead.company
       ? [
-          {
-            label: "Entreprise",
-            value: lead.company_vat ? `${lead.company} · TVA ${lead.company_vat}` : String(lead.company),
-          },
-        ]
+        {
+          label: "Entreprise",
+          value: lead.company_vat ? `${lead.company} · TVA ${lead.company_vat}` : String(lead.company),
+        },
+      ]
       : []),
     ...(qualifiedDateStr ? [{ label: "Demande qualifiée le", value: qualifiedDateStr }] : []),
     ...(sanitized.cleanRemarks
@@ -563,16 +566,14 @@ export function PartnerFocusedLeadView({
                         <tr key={row.label}>
                           <th
                             scope="row"
-                            className={`w-[46%] py-2 pr-3 text-[14px] font-normal text-[var(--aegis-muted)] align-top ${
-                              isLast ? "" : "border-b border-[var(--aegis-divider)]"
-                            }`}
+                            className={`w-[46%] py-2 pr-3 text-[14px] font-normal text-[var(--aegis-muted)] align-top ${isLast ? "" : "border-b border-[var(--aegis-divider)]"
+                              }`}
                           >
                             {row.label}
                           </th>
                           <td
-                            className={`py-2 text-[14px] text-[var(--aegis-ink)] align-top font-mono tabular-nums ${
-                              row.italic ? "italic font-normal" : "font-semibold"
-                            } ${isLast ? "" : "border-b border-[var(--aegis-divider)]"}`}
+                            className={`py-2 text-[14px] text-[var(--aegis-ink)] align-top font-mono tabular-nums ${row.italic ? "italic font-normal" : "font-semibold"
+                              } ${isLast ? "" : "border-b border-[var(--aegis-divider)]"}`}
                           >
                             {row.value}
                           </td>
@@ -638,14 +639,27 @@ export function PartnerFocusedLeadView({
                 <div className="pt-3 border-t border-[var(--aegis-divider)] flex flex-col gap-2 text-[14px]">
                   <div className="flex items-start gap-2.5">
                     <Phone className="h-4 w-4 mt-0.5 text-[var(--aegis-muted)] shrink-0" strokeWidth={1.75} />
-                    <div>
+                    <div className="min-w-0">
                       <span className="block text-[12px] text-[var(--aegis-muted)]">Téléphone direct</span>
-                      <a
-                        href={`tel:${lead.phone}`}
-                        className="font-mono font-bold tabular-nums text-[var(--aegis-link)] underline underline-offset-2"
-                      >
-                        {lead.phone || "—"}
-                      </a>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <a
+                          href={`tel:${lead.phone}`}
+                          className="font-mono font-bold tabular-nums text-[var(--aegis-link)] underline underline-offset-2"
+                        >
+                          {lead.phone || "—"}
+                        </a>
+                        {verifSummary.phone.compactLabel && (
+                          <span
+                            title={verifSummary.phone.detailLabel || undefined}
+                            className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${verifSummary.phone.tier === "verified"
+                                ? "bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)]"
+                                : "bg-[var(--aegis-surface-subtle)] border border-[var(--aegis-border)] text-[var(--aegis-muted)]"
+                              }`}
+                          >
+                            {verifSummary.phone.compactLabel}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -700,45 +714,39 @@ export function PartnerFocusedLeadView({
                   <div>
                     <span className="flex items-center gap-1.5 text-[13px] text-[var(--aegis-muted)]">
                       <Phone className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
-                      <span>{phoneLabel}</span>
+                      <span>Téléphone</span>
                     </span>
-                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                      <strong className="text-[15px] font-bold text-[var(--aegis-ink)] font-mono tabular-nums">
-                        {maskedPhone}
-                      </strong>
-                      {verifSummary.phone.tier === "verified" && (
-                        <span className="rounded bg-[var(--aegis-availability-bg)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--aegis-availability-text)]">
-                          Vérifié
-                        </span>
-                      )}
-                      {verifSummary.phone.tier === "plausible" && (
-                        <span className="rounded bg-[var(--aegis-surface-subtle)] border border-[var(--aegis-border)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--aegis-muted)]">
-                          Plausible
-                        </span>
-                      )}
-                    </div>
+                    <strong className="mt-1 block text-[15px] font-bold text-[var(--aegis-ink)] font-mono tabular-nums">
+                      {maskedPhone}
+                    </strong>
+                    <span
+                      title={verifSummary.phone.detailLabel || undefined}
+                      className={`mt-1.5 inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium ${verifSummary.phone.tier === "verified"
+                          ? "bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] font-semibold"
+                          : "bg-[var(--aegis-surface-subtle)] border border-[var(--aegis-border)] text-[var(--aegis-muted)]"
+                        }`}
+                    >
+                      {verifSummary.phone.compactLabel ?? phoneLabel}
+                    </span>
                   </div>
 
                   <div className="pl-3 border-l border-[var(--aegis-divider)]">
                     <span className="flex items-center gap-1.5 text-[13px] text-[var(--aegis-muted)]">
                       <Mail className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
-                      <span>{emailLabel}</span>
+                      <span>E-mail</span>
                     </span>
-                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                      <strong className="text-[15px] font-bold text-[var(--aegis-ink)] font-mono tabular-nums">
-                        ••••@••••.••
-                      </strong>
-                      {verifSummary.email.tier === "verified" && (
-                        <span className="rounded bg-[var(--aegis-availability-bg)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--aegis-availability-text)]">
-                          Vérifié
-                        </span>
-                      )}
-                      {verifSummary.email.tier === "plausible" && (
-                        <span className="rounded bg-[var(--aegis-surface-subtle)] border border-[var(--aegis-border)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--aegis-muted)]">
-                          Plausible
-                        </span>
-                      )}
-                    </div>
+                    <strong className="mt-1 block text-[15px] font-bold text-[var(--aegis-ink)] font-mono tabular-nums">
+                      ••••@••••.••
+                    </strong>
+                    <span
+                      title={verifSummary.email.detailLabel || undefined}
+                      className={`mt-1.5 inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium ${verifSummary.email.tier === "verified"
+                          ? "bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] font-semibold"
+                          : "bg-[var(--aegis-surface-subtle)] border border-[var(--aegis-border)] text-[var(--aegis-muted)]"
+                        }`}
+                    >
+                      {verifSummary.email.compactLabel ?? emailLabel}
+                    </span>
                   </div>
                 </div>
 

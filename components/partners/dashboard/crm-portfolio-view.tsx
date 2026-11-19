@@ -41,6 +41,7 @@ import {
   getTimeframeLabel,
   getOwnershipLabel,
 } from "@/lib/lead-display-helpers"
+import { getLeadVerificationSummary } from "@/lib/lead-verification-display"
 import { LeadInspectionDrawer } from "./lead-inspection-drawer"
 import { CrmInteractiveTour } from "./crm-interactive-tour"
 import { downloadLeadVCard, buildWhatsAppLink } from "./lib/vcard-export"
@@ -1020,6 +1021,20 @@ function CrmPortfolioCard({
   // Trouver l'étape actuelle
   const currentStage =
     PIPELINE_STAGES.find((s) => s.id === (item.pipeline_status || "to_contact")) || PIPELINE_STAGES[0]
+  const verifSummary = getLeadVerificationSummary({
+    segment: item.segment,
+    phone: item.phone,
+    email: item.email,
+    postal_code: item.postal_code,
+    company_vat: item.company_vat,
+    phone_verified: item.phone_verified,
+    phone_verification_method: item.phone_verification_method,
+    phone_carrier: item.phone_carrier,
+    phone_line_type: item.phone_line_type,
+    email_verified: item.email_verified,
+    email_delivery_status: item.email_delivery_status,
+    qualification_metadata: item.qualification_metadata,
+  })
 
   return (
     <div
@@ -1154,7 +1169,7 @@ function CrmPortfolioCard({
             {/* 1. Téléphone direct */}
             <div className="flex items-start gap-2 min-w-0" onClick={(e) => e.stopPropagation()}>
               <Phone className="h-4 w-4 text-slate-700 dark:text-muted-foreground shrink-0 mt-0.5" />
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 flex flex-col gap-0.5">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                   TÉLÉPHONE DIRECT
                 </span>
@@ -1165,6 +1180,18 @@ function CrmPortfolioCard({
                 >
                   {item.phone || "—"}
                 </a>
+                {verifSummary.phone.compactLabel && (
+                  <span
+                    title={verifSummary.phone.detailLabel || undefined}
+                    className={`inline-flex w-fit items-center rounded px-1.5 py-0.5 text-[9.5px] font-semibold ${
+                      verifSummary.phone.tier === "verified"
+                        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
+                        : "bg-secondary text-muted-foreground border border-border"
+                    }`}
+                  >
+                    {verifSummary.phone.compactLabel}
+                  </span>
+                )}
               </div>
             </div>
 

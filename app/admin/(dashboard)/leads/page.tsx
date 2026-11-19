@@ -110,7 +110,7 @@ async function getLeads(
     let q = supabase
       .from("leads")
       .select(
-        "id, first_name, last_name, email, phone, job_title, company, company_vat, message, surface_type, surface_area, roof_material, ownership_status, project_timeline, annual_electricity_bill, estimated_roi_years, autoconsumption_rate, estimated_savings, status, lead_score, installateur_id, wants_irve, segment, province, postal_code, city, site_address, grd, media_partner_code, marketplace_status, credit_cost, admin_notes, qualification_metadata, created_at, lead_purchases(id, partner_id, credits_spent, purchased_at, pipeline_status, updated_at, partners(id, company_name, email, is_test))",
+        "id, first_name, last_name, email, phone, phone_verified, phone_verified_at, phone_verification_method, phone_carrier, phone_line_type, email_verified, email_delivery_status, job_title, company, company_vat, message, surface_type, surface_area, roof_material, ownership_status, project_timeline, annual_electricity_bill, estimated_roi_years, autoconsumption_rate, estimated_savings, status, lead_score, installateur_id, wants_irve, segment, province, postal_code, city, site_address, grd, media_partner_code, marketplace_status, credit_cost, admin_notes, qualification_metadata, created_at, lead_purchases(id, partner_id, credits_spent, purchased_at, pipeline_status, updated_at, partners(id, company_name, email, is_test))",
         { count: "exact" }
       )
 

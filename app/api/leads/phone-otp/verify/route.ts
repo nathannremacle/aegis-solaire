@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server"
 import { resolveLeadPhoneE164 } from "@/lib/leads-validation"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import {
+  buildAdminLeadAlertPayloadFromLeadRow,
+  dispatchDeferredAdminLeadAlert,
+  sendAdminLeadOtpConfirmedEmail,
+} from "@/lib/notify-admin-lead"
+import {
   checkTwilioVerifyOtp,
   createPhoneVerificationProof,
   isTwilioPhoneOtpEnabled,
@@ -50,6 +55,63 @@ export async function POST(request: NextRequest) {
 
     const checkRes = await checkTwilioVerifyOtp({ phoneE164, code: rawCode })
     if (!checkRes.approved) {
+      if (rawLeadId && UUID_REGEX.test(rawLeadId)) {
+        try {
+          const supabase = createServiceRoleClient()
+          const { data: existingLead } = await supabase
+            .from("leads")
+            .select("id, phone, session_id, phone_verified, qualification_metadata")
+            .eq("id", rawLeadId)
+            .maybeSingle()
+
+          const canUpdateLead =
+            Boolean(existingLead) &&
+            !existingLead!.phone_verified &&
+            (existingLead!.phone === phoneE164 ||
+              (rawSessionId !== "" && existingLead!.session_id === rawSessionId))
+
+          if (existingLead && canUpdateLead) {
+            const existingMeta =
+              existingLead.qualification_metadata &&
+              typeof existingLead.qualification_metadata === "object"
+                ? (existingLead.qualification_metadata as Record<string, any>)
+                : {}
+            const existingVerifs =
+              existingMeta.verifications && typeof existingMeta.verifications === "object"
+                ? (existingMeta.verifications as Record<string, any>)
+                : {}
+            const existingOtp =
+              existingVerifs.phoneOtp && typeof existingVerifs.phoneOtp === "object"
+                ? (existingVerifs.phoneOtp as Record<string, any>)
+                : {}
+            const prevVerifyFailed =
+              typeof existingOtp.verifyFailedAttempts === "number"
+                ? existingOtp.verifyFailedAttempts
+                : 0
+
+            await supabase
+              .from("leads")
+              .update({
+                qualification_metadata: {
+                  ...existingMeta,
+                  verifications: {
+                    ...existingVerifs,
+                    phoneOtp: {
+                      ...existingOtp,
+                      verifyFailedAttempts: prevVerifyFailed + 1,
+                      lastVerifyError: checkRes.error || "Code incorrect ou expiré.",
+                    },
+                  },
+                },
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", rawLeadId)
+          }
+        } catch (err) {
+          console.warn("[API phone-otp/verify] Journalisation tentative échouée:", err)
+        }
+      }
+
       return NextResponse.json(
         { error: checkRes.error || "Code incorrect ou expiré." },
         { status: 400 }
@@ -78,7 +140,7 @@ export async function POST(request: NextRequest) {
         const { data: existingLead } = await supabase
           .from("leads")
           .select(
-            "id, phone, session_id, phone_verified, phone_carrier, phone_line_type, lead_score, qualification_metadata"
+            "id, phone, session_id, phone_verified, phone_carrier, phone_line_type, lead_score, marketplace_status, qualification_metadata"
           )
           .eq("id", rawLeadId)
           .maybeSingle()
@@ -93,15 +155,19 @@ export async function POST(request: NextRequest) {
           const existingMeta =
             existingLead.qualification_metadata &&
             typeof existingLead.qualification_metadata === "object"
-              ? (existingLead.qualification_metadata as Record<string, unknown>)
+              ? (existingLead.qualification_metadata as Record<string, any>)
               : {}
           const existingVerifs =
             existingMeta.verifications && typeof existingMeta.verifications === "object"
-              ? (existingMeta.verifications as Record<string, unknown>)
+              ? (existingMeta.verifications as Record<string, any>)
+              : {}
+          const existingOtp =
+            existingVerifs.phoneOtp && typeof existingVerifs.phoneOtp === "object"
+              ? (existingVerifs.phoneOtp as Record<string, any>)
               : {}
           const existingLookup =
             existingVerifs.twilioLookup && typeof existingVerifs.twilioLookup === "object"
-              ? (existingVerifs.twilioLookup as Record<string, unknown>)
+              ? (existingVerifs.twilioLookup as Record<string, any>)
               : {}
           const existingBadges = Array.isArray(existingVerifs.trustBadges)
             ? (existingVerifs.trustBadges as string[])
@@ -122,7 +188,7 @@ export async function POST(request: NextRequest) {
                 ? "dev_mock"
                 : "twilio_sms"
 
-          const { error: upErr } = await supabase
+          const { data: updatedLeadRow, error: upErr } = await supabase
             .from("leads")
             .update({
               phone: phoneE164,
@@ -137,10 +203,14 @@ export async function POST(request: NextRequest) {
                 verifications: {
                   ...existingVerifs,
                   phoneOtp: {
+                    ...existingOtp,
                     verified: true,
+                    status: "verified",
                     channel: safeChannel,
                     verifiedAt: nowIso,
                     required: false,
+                    error: null,
+                    twilioCode: null,
                   },
                   twilioLookup: {
                     ...existingLookup,
@@ -154,9 +224,29 @@ export async function POST(request: NextRequest) {
               updated_at: nowIso,
             })
             .eq("id", rawLeadId)
+            .select("*")
+            .maybeSingle()
 
           if (!upErr) {
             leadUpdated = true
+            const alertStatus = existingMeta.admin_alert_status as string | undefined
+            if (alertStatus === "pending_otp") {
+              await dispatchDeferredAdminLeadAlert(supabase, rawLeadId, "otp_verified").catch(
+                (err) => console.warn("[API phone-otp/verify] Alerte admin différée échouée:", err)
+              )
+            } else if (
+              alertStatus === "sent" &&
+              !existingLead.phone_verified &&
+              updatedLeadRow
+            ) {
+              const payload = buildAdminLeadAlertPayloadFromLeadRow(updatedLeadRow)
+              await sendAdminLeadOtpConfirmedEmail({
+                ...payload,
+                marketplaceStatus: updatedLeadRow.marketplace_status ?? null,
+              }).catch((err) =>
+                console.warn("[API phone-otp/verify] Notification OTP tardif échouée:", err)
+              )
+            }
           }
         }
       } catch (upgradeErr) {

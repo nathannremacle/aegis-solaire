@@ -83,18 +83,47 @@ export interface DuplicateLeadVerificationResult {
   lastSubmittedAt?: string | null
 }
 
+export type PhoneOtpStatus =
+  | "verified"
+  | "sent_pending"
+  | "skipped_by_prospect"
+  | "send_failed"
+  | "rate_limited"
+  | "not_attempted_voip"
+  | "not_attempted_non_be"
+  | "not_attempted_invalid_lookup"
+  | "not_configured"
+  | "disabled"
+  | "awaiting_send"
+  | "not_applicable"
+
 export interface PhoneOtpVerificationResult {
   verified: boolean
+  status?: PhoneOtpStatus | null
   channel?: "sms" | "call" | "dev_mock" | null
   verifiedAt?: string | null
+  sentAt?: string | null
+  skippedAt?: string | null
+  failedAt?: string | null
+  sendAttempts?: number | null
+  verifyFailedAttempts?: number | null
+  twilioCode?: number | null
+  accountRestricted?: boolean | null
+  error?: string | null
+  lastVerifyError?: string | null
   required?: boolean
 }
 
 export interface TwilioLookupSnapshot {
+  configured?: boolean
   valid: boolean
+  countryCode?: string | null
   lineType?: string | null
   carrierName?: string | null
   smsPumpingRiskLevel?: string | null
+  smsPumpingRiskScore?: number | null
+  transientError?: boolean
+  checkedAt?: string | null
 }
 
 export interface LeadEnrichedVerification {

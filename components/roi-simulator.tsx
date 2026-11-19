@@ -997,7 +997,7 @@ export function ROISimulator() {
                         }}
                         onEditPhone={phoneOtp.resetOtp}
                         onSkip={() => {
-                          phoneOtp.resetOtp()
+                          phoneOtp.skipOtp()
                           setSubmitted(true)
                         }}
                         submitLabel="Confirmer et finaliser en priorité"

@@ -65,6 +65,9 @@ const twilioVerify = loadTs("lib/twilio-verify.ts")
 const display = loadTs("lib/lead-verification-display.ts")
 const confirmEmail = loadTs("lib/prospect-confirmation-email.ts")
 const disputesPolicy = loadTs("lib/disputes-policy.ts")
+const notifyAdmin = loadTs("lib/notify-admin-lead.ts")
+const installerTeaser = loadTs("lib/email-templates/installer-lead-teaser.ts")
+const pricing = loadTs("lib/marketplace-pricing.ts")
 
 test("Téléphone BE/FR : rejette +32470102030 et toutes les suites/répétitions factices", () => {
   const fakeNumbers = [
@@ -437,10 +440,43 @@ test("Transparence Vérifié vs Plausible vs Aucun badge + Token e-mail 1-clic",
     },
   })
   assert.equal(plausibleLead.phone.tier, "plausible")
-  assert.match(plausibleLead.phone.shortLabel, /plausible/i)
+  assert.match(plausibleLead.phone.shortLabel, /sans SMS/i)
+  assert.equal(/vérifié/i.test(plausibleLead.phone.shortLabel), false)
   assert.equal(plausibleLead.email.tier, "plausible")
-  assert.match(plausibleLead.email.shortLabel, /plausible/i)
+  assert.match(plausibleLead.email.shortLabel, /non confirmé/i)
+  assert.equal(/vérifié/i.test(plausibleLead.email.shortLabel), false)
   assert.equal(plausibleLead.address.tier, "plausible")
+
+  // Vérification stricte : zéro jargon développeur dans les libellés installateurs
+  const b2bFormatDeliveredLead = display.getLeadVerificationSummary({
+    segment: "B2B",
+    phone: "+32495256301",
+    email: "contact@pme.be",
+    postal_code: "4000",
+    company_vat: "BE0403170701",
+    email_delivery_status: "delivered",
+    qualification_metadata: {
+      verifications: {
+        emailDelivery: { status: "delivered" },
+      },
+    },
+  })
+  const b2bEmailFormatOnlyLead = display.getLeadVerificationSummary({
+    segment: "B2C",
+    phone: "+32495256301",
+    email: "client@skynet.be",
+    postal_code: "5000",
+  })
+  const devJargonRegex = /\b(otp|lookup|mx|mod\s?97|modulo|icar|syntax|rebond)\b/i
+  for (const s of [verifiedLead, plausibleLead, b2bFormatDeliveredLead, b2bEmailFormatOnlyLead]) {
+    for (const badge of [s.phone, s.email, s.address, ...(s.company ? [s.company] : [])]) {
+      for (const lbl of [badge.compactLabel, badge.shortLabel, badge.detailLabel]) {
+        if (lbl) {
+          assert.equal(devJargonRegex.test(lbl), false, `Jargon développeur détecté dans "${lbl}"`)
+        }
+      }
+    }
+  }
 
   // 3. Donnée fausse / rebond SMTP : aucun badge positif
   const suspectLead = display.getLeadVerificationSummary({
@@ -611,5 +647,321 @@ test("Soft OTP & Politique de Litiges alignée : non-bloquant à la soumission, 
   assert.equal(clean.disputeRatePct, 5)
   assert.equal(clean.exceedsAbuseThreshold, false)
 })
+
+test("Diagnostic téléphonique 2 couches (Lookup vs SMS/Appel OTP) : tous les statuts sans ambiguïté", () => {
+  // 1. Cas Didier Dumont : Lookup ORANGE Belgium + SMS OTP validé en +56 s
+  const dumontDiag = display.getPhoneVerificationDiagnostic({
+    segment: "B2C",
+    phone: "+32491148065",
+    created_at: "2026-11-19T17:30:20.178Z",
+    phone_verified: true,
+    phone_verified_at: "2026-11-19T17:31:16.381Z",
+    phone_verification_method: "twilio_sms",
+    phone_carrier: "ORANGE Belgium (MOBISTAR)",
+    phone_line_type: "mobile",
+    qualification_metadata: {
+      verifications: {
+        twilioLookup: {
+          configured: true,
+          valid: true,
+          lineType: "mobile",
+          carrierName: "ORANGE Belgium (MOBISTAR)",
+          checkedAt: "2026-11-19T17:30:20.000Z",
+        },
+        phoneOtp: {
+          verified: true,
+          status: "verified",
+          channel: "sms",
+          sentAt: "2026-11-19T17:30:20.381Z",
+          verifiedAt: "2026-11-19T17:31:16.381Z",
+        },
+      },
+    },
+  })
+  assert.equal(dumontDiag.lookup.status, "valid")
+  assert.equal(dumontDiag.lookup.lineTypeLabel, "Mobile")
+  assert.match(dumontDiag.lookup.detailText, /ORANGE Belgium/)
+  assert.equal(dumontDiag.otp.verified, true)
+  assert.equal(dumontDiag.otp.status, "verified")
+  assert.equal(dumontDiag.otp.delaySeconds, 56)
+  assert.match(dumontDiag.otp.detailText, /\+56 s/)
+  assert.equal(dumontDiag.overallBadge.text, "SMS OTP vérifié")
+  assert.equal(dumontDiag.overallBadge.tone, "success")
+
+  // 2. Appel vocal OTP vérifié
+  const callDiag = display.getPhoneVerificationDiagnostic({
+    segment: "B2C",
+    phone: "+3243669111",
+    phone_verified: true,
+    phone_verification_method: "twilio_call",
+    qualification_metadata: {
+      verifications: {
+        twilioLookup: { configured: true, valid: true, lineType: "landline", carrierName: "Proximus" },
+        phoneOtp: { verified: true, status: "verified", channel: "call", verifiedAt: "2026-11-19T10:00:30Z" },
+      },
+    },
+  })
+  assert.equal(callDiag.lookup.lineTypeLabel, "Fixe")
+  assert.equal(callDiag.otp.badgeText, "Appel OTP vérifié")
+
+  // 3. SMS bien envoyé, prospect n'a pas encore saisi le code (sent_pending)
+  const pendingDiag = display.getPhoneVerificationDiagnostic({
+    segment: "B2C",
+    phone: "+32495256301",
+    phone_verified: false,
+    qualification_metadata: {
+      verifications: {
+        twilioLookup: { configured: true, valid: true, lineType: "mobile", carrierName: "TELENET n.v." },
+        phoneOtp: { verified: false, status: "sent_pending", channel: "sms", sentAt: "2026-11-19T14:00:00Z", verifyFailedAttempts: 2 },
+      },
+    },
+  })
+  assert.equal(pendingDiag.otp.isTechnicalFailure, false)
+  assert.equal(pendingDiag.otp.isProspectNotValidated, true)
+  assert.match(pendingDiag.otp.detailText, /SMS OTP bien envoyé/)
+  assert.match(pendingDiag.otp.detailText, /2 essai/)
+  assert.equal(pendingDiag.overallBadge.text, "Lookup seul · SMS non validé")
+
+  // 4. Prospect a cliqué "Continuer sans confirmer" après envoi SMS réussi
+  const skippedDiag = display.getPhoneVerificationDiagnostic({
+    segment: "B2C",
+    phone: "+32495256301",
+    qualification_metadata: {
+      verifications: {
+        twilioLookup: { configured: true, valid: true, lineType: "mobile", carrierName: "Proximus" },
+        phoneOtp: {
+          verified: false,
+          status: "skipped_by_prospect",
+          channel: "sms",
+          sentAt: "2026-11-19T14:00:00Z",
+          skippedAt: "2026-11-19T14:00:45Z",
+        },
+      },
+    },
+  })
+  assert.equal(skippedDiag.otp.isTechnicalFailure, false)
+  assert.equal(skippedDiag.otp.isProspectNotValidated, true)
+  assert.match(skippedDiag.otp.detailText, /Continuer sans confirmer/)
+  assert.equal(skippedDiag.overallBadge.text, "Lookup seul · SMS ignoré")
+
+  // 5. Prospect a cliqué "Continuer sans confirmer" après échec technique Twilio -> reste classé échec technique
+  const skippedAfterFailDiag = display.getPhoneVerificationDiagnostic({
+    segment: "B2C",
+    phone: "+32495256301",
+    qualification_metadata: {
+      verifications: {
+        twilioLookup: { configured: true, valid: true, lineType: "mobile", carrierName: "Proximus" },
+        phoneOtp: {
+          verified: false,
+          status: "skipped_by_prospect",
+          failedAt: "2026-11-19T14:00:02Z",
+          twilioCode: 21608,
+          error: "Compte Twilio en attente de validation TrustHub",
+        },
+      },
+    },
+  })
+  assert.equal(skippedAfterFailDiag.otp.isTechnicalFailure, true)
+  assert.equal(skippedAfterFailDiag.otp.twilioCode, 21608)
+  assert.equal(skippedAfterFailDiag.overallBadge.text, "Lookup seul · Échec SMS")
+
+  // 6. Échec technique send_failed, rate_limited, not_configured, not_attempted_voip, awaiting_send, transientError Lookup
+  const sendFailedDiag = display.getPhoneVerificationDiagnostic({
+    phone: "+32495256301",
+    qualification_metadata: {
+      verifications: {
+        twilioLookup: { configured: true, valid: true, transientError: true },
+        phoneOtp: { verified: false, status: "send_failed", twilioCode: 60200, error: "Numéro injoignable" },
+      },
+    },
+  })
+  assert.equal(sendFailedDiag.lookup.status, "transient_error")
+  assert.equal(sendFailedDiag.otp.isTechnicalFailure, true)
+  assert.match(sendFailedDiag.otp.badgeText, /#60200/)
+
+  const rateLimitedDiag = display.getPhoneVerificationDiagnostic({
+    phone: "+32495256301",
+    qualification_metadata: {
+      verifications: {
+        phoneOtp: { verified: false, status: "rate_limited", error: "Trop de demandes" },
+      },
+    },
+  })
+  assert.equal(rateLimitedDiag.otp.status, "rate_limited")
+  assert.match(rateLimitedDiag.otp.badgeText, /rate limit/i)
+
+  const notConfDiag = display.getPhoneVerificationDiagnostic({
+    phone: "+32495256301",
+    qualification_metadata: { verifications: { phoneOtp: { verified: false, status: "not_configured" } } },
+  })
+  assert.equal(notConfDiag.otp.isTechnicalFailure, true)
+
+  const voipDiag = display.getPhoneVerificationDiagnostic({
+    phone: "+32495256301",
+    qualification_metadata: { verifications: { phoneOtp: { verified: false, status: "not_attempted_voip" } } },
+  })
+  assert.match(voipDiag.otp.badgeText, /VoIP/)
+
+  const awaitingDiag = display.getPhoneVerificationDiagnostic({
+    phone: "+32495256301",
+    qualification_metadata: { verifications: { phoneOtp: { verified: false, status: "awaiting_send" } } },
+  })
+  assert.equal(awaitingDiag.otp.isProspectNotValidated, true)
+
+  // 7. Vérification Summary : Lookup transientError ne doit JAMAIS produire "Ligne active"
+  const transientSummary = display.getLeadVerificationSummary({
+    segment: "B2C",
+    phone: "+32495256301",
+    qualification_metadata: {
+      verifications: {
+        twilioLookup: { valid: true, transientError: true, carrierName: "Fake" },
+      },
+    },
+  })
+  assert.equal(transientSummary.phone.tier, "plausible")
+  assert.equal(transientSummary.phone.compactLabel, "Numéro valide (sans SMS)")
+
+  const lookupOnlySummary = display.getLeadVerificationSummary({
+    segment: "B2C",
+    phone: "+32495256301",
+    qualification_metadata: {
+      verifications: {
+        twilioLookup: { valid: true, carrierName: "Proximus" },
+      },
+    },
+  })
+  assert.equal(lookupOnlySummary.phone.compactLabel, "Ligne active (sans SMS)")
+  assert.match(lookupOnlySummary.phone.shortLabel, /sans SMS/)
+
+  const smsVerifiedSummary = display.getLeadVerificationSummary({
+    segment: "B2C",
+    phone: "+32495256301",
+    phone_verified: true,
+    phone_verification_method: "twilio_sms",
+    phone_carrier: "Proximus",
+  })
+  assert.equal(smsVerifiedSummary.phone.tier, "verified")
+  assert.equal(smsVerifiedSummary.phone.compactLabel, "Tél. vérifié SMS")
+})
+
+test("E-mails Admin & Installateur : clarté Lookup vs SMS OTP, alertes techniques, conformité charte", () => {
+  // 1. E-mail Admin cas échec technique SMS -> alerte critique + objet [ATTENTION] + 2 lignes Lookup/OTP
+  const failedAdminMail = notifyAdmin.buildAdminLeadAlertEmail({
+    leadId: "0ea4c999-656b-4dfa-b1d2-a211692bf331",
+    firstName: "Didier",
+    lastName: "Dumont",
+    email: "didier.dumont@hotmail.com",
+    phone: "+32491148065",
+    segment: "B2C",
+    postalCode: "7000",
+    city: "Mons",
+    province: "hainaut",
+    siteAddress: "Rue Massart 101",
+    surfaceArea: 45,
+    annualBill: 2200,
+    leadScore: 60,
+    creditCost: 3,
+    verifications: {
+      emailMx: { valid: true, isDisposable: false, domain: "hotmail.com", mxServers: ["mx.hotmail.com"] },
+      twilioLookup: { configured: true, valid: true, lineType: "mobile", carrierName: "ORANGE Belgium (MOBISTAR)" },
+      phoneOtp: { verified: false, status: "send_failed", channel: "sms", twilioCode: 21608, error: "Restriction TrustHub" },
+    },
+  })
+  assert.match(failedAdminMail.subject, /^\[ATTENTION \d+ ALERTE/)
+  assert.match(failedAdminMail.html, /Contrôle Lookup/)
+  assert.match(failedAdminMail.html, /Vérification SMS \/ Appel/)
+  assert.match(failedAdminMail.html, /ORANGE Belgium/)
+  assert.match(failedAdminMail.html, /#21608/)
+  assert.match(failedAdminMail.text, /Contrôle opérateur \(Lookup\)/)
+  assert.match(failedAdminMail.text, /Vérification SMS\/Appel \(OTP\)/)
+  assert.equal(/<code>/i.test(failedAdminMail.html), false)
+  assert.equal(/Fabrice Remacle/i.test(failedAdminMail.html), false)
+
+  // 2. E-mail Admin confirmation SMS tardive
+  const lateOtpMail = notifyAdmin.buildAdminLeadOtpConfirmedEmail({
+    leadId: "0ea4c999-656b-4dfa-b1d2-a211692bf331",
+    firstName: "Didier",
+    lastName: "Dumont",
+    email: "didier.dumont@hotmail.com",
+    phone: "+32491148065",
+    phoneVerified: true,
+    phoneVerifiedAt: "2026-11-19T17:31:16.381Z",
+    phoneVerificationMethod: "twilio_sms",
+    phoneCarrier: "ORANGE Belgium (MOBISTAR)",
+    phoneLineType: "mobile",
+    createdAt: "2026-11-19T17:30:20.178Z",
+    segment: "B2C",
+    postalCode: "7000",
+    city: "Mons",
+    leadScore: 75,
+    creditCost: 3,
+  })
+  assert.match(lateOtpMail.subject, /SMS OTP vérifié/)
+  assert.match(lateOtpMail.html, /75\/100/)
+  assert.match(lateOtpMail.html, /\+56 s/)
+  assert.equal(/<code>/i.test(lateOtpMail.html), false)
+
+  // 3. E-mail Installateur Teaser : distinction claire SMS vérifié vs Lookup seul sans SMS
+  const financials = pricing.calculateMarketplaceFinancials({
+    segment: "B2C",
+    surfaceArea: 45,
+    surfaceType: "toiture",
+    annualBill: 2200,
+    creditCost: 3,
+  })
+  const baseLead = {
+    id: "0ea4c999-656b-4dfa-b1d2-a211692bf331",
+    segment: "B2C",
+    province: "hainaut",
+    postalCode: "7000",
+    city: "Mons",
+    surfaceType: "toiture",
+    surfaceArea: 45,
+    annualElectricityBill: 2200,
+    phone: "+32491148065",
+    firstName: "Didier",
+    lastName: "Dumont",
+    createdAt: "2026-11-19T17:30:20.178Z",
+  }
+  const verifiedTeaser = installerTeaser.renderInstallerLeadTeaserEmail({
+    partner: { id: "p-1", companyName: "Solaire Mons SRL", credits: 10 },
+    lead: {
+      ...baseLead,
+      phoneVerified: true,
+      phoneVerificationMethod: "twilio_sms",
+      phoneCarrier: "ORANGE Belgium (MOBISTAR)",
+    },
+    waveNumber: 1,
+    takenSlots: 0,
+    maxSlots: 3,
+    creditCost: 3,
+    financials,
+  })
+  assert.match(verifiedTeaser.html, /Téléphone vérifié par SMS/)
+  assert.match(verifiedTeaser.text, /Téléphone vérifié par SMS/)
+  assert.equal(/\b(otp|lookup|mx|mod\s?97|modulo|icar)\b/i.test(verifiedTeaser.html), false)
+  assert.equal(/\b(otp|lookup|mx|mod\s?97|modulo|icar)\b/i.test(verifiedTeaser.text), false)
+
+  const lookupTeaser = installerTeaser.renderInstallerLeadTeaserEmail({
+    partner: { id: "p-1", companyName: "Solaire Mons SRL", credits: 10 },
+    lead: {
+      ...baseLead,
+      phoneVerified: false,
+      phoneVerificationMethod: "twilio_lookup",
+      phoneCarrier: "ORANGE Belgium (MOBISTAR)",
+    },
+    waveNumber: 1,
+    takenSlots: 0,
+    maxSlots: 3,
+    creditCost: 3,
+    financials,
+  })
+  assert.match(lookupTeaser.html, /Ligne active · sans SMS/)
+  assert.match(lookupTeaser.text, /Ligne active · sans SMS/)
+  assert.equal(/Téléphone vérifié/i.test(lookupTeaser.html), false)
+  assert.equal(/\b(otp|lookup|mx|mod\s?97|modulo|icar)\b/i.test(lookupTeaser.html), false)
+  assert.equal(/\b(otp|lookup|mx|mod\s?97|modulo|icar)\b/i.test(lookupTeaser.text), false)
+})
+
 
 

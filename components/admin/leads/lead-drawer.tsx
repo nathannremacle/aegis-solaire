@@ -72,6 +72,7 @@ import { buildMapLinks } from "@/lib/address-spw"
 import { calculateLeadScore } from "@/lib/lead-score"
 import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
 import { parseLeadProjectDetails } from "@/lib/lead-display-helpers"
+import { getPhoneVerificationDiagnostic } from "@/lib/lead-verification-display"
 import { detectLeadRiskFlags } from "@/lib/admin/lead-risk"
 import { formatBceNumber, BCE_PUBLIC_SEARCH_URL } from "@/lib/leads-schema"
 import {
@@ -89,6 +90,13 @@ export type LeadDetail = {
   last_name: string | null
   email: string
   phone: string | null
+  phone_verified?: boolean | null
+  phone_verified_at?: string | null
+  phone_verification_method?: string | null
+  phone_carrier?: string | null
+  phone_line_type?: string | null
+  email_verified?: boolean | null
+  email_delivery_status?: string | null
   job_title: string
   company: string | null
   company_vat?: string | null
@@ -1038,55 +1046,90 @@ export function LeadDrawer({
                 )}
               </div>
 
-              <div className="flex flex-col gap-1 p-2 rounded-lg bg-secondary/30 border border-border/50">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
-                    <Phone className="h-3 w-3 text-muted-foreground" />
-                    Téléphone
-                  </span>
-                  {(() => {
-                    const v = effectiveMeta?.verifications as Record<string, any> | undefined
-                    if (v?.phoneOtp?.verified) {
-                      return (
-                        <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-emerald-700 border border-emerald-500/20">
-                          <CheckCircle2 className="h-2.5 w-2.5" />
-                          {v.phoneOtp.channel === "call" ? "Certifié Appel OTP" : "Certifié SMS OTP"}
-                        </span>
-                      )
-                    }
-                    if (v?.twilioLookup?.valid) {
-                      return (
-                        <span className="inline-flex items-center gap-1 rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-blue-700 border border-blue-500/20">
-                          Lookup {v.twilioLookup.carrierName || "OK"}
-                        </span>
-                      )
-                    }
-                    return null
-                  })()}
-                </div>
-                <div className="flex items-center gap-2 font-mono tabular-nums">
-                  {effectivePhone ? (
-                    <>
-                      <a
-                        href={`tel:${effectivePhone}`}
-                        className="font-bold text-foreground hover:text-primary transition-colors text-sm"
+              {(() => {
+                const phoneDiag = getPhoneVerificationDiagnostic({
+                  segment: effectiveSegment,
+                  phone: effectivePhone,
+                  email: effectiveEmail,
+                  postal_code: effectivePostalCode,
+                  company_vat: effectiveCompanyVat,
+                  phone_verified: lead.phone_verified,
+                  phone_verified_at: lead.phone_verified_at,
+                  phone_verification_method: lead.phone_verification_method,
+                  phone_carrier: lead.phone_carrier,
+                  phone_line_type: lead.phone_line_type,
+                  created_at: lead.created_at,
+                  qualification_metadata: effectiveMeta,
+                })
+                const badgeToneClass =
+                  phoneDiag.overallBadge.tone === "success"
+                    ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20"
+                    : phoneDiag.overallBadge.tone === "danger"
+                      ? "bg-destructive/10 text-destructive border-destructive/20"
+                      : phoneDiag.overallBadge.tone === "warning"
+                        ? "bg-amber-500/10 text-amber-700 border-amber-500/20"
+                        : phoneDiag.overallBadge.tone === "info"
+                          ? "bg-primary/10 text-primary border-primary/20"
+                          : "bg-secondary text-muted-foreground border-border"
+                const otpDetailColor = phoneDiag.otp.isTechnicalFailure
+                  ? "text-destructive"
+                  : phoneDiag.otp.verified
+                    ? "text-emerald-700"
+                    : "text-muted-foreground"
+
+                return (
+                  <div className="flex flex-col gap-1.5 p-2 rounded-lg bg-secondary/30 border border-border/50">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+                        <Phone className="h-3 w-3 text-muted-foreground" />
+                        Téléphone
+                      </span>
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-mono tabular-nums font-semibold border",
+                          badgeToneClass
+                        )}
                       >
-                        {effectivePhone}
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(effectivePhone, "Téléphone")}
-                        className="p-1 rounded bg-secondary hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                        title="Copier le numéro (C)"
-                      >
-                        <Copy className="h-3 w-3" />
-                      </button>
-                    </>
-                  ) : (
-                    <span className="text-muted-foreground italic text-xs">Non renseigné</span>
-                  )}
-                </div>
-              </div>
+                        {phoneDiag.otp.verified && <CheckCircle2 className="h-2.5 w-2.5" />}
+                        {phoneDiag.otp.isTechnicalFailure && <AlertTriangle className="h-2.5 w-2.5" />}
+                        <span>{phoneDiag.overallBadge.text}</span>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 font-mono tabular-nums">
+                      {effectivePhone ? (
+                        <>
+                          <a
+                            href={`tel:${effectivePhone}`}
+                            className="font-bold text-foreground hover:text-primary transition-colors text-sm"
+                          >
+                            {effectivePhone}
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(effectivePhone, "Téléphone")}
+                            className="p-1 rounded bg-secondary hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                            title="Copier le numéro (C)"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground italic text-xs">Non renseigné</span>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-0.5 pt-1 border-t border-border/40 text-[10.5px] leading-snug font-mono tabular-nums">
+                      <span className="text-muted-foreground">
+                        <strong className="text-foreground font-semibold">Lookup :</strong>{" "}
+                        {phoneDiag.lookup.detailText}
+                      </span>
+                      <span className={otpDetailColor}>
+                        <strong className="text-foreground font-semibold">SMS OTP :</strong>{" "}
+                        {phoneDiag.otp.detailText}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })()}
 
               <div className="flex flex-col gap-1 p-2 rounded-lg bg-secondary/30 border border-border/50 sm:col-span-2">
                 <div className="flex items-center justify-between gap-2">

@@ -91,9 +91,9 @@ export function LeadInspectionDrawer({
 
   const isLeadAlreadyPurchased = Boolean(
     !lead?.is_demo_preview &&
-      (lead?.already_purchased ||
-        lead?.purchase_id ||
-        (lead?.email && !lead.email.includes("***") && !lead.email.includes("—")))
+    (lead?.already_purchased ||
+      lead?.purchase_id ||
+      (lead?.email && !lead.email.includes("***") && !lead.email.includes("—")))
   )
 
   const { recordRoofZoom, recordUnlockIntent } = useLeadInspectionTimer({
@@ -138,10 +138,10 @@ export function LeadInspectionDrawer({
   const isPurchased = isDemo
     ? false
     : Boolean(
-        lead.already_purchased ||
-        lead.purchase_id ||
-        (lead.email && !lead.email.includes("***") && !lead.email.includes("—"))
-      )
+      lead.already_purchased ||
+      lead.purchase_id ||
+      (lead.email && !lead.email.includes("***") && !lead.email.includes("—"))
+    )
 
   const surfaceArea = Math.max(0, Number(lead.surface_area || lead.surface_area_m2) || 0)
   const annualBill = Math.max(0, Number(lead.annual_electricity_bill || lead.annual_bill_eur) || 0)
@@ -220,6 +220,21 @@ export function LeadInspectionDrawer({
     lead.roof_image_url ||
     lead.site_image_url) as string | undefined
 
+  const verificationSummary = getLeadVerificationSummary({
+    segment: lead.segment,
+    phone: lead.phone,
+    email: lead.email,
+    postal_code: lead.postal_code,
+    company_vat: lead.company_vat,
+    phone_verified: lead.phone_verified,
+    phone_verification_method: lead.phone_verification_method,
+    phone_carrier: lead.phone_carrier,
+    phone_line_type: lead.phone_line_type,
+    email_verified: lead.email_verified,
+    email_delivery_status: lead.email_delivery_status,
+    qualification_metadata: lead.qualification_metadata,
+  })
+
   return (
     <div
       className="fixed inset-0 z-50 flex justify-end bg-foreground/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
@@ -242,11 +257,10 @@ export function LeadInspectionDrawer({
           <div className="flex flex-col gap-1 pr-2 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span
-                className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold ${
-                  isB2B
+                className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold ${isB2B
                     ? "bg-primary text-primary-foreground"
                     : "bg-secondary text-secondary-foreground border border-border"
-                }`}
+                  }`}
               >
                 {isB2B ? "B2B • Exclusif 100%" : `B2C • ${remainingSlots}/${maxSlots} places`}
               </span>
@@ -658,22 +672,13 @@ export function LeadInspectionDrawer({
 
           {/* D2. Niveau factuel de vérification (Vérifié vs Plausible — transparence totale) */}
           {(() => {
-            const summary = getLeadVerificationSummary({
-              segment: lead.segment,
-              phone: lead.phone,
-              email: lead.email,
-              postal_code: lead.postal_code,
-              company_vat: lead.company_vat,
-              phone_verified: lead.phone_verified,
-              email_verified: lead.email_verified,
-              email_delivery_status: lead.email_delivery_status,
-              qualification_metadata: lead.qualification_metadata,
-            })
             const rows = [
-              { title: "Téléphone", badge: summary.phone },
-              { title: "Adresse e-mail", badge: summary.email },
-              { title: "Localisation / Toiture", badge: summary.address },
-              ...(summary.company ? [{ title: "Entreprise B2B", badge: summary.company }] : []),
+              { title: "Téléphone", badge: verificationSummary.phone },
+              { title: "Adresse e-mail", badge: verificationSummary.email },
+              { title: "Localisation / Toiture", badge: verificationSummary.address },
+              ...(verificationSummary.company
+                ? [{ title: "Entreprise B2B", badge: verificationSummary.company }]
+                : []),
             ].filter((r) => r.badge.tier !== "none" && r.badge.shortLabel)
 
             if (rows.length === 0) return null
@@ -686,36 +691,43 @@ export function LeadInspectionDrawer({
                     <span>Contrôle qualité &amp; vérifications</span>
                   </span>
                   <span className="text-[10px] font-mono tabular-nums text-muted-foreground">
-                    {summary.verifiedCount} vérifié(s) · {summary.plausibleCount} plausible(s)
+                    {verificationSummary.verifiedCount > 0 && verificationSummary.plausibleCount > 0
+                      ? `${verificationSummary.verifiedCount} vérifié(s) · ${verificationSummary.plausibleCount} à confirmer`
+                      : verificationSummary.verifiedCount > 0
+                        ? `${verificationSummary.verifiedCount} vérifié(s)`
+                        : `${verificationSummary.plausibleCount} à confirmer`}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {rows.map((item) => (
                     <div
                       key={item.title}
-                      className={`rounded-lg border px-2.5 py-2 flex flex-col gap-0.5 ${
-                        item.badge.tier === "verified"
+                      className={`rounded-lg border px-2.5 py-2 flex flex-col gap-1 ${item.badge.tier === "verified"
                           ? "border-emerald-500/25 bg-emerald-500/5"
                           : "border-border bg-secondary/35"
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center justify-between gap-1.5">
                         <span className="text-[11px] font-medium text-muted-foreground">
                           {item.title}
                         </span>
                         <span
-                          className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
-                            item.badge.tier === "verified"
+                          className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${item.badge.tier === "verified"
                               ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
                               : "bg-secondary text-muted-foreground border border-border"
-                          }`}
+                            }`}
                         >
-                          {item.badge.tier === "verified" ? "Vérifié" : "Plausible"}
+                          {item.badge.tier === "verified" ? "Vérifié" : "À confirmer"}
                         </span>
                       </div>
                       <span className="text-xs font-semibold text-foreground leading-snug">
                         {item.badge.shortLabel}
                       </span>
+                      {item.badge.detailLabel && (
+                        <span className="text-[11px] text-muted-foreground leading-snug">
+                          {item.badge.detailLabel}
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -747,12 +759,13 @@ export function LeadInspectionDrawer({
               <li className="flex items-center gap-2 text-foreground">
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
                 <span>
-                  {(lead.qualification_metadata?.verifications as { phoneOtp?: { verified?: boolean; channel?: string } } | undefined)
-                    ?.phoneOtp?.verified
-                    ? (lead.qualification_metadata?.verifications as { phoneOtp?: { channel?: string } })?.phoneOtp?.channel === "call"
-                      ? "Numéro de téléphone direct certifié par appel OTP"
-                      : "Numéro de téléphone direct certifié par SMS OTP"
-                    : "Numéro de téléphone direct (contrôlé par SMS/appel)"}
+                  {verificationSummary.phone.tier === "verified"
+                    ? verificationSummary.phone.compactLabel === "Tél. vérifié appel"
+                      ? "Numéro de téléphone direct (vérifié par appel)"
+                      : "Numéro de téléphone direct (vérifié par SMS)"
+                    : verificationSummary.phone.shortLabel
+                      ? `Numéro de téléphone direct (${verificationSummary.phone.shortLabel.toLowerCase()})`
+                      : "Numéro de téléphone direct"}
                 </span>
               </li>
               <li className="flex items-center gap-2 text-foreground">
@@ -797,11 +810,22 @@ export function LeadInspectionDrawer({
                   </strong>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Phone className="h-3.5 w-3.5 text-primary shrink-0" />
-                  <a href={`tel:${lead.phone}`} className="font-mono font-bold text-accent hover:underline">
+                  <a href={`tel:${lead.phone}`} className="font-mono tabular-nums font-bold text-accent hover:underline">
                     {lead.phone}
                   </a>
+                  {verificationSummary.phone.compactLabel && (
+                    <span
+                      title={verificationSummary.phone.detailLabel || undefined}
+                      className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${verificationSummary.phone.tier === "verified"
+                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                          : "bg-secondary text-muted-foreground border border-border"
+                        }`}
+                    >
+                      {verificationSummary.phone.compactLabel}
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -933,9 +957,8 @@ export function LeadInspectionDrawer({
                   </Button>
 
                   <div
-                    className={`grid gap-2 ${
-                      canTakeExclusiveB2C ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
-                    }`}
+                    className={`grid gap-2 ${canTakeExclusiveB2C ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
+                      }`}
                   >
                     <Button
                       variant="outline"
@@ -1004,9 +1027,8 @@ export function LeadInspectionDrawer({
                   </Button>
 
                   <div
-                    className={`grid gap-2 ${
-                      canTakeExclusiveB2C ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
-                    }`}
+                    className={`grid gap-2 ${canTakeExclusiveB2C ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
+                      }`}
                   >
                     <Button
                       variant="outline"

@@ -14,7 +14,10 @@ import { sendProspectConfirmationEmail } from "@/lib/prospect-confirmation-email
 import { sendAdminNewLeadAlertEmail } from "@/lib/notify-admin-lead"
 import { sendMetaConversionApiLead } from "@/lib/meta-capi"
 import { shouldTrackMetaLeadConversion } from "@/lib/meta-lead-filter"
-import { enrichLeadVerifications } from "@/lib/lead-verification-engine"
+import {
+  enrichLeadVerifications,
+  type PhoneOtpStatus,
+} from "@/lib/lead-verification-engine"
 import { getBelgiumProvinceKeyFromPostalCode } from "@/lib/belgium-regions"
 import {
   detectCityPostalContradiction,
@@ -24,6 +27,7 @@ import {
 } from "@/lib/leads-validation"
 import {
   isTwilioLookupEnabled,
+  isTwilioPhoneOtpEnabled,
   lookupPhoneNumberTwilio,
   verifyPhoneVerificationProof,
 } from "@/lib/twilio-verify"
@@ -326,17 +330,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const otpEnabled = isTwilioPhoneOtpEnabled()
+    const isNonInteractiveForm = safeSourceForm === "manual_admin" || safeSourceForm === "api_partner"
+    const initialOtpStatus: PhoneOtpStatus = verifiedPhoneProof
+      ? "verified"
+      : isNonInteractiveForm
+        ? "not_applicable"
+        : process.env.LEAD_PHONE_OTP_DISABLED === "true"
+          ? "disabled"
+          : !otpEnabled
+            ? "not_configured"
+            : "awaiting_send"
+    const lookupCheckedAt = new Date().toISOString()
+
     if (verifiedPhoneProof) {
       verifications.phoneOtp = {
         verified: true,
+        status: "verified",
         channel: verifiedPhoneProof.channel,
         verifiedAt: verifiedPhoneProof.verifiedAt,
         required: false,
       }
       verifications.twilioLookup = {
+        configured: lookupFallback ? lookupFallback.configured : undefined,
         valid: true,
         lineType: verifiedPhoneProof.lineType ?? lookupFallback?.lineType ?? null,
         carrierName: verifiedPhoneProof.carrierName ?? lookupFallback?.carrierName ?? null,
+        checkedAt: lookupCheckedAt,
       }
       verifications.globalTrustScoreDelta += 15
       verifications.trustBadges.push(
@@ -347,16 +367,22 @@ export async function POST(request: NextRequest) {
     } else {
       verifications.phoneOtp = {
         verified: false,
+        status: initialOtpStatus,
         channel: null,
         verifiedAt: null,
         required: false,
       }
       if (lookupFallback?.configured) {
         verifications.twilioLookup = {
-          valid: lookupFallback.valid,
+          configured: true,
+          valid: Boolean(lookupFallback.valid && !lookupFallback.transientError),
+          countryCode: lookupFallback.countryCode,
           lineType: lookupFallback.lineType,
           carrierName: lookupFallback.carrierName,
           smsPumpingRiskLevel: lookupFallback.smsPumpingRiskLevel,
+          smsPumpingRiskScore: lookupFallback.smsPumpingRiskScore,
+          transientError: Boolean(lookupFallback.transientError),
+          checkedAt: lookupCheckedAt,
         }
         if (lookupFallback.lineType === "voip" || lookupFallback.lineType === "nonFixedVoip") {
           verifications.globalTrustScoreDelta -= 10
@@ -365,6 +391,12 @@ export async function POST(request: NextRequest) {
           verifications.trustBadges.push(
             `Ligne vérifiée opérateur${lookupFallback.carrierName ? ` (${lookupFallback.carrierName})` : ""}`
           )
+        }
+      } else {
+        verifications.twilioLookup = {
+          configured: false,
+          valid: false,
+          checkedAt: lookupCheckedAt,
         }
       }
     }
@@ -455,6 +487,54 @@ export async function POST(request: NextRequest) {
           ? sanitizeString(data.siteAddress, 255)
           : null
 
+    let existingSessionLead: {
+      id: string
+      status: string | null
+      email: string | null
+      qualification_metadata?: Record<string, unknown> | null
+    } | null = null
+    if (data.sessionId) {
+      const { data: ex } = await supabase
+        .from("leads")
+        .select("id, status, email, qualification_metadata")
+        .eq("session_id", data.sessionId)
+        .maybeSingle()
+      existingSessionLead = ex ?? null
+    }
+    const isResubmitSameFinalizedSession = Boolean(
+      existingSessionLead && existingSessionLead.status !== "draft_email_only"
+    )
+
+    const existingSessionMeta =
+      existingSessionLead?.qualification_metadata &&
+      typeof existingSessionLead.qualification_metadata === "object"
+        ? (existingSessionLead.qualification_metadata as Record<string, unknown>)
+        : {}
+    const alreadySentAdminAlert = existingSessionMeta.admin_alert_status === "sent"
+    const shouldDeferAdminAlert = otpEnabled && !verifiedPhoneProof && !isNonInteractiveForm
+    const adminAlertNowIso = new Date().toISOString()
+
+    const adminAlertTrackingMeta: Record<string, unknown> = alreadySentAdminAlert
+      ? {
+          admin_alert_status: "sent",
+          ...(existingSessionMeta.admin_alert_sent_at
+            ? { admin_alert_sent_at: existingSessionMeta.admin_alert_sent_at }
+            : {}),
+          ...(existingSessionMeta.admin_alert_trigger
+            ? { admin_alert_trigger: existingSessionMeta.admin_alert_trigger }
+            : {}),
+        }
+      : shouldDeferAdminAlert
+        ? {
+            admin_alert_status: "pending_otp",
+            admin_alert_deferred_at: adminAlertNowIso,
+          }
+        : {
+            admin_alert_status: "sent",
+            admin_alert_sent_at: adminAlertNowIso,
+            admin_alert_trigger: verifiedPhoneProof ? "immediate_otp_verified" : "immediate",
+          }
+
     const insertPayload: Record<string, unknown> = {
       segment: data.segment,
       marketplace_status: "pending_review",
@@ -501,6 +581,7 @@ export async function POST(request: NextRequest) {
       timeframe: data.timeframe ?? null,
       qualification_metadata: {
         ...(data.qualificationMetadata ?? {}),
+        ...adminAlertTrackingMeta,
         estimatedPanelCount: financials.estimatedPanelCount,
         annualProductionKwh: financials.annualProductionKwh,
         usableSurfaceM2: financials.usableSurfaceM2,
@@ -545,19 +626,6 @@ export async function POST(request: NextRequest) {
       contact_preference: data.contactPreference === "direct_call" ? "direct_call" : "written_first",
       matched_province: canonicalProvince,
     }
-
-    let existingSessionLead: { id: string; status: string | null; email: string | null } | null = null
-    if (data.sessionId) {
-      const { data: ex } = await supabase
-        .from("leads")
-        .select("id, status, email")
-        .eq("session_id", data.sessionId)
-        .maybeSingle()
-      existingSessionLead = ex ?? null
-    }
-    const isResubmitSameFinalizedSession = Boolean(
-      existingSessionLead && existingSessionLead.status !== "draft_email_only"
-    )
 
     let inserted: any = null
     let error: any = null
@@ -663,8 +731,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!isResubmitSameFinalizedSession) {
-      // Alerte immédiate à l'administrateur avec lien de validation 1-clic direct
+    if (!alreadySentAdminAlert && !shouldDeferAdminAlert) {
+      // Alerte immédiate à l'administrateur lorsque l'OTP n'est pas en attente (déjà vérifié, désactivé ou saisie interne)
       emailTasks.push(
         sendAdminNewLeadAlertEmail({
           leadId: inserted.id,
@@ -672,6 +740,12 @@ export async function POST(request: NextRequest) {
           lastName: last_name,
           email,
           phone,
+          phoneVerified: Boolean(verifiedPhoneProof),
+          phoneVerifiedAt: verifiedPhoneProof?.verifiedAt ?? null,
+          phoneVerificationMethod: (insertPayload.phone_verification_method as string | null) ?? null,
+          phoneCarrier: (insertPayload.phone_carrier as string | null) ?? null,
+          phoneLineType: (insertPayload.phone_line_type as string | null) ?? null,
+          createdAt: inserted.created_at ?? adminAlertNowIso,
           company,
           companyVat: company_vat,
           jobTitle: job_title,
@@ -703,11 +777,34 @@ export async function POST(request: NextRequest) {
           message: projectDetailsText,
           verifications,
           contactPreference: data.contactPreference || "written_first",
-        }).catch((err) => {
-          console.error("[Admin Lead Alert] Envoi échoué:", err)
         })
+          .then(async (res) => {
+            if (!res.success) {
+              const currentMeta =
+                inserted.qualification_metadata &&
+                typeof inserted.qualification_metadata === "object"
+                  ? (inserted.qualification_metadata as Record<string, unknown>)
+                  : {}
+              await supabase
+                .from("leads")
+                .update({
+                  qualification_metadata: {
+                    ...currentMeta,
+                    admin_alert_status: "pending_otp",
+                    admin_alert_last_error: res.error || "send_failed",
+                  },
+                })
+                .eq("id", inserted.id)
+                .then(() => undefined, () => undefined)
+            }
+          })
+          .catch((err) => {
+            console.error("[Admin Lead Alert] Envoi échoué:", err)
+          })
       )
+    }
 
+    if (!isResubmitSameFinalizedSession) {
       // Télémétrie d'entonnoir final (Step 6 submitted)
       if (data.sessionId) {
         emailTasks.push(

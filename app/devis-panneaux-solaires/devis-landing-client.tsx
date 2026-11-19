@@ -1348,7 +1348,7 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
                               }}
                               onEditPhone={phoneOtp.resetOtp}
                               onSkip={() => {
-                                phoneOtp.resetOtp()
+                                phoneOtp.skipOtp()
                                 finishSubmissionSuccess()
                               }}
                               editorial

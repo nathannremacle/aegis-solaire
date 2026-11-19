@@ -55,6 +55,7 @@ import { BulkActionBar } from "@/components/admin/leads/bulk-action-bar"
 import { type CompatiblePartner } from "@/components/admin/leads/dispatch-panel"
 import { isWalloonPostalCode } from "@/lib/admin/lead-risk"
 import { hasBelgianHouseNumber } from "@/lib/leads-validation"
+import { getPhoneVerificationDiagnostic } from "@/lib/lead-verification-display"
 import { triggerAdminBadgesRefresh } from "@/components/admin/admin-badges-provider"
 import {
   publishLeadAction,
@@ -930,9 +931,45 @@ export function LeadsTable({
                             </span>
                           )}
                         </div>
-                        <span className="text-[10px] text-muted-foreground font-mono truncate">
-                          {lead.email} {lead.phone ? `· ${lead.phone}` : ""}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap text-[10px] text-muted-foreground font-mono tabular-nums">
+                          <span className="truncate">
+                            {lead.email} {lead.phone ? `· ${lead.phone}` : ""}
+                          </span>
+                          {lead.phone && (() => {
+                            const diag = getPhoneVerificationDiagnostic(lead)
+                            if (diag.otp.verified) {
+                              return (
+                                <span
+                                  title={diag.otp.detailText}
+                                  className="inline-flex items-center rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9.5px] font-semibold text-emerald-700 border border-emerald-500/20 shrink-0"
+                                >
+                                  {diag.otp.channel === "call" ? "Appel ✓" : "SMS ✓"}
+                                </span>
+                              )
+                            }
+                            if (diag.otp.isTechnicalFailure) {
+                              return (
+                                <span
+                                  title={diag.otp.detailText}
+                                  className="inline-flex items-center rounded bg-destructive/10 px-1.5 py-0.5 text-[9.5px] font-semibold text-destructive border border-destructive/20 shrink-0"
+                                >
+                                  SMS ✗
+                                </span>
+                              )
+                            }
+                            if (diag.lookup.status === "valid") {
+                              return (
+                                <span
+                                  title={diag.otp.detailText}
+                                  className="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[9.5px] font-semibold text-primary border border-primary/20 shrink-0"
+                                >
+                                  Lookup · sans SMS
+                                </span>
+                              )
+                            }
+                            return null
+                          })()}
+                        </div>
                       </div>
                     </TableCell>
 

@@ -63,6 +63,7 @@ export function useLeadPhoneOtp() {
     segment: "B2B" | "B2C"
     leadId?: string
     sessionId?: string
+    phone?: string
   }>({ segment: "B2C" })
   const pendingCompleteRef = useRef<(() => void) | null>(null)
 
@@ -79,6 +80,25 @@ export function useLeadPhoneOtp() {
     setChallenge(INITIAL_CHALLENGE)
     setCooldown(0)
   }, [])
+
+  const skipOtp = useCallback(() => {
+    const meta = lastMetaRef.current
+    const targetPhone = challenge.normalizedPhone || meta.phone
+    if (meta.leadId) {
+      fetch("/api/leads/phone-otp/skip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        keepalive: true,
+        body: JSON.stringify({
+          leadId: meta.leadId,
+          sessionId: meta.sessionId || undefined,
+          phone: targetPhone || undefined,
+          segment: meta.segment,
+        }),
+      }).catch(() => undefined)
+    }
+    resetOtp()
+  }, [challenge.normalizedPhone, resetOtp])
 
   const getCachedTokenForPhone = useCallback(
     (phoneInput: string): string | undefined => {
@@ -118,10 +138,13 @@ export function useLeadPhoneOtp() {
         return { status: "verified_cached", token: cached }
       }
 
+      const resolvedLeadId = params.leadId ?? lastMetaRef.current.leadId
+      const resolvedSessionId = params.sessionId ?? lastMetaRef.current.sessionId
       lastMetaRef.current = {
         segment: params.segment,
-        leadId: params.leadId ?? lastMetaRef.current.leadId,
-        sessionId: params.sessionId ?? lastMetaRef.current.sessionId,
+        leadId: resolvedLeadId,
+        sessionId: resolvedSessionId,
+        phone: params.phone || lastMetaRef.current.phone,
       }
       setChallenge((prev) => ({ ...prev, isSending: true, error: null }))
 
@@ -129,7 +152,11 @@ export function useLeadPhoneOtp() {
         const res = await fetch("/api/leads/phone-otp/send", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(params),
+          body: JSON.stringify({
+            ...params,
+            leadId: resolvedLeadId,
+            sessionId: resolvedSessionId,
+          }),
         })
         const data = (await res.json().catch(() => ({}))) as {
           ok?: boolean
@@ -333,6 +360,7 @@ export function useLeadPhoneOtp() {
     setCode,
     submitCode,
     resetOtp,
+    skipOtp,
   }
 }
 

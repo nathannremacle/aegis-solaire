@@ -281,6 +281,7 @@ async function PartnerDashboardLoader({
             annual_electricity_bill, annual_bill_eur, estimated_power_kwc, roof_material, ownership_status,
             timeframe, project_timeline, project_driver, project_details, message, contact_preference, first_name, last_name,
             credit_cost, max_slots, marketplace_status, created_at, grd, estimated_roi_years, estimated_savings, autoconsumption_rate,
+            phone_verified, phone_verification_method, phone_carrier, phone_line_type, email_verified, email_delivery_status,
             qualification_metadata, wants_irve, lead_score,
             lead_purchases(id, partner_id, purchased_at, partners(id, company_name, email, is_test))
           `)

@@ -142,6 +142,45 @@ const SORT_OPTIONS: { value: MarketplaceSortOption; label: string; badge?: strin
 
 import { CustomSelect } from "@/components/ui/custom-select"
 
+function buildPurchasedCrmRecord(
+  sourceLead: any,
+  data: any,
+  creditsSpent: number,
+  isExclusive: boolean
+) {
+  return {
+    id: data.lead?.id || sourceLead.id,
+    lead_id: data.lead?.id || sourceLead.id,
+    purchase_id: data.purchaseId || data.purchase_id || data.purchase?.id || `purch_${Date.now()}`,
+    purchased_at: new Date().toISOString(),
+    credits_spent: creditsSpent,
+    is_exclusive: isExclusive,
+    pipeline_status: "to_contact",
+    first_name: data.lead?.first_name || sourceLead.first_name || "Prospect",
+    last_name: data.lead?.last_name || sourceLead.last_name || "",
+    company: data.lead?.company || null,
+    email: data.lead?.email || "—",
+    phone: data.lead?.phone || "—",
+    site_address: data.lead?.site_address || sourceLead.site_address,
+    segment: sourceLead.segment,
+    province: sourceLead.province,
+    city: sourceLead.city,
+    postal_code: sourceLead.postal_code || sourceLead.masked_postal_code,
+    surface_area: sourceLead.surface_area,
+    annual_electricity_bill: sourceLead.annual_electricity_bill,
+    phone_verified: data.lead?.phone_verified ?? sourceLead.phone_verified ?? false,
+    phone_verification_method:
+      data.lead?.phone_verification_method ?? sourceLead.phone_verification_method ?? null,
+    phone_carrier: data.lead?.phone_carrier ?? sourceLead.phone_carrier ?? null,
+    phone_line_type: data.lead?.phone_line_type ?? sourceLead.phone_line_type ?? null,
+    email_verified: data.lead?.email_verified ?? sourceLead.email_verified ?? false,
+    email_delivery_status:
+      data.lead?.email_delivery_status ?? sourceLead.email_delivery_status ?? null,
+    qualification_metadata:
+      data.lead?.qualification_metadata ?? sourceLead.qualification_metadata ?? null,
+  }
+}
+
 export function MarketplaceFeedView({
   leads,
   recentlyClosedLeads = [],
@@ -451,9 +490,28 @@ export function MarketplaceFeedView({
       return
     }
 
+    const purchaseVerif = getLeadVerificationSummary({
+      segment: lead.segment,
+      phone: lead.phone,
+      email: lead.email,
+      postal_code: lead.postal_code,
+      company_vat: lead.company_vat,
+      phone_verified: lead.phone_verified,
+      phone_verification_method: lead.phone_verification_method,
+      phone_carrier: lead.phone_carrier,
+      phone_line_type: lead.phone_line_type,
+      email_verified: lead.email_verified,
+      email_delivery_status: lead.email_delivery_status,
+      qualification_metadata: lead.qualification_metadata,
+    })
+    const phoneConfirmText =
+      purchaseVerif.phone.tier === "verified"
+        ? "téléphone direct vérifié par SMS/appel"
+        : "téléphone direct"
+
     const confirmMsg = isExclusiveBuyout
       ? `Réserver l'EXCLUSIVITÉ TOTALE de ce dossier B2C pour ${cost} crédits ?\nVous serez le seul installateur à recevoir ses coordonnées et Aegis Solaire enverra un e-mail de sélection prioritaire au prospect.`
-      : `Débloquer ce dossier ${lead.segment} pour ${cost} crédits ?\nVous obtiendrez immédiatement le nom, téléphone direct vérifié, email et adresse exacte du prospect.`
+      : `Débloquer ce dossier ${lead.segment} pour ${cost} crédits ?\nVous obtiendrez immédiatement le nom, ${phoneConfirmText}, email et adresse exacte du prospect.`
 
     if (!opts?.skipConfirm && !confirm(confirmMsg)) {
       return
@@ -479,27 +537,12 @@ export function MarketplaceFeedView({
         typeof data.creditsRemaining === "number"
           ? data.creditsRemaining
           : partnerCredits - effectiveSpent
-      const newRecord = {
-        id: data.lead?.id || lead.id,
-        lead_id: data.lead?.id || lead.id,
-        purchase_id: data.purchaseId || data.purchase_id || data.purchase?.id || `purch_${Date.now()}`,
-        purchased_at: new Date().toISOString(),
-        credits_spent: effectiveSpent,
-        is_exclusive: Boolean(data.exclusive || isExclusiveBuyout || isB2B),
-        pipeline_status: "to_contact",
-        first_name: data.lead?.first_name || lead.first_name || "Prospect",
-        last_name: data.lead?.last_name || lead.last_name || "",
-        company: data.lead?.company || null,
-        email: data.lead?.email || "—",
-        phone: data.lead?.phone || "—",
-        site_address: data.lead?.site_address || lead.site_address,
-        segment: lead.segment,
-        province: lead.province,
-        city: lead.city,
-        postal_code: lead.postal_code || lead.masked_postal_code,
-        surface_area: lead.surface_area,
-        annual_electricity_bill: lead.annual_electricity_bill,
-      }
+      const newRecord = buildPurchasedCrmRecord(
+        lead,
+        data,
+        effectiveSpent,
+        Boolean(data.exclusive || isExclusiveBuyout || isB2B)
+      )
 
       if (selectedLeadForDrawer?.id === lead.id) {
         setSelectedLeadForDrawer(null)
@@ -911,6 +954,20 @@ export function MarketplaceFeedView({
                   )
                   const powerKwc = financials.estimatedPowerKwc
                   const marginText = formatRoundedCurrency(financials.estimatedInstallerMargin || 0)
+                  const mobileVerif = getLeadVerificationSummary({
+                    segment: lead.segment,
+                    phone: lead.phone,
+                    email: lead.email,
+                    postal_code: lead.postal_code,
+                    company_vat: lead.company_vat,
+                    phone_verified: lead.phone_verified,
+                    phone_verification_method: lead.phone_verification_method,
+                    phone_carrier: lead.phone_carrier,
+                    phone_line_type: lead.phone_line_type,
+                    email_verified: lead.email_verified,
+                    email_delivery_status: lead.email_delivery_status,
+                    qualification_metadata: lead.qualification_metadata,
+                  })
 
                   return (
                     <div
@@ -933,6 +990,23 @@ export function MarketplaceFeedView({
                               <span className={`h-1.5 w-1.5 rounded-full ${freshness.dotClass}`} />
                               {freshness.label}
                             </span>
+                            {mobileVerif.phone.compactLabel && (
+                              <span
+                                title={mobileVerif.phone.detailLabel || undefined}
+                                className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                                  mobileVerif.phone.tier === "verified"
+                                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
+                                    : "bg-secondary text-muted-foreground border border-border"
+                                }`}
+                              >
+                                {mobileVerif.phone.tier === "verified" ? (
+                                  <ShieldCheck className="h-2.5 w-2.5 shrink-0" />
+                                ) : (
+                                  <Phone className="h-2.5 w-2.5 shrink-0" />
+                                )}
+                                <span>{mobileVerif.phone.compactLabel}</span>
+                              </span>
+                            )}
                             {(lead.qualification_metadata?.roof_image_url || lead.qualificationMetadata?.roof_image_url) && (
                               <span className="inline-flex items-center gap-1 font-mono text-[10px] text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded font-semibold">
                                 <Camera className="h-2.5 w-2.5" />
@@ -1134,6 +1208,20 @@ export function MarketplaceFeedView({
                     lead.reconfirmed_at || lead.qualification_metadata?.reconfirmed_at
                   )
                       const powerKwc = financials.estimatedPowerKwc
+                      const tableVerif = getLeadVerificationSummary({
+                        segment: lead.segment,
+                        phone: lead.phone,
+                        email: lead.email,
+                        postal_code: lead.postal_code,
+                        company_vat: lead.company_vat,
+                        phone_verified: lead.phone_verified,
+                        phone_verification_method: lead.phone_verification_method,
+                        phone_carrier: lead.phone_carrier,
+                        phone_line_type: lead.phone_line_type,
+                        email_verified: lead.email_verified,
+                        email_delivery_status: lead.email_delivery_status,
+                        qualification_metadata: lead.qualification_metadata,
+                      })
 
                       return (
                         <tr
@@ -1158,7 +1246,26 @@ export function MarketplaceFeedView({
                             <div className="font-bold group-hover:text-primary transition-colors">
                               {location.fullTitle}
                             </div>
-                            <div className="text-[11px] text-muted-foreground">{location.provinceLabel}</div>
+                            <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                              <span className="text-[11px] text-muted-foreground">{location.provinceLabel}</span>
+                              {tableVerif.phone.compactLabel && (
+                                <span
+                                  title={tableVerif.phone.detailLabel || undefined}
+                                  className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                                    tableVerif.phone.tier === "verified"
+                                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
+                                      : "bg-secondary text-muted-foreground border border-border"
+                                  }`}
+                                >
+                                  {tableVerif.phone.tier === "verified" ? (
+                                    <ShieldCheck className="h-2.5 w-2.5 shrink-0" />
+                                  ) : (
+                                    <Phone className="h-2.5 w-2.5 shrink-0" />
+                                  )}
+                                  <span>{tableVerif.phone.compactLabel}</span>
+                                </span>
+                              )}
+                            </div>
                           </td>
 
                           {/* Puissance */}
@@ -1367,27 +1474,14 @@ export function MarketplaceFeedView({
           onClose={() => setSelectedLeadForDrawer(null)}
           onPurchase={(lead, opts) => handlePurchase(lead, opts)}
           onOneClickSuccess={(purchasedLead, data) => {
-            const newRecord = {
-              id: data.lead?.id || purchasedLead.id,
-              lead_id: data.lead?.id || purchasedLead.id,
-              purchase_id: data.purchaseId || `purch_${Date.now()}`,
-              purchased_at: new Date().toISOString(),
-              credits_spent: data.exclusive && purchasedLead.segment === "B2C" ? B2C_EXCLUSIVE_CREDIT_COST : (purchasedLead.credit_cost ?? 3),
-              is_exclusive: Boolean(data.exclusive || purchasedLead.segment === "B2B"),
-              pipeline_status: "to_contact",
-              first_name: data.lead?.first_name || purchasedLead.first_name || "Prospect",
-              last_name: data.lead?.last_name || purchasedLead.last_name || "",
-              company: data.lead?.company || null,
-              email: data.lead?.email || "—",
-              phone: data.lead?.phone || "—",
-              site_address: data.lead?.site_address || purchasedLead.site_address,
-              segment: purchasedLead.segment,
-              province: purchasedLead.province,
-              city: purchasedLead.city,
-              postal_code: purchasedLead.postal_code || purchasedLead.masked_postal_code,
-              surface_area: purchasedLead.surface_area,
-              annual_electricity_bill: purchasedLead.annual_electricity_bill,
-            }
+            const newRecord = buildPurchasedCrmRecord(
+              purchasedLead,
+              data,
+              data.exclusive && purchasedLead.segment === "B2C"
+                ? B2C_EXCLUSIVE_CREDIT_COST
+                : (purchasedLead.credit_cost ?? 3),
+              Boolean(data.exclusive || purchasedLead.segment === "B2B")
+            )
             setSelectedLeadForDrawer(null)
             onPurchaseSuccess(purchasedLead, partnerCredits, newRecord)
           }}
@@ -1423,27 +1517,14 @@ export function MarketplaceFeedView({
           onRequestTopUp()
         }}
         onOneClickSuccess={(purchasedLead, data) => {
-          const newRecord = {
-            id: data.lead?.id || purchasedLead.id,
-            lead_id: data.lead?.id || purchasedLead.id,
-            purchase_id: data.purchaseId || `purch_${Date.now()}`,
-            purchased_at: new Date().toISOString(),
-            credits_spent: data.exclusive && purchasedLead.segment === "B2C" ? B2C_EXCLUSIVE_CREDIT_COST : (purchasedLead.credit_cost ?? 3),
-            is_exclusive: Boolean(data.exclusive || purchasedLead.segment === "B2B"),
-            pipeline_status: "to_contact",
-            first_name: data.lead?.first_name || purchasedLead.first_name || "Prospect",
-            last_name: data.lead?.last_name || purchasedLead.last_name || "",
-            company: data.lead?.company || null,
-            email: data.lead?.email || "—",
-            phone: data.lead?.phone || "—",
-            site_address: data.lead?.site_address || purchasedLead.site_address,
-            segment: purchasedLead.segment,
-            province: purchasedLead.province,
-            city: purchasedLead.city,
-            postal_code: purchasedLead.postal_code || purchasedLead.masked_postal_code,
-            surface_area: purchasedLead.surface_area,
-            annual_electricity_bill: purchasedLead.annual_electricity_bill,
-          }
+          const newRecord = buildPurchasedCrmRecord(
+            purchasedLead,
+            data,
+            data.exclusive && purchasedLead.segment === "B2C"
+              ? B2C_EXCLUSIVE_CREDIT_COST
+              : (purchasedLead.credit_cost ?? 3),
+            Boolean(data.exclusive || purchasedLead.segment === "B2B")
+          )
           setDirectPayLead(null)
           setDirectPayExclusive(false)
           onPurchaseSuccess(purchasedLead, partnerCredits, newRecord)
@@ -1536,6 +1617,9 @@ function MarketplaceLeadCard({
     postal_code: lead.postal_code,
     company_vat: lead.company_vat,
     phone_verified: lead.phone_verified,
+    phone_verification_method: lead.phone_verification_method,
+    phone_carrier: lead.phone_carrier,
+    phone_line_type: lead.phone_line_type,
     email_verified: lead.email_verified,
     email_delivery_status: lead.email_delivery_status,
     qualification_metadata: lead.qualification_metadata,
@@ -1651,21 +1735,40 @@ function MarketplaceLeadCard({
                 <span>Projet qualifié</span>
               </div>
             )}
-            {verifSummary.phone.tier === "verified" && verifSummary.phone.shortLabel && (
-              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-xs font-semibold">
-                <ShieldCheck className="h-3 w-3" />
-                <span>{verifSummary.phone.shortLabel}</span>
+            {verifSummary.phone.tier === "verified" && verifSummary.phone.compactLabel && (
+              <div
+                title={verifSummary.phone.detailLabel || undefined}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-xs font-semibold"
+              >
+                <ShieldCheck className="h-3 w-3 shrink-0" />
+                <span>{verifSummary.phone.compactLabel}</span>
               </div>
             )}
-            {verifSummary.email.tier === "verified" && verifSummary.email.shortLabel && (
-              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-xs font-semibold">
-                <CheckCircle2 className="h-3 w-3" />
-                <span>{verifSummary.email.shortLabel}</span>
+            {verifSummary.phone.tier === "plausible" && verifSummary.phone.compactLabel && (
+              <div
+                title={verifSummary.phone.detailLabel || undefined}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border text-[11px] font-medium"
+              >
+                <Phone className="h-3 w-3 shrink-0" />
+                <span>{verifSummary.phone.compactLabel}</span>
               </div>
             )}
-            {verifSummary.phone.tier === "plausible" && verifSummary.email.tier === "plausible" && (
-              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border text-[11px] font-medium">
-                <span>Contact plausible (MX / BE)</span>
+            {verifSummary.email.tier === "verified" && verifSummary.email.compactLabel && (
+              <div
+                title={verifSummary.email.detailLabel || undefined}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-xs font-semibold"
+              >
+                <CheckCircle2 className="h-3 w-3 shrink-0" />
+                <span>{verifSummary.email.compactLabel}</span>
+              </div>
+            )}
+            {verifSummary.email.tier === "plausible" && verifSummary.email.compactLabel && (
+              <div
+                title={verifSummary.email.detailLabel || undefined}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border text-[11px] font-medium"
+              >
+                <Mail className="h-3 w-3 shrink-0" />
+                <span>{verifSummary.email.compactLabel}</span>
               </div>
             )}
           </div>

@@ -50,6 +50,9 @@ export interface InstallerLeadTeaserData {
     grd?: string | null
     roofImageUrl?: string | null
     phoneVerified?: boolean | null
+    phoneVerificationMethod?: string | null
+    phoneCarrier?: string | null
+    phoneLineType?: string | null
     emailVerified?: boolean | null
     emailDeliveryStatus?: string | null
     qualificationMetadata?: Record<string, unknown> | null
@@ -362,6 +365,9 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
     phone: data.lead.phone,
     postalCode: data.lead.postalCode,
     phone_verified: data.lead.phoneVerified,
+    phone_verification_method: data.lead.phoneVerificationMethod,
+    phone_carrier: data.lead.phoneCarrier,
+    phone_line_type: data.lead.phoneLineType,
     email_verified: data.lead.emailVerified,
     email_delivery_status: data.lead.emailDeliveryStatus,
     qualificationMetadata: data.lead.qualificationMetadata,
