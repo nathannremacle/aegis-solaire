@@ -39,11 +39,24 @@ function formatEurDisplay(amount: number): string {
   })
 }
 
+function getSupplierLegalAddress() {
+  const street = (process.env.INIT42_LEGAL_STREET || "").trim() || "Thier Martin 113 boîte C"
+  const postalCode = (process.env.INIT42_LEGAL_POSTAL_CODE || "").trim() || "4651"
+  const city = (process.env.INIT42_LEGAL_CITY || "").trim() || "Herve"
+  return { street, postalCode, city }
+}
+
+export function isPeppolLegalAddressConfigured(): boolean {
+  const addr = getSupplierLegalAddress()
+  return Boolean(addr.street && addr.postalCode && addr.city)
+}
+
 /**
  * Génère une facture structurée XML UBL 2.1 / Peppol BIS Billing 3.0 (EN 16931).
  * Compatible avec tous les Points d'Accès Peppol belges (obligatoire B2B depuis 01/01/2026).
  */
 export function generatePeppolUblXml(invoice: UnifiedInvoiceRecord): string {
+  const supplierAddress = getSupplierLegalAddress()
   const isCreditNote = invoice.invoice_type === "credit_note"
   const rootTag = isCreditNote ? "CreditNote" : "Invoice"
   const rootNs = isCreditNote
@@ -105,9 +118,9 @@ export function generatePeppolUblXml(invoice: UnifiedInvoiceRecord): string {
         <cbc:Name>${escapeXml(`${LEGAL_ENTITY.legalName} — ${LEGAL_ENTITY.commercialName}`)}</cbc:Name>
       </cac:PartyName>
       <cac:PostalAddress>
-        <cbc:StreetName>Siège d'exploitation</cbc:StreetName>
-        <cbc:CityName>${escapeXml(LEGAL_ENTITY.city)}</cbc:CityName>
-        <cbc:PostalZone>4000</cbc:PostalZone>
+        <cbc:StreetName>${escapeXml(supplierAddress.street)}</cbc:StreetName>
+        <cbc:CityName>${escapeXml(supplierAddress.city)}</cbc:CityName>
+        <cbc:PostalZone>${escapeXml(supplierAddress.postalCode)}</cbc:PostalZone>
         <cac:Country>
           <cbc:IdentificationCode>${LEGAL_ENTITY.country}</cbc:IdentificationCode>
         </cac:Country>
@@ -228,6 +241,7 @@ export function generatePeppolUblXml(invoice: UnifiedInvoiceRecord): string {
  * suivant strictement les tokens visuels Aegis Solaire (canvas #eef2f4, encre #142d42).
  */
 export function renderOfficialInvoiceHtml(invoice: UnifiedInvoiceRecord): string {
+  const supplierAddress = getSupplierLegalAddress()
   const isCreditNote = invoice.invoice_type === "credit_note"
   const docTitle = isCreditNote ? "NOTE DE CRÉDIT" : "FACTURE B2B"
   const issuedDisplay = new Date(invoice.issued_at).toLocaleDateString("fr-BE")
@@ -439,9 +453,9 @@ export function renderOfficialInvoiceHtml(invoice: UnifiedInvoiceRecord): string
         <div class="box-label">Émetteur (Fournisseur)</div>
         <strong style="font-size: 15px;">${escapeHtml(LEGAL_ENTITY.operatorLegalLine)}</strong>
         <div class="muted" style="margin-top: 4px;">
-          Enseigne : ${escapeHtml(LEGAL_ENTITY.commercialName)}<br/>
-          Numéro BCE : <span class="mono">${escapeHtml(LEGAL_ENTITY.bce)}</span><br/>
-          Numéro TVA : <span class="mono">${escapeHtml(LEGAL_ENTITY.vat)}</span><br/>
+          Enseigne : ${escapeHtml(LEGAL_ENTITY.commercialName)} (UE 2.391.304.376)<br/>
+          Siège : ${escapeHtml(supplierAddress.street)}, ${escapeHtml(supplierAddress.postalCode)} ${escapeHtml(supplierAddress.city)}<br/>
+          Numéro BCE / TVA : <span class="mono">${escapeHtml(LEGAL_ENTITY.vat)}</span><br/>
           IBAN : <span class="mono">${escapeHtml(LEGAL_ENTITY.iban)}</span> (${escapeHtml(LEGAL_ENTITY.bic)})
         </div>
       </div>

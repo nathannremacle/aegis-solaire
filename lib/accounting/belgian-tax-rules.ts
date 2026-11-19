@@ -58,6 +58,18 @@ export interface UnifiedInvoiceRecord {
   is_synthesized?: boolean
 }
 
+export type PaymentSource = "pro_account" | "personal_card" | "mollie_balance" | "other"
+
+export type AccountingSource = "manual" | "drag_drop" | "email_inbound" | "mollie_api"
+
+export type DraftWarningSeverity = "error" | "warning" | "info"
+
+export interface DraftWarning {
+  code: string
+  severity: DraftWarningSeverity
+  message: string
+}
+
 export interface AccountingExpenseRecord {
   id: string
   expense_date: string
@@ -75,7 +87,60 @@ export interface AccountingExpenseRecord {
   is_investment: boolean
   invoice_ref: string | null
   notes: string | null
+  document_storage_path?: string | null
+  document_filename?: string | null
+  document_mime_type?: string | null
+  document_sha256?: string | null
+  original_currency?: string
+  original_amount?: number | null
+  exchange_rate?: number | null
+  payment_source?: PaymentSource
+  source?: AccountingSource
+  source_metadata?: Record<string, unknown>
   created_at?: string
+}
+
+export interface AccountingExpenseDraftRecord {
+  id: string
+  status: "pending_review" | "approved" | "rejected"
+  source: "drag_drop" | "email_inbound" | "mollie_api"
+  document_storage_path: string | null
+  document_filename: string | null
+  document_mime_type: string | null
+  document_sha256: string | null
+  document_size_bytes: number | null
+  expense_date: string
+  supplier_name: string
+  supplier_country: "BE" | "EU" | "NON_EU"
+  supplier_vat_number: string | null
+  category: string
+  description: string
+  nace_code: string
+  original_currency: string
+  original_amount_htva: number
+  original_vat_amount: number
+  original_amount_ttc: number
+  exchange_rate: number
+  exchange_rate_source: string | null
+  amount_htva: number
+  vat_paid_be: number
+  vat_deductible_pct: number
+  tax_deductible_pct: number
+  is_reverse_charge: boolean
+  is_investment: boolean
+  invoice_ref: string | null
+  payment_source: PaymentSource
+  is_valid_tax_invoice: boolean
+  client_vat_present: boolean
+  ai_confidence: number
+  ai_model: string | null
+  ai_warnings: DraftWarning[]
+  ai_raw_extraction: Record<string, unknown>
+  source_metadata: Record<string, unknown>
+  notes: string | null
+  approved_expense_id: string | null
+  created_at: string
+  updated_at: string
 }
 
 export interface NaceCodeProfile {
@@ -116,12 +181,13 @@ export const INIT42_NACE_CODES: NaceCodeProfile[] = [
     code: "63100",
     title: "Traitement de données, hébergement et activités connexes",
     authorizedExpenses: [
-      "Vercel, Supabase, AWS, Cloudflare, domaines DNS",
-      "Resend (emails), Upstash Redis, API CBE, Mollie (frais)",
+      "Vercel, Supabase, AWS, Cloudflare, Infomaniak, domaines DNS",
+      "Resend (emails), Upstash Redis, API CBE, Mollie (commissions)",
     ],
-    vatRecoveryRule: "Autoliquidation hors-UE (grille 87 + 56 + 59). Frais Mollie : 0 % TVA (exonéré art. 44)",
+    vatRecoveryRule:
+      "Autoliquidation hors-UE (grilles [82], [87], [56], [59]) et autoliquidation UE pour Mollie (grilles [82], [88], [55], [59])",
     ippDeductibilityRule: "100 % déductible",
-    legalTip: "Télécharge la facture mensuelle des frais sur Mollie chaque début de mois.",
+    legalTip: "Synchronise tes factures mensuelles Mollie via l'API (autoliquidation UE) et vérifie que BE 1039.899.980 figure sur chaque facture.",
   },
   {
     code: "59113",
@@ -238,9 +304,9 @@ export const EXPENSE_PRESETS: ExpensePreset[] = [
   },
   {
     id: "saas_cloud_non_eu",
-    label: "SaaS / Cloud / IA Hors-UE (Vercel, Supabase, Resend, OpenAI)",
-    shortLabel: "SaaS / Cloud US",
-    supplierPlaceholder: "Vercel Inc. / Supabase / Resend",
+    label: "SaaS / Cloud / IA Hors-UE (Vercel, Supabase, Resend, Infomaniak CH, OpenAI)",
+    shortLabel: "SaaS / Cloud / CH",
+    supplierPlaceholder: "Vercel / Supabase / Resend / Infomaniak",
     supplierCountry: "NON_EU",
     defaultVatNumber: "",
     naceCode: "63100",
@@ -250,15 +316,31 @@ export const EXPENSE_PRESETS: ExpensePreset[] = [
     isReverseCharge: true,
     isInvestment: false,
     explanation:
-      "Prestation hors-UE (USA/SG). Autoliquidation en grilles [87], [56] et [59] : impact TVA = 0 € et 100 % déductible de ton bénéfice imposable.",
+      "Prestation hors-UE (USA, Suisse/Infomaniak, Singapour). Autoliquidation en grilles [82], [87], [56] (+21 %) et [59] (−21 %) : impact TVA = 0 € et 100 % déductible de ton bénéfice imposable.",
   },
   {
-    id: "mollie_bank_fees",
-    label: "Frais Mollie & Frais bancaires (Exonéré TVA)",
-    shortLabel: "Frais Mollie / Banque",
+    id: "mollie_fees_eu",
+    label: "Frais Mollie B.V. (Pays-Bas - UE · Autoliquidation)",
+    shortLabel: "Frais Mollie (UE)",
     supplierPlaceholder: "Mollie B.V.",
     supplierCountry: "EU",
     defaultVatNumber: "NL815839091B01",
+    naceCode: "63100",
+    vatRateInput: 0,
+    vatDeductiblePct: 100,
+    taxDeductiblePct: 100,
+    isReverseCharge: true,
+    isInvestment: false,
+    explanation:
+      "Mollie B.V. (Pays-Bas) facture les entreprises belges à 0 % TVA en autoliquidation intra-UE : grilles [82], [88], +21 % en [55] et −21 % en [59] (impact TVA = 0 €) et 100 % déductible IPP. Vérifie que BE 1039.899.980 est encodé dans Mollie.",
+  },
+  {
+    id: "bank_fees_exempt",
+    label: "Frais bancaires belges / Revolut (Exonéré TVA art. 44)",
+    shortLabel: "Frais bancaires",
+    supplierPlaceholder: "Banque / Revolut",
+    supplierCountry: "BE",
+    defaultVatNumber: "",
     naceCode: "63100",
     vatRateInput: 0,
     vatDeductiblePct: 0,
@@ -266,7 +348,7 @@ export const EXPENSE_PRESETS: ExpensePreset[] = [
     isReverseCharge: false,
     isInvestment: false,
     explanation:
-      "Les services financiers (Mollie, banque) sont exonérés de TVA (art. 44 Code TVA) : pas d'autoliquidation TVA, mais 100 % déductibles en charge IPP.",
+      "Les commissions bancaires de tenue de compte sont exonérées de TVA (art. 44 Code TVA) : 0 % TVA à déclarer, mais 100 % déductibles en charge IPP.",
   },
   {
     id: "hardware_it_video",
@@ -414,9 +496,12 @@ export const EXPENSE_PRESETS: ExpensePreset[] = [
   },
 ]
 
-export const EXPENSE_PRESETS_MAP = Object.fromEntries(
-  EXPENSE_PRESETS.map((p) => [p.id, p])
-) as Record<string, ExpensePreset>
+export const EXPENSE_PRESETS_MAP: Record<string, ExpensePreset> = {
+  ...Object.fromEntries(EXPENSE_PRESETS.map((p) => [p.id, p])),
+  // Rétrocompatibilité si une ancienne écriture porte encore mollie_bank_fees
+  mollie_bank_fees:
+    EXPENSE_PRESETS.find((p) => p.id === "mollie_fees_eu") ?? EXPENSE_PRESETS[0],
+}
 
 export function round2(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100
@@ -508,23 +593,204 @@ export interface IntervatSummary {
   studentStatus: StudentStatusSummary
 }
 
+export interface QuarterScheduleItem {
+  quarter: 1 | 2 | 3 | 4
+  label: string
+  monthsLabel: string
+  deadlineIso: string
+  deadlineLabel: string
+  isWeekend: boolean
+  effectiveDeadlineNote: string
+  state: "past" | "current" | "due_now" | "upcoming"
+}
+
 export function getPeriodDeadlineLabel(year: number, quarter: 0 | 1 | 2 | 3 | 4): {
   periodLabel: string
   deadlineLabel: string
 } {
   if (quarter === 1) {
-    return { periodLabel: `T1 ${year} (Jan–Mar)`, deadlineLabel: `20 avril ${year}` }
+    return { periodLabel: `T1 ${year} (Jan–Mar)`, deadlineLabel: `25 avril ${year}` }
   }
   if (quarter === 2) {
-    return { periodLabel: `T2 ${year} (Avr–Juin)`, deadlineLabel: `20 juillet ${year}` }
+    return { periodLabel: `T2 ${year} (Avr–Juin)`, deadlineLabel: `25 juillet ${year}` }
   }
   if (quarter === 3) {
-    return { periodLabel: `T3 ${year} (Juil–Sep)`, deadlineLabel: `20 octobre ${year}` }
+    return { periodLabel: `T3 ${year} (Juil–Sep)`, deadlineLabel: `25 octobre ${year}` }
   }
   if (quarter === 4) {
-    return { periodLabel: `T4 ${year} (Oct–Déc)`, deadlineLabel: `20 janvier ${year + 1}` }
+    return { periodLabel: `T4 ${year} (Oct–Déc)`, deadlineLabel: `25 janvier ${year + 1}` }
   }
   return { periodLabel: `Année complète ${year}`, deadlineLabel: `Listing clients avant 31 mars ${year + 1}` }
+}
+
+export function getQuarterCalendarSchedule(
+  year: number,
+  nowDate: Date = new Date()
+): QuarterScheduleItem[] {
+  const todayIso = nowDate.toISOString().slice(0, 10)
+  const defs: Array<{
+    quarter: 1 | 2 | 3 | 4
+    monthsLabel: string
+    qStartIso: string
+    qEndIso: string
+    dYear: number
+    dMonth: number
+    monthName: string
+  }> = [
+    {
+      quarter: 1,
+      monthsLabel: "Jan – Mar",
+      qStartIso: `${year}-01-01`,
+      qEndIso: `${year}-03-31`,
+      dYear: year,
+      dMonth: 4,
+      monthName: "avril",
+    },
+    {
+      quarter: 2,
+      monthsLabel: "Avr – Juin",
+      qStartIso: `${year}-04-01`,
+      qEndIso: `${year}-06-30`,
+      dYear: year,
+      dMonth: 7,
+      monthName: "juillet",
+    },
+    {
+      quarter: 3,
+      monthsLabel: "Juil – Sep",
+      qStartIso: `${year}-07-01`,
+      qEndIso: `${year}-09-30`,
+      dYear: year,
+      dMonth: 10,
+      monthName: "octobre",
+    },
+    {
+      quarter: 4,
+      monthsLabel: "Oct – Déc",
+      qStartIso: `${year}-10-01`,
+      qEndIso: `${year}-12-31`,
+      dYear: year + 1,
+      dMonth: 1,
+      monthName: "janvier",
+    },
+  ]
+
+  return defs.map((def) => {
+    const deadlineIso = `${def.dYear}-${String(def.dMonth).padStart(2, "0")}-25`
+    const deadlineDate = new Date(Date.UTC(def.dYear, def.dMonth - 1, 25, 12, 0, 0))
+    const dow = deadlineDate.getUTCDay()
+    const isWeekend = dow === 0 || dow === 6
+    const fridayDay = dow === 6 ? 24 : 23
+    const effectiveDeadlineNote = isWeekend
+      ? `Le 25 tombe un ${dow === 6 ? "samedi" : "dimanche"} : sans report (nouvelle chaîne TVA), déposer & payer au plus tard le vendredi ${fridayDay} ${def.monthName}.`
+      : "Échéance ferme au 25 (dépôt Intervat + paiement TVA)."
+
+    let state: QuarterScheduleItem["state"] = "upcoming"
+    if (todayIso > deadlineIso) {
+      state = "past"
+    } else if (todayIso > def.qEndIso && todayIso <= deadlineIso) {
+      state = "due_now"
+    } else if (todayIso >= def.qStartIso && todayIso <= def.qEndIso) {
+      state = "current"
+    }
+
+    return {
+      quarter: def.quarter,
+      label: `T${def.quarter} ${year}`,
+      monthsLabel: def.monthsLabel,
+      deadlineIso,
+      deadlineLabel: `25 ${def.monthName} ${def.dYear}`,
+      isWeekend,
+      effectiveDeadlineNote,
+      state,
+    }
+  })
+}
+
+export interface ExpenseIntervatImpact {
+  grid82: number
+  grid83: number
+  grid87: number
+  grid88: number
+  grid55: number
+  grid56: number
+  grid59: number
+  netVatEffect: number
+  taxDeductibleAmount: number
+}
+
+/**
+ * Calcule de manière pure et déterministe l'impact exact d'une dépense sur les grilles Intervat belges et l'IPP.
+ */
+export function computeExpenseIntervatImpact(input: {
+  amount_htva: number
+  vat_paid_be: number
+  vat_deductible_pct: number
+  tax_deductible_pct: number
+  is_reverse_charge: boolean
+  is_investment: boolean
+  supplier_country: string
+  category: string
+}): ExpenseIntervatImpact {
+  const htvaCents = Math.round(Number(input.amount_htva || 0) * 100)
+  const vatPaidBeCents = Math.round(Number(input.vat_paid_be || 0) * 100)
+  const vatDedRatio = Math.max(0, Math.min(100, Number(input.vat_deductible_pct ?? 100))) / 100
+  const taxDedRatio = Math.max(0, Math.min(100, Number(input.tax_deductible_pct ?? 100))) / 100
+
+  if (input.category === "social_contributions") {
+    return {
+      grid82: 0,
+      grid83: 0,
+      grid87: 0,
+      grid88: 0,
+      grid55: 0,
+      grid56: 0,
+      grid59: 0,
+      netVatEffect: 0,
+      taxDeductibleAmount: round2((htvaCents * taxDedRatio) / 100),
+    }
+  }
+
+  const grid83Cents = input.is_investment ? htvaCents : 0
+  const grid82Cents = input.is_investment ? 0 : htvaCents
+
+  let grid87Cents = 0
+  let grid88Cents = 0
+  let grid55Cents = 0
+  let grid56Cents = 0
+  let grid59Cents = 0
+
+  if (input.is_reverse_charge) {
+    const rcVatCents = Math.round(htvaCents * 0.21)
+    if (input.supplier_country === "EU") {
+      grid88Cents = htvaCents
+      grid55Cents = rcVatCents
+    } else if (input.supplier_country === "NON_EU") {
+      grid87Cents = htvaCents
+      grid56Cents = rcVatCents
+    }
+    grid59Cents = Math.round(rcVatCents * vatDedRatio)
+  } else if (vatPaidBeCents > 0) {
+    grid59Cents = Math.round(vatPaidBeCents * vatDedRatio)
+  }
+
+  const netVatCents = grid55Cents + grid56Cents - grid59Cents
+  const nonDedBeVatCents = input.is_reverse_charge
+    ? 0
+    : Math.max(0, vatPaidBeCents - grid59Cents)
+  const taxDeductibleCents = Math.round((htvaCents + nonDedBeVatCents) * taxDedRatio)
+
+  return {
+    grid82: round2(grid82Cents / 100),
+    grid83: round2(grid83Cents / 100),
+    grid87: round2(grid87Cents / 100),
+    grid88: round2(grid88Cents / 100),
+    grid55: round2(grid55Cents / 100),
+    grid56: round2(grid56Cents / 100),
+    grid59: round2(grid59Cents / 100),
+    netVatEffect: round2(netVatCents / 100),
+    taxDeductibleAmount: round2(taxDeductibleCents / 100),
+  }
 }
 
 function computeAnnualStudentSocialAndIpp(netProfitEur: number): {
@@ -810,61 +1076,61 @@ export function getRoutineTasksForPeriod(year: number, quarter: 0 | 1 | 2 | 3 | 
   const effectiveQ = quarter === 0 ? 4 : quarter
   const vatDeadline =
     effectiveQ === 1
-      ? `20 avril ${year}`
+      ? `25 avril ${year}`
       : effectiveQ === 2
-        ? `20 juillet ${year}`
+        ? `25 juillet ${year}`
         : effectiveQ === 3
-          ? `20 octobre ${year}`
-          : `20 janvier ${year + 1}`
+          ? `25 octobre ${year}`
+          : `25 janvier ${year + 1}`
 
   return [
     {
       id: "m_mollie_invoice",
       cadence: "monthly",
-      title: "Télécharger la facture mensuelle de frais Mollie",
-      whenLabel: "Le 2 de chaque mois (30 sec)",
-      whereLabel: "Dashboard Mollie → Administration → Factures",
+      title: "Synchroniser les factures mensuelles de frais Mollie (API exacte)",
+      whenLabel: "Le 2 de chaque mois (1 clic)",
+      whereLabel: "Onglet Factures d'achats → Bouton « Sync factures Mollie »",
       whereUrl: "https://my.mollie.com/dashboard",
       howTo:
-        "Télécharge le PDF de commissions Mollie du mois écoulé et clique sur « Importer frais Mollie » dans l'onglet Dépenses ici. Ne déclare jamais le virement net Mollie en chiffre d'affaires : Aegis calcule déjà ton CA brut exact.",
+        "Clique sur « Sync factures Mollie » (ou glisse le PDF Mollie dans le Drag & Drop). Mollie B.V. (Pays-Bas) est traité en autoliquidation UE ([82]/[88]/[55]/[59]). Vérifie que BE 1039.899.980 est bien encodé dans Mollie Dashboard.",
     },
     {
       id: "m_ads_invoices",
       cadence: "monthly",
-      title: "Récupérer les factures Meta Ads, Google Ads & SaaS (Vercel/Supabase/Resend)",
-      whenLabel: "Le 5 de chaque mois (3 min)",
-      whereLabel: "Meta Ads Billing / Google Ads / Vercel Billing",
+      title: "Déposer les factures Meta Ads, Google Ads & SaaS (Vercel/Supabase/Resend/Infomaniak)",
+      whenLabel: "Le 5 de chaque mois (2 min)",
+      whereLabel: "Meta Ads → Activité de paiement → Télécharger PDF mensuel consolidé",
       whereUrl: "https://adsmanager.facebook.com/billing_hub/payment_settings",
       howTo:
-        "Vérifie que ton n° de TVA BE 1039.899.980 est bien encodé (facturation 0 % TVA en autoliquidation) et encode le total HTVA dans l'onglet Dépenses pour réduire ton bénéfice imposable IPP.",
+        "Ignore les reçus quotidiens de 18 € (« Ceci n'est pas une facture ») : télécharge 1 fois par mois le relevé/factures consolidées dans Meta Ads, puis glisse tous tes PDF (Meta, Vercel, Supabase, Resend, Infomaniak) dans le Drag & Drop ou transfère-les par mail.",
     },
     {
       id: "m_peppol_sync",
       cadence: "monthly",
-      title: "Transmettre / archiver les factures Peppol UBL du mois",
+      title: "Envoyer les factures clients B2B sur Peppol (via Odoo Gratuit)",
       whenLabel: "En continu ou le 5 du mois",
-      whereLabel: "Onglet Factures & Commandes → Bouton Peppol UBL .xml",
+      whereLabel: "Onglet Ventes & Peppol → Télécharger lot Peppol (.zip)",
       howTo:
-        "Pour chaque client B2B belge assujetti, télécharge le fichier UBL 2.1 (.xml) conforme EN 16931 généré par Aegis et dépose-le dans ton outil d'envoi Peppol gratuit/léger (ou via API dès activation).",
+        "Télécharge en 1 clic l'archive .zip des XML Peppol UBL 2.1 du trimestre, importe-les dans ton portail Odoo Facturation gratuit pour les expédier sur Peppol, puis clique sur « Marquer lot envoyé Peppol ».",
     },
     {
       id: "q_vat_intervat",
       cadence: "quarterly",
       title: `Déposer la déclaration TVA trimestrielle sur Intervat (T${effectiveQ} ${year})`,
-      whenLabel: `Avant le ${vatDeadline} (5 min)`,
+      whenLabel: `Au plus tard le ${vatDeadline} (sans report week-end)`,
       whereLabel: "MyMinfin / Intervat (SPF Finances)",
       whereUrl: "https://finances.belgium.be/fr/E-services/Intervat",
       howTo:
-        "Connecte-toi avec itsme sur Intervat, ouvre l'onglet « Déclaration TVA (Intervat) » ici, et recopie simplement les montants des grilles [03], [82], [83], [87], [88], [54], [55], [56], [59] et [71].",
+        "Connecte-toi avec itsme sur Intervat, ouvre l'onglet « Déclarer (TVA & Calendrier) » ici, et recopie simplement les montants des grilles [03], [82], [83], [87], [88], [54], [55], [56], [59] et [71]/[72]. Attention : si le 25 tombe un week-end, dépose le vendredi précédent.",
     },
     {
       id: "q_vat_payment",
       cadence: "quarterly",
       title: `Payer le solde TVA (Grille [71]) au SPF Finances`,
-      whenLabel: `Avant le ${vatDeadline}`,
+      whenLabel: `Au plus tard le ${vatDeadline} (sans report week-end)`,
       whereLabel: "Communication structurée reçue sur Intervat après dépôt",
       howTo:
-        "Paie depuis ton sous-compte « Réserve Fiscale & Sociale » en utilisant exactement la communication structurée générée par Intervat après soumission.",
+        "Paie depuis ton compte pro (ou réserve fiscale) en utilisant exactement la communication structurée générée par Intervat après soumission.",
     },
     {
       id: "q_social_and_va",
@@ -884,7 +1150,7 @@ export function getRoutineTasksForPeriod(year: number, quarter: 0 | 1 | 2 | 3 | 
       whereLabel: "Intervat → Listing clients annuel",
       whereUrl: "https://finances.belgium.be/fr/E-services/Intervat",
       howTo:
-        "Clique sur « Exporter Listing Clients TVA » dans l'onglet Intervat : Aegis isole automatiquement tous les installateurs belges facturés pour plus de 250 € HTVA sur l'année avec leur n° BE.",
+        "Clique sur « Exporter CSV » dans la section Listing Clients TVA : Aegis isole automatiquement tous les installateurs belges facturés pour plus de 250 € HTVA sur l'année avec leur n° BE.",
     },
     {
       id: "a_ipp_declaration",
@@ -897,4 +1163,100 @@ export function getRoutineTasksForPeriod(year: number, quarter: 0 | 1 | 2 | 3 | 
         "Utilise l'agrégat « Année complète » ici : Chiffre d'affaires total HTVA (brut) moins Total Frais Professionnels Déductibles (y compris frais Mollie, pubs et cotisations sociales).",
     },
   ]
+}
+
+/**
+ * Construit un dossier d'audit complet prêt à coller dans le chat Antigravity
+ * pour vérification humaine / LLM avant validation définitive dans le journal des achats.
+ */
+export function buildChatAuditMarkdown(
+  drafts: AccountingExpenseDraftRecord[],
+  year: number,
+  quarter: 0 | 1 | 2 | 3 | 4
+): string {
+  const { periodLabel } = getPeriodDeadlineLabel(year, quarter)
+  const lines: string[] = [
+    `# Audit Comptable INIT42 (${LEGAL_ENTITY.vat}) — ${periodLabel}`,
+    ``,
+    `Voici ${drafts.length} facture(s)/document(s) en attente de vérification avant comptabilisation définitive.`,
+    `**Contexte fiscal :** Entreprise individuelle / Étudiant-Indépendant en Belgique (Liège), assujetti TVA trimestriel.`,
+    `Codes NACE autorisés : ${INIT42_NACE_CODES.map((n) => n.code).join(", ")}.`,
+    ``,
+    `## Ce que je te demande de vérifier sur chaque ligne :`,
+    `1. Est-ce bien une **facture fiscale valide** (et NON un reçu de carte type « Ceci n'est pas une facture ») ?`,
+    `2. La zone fournisseur & le régime TVA sont-ils exacts : **BE** (TVA belge récupérable), **EU** (Autoliquidation \`[88]\`+\`[55]\`+\`[59]\` : Meta Ads IE, Mollie NL, Google IE), ou **NON_EU** (Autoliquidation \`[87]\`+\`[56]\`+\`[59]\` : Vercel US, Supabase US, Resend US, Infomaniak Suisse CH) ?`,
+    `3. La conversion de devise (USD/CHF → EUR) et le montant HTVA sont-ils cohérents ?`,
+    `4. Le code NACE, le seuil d'investissement (> 1 000 € HTVA → \`[83]\`), le mode de paiement (\`pro_account\` vs \`personal_card\` Revolut) et d'éventuels doublons sont-ils corrects ?`,
+    ``,
+    `> **Format de réponse attendu pour ré-import en 1 clic dans Aegis :**`,
+    `> Donne ton analyse lisible puis termine par un bloc \`\`\`json contenant un tableau d'actions :`,
+    `> \`[{ "draft_id": "...", "action": "approve" | "update" | "reject", "reason": "...", "updates": { "supplier_country": "...", "is_reverse_charge": true, "amount_htva": 0, ... } }]\``,
+    ``,
+    `---`,
+    ``,
+  ]
+
+  for (let i = 0; i < drafts.length; i += 1) {
+    const d = drafts[i]
+    const impact = computeExpenseIntervatImpact({
+      amount_htva: d.amount_htva,
+      vat_paid_be: d.vat_paid_be,
+      vat_deductible_pct: d.vat_deductible_pct,
+      tax_deductible_pct: d.tax_deductible_pct,
+      is_reverse_charge: d.is_reverse_charge,
+      is_investment: d.is_investment,
+      supplier_country: d.supplier_country,
+      category: d.category,
+    })
+    const activeGrids = [
+      impact.grid82 > 0 ? `[82]=${impact.grid82.toFixed(2)}€` : null,
+      impact.grid83 > 0 ? `[83]=${impact.grid83.toFixed(2)}€` : null,
+      impact.grid87 > 0 ? `[87]=${impact.grid87.toFixed(2)}€` : null,
+      impact.grid88 > 0 ? `[88]=${impact.grid88.toFixed(2)}€` : null,
+      impact.grid55 > 0 ? `[55]=+${impact.grid55.toFixed(2)}€` : null,
+      impact.grid56 > 0 ? `[56]=+${impact.grid56.toFixed(2)}€` : null,
+      impact.grid59 > 0 ? `[59]=-${impact.grid59.toFixed(2)}€` : null,
+    ]
+      .filter(Boolean)
+      .join(" | ")
+
+    const rawItems = Array.isArray(d.ai_raw_extraction?.line_items)
+      ? (d.ai_raw_extraction.line_items as Array<Record<string, unknown>>)
+      : []
+
+    lines.push(`### ${i + 1}. ${d.supplier_name} — ${d.amount_htva.toFixed(2)} € HTVA`)
+    lines.push(`- **draft_id :** \`${d.id}\``)
+    lines.push(`- **Fichier / Source :** ${d.document_filename || "Sans fichier"} (\`${d.source}\`)`)
+    lines.push(`- **Date :** ${d.expense_date} · **Réf :** ${d.invoice_ref || "Non détectée"}`)
+    lines.push(
+      `- **Fournisseur :** ${d.supplier_name} · **Pays TVA :** \`${d.supplier_country}\` · **N° TVA :** ${d.supplier_vat_number || "Absent"}`
+    )
+    lines.push(
+      `- **Montant origine :** ${d.original_amount_htva.toFixed(2)} ${d.original_currency} HTVA (TVA orig. ${d.original_vat_amount.toFixed(2)} ${d.original_currency}, TTC ${d.original_amount_ttc.toFixed(2)} ${d.original_currency}) · **Taux :** ${d.exchange_rate} (${d.exchange_rate_source || "1:1"})`
+    )
+    lines.push(
+      `- **Comptabilisation EUR proposée :** HTVA **${d.amount_htva.toFixed(2)} €** · TVA BE payée **${d.vat_paid_be.toFixed(2)} €** · Autoliquidation **${d.is_reverse_charge ? "OUI" : "NON"}** · Investissement **${d.is_investment ? "OUI [83]" : "NON [82]"}**`
+    )
+    lines.push(
+      `- **Grilles Intervat :** ${activeGrids || "Hors TVA"} · **Déduct. TVA :** ${d.vat_deductible_pct}% · **Déduct. IPP :** ${d.tax_deductible_pct}% (${impact.taxDeductibleAmount.toFixed(2)} €) · **NACE :** ${d.nace_code}`
+    )
+    lines.push(
+      `- **Paiement :** \`${d.payment_source}\` · **Facture fiscale valide :** ${d.is_valid_tax_invoice ? "Oui" : "NON"} · **TVA BE1039899980 présente :** ${d.client_vat_present ? "Oui" : "NON"}`
+    )
+    if (d.ai_warnings.length > 0) {
+      lines.push(
+        `- **Alertes détectées :** ${d.ai_warnings.map((w) => `[${w.severity.toUpperCase()} ${w.code}] ${w.message}`).join(" ; ")}`
+      )
+    }
+    if (rawItems.length > 0) {
+      const summaryItems = rawItems
+        .slice(0, 5)
+        .map((it) => `${String(it.description || "Ligne")} (${String(it.amount ?? "")})`)
+        .join(" ; ")
+      lines.push(`- **Lignes lues :** ${summaryItems}`)
+    }
+    lines.push(``)
+  }
+
+  return lines.join("\n")
 }

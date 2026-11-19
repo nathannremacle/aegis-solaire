@@ -9,11 +9,7 @@ import {
   ensureInvoiceForLeadPurchase,
   getUnifiedAccountingData,
 } from "@/lib/accounting/invoice-service"
-import {
-  EXPENSE_PRESETS_MAP,
-  isDateInPeriod,
-  round2,
-} from "@/lib/accounting/belgian-tax-rules"
+import { round2 } from "@/lib/accounting/belgian-tax-rules"
 import { isTestPartnerAccount } from "@/lib/admin/partner-purchases"
 
 export const dynamic = "force-dynamic"
@@ -57,6 +53,12 @@ const createExpenseSchema = z.object({
   is_investment: z.boolean().default(false),
   invoice_ref: z.string().max(120).optional().nullable(),
   notes: z.string().max(500).optional().nullable(),
+  original_currency: z.string().min(3).max(3).default("EUR"),
+  original_amount: z.number().min(0).max(1000000).optional().nullable(),
+  exchange_rate: z.number().positive().max(1000).default(1),
+  payment_source: z
+    .enum(["pro_account", "personal_card", "mollie_balance", "other"])
+    .default("pro_account"),
 })
 
 const actionSchema = z.discriminatedUnion("action", [
@@ -78,13 +80,13 @@ const actionSchema = z.discriminatedUnion("action", [
     action: z.literal("sync_invoices"),
   }),
   z.object({
-    action: z.literal("import_mollie_fees"),
-    year: z.number().int().min(2024).max(2035),
-    quarter: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
-  }),
-  z.object({
     action: z.literal("mark_peppol_sent"),
     invoiceId: z.string().uuid(),
+    peppolStatus: z.enum(["ready_ubl", "sent", "manual_uploaded", "not_applicable"]),
+  }),
+  z.object({
+    action: z.literal("mark_peppol_batch_sent"),
+    invoiceIds: z.array(z.string().uuid()).min(1).max(500),
     peppolStatus: z.enum(["ready_ubl", "sent", "manual_uploaded", "not_applicable"]),
   }),
 ])
@@ -132,6 +134,14 @@ export async function POST(request: NextRequest) {
       is_investment: payload.is_investment,
       invoice_ref: payload.invoice_ref?.trim() || null,
       notes: payload.notes?.trim() || null,
+      original_currency: payload.original_currency.toUpperCase(),
+      original_amount:
+        payload.original_amount !== null && payload.original_amount !== undefined
+          ? round2(payload.original_amount)
+          : round2(payload.amount_htva),
+      exchange_rate: payload.exchange_rate,
+      payment_source: payload.payment_source,
+      source: "manual",
     }
 
     const { data, error } = await supabase
@@ -268,74 +278,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, synced, totalChecked: queue.length })
   }
 
-  if (payload.action === "import_mollie_fees") {
-    const bundle = await getUnifiedAccountingData({
-      year: payload.year,
-      quarter: payload.quarter,
-    })
-    const periodInvoices = bundle.invoices.filter(
-      (inv) =>
-        inv.status !== "cancelled" &&
-        inv.processor_fee_eur > 0 &&
-        isDateInPeriod(inv.issued_at, payload.year, payload.quarter)
-    )
-    const totalFees = round2(
-      periodInvoices.reduce((acc, inv) => acc + Number(inv.processor_fee_eur || 0), 0)
-    )
-
-    if (totalFees <= 0) {
-      return NextResponse.json(
-        { error: "Aucun frais Mollie détecté sur cette période." },
-        { status: 400 }
-      )
-    }
-
-    const preset = EXPENSE_PRESETS_MAP.mollie_bank_fees
-    const feeId = randomUUID()
-    const expenseDate =
-      payload.quarter === 0
-        ? `${payload.year}-12-31`
-        : `${payload.year}-${String(payload.quarter * 3).padStart(2, "0")}-28`
-
-    const row = {
-      id: feeId,
-      expense_date: expenseDate,
-      supplier_name: "Mollie B.V.",
-      supplier_country: "EU",
-      supplier_vat_number: preset.defaultVatNumber,
-      category: preset.id,
-      description: `Commissions Mollie estimées (${periodInvoices.length} transactions · ${bundle.intervat.periodLabel})`,
-      nace_code: preset.naceCode,
-      amount_htva: totalFees,
-      vat_paid_be: 0,
-      vat_deductible_pct: 0,
-      tax_deductible_pct: 100,
-      is_reverse_charge: false,
-      is_investment: false,
-      invoice_ref: `MOLLIE-${payload.year}-Q${payload.quarter}`,
-      notes: "Frais financiers exonérés de TVA (art. 44 Code TVA), 100 % déductibles à l'IPP.",
-    }
-
-    const { data, error } = await supabase
-      .from("accounting_expenses")
-      .insert(row)
-      .select("*")
-      .single()
-
-    if (error) {
-      await supabase.from("audit_log").insert({
-        admin_email: user.email || "admin",
-        action: "accounting_expense_created",
-        entity_type: "accounting_expense",
-        entity_id: feeId,
-        details: row,
-      })
-      return NextResponse.json({ success: true, expense: row, fallback: true })
-    }
-
-    return NextResponse.json({ success: true, expense: data })
-  }
-
   if (payload.action === "mark_peppol_sent") {
     const { error } = await supabase
       .from("invoices")
@@ -346,6 +288,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
     return NextResponse.json({ success: true })
+  }
+
+  if (payload.action === "mark_peppol_batch_sent") {
+    const { error } = await supabase
+      .from("invoices")
+      .update({ peppol_status: payload.peppolStatus })
+      .in("id", payload.invoiceIds)
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    return NextResponse.json({ success: true, updatedCount: payload.invoiceIds.length })
   }
 
   return NextResponse.json({ error: "Action non supportée" }, { status: 400 })

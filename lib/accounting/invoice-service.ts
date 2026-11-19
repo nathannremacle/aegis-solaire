@@ -2,13 +2,18 @@ import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { verifyBelgianCompanyCbe } from "@/lib/lead-verification-engine"
 import {
   computeIntervatDeclaration,
+  getQuarterCalendarSchedule,
   getRoutineTasksForPeriod,
   round2,
+  type AccountingExpenseDraftRecord,
   type AccountingExpenseRecord,
+  type DraftWarning,
   type IntervatSummary,
+  type QuarterScheduleItem,
   type RoutineTask,
   type UnifiedInvoiceRecord,
 } from "@/lib/accounting/belgian-tax-rules"
+import { isPeppolLegalAddressConfigured } from "@/lib/accounting/ubl-peppol-generator"
 import {
   computeLeadPurchaseFinancials,
   isTestPartnerAccount,
@@ -29,23 +34,6 @@ export function formatBelgianVat(raw?: string | null): {
   }
   const vatFormatted = `BE ${padded.slice(0, 4)}.${padded.slice(4, 7)}.${padded.slice(7, 10)}`
   return { bceDigits: padded, vatFormatted }
-}
-
-function estimateMollieFeeEur(paymentMethod?: string | null, amountTtc = 0): number {
-  const m = (paymentMethod || "").toLowerCase()
-  if (!m || m.includes("virement") || m.includes("transfer") || m.includes("bank")) {
-    return 0
-  }
-  if (m.includes("bancontact") || m.includes("payconiq")) {
-    return 0.39
-  }
-  if (m.includes("kbc") || m.includes("belfius") || m.includes("ideal")) {
-    return 0.35
-  }
-  if (m.includes("credit") || m.includes("card") || m.includes("visa") || m.includes("master")) {
-    return round2(0.25 + amountTtc * 0.018)
-  }
-  return 0.39
 }
 
 function extractStreetFromFullAddress(
@@ -336,7 +324,7 @@ export async function ensureInvoiceForCreditOrder(orderId: string): Promise<{
         vat_rate: 21,
         amount_vat: vat,
         amount_ttc: ttc,
-        processor_fee_eur: estimateMollieFeeEur(methodLabel, ttc),
+        processor_fee_eur: 0,
         payment_method: methodLabel,
         payment_reference: order.payment_id || order.transfer_reference,
         status: "paid",
@@ -482,7 +470,7 @@ export async function ensureInvoiceForLeadPurchase(params: {
         vat_rate: 21,
         amount_vat: vat,
         amount_ttc: ttc,
-        processor_fee_eur: estimateMollieFeeEur(methodLabel, ttc),
+        processor_fee_eur: 0,
         payment_method: methodLabel,
         payment_reference: params.paymentId || computed.molliePaymentId || purchase.id,
         status: "paid",
@@ -519,19 +507,29 @@ export interface ClientVatListingRow {
   isAbove250Threshold: boolean
 }
 
+export interface AccountingConfigStatus {
+  aiGatewayReady: boolean
+  mollieOrgTokenReady: boolean
+  resendInboundReady: boolean
+  peppolAddressReady: boolean
+  inboundEmailAddress: string
+}
+
 export interface UnifiedAccountingBundle {
   year: number
   quarter: 0 | 1 | 2 | 3 | 4
   hasDedicatedTables: boolean
   invoices: UnifiedInvoiceRecord[]
   expenses: AccountingExpenseRecord[]
+  pendingDrafts: AccountingExpenseDraftRecord[]
   checklistCompletedIds: string[]
   routineTasks: RoutineTask[]
+  quarterSchedule: QuarterScheduleItem[]
   intervat: IntervatSummary
   clientListing: ClientVatListingRow[]
   mediaCommissionsDueEur: number
-  estimatedMollieFeesForPeriod: number
   missingVatPartnersCount: number
+  configStatus: AccountingConfigStatus
 }
 
 /**
@@ -553,6 +551,7 @@ export async function getUnifiedAccountingData(params?: {
   const [
     invoicesRes,
     expensesRes,
+    draftsRes,
     checklistRes,
     paidOrdersRes,
     purchasesRes,
@@ -566,6 +565,12 @@ export async function getUnifiedAccountingData(params?: {
   ] = await Promise.all([
     supabase.from("invoices").select("*").order("issued_at", { ascending: true }).limit(1000),
     supabase.from("accounting_expenses").select("*").order("expense_date", { ascending: false }).limit(500),
+    supabase
+      .from("accounting_expense_drafts")
+      .select("*")
+      .eq("status", "pending_review")
+      .order("created_at", { ascending: false })
+      .limit(200),
     supabase.from("accounting_checklist_state").select("*"),
     supabase
       .from("credit_orders")
@@ -749,7 +754,7 @@ export async function getUnifiedAccountingData(params?: {
         vat_rate: 21,
         amount_vat: vat,
         amount_ttc: ttc,
-        processor_fee_eur: estimateMollieFeeEur(method, ttc),
+        processor_fee_eur: 0,
         payment_method: method,
         payment_reference: o.payment_id || o.transfer_reference,
         status: "paid",
@@ -801,7 +806,7 @@ export async function getUnifiedAccountingData(params?: {
         vat_rate: 21,
         amount_vat: vat,
         amount_ttc: ttc,
-        processor_fee_eur: estimateMollieFeeEur(method, ttc),
+        processor_fee_eur: 0,
         payment_method: method,
         payment_reference: fin.molliePaymentId || lp.id,
         status: "paid",
@@ -827,6 +832,12 @@ export async function getUnifiedAccountingData(params?: {
       vat_paid_be: Number(e.vat_paid_be || 0),
       vat_deductible_pct: Number(e.vat_deductible_pct ?? 100),
       tax_deductible_pct: Number(e.tax_deductible_pct ?? 100),
+      original_currency: e.original_currency || "EUR",
+      original_amount: e.original_amount !== null && e.original_amount !== undefined ? Number(e.original_amount) : null,
+      exchange_rate: e.exchange_rate !== null && e.exchange_rate !== undefined ? Number(e.exchange_rate) : null,
+      payment_source: e.payment_source || "pro_account",
+      source: e.source || "manual",
+      source_metadata: e.source_metadata || {},
     }))
   } else {
     const expMap = new Map<string, AccountingExpenseRecord>()
@@ -853,6 +864,11 @@ export async function getUnifiedAccountingData(params?: {
           is_investment: Boolean(details.is_investment),
           invoice_ref: details.invoice_ref || null,
           notes: details.notes || null,
+          original_currency: details.original_currency || "EUR",
+          original_amount: details.original_amount ?? null,
+          exchange_rate: details.exchange_rate ?? null,
+          payment_source: details.payment_source || "pro_account",
+          source: details.source || "manual",
           created_at: row.created_at,
         })
       }
@@ -861,6 +877,57 @@ export async function getUnifiedAccountingData(params?: {
       (a, b) => new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime()
     )
   }
+
+  // 5b. Brouillons en attente de validation (Drag & Drop IA, Email Inbound, Mollie)
+  const pendingDrafts: AccountingExpenseDraftRecord[] =
+    !draftsRes.error && draftsRes.data
+      ? draftsRes.data.map((d: any) => ({
+          id: String(d.id),
+          status: d.status || "pending_review",
+          source: d.source || "drag_drop",
+          document_storage_path: d.document_storage_path || null,
+          document_filename: d.document_filename || null,
+          document_mime_type: d.document_mime_type || null,
+          document_sha256: d.document_sha256 || null,
+          document_size_bytes: d.document_size_bytes !== null ? Number(d.document_size_bytes) : null,
+          expense_date: String(d.expense_date || new Date().toISOString().slice(0, 10)),
+          supplier_name: String(d.supplier_name || "Fournisseur à vérifier"),
+          supplier_country: (d.supplier_country || "BE") as "BE" | "EU" | "NON_EU",
+          supplier_vat_number: d.supplier_vat_number || null,
+          category: String(d.category || "saas_cloud_non_eu"),
+          description: String(d.description || ""),
+          nace_code: String(d.nace_code || "62100"),
+          original_currency: String(d.original_currency || "EUR"),
+          original_amount_htva: Number(d.original_amount_htva || 0),
+          original_vat_amount: Number(d.original_vat_amount || 0),
+          original_amount_ttc: Number(d.original_amount_ttc || 0),
+          exchange_rate: Number(d.exchange_rate || 1),
+          exchange_rate_source: d.exchange_rate_source || null,
+          amount_htva: Number(d.amount_htva || 0),
+          vat_paid_be: Number(d.vat_paid_be || 0),
+          vat_deductible_pct: Number(d.vat_deductible_pct ?? 100),
+          tax_deductible_pct: Number(d.tax_deductible_pct ?? 100),
+          is_reverse_charge: Boolean(d.is_reverse_charge),
+          is_investment: Boolean(d.is_investment),
+          invoice_ref: d.invoice_ref || null,
+          payment_source: d.payment_source || "pro_account",
+          is_valid_tax_invoice: d.is_valid_tax_invoice !== false,
+          client_vat_present: d.client_vat_present !== false,
+          ai_confidence: Number(d.ai_confidence ?? 0.9),
+          ai_model: d.ai_model || null,
+          ai_warnings: Array.isArray(d.ai_warnings) ? (d.ai_warnings as DraftWarning[]) : [],
+          ai_raw_extraction:
+            d.ai_raw_extraction && typeof d.ai_raw_extraction === "object"
+              ? d.ai_raw_extraction
+              : {},
+          source_metadata:
+            d.source_metadata && typeof d.source_metadata === "object" ? d.source_metadata : {},
+          notes: d.notes || null,
+          approved_expense_id: d.approved_expense_id || null,
+          created_at: String(d.created_at || new Date().toISOString()),
+          updated_at: String(d.updated_at || new Date().toISOString()),
+        }))
+      : []
 
   // 6. État checklist (table accounting_checklist_state OU repli audit_log)
   const periodKey = `${year}-Q${quarter}`
@@ -932,19 +999,34 @@ export async function getUnifiedAccountingData(params?: {
     (p) => !isTestPartnerAccount(p) && !p.vat_number
   ).length
 
+  const configStatus: AccountingConfigStatus = {
+    aiGatewayReady: Boolean(
+      process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || process.env.VERCEL
+    ),
+    mollieOrgTokenReady: Boolean(process.env.MOLLIE_ORG_ACCESS_TOKEN),
+    resendInboundReady: Boolean(
+      process.env.RESEND_INBOUND_WEBHOOK_SECRET && process.env.RESEND_API_KEY
+    ),
+    peppolAddressReady: isPeppolLegalAddressConfigured(),
+    inboundEmailAddress:
+      process.env.ACCOUNTING_INBOUND_EMAIL || "factures@inbound.aegissolaire.com",
+  }
+
   return {
     year,
     quarter,
     hasDedicatedTables,
     invoices: allInvoices,
     expenses,
+    pendingDrafts,
     checklistCompletedIds: Array.from(completedSet),
     routineTasks: getRoutineTasksForPeriod(year, quarter),
+    quarterSchedule: getQuarterCalendarSchedule(year),
     intervat,
     clientListing,
     mediaCommissionsDueEur: round2(mediaCommissionsDueEur),
-    estimatedMollieFeesForPeriod: intervat.totalProcessorFees,
     missingVatPartnersCount,
+    configStatus,
   }
 }
 
