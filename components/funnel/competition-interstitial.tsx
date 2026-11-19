@@ -61,10 +61,10 @@ export function CompetitionInterstitial({
       setStep2Done(true)
     }, 1750)
 
-    // Délai de confort élargi (15s) au cas où l'utilisateur ne clique pas de lui-même
+    // Auto-avance rapide après 2,45 s de lecture confortable du -18 % (animation terminée à 1750 ms)
     const t5 = setTimeout(() => {
       onComplete()
-    }, 15000)
+    }, 4200)
 
     return () => {
       clearTimeout(t1)

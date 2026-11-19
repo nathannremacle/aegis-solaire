@@ -241,3 +241,50 @@ test('B2B solar calculation engine sizes realistically on daytime load without 1
   assert.equal(fin.normalizedSurfaceAreaM2, 280)
   assert.equal(fin.estimatedPowerKwc, b2b.installedPowerKwc)
 })
+
+test('Meta lead tracking filter blocks internal tests, duplicates, low score and B2C VoIP while allowing valid Walloon owners', () => {
+  const filter = load('lib/meta-lead-filter.ts', {}, {
+    ADMIN_EMAILS: 'contact@aegissolaire.com, ops@aegissolaire.com',
+  })
+
+  // Tests internes / emails admin / numéros fictifs bloqués
+  assert.equal(filter.isInternalOrTestLead({ email: 'mrnathanrem@gmail.com' }), true)
+  assert.equal(filter.isInternalOrTestLead({ email: 'contact@aegissolaire.com' }), true)
+  assert.equal(filter.isInternalOrTestLead({ email: 'dev+qa@domaine.be' }), true)
+  assert.equal(filter.isInternalOrTestLead({ email: 'client@init42.be' }), true)
+  assert.equal(filter.isInternalOrTestLead({ email: 'marc@skynet.be', phone: '+32 470 10 20 30' }), true)
+  assert.equal(filter.isInternalOrTestLead({ email: 'marc@skynet.be', phone: '0470 12 34 56' }), true)
+  assert.equal(filter.isInternalOrTestLead({ email: 'jean.dupont@proximus.be', phone: '+32478556677' }), false)
+
+  // Règles shouldTrackMetaLeadConversion
+  const validOwner = {
+    email: 'jean.dupont@proximus.be',
+    phone: '+32478556677',
+    segment: 'B2C',
+    ownershipStatus: 'owner',
+    isResubmitSameFinalizedSession: false,
+    hasDuplicateEmail: false,
+    hasDuplicatePhone: false,
+    finalScore: 82,
+    lineType: 'mobile',
+  }
+  assert.equal(filter.shouldTrackMetaLeadConversion(validOwner), true)
+  assert.equal(filter.shouldTrackMetaLeadConversion({ ...validOwner, email: 'mrnathanrem@gmail.com' }), false)
+  assert.equal(filter.shouldTrackMetaLeadConversion({ ...validOwner, phone: '+32470102030' }), false)
+  assert.equal(filter.shouldTrackMetaLeadConversion({ ...validOwner, hasDuplicateEmail: true }), false)
+  assert.equal(filter.shouldTrackMetaLeadConversion({ ...validOwner, hasDuplicatePhone: true }), false)
+  assert.equal(filter.shouldTrackMetaLeadConversion({ ...validOwner, isResubmitSameFinalizedSession: true }), false)
+  assert.equal(filter.shouldTrackMetaLeadConversion({ ...validOwner, ownershipStatus: 'tenant_unauthorized' }), false)
+  assert.equal(filter.shouldTrackMetaLeadConversion({ ...validOwner, finalScore: 35 }), false)
+  assert.equal(filter.shouldTrackMetaLeadConversion({ ...validOwner, lineType: 'voip' }), false)
+  assert.equal(filter.shouldTrackMetaLeadConversion({ ...validOwner, lineType: 'nonFixedVoip' }), false)
+  assert.equal(
+    filter.shouldTrackMetaLeadConversion({
+      ...validOwner,
+      segment: 'B2B',
+      ownershipStatus: null,
+      lineType: 'voip',
+    }),
+    true
+  )
+})

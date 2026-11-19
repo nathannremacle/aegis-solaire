@@ -13,6 +13,7 @@ import { checkRateLimit } from "@/lib/rate-limit"
 import { sendProspectConfirmationEmail } from "@/lib/prospect-confirmation-email"
 import { sendAdminNewLeadAlertEmail } from "@/lib/notify-admin-lead"
 import { sendMetaConversionApiLead } from "@/lib/meta-capi"
+import { shouldTrackMetaLeadConversion } from "@/lib/meta-lead-filter"
 import { enrichLeadVerifications } from "@/lib/lead-verification-engine"
 import { getBelgiumProvinceKeyFromPostalCode } from "@/lib/belgium-regions"
 import {
@@ -785,9 +786,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Déclenchement serveur Meta Conversions API (CAPI) pour tracking sans perte
-    // Seuls les propriétaires confirmés (ou prospects B2B) nourrissent l'IA Meta pour ne pas fausser le ciblage
-    const isMetaLeadEligible =
-      !isResubmitSameFinalizedSession && (data.segment === "B2B" || safeOwnership === "owner")
+    // Seuls les propriétaires confirmés (ou prospects B2B) valides et non internes nourrissent l'IA Meta
+    const isMetaLeadEligible = shouldTrackMetaLeadConversion({
+      email,
+      phone,
+      segment: data.segment,
+      ownershipStatus: safeOwnership,
+      isResubmitSameFinalizedSession,
+      hasDuplicateEmail: duplicateCheck.hasDuplicateEmail,
+      hasDuplicatePhone: duplicateCheck.hasDuplicatePhone,
+      finalScore,
+      lineType: verifiedPhoneProof?.lineType ?? lookupFallback?.lineType ?? null,
+    })
     if (isMetaLeadEligible) {
       const qualificationMeta = (data.qualificationMetadata || {}) as Record<string, unknown>
       const rawFbclid =
@@ -827,6 +837,7 @@ export async function POST(request: NextRequest) {
       message: "Lead enregistré avec succès",
       leadId: inserted.id,
       alreadyTracked: isResubmitSameFinalizedSession,
+      shouldTrackLead: isMetaLeadEligible,
     })
   } catch (error) {
     console.error("API error:", error)

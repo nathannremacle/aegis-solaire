@@ -219,6 +219,10 @@ async function runMetaAudit() {
     console.log(`     Depense: ${fmtEur(0)} | Impr: 0 (En validation ou demarrage recent)\n`)
   }
 
+  const metaV2AdsSpend = (insightsAd?.data || [])
+    .filter((row) => /^V2/i.test(String(row.ad_name || "")))
+    .reduce((acc, row) => acc + Number(row.spend || 0), 0)
+
   const globalLinkCtr = totalImpr > 0 ? (totalLinkClicks / totalImpr) * 100 : 0
   const globalLinkCpc = totalLinkClicks > 0 ? totalSpend / totalLinkClicks : 0
   const globalLpvRate = totalLinkClicks > 0 ? (totalLpv / totalLinkClicks) * 100 : 0
@@ -249,9 +253,11 @@ async function runMetaAudit() {
     )
   }
   console.log("")
+
+  return { metaV2AdsSpend }
 }
 
-async function runSupabaseAudit() {
+async function runSupabaseAudit(metaSummary = null) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
     console.log("[WARN] Identifiants Supabase manquants : audit DB ignore.")
     return
@@ -386,16 +392,31 @@ async function runSupabaseAudit() {
   const totalCreditsSpentLanding = landingPurchases.reduce((acc, p) => acc + Number(p.credits_spent || 0), 0)
   const totalCreditsAll = purchases.reduce((acc, p) => acc + Number(p.credits_spent || 0), 0)
 
+  const isInternalLead = (l) => /test|example|demo|aegissolaire|mrnathanrem|init42/i.test(`${l.email} ${l.first_name} ${l.last_name}`)
+  const v2RealWalloonLeads = submitted.filter(
+    (l) => !isInternalLead(l) && isWalloonCp(l.postal_code) && String(l.created_at || "") >= "2026-11-13T00:00:00"
+  )
+  const v2MetaAttributedLeads = v2RealWalloonLeads.filter((l) =>
+    ["meta", "facebook", "fb", "ig"].includes(String(l.qualification_metadata?.utm_source || "").toLowerCase()) ||
+    Boolean(l.qualification_metadata?.fbclid)
+  )
+  const v2Spend = metaSummary?.metaV2AdsSpend ?? 0
+  const v2CplAllReal = v2RealWalloonLeads.length > 0 ? v2Spend / v2RealWalloonLeads.length : 0
+  const v2CplMeta = v2MetaAttributedLeads.length > 0 ? v2Spend / v2MetaAttributedLeads.length : 0
+
   console.log(`   - Leads finaux (b2c_devis_landing) : ${submitted.length} (Brouillons email-only : ${drafts.length})`)
   console.log(`   - Leads hors-Wallonie detectes : ${nonWalloon.length}${nonWalloon.length > 0 ? ` [${nonWalloon.map((l) => `${l.postal_code} (${l.email})`).join(", ")}]` : ""}`)
   for (const l of submitted) {
-    const isTest = /test|example|demo|aegissolaire/i.test(`${l.email} ${l.first_name} ${l.last_name}`)
+    const isTest = isInternalLead(l)
     const leadPurchaseCount = landingPurchases.filter((p) => p.lead_id === l.id).length
     console.log(
       `     * ${l.created_at?.slice(0, 10)} | CP ${l.postal_code || "N/A"} (${l.province || "N/A"}) | owner=${l.ownership_status || "N/A"} | utm=${l.qualification_metadata?.utm_source || "direct"}/${l.qualification_metadata?.utm_content || "-"} | achats=${leadPurchaseCount}${isTest ? " [TEST/INTERNE]" : ""}`
     )
   }
 
+  console.log(
+    `   - RECAP PACK V2/V2.5 (depuis 13/11) : Depense V2+ = ${fmtEur(v2Spend)} | Leads reels wallons = ${v2RealWalloonLeads.length} (dont ${v2MetaAttributedLeads.length} attribues Meta/fbclid) | CPL reel V2 = ${v2RealWalloonLeads.length > 0 ? fmtEur(v2CplAllReal) : "N/A"}${v2MetaAttributedLeads.length > 0 && v2MetaAttributedLeads.length !== v2RealWalloonLeads.length ? ` (CPL UTM/fbclid = ${fmtEur(v2CplMeta)})` : ""}`
+  )
   console.log(
     `   - Achats installateurs sur leads Meta/Landing : ${landingPurchases.length} (${totalCreditsSpentLanding} credits) | Total achats plateforme : ${purchases.length} (${totalCreditsAll} credits)`
   )
@@ -409,8 +430,8 @@ async function runSupabaseAudit() {
 }
 
 async function main() {
-  await runMetaAudit()
-  await runSupabaseAudit()
+  const metaSummary = await runMetaAudit()
+  await runSupabaseAudit(metaSummary)
 }
 
 main().catch((err) => {

@@ -26,6 +26,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   detectCityPostalContradiction,
+  extractBelgianStreetAndNumber,
   getEmailError,
   getPersonNameError,
   formatAndValidateBelgianPhone,
@@ -74,9 +75,16 @@ const CONSUMPTION_OPTIONS = [
 
 // Continuité du message annonce → landing (message match) selon l'utm_content Meta
 const AD_HOOK_LINES: Record<string, string> = {
-  V2_AD1_ECART_1850_GPT: "Jusqu'à 1 850 € d'écart entre deux devis pour une installation équivalente.",
-  V2_AD2_RENTABILITE_2026_GPT: "Ce que le solaire rapporte vraiment en 2026, chiffré par des installateurs locaux.",
-  V2_AD3_ANTI_DEMARCHAGE_GPT: "Sans démarchage : vous êtes contacté par écrit d'abord, et restez libre de tout refuser.",
+  V2_AD1_ECART_1850_GPT:
+    "Jusqu'à 1 850 € d'écart à matériel équivalent : mettez 3 installateurs RESCERT en concurrence en 45 s.",
+  V2_AD2_RENTABILITE_2026_GPT:
+    "Estimez votre économie annuelle 2026 en 45 s et mettez jusqu'à 3 installateurs RESCERT en concurrence — 100 % gratuit, sans engagement.",
+  V2_AD3_ANTI_DEMARCHAGE_GPT:
+    "Sans démarchage : vous êtes contacté par écrit d'abord, et restez libre de tout refuser.",
+  V25_ALLIE_CONCURRENCE_4X5:
+    "Aegis Solaire est de votre côté : jusqu'à 3 installateurs RESCERT mis en concurrence sur votre toiture pour -18 % en moyenne, sans compromis qualité.",
+  V25_FACTURE_2026_4X5:
+    "Payez le juste prix pour vos panneaux solaires : 3 artisans RESCERT comparés sur un cahier des charges Tier-1 strict, gratuitement en 45 s.",
   ASTUCE_PROPRIETAIRE:
     "L'astuce entre propriétaires : en mettant jusqu'à 3 installateurs RESCERT en concurrence sur un cahier des charges Tier-1 identique, ils réduisent leur marge dès le 1er devis (-18 % en moyenne, jusqu'à 1 850 € d'écart).",
 }
@@ -680,7 +688,11 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
       }
 
       const resData = await res.json().catch(() => ({}))
-      if (ownership === "proprietaire" && !resData?.alreadyTracked) {
+      if (
+        ownership === "proprietaire" &&
+        !resData?.alreadyTracked &&
+        resData?.shouldTrackLead !== false
+      ) {
         trackLeadConversion({
           segment: "B2C",
           leadId: resData?.leadId,
@@ -716,6 +728,33 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
       !phoneValidation.isValid ||
       !partnerConsent
     ) {
+      let firstErrorId: string | null = null
+      if (!isFullNameValid) {
+        firstErrorId = "fullName"
+      } else if (emailErr) {
+        firstErrorId = "email"
+      } else if (!isPostalCodeValid) {
+        firstErrorId = "postalCode"
+      } else if (!isAddressValid) {
+        const parsedAddr = extractBelgianStreetAndNumber(address)
+        firstErrorId =
+          parsedAddr.street.trim().length < 3 || geoContradictionErr
+            ? "address"
+            : !hasBelgianHouseNumber(address)
+              ? "address-number"
+              : "address"
+      } else if (!phoneValidation.isValid) {
+        firstErrorId = "phone"
+      } else if (!partnerConsent) {
+        firstErrorId = "partnerConsent"
+      }
+      if (firstErrorId && typeof document !== "undefined") {
+        const targetEl = document.getElementById(firstErrorId)
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: "smooth", block: "center" })
+          targetEl.focus({ preventScroll: true })
+        }
+      }
       return
     }
 
@@ -937,6 +976,9 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
                           transition={{ duration: 0.18 }}
                           className="flex flex-col gap-2.5 border-none p-0 m-0"
                         >
+                          <p className="text-[12px] text-[var(--aegis-muted)] font-medium">
+                            Touchez votre type de bâtiment pour démarrer · <span className="font-mono tabular-nums">45 s</span> · gratuit
+                          </p>
                           {PROPERTY_TYPES.map((item) => {
                             const isChecked = propertyType === item.id
                             return (
@@ -954,10 +996,12 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
                                   <span className="text-[15px] sm:text-[16px] font-bold text-[var(--aegis-ink)]">{item.label}</span>
                                   <span className="text-[13px] text-[var(--aegis-muted)] mt-0.5 font-normal">{item.sublabel}</span>
                                 </div>
-                                {isChecked && (
+                                {isChecked ? (
                                   <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent-solar text-accent-solar-foreground shrink-0">
                                     <Check className="h-3.5 w-3.5 stroke-[3]" />
                                   </span>
+                                ) : (
+                                  <ArrowRight className="h-4 w-4 text-[var(--aegis-muted)] shrink-0" />
                                 )}
                               </button>
                             )
@@ -1000,10 +1044,12 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
                                     {item.sublabel}
                                     <span className="hidden sm:inline"> · {item.kwhHint}</span>
                                   </span>
-                                  {isChecked && (
+                                  {isChecked ? (
                                     <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent-solar text-accent-solar-foreground shrink-0">
                                       <Check className="h-3.5 w-3.5 stroke-[3]" />
                                     </span>
+                                  ) : (
+                                    <ArrowRight className="h-4 w-4 text-[var(--aegis-muted)] shrink-0" />
                                   )}
                                 </span>
                               </button>
@@ -1049,7 +1095,7 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
                                   </span>
                                   <span className="text-[13px] text-[var(--aegis-muted)] mt-0.5 font-normal">{item.sublabel}</span>
                                 </div>
-                                {isChecked && (
+                                {isChecked ? (
                                   item.id === "locataire" ? (
                                     <Check className="h-4 w-4 stroke-[2.75] shrink-0 text-[var(--aegis-danger-text)]" />
                                   ) : (
@@ -1057,6 +1103,8 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
                                       <Check className="h-3.5 w-3.5 stroke-[3]" />
                                     </span>
                                   )
+                                ) : (
+                                  <ArrowRight className="h-4 w-4 text-[var(--aegis-muted)] shrink-0" />
                                 )}
                               </button>
                             )
@@ -1308,24 +1356,32 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
                             />
                           ) : (
                             <>
-                          {/* ── RAPPEL VISUEL COMPACT : Mise en concurrence (-18 %) ── */}
-                          <div className="bg-[var(--aegis-summary)] border border-[var(--aegis-preference-accent)]/50 rounded-[8px] px-3 py-2.5 text-[var(--aegis-ink)] flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 text-[12px] sm:text-[13px] font-bold text-[var(--aegis-ink)]">
-                              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-accent-solar text-accent-solar-foreground shrink-0">
-                                <Check className="h-3 w-3 stroke-[3]" />
-                              </span>
-                              <span>
-                                <span className="font-mono tabular-nums">3</span> installateurs RESCert sélectionnés ({postalCode}{city ? ` ${city}` : ""})
-                              </span>
+                          {/* ── RAPPEL VISUEL COMPACT : Estimation personnalisée & Mise en concurrence (-18 %) ── */}
+                          <div className="bg-[var(--aegis-summary)] border border-[var(--aegis-preference-accent)]/50 rounded-[8px] px-3 py-2.5 text-[var(--aegis-ink)] flex flex-col gap-2">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 text-[12px] sm:text-[13px] font-bold text-[var(--aegis-ink)]">
+                                <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-accent-solar text-accent-solar-foreground shrink-0">
+                                  <Check className="h-3 w-3 stroke-[3]" />
+                                </span>
+                                <span>
+                                  <span className="font-mono tabular-nums">3</span> installateurs RESCert sélectionnés ({postalCode}{city ? ` ${city}` : ""})
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                                <span className="px-2 py-0.5 rounded-[5px] bg-[var(--aegis-availability-bg)] border border-[var(--aegis-border)] text-[11px] font-mono tabular-nums text-[var(--aegis-availability-text)] font-bold">
+                                  ~{Math.round(b2cCalc.annualSavings).toLocaleString("fr-BE")} € / an
+                                </span>
+                                <span className="px-2 py-0.5 rounded-[5px] bg-[var(--aegis-preference-bg)] border border-[var(--aegis-preference-accent)]/40 text-[11px] font-mono tabular-nums text-[var(--aegis-preference-label)] font-bold">
+                                  env. {b2cCalc.installedPowerKwc} kWc
+                                </span>
+                                <span className="px-2 py-0.5 rounded-[5px] bg-accent-solar text-accent-solar-foreground text-[11px] font-mono tabular-nums font-bold">
+                                  -18 % en concurrence
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <span className="px-2 py-0.5 rounded-[5px] bg-[var(--aegis-preference-bg)] border border-[var(--aegis-preference-accent)]/40 text-[11px] font-mono tabular-nums text-[var(--aegis-preference-label)] font-bold">
-                                env. {b2cCalc.installedPowerKwc} kWc
-                              </span>
-                              <span className="px-2 py-0.5 rounded-[5px] bg-accent-solar text-accent-solar-foreground text-[11px] font-mono tabular-nums font-bold">
-                                -18 % en concurrence
-                              </span>
-                            </div>
+                            <p className="text-[11px] text-[var(--aegis-muted)] leading-[1.4]">
+                              Aegis Solaire met ces <span className="font-mono tabular-nums font-semibold text-[var(--aegis-ink)]">3</span> artisans en concurrence pour faire baisser votre devis — zéro compromis qualité, zéro appel non sollicité.
+                            </p>
                           </div>
 
                           {/* ── Rangée 1 : Prénom/Nom + Adresse E-mail ── */}
@@ -1389,7 +1445,85 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
                             </div>
                           </div>
 
-                          {/* ── Rangée 2 : Sélecteur de règle de contact (compact 2 cols dès mobile) ── */}
+                          {/* ── Rangée 2 : Adresse du bien + Numéro de GSM ── */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                            {/* Champ 3 : Adresse structurée (Rue + Numéro SPW ICAR) */}
+                            <div className="flex flex-col gap-1.5">
+                              <Label htmlFor="address" className="text-[13px] font-semibold text-[var(--aegis-ink)]">
+                                Adresse du bien (rue et n°) <span className="text-[var(--aegis-danger-text)]">*</span>
+                              </Label>
+                              <BelgianStreetNumberFields
+                                streetId="address"
+                                houseId="address-number"
+                                value={address}
+                                onChange={setAddress}
+                                postalCode={cleanedPostalCode}
+                                city={city}
+                                onSuggestionSelect={(s) => {
+                                  if (
+                                    s.section &&
+                                    (!city.trim() ||
+                                      city.trim().toLowerCase() === s.city.toLowerCase())
+                                  ) {
+                                    setCity(s.section)
+                                  }
+                                }}
+                                showError={showAddressError}
+                                required
+                                requireHouseNumber
+                                inputHeightClass="h-[46px]"
+                                editorial
+                              />
+                              {showAddressError && geoContradictionErr ? (
+                                <p className="text-[12px] text-[var(--aegis-danger-text)] font-medium" role="alert">
+                                  {geoContradictionErr}
+                                </p>
+                              ) : !showAddressError ? (
+                                <span className="text-[12px] text-[var(--aegis-muted)]">
+                                  Nécessaire pour situer votre toiture (étude satellite).
+                                </span>
+                              ) : null}
+                            </div>
+
+                            {/* Champ 4 : GSM belge */}
+                            <div className="flex flex-col gap-1.5">
+                              <Label htmlFor="phone" className="text-[13px] font-semibold text-[var(--aegis-ink)]">
+                                Numéro de GSM <span className="text-[var(--aegis-danger-text)]">*</span>
+                              </Label>
+                              <Input
+                                id="phone"
+                                type="tel"
+                                inputMode="tel"
+                                name="tel"
+                                autoComplete="tel"
+                                placeholder="0470 12 34 56"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                onFocus={(e) =>
+                                  setTimeout(
+                                    () => e.target.scrollIntoView({ behavior: "smooth", block: "center" }),
+                                    300
+                                  )
+                                }
+                                className={`h-[46px] rounded-[6px] font-mono tabular-nums text-[14px] bg-[var(--aegis-surface)] text-[var(--aegis-ink)] placeholder:text-[var(--aegis-muted)]/85 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] focus-visible:ring-0 ${
+                                  showPhoneError
+                                    ? "border-[var(--aegis-danger-text)] bg-[var(--aegis-danger-bg)]/40 focus-visible:border-[var(--aegis-danger-text)]"
+                                    : "border-[var(--aegis-input-border)] focus-visible:border-[var(--aegis-ink)]"
+                                }`}
+                              />
+                              {showPhoneError ? (
+                                <p className="text-[12px] text-[var(--aegis-danger-text)] font-medium" role="alert">
+                                  {phoneErr || "Numéro belge requis (format 04XX XX XX XX)."}
+                                </p>
+                              ) : (
+                                <span className="text-[12px] text-[var(--aegis-muted)]">
+                                  Pour certifier l&apos;appel d&apos;offres et vous notifier par SMS.
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* ── Rangée 3 : Sélecteur de règle de contact directement sous le GSM ── */}
                           <div className="flex flex-col gap-1.5 pt-0.5">
                             <Label className="text-[13px] font-semibold text-[var(--aegis-ink)] flex items-center gap-1.5">
                               <ShieldCheck className="h-4 w-4 text-[var(--aegis-focus)] shrink-0" />
@@ -1477,84 +1611,6 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
                             </div>
                           </div>
 
-                          {/* ── Rangée 3 : Numéro de GSM + Adresse postale ── */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                            {/* Champ 4 : GSM belge */}
-                            <div className="flex flex-col gap-1.5">
-                              <Label htmlFor="phone" className="text-[13px] font-semibold text-[var(--aegis-ink)]">
-                                Numéro de GSM <span className="text-[var(--aegis-danger-text)]">*</span>
-                              </Label>
-                              <Input
-                                id="phone"
-                                type="tel"
-                                inputMode="tel"
-                                name="tel"
-                                autoComplete="tel"
-                                placeholder="0470 12 34 56"
-                                value={phone}
-                                onChange={(e) => setPhone(e.target.value)}
-                                onFocus={(e) =>
-                                  setTimeout(
-                                    () => e.target.scrollIntoView({ behavior: "smooth", block: "center" }),
-                                    300
-                                  )
-                                }
-                                className={`h-[46px] rounded-[6px] font-mono tabular-nums text-[14px] bg-[var(--aegis-surface)] text-[var(--aegis-ink)] placeholder:text-[var(--aegis-muted)]/85 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px] focus-visible:ring-0 ${
-                                  showPhoneError
-                                    ? "border-[var(--aegis-danger-text)] bg-[var(--aegis-danger-bg)]/40 focus-visible:border-[var(--aegis-danger-text)]"
-                                    : "border-[var(--aegis-input-border)] focus-visible:border-[var(--aegis-ink)]"
-                                }`}
-                              />
-                              {showPhoneError ? (
-                                <p className="text-[12px] text-[var(--aegis-danger-text)] font-medium" role="alert">
-                                  {phoneErr || "Numéro belge requis (format 04XX XX XX XX)."}
-                                </p>
-                              ) : (
-                                <span className="text-[12px] text-[var(--aegis-muted)]">
-                                  Pour certifier l&apos;appel d&apos;offres et vous notifier par SMS.
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Champ 5 : Adresse structurée (Rue + Numéro SPW ICAR) */}
-                            <div className="flex flex-col gap-1.5">
-                              <Label htmlFor="address" className="text-[13px] font-semibold text-[var(--aegis-ink)]">
-                                Adresse du bien (rue et n°) <span className="text-[var(--aegis-danger-text)]">*</span>
-                              </Label>
-                              <BelgianStreetNumberFields
-                                streetId="address"
-                                houseId="address-number"
-                                value={address}
-                                onChange={setAddress}
-                                postalCode={cleanedPostalCode}
-                                city={city}
-                                onSuggestionSelect={(s) => {
-                                  if (
-                                    s.section &&
-                                    (!city.trim() ||
-                                      city.trim().toLowerCase() === s.city.toLowerCase())
-                                  ) {
-                                    setCity(s.section)
-                                  }
-                                }}
-                                showError={showAddressError}
-                                required
-                                requireHouseNumber
-                                inputHeightClass="h-[46px]"
-                                editorial
-                              />
-                              {showAddressError && geoContradictionErr ? (
-                                <p className="text-[12px] text-[var(--aegis-danger-text)] font-medium" role="alert">
-                                  {geoContradictionErr}
-                                </p>
-                              ) : !showAddressError ? (
-                                <span className="text-[12px] text-[var(--aegis-muted)]">
-                                  Nécessaire pour situer votre toiture (étude satellite).
-                                </span>
-                              ) : null}
-                            </div>
-                          </div>
-
                           {/* Consentement RGPD conforme APD & modale réseau */}
                           <div className="flex flex-col gap-1.5 pt-2.5 border-t border-[var(--aegis-divider)]">
                             <label className="flex items-start gap-2.5 cursor-pointer">
@@ -1618,51 +1674,53 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
 
                     {/* ── BARRE DE NAVIGATION INFÉRIEURE ── */}
                     <div className="pt-4 border-t border-[var(--aegis-divider)] flex flex-col gap-3 mt-1">
-                      <div className="flex items-center justify-between gap-3">
-                        {step > 1 ? (
-                          <button
-                            type="button"
-                            onClick={handleBack}
-                            disabled={isSubmitting}
-                            className="h-[46px] px-5 rounded-[6px] border border-[var(--aegis-border)] bg-[var(--aegis-surface)] hover:bg-[var(--aegis-surface-subtle)] text-[var(--aegis-ink)] font-semibold text-[14px] transition-colors duration-150 cursor-pointer flex items-center justify-center gap-2 shrink-0 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
-                          >
-                            <ArrowLeft className="h-4 w-4" />
-                            <span>Retour</span>
-                          </button>
-                        ) : (
-                          <div />
-                        )}
+                      {!(step === 1 && !propertyType) && (
+                        <div className="flex items-center justify-between gap-3">
+                          {step > 1 ? (
+                            <button
+                              type="button"
+                              onClick={handleBack}
+                              disabled={isSubmitting}
+                              className="h-[46px] px-5 rounded-[6px] border border-[var(--aegis-border)] bg-[var(--aegis-surface)] hover:bg-[var(--aegis-surface-subtle)] text-[var(--aegis-ink)] font-semibold text-[14px] transition-colors duration-150 cursor-pointer flex items-center justify-center gap-2 shrink-0 focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
+                            >
+                              <ArrowLeft className="h-4 w-4" />
+                              <span>Retour</span>
+                            </button>
+                          ) : (
+                            <div />
+                          )}
 
-                        {step < totalSteps ? (
-                          <button
-                            type="button"
-                            onClick={handleNext}
-                            disabled={!isStepValid()}
-                            className="h-[46px] px-7 sm:px-8 rounded-[6px] bg-accent-solar hover:bg-accent-solar/90 text-accent-solar-foreground border border-[var(--aegis-preference-accent)] font-bold text-[15px] transition-colors duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:bg-[var(--aegis-surface-subtle)] disabled:text-[var(--aegis-muted)] disabled:border-[var(--aegis-border)] disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
-                          >
-                            <span>Suivant</span>
-                            <ArrowRight className="h-4 w-4" />
-                          </button>
-                        ) : !phoneOtp.challenge.active ? (
-                          <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="h-[48px] flex-1 px-5 rounded-[6px] bg-accent-solar hover:bg-accent-solar/90 disabled:opacity-65 text-accent-solar-foreground border border-[var(--aegis-preference-accent)] font-bold text-[15px] transition-colors duration-150 flex items-center justify-center gap-2 cursor-pointer text-center focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
-                          >
-                            {isSubmitting ? (
-                              <>
-                                <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-                                <span>Envoi de votre demande…</span>
-                              </>
-                            ) : (
-                              <>
-                                <span>Obtenir mes 3 devis comparatifs</span>
-                                <ArrowRight className="h-4 w-4 shrink-0" />
-                              </>
-                            )}
-                          </button>
-                        ) : null}
-                      </div>
+                          {step < totalSteps ? (
+                            <button
+                              type="button"
+                              onClick={handleNext}
+                              disabled={!isStepValid()}
+                              className="h-[46px] px-7 sm:px-8 rounded-[6px] bg-accent-solar hover:bg-accent-solar/90 text-accent-solar-foreground border border-[var(--aegis-preference-accent)] font-bold text-[15px] transition-colors duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:bg-[var(--aegis-surface-subtle)] disabled:text-[var(--aegis-muted)] disabled:border-[var(--aegis-border)] disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
+                            >
+                              <span>Suivant</span>
+                              <ArrowRight className="h-4 w-4" />
+                            </button>
+                          ) : !phoneOtp.challenge.active ? (
+                            <button
+                              type="submit"
+                              disabled={isSubmitting}
+                              className="h-[48px] flex-1 px-5 rounded-[6px] bg-accent-solar hover:bg-accent-solar/90 disabled:opacity-65 text-accent-solar-foreground border border-[var(--aegis-preference-accent)] font-bold text-[15px] transition-colors duration-150 flex items-center justify-center gap-2 cursor-pointer text-center focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
+                            >
+                              {isSubmitting ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                                  <span>Envoi de votre demande…</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span>Activer ma mise en concurrence gratuite</span>
+                                  <ArrowRight className="h-4 w-4 shrink-0" />
+                                </>
+                              )}
+                            </button>
+                          ) : null}
+                        </div>
+                      )}
 
                       {/* Mention de réassurance sous les boutons */}
                       {step === totalSteps ? (

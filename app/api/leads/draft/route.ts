@@ -8,6 +8,7 @@ import {
 } from "@/lib/leads-validation"
 import { verifyEmailDomainMx } from "@/lib/lead-verification-engine"
 import { sendMetaConversionApiEvent } from "@/lib/meta-capi"
+import { isInternalOrTestLead } from "@/lib/meta-lead-filter"
 
 export async function POST(request: NextRequest) {
   try {
@@ -165,43 +166,45 @@ export async function POST(request: NextRequest) {
       utm_term: utmTerm || null,
     })
 
-    // 5. Transmission micro-conversion CAPI Meta (Événement 'Contact' enrichi avec await borné)
-    try {
-      const clientIp =
-        request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-        request.headers.get("x-real-ip")?.trim() ||
-        undefined
-      const userAgent = request.headers.get("user-agent") || undefined
-      const fbp = request.cookies.get("_fbp")?.value
-      const fbc = request.cookies.get("_fbc")?.value
-      const resolvedEventId =
-        typeof eventId === "string" && eventId.trim() !== ""
-          ? eventId.trim()
-          : `event_contact_${sessionId}`
-      const resolvedSourceUrl =
-        (typeof sourceUrl === "string" && sourceUrl.startsWith("http") ? sourceUrl : undefined) ||
-        request.headers.get("referer") ||
-        "https://www.aegissolaire.com/devis-panneaux-solaires"
+    // 5. Transmission micro-conversion CAPI Meta (Événement 'Contact' enrichi avec await borné, hors tests internes)
+    if (!isInternalOrTestLead({ email: cleanEmail })) {
+      try {
+        const clientIp =
+          request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+          request.headers.get("x-real-ip")?.trim() ||
+          undefined
+        const userAgent = request.headers.get("user-agent") || undefined
+        const fbp = request.cookies.get("_fbp")?.value
+        const fbc = request.cookies.get("_fbc")?.value
+        const resolvedEventId =
+          typeof eventId === "string" && eventId.trim() !== ""
+            ? eventId.trim()
+            : `event_contact_${sessionId}`
+        const resolvedSourceUrl =
+          (typeof sourceUrl === "string" && sourceUrl.startsWith("http") ? sourceUrl : undefined) ||
+          request.headers.get("referer") ||
+          "https://www.aegissolaire.com/devis-panneaux-solaires"
 
-      await sendMetaConversionApiEvent({
-        eventName: "Contact",
-        eventId: resolvedEventId,
-        email: cleanEmail,
-        firstName: firstName !== "Prospect" ? firstName : undefined,
-        lastName: lastName !== "Incomplet" ? lastName : undefined,
-        postalCode: safePostalCode || undefined,
-        clientIp,
-        userAgent,
-        fbp,
-        fbc,
-        fbclid: typeof fbclid === "string" && fbclid.trim() !== "" ? fbclid.trim() : undefined,
-        sourceUrl: resolvedSourceUrl,
-        segment: "B2C",
-        value: 20,
-        contentName: "Audit Solaire - Contact E-mail Saisi",
-      })
-    } catch (capiErr) {
-      console.warn("[Meta CAPI Contact Draft] Warning:", capiErr)
+        await sendMetaConversionApiEvent({
+          eventName: "Contact",
+          eventId: resolvedEventId,
+          email: cleanEmail,
+          firstName: firstName !== "Prospect" ? firstName : undefined,
+          lastName: lastName !== "Incomplet" ? lastName : undefined,
+          postalCode: safePostalCode || undefined,
+          clientIp,
+          userAgent,
+          fbp,
+          fbc,
+          fbclid: typeof fbclid === "string" && fbclid.trim() !== "" ? fbclid.trim() : undefined,
+          sourceUrl: resolvedSourceUrl,
+          segment: "B2C",
+          value: 20,
+          contentName: "Audit Solaire - Contact E-mail Saisi",
+        })
+      } catch (capiErr) {
+        console.warn("[Meta CAPI Contact Draft] Warning:", capiErr)
+      }
     }
 
     return NextResponse.json({

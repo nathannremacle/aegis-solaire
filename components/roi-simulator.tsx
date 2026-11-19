@@ -420,7 +420,7 @@ export function ROISimulator() {
       }
 
       const resData = await response.json().catch(() => ({}))
-      if (!resData?.alreadyTracked) {
+      if (!resData?.alreadyTracked && resData?.shouldTrackLead !== false) {
         trackLeadConversion({ segment: "B2B", leadId: resData?.leadId, value: 103.5 })
       }
       return { ok: true, leadId: String(resData?.leadId || "") }

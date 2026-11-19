@@ -591,7 +591,11 @@ export function B2CSimulator() {
         throw new Error(data.error || "Erreur lors de l'envoi")
       }
       const resData = await res.json().catch(() => ({}))
-      if (fd.ownershipStatus !== "locataire_sans_accord" && !resData?.alreadyTracked) {
+      if (
+        fd.ownershipStatus !== "locataire_sans_accord" &&
+        !resData?.alreadyTracked &&
+        resData?.shouldTrackLead !== false
+      ) {
         trackLeadConversion({ segment: "B2C", leadId: resData?.leadId, value: 75.9 })
       }
       return { ok: true, leadId: String(resData?.leadId || "") }
