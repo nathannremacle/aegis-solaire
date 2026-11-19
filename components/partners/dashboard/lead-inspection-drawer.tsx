@@ -33,6 +33,7 @@ import {
   CreditCard,
   ChevronLeft,
   ChevronRight,
+  Info,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -62,7 +63,12 @@ import { LeadGeoRadarMap } from "./lead-geo-radar-map"
 import { downloadLeadVCard } from "./lib/vcard-export"
 import { DirectLeadPaymentModal } from "./modals/direct-lead-payment-modal"
 import { useLeadInspectionTimer } from "@/lib/client/partner-tracker"
-import { getLeadImages } from "@/lib/lead-images"
+import {
+  AI_PROJECTION_BADGE_SHORT,
+  AI_PROJECTION_EXPLANATION_BODY,
+  AI_PROJECTION_EXPLANATION_TITLE,
+  getLeadImageItems,
+} from "@/lib/lead-images"
 
 interface LeadInspectionDrawerProps {
   lead: any
@@ -92,13 +98,21 @@ export function LeadInspectionDrawer({
   const [directPayExclusive, setDirectPayExclusive] = React.useState(false)
   const [isImageModalOpen, setIsImageModalOpen] = React.useState(false)
   const [activeImageIndex, setActiveImageIndex] = React.useState(0)
+  const [showAiDisclaimer, setShowAiDisclaimer] = React.useState(false)
 
-  const roofImages = getLeadImages(lead)
+  const roofImageItems = getLeadImageItems(lead)
+  const safeImageIndexHook =
+    roofImageItems.length > 0 ? Math.min(activeImageIndex, roofImageItems.length - 1) : 0
 
   useEffect(() => {
     setActiveImageIndex(0)
     setIsImageModalOpen(false)
+    setShowAiDisclaimer(false)
   }, [lead?.id])
+
+  useEffect(() => {
+    setShowAiDisclaimer(false)
+  }, [lead?.id, safeImageIndexHook])
 
   const isLeadAlreadyPurchased = Boolean(
     !lead?.is_demo_preview &&
@@ -123,13 +137,15 @@ export function LeadInspectionDrawer({
         } else {
           onClose()
         }
-      } else if (isImageModalOpen && roofImages.length > 1) {
+      } else if (isImageModalOpen && roofImageItems.length > 1) {
         if (e.key === "ArrowLeft") {
           e.preventDefault()
-          setActiveImageIndex((prev) => (prev - 1 + roofImages.length) % roofImages.length)
+          setActiveImageIndex(
+            (prev) => (prev - 1 + roofImageItems.length) % roofImageItems.length
+          )
         } else if (e.key === "ArrowRight") {
           e.preventDefault()
-          setActiveImageIndex((prev) => (prev + 1) % roofImages.length)
+          setActiveImageIndex((prev) => (prev + 1) % roofImageItems.length)
         }
       }
     }
@@ -141,7 +157,7 @@ export function LeadInspectionDrawer({
       window.removeEventListener("keydown", handleKeyDown)
       document.body.style.overflow = prevOverflow
     }
-  }, [onClose, isImageModalOpen, roofImages.length])
+  }, [onClose, isImageModalOpen, roofImageItems.length])
 
   if (!lead) return null
 
@@ -236,9 +252,10 @@ export function LeadInspectionDrawer({
   const displaySurfaceArea = financials.normalizedSurfaceAreaM2
   const displayAnnualBill = financials.normalizedAnnualBill
   const roi = calculateLeadRoiRatio(financials.estimatedInstallerMargin, cost, financials.estimatedContractValue)
-  const safeImageIndex =
-    roofImages.length > 0 ? Math.min(activeImageIndex, roofImages.length - 1) : 0
-  const activeRoofImageUrl = roofImages[safeImageIndex] ?? null
+  const safeImageIndex = safeImageIndexHook
+  const activePhoto = roofImageItems[safeImageIndex] ?? null
+  const activeRoofImageUrl = activePhoto?.url ?? null
+  const firstRealPhotoIndex = roofImageItems.findIndex((i) => !i.isAiProjection)
 
   const verificationSummary = getLeadVerificationSummary({
     segment: lead.segment,
@@ -330,15 +347,15 @@ export function LeadInspectionDrawer({
           </div>
 
           {/* Visuels Street View / Toiture du Bâtiment (si disponible) */}
-          {activeRoofImageUrl && (
+          {activePhoto && activeRoofImageUrl && (
             <div className="rounded-xl border border-border bg-card p-3 flex flex-col gap-2 shadow-2xs">
               <div className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-foreground uppercase tracking-wider">
                   <Camera className="h-3.5 w-3.5 text-primary" />
                   <span>Visuel Façade &amp; Toiture</span>
-                  {roofImages.length > 1 && (
+                  {roofImageItems.length > 1 && (
                     <span className="font-mono tabular-nums text-[10px] px-1.5 py-0.5 rounded bg-secondary text-foreground border border-border normal-case">
-                      {roofImages.length}
+                      {roofImageItems.length}
                     </span>
                   )}
                 </span>
@@ -362,12 +379,16 @@ export function LeadInspectionDrawer({
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                   loading="lazy"
                 />
-                {roofImages.length > 1 && (
+                {roofImageItems.length > 1 && (
                   <span className="absolute top-2 right-2 rounded-md bg-foreground/80 px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-background backdrop-blur-xs">
-                    {safeImageIndex + 1} / {roofImages.length}
+                    {safeImageIndex + 1} / {roofImageItems.length}
                   </span>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between p-3">
+                <div
+                  className={`absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between px-3 ${
+                    activePhoto.isAiProjection ? "pb-10" : "pb-3"
+                  }`}
+                >
                   <span className="text-xs font-semibold text-white drop-shadow-sm flex items-center gap-1.5">
                     <Maximize2 className="h-3.5 w-3.5" />
                     Cliquer pour agrandir
@@ -376,15 +397,55 @@ export function LeadInspectionDrawer({
                     Aperçu géolocalisé
                   </span>
                 </div>
+                {activePhoto.isAiProjection && (
+                  <div className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-between gap-2 bg-foreground/85 text-background px-2.5 py-1.5 backdrop-blur-xs">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold min-w-0 truncate">
+                      <span className="h-2 w-2 rounded-full bg-accent-solar shrink-0" />
+                      <span className="truncate">{AI_PROJECTION_BADGE_SHORT}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setShowAiDisclaimer((v) => !v)
+                      }}
+                      aria-expanded={showAiDisclaimer}
+                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-semibold bg-background/15 hover:bg-background/25 text-background shrink-0 transition-colors cursor-pointer"
+                    >
+                      <Info className="h-3 w-3" />
+                      <span>{showAiDisclaimer ? "Masquer" : "Infos"}</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
-              {roofImages.length > 1 && (
+              {activePhoto.isAiProjection && showAiDisclaimer && (
+                <div className="rounded-lg border border-border border-l-2 border-l-accent-solar bg-secondary/70 p-2.5 text-[11px] leading-relaxed text-foreground flex flex-col gap-1">
+                  <strong className="font-bold text-foreground">
+                    {AI_PROJECTION_EXPLANATION_TITLE}
+                  </strong>
+                  <p className="text-muted-foreground">
+                    {AI_PROJECTION_EXPLANATION_BODY}
+                  </p>
+                  {firstRealPhotoIndex >= 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveImageIndex(firstRealPhotoIndex)}
+                      className="self-start font-mono tabular-nums font-semibold text-primary hover:underline cursor-pointer"
+                    >
+                      Voir la photo réelle (n°{firstRealPhotoIndex + 1}) &rarr;
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {roofImageItems.length > 1 && (
                 <div className="grid grid-cols-4 gap-1.5">
-                  {roofImages.map((url, idx) => {
+                  {roofImageItems.map((item, idx) => {
                     const isSelected = idx === safeImageIndex
                     return (
                       <button
-                        key={url}
+                        key={item.url}
                         type="button"
                         onClick={() => setActiveImageIndex(idx)}
                         aria-label={`Afficher la photo ${idx + 1}`}
@@ -396,10 +457,15 @@ export function LeadInspectionDrawer({
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={url}
+                          src={item.url}
                           alt={`Miniature ${idx + 1}`}
                           className="w-full h-full object-cover"
                         />
+                        {item.isAiProjection && (
+                          <span className="pointer-events-none absolute bottom-1 left-1 rounded px-1 py-0.5 bg-foreground/85 text-background font-mono text-[9px] font-bold">
+                            3D
+                          </span>
+                        )}
                       </button>
                     )
                   })}
@@ -423,7 +489,7 @@ export function LeadInspectionDrawer({
           )}
 
           {/* Modal Lightbox Agrandie */}
-          {isImageModalOpen && activeRoofImageUrl && (
+          {isImageModalOpen && activePhoto && activeRoofImageUrl && (
             <div
               className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150"
               onClick={() => setIsImageModalOpen(false)}
@@ -438,9 +504,9 @@ export function LeadInspectionDrawer({
                     <span className="font-bold text-sm text-foreground truncate">
                       Visuel de la maison &amp; toiture — {location.city || "Chantier"}
                     </span>
-                    {roofImages.length > 1 && (
+                    {roofImageItems.length > 1 && (
                       <span className="font-mono text-xs tabular-nums text-muted-foreground shrink-0">
-                        {safeImageIndex + 1} / {roofImages.length}
+                        {safeImageIndex + 1} / {roofImageItems.length}
                       </span>
                     )}
                   </div>
@@ -458,15 +524,15 @@ export function LeadInspectionDrawer({
                   <img
                     src={activeRoofImageUrl}
                     alt={`Visuel agrandi ${safeImageIndex + 1}`}
-                    className="max-h-[68vh] w-auto max-w-full object-contain rounded-lg"
+                    className="max-h-[62vh] w-auto max-w-full object-contain rounded-lg"
                   />
-                  {roofImages.length > 1 && (
+                  {roofImageItems.length > 1 && (
                     <>
                       <button
                         type="button"
                         onClick={() =>
                           setActiveImageIndex(
-                            (safeImageIndex - 1 + roofImages.length) % roofImages.length
+                            (safeImageIndex - 1 + roofImageItems.length) % roofImageItems.length
                           )
                         }
                         aria-label="Photo précédente"
@@ -477,7 +543,7 @@ export function LeadInspectionDrawer({
                       <button
                         type="button"
                         onClick={() =>
-                          setActiveImageIndex((safeImageIndex + 1) % roofImages.length)
+                          setActiveImageIndex((safeImageIndex + 1) % roofImageItems.length)
                         }
                         aria-label="Photo suivante"
                         className="absolute right-4 top-1/2 -translate-y-1/2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-card/90 border border-border text-foreground hover:bg-card shadow-sm cursor-pointer"
@@ -487,17 +553,55 @@ export function LeadInspectionDrawer({
                     </>
                   )}
                 </div>
-                {roofImages.length > 1 && (
+                {activePhoto.isAiProjection && (
+                  <div className="mx-3 mb-2 rounded-lg border border-border border-l-2 border-l-accent-solar bg-secondary/60 px-3 py-2 text-xs text-foreground flex flex-col gap-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-accent-solar shrink-0" />
+                        <span>{AI_PROJECTION_BADGE_SHORT}</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowAiDisclaimer((v) => !v)}
+                        aria-expanded={showAiDisclaimer}
+                        className="inline-flex items-center gap-1 font-semibold text-primary hover:underline cursor-pointer shrink-0"
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                        <span>{showAiDisclaimer ? "Masquer" : "En savoir plus"}</span>
+                      </button>
+                    </div>
+                    {showAiDisclaimer && (
+                      <div className="flex flex-col gap-1 pt-1 border-t border-border/70">
+                        <strong className="font-semibold text-foreground">
+                          {AI_PROJECTION_EXPLANATION_TITLE}
+                        </strong>
+                        <p className="text-[11px] leading-relaxed text-muted-foreground">
+                          {AI_PROJECTION_EXPLANATION_BODY}
+                        </p>
+                        {firstRealPhotoIndex >= 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setActiveImageIndex(firstRealPhotoIndex)}
+                            className="self-start font-mono tabular-nums text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+                          >
+                            Voir la photo réelle (n°{firstRealPhotoIndex + 1}) &rarr;
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {roofImageItems.length > 1 && (
                   <div className="px-3 py-2 border-t border-border bg-secondary/30 flex items-center gap-2 overflow-x-auto">
-                    {roofImages.map((url, idx) => {
+                    {roofImageItems.map((item, idx) => {
                       const isSelected = idx === safeImageIndex
                       return (
                         <button
-                          key={url}
+                          key={item.url}
                           type="button"
                           onClick={() => setActiveImageIndex(idx)}
                           aria-label={`Afficher la photo ${idx + 1}`}
-                          className={`shrink-0 w-16 aspect-[3/2] rounded-md overflow-hidden border cursor-pointer transition-opacity ${
+                          className={`relative shrink-0 w-16 aspect-[3/2] rounded-md overflow-hidden border cursor-pointer transition-opacity ${
                             isSelected
                               ? "border-primary ring-1 ring-primary opacity-100"
                               : "border-border opacity-70 hover:opacity-100"
@@ -505,10 +609,15 @@ export function LeadInspectionDrawer({
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
-                            src={url}
+                            src={item.url}
                             alt={`Miniature ${idx + 1}`}
                             className="w-full h-full object-cover"
                           />
+                          {item.isAiProjection && (
+                            <span className="pointer-events-none absolute bottom-0.5 left-0.5 rounded px-1 py-0.5 bg-foreground/85 text-background font-mono text-[9px] font-bold">
+                              3D
+                            </span>
+                          )}
                         </button>
                       )
                     })}

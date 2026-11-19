@@ -19,7 +19,12 @@ import {
   buildPartnerExpressLeadUrls,
 } from "@/lib/partner-notification-tokens"
 import { getLeadVerificationSummary } from "@/lib/lead-verification-display"
-import { getLeadImages } from "@/lib/lead-images"
+import {
+  AI_PROJECTION_BADGE_SHORT,
+  AI_PROJECTION_EMAIL_CAPTION,
+  getLeadImages,
+  getPrimaryLeadImageItem,
+} from "@/lib/lead-images"
 
 export interface InstallerLeadTeaserData {
   partner: {
@@ -51,6 +56,7 @@ export interface InstallerLeadTeaserData {
     grd?: string | null
     roofImageUrl?: string | null
     roofImagesCount?: number
+    roofImageIsAiProjection?: boolean
     phoneVerified?: boolean | null
     phoneVerificationMethod?: string | null
     phoneCarrier?: string | null
@@ -562,6 +568,10 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
     data.lead.roofImageUrl && resolvedRoofImagesCount > 1
       ? resolvedRoofImagesCount - 1
       : 0
+  const isPrimaryAiProjection = Boolean(
+    data.lead.roofImageUrl &&
+      (data.lead.roofImageIsAiProjection ?? getPrimaryLeadImageItem(data.lead)?.isAiProjection)
+  )
 
   // Version texte brut sobre et structurée
   const text = `AEGIS SOLAIRE — ${contextText.toUpperCase()}
@@ -590,8 +600,8 @@ DÉTAILS DU CHANTIER :
 ${specRows.map((r) => `• ${r.label} : ${r.value}`).join("\n")}${
     data.lead.roofImageUrl
       ? resolvedRoofImagesCount > 1
-        ? `\n• ${resolvedRoofImagesCount} photos du bâtiment disponibles sur la fiche dossier`
-        : "\n• Photo du bâtiment disponible sur la fiche dossier"
+        ? `\n• ${resolvedRoofImagesCount} photos du bâtiment disponibles sur la fiche dossier${isPrimaryAiProjection ? " (projection 3D IA non contractuelle, à confirmer sur site)" : ""}`
+        : `\n• Photo du bâtiment disponible sur la fiche dossier${isPrimaryAiProjection ? " (projection 3D IA non contractuelle, à confirmer sur site)" : ""}`
       : ""
   }
 
@@ -777,7 +787,18 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                         ${data.lead.roofImageUrl ? `
                         <td class="photo-cell" width="42%" style="width: 42%; padding-right: 15px; vertical-align: top;">
                           <img src="${escapeHtml(data.lead.roofImageUrl)}" alt="Façade du bâtiment concerné par le projet" width="230" style="display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 7px; border: 1px solid #e2eaf0;" />
-                          <p style="margin: 4px 0 0 0; font-size: 12px; color: #4d6374;">${extraRoofImagesCount > 0 ? `Photo du bâtiment · +<span style="font-variant-numeric: tabular-nums;">${extraRoofImagesCount}</span> autre${extraRoofImagesCount > 1 ? "s" : ""} sur le dossier` : "Photo du bâtiment"}</p>
+                          ${
+                            isPrimaryAiProjection
+                              ? `<p style="margin: 6px 0 0 0; padding: 5px 8px; background-color: #fff5df; border-left: 3px solid #d69729; border-radius: 0 5px 5px 0; font-size: 11px; line-height: 1.4; color: #684916;">
+                                  <strong>${escapeHtml(AI_PROJECTION_BADGE_SHORT)}</strong><br />
+                                  ${escapeHtml(AI_PROJECTION_EMAIL_CAPTION)}
+                                </p>${
+                                  extraRoofImagesCount > 0
+                                    ? `<p style="margin: 4px 0 0 0; font-size: 12px; color: #4d6374;">+<span style="font-variant-numeric: tabular-nums;">${extraRoofImagesCount}</span> autre${extraRoofImagesCount > 1 ? "s" : ""} visuel${extraRoofImagesCount > 1 ? "s" : ""} sur le dossier</p>`
+                                    : ""
+                                }`
+                              : `<p style="margin: 4px 0 0 0; font-size: 12px; color: #4d6374;">${extraRoofImagesCount > 0 ? `Photo du bâtiment · +<span style="font-variant-numeric: tabular-nums;">${extraRoofImagesCount}</span> autre${extraRoofImagesCount > 1 ? "s" : ""} sur le dossier` : "Photo du bâtiment"}</p>`
+                          }
                         </td>
                         ` : ""}
                         <td class="spec-cell" style="vertical-align: top;">

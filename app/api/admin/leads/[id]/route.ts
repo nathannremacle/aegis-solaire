@@ -13,7 +13,7 @@ import {
 } from "@/lib/lead-verification-engine"
 import { getBelgiumProvinceKeyFromPostalCode } from "@/lib/belgium-regions"
 import { getEmailError, normalizeFrBePhone } from "@/lib/leads-validation"
-import { getPrimaryLeadImage } from "@/lib/lead-images"
+import { getPrimaryLeadImageItem } from "@/lib/lead-images"
 
 const LEAD_SELECT =
   "id, first_name, last_name, email, phone, job_title, company, company_vat, message, project_details, surface_type, surface_area, estimated_power_kwc, annual_electricity_bill, roof_material, ownership_status, project_timeline, estimated_roi_years, autoconsumption_rate, estimated_savings, status, marketplace_status, credit_cost, lead_score, installateur_id, wants_irve, segment, province, postal_code, city, site_address, grd, media_partner_code, admin_notes, qualification_metadata, created_at"
@@ -348,7 +348,8 @@ export async function PATCH(
         project_timeline: data.project_timeline ?? null,
         estimated_roi_years: data.estimated_roi_years ?? null,
         estimated_savings: data.estimated_savings ?? null,
-        roof_image_url: getPrimaryLeadImage(data),
+        roof_image_url: getPrimaryLeadImageItem(data)?.url ?? null,
+        roof_image_is_ai_projection: Boolean(getPrimaryLeadImageItem(data)?.isAiProjection),
         message: data.message ?? null,
       })
       installateur_notified = true

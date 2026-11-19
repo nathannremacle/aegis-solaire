@@ -8,6 +8,10 @@ import {
   renderSpecsTable,
   type EmailSpecRow,
 } from "@/lib/email-templates/installer-email-layout"
+import {
+  AI_PROJECTION_BADGE_SHORT,
+  AI_PROJECTION_EMAIL_CAPTION,
+} from "@/lib/lead-images"
 
 export type LeadDetailsForEmail = {
   first_name: string
@@ -23,6 +27,7 @@ export type LeadDetailsForEmail = {
   estimated_roi_years?: number | null
   estimated_savings?: number | null
   roof_image_url?: string | null
+  roof_image_is_ai_projection?: boolean
   message?: string | null
 }
 
@@ -118,7 +123,14 @@ export function buildLeadAssignedEmail(lead: LeadDetailsForEmail): {
                 lead.roof_image_url
                   ? `<td class="photo-cell" width="42%" style="width: 42%; padding-right: 15px; vertical-align: top;">
                       <img src="${escapeEmailHtml(lead.roof_image_url)}" alt="Photo du bâtiment" width="230" style="display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 7px; border: 1px solid #e2eaf0;" />
-                      <p style="margin: 4px 0 0 0; font-size: 12px; color: #4d6374;">Photo du bâtiment</p>
+                      ${
+                        lead.roof_image_is_ai_projection
+                          ? `<p style="margin: 6px 0 0 0; padding: 5px 8px; background-color: #fff5df; border-left: 3px solid #d69729; border-radius: 0 5px 5px 0; font-size: 11px; line-height: 1.4; color: #684916;">
+                              <strong>${escapeEmailHtml(AI_PROJECTION_BADGE_SHORT)}</strong><br />
+                              ${escapeEmailHtml(AI_PROJECTION_EMAIL_CAPTION)}
+                            </p>`
+                          : `<p style="margin: 4px 0 0 0; font-size: 12px; color: #4d6374;">Photo du bâtiment</p>`
+                      }
                     </td>`
                   : ""
               }
@@ -157,7 +169,11 @@ COORDONNÉES :
 • E-mail : ${lead.email}
 
 PROJET :
-${specRows.map((r) => `• ${r.label} : ${r.value}`).join("\n")}
+${specRows.map((r) => `• ${r.label} : ${r.value}`).join("\n")}${
+    lead.roof_image_url && lead.roof_image_is_ai_projection
+      ? `\n• Visuel du bâtiment : ${AI_PROJECTION_BADGE_SHORT} (${AI_PROJECTION_EMAIL_CAPTION})`
+      : ""
+  }
 
 Espace partenaire : ${dashboardUrl}
 Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique

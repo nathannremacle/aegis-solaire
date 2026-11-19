@@ -50,6 +50,7 @@ function loadTs(relPath, mocks = {}, cache = new Map()) {
 const leadImages = loadTs("lib/lead-images.ts")
 const pricing = loadTs("lib/marketplace-pricing.ts")
 const teaser = loadTs("lib/email-templates/installer-lead-teaser.ts")
+const notifyInstallateur = loadTs("lib/notify-installateur.ts")
 
 test("Rétrocompatibilité legacy : roof_image_url seul et site_image_url seul", () => {
   assert.deepEqual(
@@ -294,4 +295,139 @@ test("E-mail teaser installateur : affiche uniquement la 1ère photo avec compte
   })
   assert.equal(noneRes.html.includes("photo-1.jpg"), false)
   assert.equal(noneRes.text.includes("Photo du bâtiment"), false)
+})
+
+test("Métadonnées Projection 3D IA par image : lecture, conservation et purge automatique", () => {
+  const url3d = "https://cdn.example.com/3d-render.jpg"
+  const urlReal = "https://cdn.example.com/aerial-real.jpg"
+
+  const initialMeta = leadImages.syncLeadImagesMetadata(
+    {},
+    [urlReal, url3d],
+    "2026-11-19T21:00:00.000Z",
+    { [url3d]: "ai_3d_projection" }
+  )
+
+  assert.deepEqual(initialMeta.roof_image_meta, {
+    [url3d]: { kind: "ai_3d_projection" },
+  })
+  assert.deepEqual(leadImages.getLeadImageItems({ qualification_metadata: initialMeta }), [
+    { url: urlReal, kind: "real", isAiProjection: false },
+    { url: url3d, kind: "ai_3d_projection", isAiProjection: true },
+  ])
+  assert.deepEqual(leadImages.getPrimaryLeadImageItem({ qualification_metadata: initialMeta }), {
+    url: urlReal,
+    kind: "real",
+    isAiProjection: false,
+  })
+
+  // Promotion de la vue 3D en photo n°1 => roof_image_meta est conservée
+  const promoted = leadImages.setPrimaryLeadImage([urlReal, url3d], url3d)
+  const promotedMeta = leadImages.syncLeadImagesMetadata(initialMeta, promoted)
+  assert.equal(promotedMeta.roof_image_url, url3d)
+  assert.deepEqual(promotedMeta.roof_image_meta, {
+    [url3d]: { kind: "ai_3d_projection" },
+  })
+  assert.equal(
+    leadImages.getPrimaryLeadImageItem({ qualification_metadata: promotedMeta })?.isAiProjection,
+    true
+  )
+
+  // Suppression de la vue 3D => la map est purgée et la clé roof_image_meta disparaît
+  const afterDelete = leadImages.removeLeadImage(promoted, url3d)
+  const afterDeleteMeta = leadImages.syncLeadImagesMetadata(promotedMeta, afterDelete)
+  assert.equal("roof_image_meta" in afterDeleteMeta, false)
+  assert.deepEqual(leadImages.getLeadImageItems({ qualification_metadata: afterDeleteMeta }), [
+    { url: urlReal, kind: "real", isAiProjection: false },
+  ])
+})
+
+test("E-mails installateurs : bandeau « Projection 3D · Non contractuelle » quand photo n°1 taguée", () => {
+  const financials = pricing.calculateMarketplaceFinancials({
+    segment: "B2C",
+    surfaceArea: 55,
+    surfaceType: "toiture",
+    roofMaterial: "tuiles",
+    annualBill: 2400,
+    creditCost: 3,
+    qualificationMetadata: null,
+  })
+
+  const teaserInput = {
+    partner: {
+      id: "11111111-1111-1111-1111-111111111111",
+      companyName: "Solar Wallonie SRL",
+      credits: 10,
+    },
+    lead: {
+      id: "22222222-2222-2222-2222-222222222222",
+      segment: "B2C",
+      province: "liege",
+      postalCode: "4300",
+      city: "Bovenistier",
+      surfaceType: "toiture",
+      surfaceArea: 55,
+      roofMaterial: "tuiles",
+      annualElectricityBill: 2400,
+      firstName: "Jean",
+      lastName: "Dupont",
+      roofImageUrl: "https://cdn.example.com/3d-front.jpg",
+      roofImagesCount: 2,
+      roofImageIsAiProjection: true,
+      createdAt: "2026-11-19T10:00:00.000Z",
+    },
+    waveNumber: 1,
+    takenSlots: 0,
+    maxSlots: 3,
+    creditCost: 3,
+    financials,
+  }
+
+  const teaserAiMulti = teaser.renderInstallerLeadTeaserEmail(teaserInput)
+  assert.ok(teaserAiMulti.html.includes(leadImages.AI_PROJECTION_BADGE_SHORT))
+  assert.ok(teaserAiMulti.html.includes(leadImages.AI_PROJECTION_EMAIL_CAPTION))
+  assert.ok(teaserAiMulti.html.includes(">1</span> autre visuel sur le dossier"))
+  assert.ok(teaserAiMulti.text.includes("projection 3D IA non contractuelle"))
+
+  const teaserAiSingle = teaser.renderInstallerLeadTeaserEmail({
+    ...teaserInput,
+    lead: { ...teaserInput.lead, roofImagesCount: 1 },
+  })
+  assert.ok(teaserAiSingle.html.includes(leadImages.AI_PROJECTION_BADGE_SHORT))
+  assert.equal(teaserAiSingle.html.includes("autre visuel sur le dossier"), false)
+
+  const assignedAi = notifyInstallateur.buildLeadAssignedEmail({
+    first_name: "Jean",
+    last_name: "Dupont",
+    email: "prospect@example.be",
+    phone: "+32470000000",
+    job_title: "Particulier",
+    company: null,
+    surface_type: "toiture",
+    surface_area: 55,
+    annual_electricity_bill: 2400,
+    roof_image_url: "https://cdn.example.com/3d-front.jpg",
+    roof_image_is_ai_projection: true,
+    message: null,
+  })
+  assert.ok(assignedAi.html.includes(leadImages.AI_PROJECTION_BADGE_SHORT))
+  assert.ok(assignedAi.html.includes(leadImages.AI_PROJECTION_EMAIL_CAPTION))
+  assert.ok(assignedAi.text.includes(leadImages.AI_PROJECTION_BADGE_SHORT))
+
+  const assignedReal = notifyInstallateur.buildLeadAssignedEmail({
+    first_name: "Jean",
+    last_name: "Dupont",
+    email: "prospect@example.be",
+    phone: "+32470000000",
+    job_title: "Particulier",
+    company: null,
+    surface_type: "toiture",
+    surface_area: 55,
+    annual_electricity_bill: 2400,
+    roof_image_url: "https://cdn.example.com/real.jpg",
+    roof_image_is_ai_projection: false,
+    message: null,
+  })
+  assert.equal(assignedReal.html.includes(leadImages.AI_PROJECTION_BADGE_SHORT), false)
+  assert.ok(assignedReal.html.includes(">Photo du bâtiment</p>"))
 })

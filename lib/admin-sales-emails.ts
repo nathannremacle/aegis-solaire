@@ -16,7 +16,7 @@ import {
   renderSpecsTable,
   type EmailSpecRow,
 } from "@/lib/email-templates/installer-email-layout"
-import { getPrimaryLeadImage } from "@/lib/lead-images"
+import { getPrimaryLeadImageItem } from "@/lib/lead-images"
 
 function escapeHtml(value: unknown): string {
   const s = String(value ?? "")
@@ -192,7 +192,9 @@ export async function sendAdminLeadSaleNotification(
     : null
 
   const qualMeta = (lead.qualification_metadata || {}) as Record<string, unknown>
-  const roofImageUrl = normalizeImageUrl(getPrimaryLeadImage(qualMeta), baseUrl)
+  const primaryImageItem = getPrimaryLeadImageItem(qualMeta)
+  const roofImageUrl = normalizeImageUrl(primaryImageItem?.url ?? null, baseUrl)
+  const isPrimaryAiProjection = Boolean(roofImageUrl && primaryImageItem?.isAiProjection)
 
   // Statut des places restantes
   const slotIndicator = !isB2B ? getB2CSlotIndicator(remainingSlots) : null
@@ -284,7 +286,9 @@ export async function sendAdminLeadSaleNotification(
     `- Téléphone lead : ${lead.phone || "—"}`,
     `- E-mail lead : ${lead.email || "—"}`,
     `- Projet : ${implantationCombined} | ${dimensioningCombined} | Facture : ${annualBillLabel} | GRD : ${grdLabel}`,
-    roofImageUrl ? `- Image du lead : ${roofImageUrl}` : `- Image du lead : Aucune image enregistrée`,
+    roofImageUrl
+      ? `- Image du lead : ${roofImageUrl}${isPrimaryAiProjection ? " (Projection 3D indicative · Non contractuelle)" : ""}`
+      : `- Image du lead : Aucune image enregistrée`,
     ``,
     `PARTENAIRE & TRANSACTION :`,
     `- Partenaire : ${partner.company_name} (${partner.email}${partner.phone ? ` · ${partner.phone}` : ""})`,
@@ -425,7 +429,11 @@ export async function sendAdminLeadSaleNotification(
                 roofImageUrl
                   ? `<td class="photo-cell" width="40%" style="width: 40%; padding-right: 15px; vertical-align: top;">
                       <img src="${escapeEmailHtml(roofImageUrl)}" alt="Photo du lead" width="220" style="display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 7px; border: 1px solid #e2eaf0;" />
-                      <p style="margin: 4px 0 0 0; font-size: 12px; color: #4d6374;">Photo du bâtiment</p>
+                      ${
+                        isPrimaryAiProjection
+                          ? `<p style="margin: 6px 0 0 0; padding: 5px 8px; background-color: #fff5df; border-left: 3px solid #d69729; border-radius: 0 5px 5px 0; font-size: 11px; line-height: 1.4; color: #684916;"><strong>Projection 3D indicative · Non contractuelle</strong></p>`
+                          : `<p style="margin: 4px 0 0 0; font-size: 12px; color: #4d6374;">Photo du bâtiment</p>`
+                      }
                     </td>`
                   : ""
               }

@@ -1,5 +1,28 @@
 export const MAX_LEAD_IMAGES = 10
 
+export type LeadImageKind = "real" | "ai_3d_projection"
+
+export interface LeadImageMetaEntry {
+  kind: LeadImageKind
+}
+
+export interface LeadImageItem {
+  url: string
+  kind: LeadImageKind
+  isAiProjection: boolean
+}
+
+export const AI_PROJECTION_BADGE_SHORT = "Projection 3D · Non contractuelle"
+
+export const AI_PROJECTION_EXPLANATION_TITLE =
+  "Reconstitution 3D indicative générée par IA depuis la vue aérienne"
+
+export const AI_PROJECTION_EXPLANATION_BODY =
+  "Ce bâtiment correspond bien au projet réel géolocalisé. Cette vue 3D a été générée par IA à partir de la photographie aérienne afin de faciliter l'évaluation rapide du gabarit (type de toiture, abords, ombrages) tout en préservant la confidentialité de l'adresse exacte avant déblocage. Certains détails visuels (façades, revêtement exact, cheminées, velux ou obstacles mineurs) peuvent différer de la réalité et doivent être vérifiés lors de la visite technique."
+
+export const AI_PROJECTION_EMAIL_CAPTION =
+  "Reconstitution IA indicative depuis la vue aérienne (détails à confirmer sur site)."
+
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value)
 }
@@ -108,31 +131,119 @@ export function getPrimaryLeadImage(leadOrMeta: unknown): string | null {
   return images[0] ?? null
 }
 
+function extractRawImageMetaMap(
+  source: unknown,
+  target: Record<string, LeadImageMetaEntry>
+) {
+  if (!isPlainRecord(source)) return
+  for (const [rawKey, rawVal] of Object.entries(source)) {
+    if (!isValidLeadImageUrl(rawKey)) continue
+    if (isPlainRecord(rawVal) && rawVal.kind === "ai_3d_projection") {
+      target[rawKey.trim()] = { kind: "ai_3d_projection" }
+    }
+  }
+}
+
+/**
+ * Extrait la map des métadonnées par image (`roof_image_meta`) pour un lead ou un objet metadata.
+ * Seules les entrées marquées `"ai_3d_projection"` sont stockées ; toute autre image vaut `"real"`.
+ */
+export function getLeadImageMetaMap(
+  leadOrMeta: unknown
+): Record<string, LeadImageMetaEntry> {
+  if (!isPlainRecord(leadOrMeta)) return {}
+
+  const result: Record<string, LeadImageMetaEntry> = {}
+  // Ordre croissant de priorité : direct < camelCase < snake_case
+  extractRawImageMetaMap(leadOrMeta.roof_image_meta, result)
+  if (isPlainRecord(leadOrMeta.qualificationMetadata)) {
+    extractRawImageMetaMap(leadOrMeta.qualificationMetadata.roof_image_meta, result)
+  }
+  if (isPlainRecord(leadOrMeta.qualification_metadata)) {
+    extractRawImageMetaMap(leadOrMeta.qualification_metadata.roof_image_meta, result)
+  }
+  return result
+}
+
+/**
+ * Retourne la liste ordonnée des images enrichies avec leur nature (`real` ou `ai_3d_projection`).
+ */
+export function getLeadImageItems(leadOrMeta: unknown): LeadImageItem[] {
+  const urls = getLeadImages(leadOrMeta)
+  const metaMap = getLeadImageMetaMap(leadOrMeta)
+  return urls.map((url) => {
+    const kind: LeadImageKind =
+      metaMap[url]?.kind === "ai_3d_projection" ? "ai_3d_projection" : "real"
+    return {
+      url,
+      kind,
+      isAiProjection: kind === "ai_3d_projection",
+    }
+  })
+}
+
+/**
+ * Retourne l'élément image principal (index 0) avec son type, ou null s'il n'y a aucune image.
+ */
+export function getPrimaryLeadImageItem(leadOrMeta: unknown): LeadImageItem | null {
+  const items = getLeadImageItems(leadOrMeta)
+  return items[0] ?? null
+}
+
 /**
  * Retourne une copie de `currentMeta` synchronisée avec la liste ordonnée `images`.
- * Synchronise automatiquement `roof_images`, `roof_image_url` et `site_image_url` sur `images[0]`.
+ * Synchronise automatiquement `roof_images`, `roof_image_url`, `site_image_url` et `roof_image_meta`.
  */
 export function syncLeadImagesMetadata(
   currentMeta: Record<string, unknown> | null | undefined,
   images: string[],
-  updatedAt?: string
+  updatedAt?: string,
+  metaOverrides?: Record<string, LeadImageKind>
 ): Record<string, unknown> {
   const nextMeta: Record<string, unknown> = isPlainRecord(currentMeta)
     ? { ...currentMeta }
     : {}
 
   const cleanImages = dedupeImageUrls(images)
+  const validSet = new Set(cleanImages)
+  const existingMap = getLeadImageMetaMap(currentMeta)
+  const prunedMap: Record<string, LeadImageMetaEntry> = {}
+
+  for (const url of cleanImages) {
+    if (existingMap[url]?.kind === "ai_3d_projection") {
+      prunedMap[url] = { kind: "ai_3d_projection" }
+    }
+  }
+
+  if (metaOverrides && isPlainRecord(metaOverrides)) {
+    for (const [rawKey, kind] of Object.entries(metaOverrides)) {
+      if (!isValidLeadImageUrl(rawKey)) continue
+      const cleanKey = rawKey.trim()
+      if (!validSet.has(cleanKey)) continue
+      if (kind === "ai_3d_projection") {
+        prunedMap[cleanKey] = { kind: "ai_3d_projection" }
+      } else if (kind === "real") {
+        delete prunedMap[cleanKey]
+      }
+    }
+  }
 
   if (cleanImages.length > 0) {
     nextMeta.roof_images = cleanImages
     nextMeta.roof_image_url = cleanImages[0]
     nextMeta.site_image_url = cleanImages[0]
     nextMeta.roof_image_updated_at = updatedAt ?? new Date().toISOString()
+    if (Object.keys(prunedMap).length > 0) {
+      nextMeta.roof_image_meta = prunedMap
+    } else {
+      delete nextMeta.roof_image_meta
+    }
   } else {
     delete nextMeta.roof_images
     delete nextMeta.roof_image_url
     delete nextMeta.site_image_url
     delete nextMeta.roof_image_updated_at
+    delete nextMeta.roof_image_meta
   }
 
   return nextMeta

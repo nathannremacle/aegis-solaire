@@ -58,6 +58,8 @@ import {
   AlertTriangle,
   PauseCircle,
   RotateCcw,
+  Box,
+  Info,
 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -78,7 +80,15 @@ import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
 import { parseLeadProjectDetails } from "@/lib/lead-display-helpers"
 import { getPhoneVerificationDiagnostic } from "@/lib/lead-verification-display"
 import { detectLeadRiskFlags } from "@/lib/admin/lead-risk"
-import { getLeadImages, MAX_LEAD_IMAGES, moveLeadImage } from "@/lib/lead-images"
+import {
+  AI_PROJECTION_BADGE_SHORT,
+  AI_PROJECTION_EXPLANATION_BODY,
+  AI_PROJECTION_EXPLANATION_TITLE,
+  getLeadImageItems,
+  MAX_LEAD_IMAGES,
+  moveLeadImage,
+  type LeadImageItem,
+} from "@/lib/lead-images"
 import { formatBceNumber, BCE_PUBLIC_SEARCH_URL } from "@/lib/leads-schema"
 import {
   publishLeadAction,
@@ -195,8 +205,11 @@ export function LeadDrawer({
   )
   const [dispatchMode, setDispatchMode] = useState<"marketplace" | "direct">("marketplace")
   const [selectedPartnerIds, setSelectedPartnerIds] = useState<string[]>([])
-  const [leadImages, setLeadImages] = useState<string[]>(() => getLeadImages(lead))
+  const [leadImageItems, setLeadImageItems] = useState<LeadImageItem[]>(() =>
+    getLeadImageItems(lead)
+  )
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0)
+  const [showAiPreviewInfo, setShowAiPreviewInfo] = useState(false)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [urlInputOpen, setUrlInputOpen] = useState(false)
   const [customUrlInput, setCustomUrlInput] = useState("")
@@ -250,8 +263,9 @@ export function LeadDrawer({
       setNotes(lead.admin_notes ?? "")
       setCreditCost(lead.credit_cost ?? (lead.segment === "B2B" ? 9 : 3))
       setSelectedPartnerIds([])
-      setLeadImages(getLeadImages(lead))
+      setLeadImageItems(getLeadImageItems(lead))
       setActiveImageIndex(0)
+      setShowAiPreviewInfo(false)
       setCustomUrlInput("")
       setUrlInputOpen(false)
       setAddressPatch(null)
@@ -475,23 +489,29 @@ export function LeadDrawer({
     }
   }
 
+  const leadImages = leadImageItems.map((i) => i.url)
   const safeActiveIndex =
-    leadImages.length > 0 ? Math.min(activeImageIndex, leadImages.length - 1) : 0
-  const activeImageUrl = leadImages[safeActiveIndex] ?? null
+    leadImageItems.length > 0 ? Math.min(activeImageIndex, leadImageItems.length - 1) : 0
+  const activeImageItem = leadImageItems[safeActiveIndex] ?? null
+  const activeImageUrl = activeImageItem?.url ?? null
+
+  useEffect(() => {
+    setShowAiPreviewInfo(false)
+  }, [lead?.id, safeActiveIndex])
 
   function syncLocalLeadImages(
-    nextImages: string[],
+    nextItems: LeadImageItem[],
     nextMeta?: Record<string, unknown> | null,
     nextActiveIdx?: number
   ) {
-    setLeadImages(nextImages)
+    setLeadImageItems(nextItems)
     if (typeof nextActiveIdx === "number") {
       setActiveImageIndex(
-        nextImages.length > 0 ? Math.max(0, Math.min(nextActiveIdx, nextImages.length - 1)) : 0
+        nextItems.length > 0 ? Math.max(0, Math.min(nextActiveIdx, nextItems.length - 1)) : 0
       )
     } else {
       setActiveImageIndex((prev) =>
-        nextImages.length > 0 ? Math.min(prev, nextImages.length - 1) : 0
+        nextItems.length > 0 ? Math.min(prev, nextItems.length - 1) : 0
       )
     }
 
@@ -537,11 +557,14 @@ export function LeadDrawer({
       if (!res.ok) {
         throw new Error(data.error || "Erreur lors de l'upload")
       }
-      const nextImages: string[] = Array.isArray(data.images)
-        ? data.images
-        : getLeadImages(data.qualification_metadata)
-      const firstNewIdx = leadImages.length === 0 ? 0 : Math.min(leadImages.length, Math.max(0, nextImages.length - 1))
-      syncLocalLeadImages(nextImages, data.qualification_metadata, firstNewIdx)
+      const nextItems: LeadImageItem[] = Array.isArray(data.imageItems)
+        ? data.imageItems
+        : getLeadImageItems(data.qualification_metadata)
+      const firstNewIdx =
+        leadImages.length === 0
+          ? 0
+          : Math.min(leadImages.length, Math.max(0, nextItems.length - 1))
+      syncLocalLeadImages(nextItems, data.qualification_metadata, firstNewIdx)
       toast.success(
         files.length > 1
           ? `${files.length} photos ajoutées au dossier`
@@ -578,12 +601,12 @@ export function LeadDrawer({
       if (!res.ok) {
         throw new Error(data.error || "Erreur lors de l'enregistrement de l'URL")
       }
-      const nextImages: string[] = Array.isArray(data.images)
-        ? data.images
-        : getLeadImages(data.qualification_metadata)
-      const targetIdx = nextImages.indexOf(trimmed)
+      const nextItems: LeadImageItem[] = Array.isArray(data.imageItems)
+        ? data.imageItems
+        : getLeadImageItems(data.qualification_metadata)
+      const targetIdx = nextItems.findIndex((i) => i.url === trimmed)
       syncLocalLeadImages(
-        nextImages,
+        nextItems,
         data.qualification_metadata,
         targetIdx >= 0 ? targetIdx : 0
       )
@@ -613,10 +636,10 @@ export function LeadDrawer({
       if (!res.ok) {
         throw new Error(data.error || "Erreur lors de la sélection de l'image principale")
       }
-      const nextImages: string[] = Array.isArray(data.images)
-        ? data.images
-        : getLeadImages(data.qualification_metadata)
-      syncLocalLeadImages(nextImages, data.qualification_metadata, 0)
+      const nextItems: LeadImageItem[] = Array.isArray(data.imageItems)
+        ? data.imageItems
+        : getLeadImageItems(data.qualification_metadata)
+      syncLocalLeadImages(nextItems, data.qualification_metadata, 0)
       toast.success("Photo définie en n°1 (envoyée dans les e-mails)")
     } catch (err: any) {
       toast.error(err.message || "Impossible de définir cette image en n°1")
@@ -645,10 +668,10 @@ export function LeadDrawer({
       if (!res.ok) {
         throw new Error(data.error || "Erreur lors du réordonnancement")
       }
-      const nextImages: string[] = Array.isArray(data.images)
-        ? data.images
-        : reordered
-      syncLocalLeadImages(nextImages, data.qualification_metadata, targetNewIndex)
+      const nextItems: LeadImageItem[] = Array.isArray(data.imageItems)
+        ? data.imageItems
+        : getLeadImageItems(data.qualification_metadata)
+      syncLocalLeadImages(nextItems, data.qualification_metadata, targetNewIndex)
       toast.success(
         targetNewIndex === 0
           ? "Photo placée en n°1 (envoyée dans les e-mails)"
@@ -656,6 +679,40 @@ export function LeadDrawer({
       )
     } catch (err: any) {
       toast.error(err.message || "Impossible de réordonner les photos")
+    } finally {
+      setIsUploadingImage(false)
+    }
+  }
+
+  const handleToggleAiProjection = async (item: LeadImageItem) => {
+    if (!lead || !item) return
+    const nextKind = item.isAiProjection ? "real" : "ai_3d_projection"
+    setIsUploadingImage(true)
+    try {
+      const res = await fetch(`/api/admin/leads/${lead.id}/image`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-request": "true",
+        },
+        body: JSON.stringify({ imageUrl: item.url, kind: nextKind }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || "Erreur lors de la mise à jour du bandeau 3D")
+      }
+      const nextItems: LeadImageItem[] = Array.isArray(data.imageItems)
+        ? data.imageItems
+        : getLeadImageItems(data.qualification_metadata)
+      syncLocalLeadImages(nextItems, data.qualification_metadata, safeActiveIndex)
+      if (nextKind === "ai_3d_projection") {
+        toast.success(`Bandeau « ${AI_PROJECTION_BADGE_SHORT} » activé sur cette photo`)
+      } else {
+        setShowAiPreviewInfo(false)
+        toast.success("Bandeau « Projection 3D » retiré de cette photo")
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Impossible de mettre à jour le bandeau 3D")
     } finally {
       setIsUploadingImage(false)
     }
@@ -681,11 +738,11 @@ export function LeadDrawer({
       if (!res.ok) {
         throw new Error(data.error || "Erreur lors de la suppression")
       }
-      const nextImages: string[] = Array.isArray(data.images)
-        ? data.images
+      const nextItems: LeadImageItem[] = Array.isArray(data.imageItems)
+        ? data.imageItems
         : []
-      syncLocalLeadImages(nextImages, data.qualification_metadata)
-      if (wasPrimary && nextImages.length > 0) {
+      syncLocalLeadImages(nextItems, data.qualification_metadata)
+      if (wasPrimary && nextItems.length > 0) {
         toast.success("Photo n°1 retirée. La photo suivante devient la photo n°1 des e-mails.")
       } else {
         toast.success("Photo retirée du dossier")
@@ -1676,7 +1733,7 @@ export function LeadDrawer({
                 </span>
               </div>
 
-              {leadImages.length > 0 && activeImageUrl ? (
+              {leadImageItems.length > 0 && activeImageItem && activeImageUrl ? (
                 <div className="flex flex-col gap-2.5">
                   <div className="relative rounded-lg overflow-hidden border border-border bg-card group aspect-[3/2]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1735,7 +1792,35 @@ export function LeadDrawer({
                         </button>
                       </>
                     )}
+                    {activeImageItem.isAiProjection && (
+                      <div className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-between gap-2 bg-foreground/85 text-background px-2.5 py-1.5 backdrop-blur-xs">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold min-w-0 truncate">
+                          <span className="h-2 w-2 rounded-full bg-accent-solar shrink-0" />
+                          <span className="truncate">{AI_PROJECTION_BADGE_SHORT}</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowAiPreviewInfo((v) => !v)}
+                          aria-expanded={showAiPreviewInfo}
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-semibold bg-background/15 hover:bg-background/25 text-background shrink-0 transition-colors cursor-pointer"
+                        >
+                          <Info className="h-3 w-3" />
+                          <span>{showAiPreviewInfo ? "Masquer" : "Infos"}</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
+
+                  {activeImageItem.isAiProjection && showAiPreviewInfo && (
+                    <div className="rounded-lg border border-border border-l-2 border-l-accent-solar bg-card p-2.5 flex flex-col gap-1 text-[11px] leading-relaxed text-foreground">
+                      <span className="font-bold text-foreground">
+                        {AI_PROJECTION_EXPLANATION_TITLE}
+                      </span>
+                      <p className="text-muted-foreground">
+                        {AI_PROJECTION_EXPLANATION_BODY}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Barre d'actions sur la photo active */}
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1762,6 +1847,38 @@ export function LeadDrawer({
                           <span>Envoyée en priorité dans les e-mails</span>
                         </span>
                       )}
+
+                      <button
+                        type="button"
+                        onClick={() => handleToggleAiProjection(activeImageItem)}
+                        disabled={isUploadingImage}
+                        aria-pressed={activeImageItem.isAiProjection}
+                        title={
+                          activeImageItem.isAiProjection
+                            ? "Retirer le bandeau Projection 3D non contractuelle"
+                            : "Ajouter le bandeau Projection 3D · Non contractuelle avec explication"
+                        }
+                        className={cn(
+                          "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer disabled:opacity-50",
+                          activeImageItem.isAiProjection
+                            ? "bg-accent-solar/15 text-foreground border border-accent-solar/40 font-semibold"
+                            : "border border-border bg-card hover:bg-muted text-foreground"
+                        )}
+                      >
+                        <Box
+                          className={cn(
+                            "h-3.5 w-3.5",
+                            activeImageItem.isAiProjection
+                              ? "text-accent-solar"
+                              : "text-muted-foreground"
+                          )}
+                        />
+                        <span>
+                          {activeImageItem.isAiProjection
+                            ? "Projection 3D (actif)"
+                            : "Marquer « Projection 3D »"}
+                        </span>
+                      </button>
 
                       {leadImages.length > 1 && (
                         <div className="inline-flex items-center rounded-md border border-border bg-card overflow-hidden">
@@ -1806,7 +1923,8 @@ export function LeadDrawer({
 
                   {/* Grille de miniatures */}
                   <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
-                    {leadImages.map((url, idx) => {
+                    {leadImageItems.map((item, idx) => {
+                      const url = item.url
                       const isActive = idx === safeActiveIndex
                       return (
                         <div
@@ -1842,6 +1960,12 @@ export function LeadDrawer({
                           >
                             #{idx + 1}
                           </span>
+
+                          {item.isAiProjection && (
+                            <span className="absolute bottom-1 left-1 px-1 py-0.5 rounded text-[9px] font-mono font-bold bg-foreground/85 text-background pointer-events-none">
+                              3D
+                            </span>
+                          )}
 
                           <div className="absolute top-1 right-1 flex items-center gap-0.5">
                             {idx > 0 && (

@@ -8,7 +8,7 @@ import { B2C_CREDIT_COST, B2B_CREDIT_COST } from "@/lib/credit-pricing"
 import { calculateLeadCreditCost } from "@/lib/marketplace-pricing"
 import { sendLeadAssignedEmail } from "@/lib/notify-installateur"
 import { evaluateLeadPublishability } from "@/lib/lead-quality"
-import { getPrimaryLeadImage } from "@/lib/lead-images"
+import { getPrimaryLeadImageItem } from "@/lib/lead-images"
 
 export async function validateCreditOrderAction(orderId: string, adminEmail?: string) {
   const adminUser = await getAdminUser()
@@ -628,7 +628,8 @@ export async function assignLeadAction(
         annual_electricity_bill: lead.annual_electricity_bill,
         estimated_roi_years: lead.estimated_roi_years ?? null,
         estimated_savings: lead.estimated_savings ?? null,
-        roof_image_url: getPrimaryLeadImage(lead),
+        roof_image_url: getPrimaryLeadImageItem(lead)?.url ?? null,
+        roof_image_is_ai_projection: Boolean(getPrimaryLeadImageItem(lead)?.isAiProjection),
         message: lead.message ?? null,
       }).catch((emailErr) => {
         console.error("[assignLeadAction] Notification email failed:", emailErr)

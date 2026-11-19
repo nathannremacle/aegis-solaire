@@ -165,6 +165,8 @@ export async function GET() {
       qualification_metadata: lead.qualification_metadata ?? null,
       roof_image_url: leadImages[0] ?? null,
       roof_images: leadImages,
+      roof_image_meta:
+        (lead.qualification_metadata as Record<string, unknown> | null)?.roof_image_meta ?? null,
       reconfirmed_at:
         lead.reconfirmed_at ||
         ((lead.qualification_metadata as Record<string, unknown> | null)?.reconfirmed_at as string | null) ||

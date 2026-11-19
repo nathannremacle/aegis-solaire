@@ -6,6 +6,7 @@ import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { logAudit } from "@/lib/audit-log"
 import {
   appendLeadImages,
+  getLeadImageItems,
   getLeadImagesFromMetadata,
   isValidLeadImageUrl,
   MAX_LEAD_IMAGES,
@@ -13,6 +14,7 @@ import {
   reorderLeadImages,
   setPrimaryLeadImage,
   syncLeadImagesMetadata,
+  type LeadImageKind,
 } from "@/lib/lead-images"
 
 export const dynamic = "force-dynamic"
@@ -68,6 +70,7 @@ export async function POST(
     const existingImages = getLeadImagesFromMetadata(currentMeta)
 
     let setAsPrimary = false
+    let requestedKind: LeadImageKind = "real"
     const filesToUpload: File[] = []
     const candidateUrls: string[] = []
 
@@ -76,6 +79,9 @@ export async function POST(
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData()
       setAsPrimary = formData.get("setAsPrimary") === "true"
+      if (formData.get("kind") === "ai_3d_projection") {
+        requestedKind = "ai_3d_projection"
+      }
 
       const rawEntries = [...formData.getAll("files"), ...formData.getAll("file")]
       const seenFiles = new Set<File>()
@@ -103,6 +109,9 @@ export async function POST(
     } else {
       const body = await request.json().catch(() => ({}))
       setAsPrimary = body?.setAsPrimary === true
+      if (body?.kind === "ai_3d_projection") {
+        requestedKind = "ai_3d_projection"
+      }
 
       const rawList: unknown[] = []
       if (typeof body?.imageUrl === "string" && body.imageUrl.trim()) {
@@ -193,7 +202,18 @@ export async function POST(
     }
 
     const nextImages = appendLeadImages(existingImages, addedUrls, { makeFirst: setAsPrimary })
-    const updatedMeta = syncLeadImagesMetadata(currentMeta, nextImages)
+    const metaOverrides: Record<string, LeadImageKind> = {}
+    if (requestedKind === "ai_3d_projection") {
+      for (const url of addedUrls) {
+        metaOverrides[url] = "ai_3d_projection"
+      }
+    }
+    const updatedMeta = syncLeadImagesMetadata(
+      currentMeta,
+      nextImages,
+      undefined,
+      metaOverrides
+    )
 
     const { data: updatedLead, error: updateErr } = await supabase
       .from("leads")
@@ -233,6 +253,7 @@ export async function POST(
       imageUrl: nextImages[0] ?? null,
       addedUrls,
       images: nextImages,
+      imageItems: getLeadImageItems(updatedLead),
       qualification_metadata: updatedLead.qualification_metadata,
     })
   } catch (err: any) {
@@ -276,7 +297,24 @@ export async function PATCH(
     const existingImages = getLeadImagesFromMetadata(currentMeta)
 
     let nextImages: string[]
-    if (typeof body?.primaryUrl === "string") {
+    let metaOverrides: Record<string, LeadImageKind> | undefined
+    let metadataOnlyUpdate: { targetUrl: string; kind: LeadImageKind } | null = null
+
+    if (
+      typeof body?.imageUrl === "string" &&
+      (body?.kind === "real" || body?.kind === "ai_3d_projection")
+    ) {
+      const targetUrl = body.imageUrl.trim()
+      if (!targetUrl || !existingImages.includes(targetUrl)) {
+        return NextResponse.json(
+          { error: "Photo introuvable dans ce dossier." },
+          { status: 404 }
+        )
+      }
+      nextImages = existingImages
+      metaOverrides = { [targetUrl]: body.kind }
+      metadataOnlyUpdate = { targetUrl, kind: body.kind }
+    } else if (typeof body?.primaryUrl === "string") {
       const targetUrl = body.primaryUrl.trim()
       if (!targetUrl || !existingImages.includes(targetUrl)) {
         return NextResponse.json(
@@ -290,12 +328,17 @@ export async function PATCH(
       nextImages = reorderLeadImages(existingImages, ordered)
     } else {
       return NextResponse.json(
-        { error: "Paramètre primaryUrl ou images manquant." },
+        { error: "Paramètre primaryUrl, images ou imageUrl/kind manquant." },
         { status: 400 }
       )
     }
 
-    const updatedMeta = syncLeadImagesMetadata(currentMeta, nextImages)
+    const updatedMeta = syncLeadImagesMetadata(
+      currentMeta,
+      nextImages,
+      undefined,
+      metaOverrides
+    )
 
     const { data: updatedLead, error: updateErr } = await supabase
       .from("leads")
@@ -318,21 +361,35 @@ export async function PATCH(
     revalidatePath("/admin/leads")
     revalidatePath("/partenaires/dashboard")
 
-    await logAudit({
-      adminEmail: user.email!,
-      action: "lead_images_reordered",
-      entityType: "lead",
-      entityId: leadId,
-      details: {
-        primaryImageUrl: nextImages[0] ?? null,
-        totalImages: nextImages.length,
-      },
-    })
+    if (metadataOnlyUpdate) {
+      await logAudit({
+        adminEmail: user.email!,
+        action: "lead_image_metadata_updated",
+        entityType: "lead",
+        entityId: leadId,
+        details: {
+          imageUrl: metadataOnlyUpdate.targetUrl,
+          kind: metadataOnlyUpdate.kind,
+        },
+      })
+    } else {
+      await logAudit({
+        adminEmail: user.email!,
+        action: "lead_images_reordered",
+        entityType: "lead",
+        entityId: leadId,
+        details: {
+          primaryImageUrl: nextImages[0] ?? null,
+          totalImages: nextImages.length,
+        },
+      })
+    }
 
     return NextResponse.json({
       success: true,
       imageUrl: nextImages[0] ?? null,
       images: nextImages,
+      imageItems: getLeadImageItems(updatedLead),
       qualification_metadata: updatedLead.qualification_metadata,
     })
   } catch (err: any) {
@@ -416,6 +473,7 @@ export async function DELETE(
       success: true,
       imageUrl: nextImages[0] ?? null,
       images: nextImages,
+      imageItems: getLeadImageItems({ qualification_metadata: updatedMeta }),
       qualification_metadata: updatedMeta,
     })
   } catch (err: any) {

@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  Info,
   Loader2,
   Mail,
   MessageCircle,
@@ -36,7 +37,12 @@ import { LeadGeoRadarMap } from "./lead-geo-radar-map"
 import { buildWhatsAppLink, downloadLeadVCard } from "./lib/vcard-export"
 import { useLeadInspectionTimer } from "@/lib/client/partner-tracker"
 import { getLeadVerificationSummary } from "@/lib/lead-verification-display"
-import { getLeadImages } from "@/lib/lead-images"
+import {
+  AI_PROJECTION_BADGE_SHORT,
+  AI_PROJECTION_EXPLANATION_BODY,
+  AI_PROJECTION_EXPLANATION_TITLE,
+  getLeadImageItems,
+} from "@/lib/lead-images"
 
 export interface PartnerFocusedLeadViewProps {
   lead: any
@@ -157,30 +163,38 @@ export function PartnerFocusedLeadView({
   const [confirmingCredits, setConfirmingCredits] = useState(false)
   const [isPhotoLightboxOpen, setIsPhotoLightboxOpen] = useState(false)
   const [activePhotoIndex, setActivePhotoIndex] = useState(0)
+  const [showAiDisclaimer, setShowAiDisclaimer] = useState(false)
 
-  const roofImages = getLeadImages(lead)
+  const roofImageItems = getLeadImageItems(lead)
+  const safePhotoIndexHook =
+    roofImageItems.length > 0 ? Math.min(activePhotoIndex, roofImageItems.length - 1) : 0
 
   useEffect(() => {
     setActivePhotoIndex(0)
     setIsPhotoLightboxOpen(false)
+    setShowAiDisclaimer(false)
   }, [lead?.id])
+
+  useEffect(() => {
+    setShowAiDisclaimer(false)
+  }, [lead?.id, safePhotoIndexHook])
 
   useEffect(() => {
     if (!isPhotoLightboxOpen) return
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setIsPhotoLightboxOpen(false)
-      } else if (e.key === "ArrowLeft" && roofImages.length > 1) {
+      } else if (e.key === "ArrowLeft" && roofImageItems.length > 1) {
         e.preventDefault()
-        setActivePhotoIndex((prev) => (prev - 1 + roofImages.length) % roofImages.length)
-      } else if (e.key === "ArrowRight" && roofImages.length > 1) {
+        setActivePhotoIndex((prev) => (prev - 1 + roofImageItems.length) % roofImageItems.length)
+      } else if (e.key === "ArrowRight" && roofImageItems.length > 1) {
         e.preventDefault()
-        setActivePhotoIndex((prev) => (prev + 1) % roofImages.length)
+        setActivePhotoIndex((prev) => (prev + 1) % roofImageItems.length)
       }
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [isPhotoLightboxOpen, roofImages.length])
+  }, [isPhotoLightboxOpen, roofImageItems.length])
 
   const { recordRoofZoom, recordUnlockIntent } = useLeadInspectionTimer({
     lead,
@@ -298,9 +312,10 @@ export function PartnerFocusedLeadView({
     financials.includesEv
   )
 
-  const safePhotoIndex =
-    roofImages.length > 0 ? Math.min(activePhotoIndex, roofImages.length - 1) : 0
-  const activeRoofImageUrl = roofImages[safePhotoIndex] ?? null
+  const safePhotoIndex = safePhotoIndexHook
+  const activePhoto = roofImageItems[safePhotoIndex] ?? null
+  const activeRoofImageUrl = activePhoto?.url ?? null
+  const firstRealPhotoIndex = roofImageItems.findIndex((i) => !i.isAiProjection)
 
   // Identité du prospect selon statut d'achat et présence du nom (Guide §8 + règle d'anonymat ******)
   const cleanLastName = (lead.last_name?.trim() || "")
@@ -550,7 +565,7 @@ export function PartnerFocusedLeadView({
                     : "block"
                 }
               >
-                {activeRoofImageUrl && (
+                {activePhoto && activeRoofImageUrl && (
                   <div>
                     <div className="relative">
                       <button
@@ -568,20 +583,57 @@ export function PartnerFocusedLeadView({
                           className="w-full aspect-[3/2] object-cover transition-opacity group-hover:opacity-95"
                         />
                       </button>
-                      {roofImages.length > 1 && (
+                      {roofImageItems.length > 1 && (
                         <span className="pointer-events-none absolute top-2 right-2 rounded-[5px] bg-[var(--aegis-ink)]/85 px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-white">
-                          {safePhotoIndex + 1} / {roofImages.length}
+                          {safePhotoIndex + 1} / {roofImageItems.length}
                         </span>
+                      )}
+                      {activePhoto.isAiProjection && (
+                        <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-[var(--aegis-ink)]/88 px-2.5 py-1.5 text-white backdrop-blur-[2px] rounded-b-[8px]">
+                          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold min-w-0 truncate">
+                            <span className="h-2 w-2 rounded-full bg-[var(--aegis-preference-accent)] shrink-0" />
+                            <span className="truncate">{AI_PROJECTION_BADGE_SHORT}</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowAiDisclaimer((v) => !v)}
+                            aria-expanded={showAiDisclaimer}
+                            className="inline-flex items-center gap-1 rounded-[4px] bg-white/15 hover:bg-white/25 px-1.5 py-0.5 text-[11px] font-semibold text-white shrink-0 cursor-pointer transition-colors"
+                          >
+                            <Info className="h-3 w-3" />
+                            <span>{showAiDisclaimer ? "Masquer" : "Infos"}</span>
+                          </button>
+                        </div>
                       )}
                     </div>
 
-                    {roofImages.length > 1 && (
+                    {activePhoto.isAiProjection && showAiDisclaimer && (
+                      <div className="mt-2 rounded-[8px] border border-[var(--aegis-border)] border-l-[3px] border-l-[var(--aegis-preference-accent)] bg-[var(--aegis-preference-bg)] p-3 text-[12px] leading-[1.45] text-[var(--aegis-ink)] flex flex-col gap-1.5">
+                        <strong className="font-semibold text-[var(--aegis-ink)]">
+                          {AI_PROJECTION_EXPLANATION_TITLE}
+                        </strong>
+                        <p className="text-[var(--aegis-preference-label)]">
+                          {AI_PROJECTION_EXPLANATION_BODY}
+                        </p>
+                        {firstRealPhotoIndex >= 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setActivePhotoIndex(firstRealPhotoIndex)}
+                            className="self-start font-mono tabular-nums text-[12px] font-semibold text-[var(--aegis-link)] underline underline-offset-2 hover:text-[var(--aegis-ink)] cursor-pointer"
+                          >
+                            Voir la photo réelle (n°{firstRealPhotoIndex + 1}) &rarr;
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {roofImageItems.length > 1 && (
                       <div className="mt-2 grid grid-cols-4 gap-1.5">
-                        {roofImages.map((url, idx) => {
+                        {roofImageItems.map((item, idx) => {
                           const isSelected = idx === safePhotoIndex
                           return (
                             <button
-                              key={url}
+                              key={item.url}
                               type="button"
                               onClick={() => setActivePhotoIndex(idx)}
                               aria-label={`Afficher la photo ${idx + 1}`}
@@ -593,10 +645,15 @@ export function PartnerFocusedLeadView({
                             >
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
-                                src={url}
+                                src={item.url}
                                 alt={`Miniature ${idx + 1} du bâtiment`}
                                 className="w-full h-full object-cover"
                               />
+                              {item.isAiProjection && (
+                                <span className="pointer-events-none absolute bottom-1 left-1 rounded px-1 py-0.5 bg-[var(--aegis-ink)]/85 text-white font-mono text-[9px] font-bold">
+                                  3D
+                                </span>
+                              )}
                             </button>
                           )
                         })}
@@ -605,10 +662,10 @@ export function PartnerFocusedLeadView({
 
                     <div className="mt-1.5 flex items-center justify-between text-[12px] text-[var(--aegis-muted)]">
                       <span>
-                        {roofImages.length > 1 ? (
+                        {roofImageItems.length > 1 ? (
                           <>
                             Photos du bâtiment (
-                            <span className="font-mono tabular-nums">{roofImages.length}</span>)
+                            <span className="font-mono tabular-nums">{roofImageItems.length}</span>)
                           </>
                         ) : (
                           "Photo du bâtiment"
@@ -1098,7 +1155,7 @@ export function PartnerFocusedLeadView({
       </div>
 
       {/* Lightbox photo bâtiment */}
-      {isPhotoLightboxOpen && activeRoofImageUrl && (
+      {isPhotoLightboxOpen && activePhoto && activeRoofImageUrl && (
         <div
           role="dialog"
           aria-modal="true"
@@ -1115,9 +1172,9 @@ export function PartnerFocusedLeadView({
                 <span className="text-[14px] font-semibold text-[var(--aegis-ink)] truncate">
                   Photo du bâtiment · {headlineLocation}
                 </span>
-                {roofImages.length > 1 && (
+                {roofImageItems.length > 1 && (
                   <span className="font-mono text-[12px] tabular-nums text-[var(--aegis-muted)] shrink-0">
-                    {safePhotoIndex + 1} / {roofImages.length}
+                    {safePhotoIndex + 1} / {roofImageItems.length}
                   </span>
                 )}
               </div>
@@ -1135,15 +1192,15 @@ export function PartnerFocusedLeadView({
               <img
                 src={activeRoofImageUrl}
                 alt={`Photo ${safePhotoIndex + 1} du bâtiment à ${headlineLocation}`}
-                className="w-full max-h-[70vh] object-contain rounded-[8px] bg-[var(--aegis-surface-subtle)]"
+                className="w-full max-h-[65vh] object-contain rounded-[8px] bg-[var(--aegis-surface-subtle)]"
               />
-              {roofImages.length > 1 && (
+              {roofImageItems.length > 1 && (
                 <>
                   <button
                     type="button"
                     onClick={() =>
                       setActivePhotoIndex(
-                        (safePhotoIndex - 1 + roofImages.length) % roofImages.length
+                        (safePhotoIndex - 1 + roofImageItems.length) % roofImageItems.length
                       )
                     }
                     aria-label="Photo précédente"
@@ -1154,7 +1211,7 @@ export function PartnerFocusedLeadView({
                   <button
                     type="button"
                     onClick={() =>
-                      setActivePhotoIndex((safePhotoIndex + 1) % roofImages.length)
+                      setActivePhotoIndex((safePhotoIndex + 1) % roofImageItems.length)
                     }
                     aria-label="Photo suivante"
                     className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--aegis-surface)]/95 border border-[var(--aegis-border)] text-[var(--aegis-ink)] hover:bg-[var(--aegis-surface-subtle)] cursor-pointer shadow-sm"
@@ -1164,17 +1221,55 @@ export function PartnerFocusedLeadView({
                 </>
               )}
             </div>
-            {roofImages.length > 1 && (
+            {activePhoto.isAiProjection && (
+              <div className="mt-2 rounded-[8px] border border-[var(--aegis-border)] border-l-[3px] border-l-[var(--aegis-preference-accent)] bg-[var(--aegis-preference-bg)] px-3 py-2 text-[12px] text-[var(--aegis-ink)] flex flex-col gap-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-[var(--aegis-ink)] flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-[var(--aegis-preference-accent)] shrink-0" />
+                    <span>{AI_PROJECTION_BADGE_SHORT}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowAiDisclaimer((v) => !v)}
+                    aria-expanded={showAiDisclaimer}
+                    className="inline-flex items-center gap-1 font-medium text-[var(--aegis-link)] underline underline-offset-2 hover:text-[var(--aegis-ink)] cursor-pointer shrink-0"
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                    <span>{showAiDisclaimer ? "Masquer" : "En savoir plus"}</span>
+                  </button>
+                </div>
+                {showAiDisclaimer && (
+                  <div className="flex flex-col gap-1 pt-1 border-t border-[var(--aegis-border)]/70">
+                    <strong className="font-semibold text-[var(--aegis-ink)]">
+                      {AI_PROJECTION_EXPLANATION_TITLE}
+                    </strong>
+                    <p className="text-[var(--aegis-preference-label)] leading-[1.45]">
+                      {AI_PROJECTION_EXPLANATION_BODY}
+                    </p>
+                    {firstRealPhotoIndex >= 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setActivePhotoIndex(firstRealPhotoIndex)}
+                        className="self-start font-mono tabular-nums font-semibold text-[var(--aegis-link)] underline underline-offset-2 hover:text-[var(--aegis-ink)] cursor-pointer"
+                      >
+                        Voir la photo réelle (n°{firstRealPhotoIndex + 1}) &rarr;
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+            {roofImageItems.length > 1 && (
               <div className="mt-2 flex items-center gap-2 overflow-x-auto pb-1">
-                {roofImages.map((url, idx) => {
+                {roofImageItems.map((item, idx) => {
                   const isSelected = idx === safePhotoIndex
                   return (
                     <button
-                      key={url}
+                      key={item.url}
                       type="button"
                       onClick={() => setActivePhotoIndex(idx)}
                       aria-label={`Afficher la photo ${idx + 1}`}
-                      className={`shrink-0 w-20 aspect-[3/2] rounded-[6px] overflow-hidden border cursor-pointer transition-opacity ${
+                      className={`relative shrink-0 w-20 aspect-[3/2] rounded-[6px] overflow-hidden border cursor-pointer transition-opacity ${
                         isSelected
                           ? "border-[var(--aegis-ink)] ring-1 ring-[var(--aegis-ink)] opacity-100"
                           : "border-[var(--aegis-border)] opacity-70 hover:opacity-100"
@@ -1182,10 +1277,15 @@ export function PartnerFocusedLeadView({
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={url}
+                        src={item.url}
                         alt={`Miniature ${idx + 1}`}
                         className="w-full h-full object-cover"
                       />
+                      {item.isAiProjection && (
+                        <span className="pointer-events-none absolute bottom-0.5 left-0.5 rounded px-1 py-0.5 bg-[var(--aegis-ink)]/85 text-white font-mono text-[9px] font-bold">
+                          3D
+                        </span>
+                      )}
                     </button>
                   )
                 })}

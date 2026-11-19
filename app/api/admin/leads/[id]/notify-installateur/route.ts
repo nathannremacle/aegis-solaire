@@ -3,7 +3,7 @@ import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { sendLeadAssignedEmail } from "@/lib/notify-installateur"
 import { logAudit } from "@/lib/audit-log"
-import { getPrimaryLeadImage } from "@/lib/lead-images"
+import { getPrimaryLeadImageItem } from "@/lib/lead-images"
 
 /**
  * Renvoie l'email du lead à l'installateur assigné (depuis le panel).
@@ -64,7 +64,8 @@ export async function POST(
       project_timeline: lead.project_timeline ?? null,
       estimated_roi_years: lead.estimated_roi_years ?? null,
       estimated_savings: lead.estimated_savings ?? null,
-      roof_image_url: getPrimaryLeadImage(lead),
+      roof_image_url: getPrimaryLeadImageItem(lead)?.url ?? null,
+      roof_image_is_ai_projection: Boolean(getPrimaryLeadImageItem(lead)?.isAiProjection),
       message: lead.message ?? null,
     })
   } catch (err) {

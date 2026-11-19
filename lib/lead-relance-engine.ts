@@ -20,7 +20,7 @@ import { sendAdminLeadSaleNotification, type LeadSaleBuyerSummary } from "@/lib/
 import { sendProspectExclusiveMatchEmail } from "@/lib/prospect-exclusive-match-email"
 import { sendProspectReconfirmEmail } from "@/lib/prospect-reconfirm-email"
 import { sendProspectReferralEmail } from "@/lib/prospect-referral-email"
-import { getLeadImages, getPrimaryLeadImage } from "@/lib/lead-images"
+import { getLeadImages, getPrimaryLeadImageItem } from "@/lib/lead-images"
 import b2cOptoutEmails from "@/lib/data/b2c-optout-emails.json"
 
 // ==============================================================================
@@ -846,8 +846,9 @@ export async function dispatchLeadWave(
         firstName: lead.first_name,
         lastName: lead.last_name,
         grd: lead.grd,
-        roofImageUrl: getPrimaryLeadImage(lead),
+        roofImageUrl: getPrimaryLeadImageItem(lead)?.url ?? null,
         roofImagesCount: getLeadImages(lead).length,
+        roofImageIsAiProjection: Boolean(getPrimaryLeadImageItem(lead)?.isAiProjection),
         phoneVerified: Boolean(lead.phone_verified),
         phoneVerificationMethod: lead.phone_verification_method ?? null,
         phoneCarrier: lead.phone_carrier ?? null,
@@ -1138,8 +1139,9 @@ export async function dispatchLeadToSpecificPartners(
         firstName: lead.first_name,
         lastName: lead.last_name,
         grd: lead.grd,
-        roofImageUrl: getPrimaryLeadImage(lead),
+        roofImageUrl: getPrimaryLeadImageItem(lead)?.url ?? null,
         roofImagesCount: getLeadImages(lead).length,
+        roofImageIsAiProjection: Boolean(getPrimaryLeadImageItem(lead)?.isAiProjection),
         phoneVerified: Boolean(lead.phone_verified),
         phoneVerificationMethod: lead.phone_verification_method ?? null,
         phoneCarrier: lead.phone_carrier ?? null,
@@ -2790,7 +2792,8 @@ export async function runAutoMatchForLead(leadId: string): Promise<AutoMatchResu
             project_timeline: lead.project_timeline || lead.timeframe || null,
             estimated_roi_years: lead.estimated_roi_years ?? null,
             estimated_savings: lead.estimated_savings ?? null,
-            roof_image_url: getPrimaryLeadImage(lead),
+            roof_image_url: getPrimaryLeadImageItem(lead)?.url ?? null,
+            roof_image_is_ai_projection: Boolean(getPrimaryLeadImageItem(lead)?.isAiProjection),
             message: lead.project_details || lead.message || null,
           }).catch((e) => console.error("[Auto-Pilot] Erreur e-mail installateur:", e))
         }
