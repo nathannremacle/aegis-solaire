@@ -61,7 +61,7 @@ export function buildProspectReconfirmEmail(payload: ProspectReconfirmPayload): 
   const bodyHtml = `
     <p style="margin: 0 0 12px 0; font-size: 15px; line-height: 1.5; color: #142D42;">
       Bonjour <strong>${escapeEmailHtml(rawName)}</strong>,<br /><br />
-      Il y a <span class="tabular" style="font-variant-numeric: tabular-nums;">48</span> heures, vous avez réalisé une simulation photovoltaïque pour votre bâtiment à
+      Il y a quelques jours, vous avez réalisé une simulation photovoltaïque pour votre bâtiment à
       <strong>${escapeEmailHtml(cityLabel)}</strong> via Aegis Solaire.
     </p>
 
@@ -92,14 +92,14 @@ export function buildProspectReconfirmEmail(payload: ProspectReconfirmPayload): 
   const html = renderInstallerEmailShell({
     subject,
     preheader: `Nous veillons sur votre dossier à ${cityLabel} : confirmez en 1 clic pour mettre les installateurs RESCERT en concurrence et obtenir le meilleur prix sans compromis qualité.`,
-    reference: "Suivi qualité 48 h",
+    reference: "Suivi qualité 72 h",
     context: "Reconfirmation projet · Tiers de confiance",
     headline: `Votre projet solaire à ${cityLabel} est-il toujours actif ?`,
     subtitle: "Confirmation express en 1 clic · Meilleur prix & qualité Tier-1",
     statusPill: { text: "Action requise en 1 clic", tone: "warning" },
     bodyHtml,
     logoHref: baseUrl,
-    footerNote: "E-mail automatique de suivi envoyé 48 h après votre demande d'étude sur Aegis Solaire.",
+    footerNote: "E-mail automatique de suivi envoyé 72 h après la mise en ligne de votre demande d'étude sur Aegis Solaire.",
     footerLinks: [
       { label: "Confirmer mon projet", href: confirmUrl },
       { label: "Assistance technique", href: "mailto:contact@aegissolaire.com" },
@@ -109,7 +109,7 @@ export function buildProspectReconfirmEmail(payload: ProspectReconfirmPayload): 
   const text = [
     `Bonjour ${rawName},`,
     "",
-    `Il y a 48 heures, vous avez demandé une étude photovoltaïque à ${cityLabel} via Aegis Solaire.`,
+    `Il y a quelques jours, vous avez demandé une étude photovoltaïque à ${cityLabel} via Aegis Solaire.`,
     "Nous veillons sur votre dossier afin de vous obtenir le meilleur prix sans aucun compromis sur la qualité (matériel Tier-1, agrément RESCERT et garanties vérifiées).",
     "Confirmez en 1 clic que votre projet est toujours d'actualité pour relancer la mise en concurrence auprès des installateurs certifiés RESCERT de votre secteur :",
     confirmUrl,

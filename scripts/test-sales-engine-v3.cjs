@@ -576,3 +576,256 @@ test("Prospect referral email ('L'astuce propriétaire') & 24h anti-misclick tri
   assert.ok(updatedLeads[0].payload.qualification_metadata.referral_invite_sent_at)
   assert.equal(updatedLeads[0].payload.qualification_metadata.referral_trigger_purchase_id, "purch-eligible")
 })
+
+test("Business-hours cooldowns (Europe/Brussels), published_at lifecycle & daily cap = 4", async () => {
+  const noop = () => ({})
+  const belgiumMod = loadTs("lib/belgium-regions.ts")
+  const prefsMod = loadTs("lib/partner-notification-prefs.ts", {
+    "@/data/b2c-optout-emails.json": [],
+  })
+  const engine = loadTs("lib/lead-relance-engine.ts", {
+    react: { cache: (fn) => fn },
+    resend: { Resend: class {} },
+    "@/lib/supabase/admin": { createServiceRoleClient: noop },
+    "@/lib/marketplace-pricing": { calculateMarketplaceFinancials: noop, calculateLeadCreditCost: () => 3 },
+    "@/lib/email-templates/installer-lead-teaser": { renderInstallerLeadTeaserEmail: noop, buildLeadEmailSubject: () => "" },
+    "@/lib/belgium-regions": belgiumMod,
+    "@/lib/partner-notification-prefs": prefsMod,
+    "@/lib/partner-notification-tokens": { buildPartnerNotificationUrls: noop },
+    "@/lib/credit-pricing": { B2C_EXCLUSIVE_CREDIT_COST: 7, calculateOrderFinancials: noop },
+    "@/lib/mollie": { createRecurringLeadPayment: noop, getMollieClient: noop, getValidMollieMandate: noop },
+    "@/lib/mollie-fulfillment": { fulfillPaidLeadDirectPurchase: noop },
+    "@/lib/notify-installateur": { sendLeadAssignedEmail: noop },
+    "@/lib/admin-sales-emails": { sendAdminLeadSaleNotification: noop },
+    "@/lib/prospect-exclusive-match-email": { sendProspectExclusiveMatchEmail: noop },
+    "@/lib/prospect-reconfirm-email": { sendProspectReconfirmEmail: noop },
+    "@/lib/prospect-referral-email": { sendProspectReferralEmail: noop },
+  })
+
+  const HOUR_MS = 60 * 60 * 1000
+  const DAY_MS = 24 * HOUR_MS
+
+  // 1. Constantes calibrées
+  assert.equal(engine.COOLDOWN_WAVE_1_TO_2_MS, 6 * HOUR_MS)
+  assert.equal(engine.COOLDOWN_WAVE_2_TO_3_MS, 24 * HOUR_MS)
+  assert.equal(engine.RECONFIRM_PROTOCOL_AGE_MS, 72 * HOUR_MS)
+  assert.equal(engine.MAX_DAILY_NOTIFICATIONS_PER_PARTNER, 4)
+
+  // 2. Horaires ouvrés Europe/Brussels (CET + CEST)
+  const thu21Cet = Date.parse("2026-11-19T20:00:00Z") // Jeudi 21:00 CET
+  const fri08Cet = Date.parse("2026-11-20T07:00:00Z") // Vendredi 08:00 CET
+  const fri14Cet = Date.parse("2026-11-20T13:00:00Z") // Vendredi 14:00 CET
+  const tue11Cet = Date.parse("2026-11-24T10:00:00Z") // Mardi 11:00 CET
+
+  assert.equal(engine.getBusinessMsBetween(thu21Cet, fri08Cet), 0)
+  assert.equal(engine.addBusinessMs(thu21Cet, engine.COOLDOWN_WAVE_1_TO_2_MS), fri14Cet)
+  assert.equal(engine.addBusinessMs(fri14Cet, engine.COOLDOWN_WAVE_2_TO_3_MS), tue11Cet)
+  assert.equal(engine.getEffectiveSendTime(new Date(thu21Cet)).toISOString(), "2026-11-20T07:00:00.000Z")
+
+  // Heure d'été CEST (UTC+2) + dimanche fermé
+  assert.equal(engine.isWithinBusinessHours(new Date("2026-07-15T06:00:00Z")), true) // 08:00 CEST
+  assert.equal(engine.isWithinBusinessHours(new Date("2026-07-15T17:30:00Z")), false) // 19:30 CEST
+  assert.equal(engine.isWithinBusinessHours(new Date("2026-11-22T10:00:00Z")), false) // Dimanche 11:00 CET
+
+  // 3. Cycle de vie basé sur published_at / republished_at
+  const now = 1_795_000_000_000
+  assert.equal(
+    engine.shouldAutoClosePartialLead({
+      segment: "B2C",
+      createdAtMs: now - 10 * DAY_MS,
+      publishedAtMs: now - 2 * DAY_MS,
+      takenSlots: 1,
+      maxSlots: 3,
+      lastPurchaseAtMs: now - 50 * HOUR_MS,
+      nowMs: now,
+    }),
+    false
+  )
+  assert.equal(
+    engine.shouldAutoClosePartialLead({
+      segment: "B2C",
+      createdAtMs: now - 10 * DAY_MS,
+      publishedAtMs: now - 8 * DAY_MS,
+      takenSlots: 1,
+      maxSlots: 3,
+      lastPurchaseAtMs: now - 50 * HOUR_MS,
+      nowMs: now,
+    }),
+    true
+  )
+  assert.equal(
+    engine.getLeadPublishedAtMs({
+      created_at: "2026-11-10T10:00:00.000Z",
+      qualification_metadata: {
+        published_at: "2026-11-12T10:00:00.000Z",
+        republished_at: "2026-11-15T10:00:00.000Z",
+      },
+    }),
+    Date.parse("2026-11-15T10:00:00.000Z")
+  )
+  assert.equal(
+    engine.getLeadPublishedAtMs({
+      created_at: "2026-11-10T10:00:00.000Z",
+      qualification_metadata: {
+        published_at: "2026-11-12T10:00:00.000Z",
+      },
+    }),
+    Date.parse("2026-11-12T10:00:00.000Z")
+  )
+  assert.equal(
+    engine.getLeadPublishedAtMs({
+      created_at: "2026-11-10T10:00:00.000Z",
+      qualification_metadata: {},
+    }),
+    Date.parse("2026-11-10T10:00:00.000Z")
+  )
+
+  // 4. Plafond journalier MAX_DAILY_NOTIFICATIONS_PER_PARTNER = 4 dans getEligiblePartnersForWave
+  const eligible = await engine.getEligiblePartnersForWave(
+    {},
+    {
+      id: "lead-cap-test",
+      segment: "B2C",
+      province: "liege",
+      surface_type: "toiture",
+      annual_electricity_bill: 2200,
+      credit_cost: 3,
+      max_slots: 3,
+    },
+    1,
+    {
+      allPartners: [
+        {
+          id: "partner-capped",
+          company_name: "Solar Capped SRL",
+          email: "capped@solaire-liege.be",
+          credits: 10,
+          segment: "B2C",
+          target_provinces: ["liege"],
+          target_surfaces: ["toiture"],
+          is_test: false,
+        },
+        {
+          id: "partner-ok",
+          company_name: "Solar Ok SRL",
+          email: "ok@solaire-liege.be",
+          credits: 10,
+          segment: "B2C",
+          target_provinces: ["liege"],
+          target_surfaces: ["toiture"],
+          is_test: false,
+        },
+        {
+          id: "partner-test",
+          company_name: "Dev Test Observer",
+          email: "mrnathanrem@gmail.com",
+          credits: 10,
+          segment: "BOTH",
+          target_provinces: ["liege"],
+          target_surfaces: ["toiture"],
+          is_test: true,
+        },
+      ],
+      purchasesByLeadId: new Map(),
+      dispatchesByLeadId: new Map(),
+      dailyDispatchCountsByPartnerId: new Map([
+        ["partner-capped", 4],
+        ["partner-ok", 3],
+        ["partner-test", 10],
+      ]),
+      telemetryByLeadId: new Map(),
+      velocityByPartnerId: new Map(),
+    }
+  )
+
+  const eligibleIds = eligible.map((c) => c.partner.id)
+  assert.equal(eligibleIds.includes("partner-capped"), false)
+  assert.equal(eligibleIds.includes("partner-ok"), true)
+  assert.equal(eligibleIds.includes("partner-test"), true)
+})
+
+test("Factual installer lead teaser email subjects & contexts across waves and remaining slots", () => {
+  const teaser = loadTs("lib/email-templates/installer-lead-teaser.ts")
+
+  const makePayload = ({ segment = "B2C", waveNumber, takenSlots, maxSlots }) => ({
+    partner: {
+      id: "partner-1",
+      companyName: "Solar Wallonie SRL",
+      credits: 12,
+    },
+    lead: {
+      id: "0ea4c999-0000-4000-8000-000000000001",
+      segment,
+      province: "hainaut",
+      postalCode: "7000",
+      city: "Mons",
+      surfaceType: "toiture",
+      surfaceArea: 45,
+      annualElectricityBill: 1800,
+      firstName: "Jean",
+      lastName: "Dupont",
+      createdAt: "2026-11-19T20:00:00.000Z",
+    },
+    waveNumber,
+    takenSlots,
+    maxSlots,
+    creditCost: segment === "B2B" ? 9 : 3,
+    financials: {
+      estimatedPowerKwc: 3.9,
+      estimatedPanelCount: 9,
+      normalizedSurfaceAreaM2: 45,
+      normalizedAnnualBill: 1800,
+      estimatedAnnualConsumptionKwh: 4200,
+      estimatedContractValueRange: { min: 4150, max: 4850 },
+      estimatedInstallerMargin: 1650,
+      leadCostEuros: segment === "B2B" ? 88.5 : 29.5,
+      revenueEstimatePerYear: 1100,
+      includesBattery: false,
+      includesEv: false,
+    },
+  })
+
+  // Vague 3 B2C 0/3 (3 places ouvertes) -> zéro fausse clôture ni rouge
+  const w3Open = teaser.renderInstallerLeadTeaserEmail(
+    makePayload({ waveNumber: 3, takenSlots: 0, maxSlots: 3 })
+  )
+  assert.equal(/Dernier créneau/i.test(w3Open.subject), false)
+  assert.equal(/Dernier créneau/i.test(w3Open.html), false)
+  assert.equal(/avant clôture/i.test(w3Open.html), false)
+  assert.equal(/place\(s\)/i.test(w3Open.subject), false)
+  assert.equal(/color: #991b1b;/i.test(w3Open.html), false)
+  assert.match(w3Open.subject, /3 places ouvertes/)
+  assert.match(w3Open.html, /Élargissement régional · Dossier ouvert/)
+
+  // Vague 3 B2C 2/3 (1 vraie dernière place) -> Dernière place disponible + rouge contexte
+  const w3Last = teaser.renderInstallerLeadTeaserEmail(
+    makePayload({ waveNumber: 3, takenSlots: 2, maxSlots: 3 })
+  )
+  assert.match(w3Last.subject, /Dernière place disponible/)
+  assert.match(w3Last.html, /Dernière place disponible/)
+  assert.match(w3Last.html, /color: #991b1b;/)
+
+  // Vague 2 B2C 0/3 -> pas de "Plus que 3" ni "place(s)"
+  const w2Open = teaser.renderInstallerLeadTeaserEmail(
+    makePayload({ waveNumber: 2, takenSlots: 0, maxSlots: 3 })
+  )
+  assert.equal(/Plus que 3/i.test(w2Open.subject), false)
+  assert.equal(/place\(s\)/i.test(w2Open.subject), false)
+  assert.match(w2Open.subject, /3 places ouvertes/)
+
+  // Vague 2 B2C 1/3 -> "2 places restantes" sans "(s)"
+  const w2Partial = teaser.renderInstallerLeadTeaserEmail(
+    makePayload({ waveNumber: 2, takenSlots: 1, maxSlots: 3 })
+  )
+  assert.equal(/place\(s\)/i.test(w2Partial.subject), false)
+  assert.equal(/restante\(s\)/i.test(w2Partial.subject), false)
+  assert.match(w2Partial.subject, /2 places restantes/)
+
+  // Vague 3 B2B -> jamais "bientôt clôturé" ni "Dernier appel"
+  const w3B2B = teaser.renderInstallerLeadTeaserEmail(
+    makePayload({ segment: "B2B", waveNumber: 3, takenSlots: 0, maxSlots: 1 })
+  )
+  assert.equal(/bientôt clôturé/i.test(w3B2B.html), false)
+  assert.equal(/Dernier appel/i.test(w3B2B.subject), false)
+  assert.match(w3B2B.subject, /Projet B2B exclusif toujours disponible/)
+})

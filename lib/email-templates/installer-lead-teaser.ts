@@ -290,27 +290,42 @@ export function buildLeadEmailSubject(data: InstallerLeadTeaserData): string {
     if (isB2B) {
       return `Nouveau projet B2B exclusif ${locPhrase} (${power}) — Dossier #${refCode}`
     }
-    return `Nouveau dossier photovoltaïque ${locPhrase} — ${remainingSlots} places dispo (#${refCode})`
+    return `Nouveau dossier photovoltaïque ${locPhrase} — ${remainingSlots === 1 ? "1 place dispo" : `${remainingSlots} places dispo`} (#${refCode})`
   }
 
   if (data.waveNumber >= 2 && data.engagement?.hasInspected) {
+    if (!isB2B && remainingSlots === 1) {
+      return `Dossier consulté ${locPhrase} — Dernière place disponible`
+    }
     if (!isB2B && data.takenSlots > 0) {
-      return `Mise à jour sur le dossier consulté ${locPhrase} — Plus que ${remainingSlots} place(s) disponible(s)`
+      return `Mise à jour sur le dossier consulté ${locPhrase} — ${remainingSlots} places restantes`
     }
     return `Rappel sur le dossier consulté ${locPhrase} (${power})`
   }
 
   if (data.waveNumber === 2) {
     if (isB2B) {
-      return `Rappel : Projet B2B disponible ${locPhrase} (${power})`
+      return `Rappel : Projet B2B exclusif disponible ${locPhrase} (${power})`
     }
-    return `Rappel : Plus que ${remainingSlots} place(s) restante(s) — Projet solaire ${locPhrase}`
+    if (remainingSlots === 1) {
+      return `Dernière place disponible — Projet solaire ${locPhrase} (${power})`
+    }
+    if (data.takenSlots > 0) {
+      return `Rappel : ${remainingSlots} places restantes — Projet solaire ${locPhrase}`
+    }
+    return `Projet solaire disponible ${locPhrase} (${power}) — ${remainingSlots} places ouvertes`
   }
 
   if (isB2B) {
-    return `Dernier appel : Projet B2B ${locPhrase} en attente d'artisan certifié`
+    return `Projet B2B exclusif toujours disponible ${locPhrase} (${power})`
   }
-  return `Dernier créneau disponible : Installation solaire ${locPhrase}`
+  if (remainingSlots === 1) {
+    return `Dernière place disponible : Installation solaire ${locPhrase}`
+  }
+  if (data.takenSlots > 0) {
+    return `Dossier solaire ouvert ${locPhrase} (${power}) — ${remainingSlots} places restantes`
+  }
+  return `Installation solaire disponible ${locPhrase} (${power}) — ${remainingSlots} places ouvertes`
 }
 
 /**
@@ -433,21 +448,41 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
   let contextColor = "#305a76"
 
   if (data.waveNumber === 2) {
-    contextColor = "#89610e"
-    if (data.engagement?.hasInspected && !isB2B && data.takenSlots > 0) {
+    if (!isB2B && remainingSlots === 1) {
+      contextColor = "#991b1b"
+      contextText = data.engagement?.hasInspected
+        ? "Dossier consulté · Dernière place disponible"
+        : "Dernière place disponible"
+    } else if (data.engagement?.hasInspected && !isB2B && data.takenSlots > 0) {
+      contextColor = "#89610e"
       contextText = "Dossier consulté · Mise à jour"
     } else if (data.engagement?.hasInspected) {
+      contextColor = "#89610e"
       contextText = "Rappel · Dossier consulté"
+    } else if (isB2B) {
+      contextColor = "#89610e"
+      contextText = "Rappel · Projet B2B exclusif disponible"
+    } else if (data.takenSlots > 0) {
+      contextColor = "#89610e"
+      contextText = "Rappel · Dossier photovoltaïque disponible"
     } else {
-      contextText = isB2B
-        ? "Rappel · Projet B2B disponible"
-        : "Rappel · Dossier photovoltaïque disponible"
+      contextColor = "#305a76"
+      contextText = "Dossier photovoltaïque disponible"
     }
   } else if (data.waveNumber >= 3) {
-    contextColor = "#991b1b"
-    contextText = isB2B
-      ? "Dernier appel · Projet B2B bientôt clôturé"
-      : "Dernier créneau avant clôture"
+    if (isB2B) {
+      contextColor = "#305a76"
+      contextText = "Projet B2B · Exclusivité toujours disponible"
+    } else if (remainingSlots === 1) {
+      contextColor = "#991b1b"
+      contextText = "Dernière place disponible"
+    } else if (data.takenSlots > 0) {
+      contextColor = "#89610e"
+      contextText = "Rappel · Places encore disponibles"
+    } else {
+      contextColor = "#305a76"
+      contextText = "Élargissement régional · Dossier ouvert"
+    }
   }
 
   let availabilityText = ""

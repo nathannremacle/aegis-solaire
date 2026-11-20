@@ -218,9 +218,25 @@ export async function GET(request: NextRequest) {
     )
   }
 
+  const existingMeta =
+    lead.qualification_metadata && typeof lead.qualification_metadata === "object"
+      ? (lead.qualification_metadata as Record<string, unknown>)
+      : {}
+  const nowIso = new Date().toISOString()
+
   const { error: updateError } = await admin
     .from("leads")
-    .update({ marketplace_status: "available" })
+    .update({
+      status: "qualified",
+      marketplace_status: "available",
+      qualification_metadata: {
+        ...existingMeta,
+        withdrawn_from_marketplace: false,
+        published_at: existingMeta.published_at || nowIso,
+        ...(existingMeta.withdrawn_from_marketplace === true ? { republished_at: nowIso } : {}),
+      },
+      updated_at: nowIso,
+    })
     .eq("id", id)
 
   if (updateError) {

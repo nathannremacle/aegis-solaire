@@ -45,8 +45,8 @@ import { CustomSelect } from "@/components/ui/custom-select"
 const WAVE_OPTIONS = [
   { value: "ALL", label: "Toutes les vagues" },
   { value: "1", label: "Vague 1 (Alerte Immédiate)" },
-  { value: "2", label: "Vague 2 (Relance Élargie H+4)" },
-  { value: "3", label: "Vague 3 (Clôture H+24)" },
+  { value: "2", label: "Vague 2 (Relance Élargie +6h ouvr.)" },
+  { value: "3", label: "Vague 3 (Élargissement Régional +24h ouvr.)" },
 ]
 
 const SEGMENT_OPTIONS = [
@@ -416,7 +416,7 @@ export function AdminRelancesDashboard({
                 <span>Supervision des Relances Mails &amp; Cascades</span>
               </div>
               <Badge variant="outline" className="text-[11px] font-mono tabular-nums">
-                Cascade Flash (H+0 / H+1h30 / H+5h · H+48h)
+                Cascade Ouvrée (T+0 / +6h / +24h ouvr. · Reconf. 72h · Clôture part. 7j)
               </Badge>
             </div>
 
@@ -659,7 +659,7 @@ export function AdminRelancesDashboard({
                     Aucune relance programmée en attente
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    Tous les leads disponibles ont terminé leurs cycles de vagues ou n'ont pas encore atteint leur prochain délai de cooldown (H+4h / H+24h).
+                    Tous les leads disponibles ont terminé leurs cycles de vagues ou n'ont pas encore atteint leur prochain délai ouvré (+6h / +24h ouvrées).
                   </p>
                 </div>
               </div>
@@ -688,7 +688,7 @@ export function AdminRelancesDashboard({
                                 : "bg-secondary text-foreground border-border"
                             )}
                           >
-                            Vague {item.nextWave} ({item.nextWave === 1 ? "Alerte Immédiate" : item.nextWave === 2 ? "Relance H+4" : "Dernière Chance"})
+                            Vague {item.nextWave} ({item.nextWave === 1 ? "Alerte Immédiate" : item.nextWave === 2 ? "Relance +6h ouvr." : "Élargissement +24h ouvr."})
                           </Badge>
 
                           <Badge variant="outline" className="font-mono text-[10px]">

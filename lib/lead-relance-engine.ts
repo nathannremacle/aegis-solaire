@@ -35,10 +35,10 @@ const replyToEmail = process.env.RESEND_REPLY_TO ?? "contact@aegissolaire.com"
 export const MAX_SLOTS_B2C = 3 // Partagé 3 installateurs max
 export const MAX_SLOTS_B2B = 1 // Exclusivité 100%
 
-/** Cooldowns resserrés intra-journée (Cascade Flash via Cron 15 min) */
-export const COOLDOWN_WAVE_1_TO_2_MS = 90 * 60 * 1000 // 90 minutes après Vague 1
-export const COOLDOWN_WAVE_2_TO_3_MS = 210 * 60 * 1000 // +3h30 après Vague 2 (soit ~H+5h)
-export const RECONFIRM_PROTOCOL_AGE_MS = 48 * 60 * 60 * 1000 // Reconfirmation prospect 1-clic à H+48h si 0 achat
+/** Cooldowns en heures ouvrées réelles (Europe/Brussels) */
+export const COOLDOWN_WAVE_1_TO_2_MS = 6 * 60 * 60 * 1000 // 6 heures ouvrées après Vague 1
+export const COOLDOWN_WAVE_2_TO_3_MS = 24 * 60 * 60 * 1000 // 24 heures ouvrées après Vague 2 (~J+2 / J+3)
+export const RECONFIRM_PROTOCOL_AGE_MS = 72 * 60 * 60 * 1000 // Reconfirmation prospect 1-clic à H+72h après publication si 0 achat
 export const STALE_PARTIAL_CLOSE_AGE_MS = 168 * 60 * 60 * 1000 // 7 jours avant clôture d'un B2C partiel (1/3 ou 2/3)
 export const STALE_PARTIAL_LAST_BUY_GRACE_MS = 48 * 60 * 60 * 1000 // Délai de grâce 48 h après le dernier achat réel
 export const REFERRAL_WON_STABILIZATION_MS = 24 * 60 * 60 * 1000 // Délai anti-misclick 24 h après passage en 'won'
@@ -53,6 +53,7 @@ const REFERRAL_OPTOUT_EMAIL_SET = new Set(
 export interface PartialCloseCheckInput {
   segment?: string | null
   createdAtMs: number
+  publishedAtMs?: number | null
   reconfirmedAtMs?: number | null
   takenSlots: number
   maxSlots: number
@@ -61,15 +62,42 @@ export interface PartialCloseCheckInput {
 }
 
 /**
+ * Retourne le timestamp (ms) effectif de mise en ligne d'un lead sur la marketplace :
+ * priorité à `republished_at`, puis `published_at`, avec repli sur `created_at`.
+ */
+export function getLeadPublishedAtMs(lead: {
+  created_at?: string | null
+  qualification_metadata?: unknown
+}): number {
+  const meta =
+    lead.qualification_metadata && typeof lead.qualification_metadata === "object"
+      ? (lead.qualification_metadata as Record<string, unknown>)
+      : null
+
+  const candidates = [meta?.republished_at, meta?.published_at, lead.created_at]
+  for (const raw of candidates) {
+    if (typeof raw === "string" && raw.trim()) {
+      const ts = new Date(raw).getTime()
+      if (Number.isFinite(ts)) return ts
+    }
+  }
+  return Date.now()
+}
+
+/**
  * Détermine si un dossier B2C partiellement vendu (1/3 ou 2/3) doit être clôturé proprement.
- * Exige >= 7 jours d'ancienneté (depuis création ou reconfirmation) ET >= 48 h de calme depuis le dernier achat.
+ * Exige >= 7 jours d'ancienneté (depuis publication ou reconfirmation) ET >= 48 h de calme depuis le dernier achat.
  */
 export function shouldAutoClosePartialLead(input: PartialCloseCheckInput): boolean {
   if ((input.segment || "").toUpperCase() !== "B2C") return false
   if (input.takenSlots < 1 || input.takenSlots >= input.maxSlots) return false
 
   const now = input.nowMs ?? Date.now()
-  const referenceStartMs = Math.max(input.createdAtMs, input.reconfirmedAtMs ?? 0)
+  const effectiveStartMs =
+    typeof input.publishedAtMs === "number" && Number.isFinite(input.publishedAtMs)
+      ? input.publishedAtMs
+      : input.createdAtMs
+  const referenceStartMs = Math.max(effectiveStartMs, input.reconfirmedAtMs ?? 0)
   if (!Number.isFinite(referenceStartMs) || now - referenceStartMs < STALE_PARTIAL_CLOSE_AGE_MS) {
     return false
   }
@@ -134,27 +162,179 @@ export interface PartnerMatchingScore {
 }
 
 // ==============================================================================
-// 2. CONTRÔLE DES HEURES OUVRÉES (BUSINESS HOURS)
+// 2. CONTRÔLE DES HEURES OUVRÉES (BUSINESS HOURS — EUROPE/BRUSSELS)
 // ==============================================================================
 
+const BRUSSELS_PARTS_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/Brussels",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hourCycle: "h23",
+})
+
+function getBrusselsParts(ms: number): {
+  year: number
+  month: number
+  day: number
+  hour: number
+  minute: number
+  second: number
+  dayOfWeek: number
+} {
+  const parts = BRUSSELS_PARTS_FORMATTER.formatToParts(new Date(ms))
+  let year = 1970
+  let month = 1
+  let day = 1
+  let hour = 0
+  let minute = 0
+  let second = 0
+
+  for (const part of parts) {
+    const val = Number(part.value)
+    if (part.type === "year") year = val
+    else if (part.type === "month") month = val
+    else if (part.type === "day") day = val
+    else if (part.type === "hour") hour = val % 24
+    else if (part.type === "minute") minute = val
+    else if (part.type === "second") second = val
+  }
+
+  const dayOfWeek = new Date(Date.UTC(year, month - 1, day)).getUTCDay()
+  return { year, month, day, hour, minute, second, dayOfWeek }
+}
+
+function brusselsLocalToUtcMs(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute = 0,
+  second = 0
+): number {
+  const targetUtcLike = Date.UTC(year, month - 1, day, hour, minute, second)
+  const p1 = getBrusselsParts(targetUtcLike)
+  const offset1 =
+    Date.UTC(p1.year, p1.month - 1, p1.day, p1.hour, p1.minute, p1.second) - targetUtcLike
+  const c1 = targetUtcLike - offset1
+  const p2 = getBrusselsParts(c1)
+  const offset2 =
+    Date.UTC(p2.year, p2.month - 1, p2.day, p2.hour, p2.minute, p2.second) - c1
+  return targetUtcLike - offset2
+}
+
+function getBrusselsBusinessWindowForDate(
+  year: number,
+  month: number,
+  day: number
+): { startMs: number; endMs: number } | null {
+  const dayOfWeek = new Date(Date.UTC(year, month - 1, day)).getUTCDay()
+  if (dayOfWeek === 0) return null // Dimanche fermé
+
+  if (dayOfWeek === 6) {
+    // Samedi : 09:00 - 13:00
+    return {
+      startMs: brusselsLocalToUtcMs(year, month, day, 9, 0, 0),
+      endMs: brusselsLocalToUtcMs(year, month, day, 13, 0, 0),
+    }
+  }
+
+  // Lundi au vendredi : 08:00 - 19:30
+  return {
+    startMs: brusselsLocalToUtcMs(year, month, day, 8, 0, 0),
+    endMs: brusselsLocalToUtcMs(year, month, day, 19, 30, 0),
+  }
+}
+
+export function getStartOfBrusselsDayIso(nowMs = Date.now()): string {
+  const p = getBrusselsParts(nowMs)
+  return new Date(brusselsLocalToUtcMs(p.year, p.month, p.day, 0, 0, 0)).toISOString()
+}
+
 /**
- * Vérifie si le moment actuel est approprié pour un envoi de relance automatique (08:00 - 19:30).
- * Évite les désagréments nocturnes tout en tolérant les alertes immédiates manuelles.
+ * Vérifie si le moment actuel est approprié pour un envoi de relance automatique (Europe/Brussels).
+ * Lun–Ven : 08:00–19:30 · Sam : 09:00–13:00 · Dim : fermé.
  */
 export function isWithinBusinessHours(date = new Date()): boolean {
-  // Fuseau horaire Europe/Brussels
-  const brusselsTime = new Date(date.toLocaleString("en-US", { timeZone: "Europe/Brussels" }))
-  const hour = brusselsTime.getHours()
-  const day = brusselsTime.getDay() // 0 = Dimanche, 6 = Samedi
+  const ms = date.getTime()
+  if (!Number.isFinite(ms)) return false
+  const p = getBrusselsParts(ms)
+  const win = getBrusselsBusinessWindowForDate(p.year, p.month, p.day)
+  return win !== null && ms >= win.startMs && ms < win.endMs
+}
 
-  // Dimanche : pas de relances automatiques
-  if (day === 0) return false
+/**
+ * Calcule le nombre exact de millisecondes ouvrées (Europe/Brussels) écoulées entre startMs et endMs.
+ */
+export function getBusinessMsBetween(startMs: number, endMs: number): number {
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
+    return 0
+  }
 
-  // Samedi : 09:00 - 13:00
-  if (day === 6) return hour >= 9 && hour < 13
+  const startParts = getBrusselsParts(startMs)
+  const endParts = getBrusselsParts(endMs)
+  let dayCursor = Date.UTC(startParts.year, startParts.month - 1, startParts.day)
+  const endDayUtc = Date.UTC(endParts.year, endParts.month - 1, endParts.day)
 
-  // Du lundi au vendredi : 08:00 - 19:30
-  return hour >= 8 && hour < 20
+  let totalMs = 0
+  let guard = 0
+  while (dayCursor <= endDayUtc && guard < 3650) {
+    const dt = new Date(dayCursor)
+    const win = getBrusselsBusinessWindowForDate(
+      dt.getUTCFullYear(),
+      dt.getUTCMonth() + 1,
+      dt.getUTCDate()
+    )
+    if (win) {
+      const overlapStart = Math.max(startMs, win.startMs)
+      const overlapEnd = Math.min(endMs, win.endMs)
+      if (overlapEnd > overlapStart) {
+        totalMs += overlapEnd - overlapStart
+      }
+    }
+    dayCursor += 86_400_000
+    guard++
+  }
+
+  return totalMs
+}
+
+/**
+ * Ajoute `durationMs` ouvrées (Europe/Brussels) à partir de `startMs`.
+ * Si `durationMs <= 0`, retourne `startMs` s'il est dans une plage ouvrée ou l'ouverture suivante.
+ */
+export function addBusinessMs(startMs: number, durationMs: number): number {
+  let cursor = Number.isFinite(startMs) ? startMs : Date.now()
+  let remaining = Number.isFinite(durationMs) && durationMs > 0 ? durationMs : 0
+
+  const startParts = getBrusselsParts(cursor)
+  let dayCursor = Date.UTC(startParts.year, startParts.month - 1, startParts.day)
+
+  for (let guard = 0; guard < 3650; guard++) {
+    const dt = new Date(dayCursor)
+    const win = getBrusselsBusinessWindowForDate(
+      dt.getUTCFullYear(),
+      dt.getUTCMonth() + 1,
+      dt.getUTCDate()
+    )
+
+    if (win && cursor < win.endMs) {
+      const effectiveStart = Math.max(cursor, win.startMs)
+      const available = win.endMs - effectiveStart
+      if (remaining < available) {
+        return effectiveStart + remaining
+      }
+      remaining -= available
+      cursor = win.endMs
+    }
+
+    dayCursor += 86_400_000
+  }
+
+  return cursor + remaining
 }
 
 // ==============================================================================
@@ -302,6 +482,7 @@ export interface PreloadedRelanceWaveData {
   allPartners?: any[]
   purchasesByLeadId?: Map<string, any[]>
   dispatchesByLeadId?: Map<string, { partner_id: string; wave_number: number }[]>
+  dailyDispatchCountsByPartnerId?: Map<string, number>
   telemetryByLeadId?: Map<string, any[]>
   velocityByPartnerId?: Map<string, PartnerVelocityStats>
 }
@@ -437,6 +618,26 @@ export async function getEligiblePartnersForWave(
     partnerNotificationCounts.set(d.partner_id, (partnerNotificationCounts.get(d.partner_id) || 0) + 1)
   }
 
+  // 2a. Récupérer le compteur journalier de notifications par partenaire (Europe/Brussels)
+  let dailyDispatchCounts = preloaded?.dailyDispatchCountsByPartnerId
+  if (!dailyDispatchCounts) {
+    dailyDispatchCounts = new Map<string, number>()
+    try {
+      const { data: todayDispatches } = await supabase
+        .from("lead_relance_dispatches")
+        .select("partner_id")
+        .gte("sent_at", getStartOfBrusselsDayIso())
+
+      for (const row of todayDispatches || []) {
+        if (!row.partner_id) continue
+        const pId = String(row.partner_id)
+        dailyDispatchCounts.set(pId, (dailyDispatchCounts.get(pId) || 0) + 1)
+      }
+    } catch {
+      // Tolérance si la table n'est pas encore migrée
+    }
+  }
+
   // 2b. Récupérer la télémétrie comportementale sur ce lead (consultations, durée d'étude, zoom, intention)
   type LeadEngagementAgg = {
     hasInspected: boolean
@@ -549,6 +750,10 @@ export async function getEligiblePartnersForWave(
     // Exclure si a déjà reçu le maximum de relances autorisées pour ce lead
     const countForLead = partnerNotificationCounts.get(partner.id) || 0
     if (countForLead >= MAX_NOTIFICATIONS_PER_LEAD_PER_PARTNER) continue
+
+    // Exclure si le plafond journalier anti-spam est atteint pour ce partenaire
+    const dailyCount = dailyDispatchCounts.get(partner.id) || 0
+    if (dailyCount >= MAX_DAILY_NOTIFICATIONS_PER_PARTNER) continue
 
     // Respecter les préférences de fréquence d'alertes e-mail de l'installateur
     const notifMode = getPartnerNotificationMode(partner)
@@ -1390,8 +1595,9 @@ export async function processPendingProspectReferralEmails(
 }
 
 /**
- * Scanne tous les leads disponibles, applique le Protocole H+48h (clôture B2C partielle
- * ou réengagement prospect) et déclenche les Vagues 2 et 3 selon les cooldowns resserrés.
+ * Scanne tous les leads disponibles, applique le Protocole Qualité (clôture B2C partielle
+ * après 7 jours + 48 h de grâce, reconfirmation prospect à 72 h après publication)
+ * et déclenche les Vagues 2 et 3 selon les cooldowns en heures ouvrées (+6 h / +24 h).
  */
 export async function processPendingLeadRelances(): Promise<CronRelanceSummary> {
   // Respecter les plages horaires de courtoisie professionnelle
@@ -1512,15 +1718,17 @@ export async function processPendingLeadRelances(): Promise<CronRelanceSummary> 
           ? MAX_SLOTS_B2B
           : MAX_SLOTS_B2C
     const createdAtMs = new Date(lead.created_at).getTime()
-    const createdAgeMs = now - createdAtMs
+    const publishedAtMs = getLeadPublishedAtMs(lead)
+    const publishedAgeMs = Math.max(0, now - publishedAtMs)
     const reconfirmedAtMs = lead.reconfirmed_at ? new Date(lead.reconfirmed_at).getTime() : null
     const lastRealBuyAtMs = lastRealBuyAtByLead.get(lead.id) || null
 
-    // 1. Clôture douce des B2C partiels uniquement après 7 jours ET >= 48 h de calme depuis le dernier achat
+    // 1. Clôture douce des B2C partiels uniquement après 7 jours (depuis publication/reconfirmation) ET >= 48 h de calme depuis le dernier achat
     if (
       shouldAutoClosePartialLead({
         segment: lead.segment,
         createdAtMs,
+        publishedAtMs,
         reconfirmedAtMs,
         takenSlots,
         maxSlots,
@@ -1542,8 +1750,8 @@ export async function processPendingLeadRelances(): Promise<CronRelanceSummary> 
       continue
     }
 
-    // 2. À H+48h sans aucun achat (0/3), envoyer l'e-mail de reconfirmation prospect en 1 clic
-    if (createdAgeMs >= RECONFIRM_PROTOCOL_AGE_MS) {
+    // 2. À H+72h après publication sans aucun achat (0/3), envoyer l'e-mail de reconfirmation prospect en 1 clic
+    if (publishedAgeMs >= RECONFIRM_PROTOCOL_AGE_MS) {
       const meta =
         lead.qualification_metadata && typeof lead.qualification_metadata === "object"
           ? (lead.qualification_metadata as Record<string, unknown>)
@@ -1586,22 +1794,22 @@ export async function processPendingLeadRelances(): Promise<CronRelanceSummary> 
     const lastRelanceTime = Math.max(
       lead.last_relance_at ? new Date(lead.last_relance_at).getTime() : 0,
       lastDispatchAtByLead.get(lead.id) || 0,
-      createdAtMs
+      publishedAtMs
     )
 
-    const elapsed = now - lastRelanceTime
+    const businessElapsedMs = getBusinessMsBetween(lastRelanceTime, now)
 
-    // Vérifier si une relance doit être déclenchée (cascade resserrée T+0 / T+90m / T+5h) :
+    // Vérifier si une relance doit être déclenchée (cascade en heures ouvrées T+0 / +6h / +24h) :
     let nextWave = 0
 
     if (currentWave === 0) {
       // Vague 1 initiale n'a jamais été envoyée
       nextWave = 1
-    } else if (currentWave === 1 && elapsed >= COOLDOWN_WAVE_1_TO_2_MS) {
-      // 90 minutes écoulées depuis la Vague 1 -> Vague 2
+    } else if (currentWave === 1 && businessElapsedMs >= COOLDOWN_WAVE_1_TO_2_MS) {
+      // 6 heures ouvrées écoulées depuis la Vague 1 -> Vague 2
       nextWave = 2
-    } else if (currentWave === 2 && elapsed >= COOLDOWN_WAVE_2_TO_3_MS) {
-      // 3h30 écoulées depuis la Vague 2 -> Vague 3 (~H+5h)
+    } else if (currentWave === 2 && businessElapsedMs >= COOLDOWN_WAVE_2_TO_3_MS) {
+      // 24 heures ouvrées écoulées depuis la Vague 2 -> Vague 3 (~J+2 / J+3)
       nextWave = 3
     }
 
@@ -1813,54 +2021,7 @@ export interface RelancesOverviewStats {
  * Ajuste une date selon les plages horaires ouvrées en Belgique (Europe/Brussels)
  */
 export function getEffectiveSendTime(targetDate: Date): Date {
-  const current = new Date(targetDate)
-  const maxAttempts = 14
-  let attempts = 0
-
-  while (attempts < maxAttempts) {
-    const brusselsTime = new Date(current.toLocaleString("en-US", { timeZone: "Europe/Brussels" }))
-    const day = brusselsTime.getDay() // 0 = Dimanche, 6 = Samedi
-    const hour = brusselsTime.getHours()
-    const minute = brusselsTime.getMinutes()
-
-    // Dimanche : fermé -> Lundi 08:00
-    if (day === 0) {
-      current.setDate(current.getDate() + 1)
-      current.setHours(8, 0, 0, 0)
-      attempts++
-      continue
-    }
-
-    // Samedi : 09:00 - 13:00
-    if (day === 6) {
-      if (hour < 9) {
-        current.setHours(9, 0, 0, 0)
-        return current
-      }
-      if (hour >= 13) {
-        current.setDate(current.getDate() + 2)
-        current.setHours(8, 0, 0, 0)
-        attempts++
-        continue
-      }
-      return current
-    }
-
-    // Lundi au Vendredi : 08:00 - 19:30
-    if (hour < 8) {
-      current.setHours(8, 0, 0, 0)
-      return current
-    }
-    if (hour > 19 || (hour === 19 && minute >= 30)) {
-      current.setDate(current.getDate() + 1)
-      current.setHours(8, 0, 0, 0)
-      attempts++
-      continue
-    }
-
-    return current
-  }
-  return current
+  return new Date(addBusinessMs(targetDate.getTime(), 0))
 }
 
 const getUpcomingRelancesScheduleCached = cache(async (): Promise<UpcomingRelanceItem[]> => {
@@ -1880,8 +2041,8 @@ const getUpcomingRelancesScheduleCached = cache(async (): Promise<UpcomingRelanc
 
   const availableLeadIds = availableLeads.map((l) => l.id)
 
-  // 2. Précharger en parallèle achats, relances, télémétrie et partenaires (zéro boucle N+1)
-  const [purchasesRes, dispatchesRes, telemetryRes, partnersRes] = await Promise.all([
+  // 2. Précharger en parallèle achats, relances, envois du jour, télémétrie et partenaires (zéro boucle N+1)
+  const [purchasesRes, dispatchesRes, dailyDispatchesRes, telemetryRes, partnersRes] = await Promise.all([
     supabase
       .from("lead_purchases")
       .select("lead_id, partner_id, purchased_at, partners(id, company_name, email, is_test)")
@@ -1892,6 +2053,12 @@ const getUpcomingRelancesScheduleCached = cache(async (): Promise<UpcomingRelanc
       .select("id, lead_id, partner_id, wave_number, email_to, sent_at, partners(id, company_name, email, is_test)")
       .in("lead_id", availableLeadIds)
       .order("sent_at", { ascending: false }),
+    Promise.resolve(
+      supabase
+        .from("lead_relance_dispatches")
+        .select("partner_id")
+        .gte("sent_at", getStartOfBrusselsDayIso(now))
+    ).catch(() => ({ data: [] as any[], error: null })),
     Promise.resolve(
       supabase
         .from("partner_activity_events")
@@ -1958,11 +2125,19 @@ const getUpcomingRelancesScheduleCached = cache(async (): Promise<UpcomingRelanc
     telemetryByLeadId.set(ev.lead_id, list)
   }
 
+  const dailyDispatchCountsByPartnerId = new Map<string, number>()
+  for (const row of (dailyDispatchesRes as any)?.data || []) {
+    if (!row.partner_id) continue
+    const pId = String(row.partner_id)
+    dailyDispatchCountsByPartnerId.set(pId, (dailyDispatchCountsByPartnerId.get(pId) || 0) + 1)
+  }
+
   const velocityByPartnerId = await loadPartnerVelocityMap(supabase)
   const preloaded: PreloadedRelanceWaveData = {
     allPartners: partnersRes.data || [],
     purchasesByLeadId: rawPurchasesByLeadId,
     dispatchesByLeadId: rawDispatchesByLeadId,
+    dailyDispatchCountsByPartnerId,
     telemetryByLeadId,
     velocityByPartnerId,
   }
@@ -1994,25 +2169,28 @@ const getUpcomingRelancesScheduleCached = cache(async (): Promise<UpcomingRelanc
 
     const remainingSlots = Math.max(0, maxSlots - takenSlots)
 
-    // Calculer la date théorique selon les cooldowns resserrés (90m / +3h30)
+    // Calculer la date théorique selon les cooldowns ouvrés (+6h / +24h ouvrées)
+    const publishedAtMs = getLeadPublishedAtMs(lead)
     let scheduledTimestamp = now
     if (currentWave === 0) {
       // Vague 1 : immédiat à la publication (ou maintenant si publication passée)
-      scheduledTimestamp = new Date(lead.created_at).getTime()
+      scheduledTimestamp = publishedAtMs
     } else if (currentWave === 1) {
-      // Vague 2 : 90 min après Vague 1
-      const base = lead.last_relance_at ? new Date(lead.last_relance_at).getTime() : new Date(lead.created_at).getTime()
-      scheduledTimestamp = base + COOLDOWN_WAVE_1_TO_2_MS
+      // Vague 2 : +6h ouvrées après Vague 1
+      const base = lead.last_relance_at ? new Date(lead.last_relance_at).getTime() : publishedAtMs
+      scheduledTimestamp = addBusinessMs(base, COOLDOWN_WAVE_1_TO_2_MS)
     } else if (currentWave === 2) {
-      // Vague 3 : +3h30 après Vague 2 (~H+5h)
-      const base = lead.last_relance_at ? new Date(lead.last_relance_at).getTime() : new Date(lead.created_at).getTime()
-      scheduledTimestamp = base + COOLDOWN_WAVE_2_TO_3_MS
+      // Vague 3 : +24h ouvrées après Vague 2 (~J+2 / J+3)
+      const base = lead.last_relance_at ? new Date(lead.last_relance_at).getTime() : publishedAtMs
+      scheduledTimestamp = addBusinessMs(base, COOLDOWN_WAVE_2_TO_3_MS)
     }
 
     const rawScheduledDate = new Date(scheduledTimestamp)
-    const effectiveSendDate = getEffectiveSendTime(rawScheduledDate < new Date() ? new Date() : rawScheduledDate)
+    const effectiveSendDate = getEffectiveSendTime(
+      rawScheduledDate.getTime() < now ? new Date(now) : rawScheduledDate
+    )
     const msRemaining = Math.max(0, effectiveSendDate.getTime() - now)
-    const isReadyNow = now >= scheduledTimestamp && isWithinBusinessHours()
+    const isReadyNow = now >= scheduledTimestamp && isWithinBusinessHours(new Date(now))
 
     // Calculer les données financières
     const creditCost = lead.credit_cost || calculateLeadCreditCost(lead)
@@ -2277,7 +2455,7 @@ export async function getRelancesOverviewStats(
 ): Promise<RelancesOverviewStats> {
   const supabase = createServiceRoleClient()
   const now = new Date()
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
+  const startOfDay = getStartOfBrusselsDayIso(now.getTime())
 
   let totalSent = 0
   let sentToday = 0

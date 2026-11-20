@@ -90,12 +90,12 @@ export function buildInstallerPlatformUpdateEmail(
     })}
 
     <h2 style="margin: 24px 0 12px 0; padding-top: 16px; border-top: 1px solid #E6EDF1; font-size: 18px; line-height: 1.25; font-weight: bold; color: #142D42;">
-      4. Mode Auto-Pilot, Paiement 1-Clic &amp; Qualité H+48h
+      4. Mode Auto-Pilot, Paiement 1-Clic &amp; Suivi Qualité
     </h2>
     <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.5; color: #142D42;">
       &bull; <strong>Auto-Pilot avec plafond hebdomadaire :</strong> recevez automatiquement les dossiers correspondant à vos provinces et surfaces, sans jamais dépasser votre quota semaine.<br />
       &bull; <strong>Paiement 1-Clic (Bancontact / Carte) :</strong> mémorisez votre moyen de paiement lors de votre prochain achat pour débloquer instantanément les dossiers chauds.<br />
-      &bull; <strong>Protocole H+48h Zéro Déchet :</strong> les dossiers B2C partiellement pourvus sont automatiquement clôturés à <span style="font-variant-numeric: tabular-nums;">48&nbsp;h</span> pour protéger les premiers acheteurs, et les dossiers sans repreneur sont reconfirmés auprès du prospect.
+      &bull; <strong>Protocole Qualité &amp; Clôture Douce :</strong> les dossiers B2C partiellement pourvus sont automatiquement clôturés après <span style="font-variant-numeric: tabular-nums;">7</span> jours (et <span style="font-variant-numeric: tabular-nums;">48&nbsp;h</span> sans nouvel achat) pour protéger les premiers acheteurs, et les dossiers sans repreneur sont reconfirmés auprès du prospect à <span style="font-variant-numeric: tabular-nums;">72&nbsp;h</span>.
     </p>
 
     ${renderActionBox({
@@ -151,7 +151,7 @@ export function buildInstallerPlatformUpdateEmail(
     "Si vous êtes le premier sur un dossier résidentiel (0/3), réservez l'exclusivité à 100 %.",
     "Notre Cellule Technique envoie automatiquement un e-mail de réassurance au prospect lui présentant votre prise en charge prioritaire RESCERT.",
     "",
-    "4. AUTO-PILOT PLAFONNÉ, PAIEMENT 1-CLIC & CLÔTURE H+48H :",
+    "4. AUTO-PILOT PLAFONNÉ, PAIEMENT 1-CLIC & SUIVI QUALITÉ :",
     "Activez l'Auto-Pilot dans vos préférences avec votre plafond hebdomadaire pour sécuriser automatiquement vos chantiers locaux.",
     "",
     `Voir les nouveaux packs : ${creditsUrl}`,

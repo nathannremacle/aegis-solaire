@@ -124,7 +124,7 @@ export function RelancesKpiBar({ stats, onRunCron, isRunningCron }: RelancesKpiB
 
           <div className="flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground">
             <span>Cycle Waterfall :</span>
-            <span className="text-foreground font-medium">H+0 → H+4h → H+24h</span>
+            <span className="text-foreground font-medium">T+0 → +6h → +24h ouvr.</span>
           </div>
         </div>
       </div>
