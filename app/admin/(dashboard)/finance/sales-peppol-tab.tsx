@@ -175,7 +175,7 @@ export function SalesPeppolTab({
     try {
       const res = await fetch("/api/admin/accounting", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
         body: JSON.stringify({ action: "enrich_bce" }),
       })
       const json = await res.json()
@@ -196,7 +196,7 @@ export function SalesPeppolTab({
     try {
       const res = await fetch("/api/admin/accounting", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
         body: JSON.stringify({ action: "sync_invoices" }),
       })
       const json = await res.json()
@@ -220,7 +220,7 @@ export function SalesPeppolTab({
     try {
       const res = await fetch("/api/admin/accounting", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
         body: JSON.stringify({
           action: "mark_peppol_sent",
           invoiceId: inv.id,
@@ -250,7 +250,7 @@ export function SalesPeppolTab({
     try {
       const res = await fetch("/api/admin/accounting", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
         body: JSON.stringify({
           action: "mark_peppol_batch_sent",
           invoiceIds: pendingPeppolPersistedIds,

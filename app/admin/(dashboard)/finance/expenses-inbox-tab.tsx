@@ -247,6 +247,7 @@ export function ExpensesInboxTab({
         try {
           const res = await fetch("/api/admin/accounting/upload-drafts", {
             method: "POST",
+            headers: { "x-admin-request": "true" },
             body: formData,
           })
           const json = await res.json().catch(() => ({}))
@@ -292,7 +293,7 @@ export function ExpensesInboxTab({
     try {
       const res = await fetch("/api/admin/accounting/sync-mollie-invoices", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
         body: JSON.stringify({ year }),
       })
       const json = await res.json().catch(() => ({}))
@@ -345,7 +346,7 @@ export function ExpensesInboxTab({
       const patches = parseJsonPatchesFromChat(chatJsonInput)
       const res = await fetch("/api/admin/accounting/drafts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
         body: JSON.stringify({ action: "apply_chat_audit_patch", patches }),
       })
       const json = await res.json()
@@ -370,7 +371,7 @@ export function ExpensesInboxTab({
     try {
       const res = await fetch("/api/admin/accounting/drafts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
         body: JSON.stringify({ action: "approve_draft", id }),
       })
       const json = await res.json()
@@ -389,7 +390,7 @@ export function ExpensesInboxTab({
     try {
       const res = await fetch("/api/admin/accounting/drafts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
         body: JSON.stringify({ action: "approve_all_valid_drafts" }),
       })
       const json = await res.json()
@@ -410,7 +411,7 @@ export function ExpensesInboxTab({
     try {
       const res = await fetch("/api/admin/accounting/drafts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
         body: JSON.stringify({ action: "reject_draft", id }),
       })
       const json = await res.json()
@@ -431,7 +432,7 @@ export function ExpensesInboxTab({
     try {
       const res = await fetch("/api/admin/accounting/drafts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
         body: JSON.stringify({
           action: "update_draft",
           id: editingDraft.id,
@@ -481,7 +482,7 @@ export function ExpensesInboxTab({
     try {
       const res = await fetch("/api/admin/accounting", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
         body: JSON.stringify({
           action: "create_expense",
           expense_date: manualDate,
@@ -519,7 +520,7 @@ export function ExpensesInboxTab({
     try {
       const res = await fetch("/api/admin/accounting", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-admin-request": "true" },
         body: JSON.stringify({ action: "delete_expense", id }),
       })
       if (!res.ok) throw new Error("Échec suppression")

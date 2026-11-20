@@ -97,7 +97,9 @@ export function FinanceClient({
     setLoading(true)
     try {
       const [accRes, ordRes] = await Promise.all([
-        fetch(`/api/admin/accounting?year=${year}&quarter=${quarter}`),
+        fetch(`/api/admin/accounting?year=${year}&quarter=${quarter}`, {
+          headers: { "x-admin-request": "true" },
+        }),
         fetch("/api/admin/credit-orders", { headers: { "x-admin-request": "true" } }),
       ])
       if (accRes.ok) {
@@ -125,7 +127,7 @@ export function FinanceClient({
     const periodKey = `${selectedYear}-Q${selectedQuarter}`
     const res = await fetch("/api/admin/accounting", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-admin-request": "true" },
       body: JSON.stringify({
         action: "toggle_checklist",
         period_key: periodKey,
