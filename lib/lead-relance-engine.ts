@@ -111,7 +111,8 @@ export function shouldAutoClosePartialLead(input: PartialCloseCheckInput): boole
 
 /** Limites anti-spam par installateur */
 export const MAX_NOTIFICATIONS_PER_LEAD_PER_PARTNER = 2 // Max 2 relances pour un même dossier
-export const MAX_DAILY_NOTIFICATIONS_PER_PARTNER = 4 // Max 4 notifications lead par jour au total
+export const MAX_DAILY_NOTIFICATIONS_PER_PARTNER = 4 // Max 4 notifications totales/jour pour plafonner les relances (Vagues 2 & 3)
+export const MAX_DAILY_WAVE1_NOTIFICATIONS_PER_PARTNER = 12 // Plafond dédié aux nouveaux leads locaux (Vague 1) : jamais bloqué par les relances Vague 2/3
 
 /** Tailles cibles élargies des vagues de dispatch */
 export const WAVE_TARGET_COUNTS = {
@@ -405,7 +406,15 @@ export function calculatePartnerMatchScore(
 
   const isNational =
     partnerProvs.length === 0 ||
-    partnerProvs.some((p) => p.includes("toute") || p.includes("belgique") || p.includes("all"))
+    partnerProvs.some(
+      (p) =>
+        p === "all" ||
+        p === "national" ||
+        p === "wallonie" ||
+        p.includes("toute") ||
+        p.includes("belgique") ||
+        /(?:^|_)all(?:_|$)/.test(p)
+    )
 
   const isExactProvince = partnerProvs.includes(leadProv) || isNational
   const neighbors = PROVINCE_NEIGHBORS[leadProv] || []
@@ -442,11 +451,14 @@ export function calculatePartnerMatchScore(
     score += 5
   }
 
-  // Classification en Tiers
+  // Classification en Tiers :
+  // - tier_1 (Vague 1) réservé aux installateurs de la province exacte (ou nationaux)
+  // - tier_2 (Vague 2) réservé aux provinces limitrophes (jamais aux provinces éloignées)
+  // - tier_3 (Vague 3) pour l'élargissement régional global
   let tier: MatchingTier = "tier_3"
-  if (score >= 70) {
+  if (isExactProvince && score >= 70) {
     tier = "tier_1"
-  } else if (score >= 45) {
+  } else if ((isExactProvince || isNeighborProvince) && score >= 45) {
     tier = "tier_2"
   }
 
@@ -483,8 +495,28 @@ export interface PreloadedRelanceWaveData {
   purchasesByLeadId?: Map<string, any[]>
   dispatchesByLeadId?: Map<string, { partner_id: string; wave_number: number }[]>
   dailyDispatchCountsByPartnerId?: Map<string, number>
+  dailyWave1CountsByPartnerId?: Map<string, number>
   telemetryByLeadId?: Map<string, any[]>
   velocityByPartnerId?: Map<string, PartnerVelocityStats>
+}
+
+function accumulateDailyDispatchCounts(
+  rows: Array<{ partner_id?: string | null; wave_number?: number | null }>
+): {
+  totalByPartner: Map<string, number>
+  wave1ByPartner: Map<string, number>
+} {
+  const totalByPartner = new Map<string, number>()
+  const wave1ByPartner = new Map<string, number>()
+  for (const row of rows) {
+    if (!row.partner_id) continue
+    const pId = String(row.partner_id)
+    totalByPartner.set(pId, (totalByPartner.get(pId) || 0) + 1)
+    if ((Number(row.wave_number) || 1) <= 1) {
+      wave1ByPartner.set(pId, (wave1ByPartner.get(pId) || 0) + 1)
+    }
+  }
+  return { totalByPartner, wave1ByPartner }
 }
 
 export async function loadPartnerVelocityMap(
@@ -618,24 +650,26 @@ export async function getEligiblePartnersForWave(
     partnerNotificationCounts.set(d.partner_id, (partnerNotificationCounts.get(d.partner_id) || 0) + 1)
   }
 
-  // 2a. Récupérer le compteur journalier de notifications par partenaire (Europe/Brussels)
+  // 2a. Récupérer les compteurs journaliers de notifications par partenaire (Europe/Brussels)
   let dailyDispatchCounts = preloaded?.dailyDispatchCountsByPartnerId
-  if (!dailyDispatchCounts) {
-    dailyDispatchCounts = new Map<string, number>()
+  let dailyWave1Counts = preloaded?.dailyWave1CountsByPartnerId
+  if (!dailyDispatchCounts && !dailyWave1Counts) {
+    let fetchedRows: Array<{ partner_id?: string | null; wave_number?: number | null }> = []
     try {
       const { data: todayDispatches } = await supabase
         .from("lead_relance_dispatches")
-        .select("partner_id")
+        .select("partner_id, wave_number")
         .gte("sent_at", getStartOfBrusselsDayIso())
-
-      for (const row of todayDispatches || []) {
-        if (!row.partner_id) continue
-        const pId = String(row.partner_id)
-        dailyDispatchCounts.set(pId, (dailyDispatchCounts.get(pId) || 0) + 1)
-      }
+      fetchedRows = todayDispatches || []
     } catch {
       // Tolérance si la table n'est pas encore migrée
     }
+    const accumulated = accumulateDailyDispatchCounts(fetchedRows)
+    dailyDispatchCounts = accumulated.totalByPartner
+    dailyWave1Counts = accumulated.wave1ByPartner
+  } else {
+    if (!dailyDispatchCounts) dailyDispatchCounts = new Map<string, number>()
+    if (!dailyWave1Counts) dailyWave1Counts = new Map<string, number>()
   }
 
   // 2b. Récupérer la télémétrie comportementale sur ce lead (consultations, durée d'étude, zoom, intention)
@@ -751,9 +785,17 @@ export async function getEligiblePartnersForWave(
     const countForLead = partnerNotificationCounts.get(partner.id) || 0
     if (countForLead >= MAX_NOTIFICATIONS_PER_LEAD_PER_PARTNER) continue
 
-    // Exclure si le plafond journalier anti-spam est atteint pour ce partenaire
-    const dailyCount = dailyDispatchCounts.get(partner.id) || 0
-    if (dailyCount >= MAX_DAILY_NOTIFICATIONS_PER_PARTNER) continue
+    // Plafond journalier anti-spam :
+    // - Les nouveaux leads locaux (Vague 1) ne sont JAMAIS bloqués par les relances Vague 2/3 du jour
+    //   (on applique uniquement un plafond large dédié à la Vague 1).
+    // - Les relances (Vagues 2 & 3) respectent le plafond global MAX_DAILY_NOTIFICATIONS_PER_PARTNER.
+    if (waveNumber === 1) {
+      const dailyWave1Count = dailyWave1Counts.get(partner.id) || 0
+      if (dailyWave1Count >= MAX_DAILY_WAVE1_NOTIFICATIONS_PER_PARTNER) continue
+    } else {
+      const dailyCount = dailyDispatchCounts.get(partner.id) || 0
+      if (dailyCount >= MAX_DAILY_NOTIFICATIONS_PER_PARTNER) continue
+    }
 
     // Respecter les préférences de fréquence d'alertes e-mail de l'installateur
     const notifMode = getPartnerNotificationMode(partner)
@@ -794,7 +836,7 @@ export async function getEligiblePartnersForWave(
       }
     }
 
-    // Score de Vélocité Acheteur (30 jours) : favorise les acheteurs actifs et pénalise les comptes dormants (>= 10 alertes sans aucun clic)
+    // Score de Vélocité Acheteur (30 jours) : valorise les acheteurs actifs sans pénaliser les comptes inactifs/dormants
     const velocity = velocityMap.get(partner.id)
     if (velocity) {
       if (velocity.recentPurchases7d >= 1) {
@@ -804,13 +846,6 @@ export async function getEligiblePartnersForWave(
       }
       if (velocity.clicks30d >= 1) {
         scoreInfo.score = Math.min(145, scoreInfo.score + 15)
-      }
-      if (
-        velocity.dispatches30d >= 10 &&
-        velocity.recentPurchases30d === 0 &&
-        velocity.clicks30d === 0
-      ) {
-        scoreInfo.score = Math.max(10, scoreInfo.score - 30)
       }
     }
 
@@ -850,7 +885,8 @@ export async function getEligiblePartnersForWave(
     return b.scoreInfo.score - a.scoreInfo.score
   })
 
-  // 6. Limiter le nombre de destinataires selon la jauge cible de la vague (sans compter DEV TEST !)
+  // 6. En Vague 1, notifier TOUS les installateurs locaux éligibles (actifs ET inactifs, sans troncature) ;
+  //    sur les Vagues 2 & 3 (élargissement limitrophe/régional), appliquer la jauge cible de la vague.
   const isB2B = lead.segment === "B2B"
   const targetCount = isB2B
     ? waveNumber === 1
@@ -864,7 +900,8 @@ export async function getEligiblePartnersForWave(
     ? WAVE_TARGET_COUNTS.B2C.wave2
     : WAVE_TARGET_COUNTS.B2C.wave3
 
-  const selectedCandidates = scoredCandidates.slice(0, targetCount)
+  const selectedCandidates =
+    waveNumber === 1 ? scoredCandidates : scoredCandidates.slice(0, targetCount)
 
   // 7. Inclure les comptes DEV TEST / ADMIN en observateurs sans consommer de place dans le quota réel
   for (const devPartner of devTestPartners) {
@@ -2056,7 +2093,7 @@ const getUpcomingRelancesScheduleCached = cache(async (): Promise<UpcomingRelanc
     Promise.resolve(
       supabase
         .from("lead_relance_dispatches")
-        .select("partner_id")
+        .select("partner_id, wave_number")
         .gte("sent_at", getStartOfBrusselsDayIso(now))
     ).catch(() => ({ data: [] as any[], error: null })),
     Promise.resolve(
@@ -2125,12 +2162,10 @@ const getUpcomingRelancesScheduleCached = cache(async (): Promise<UpcomingRelanc
     telemetryByLeadId.set(ev.lead_id, list)
   }
 
-  const dailyDispatchCountsByPartnerId = new Map<string, number>()
-  for (const row of (dailyDispatchesRes as any)?.data || []) {
-    if (!row.partner_id) continue
-    const pId = String(row.partner_id)
-    dailyDispatchCountsByPartnerId.set(pId, (dailyDispatchCountsByPartnerId.get(pId) || 0) + 1)
-  }
+  const {
+    totalByPartner: dailyDispatchCountsByPartnerId,
+    wave1ByPartner: dailyWave1CountsByPartnerId,
+  } = accumulateDailyDispatchCounts((dailyDispatchesRes as any)?.data || [])
 
   const velocityByPartnerId = await loadPartnerVelocityMap(supabase)
   const preloaded: PreloadedRelanceWaveData = {
@@ -2138,6 +2173,7 @@ const getUpcomingRelancesScheduleCached = cache(async (): Promise<UpcomingRelanc
     purchasesByLeadId: rawPurchasesByLeadId,
     dispatchesByLeadId: rawDispatchesByLeadId,
     dailyDispatchCountsByPartnerId,
+    dailyWave1CountsByPartnerId,
     telemetryByLeadId,
     velocityByPartnerId,
   }

@@ -680,19 +680,145 @@ test("Business-hours cooldowns (Europe/Brussels), published_at lifecycle & daily
     Date.parse("2026-11-10T10:00:00.000Z")
   )
 
-  // 4. Plafond journalier MAX_DAILY_NOTIFICATIONS_PER_PARTNER = 4 dans getEligiblePartnersForWave
-  const eligible = await engine.getEligiblePartnersForWave(
-    {},
+  // 4. Règles Vague 1 vs Relances Vague 2/3, comptes inactifs, et non-fuite de "Brabant wallon"
+  const plombieresLead = {
+    id: "lead-plombieres-test",
+    segment: "B2C",
+    province: "liege",
+    surface_type: "toiture",
+    annual_electricity_bill: 2200,
+    credit_cost: 2,
+    max_slots: 3,
+  }
+
+  // 4a. Matching géographique strict : Brabant wallon ne contient pas "all" au sens national
+  const bwScore = engine.calculatePartnerMatchScore(
     {
-      id: "lead-cap-test",
-      segment: "B2C",
-      province: "liege",
-      surface_type: "toiture",
-      annual_electricity_bill: 2200,
-      credit_cost: 3,
-      max_slots: 3,
+      id: "partner-bw",
+      credits: 7,
+      segment: "BOTH",
+      target_provinces: ["Brabant wallon", "Bruxelles-Capitale"],
+      target_surfaces: null,
     },
+    plombieresLead
+  )
+  assert.equal(bwScore.isExactProvince, false)
+  assert.equal(bwScore.isNeighborProvince, true)
+  assert.equal(bwScore.tier, "tier_2")
+
+  // Hainaut n'est pas limitrophe de Liège -> tier_3 uniquement
+  const hainautScore = engine.calculatePartnerMatchScore(
+    {
+      id: "partner-hainaut",
+      credits: 9,
+      segment: "BOTH",
+      target_provinces: ["Hainaut"],
+      target_surfaces: null,
+    },
+    plombieresLead
+  )
+  assert.equal(hainautScore.isExactProvince, false)
+  assert.equal(hainautScore.isNeighborProvince, false)
+  assert.equal(hainautScore.tier, "tier_3")
+
+  // Un installateur liégeois inactif (0 crédits) est bien tier_1 en Vague 1
+  const liegeInactiveScore = engine.calculatePartnerMatchScore(
+    {
+      id: "partner-liege-inactive",
+      credits: 0,
+      segment: "BOTH",
+      target_provinces: ["Liège"],
+      target_surfaces: null,
+    },
+    plombieresLead
+  )
+  assert.equal(liegeInactiveScore.isExactProvince, true)
+  assert.equal(liegeInactiveScore.tier, "tier_1")
+
+  // 4b. En Vague 1, les installateurs liégeois (actifs ET inactifs, même après 4 relances Vague 2/3 le matin)
+  // reçoivent tous le lead local, tandis que Brabant wallon et Hainaut restent exclus de Vague 1.
+  const manyLiegePartners = Array.from({ length: 14 }, (_, idx) => ({
+    id: `liege-${idx + 1}`,
+    company_name: `Liège Solar ${idx + 1}`,
+    email: `liege${idx + 1}@solaire-liege.be`,
+    credits: idx < 2 ? 5 : 0,
+    segment: "BOTH",
+    target_provinces: ["Liège"],
+    target_surfaces: null,
+    is_test: false,
+  }))
+  const wave1Eligible = await engine.getEligiblePartnersForWave(
+    {},
+    plombieresLead,
     1,
+    {
+      allPartners: [
+        ...manyLiegePartners,
+        {
+          id: "partner-bw",
+          company_name: "LightsElec BW",
+          email: "bw@lightselec.be",
+          credits: 7,
+          segment: "BOTH",
+          target_provinces: ["Brabant wallon", "Bruxelles-Capitale"],
+          target_surfaces: null,
+          is_test: false,
+        },
+        {
+          id: "partner-hainaut",
+          company_name: "Marullo Hainaut",
+          email: "hainaut@msi.be",
+          credits: 9,
+          segment: "BOTH",
+          target_provinces: ["Hainaut"],
+          target_surfaces: null,
+          is_test: false,
+        },
+        {
+          id: "partner-test",
+          company_name: "Dev Test Observer",
+          email: "mrnathanrem@gmail.com",
+          credits: 10,
+          segment: "BOTH",
+          target_provinces: ["liege"],
+          target_surfaces: ["toiture"],
+          is_test: true,
+        },
+      ],
+      purchasesByLeadId: new Map(),
+      dispatchesByLeadId: new Map(),
+      dailyDispatchCountsByPartnerId: new Map(
+        manyLiegePartners.map((p) => [p.id, 4])
+      ),
+      dailyWave1CountsByPartnerId: new Map(),
+      telemetryByLeadId: new Map(),
+      velocityByPartnerId: new Map(
+        manyLiegePartners.map((p, idx) => [
+          p.id,
+          {
+            recentPurchases30d: idx === 0 ? 2 : 0,
+            recentPurchases7d: idx === 0 ? 1 : 0,
+            dispatches30d: 25,
+            clicks30d: idx === 0 ? 3 : 0,
+          },
+        ])
+      ),
+    }
+  )
+
+  const wave1Ids = wave1Eligible.map((c) => c.partner.id)
+  for (const p of manyLiegePartners) {
+    assert.equal(wave1Ids.includes(p.id), true, `Expected ${p.id} in Wave 1`)
+  }
+  assert.equal(wave1Ids.includes("partner-bw"), false)
+  assert.equal(wave1Ids.includes("partner-hainaut"), false)
+  assert.equal(wave1Ids.includes("partner-test"), true)
+
+  // 4c. En Vague 2 (relance), le plafond journalier MAX_DAILY_NOTIFICATIONS_PER_PARTNER = 4 continue de bloquer
+  const wave2Eligible = await engine.getEligiblePartnersForWave(
+    {},
+    plombieresLead,
+    2,
     {
       allPartners: [
         {
@@ -715,33 +841,21 @@ test("Business-hours cooldowns (Europe/Brussels), published_at lifecycle & daily
           target_surfaces: ["toiture"],
           is_test: false,
         },
-        {
-          id: "partner-test",
-          company_name: "Dev Test Observer",
-          email: "mrnathanrem@gmail.com",
-          credits: 10,
-          segment: "BOTH",
-          target_provinces: ["liege"],
-          target_surfaces: ["toiture"],
-          is_test: true,
-        },
       ],
       purchasesByLeadId: new Map(),
       dispatchesByLeadId: new Map(),
       dailyDispatchCountsByPartnerId: new Map([
         ["partner-capped", 4],
         ["partner-ok", 3],
-        ["partner-test", 10],
       ]),
       telemetryByLeadId: new Map(),
       velocityByPartnerId: new Map(),
     }
   )
 
-  const eligibleIds = eligible.map((c) => c.partner.id)
-  assert.equal(eligibleIds.includes("partner-capped"), false)
-  assert.equal(eligibleIds.includes("partner-ok"), true)
-  assert.equal(eligibleIds.includes("partner-test"), true)
+  const wave2Ids = wave2Eligible.map((c) => c.partner.id)
+  assert.equal(wave2Ids.includes("partner-capped"), false)
+  assert.equal(wave2Ids.includes("partner-ok"), true)
 })
 
 test("Factual installer lead teaser email subjects & contexts across waves and remaining slots", () => {
