@@ -68,6 +68,7 @@ const disputesPolicy = loadTs("lib/disputes-policy.ts")
 const notifyAdmin = loadTs("lib/notify-admin-lead.ts")
 const installerTeaser = loadTs("lib/email-templates/installer-lead-teaser.ts")
 const pricing = loadTs("lib/marketplace-pricing.ts")
+const addressSpw = loadTs("lib/address-spw.ts")
 
 test("Téléphone BE/FR : rejette +32470102030 et toutes les suites/répétitions factices", () => {
   const fakeNumbers = [
@@ -872,6 +873,9 @@ test("E-mails Admin & Installateur : clarté Lookup vs SMS OTP, alertes techniqu
   assert.match(failedAdminMail.html, /Vérification SMS \/ Appel/)
   assert.match(failedAdminMail.html, /ORANGE Belgium/)
   assert.match(failedAdminMail.html, /#21608/)
+  assert.match(failedAdminMail.html, /Google Earth/)
+  assert.match(failedAdminMail.html, /WalOnMap/)
+  assert.equal(/Street View/i.test(failedAdminMail.html), false)
   assert.match(failedAdminMail.text, /Contrôle opérateur \(Lookup\)/)
   assert.match(failedAdminMail.text, /Vérification SMS\/Appel \(OTP\)/)
   assert.equal(/<code>/i.test(failedAdminMail.html), false)
@@ -961,6 +965,60 @@ test("E-mails Admin & Installateur : clarté Lookup vs SMS OTP, alertes techniqu
   assert.equal(/Téléphone vérifié/i.test(lookupTeaser.html), false)
   assert.equal(/\b(otp|lookup|mx|mod\s?97|modulo|icar)\b/i.test(lookupTeaser.html), false)
   assert.equal(/\b(otp|lookup|mx|mod\s?97|modulo|icar)\b/i.test(lookupTeaser.text), false)
+})
+
+test("buildMapLinks : deep-links directs Maps, Google Earth et WalOnMap par coordonnées SPW ICAR et fallbacks", () => {
+  // 1. Avec coordonnées SPW ICAR exactes (Rue Max Houben 5, 4800 Lambermont)
+  const withCoords = addressSpw.buildMapLinks({
+    streetAddress: "Rue Max Houben 5",
+    postalCode: "4800",
+    city: "Lambermont",
+    coordinates: { lat: 50.58715549461765, lng: 5.826576687520938 },
+  })
+  assert.equal(
+    withCoords.googleMapsUrl,
+    "https://www.google.com/maps/search/?api=1&query=50.5871555,5.8265767"
+  )
+  assert.equal(
+    withCoords.googleEarthUrl,
+    "https://earth.google.com/web/search/50.5871555,5.8265767"
+  )
+  assert.equal(
+    withCoords.walOnMapUrl,
+    "https://geoportail.wallonie.be/carte#COOR=50.5871555,5.8265767,4326|SHOW=true"
+  )
+
+  // 2. Sans coordonnées mais avec adresse complète -> fallback recherche par adresse
+  const withoutCoords = addressSpw.buildMapLinks({
+    streetAddress: "Rue Max Houben 5",
+    postalCode: "4800",
+    city: "Lambermont",
+    coordinates: null,
+  })
+  assert.equal(
+    withoutCoords.googleMapsUrl,
+    "https://www.google.com/maps/search/?api=1&query=Rue%20Max%20Houben%205%2C%204800%2C%20Lambermont%2C%20Belgique"
+  )
+  assert.equal(
+    withoutCoords.googleEarthUrl,
+    "https://earth.google.com/web/search/Rue%20Max%20Houben%205%2C%204800%2C%20Lambermont%2C%20Belgique"
+  )
+  assert.equal(
+    withoutCoords.walOnMapUrl,
+    "https://geoportail.wallonie.be/carte#ADR=Rue%20Max%20Houben%205%204800%20Lambermont|SHOW=true"
+  )
+
+  // 3. Entrées vides -> fallback propre vers la racine WalOnMap / Wallonie
+  const empty = addressSpw.buildMapLinks({})
+  assert.equal(
+    empty.googleMapsUrl,
+    "https://www.google.com/maps/search/?api=1&query=Wallonie%2C%20Belgique"
+  )
+  assert.equal(
+    empty.googleEarthUrl,
+    "https://earth.google.com/web/search/Wallonie%2C%20Belgique"
+  )
+  assert.equal(empty.walOnMapUrl, "https://geoportail.wallonie.be/carte")
 })
 
 

@@ -71,14 +71,6 @@ const ALREADY_REGISTERED_EMAILS = [
 ]
 
 const BLACKLIST_TERMS = [
-  "auvray",
-  "housing energy",
-  "ideal energy",
-  "ideal-energy",
-  "watup",
-  "mc industry",
-  "mc-industry",
-  "mcindustry",
   "batelex",
   "hotelec",
   "etienne botman",

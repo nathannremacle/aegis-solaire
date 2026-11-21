@@ -17,6 +17,8 @@ import {
   Award,
   ChevronRight,
   XCircle,
+  Smartphone,
+  Camera,
 } from "lucide-react"
 import dynamic from "next/dynamic"
 import { Button } from "@/components/ui/button"
@@ -25,6 +27,10 @@ import {
   getRegionalLeadSummary,
   type InvitationLeadSummary,
 } from "@/lib/regional-leads-catalog"
+import {
+  AI_PROJECTION_BADGE_SHORT,
+  AI_PROJECTION_EMAIL_CAPTION,
+} from "@/lib/lead-images"
 
 const InstallerVipInvitationForm = dynamic(
   () =>
@@ -171,54 +177,126 @@ export function InvitationClient({
                 </p>
               )}
 
-              {leadSummary && (
-                <div className="mt-6 rounded-md border border-accent/40 bg-accent/5 p-4 sm:p-5 text-left shadow-xs">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-accent/20 pb-2 mb-3">
-                    <span className="font-mono tabular-nums text-xs font-bold uppercase tracking-wider text-accent flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5 shrink-0" />
-                      <span>
-                        Opportunité de chantier auditée ·{" "}
-                        {[leadSummary.postalCode, leadSummary.city].filter(Boolean).join(" ") ||
-                          leadSummary.province}
-                        {leadSummary.province && leadSummary.city ? ` (${leadSummary.province})` : ""}
-                      </span>
-                    </span>
-                    <span className="font-mono tabular-nums text-[11px] font-semibold bg-accent/20 text-accent px-2 py-0.5 rounded">
-                      {leadSummary.maxSlots === 1
-                        ? "Exclusivité · 1 installateur max"
-                        : `Plafonné à ${leadSummary.maxSlots} installateurs max`}
-                    </span>
-                  </div>
-                  <div className="text-xs sm:text-sm text-foreground flex flex-col gap-1">
-                    {leadTechSummary && (
-                      <p className="font-semibold text-foreground font-mono tabular-nums">
-                        {leadTechSummary}
-                      </p>
-                    )}
-                    <p className="text-muted-foreground text-xs font-sans">
-                      Activez votre accès installateur ci-dessous pour consulter et débloquer la fiche complète (coordonnées directes, photo de la toiture et cadastre vérifié).
-                    </p>
-                  </div>
+              {freeCredits > 0 && (
+                <div className="mt-5 inline-flex flex-wrap items-center gap-2 rounded-md border border-accent/40 bg-accent/10 px-3.5 py-2 text-xs sm:text-sm font-medium text-foreground">
+                  <Sparkles className="h-4 w-4 text-accent shrink-0" />
+                  <span>
+                    <strong className="text-primary font-semibold">
+                      {freeCredits >= 3 ? "1er dossier B2C offert" : `${freeCredits} crédits d'accueil offerts`}
+                    </strong>{" "}
+                    (<span className="font-mono tabular-nums font-semibold">{freeCredits} crédits</span> crédités dès validation · <span className="font-mono tabular-nums">0 €</span> à débourser)
+                  </span>
                 </div>
               )}
 
+              {leadSummary && (() => {
+                const leadPreviewImages =
+                  leadSummary.images && leadSummary.images.length > 0
+                    ? leadSummary.images.slice(0, 2)
+                    : leadSummary.imageUrl
+                      ? [{ url: leadSummary.imageUrl, isAiProjection: false }]
+                      : []
+                return (
+                  <div className="mt-6 rounded-md border border-accent/40 bg-accent/5 p-4 sm:p-5 text-left shadow-xs">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-accent/20 pb-2.5 mb-3">
+                      <span className="font-mono tabular-nums text-xs font-bold uppercase tracking-wider text-accent flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                        <span>
+                          Opportunité auditée ·{" "}
+                          {[leadSummary.postalCode, leadSummary.city].filter(Boolean).join(" ") ||
+                            leadSummary.province}
+                          {leadSummary.province && leadSummary.city ? ` (${leadSummary.province})` : ""}
+                        </span>
+                      </span>
+                      <span className="font-mono tabular-nums text-[11px] font-semibold bg-accent/20 text-accent px-2 py-0.5 rounded">
+                        {leadSummary.maxSlots === 1
+                          ? "Exclusivité · 1 installateur max"
+                          : `Plafonné à ${leadSummary.maxSlots} installateurs max`}
+                      </span>
+                    </div>
+
+                    <div className="text-xs sm:text-sm text-foreground flex flex-col gap-2">
+                      {leadTechSummary && (
+                        <p className="font-semibold text-foreground font-mono tabular-nums">
+                          {leadTechSummary}
+                        </p>
+                      )}
+
+                      {(leadSummary.phoneVerifiedBySms || leadSummary.addressVerified || leadSummary.emailVerified) && (
+                        <div className="flex flex-wrap items-center gap-2">
+                          {leadSummary.phoneVerifiedBySms && (
+                            <span className="inline-flex items-center gap-1 rounded-sm border border-primary/20 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                              <Smartphone className="h-3 w-3 shrink-0" />
+                              Téléphone vérifié par SMS (OTP){leadSummary.phoneCarrier ? ` · ${leadSummary.phoneCarrier}` : ""}
+                            </span>
+                          )}
+                          {leadSummary.addressVerified && (
+                            <span className="inline-flex items-center gap-1 rounded-sm border border-border bg-card px-2 py-0.5 text-[11px] font-medium text-foreground">
+                              <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
+                              Adresse certifiée SPW ICAR
+                            </span>
+                          )}
+                          {leadSummary.emailVerified && (
+                            <span className="inline-flex items-center gap-1 rounded-sm border border-border bg-card px-2 py-0.5 text-[11px] font-medium text-foreground">
+                              <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
+                              E-mail confirmé
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {leadPreviewImages.length > 0 && (
+                        <div className={`mt-2 grid gap-3 ${leadPreviewImages.length > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 max-w-sm"}`}>
+                          {leadPreviewImages.map((img, idx) => (
+                            <div key={img.url} className="rounded-md border border-border bg-card p-2 flex flex-col gap-1.5">
+                              <div className="relative aspect-[3/2] w-full overflow-hidden rounded-sm bg-muted">
+                                <img
+                                  src={img.url}
+                                  alt={img.isAiProjection ? "Reconstitution 3D indicative de la toiture" : "Photo réelle du bâtiment concerné"}
+                                  className="h-full w-full object-cover"
+                                />
+                              </div>
+                              <div className="flex items-center justify-between gap-2 text-[11px]">
+                                <span className="inline-flex items-center gap-1 font-medium text-foreground">
+                                  <Camera className="h-3 w-3 text-primary shrink-0" />
+                                  {img.isAiProjection ? AI_PROJECTION_BADGE_SHORT : `Photo du bien #${idx + 1}`}
+                                </span>
+                              </div>
+                              {img.isAiProjection && (
+                                <p className="text-[11px] text-muted-foreground leading-snug">
+                                  {AI_PROJECTION_EMAIL_CAPTION}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <p className="text-muted-foreground text-xs font-sans">
+                        Activez votre accès installateur ci-dessous pour débloquer la fiche complète (coordonnées directes et adresse exacte){freeCredits >= leadSummary.creditCost && leadSummary.creditCost > 0 ? ` — couvert à 100 % par vos ${freeCredits} crédits offerts.` : "."}
+                      </p>
+                    </div>
+                  </div>
+                )
+              })()}
+
               {/* Sous-titre institutionnel */}
               <p className="mt-6 text-base sm:text-lg text-muted-foreground leading-relaxed font-sans max-w-3xl">
-                Aegis Solaire est l'organe de sélection technique de référence : chaque projet fait l'objet d'un audit préalable rigoureux (compteur bidirectionnel, cadastre toiture, solvabilité) avant toute mise à disposition sur la plateforme.
+                Aegis Solaire est l'organe de sélection technique de référence : chaque projet fait l'objet d'un contrôle rigoureux (téléphone vérifié par code SMS, adresse cadastrale, photos du bâtiment et vue 3D du toit) avant toute mise à disposition sur la plateforme.
               </p>
 
               {/* Triple métrique institutionnelle (Swiss Grid) */}
               <div className="mt-8 grid grid-cols-1 divide-y sm:divide-y-0 sm:divide-x divide-border border border-border bg-card rounded-md sm:grid-cols-3">
                 <div className="p-4 sm:p-5 flex flex-col gap-1">
                   <div className="flex items-center gap-2">
-                    <UserCheck className="h-4 w-4 text-primary shrink-0" />
-                    <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Audit Humain</span>
+                    <Smartphone className="h-4 w-4 text-primary shrink-0" />
+                    <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Téléphone vérifié SMS</span>
                   </div>
                   <p className="font-mono text-xl sm:text-2xl font-semibold tabular-nums text-foreground mt-1">
-                    100 %
+                    OTP + Photo 3D
                   </p>
                   <p className="text-xs text-muted-foreground font-sans">
-                    Dossiers vérifiés par téléphone et cadastre solaire avant publication.
+                    Numéro validé par SMS (OTP), photos du bien et vue 3D du toit consultables avant déblocage.
                   </p>
                 </div>
 
@@ -459,7 +537,7 @@ export function InvitationClient({
                         <div className="flex items-start gap-2.5">
                           <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                           <span>
-                            <strong className="text-primary font-bold">Audit téléphonique systématique</strong> : cadastre toiture vérifié, puissance estimée, type de compteur et propriétaire validé avant mise en ligne
+                            <strong className="text-primary font-bold">Téléphone vérifié par SMS (OTP) &amp; dossier complet</strong> : adresse certifiée SPW ICAR, photos du bâtiment, vue 3D indicative du toit et facture vérifiés avant mise en ligne
                           </span>
                         </div>
                       </td>
@@ -605,8 +683,8 @@ export function InvitationClient({
                 <div className="mt-5 mx-auto max-w-xl rounded-lg border border-accent/30 bg-accent/10 p-3.5 text-center text-xs font-semibold text-accent flex items-center justify-center gap-2">
                   <Sparkles className="h-4 w-4 shrink-0 text-accent" />
                   <span>
-                    <strong>Avantage Accueil Partenaire Privilégié :</strong>{" "}
-                    <span className="font-mono font-bold tabular-nums">{freeCredits} crédits d&apos;accueil</span> offerts sur votre compte pour tester et débloquer votre premier chantier sans engagement.
+                    <strong>{freeCredits >= 3 ? "1er dossier B2C offert :" : "Avantage Accueil Partenaire Privilégié :"}</strong>{" "}
+                    <span className="font-mono font-bold tabular-nums">{freeCredits} crédits d&apos;accueil</span> offerts sur votre compte pour tester et débloquer votre premier chantier gratuitement, sans carte ni engagement.
                   </span>
                 </div>
               )}

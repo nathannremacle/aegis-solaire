@@ -83,17 +83,12 @@ const HARD_BOUNCED_EMAILS = [
   "anthony.devleeshouwer@gmail.com",
   "info@elthium.be",
   "val@renovalenergie.be",
+  "info@watup.be",
+  "info@bonfond-construction.be",
+  "benjamin@bonfond-construction.be",
 ]
 
 const BLACKLIST_TERMS = [
-  "auvray",
-  "housing energy",
-  "ideal energy",
-  "ideal-energy",
-  "watup",
-  "mc industry",
-  "mc-industry",
-  "mcindustry",
   "batelex",
   "hotelec",
   "etienne botman",
@@ -297,6 +292,60 @@ async function main() {
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
   const { buildRescertWaveInviteEmail } = loadTs("lib/email-templates/rescert-wave-invite.ts")
   const { isUnreachableMockEmail } = loadTs("lib/lead-relance-engine.ts")
+  const { getLeadImageItems } = loadTs("lib/lead-images.ts")
+  const { getRoofMaterialLabel } = loadTs("lib/lead-display-helpers.ts")
+
+  const toSampleLeadPreview = (lead, provinceLabel) => {
+    if (!lead) return null
+    const meta = lead.qualification_metadata && typeof lead.qualification_metadata === "object"
+      ? lead.qualification_metadata
+      : {}
+    const verifs = meta.verifications && typeof meta.verifications === "object"
+      ? meta.verifications
+      : {}
+    const images = getLeadImageItems(meta).map((img) => ({
+      url: img.url,
+      isAiProjection: img.isAiProjection,
+    }))
+    const phoneVerifiedBySms = Boolean(
+      lead.phone_verified ||
+        verifs.phoneOtp?.verified === true ||
+        verifs.phoneOtp?.status === "verified" ||
+        lead.phone_verification_method === "sms_otp"
+    )
+    const phoneCarrier =
+      (lead.phone_carrier ? String(lead.phone_carrier).trim() : null) ||
+      (verifs.twilioLookup?.carrierName ? String(verifs.twilioLookup.carrierName).trim() : null)
+    const emailVerified = Boolean(
+      lead.email_verified || verifs.emailProof?.verified === true
+    )
+    const addressVerified = Boolean(
+      verifs.walloniaAddress?.validInWallonia === true &&
+        (verifs.walloniaAddress?.houseVerified === true ||
+          verifs.walloniaAddress?.streetVerified === true)
+    )
+    const panelCount = Number(meta.estimatedPanelCount || 0)
+
+    return {
+      id: lead.id,
+      city: lead.city,
+      postalCode: lead.postal_code,
+      provinceLabel,
+      segmentLabel: lead.segment === "B2B" ? "Projet B2B / Industriel" : "Maison unifamiliale",
+      surfaceAreaM2: Number(lead.surface_area) || null,
+      roofMaterialLabel: lead.roof_material ? getRoofMaterialLabel(lead.roof_material) : null,
+      estimatedPowerKwc: Number(lead.estimated_power_kwc) || null,
+      panelCount: Number.isFinite(panelCount) && panelCount > 0 ? panelCount : null,
+      annualBillEur: Number(lead.annual_electricity_bill) || null,
+      creditCost: lead.credit_cost ?? 3,
+      maxSlots: lead.max_slots ?? (lead.segment === "B2B" ? 1 : 3),
+      phoneVerifiedBySms,
+      phoneCarrier,
+      emailVerified,
+      addressVerified,
+      roofImages: images,
+    }
+  }
 
   const rescertRaw = JSON.parse(
     fs.readFileSync(path.join(WORKSPACE, "lib/data/rescert-wallonie-installateurs.json"), "utf8")
@@ -331,7 +380,7 @@ async function main() {
     sb
       .from("leads")
       .select(
-        "id, province, city, postal_code, surface_area, estimated_power_kwc, annual_electricity_bill, credit_cost, qualification_metadata"
+        "id, segment, province, city, postal_code, surface_area, roof_material, estimated_power_kwc, annual_electricity_bill, credit_cost, max_slots, phone_verified, phone_verification_method, phone_carrier, email_verified, qualification_metadata"
       )
       .eq("marketplace_status", "available")
       .order("created_at", { ascending: false }),
@@ -549,18 +598,7 @@ async function main() {
       provinceLabel: sampleRec.provinceLabel || "Liège",
       totalOpenWalloniaCount: openLeads.length,
       provinceOpenCount: provLeads.length,
-      sampleLead: topLead
-        ? {
-            id: topLead.id,
-            city: topLead.city,
-            postalCode: topLead.postal_code,
-            provinceLabel: sampleRec.provinceLabel,
-            surfaceAreaM2: Number(topLead.surface_area) || null,
-            estimatedPowerKwc: Number(topLead.estimated_power_kwc) || null,
-            annualBillEur: Number(topLead.annual_electricity_bill) || null,
-            creditCost: topLead.credit_cost ?? 3,
-          }
-        : null,
+      sampleLead: toSampleLeadPreview(topLead, sampleRec.provinceLabel),
       baseUrl: siteBaseUrl,
     })
 
@@ -673,18 +711,7 @@ async function main() {
       provinceLabel: rec.provinceLabel || provKey,
       totalOpenWalloniaCount: openLeads.length,
       provinceOpenCount: provLeads.length,
-      sampleLead: topLead
-        ? {
-            id: topLead.id,
-            city: topLead.city,
-            postalCode: topLead.postal_code,
-            provinceLabel: rec.provinceLabel,
-            surfaceAreaM2: Number(topLead.surface_area) || null,
-            estimatedPowerKwc: Number(topLead.estimated_power_kwc) || null,
-            annualBillEur: Number(topLead.annual_electricity_bill) || null,
-            creditCost: topLead.credit_cost ?? 3,
-          }
-        : null,
+      sampleLead: toSampleLeadPreview(topLead, rec.provinceLabel),
       baseUrl: siteBaseUrl,
     })
 

@@ -3,7 +3,7 @@ import { getAdminUser } from "@/lib/admin-auth"
 import { Resend } from "resend"
 
 const resendApiKey = process.env.RESEND_API_KEY
-const fromEmail = process.env.RESEND_FROM_EMAIL ?? "noreply@aegissolaire.com"
+const fromEmail = process.env.OUTREACH_FROM_EMAIL ?? "partenaires@partenaires.aegissolaire.com"
 const replyToEmail = process.env.RESEND_REPLY_TO ?? "contact@aegissolaire.com"
 
 export async function POST(request: NextRequest) {

@@ -6,7 +6,7 @@ import {
   type InvitationLeadSummary,
 } from "@/lib/regional-leads-catalog"
 import { getRoofMaterialLabel } from "@/lib/lead-display-helpers"
-import { getPrimaryLeadImage } from "@/lib/lead-images"
+import { getLeadImageItems, getPrimaryLeadImage } from "@/lib/lead-images"
 import { InvitationClient } from "./invitation-client"
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -20,13 +20,19 @@ async function resolveInvitationLeadSummary(
   if (UUID_REGEX.test(trimmed) && !isShowcaseOnlyLeadId(trimmed)) {
     try {
       const supabase = createServiceRoleClient()
-      const { data } = await supabase
-        .from("leads")
-        .select(
-          "id, segment, postal_code, city, province, surface_type, surface_area, roof_material, estimated_power_kwc, annual_electricity_bill, ownership_status, timeframe, project_driver, grd, credit_cost, max_slots, project_details, message, created_at, qualification_metadata"
-        )
-        .eq("id", trimmed)
-        .maybeSingle()
+      const [{ data }, { count: takenCount }] = await Promise.all([
+        supabase
+          .from("leads")
+          .select(
+            "id, segment, postal_code, city, province, surface_type, surface_area, roof_material, estimated_power_kwc, annual_electricity_bill, ownership_status, timeframe, project_driver, grd, credit_cost, max_slots, project_details, message, created_at, phone_verified, phone_verification_method, phone_carrier, email_verified, qualification_metadata"
+          )
+          .eq("id", trimmed)
+          .maybeSingle(),
+        supabase
+          .from("lead_purchases")
+          .select("id", { count: "exact", head: true })
+          .eq("lead_id", trimmed),
+      ])
 
       if (data) {
         const segment: "B2C" | "B2B" = data.segment === "B2B" ? "B2B" : "B2C"
@@ -35,14 +41,14 @@ async function resolveInvitationLeadSummary(
 
         const rawSurface = Number(data.surface_area || 0)
         const roofMat = data.roof_material ? String(data.roof_material).trim() : ""
+        const roofMaterialLabel = roofMat ? getRoofMaterialLabel(roofMat) : null
         let surfaceLabel = ""
         if (data.surface_area !== null && data.surface_area !== undefined && String(data.surface_area).trim()) {
           const s = String(data.surface_area).trim()
           surfaceLabel = s.includes("m²") ? `Toiture ${s}` : `Toiture ${s} m²`
         }
-        if (roofMat) {
-          const roofLabel = getRoofMaterialLabel(roofMat)
-          surfaceLabel = surfaceLabel ? `${surfaceLabel} (${roofLabel})` : roofLabel
+        if (roofMaterialLabel) {
+          surfaceLabel = surfaceLabel ? `${surfaceLabel} (${roofMaterialLabel})` : roofMaterialLabel
         }
 
         const rawPower = data.estimated_power_kwc
@@ -72,8 +78,32 @@ async function resolveInvitationLeadSummary(
             : segment === "B2B"
               ? 1
               : 3
+        const remainingSlots = Math.max(0, maxSlots - (takenCount ?? 0))
 
         const qualMeta = (data.qualification_metadata ?? {}) as Record<string, unknown>
+        const verifs =
+          qualMeta.verifications && typeof qualMeta.verifications === "object"
+            ? (qualMeta.verifications as Record<string, any>)
+            : null
+        const phoneVerifiedBySms = Boolean(
+          data.phone_verified ||
+            verifs?.phoneOtp?.verified === true ||
+            verifs?.phoneOtp?.status === "verified" ||
+            data.phone_verification_method === "sms_otp"
+        )
+        const phoneCarrier =
+          (data.phone_carrier ? String(data.phone_carrier).trim() : null) ||
+          (verifs?.twilioLookup?.carrierName ? String(verifs.twilioLookup.carrierName).trim() : null)
+        const emailVerified = Boolean(
+          data.email_verified || verifs?.emailProof?.verified === true
+        )
+        const addressVerified = Boolean(
+          verifs?.walloniaAddress?.validInWallonia === true &&
+            (verifs?.walloniaAddress?.houseVerified === true ||
+              verifs?.walloniaAddress?.streetVerified === true)
+        )
+        const rawPanelCount = Number(qualMeta.estimatedPanelCount || 0)
+        const imageItems = getLeadImageItems(qualMeta)
 
         return {
           id: data.id,
@@ -91,13 +121,21 @@ async function resolveInvitationLeadSummary(
           billLabel,
           annualBillEur: Number.isFinite(billNum) ? billNum : 0,
           roofMaterial: roofMat || "tuiles",
+          roofMaterialLabel,
+          panelCount: Number.isFinite(rawPanelCount) && rawPanelCount > 0 ? rawPanelCount : null,
           ownershipStatus: data.ownership_status ? String(data.ownership_status) : "owner",
           timeframe: data.timeframe ? String(data.timeframe) : "immediat_3mois",
           projectDriver: data.project_driver ? String(data.project_driver) : "autoconsommation",
           grd: data.grd ? String(data.grd) : "ORES / RESA",
           creditCost: typeof data.credit_cost === "number" && data.credit_cost > 0 ? data.credit_cost : segment === "B2B" ? 9 : 3,
           maxSlots,
+          remainingSlots,
           imageUrl: getPrimaryLeadImage(qualMeta) ?? "",
+          images: imageItems.map((img) => ({ url: img.url, isAiProjection: img.isAiProjection })),
+          phoneVerifiedBySms,
+          phoneCarrier,
+          emailVerified,
+          addressVerified,
           projectDetails: String(data.project_details || data.message || "").trim(),
           isShowcaseOnly: Boolean(qualMeta.is_showcase),
           createdAt: data.created_at ? String(data.created_at) : new Date().toISOString(),

@@ -1,3 +1,8 @@
+export interface InvitationLeadImagePreview {
+  url: string
+  isAiProjection: boolean
+}
+
 export interface InvitationLeadSummary {
   id: string
   postalCode: string
@@ -14,13 +19,21 @@ export interface InvitationLeadSummary {
   billLabel: string
   annualBillEur: number
   roofMaterial: string
+  roofMaterialLabel?: string | null
+  panelCount?: number | null
   ownershipStatus: string
   timeframe: string
   projectDriver: string
   grd: string
   creditCost: number
   maxSlots: number
+  remainingSlots?: number | null
   imageUrl: string
+  images?: InvitationLeadImagePreview[]
+  phoneVerifiedBySms?: boolean
+  phoneCarrier?: string | null
+  emailVerified?: boolean
+  addressVerified?: boolean
   projectDetails: string
   isShowcaseOnly: boolean
   createdAt: string

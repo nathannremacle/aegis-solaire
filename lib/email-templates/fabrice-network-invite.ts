@@ -8,8 +8,14 @@ import {
   escapeEmailHtml,
   renderActionBox,
   renderCalloutBox,
+  renderFiguresBox,
   renderInstallerEmailShell,
+  renderSpecsTable,
 } from "@/lib/email-templates/installer-email-layout"
+import {
+  renderSampleLeadShowcaseBox,
+  type RescertSampleLeadPreview,
+} from "@/lib/email-templates/rescert-wave-invite"
 
 export interface PartnerInviteData {
   installerName: string
@@ -22,6 +28,7 @@ export interface PartnerInviteData {
   provinces?: string
   customNote?: string
   inviteUrl: string
+  sampleLead?: RescertSampleLeadPreview | null
 }
 
 function escapeHtml(s: string): string {
@@ -93,14 +100,19 @@ export function substituteTemplateVariables(
  */
 export function buildPartnerInviteSubject(data: PartnerInviteData): string {
   const company = data.companyName?.trim() ? ` pour ${data.companyName.trim()}` : ""
+  const showFirstFree = data.includeCreditsText !== false && (data.freeCredits ?? 3) >= 3
 
   if (data.tone === "tutoiement") {
-    return `Direction des Partenariats : chantiers photovoltaïques qualifiés en Wallonie${company}`
+    return showFirstFree
+      ? `Aegis Solaire : 1er dossier B2C offert${company} (tél. vérifié SMS & vue 3D)`
+      : `Direction des Partenariats : chantiers photovoltaïques qualifiés en Wallonie${company}`
   }
   if (data.tone === "court_whatsapp") {
-    return `Aegis Solaire — Chantiers solaires qualifiés Wallonie`
+    return `Aegis Solaire — 1er dossier B2C offert (tél. SMS vérifié & vue 3D)`
   }
-  return `Aegis Solaire — Opportunités de chantiers solaires vérifiés${company}`
+  return showFirstFree
+    ? `Aegis Solaire — 1er dossier B2C offert${company} (tél. vérifié SMS & vue 3D du toit)`
+    : `Aegis Solaire — Opportunités de chantiers solaires vérifiés${company}`
 }
 
 /**
@@ -114,11 +126,11 @@ export function buildPartnerInvitePlainText(data: PartnerInviteData): string {
   const creditsCount = data.freeCredits > 0 ? data.freeCredits : 3
 
   const creditsBlockTutoiement = showCredits
-    ? `\nPour vous permettre de tester la qualité de nos dossiers, nous vous avons crédité ${creditsCount} crédits d'accueil sur votre espace (soit votre 1er dossier B2C offert, valeur 29,50 € HTVA) sans aucun engagement financier.\n`
+    ? `\nPour que tu puisses juger sur pièce sans risquer un euro, ton 1er dossier B2C est intégralement offert (${creditsCount} crédits d'accueil crédités dès validation, valeur 29,50 € HT, sans carte bancaire ni abonnement).\n`
     : `\n`
 
   const creditsBlockVouvoiement = showCredits
-    ? `\nAfin de vous permettre de constater la précision de nos dossiers techniques, la Direction des Partenariats vous alloue ${creditsCount} crédits d'accueil (valeur 29,50 € HTVA, correspondant à votre 1er dossier B2C offert) sans aucun engagement financier.\n`
+    ? `\nAfin de vous permettre de constater la qualité de nos dossiers sans engagement, votre 1er dossier B2C est intégralement offert (${creditsCount} crédits d'accueil crédités dès validation, valeur 29,50 € HT, sans carte bancaire ni abonnement).\n`
     : `\n`
 
   const noteBlock = data.customNote?.trim() ? `\nNote de l'équipe : ${data.customNote.trim()}\n` : ""
@@ -126,17 +138,17 @@ export function buildPartnerInvitePlainText(data: PartnerInviteData): string {
   if (data.tone === "tutoiement") {
     return `Salut ${name},
 
-Je t'écris pour te présenter la plateforme Aegis Solaire, dédiée aux professionnels du photovoltaïque en Wallonie. C'est un réseau de confiance qui sélectionne des installateurs sérieux pour des projets photovoltaïques concrets, en résidentiel et en tertiaire (B2C & B2B).
+Je t'écris pour te présenter Aegis Solaire, la plateforme dédiée aux installateurs photovoltaïques certifiés RESCERT en Wallonie (résidentiel B2C & tertiaire B2B).
 
-Notre fonctionnement tranche nettement avec les centrales d'appels habituelles :
-1. Maximum 3 artisans par projet en résidentiel (et exclusivité totale 100% à un seul installateur en B2B/tertiaire).
-2. Dossier technique complet avant diffusion : surface, pente, toiture, facture d'électricité réelle, photo satellite et coordonnées vérifiées par téléphone avant publication.
-3. Zéro abonnement, zéro commission sur ton chiffre d'affaires : tu choisis uniquement les dossiers qui t'intéressent dans ta zone via un système simple de crédits.
+Notre fonctionnement est conçu pour éliminer les faux numéros et les mauvaises surprises sur chantier :
+1. Téléphone vérifié par SMS (code OTP) + contrôle opérateur et e-mail confirmé avant publication (avec garantie recrédit sous 24 h ouvrées si le prospect reste injoignable).
+2. Photos réelles du bien + vue 3D indicative du toit visibles avant déblocage, avec surface, toiture, facture réelle et adresse certifiée SPW ICAR.
+3. Concurrence plafonnée à 3 artisans max en B2C (ou Exclusivité Totale) et exclusivité 100 % en B2B — 0 € d'abonnement, 0 commission.
 ${noteBlock}${creditsBlockTutoiement}
-Tu peux activer ton accès réservé en 1 minute ici :
+Tu peux activer ton accès et débloquer ton 1er dossier offert en 2 minutes ici :
 ${data.inviteUrl}
 
-Consulte les dossiers actuellement disponibles en Wallonie. Si tu as la moindre question, n'hésite pas à écrire à notre équipe à contact@aegissolaire.com.
+Consulte les dossiers actuellement disponibles en Wallonie. Si tu as la moindre question, écris à notre équipe à contact@aegissolaire.com.
 
 À très bientôt,
 
@@ -146,25 +158,25 @@ Email : contact@aegissolaire.com`.trim()
 
   if (data.tone === "court_whatsapp") {
     const bonus = showCredits
-      ? ` Nous vous avons réservé ${creditsCount} crédits offerts pour débloquer votre 1er dossier B2C sans frais : ${data.inviteUrl} .`
-      : ` Vous pouvez activer votre accès réservé ici : ${data.inviteUrl} .`
-    return `Bonjour ${name}, l'équipe Aegis Solaire vous invite à découvrir notre réseau d'installateurs solaires en Wallonie (toiture & facture vérifiées, max 3 artisans en résidentiel, exclusivité B2B, zéro commission).${bonus} Contactez-nous à contact@aegissolaire.com pour toute question !`.trim()
+      ? ` Votre 1er dossier B2C est offert (${creditsCount} crédits d'accueil, 0 € à débourser) : ${data.inviteUrl} .`
+      : ` Activez votre accès réservé ici : ${data.inviteUrl} .`
+    return `Bonjour ${name}, l'équipe Aegis Solaire vous invite à découvrir nos chantiers photovoltaïques vérifiés en Wallonie : téléphone vérifié par SMS (OTP), photos du bâtiment + vue 3D du toit avant déblocage, max 3 artisans en B2C / exclusif en B2B, 0 € d'abonnement.${bonus} Questions : contact@aegissolaire.com`.trim()
   }
 
   // Vouvoiement
   return `Bonjour ${name}${company},
 
-La Direction des Partenariats Aegis Solaire se permet de vous contacter pour vous présenter notre marketplace photovoltaïque en Wallonie. Il s'agit d'un réseau sélectif qui met en relation des installateurs de référence avec des porteurs de projets vérifiés, en résidentiel et en tertiaire (B2C & B2B).
+La Direction des Partenariats Aegis Solaire vous invite à rejoindre notre réseau sélectif d'installateurs photovoltaïques certifiés RESCERT en Wallonie (résidentiel B2C & tertiaire B2B).
 
-Notre fonctionnement se distingue nettement des centrales d'appels habituelles :
-1. Maximum 3 installateurs par projet en résidentiel (et exclusivité totale 100% à un seul installateur en B2B/tertiaire).
-2. Dossier technique complet avant diffusion : surface, pente, toiture, facture d'électricité réelle, photo satellite et coordonnées vérifiées par téléphone avant publication.
-3. Zéro abonnement, zéro commission sur votre chiffre d'affaires : vous choisissez uniquement les dossiers qui vous intéressent dans votre zone via un système simple de crédits.
+Notre fonctionnement tranche nettement avec les courtiers classiques :
+1. Téléphone vérifié par SMS (code OTP) + contrôle opérateur et e-mail confirmé avant publication (avec garantie recrédit sous 24 h ouvrées si le prospect est injoignable).
+2. Photos du bâtiment + vue 3D indicative du toit visibles avant déblocage, avec surface, toiture, facture d'électricité et adresse certifiée SPW ICAR.
+3. Concurrence plafonnée à 3 installateurs maximum en B2C (ou Exclusivité Totale) et exclusivité 100 % en B2B — 0 € d'abonnement et 0 commission.
 ${noteBlock}${creditsBlockVouvoiement}
-Vous pouvez activer votre accès réservé en 1 minute ici :
+Vous pouvez activer votre accès et consulter les dossiers disponibles en 2 minutes ici :
 ${data.inviteUrl}
 
-N'hésitez pas à consulter les dossiers actuellement disponibles en Wallonie. Pour toute question ou étude de dossier conjointe, notre équipe est à votre écoute par e-mail à contact@aegissolaire.com.
+Pour toute question ou étude conjointe, notre équipe est à votre écoute à contact@aegissolaire.com.
 
 Bien cordialement,
 
@@ -178,9 +190,11 @@ Email : contact@aegissolaire.com`.trim()
 export function buildPartnerWhatsAppMessage(data: PartnerInviteData): string {
   const name = data.installerName?.trim() || "Cher partenaire"
   const showCredits = data.includeCreditsText !== false && data.freeCredits > 0
-  const bonus = showCredits ? ` (nous vous avons réservé ${data.freeCredits} crédits offerts pour votre 1er dossier B2C)` : ""
+  const bonus = showCredits
+    ? ` (votre 1er dossier B2C est offert : ${data.freeCredits} crédits d'accueil, 0 € à débourser)`
+    : ""
 
-  return `Bonjour ${name}, la Direction des Partenariats Aegis Solaire vous invite à découvrir notre plateforme dédiée aux installateurs photovoltaïques qualifiés en Wallonie (max 3 installateurs en résidentiel, exclusivité B2B, audit toiture & facture vérifiés, zéro commission). Voici votre lien d'accès privilégié${bonus} : ${data.inviteUrl} . Contactez-nous à contact@aegissolaire.com pour toute question !`
+  return `Bonjour ${name}, la Direction des Partenariats Aegis Solaire vous invite sur notre plateforme wallonne : téléphone vérifié par SMS (OTP), photos du bien + vue 3D du toit avant déblocage, max 3 installateurs B2C / exclusif B2B, 0 € d'abonnement. Voici votre accès privilégié${bonus} : ${data.inviteUrl} . Contact : contact@aegissolaire.com`
 }
 
 /**
@@ -207,11 +221,11 @@ export function renderPartnerInviteHtml(data: PartnerInviteData, customBodyText?
       if (cleanP === escapeHtml(data.inviteUrl)) {
         return renderActionBox({
           kicker: showCredits
-            ? `${creditsCount} crédits d'accueil offerts`
+            ? `1er dossier B2C offert (${creditsCount} crédits)`
             : "Accès réseau partenaires Wallonie",
           title: data.companyName?.trim() || "Invitation installateur agréé",
-          subtext: "Sans abonnement · Zéro commission",
-          ctaLabel: "Activer mon accès privilégié →",
+          subtext: "0 €/mois d'abonnement · Tél. vérifié SMS & vue 3D inclus",
+          ctaLabel: "Débloquer mon 1er dossier offert →",
           ctaUrl: data.inviteUrl,
         })
       }
@@ -219,13 +233,48 @@ export function renderPartnerInviteHtml(data: PartnerInviteData, customBodyText?
     })
     .join("")
 
+  const sampleSectionHtml = data.sampleLead
+    ? renderSampleLeadShowcaseBox(
+        data.sampleLead,
+        "Exemple concret visible avant déblocage",
+        creditsCount
+      )
+    : ""
+
   const bodyHtml = `
+    ${renderFiguresBox(
+      {
+        label: "1er dossier B2C",
+        value: showCredits ? "Offert (0 €)" : "À la carte",
+        sublabel: showCredits ? `${creditsCount} crédits crédités · valeur 29,50 € HT` : "Dès 29,50 € HT · 0 €/mois",
+      },
+      {
+        label: "Qualification contact",
+        value: "SMS OTP",
+        sublabel: "Photos du bien + vue 3D du toit",
+      }
+    )}
+
     ${formattedParagraphs}
+
+    ${sampleSectionHtml}
+
+    <h2 style="margin: 22px 0 10px 0; font-size: 18px; line-height: 1.25; font-weight: bold; color: #142d42;">
+      Ce que vous voyez avant de débloquer
+    </h2>
+
+    ${renderSpecsTable([
+      { label: "1er dossier B2C offert", value: `${creditsCount} crédits d'accueil offerts (0 € sans carte bancaire)` },
+      { label: "Téléphone vérifié par SMS", value: "Code SMS (OTP) validé par le prospect + contrôle opérateur" },
+      { label: "Photos + vue 3D du toit", value: "Visuels réels et reconstitution 3D indicative sur la fiche" },
+      { label: "Concurrence plafonnée", value: "Max 3 artisans B2C · Exclusivité totale 100 % en B2B" },
+      { label: "Garantie joignabilité", value: "Injoignable après 3 essais → recrédit sous 24 h ouvrées" },
+    ])}
 
     ${renderCalloutBox({
       label: "Engagement qualité Aegis Solaire",
       value:
-        "Réseau dédié aux installateurs certifiés RESCERT en Wallonie : maximum 3 artisans en résidentiel, exclusivité totale en B2B.",
+        "Réseau réservé aux installateurs certifiés RESCERT en Wallonie : aucun abonnement, aucune commission sur vos devis.",
       tone: "info",
     })}
 
@@ -238,14 +287,14 @@ export function renderPartnerInviteHtml(data: PartnerInviteData, customBodyText?
   return renderInstallerEmailShell({
     subject,
     preheader: showCredits
-      ? `${creditsCount} crédits d'accueil offerts pour découvrir les dossiers solaires qualifiés en Wallonie.`
+      ? `1er dossier B2C offert (${creditsCount} crédits · 0 €) · Téléphone vérifié par SMS (OTP) · Photos & vue 3D du toit avant déblocage.`
       : "Invitation à rejoindre le réseau d'installateurs photovoltaïques certifiés en Wallonie.",
     reference: data.companyName?.trim() || "Réseau Partenaires",
     context: "Direction des Partenariats · Wallonie",
-    headline: "Chantiers solaires qualifiés en Wallonie",
-    subtitle: "Sans abonnement · Zéro commission · Accès sélectif",
+    headline: showCredits ? "1er dossier B2C offert en Wallonie" : "Chantiers solaires qualifiés en Wallonie",
+    subtitle: "Téléphone vérifié par SMS · Photos & vue 3D du toit · 0 €/mois",
     statusPill: showCredits
-      ? { text: `${creditsCount} crédits d'accueil offerts · 1er dossier B2C`, tone: "success" }
+      ? { text: `1er dossier B2C offert (${creditsCount} crédits) · Tél. vérifié SMS`, tone: "success" }
       : { text: "Invitation réseau partenaires", tone: "info" },
     bodyHtml,
     footerLinks: [

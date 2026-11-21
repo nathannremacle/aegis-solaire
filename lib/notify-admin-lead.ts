@@ -77,7 +77,9 @@ export type WalloniaAddressData = {
   confidenceScore: number
   coordinates?: { lat: number; lng: number } | null
   googleMapsUrl?: string
+  googleEarthUrl?: string
   streetViewUrl?: string
+  walOnMapUrl?: string
 }
 
 export type LeadEnrichedData = {
@@ -557,7 +559,7 @@ Aegis Solaire · Notification interne`
         const hasNum = hasBelgianHouseNumber(payload.siteAddress)
         return `<strong>${escapeHtml(payload.siteAddress)}</strong>${
           !hasNum ? renderInlineBadge("N° manquant", "danger") : ""
-        } &middot; <a href="${escapeHtml(mapLinks.googleMapsUrl)}" target="_blank" style="color: #194767; text-decoration: underline;">Maps</a> &middot; <a href="${escapeHtml(mapLinks.streetViewUrl)}" target="_blank" style="color: #194767; text-decoration: underline;">Street View</a>`
+        } &middot; <a href="${escapeHtml(mapLinks.googleMapsUrl)}" target="_blank" style="color: #194767; text-decoration: underline;">Maps</a> &middot; <a href="${escapeHtml(mapLinks.googleEarthUrl)}" target="_blank" style="color: #194767; text-decoration: underline;">Google Earth</a> &middot; <a href="${escapeHtml(mapLinks.walOnMapUrl)}" target="_blank" style="color: #194767; text-decoration: underline;">WalOnMap</a>`
       })()
     : `<span style="color: #991b1b; font-style: italic;">Non renseignée</span>`
 

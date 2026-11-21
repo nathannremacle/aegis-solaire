@@ -28,7 +28,7 @@ import b2cOptoutEmails from "@/lib/data/b2c-optout-emails.json"
 // ==============================================================================
 
 const resendApiKey = process.env.RESEND_API_KEY
-const fromEmail = process.env.RESEND_FROM_EMAIL ?? "noreply@aegissolaire.com"
+const fromEmail = process.env.RESEND_FROM_EMAIL ?? "contact@aegissolaire.com"
 const replyToEmail = process.env.RESEND_REPLY_TO ?? "contact@aegissolaire.com"
 
 /** Quotas de vente stricts */

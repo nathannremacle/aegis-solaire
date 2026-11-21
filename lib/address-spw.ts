@@ -53,6 +53,7 @@ export interface VerifiedBelgianAddressResult {
   rawCandidatesCount: number
   coordinates?: { lat: number; lng: number } | null
   googleMapsUrl?: string
+  googleEarthUrl?: string
   streetViewUrl?: string
   walOnMapUrl?: string
 }
@@ -453,30 +454,46 @@ export function buildMapLinks(params: {
   postalCode?: string | null
   city?: string | null
   coordinates?: { lat: number; lng: number } | null
-}): { googleMapsUrl: string; streetViewUrl: string; walOnMapUrl: string } {
-  const fullQuery = [params.streetAddress, params.postalCode, params.city, "Belgique"]
+}): { googleMapsUrl: string; googleEarthUrl: string; walOnMapUrl: string } {
+  const addressParts = [params.streetAddress, params.postalCode, params.city]
     .map((s) => (s ?? "").trim())
     .filter(Boolean)
-    .join(", ")
 
-  const coords = params.coordinates
-  const googleMapsUrl = coords
-    ? `https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`
+  const fullQuery =
+    addressParts.length > 0 ? [...addressParts, "Belgique"].join(", ") : "Wallonie, Belgique"
+  const walOnMapAddressQuery = addressParts.join(" ")
+
+  const rawCoords = params.coordinates
+  const validCoords =
+    rawCoords &&
+      typeof rawCoords.lat === "number" &&
+      typeof rawCoords.lng === "number" &&
+      Number.isFinite(rawCoords.lat) &&
+      Number.isFinite(rawCoords.lng)
+      ? {
+        lat: Number(rawCoords.lat.toFixed(7)),
+        lng: Number(rawCoords.lng.toFixed(7)),
+      }
+      : null
+
+  const googleMapsUrl = validCoords
+    ? `https://www.google.com/maps/search/?api=1&query=${validCoords.lat},${validCoords.lng}`
     : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullQuery || "Wallonie, Belgique")}`
 
-  const streetViewUrl = coords
-    ? `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${coords.lat},${coords.lng}`
-    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullQuery || "Wallonie, Belgique")}`
+  const googleEarthUrl = validCoords
+    ? `https://earth.google.com/web/search/${validCoords.lat},${validCoords.lng}`
+    : `https://earth.google.com/web/search/${encodeURIComponent(fullQuery || "Wallonie, Belgique")}`
 
-  const walOnMapUrl = `https://geoportail.wallonie.be/walonmap#BBOX=` +
-    (coords
-      ? `${coords.lng - 0.0015},${coords.lat - 0.0015},${coords.lng + 0.0015},${coords.lat + 0.0015}`
-      : "")
+  const walOnMapUrl = validCoords
+    ? `https://geoportail.wallonie.be/carte#COOR=${validCoords.lat},${validCoords.lng},4326|SHOW=true`
+    : walOnMapAddressQuery
+      ? `https://geoportail.wallonie.be/carte#ADR=${encodeURIComponent(walOnMapAddressQuery)}|SHOW=true`
+      : "https://geoportail.wallonie.be/carte"
 
   return {
     googleMapsUrl,
-    streetViewUrl,
-    walOnMapUrl: coords ? walOnMapUrl : "https://geoportail.wallonie.be/walonmap",
+    googleEarthUrl,
+    walOnMapUrl,
   }
 }
 
@@ -498,10 +515,10 @@ export async function verifyWalloniaAddressStrict(params: {
   const parsed =
     params.street !== undefined && params.street !== null
       ? {
-          street: params.street.trim(),
-          houseNumber: params.houseNumber?.trim() || null,
-          box: null,
-        }
+        street: params.street.trim(),
+        houseNumber: params.houseNumber?.trim() || null,
+        box: null,
+      }
       : extractBelgianStreetAndNumber(rawStreetAddr)
 
   const hasHouseNumber = Boolean(parsed.houseNumber)

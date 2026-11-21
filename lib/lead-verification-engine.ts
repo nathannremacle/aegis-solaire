@@ -41,6 +41,7 @@ export interface WalloniaAddressVerificationResult {
   rawCandidatesCount: number
   coordinates?: { lat: number; lng: number } | null
   googleMapsUrl?: string
+  googleEarthUrl?: string
   streetViewUrl?: string
   walOnMapUrl?: string
 }

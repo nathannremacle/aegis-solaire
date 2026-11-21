@@ -1,6 +1,8 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
-  "installCommand": "npm ci",
+  "installCommand": "npm install --prefer-offline --no-audit --no-fund",
+  "ignoreCommand": "if [ -z \"$VERCEL_GIT_PREVIOUS_SHA\" ] || [ \"$VERCEL_GIT_PREVIOUS_SHA\" = \"$VERCEL_GIT_COMMIT_SHA\" ] || ! git cat-file -e \"$VERCEL_GIT_PREVIOUS_SHA^{commit}\" 2>/dev/null; then exit 1; fi; git diff --quiet \"$VERCEL_GIT_PREVIOUS_SHA\" HEAD -- app components emails hooks lib public middleware.ts next.config.mjs next-env.d.ts package.json package-lock.json postcss.config.mjs tsconfig.json vercel.json components.json",
   "crons": [
     {
       "path": "/api/cron/lead-relances",

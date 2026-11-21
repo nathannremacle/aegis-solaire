@@ -40,7 +40,9 @@ export interface AddressVerificationSnapshot {
   canonicalStreet?: string
   houseNumber?: string | null
   googleMapsUrl?: string
+  googleEarthUrl?: string
   streetViewUrl?: string
+  walOnMapUrl?: string
 }
 
 // Cache client léger pour éviter de re-requêter les mêmes codes postaux pendant la session
