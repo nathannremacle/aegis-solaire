@@ -969,6 +969,41 @@ export function LeadsTable({
                             }
                             return null
                           })()}
+                          {(() => {
+                            const v = (lead.qualification_metadata as Record<string, any> | null)?.verifications as Record<string, any> | undefined
+                            const deliveryStatus = lead.email_delivery_status || v?.emailDelivery?.status
+                            if (deliveryStatus === "bounced" || deliveryStatus === "complained") {
+                              return (
+                                <span
+                                  title="Rebond SMTP ou plainte anti-spam détecté"
+                                  className="inline-flex items-center rounded bg-destructive/10 px-1.5 py-0.5 text-[9.5px] font-semibold text-destructive border border-destructive/20 shrink-0"
+                                >
+                                  Mail ✗
+                                </span>
+                              )
+                            }
+                            if (lead.email_verified || v?.emailProof?.verified) {
+                              const verifiedAt = lead.email_verified_at || v?.emailProof?.verifiedAt
+                              const verifiedLabel = verifiedAt
+                                ? new Date(verifiedAt).toLocaleString("fr-BE", {
+                                    timeZone: "Europe/Brussels",
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })
+                                : null
+                              return (
+                                <span
+                                  title={verifiedLabel ? `E-mail confirmé par clic le ${verifiedLabel}` : "E-mail confirmé par clic"}
+                                  className="inline-flex items-center rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9.5px] font-semibold text-emerald-700 border border-emerald-500/20 shrink-0"
+                                >
+                                  Mail ✓
+                                </span>
+                              )
+                            }
+                            return null
+                          })()}
                         </div>
                       </div>
                     </TableCell>

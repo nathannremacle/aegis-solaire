@@ -111,6 +111,7 @@ export type LeadDetail = {
   phone_carrier?: string | null
   phone_line_type?: string | null
   email_verified?: boolean | null
+  email_verified_at?: string | null
   email_delivery_status?: string | null
   job_title: string
   company: string | null
@@ -1326,7 +1327,19 @@ export function LeadDrawer({
                   </span>
                   {(() => {
                     const v = effectiveMeta?.verifications as Record<string, any> | undefined
-                    if (v?.emailDelivery?.status === "bounced" || v?.emailDelivery?.status === "complained") {
+                    const deliveryStatus = lead.email_delivery_status || v?.emailDelivery?.status
+                    const isEmailVerified = Boolean(lead.email_verified || v?.emailProof?.verified)
+                    const emailVerifiedAtRaw = lead.email_verified_at || v?.emailProof?.verifiedAt || null
+                    const emailVerifiedTime = emailVerifiedAtRaw
+                      ? new Date(emailVerifiedAtRaw).toLocaleString("fr-BE", {
+                          timeZone: "Europe/Brussels",
+                          day: "2-digit",
+                          month: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : null
+                    if (deliveryStatus === "bounced" || deliveryStatus === "complained") {
                       return (
                         <span className="inline-flex items-center gap-1 rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-destructive border border-destructive/20">
                           <AlertTriangle className="h-2.5 w-2.5" />
@@ -1334,15 +1347,18 @@ export function LeadDrawer({
                         </span>
                       )
                     }
-                    if (v?.emailProof?.verified) {
+                    if (isEmailVerified) {
                       return (
-                        <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-emerald-700 border border-emerald-500/20">
+                        <span
+                          title={emailVerifiedTime ? `Confirmé par clic le ${emailVerifiedTime}` : "Confirmé par clic"}
+                          className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-emerald-700 border border-emerald-500/20"
+                        >
                           <CheckCircle2 className="h-2.5 w-2.5" />
-                          E-mail vérifié (clic)
+                          E-mail vérifié (clic{emailVerifiedTime ? ` · ${emailVerifiedTime}` : ""})
                         </span>
                       )
                     }
-                    if (v?.emailDelivery?.status === "delivered") {
+                    if (deliveryStatus === "delivered") {
                       return (
                         <span className="inline-flex items-center gap-1 rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-blue-700 border border-blue-500/20">
                           Remis · MX plausible
@@ -1607,31 +1623,62 @@ export function LeadDrawer({
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-1.5">
-                          <a
-                            href={mapLinks.googleMapsUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded border border-border bg-card hover:bg-muted text-foreground"
-                          >
-                            Maps <ExternalLink className="h-2.5 w-2.5" />
-                          </a>
-                          <a
-                            href={mapLinks.streetViewUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded border border-border bg-card hover:bg-muted text-foreground"
-                          >
-                            Street View <ExternalLink className="h-2.5 w-2.5" />
-                          </a>
-                          <a
-                            href={mapLinks.walOnMapUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded border border-border bg-card hover:bg-muted text-foreground"
-                          >
-                            WalOnMap <ExternalLink className="h-2.5 w-2.5" />
-                          </a>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {(() => {
+                            const hasCoords =
+                              Boolean(coords) &&
+                              typeof coords?.lat === "number" &&
+                              typeof coords?.lng === "number" &&
+                              Number.isFinite(coords.lat) &&
+                              Number.isFinite(coords.lng)
+                            const coordsLabel = hasCoords && coords
+                              ? `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`
+                              : ""
+
+                            return (
+                              <>
+                                <a
+                                  href={mapLinks.googleMapsUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title={
+                                    hasCoords
+                                      ? `Ouvrir Google Maps sur les coordonnées SPW ICAR (${coordsLabel})`
+                                      : "Rechercher l'adresse sur Google Maps"
+                                  }
+                                  className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded border border-border bg-card hover:bg-muted text-foreground"
+                                >
+                                  Maps <ExternalLink className="h-2.5 w-2.5" />
+                                </a>
+                                <a
+                                  href={mapLinks.googleEarthUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title={
+                                    hasCoords
+                                      ? `Ouvrir Google Earth sur les coordonnées SPW ICAR (${coordsLabel})`
+                                      : "Rechercher l'adresse sur Google Earth"
+                                  }
+                                  className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded border border-border bg-card hover:bg-muted text-foreground"
+                                >
+                                  Google Earth <ExternalLink className="h-2.5 w-2.5" />
+                                </a>
+                                <a
+                                  href={mapLinks.walOnMapUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title={
+                                    hasCoords
+                                      ? `Ouvrir WalOnMap sur les coordonnées SPW ICAR (${coordsLabel})`
+                                      : "Rechercher l'adresse sur WalOnMap"
+                                  }
+                                  className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded border border-border bg-card hover:bg-muted text-foreground"
+                                >
+                                  WalOnMap <ExternalLink className="h-2.5 w-2.5" />
+                                </a>
+                              </>
+                            )
+                          })()}
                         </div>
                       </div>
                     </div>
