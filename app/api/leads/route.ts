@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
       projectTimeline: data.timeframe || null,
       wantsIrve: Boolean(
         data.projectDriver === "flotte_irve" ||
-          (data.qualificationMetadata as Record<string, unknown> | undefined)?.wants_irve
+        (data.qualificationMetadata as Record<string, unknown> | undefined)?.wants_irve
       ),
       projectDetails: rawProjectDetailsText,
       qualificationMetadata:
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
       creditCost: credit_cost,
       wantsIrve: Boolean(
         data.projectDriver === "flotte_irve" ||
-          (data.qualificationMetadata as Record<string, unknown> | undefined)?.wants_irve
+        (data.qualificationMetadata as Record<string, unknown> | undefined)?.wants_irve
       ),
       timeframe: data.timeframe || null,
       projectDetails: rawProjectDetailsText,
@@ -507,7 +507,7 @@ export async function POST(request: NextRequest) {
 
     const existingSessionMeta =
       existingSessionLead?.qualification_metadata &&
-      typeof existingSessionLead.qualification_metadata === "object"
+        typeof existingSessionLead.qualification_metadata === "object"
         ? (existingSessionLead.qualification_metadata as Record<string, unknown>)
         : {}
     const alreadySentAdminAlert = existingSessionMeta.admin_alert_status === "sent"
@@ -516,24 +516,24 @@ export async function POST(request: NextRequest) {
 
     const adminAlertTrackingMeta: Record<string, unknown> = alreadySentAdminAlert
       ? {
-          admin_alert_status: "sent",
-          ...(existingSessionMeta.admin_alert_sent_at
-            ? { admin_alert_sent_at: existingSessionMeta.admin_alert_sent_at }
-            : {}),
-          ...(existingSessionMeta.admin_alert_trigger
-            ? { admin_alert_trigger: existingSessionMeta.admin_alert_trigger }
-            : {}),
-        }
+        admin_alert_status: "sent",
+        ...(existingSessionMeta.admin_alert_sent_at
+          ? { admin_alert_sent_at: existingSessionMeta.admin_alert_sent_at }
+          : {}),
+        ...(existingSessionMeta.admin_alert_trigger
+          ? { admin_alert_trigger: existingSessionMeta.admin_alert_trigger }
+          : {}),
+      }
       : shouldDeferAdminAlert
         ? {
-            admin_alert_status: "pending_otp",
-            admin_alert_deferred_at: adminAlertNowIso,
-          }
+          admin_alert_status: "pending_otp",
+          admin_alert_deferred_at: adminAlertNowIso,
+        }
         : {
-            admin_alert_status: "sent",
-            admin_alert_sent_at: adminAlertNowIso,
-            admin_alert_trigger: verifiedPhoneProof ? "immediate_otp_verified" : "immediate",
-          }
+          admin_alert_status: "sent",
+          admin_alert_sent_at: adminAlertNowIso,
+          admin_alert_trigger: verifiedPhoneProof ? "immediate_otp_verified" : "immediate",
+        }
 
     const insertPayload: Record<string, unknown> = {
       segment: data.segment,
@@ -782,7 +782,7 @@ export async function POST(request: NextRequest) {
             if (!res.success) {
               const currentMeta =
                 inserted.qualification_metadata &&
-                typeof inserted.qualification_metadata === "object"
+                  typeof inserted.qualification_metadata === "object"
                   ? (inserted.qualification_metadata as Record<string, unknown>)
                   : {}
               await supabase
@@ -894,6 +894,7 @@ export async function POST(request: NextRequest) {
       hasDuplicatePhone: duplicateCheck.hasDuplicatePhone,
       finalScore,
       lineType: verifiedPhoneProof?.lineType ?? lookupFallback?.lineType ?? null,
+      phoneVerified: Boolean(verifiedPhoneProof),
     })
     if (isMetaLeadEligible) {
       const qualificationMeta = (data.qualificationMetadata || {}) as Record<string, unknown>
@@ -907,7 +908,7 @@ export async function POST(request: NextRequest) {
         undefined
 
       try {
-        await sendMetaConversionApiLead({
+        const capiSent = await sendMetaConversionApiLead({
           advertisingConsent: true,
           eventId: inserted.id,
           email,
@@ -924,6 +925,24 @@ export async function POST(request: NextRequest) {
           fbc: request.cookies.get("_fbc")?.value,
           fbclid: rawFbclid,
         })
+        if (capiSent) {
+          const baseMeta =
+            inserted.qualification_metadata &&
+              typeof inserted.qualification_metadata === "object"
+              ? (inserted.qualification_metadata as Record<string, unknown>)
+              : {}
+          await supabase
+            .from("leads")
+            .update({
+              qualification_metadata: {
+                ...baseMeta,
+                meta_capi_lead_sent_at: new Date().toISOString(),
+                meta_capi_lead_source: "initial_submit",
+              },
+            })
+            .eq("id", inserted.id)
+            .then(() => undefined, () => undefined)
+        }
       } catch (e) {
         console.warn("[Meta CAPI trigger error]", e)
       }

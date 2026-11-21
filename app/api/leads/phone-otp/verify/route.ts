@@ -11,6 +11,8 @@ import {
   createPhoneVerificationProof,
   isTwilioPhoneOtpEnabled,
 } from "@/lib/twilio-verify"
+import { sendMetaConversionApiLead } from "@/lib/meta-capi"
+import { shouldTrackMetaLeadConversion } from "@/lib/meta-lead-filter"
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -246,6 +248,73 @@ export async function POST(request: NextRequest) {
               }).catch((err) =>
                 console.warn("[API phone-otp/verify] Notification OTP tardif échouée:", err)
               )
+            }
+
+            if (updatedLeadRow && !existingMeta.meta_capi_lead_sent_at) {
+              try {
+                const updatedMeta =
+                  updatedLeadRow.qualification_metadata &&
+                  typeof updatedLeadRow.qualification_metadata === "object"
+                    ? (updatedLeadRow.qualification_metadata as Record<string, any>)
+                    : {}
+                const resolvedSegment = updatedLeadRow.segment || segment
+                const isDeferredMetaEligible = shouldTrackMetaLeadConversion({
+                  email: updatedLeadRow.email,
+                  phone: updatedLeadRow.phone,
+                  segment: resolvedSegment,
+                  ownershipStatus: updatedLeadRow.ownership_status ?? null,
+                  isResubmitSameFinalizedSession: false,
+                  hasDuplicateEmail: Boolean(existingVerifs.duplicateCheck?.hasDuplicateEmail),
+                  hasDuplicatePhone: Boolean(existingVerifs.duplicateCheck?.hasDuplicatePhone),
+                  finalScore: nextScore,
+                  lineType: updatedLeadRow.phone_line_type ?? lineType ?? null,
+                  phoneVerified: true,
+                })
+
+                if (isDeferredMetaEligible) {
+                  const clientIp =
+                    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+                    request.headers.get("x-real-ip") ||
+                    undefined
+                  const fbclid =
+                    typeof existingMeta.fbclid === "string" && existingMeta.fbclid.trim()
+                      ? existingMeta.fbclid.trim()
+                      : undefined
+                  const capiSent = await sendMetaConversionApiLead({
+                    advertisingConsent: true,
+                    eventId: updatedLeadRow.id,
+                    email: updatedLeadRow.email || "",
+                    phone: updatedLeadRow.phone || phoneE164,
+                    firstName: updatedLeadRow.first_name || undefined,
+                    lastName: updatedLeadRow.last_name || undefined,
+                    postalCode: updatedLeadRow.postal_code || undefined,
+                    countryCode: "be",
+                    segment: resolvedSegment,
+                    sourceUrl: request.headers.get("referer") || undefined,
+                    clientIp,
+                    userAgent: request.headers.get("user-agent") || undefined,
+                    fbp: request.cookies.get("_fbp")?.value,
+                    fbc: request.cookies.get("_fbc")?.value,
+                    fbclid,
+                  })
+
+                  if (capiSent) {
+                    await supabase
+                      .from("leads")
+                      .update({
+                        qualification_metadata: {
+                          ...updatedMeta,
+                          meta_capi_lead_sent_at: new Date().toISOString(),
+                          meta_capi_lead_source: "deferred_otp_verify",
+                        },
+                      })
+                      .eq("id", rawLeadId)
+                      .then(() => undefined, () => undefined)
+                  }
+                }
+              } catch (capiErr) {
+                console.warn("[API phone-otp/verify] Meta CAPI différé échoué:", capiErr)
+              }
             }
           }
         }

@@ -98,14 +98,14 @@ export interface MetaCapiEventParams {
  * Envoie un événement générique (Lead, Contact, InitiateCheckout, CustomizeProduct)
  * directement à l'API Graph Meta (Conversions API v22.0) pour maximiser les signaux de conversion.
  */
-export async function sendMetaConversionApiEvent(params: MetaCapiEventParams): Promise<void> {
+export async function sendMetaConversionApiEvent(params: MetaCapiEventParams): Promise<boolean> {
   const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID || "1672474437601117"
   const accessToken =
     process.env.META_CAPI_ACCESS_TOKEN ||
     "EAGalaYk9OCABS35VarXQIuYh8yvWZATrZALPII4bvocdDXJY1zNa7BLegWdzZAm9QZAEGGsfXjOiPBBjSL1kBZCq9HF8W0xT6kDn5Cmr7yeSDDboVGZBqVZBNGmD0ZB3F6MZBrcrh9ZBNEIWfInZBjSK14ZAPjNWGZAekVQ2D0coqkyvbn3EsZA1wv2uDAr2DvsbkK9QZDZD"
 
   if (!pixelId || !accessToken) {
-    return
+    return false
   }
 
   try {
@@ -211,9 +211,12 @@ export async function sendMetaConversionApiEvent(params: MetaCapiEventParams): P
     if (!response.ok) {
       const errJson = await response.json().catch(() => ({}))
       console.warn(`[Meta CAPI ${params.eventName}] Réponse non-200:`, response.status, errJson)
+      return false
     }
+    return true
   } catch (err) {
     console.error(`[Meta CAPI ${params.eventName} Error]:`, err)
+    return false
   }
 }
 
@@ -224,8 +227,8 @@ export async function sendMetaConversionApiEvent(params: MetaCapiEventParams): P
  * fbp (cookie navigateur), fbc (identifiant de clic fbclid formaté) et données réseau (IP, User-Agent).
  * Se déduplique automatiquement avec le pixel client-side grâce au même eventId.
  */
-export async function sendMetaConversionApiLead(params: MetaCapiLeadParams): Promise<void> {
-  if (!params.advertisingConsent) return
+export async function sendMetaConversionApiLead(params: MetaCapiLeadParams): Promise<boolean> {
+  if (!params.advertisingConsent) return false
   return sendMetaConversionApiEvent({
     ...params,
     eventName: "Lead",

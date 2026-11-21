@@ -76,6 +76,7 @@ export interface MetaLeadFilterParams {
   hasDuplicatePhone?: boolean
   finalScore?: number
   lineType?: string | null
+  phoneVerified?: boolean
 }
 
 /**
@@ -87,7 +88,9 @@ export function shouldTrackMetaLeadConversion(params: MetaLeadFilterParams): boo
   if (isInternalOrTestLead({ email: params.email, phone: params.phone })) return false
   if (params.hasDuplicateEmail || params.hasDuplicatePhone) return false
   if (params.segment !== "B2B" && params.ownershipStatus !== "owner") return false
-  if (typeof params.finalScore === "number" && params.finalScore < 45) return false
+  if (!params.phoneVerified && typeof params.finalScore === "number" && params.finalScore < 45) {
+    return false
+  }
   if (
     params.segment === "B2C" &&
     (params.lineType === "voip" || params.lineType === "nonFixedVoip")

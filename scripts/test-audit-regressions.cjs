@@ -276,6 +276,10 @@ test('Meta lead tracking filter blocks internal tests, duplicates, low score and
   assert.equal(filter.shouldTrackMetaLeadConversion({ ...validOwner, isResubmitSameFinalizedSession: true }), false)
   assert.equal(filter.shouldTrackMetaLeadConversion({ ...validOwner, ownershipStatus: 'tenant_unauthorized' }), false)
   assert.equal(filter.shouldTrackMetaLeadConversion({ ...validOwner, finalScore: 35 }), false)
+  assert.equal(filter.shouldTrackMetaLeadConversion({ ...validOwner, finalScore: 25, phoneVerified: true }), true)
+  assert.equal(filter.shouldTrackMetaLeadConversion({ ...validOwner, finalScore: 25, phoneVerified: false }), false)
+  assert.equal(filter.shouldTrackMetaLeadConversion({ ...validOwner, finalScore: 25, phoneVerified: true, hasDuplicatePhone: true }), false)
+  assert.equal(filter.shouldTrackMetaLeadConversion({ ...validOwner, finalScore: 25, phoneVerified: true, lineType: 'voip' }), false)
   assert.equal(filter.shouldTrackMetaLeadConversion({ ...validOwner, lineType: 'voip' }), false)
   assert.equal(filter.shouldTrackMetaLeadConversion({ ...validOwner, lineType: 'nonFixedVoip' }), false)
   assert.equal(
