@@ -43,6 +43,8 @@ import {
   Download,
   CreditCard,
   Bell,
+  Users2,
+  ArrowRight,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -52,6 +54,7 @@ import {
 } from "@/lib/marketplace-pricing"
 import {
   formatEurWithDecimals,
+  calculateLeadComplementFinancials,
   calculateLeadDirectFinancials,
   B2C_EXCLUSIVE_CREDIT_COST,
 } from "@/lib/credit-pricing"
@@ -95,6 +98,7 @@ interface MarketplaceFeedViewProps {
   onRequestTopUp: () => void
   onOpenAlertPreferences?: () => void
   onOpenExpertModal?: (lead?: any) => void
+  onOpenReferral?: () => void
 }
 
 const STORAGE_KEY_TUTORIAL_DISMISSED = "aegis_marketplace_tour_dismissed_v1"
@@ -140,6 +144,30 @@ const SORT_OPTIONS: { value: MarketplaceSortOption; label: string; badge?: strin
   { value: "bill_desc", label: "Facture annuelle : Plus élevée (€/an)" },
   { value: "score_desc", label: "Score de qualification IA : Top dossiers", badge: "Qualifié" },
 ]
+
+const SORT_SHORT_LABELS: Record<MarketplaceSortOption, string> = {
+  recent: "Récents",
+  oldest: "Anciens",
+  cost_asc: "Prix ↗",
+  cost_desc: "Prix ↘",
+  contract_desc: "Chantier ↘",
+  contract_asc: "Chantier ↗",
+  margin_desc: "Marge max",
+  power_desc: "kWc max",
+  power_asc: "kWc min",
+  surface_desc: "Surface max",
+  bill_desc: "Facture max",
+  score_desc: "Score IA",
+}
+
+function getCompactFreshnessLabel(label: string): string {
+  const trimmed = (label || "").trim()
+  const lower = trimmed.toLowerCase()
+  if (lower.includes("aujourd'hui")) return "Aujourd'hui"
+  if (lower.includes("hier")) return "Hier"
+  if (lower === "audit technique vérifié") return "Audit vérifié"
+  return trimmed.replace(/^Vérifié\s+/i, "")
+}
 
 import { CustomSelect } from "@/components/ui/custom-select"
 
@@ -199,6 +227,7 @@ export function MarketplaceFeedView({
   onRequestTopUp,
   onOpenAlertPreferences,
   onOpenExpertModal,
+  onOpenReferral,
 }: MarketplaceFeedViewProps) {
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid")
   const [searchQuery, setSearchQuery] = useState("")
@@ -213,8 +242,23 @@ export function MarketplaceFeedView({
   const [buyingId, setBuyingId] = useState<string | null>(null)
   const [selectedLeadForDrawer, setSelectedLeadForDrawer] = useState<any | null>(null)
   const [showTutorial, setShowTutorial] = useState(false)
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false)
   const [directPayLead, setDirectPayLead] = useState<any | null>(null)
   const [directPayExclusive, setDirectPayExclusive] = useState(false)
+
+  useEffect(() => {
+    if (!isMobileFilterOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsMobileFilterOpen(false)
+    }
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    window.addEventListener("keydown", handleKeyDown)
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [isMobileFilterOpen])
 
   // État de focus exclusif sur un lead ciblé (Deep-linking direct depuis e-mail de relance)
   const [focusedLeadId, setFocusedLeadId] = useState<string | null>(targetLeadId || null)
@@ -449,6 +493,14 @@ export function MarketplaceFeedView({
   const hasActiveFilters =
     searchQuery !== "" || segmentFilter !== "ALL" || selectedProvince !== "ALL" || sortBy !== "recent"
 
+  const sheetActiveCount =
+    (segmentFilter !== "ALL" ? 1 : 0) +
+    (selectedProvince !== "ALL" ? 1 : 0) +
+    (sortBy !== "recent" ? 1 : 0)
+
+  const selectedProvinceLabel =
+    PROVINCE_OPTIONS.find((p) => p.value === selectedProvince)?.label || "Wallonie"
+
   const handlePurchase = async (
     lead: any,
     opts?: { skipConfirm?: boolean; exclusive?: boolean }
@@ -618,13 +670,184 @@ export function MarketplaceFeedView({
               </div>
             </div>
           )}
-          {/* ── 1. Barre de Contrôle Unifiée : Structure Délibérée 2 Niveaux (Anti-Escalier & 100% Responsive) ── */}
-          <div className="rounded-2xl border border-border bg-card p-3 sm:p-4 shadow-xs flex flex-col gap-3">
+          {/* ── 1a. Barre de Contrôle Mobile Native (< md) ── */}
+          <div className="md:hidden flex flex-col gap-2">
+            {/* Rangée 1 : Recherche + Filtres + Switcher Vue */}
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 min-w-0">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Commune, CP..."
+                  className="w-full h-11 rounded-xl border border-border bg-card pl-9 pr-9 text-[15px] text-foreground placeholder:text-muted-foreground outline-hidden focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                  aria-label="Rechercher un chantier sur mobile"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
+                    aria-label="Effacer la recherche"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsMobileFilterOpen(true)}
+                className={`inline-flex h-11 items-center gap-1.5 rounded-xl border px-3 text-xs font-bold transition-colors cursor-pointer shrink-0 ${
+                  sheetActiveCount > 0
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-border bg-card text-foreground hover:bg-secondary"
+                }`}
+                aria-label="Ouvrir les filtres et le tri"
+              >
+                <SlidersHorizontal className="h-4 w-4 shrink-0" />
+                <span>Filtres</span>
+                {sheetActiveCount > 0 && (
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 font-mono text-[10px] font-bold text-primary-foreground tabular-nums">
+                    {sheetActiveCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewMode((prev) => (prev === "grid" ? "table" : "grid"))}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-card text-foreground hover:bg-secondary transition-colors cursor-pointer shrink-0"
+                aria-label={viewMode === "grid" ? "Passer en vue liste dense" : "Passer en vue grille"}
+                title={viewMode === "grid" ? "Vue liste dense" : "Vue grille"}
+              >
+                {viewMode === "grid" ? <List className="h-4.5 w-4.5" /> : <LayoutGrid className="h-4.5 w-4.5" />}
+              </button>
+            </div>
+
+            {/* Rangée 2 : Chips rapides horizontaux */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar -mx-3 px-3 py-0.5 overscroll-x-contain">
+              <button
+                type="button"
+                onClick={() => setSegmentFilter("ALL")}
+                className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors ${
+                  segmentFilter === "ALL"
+                    ? "bg-primary text-primary-foreground font-bold shadow-2xs"
+                    : "border border-border bg-card text-foreground hover:bg-secondary"
+                }`}
+              >
+                <span>Tous</span>
+                <span
+                  className={`font-mono text-[11px] tabular-nums ${
+                    segmentFilter === "ALL" ? "text-primary-foreground/85" : "text-muted-foreground"
+                  }`}
+                >
+                  {counts.all}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSegmentFilter("B2B")}
+                className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors ${
+                  segmentFilter === "B2B"
+                    ? "bg-primary text-primary-foreground font-bold shadow-2xs"
+                    : "border border-border bg-card text-foreground hover:bg-secondary"
+                }`}
+              >
+                <span>B2B</span>
+                <span
+                  className={`font-mono text-[11px] tabular-nums ${
+                    segmentFilter === "B2B" ? "text-primary-foreground/85" : "text-muted-foreground"
+                  }`}
+                >
+                  {counts.b2b}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSegmentFilter("B2C")}
+                className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors ${
+                  segmentFilter === "B2C"
+                    ? "bg-primary text-primary-foreground font-bold shadow-2xs"
+                    : "border border-border bg-card text-foreground hover:bg-secondary"
+                }`}
+              >
+                <span>B2C</span>
+                <span
+                  className={`font-mono text-[11px] tabular-nums ${
+                    segmentFilter === "B2C" ? "text-primary-foreground/85" : "text-muted-foreground"
+                  }`}
+                >
+                  {counts.b2c}
+                </span>
+              </button>
+
+              <span className="h-4 w-px bg-border shrink-0 mx-0.5" aria-hidden="true" />
+
+              <button
+                type="button"
+                onClick={() => setIsMobileFilterOpen(true)}
+                className={`inline-flex min-h-[36px] items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors ${
+                  selectedProvince !== "ALL"
+                    ? "border-accent bg-accent/10 text-accent font-bold"
+                    : "border-border bg-card text-foreground hover:bg-secondary"
+                }`}
+              >
+                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                <span>{selectedProvince === "ALL" ? "Wallonie" : selectedProvinceLabel}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsMobileFilterOpen(true)}
+                className={`inline-flex min-h-[36px] items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors ${
+                  sortBy !== "recent"
+                    ? "border-accent bg-accent/10 text-accent font-bold"
+                    : "border-border bg-card text-foreground hover:bg-secondary"
+                }`}
+              >
+                <ArrowUpDown className="h-3.5 w-3.5 shrink-0" />
+                <span>{SORT_SHORT_LABELS[sortBy]}</span>
+              </button>
+
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="inline-flex min-h-[36px] items-center gap-1 rounded-full border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-bold text-accent whitespace-nowrap shrink-0 cursor-pointer"
+                >
+                  <X className="h-3.5 w-3.5 shrink-0" />
+                  <span>Effacer</span>
+                </button>
+              )}
+            </div>
+
+            {/* Rangée 3 : Télémétrie 1 ligne nette (zéro puce orpheline) */}
+            <div className="flex items-center justify-between gap-2 px-0.5 text-[11.5px] text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 font-mono tabular-nums font-semibold text-foreground whitespace-nowrap">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                <span>
+                  {kpis.totalLeads} chantier{kpis.totalLeads > 1 ? "s" : ""} ·{" "}
+                  {Math.round(kpis.totalPower).toLocaleString("fr-BE")} kWc
+                </span>
+              </span>
+              <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-semibold whitespace-nowrap shrink-0">
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                <span>Garantie 100 %</span>
+              </span>
+            </div>
+          </div>
+
+          {/* ── 1b. Barre de Contrôle Unifiée Desktop (md+) ── */}
+          <div className="hidden md:flex rounded-2xl border border-border bg-card p-3 sm:p-4 shadow-xs flex-col gap-3">
             {/* Rangée 1 : Segments, Province & Recherche Directe */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2.5">
               {/* Segments + Province */}
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full md:w-auto">
-                {/* Segment switch 3 colonnes sur mobile, inline sur tablette/desktop */}
+                {/* Segment switch */}
                 <div className="grid grid-cols-3 gap-1.5 w-full sm:w-auto sm:inline-flex sm:items-center">
                   <button
                     type="button"
@@ -694,6 +917,8 @@ export function MarketplaceFeedView({
                     options={PROVINCE_OPTIONS}
                     icon={MapPin}
                     ariaLabel="Filtrer par province"
+                    className="w-full sm:w-auto"
+                    triggerClassName="w-full sm:w-auto"
                   />
                 </div>
               </div>
@@ -722,7 +947,7 @@ export function MarketplaceFeedView({
               </div>
             </div>
 
-            {/* Rangée 2 : Tri, Visite guidée, Aide Expert & Switcher Grille/Tableau (Équilibrée sur toute la largeur) */}
+            {/* Rangée 2 : Tri, Visite guidée, Aide Expert & Switcher Grille/Tableau */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 pt-2.5 border-t border-border/60">
               {/* Gauche : Tri des chantiers & Visite guidée */}
               <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -797,7 +1022,7 @@ export function MarketplaceFeedView({
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-border/70 text-xs">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-muted-foreground font-medium">
                 <span className="flex items-center gap-1.5 text-foreground whitespace-nowrap">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
                   <strong className="font-mono text-foreground font-bold tabular-nums">{kpis.totalLeads}</strong> chantiers
                   disponibles
                 </span>
@@ -842,17 +1067,17 @@ export function MarketplaceFeedView({
                   {partnerCredits > 0 ? (
                     <>
                       <strong className="font-bold">
-                        Solde : <span className="font-mono tabular-nums">{partnerCredits}</span> crédit
-                        {partnerCredits > 1 ? "s" : ""}
+                        Solde partiel : <span className="font-mono tabular-nums">{partnerCredits}</span> crédit
+                        {partnerCredits > 1 ? "s" : ""} disponible{partnerCredits > 1 ? "s" : ""} (zéro crédit bloqué)
                       </strong>{" "}
-                      — Débloquez n&apos;importe quel dossier à l&apos;unité par Bancontact / Carte dès{" "}
-                      <span className="font-mono font-bold tabular-nums">29,50 € HT</span> sans toucher à vos crédits, ou complétez avec un Pack (<span className="font-mono font-bold tabular-nums">jusqu&apos;à -24 %</span>).
+                      — Vos crédits restants sont automatiquement déduits si vous le souhaitez : ne réglez que le complément en euros par Bancontact / Carte (dès{" "}
+                      <span className="font-mono font-bold tabular-nums">9,83 € HT</span> sur un dossier B2C à <span className="font-mono tabular-nums">3</span> cr.), ou passez sur un Pack (<span className="font-mono font-bold tabular-nums">jusqu&apos;à -24 %</span>).
                     </>
                   ) : (
                     <>
                       <strong className="font-bold">Mode paiement à la carte actif</strong> — Débloquez chaque chantier par Bancontact / Carte dès{" "}
-                      <span className="font-mono font-bold tabular-nums">29,50 € HT</span> (ou{" "}
-                      <span className="font-mono font-bold tabular-nums">65 € HT</span> en Exclusivité B2C) sans pack préalable, ou réduisez vos coûts avec un Pack Crédits (<span className="font-mono font-bold tabular-nums">-24 %</span>).
+                      <span className="font-mono font-bold tabular-nums">19,50 € HT</span> (ou{" "}
+                      <span className="font-mono font-bold tabular-nums">65 € HT</span> en Exclusivité Totale B2C) sans pack préalable, ou réduisez vos coûts avec un Pack Crédits (<span className="font-mono font-bold tabular-nums">-24 %</span>).
                     </>
                   )}
                 </div>
@@ -931,6 +1156,11 @@ export function MarketplaceFeedView({
                   const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
                   const hasEnoughCredits = partnerCredits >= cost
                   const directFinancials = calculateLeadDirectFinancials({ segment: lead.segment, credit_cost: cost })
+                  const complementFinancials = calculateLeadComplementFinancials({
+                    segment: lead.segment,
+                    credit_cost: cost,
+                    availableCredits: partnerCredits,
+                  })
                   const isBuying = buyingId === lead.id
                   const surfaceArea = Math.max(0, Number(lead.surface_area || lead.surface_area_m2) || 0)
                   const annualBill = Math.max(0, Number(lead.annual_electricity_bill || lead.annual_bill_eur) || 0)
@@ -1044,21 +1274,22 @@ export function MarketplaceFeedView({
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
-                        <div className="flex flex-col font-mono text-xs min-w-0">
-                          <div className="flex flex-wrap items-baseline gap-1">
-                            <span className="font-bold text-foreground whitespace-nowrap">{cost} crédits</span>
-                            <span className="text-[10px] text-muted-foreground font-medium whitespace-nowrap">ou {directFinancials.priceHtva.toFixed(2).replace(".", ",")} € HT</span>
-                          </div>
-                          <span className="text-[9px] text-muted-foreground whitespace-nowrap">({directFinancials.priceTtc.toFixed(2).replace(".", ",")} € TTC)</span>
+                      <div className="flex flex-col gap-2.5 pt-1">
+                        <div className="flex items-baseline justify-between gap-2 font-mono text-xs">
+                          <span className="font-bold text-foreground whitespace-nowrap">
+                            {cost} crédits · {directFinancials.priceHtva.toFixed(2).replace(".", ",")} € HT
+                          </span>
+                          <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                            ({directFinancials.priceTtc.toFixed(2).replace(".", ",")} € TTC)
+                          </span>
                         </div>
-                        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <div className="grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
                           <button
                             type="button"
                             onClick={() => setSelectedLeadForDrawer(lead)}
-                            className="rounded-lg border border-border bg-secondary hover:bg-secondary/80 px-2.5 py-1.5 text-xs font-semibold text-foreground cursor-pointer flex items-center gap-1"
+                            className="min-h-[42px] rounded-xl border border-border bg-secondary hover:bg-secondary/80 px-3 py-2 text-xs font-semibold text-foreground cursor-pointer flex items-center justify-center gap-1.5"
                           >
-                            <Eye className="h-3.5 w-3.5 text-accent" />
+                            <Eye className="h-4 w-4 text-accent shrink-0" />
                             <span>Voir</span>
                           </button>
                           {hasEnoughCredits ? (
@@ -1066,20 +1297,28 @@ export function MarketplaceFeedView({
                               type="button"
                               disabled={isBuying}
                               onClick={() => handlePurchase(lead)}
-                              className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1.5 text-xs font-bold cursor-pointer flex items-center gap-1 disabled:opacity-60"
+                              className="min-h-[42px] rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-2 text-xs font-bold cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-60"
                             >
-                              {isBuying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
+                              {isBuying ? <Loader2 className="h-4 w-4 animate-spin shrink-0" /> : <Lock className="h-4 w-4 shrink-0" />}
                               <span>Débloquer</span>
                             </button>
                           ) : (
                             <button
                               type="button"
                               onClick={() => setDirectPayLead(lead)}
-                              className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-2.5 py-1.5 text-xs font-bold cursor-pointer flex items-center gap-1"
-                              title="Payer directement ce lead par Bancontact / Carte"
+                              className="min-h-[42px] rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-2 text-xs font-bold cursor-pointer flex items-center justify-center gap-1.5"
+                              title={
+                                complementFinancials.isHybrid
+                                  ? `Utiliser vos ${complementFinancials.creditsToDebit} crédit(s) et compléter en euros`
+                                  : "Payer directement ce lead par Bancontact / Carte"
+                              }
                             >
-                              <CreditCard className="h-3.5 w-3.5" />
-                              <span>Payer en €</span>
+                              <CreditCard className="h-4 w-4 shrink-0" />
+                              <span className="font-mono tabular-nums">
+                                {complementFinancials.isHybrid
+                                  ? `+${formatEurWithDecimals(complementFinancials.priceHtva)} € HT`
+                                  : `${directFinancials.priceHtva.toFixed(2).replace(".", ",")} € HT`}
+                              </span>
                             </button>
                           )}
                         </div>
@@ -1187,6 +1426,11 @@ export function MarketplaceFeedView({
                       const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
                       const remainingSlots = lead.remaining_slots ?? maxSlots
                       const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
+                      const tableComplement = calculateLeadComplementFinancials({
+                        segment: lead.segment,
+                        credit_cost: cost,
+                        availableCredits: partnerCredits,
+                      })
                       const isBuying = buyingId === lead.id
                       const surfaceArea = Math.max(0, Number(lead.surface_area || lead.surface_area_m2) || 0)
                       const annualBill = Math.max(0, Number(lead.annual_electricity_bill || lead.annual_bill_eur) || 0)
@@ -1355,10 +1599,18 @@ export function MarketplaceFeedView({
                                   variant="default"
                                   onClick={() => setDirectPayLead(lead)}
                                   className="h-8 px-3 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-2xs active:scale-[0.99] gap-1"
-                                  title="Payer directement ce lead par Bancontact / Carte"
+                                  title={
+                                    tableComplement.isHybrid
+                                      ? `Utiliser ${tableComplement.creditsToDebit} crédit(s) et compléter par Bancontact / Carte`
+                                      : "Payer directement ce lead par Bancontact / Carte"
+                                  }
                                 >
                                   <CreditCard className="h-3.5 w-3.5" />
-                                  <span>Payer {financials.leadCostEuros.toFixed(2)} € HT</span>
+                                  <span>
+                                    {tableComplement.isHybrid
+                                      ? `Compléter (${formatEurWithDecimals(tableComplement.priceHtva)} € HT)`
+                                      : `Payer ${financials.leadCostEuros.toFixed(2).replace(".", ",")} € HT`}
+                                  </span>
                                 </Button>
                               )}
                             </div>
@@ -1371,6 +1623,35 @@ export function MarketplaceFeedView({
               </div>
             </div>
           )}
+          {/* ── 2a. Carte Parrainage Mobile (< lg) placée après le flux de chantiers (zéro troncature) ── */}
+          {onOpenReferral && (
+            <button
+              type="button"
+              onClick={onOpenReferral}
+              className="lg:hidden mt-1 rounded-2xl border border-border bg-card hover:border-accent/50 p-3.5 shadow-xs flex items-center justify-between gap-3 text-left cursor-pointer transition-colors"
+            >
+              <div className="flex items-start gap-3 min-w-0">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)]">
+                  <Users2 className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex flex-col gap-0.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <h3 className="text-sm font-bold text-foreground">
+                      Parrainez un confrère RESCERT
+                    </h3>
+                    <span className="rounded bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] font-mono tabular-nums text-[11px] font-bold px-1.5 py-0.5 whitespace-nowrap">
+                      +3 cr. chacun
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-snug">
+                    Offert dès son 1er achat payant · Toute la Wallonie &amp; Bruxelles.
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-accent shrink-0" />
+            </button>
+          )}
+
           {/* ── 2b. Vitrine « Derniers chantiers récemment attribués » (Preuve sociale & anti-page vide) ── */}
           {recentlyClosedLeads.length > 0 && (
             <section
@@ -1484,8 +1765,10 @@ export function MarketplaceFeedView({
                 : (purchasedLead.credit_cost ?? 3),
               Boolean(data.exclusive || purchasedLead.segment === "B2B")
             )
+            const nextCredits =
+              typeof data.newCredits === "number" ? data.newCredits : partnerCredits
             setSelectedLeadForDrawer(null)
-            onPurchaseSuccess(purchasedLead, partnerCredits, newRecord)
+            onPurchaseSuccess(purchasedLead, nextCredits, newRecord)
           }}
           onRequestTopUp={onRequestTopUp}
           onRequestExpert={(lead) => onOpenExpertModal?.(lead)}
@@ -1527,12 +1810,184 @@ export function MarketplaceFeedView({
               : (purchasedLead.credit_cost ?? 3),
             Boolean(data.exclusive || purchasedLead.segment === "B2B")
           )
+          const nextCredits =
+            typeof data.newCredits === "number" ? data.newCredits : partnerCredits
           setDirectPayLead(null)
           setDirectPayExclusive(false)
-          onPurchaseSuccess(purchasedLead, partnerCredits, newRecord)
+          onPurchaseSuccess(purchasedLead, nextCredits, newRecord)
         }}
         partnerCredits={partnerCredits}
       />
+      {/* ── 5. Bottom Sheet Filtres & Tri Mobile (< md) ── */}
+      {isMobileFilterOpen && (
+        <div
+          className="fixed inset-0 z-50 md:hidden flex items-end bg-foreground/60 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsMobileFilterOpen(false)
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="mobile-filter-sheet-title"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-h-[85dvh] flex flex-col rounded-t-2xl border-t border-border bg-card shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-200"
+          >
+            <div className="shrink-0 px-4 pt-2 pb-3 border-b border-border bg-card">
+              <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-border" aria-hidden="true" />
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 id="mobile-filter-sheet-title" className="text-base font-bold text-foreground">
+                    Filtrer &amp; trier les chantiers
+                  </h2>
+                  <p className="text-xs text-muted-foreground font-mono tabular-nums">
+                    {filteredLeads.length} résultat{filteredLeads.length > 1 ? "s" : ""} disponible{filteredLeads.length > 1 ? "s" : ""}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsMobileFilterOpen(false)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer"
+                  aria-label="Fermer les filtres"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 flex flex-col gap-5">
+              {/* Segment */}
+              <div className="flex flex-col gap-2">
+                <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Segment de dossier
+                </span>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: "ALL" as const, label: "Tous", count: counts.all },
+                    { id: "B2B" as const, label: "B2B Exclusif", count: counts.b2b },
+                    { id: "B2C" as const, label: "B2C Partagé", count: counts.b2c },
+                  ].map((seg) => {
+                    const isActive = segmentFilter === seg.id
+                    return (
+                      <button
+                        key={seg.id}
+                        type="button"
+                        onClick={() => setSegmentFilter(seg.id)}
+                        className={`min-h-[44px] rounded-xl border px-2 py-2 text-xs font-bold flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-colors ${
+                          isActive
+                            ? "border-primary bg-primary text-primary-foreground shadow-2xs"
+                            : "border-border bg-card text-foreground hover:bg-secondary"
+                        }`}
+                      >
+                        <span className="leading-tight">{seg.label}</span>
+                        <span
+                          className={`font-mono text-[11px] tabular-nums ${
+                            isActive ? "text-primary-foreground/85" : "text-muted-foreground"
+                          }`}
+                        >
+                          {seg.count}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Province */}
+              <div className="flex flex-col gap-2">
+                <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Province wallonne
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  {PROVINCE_OPTIONS.map((prov) => {
+                    const isActive = selectedProvince === prov.value
+                    return (
+                      <button
+                        key={prov.value}
+                        type="button"
+                        onClick={() => setSelectedProvince(prov.value)}
+                        className={`min-h-[44px] rounded-xl border px-3 py-2 text-xs font-semibold flex items-center justify-between gap-2 text-left cursor-pointer transition-colors ${
+                          isActive
+                            ? "border-primary bg-primary/5 text-primary font-bold ring-1 ring-primary/20"
+                            : "border-border bg-card text-foreground hover:bg-secondary"
+                        }`}
+                      >
+                        <span className="truncate">{prov.label}</span>
+                        {isActive && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Tri */}
+              <div className="flex flex-col gap-2">
+                <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Ordre d&apos;affichage
+                </span>
+                <div className="flex flex-col gap-1.5">
+                  {SORT_OPTIONS.map((opt) => {
+                    const isActive = sortBy === opt.value
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setSortBy(opt.value)}
+                        className={`min-h-[44px] rounded-xl border px-3.5 py-2 text-xs font-semibold flex items-center justify-between gap-2 text-left cursor-pointer transition-colors ${
+                          isActive
+                            ? "border-primary bg-primary/5 text-primary font-bold"
+                            : "border-border bg-card text-foreground hover:bg-secondary"
+                        }`}
+                      >
+                        <span className="min-w-0">{opt.label}</span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {opt.badge && (
+                            <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
+                              {opt.badge}
+                            </span>
+                          )}
+                          {isActive && <Check className="h-4 w-4 text-primary shrink-0" />}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileFilterOpen(false)
+                  setShowTutorial(true)
+                }}
+                className="min-h-[44px] rounded-xl border border-border bg-secondary/40 hover:bg-secondary px-3.5 py-2 text-xs font-semibold text-foreground flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Compass className="h-4 w-4 text-accent shrink-0" />
+                <span>Revoir la visite guidée de la marketplace</span>
+              </button>
+            </div>
+
+            <div className="shrink-0 border-t border-border bg-card px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] grid grid-cols-[auto_1fr] gap-2.5">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={resetFilters}
+                disabled={!hasActiveFilters}
+                className="min-h-[44px] px-4 rounded-xl text-xs font-semibold cursor-pointer"
+              >
+                Réinitialiser
+              </Button>
+              <Button
+                type="button"
+                onClick={() => setIsMobileFilterOpen(false)}
+                className="min-h-[44px] rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-bold cursor-pointer"
+              >
+                Voir {filteredLeads.length} chantier{filteredLeads.length > 1 ? "s" : ""}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1565,6 +2020,11 @@ function MarketplaceLeadCard({
   const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
   const hasEnoughCredits = partnerCredits >= cost
   const directFinancials = calculateLeadDirectFinancials({ segment: lead.segment, credit_cost: cost })
+  const complementFinancials = calculateLeadComplementFinancials({
+    segment: lead.segment,
+    credit_cost: cost,
+    availableCredits: partnerCredits,
+  })
   const tierMeta = getLeadPricingTierMeta({
     segment: lead.segment,
     credit_cost: cost,
@@ -1601,14 +2061,17 @@ function MarketplaceLeadCard({
   // 1 image dédiée non contractuelle : teinte froide/acier pour B2B, teinte chaude/terracotta pour B2C
   const leadImage = isB2B ? B2B_SOLAR_IMAGE : B2C_SOLAR_IMAGE
 
-  // Formatage financier précis (arrondi 50 €/100 € en B2C au lieu d'un arrondi grossier au millier)
+  // Formatage financier précis (sans répétition € HT sur les deux bornes)
   const minText = formatRoundedCurrency(financials.estimatedContractValueRange?.min || 0).replace("~", "")
   const maxText = formatRoundedCurrency(financials.estimatedContractValueRange?.max || 0).replace("~", "")
-  const rangeText = `${minText} à ${maxText}`
+  const cleanMinText = minText.replace(/\s*€\s*HT$/i, "").trim()
+  const rangeText = `${cleanMinText} à ${maxText}`
   const marginText = formatRoundedCurrency(financials.estimatedInstallerMargin || 0)
 
   const rawRoof = getRoofMaterialLabel(lead.roof_material)
-  const roofDisplay = rawRoof === "Bac acier / Métallique" ? "Bac acier / Mét..." : rawRoof
+  const roofDisplay = rawRoof === "Bac acier / Métallique" ? "Bac acier" : rawRoof
+  const photoCount = getLeadImages(lead).length
+  const compactFreshness = getCompactFreshnessLabel(freshness.label)
 
   // Projet premium si puissance élevée ou score élevé
   const isPremium = isB2B || powerKwc >= 20 || (lead.lead_score && lead.lead_score >= 70)
@@ -1646,7 +2109,7 @@ function MarketplaceLeadCard({
     >
       <div className="flex flex-col">
         {/* ── A. Photo de toiture avec badges superposés et mention non contractuelle ── */}
-        <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-muted">
+        <div className="relative h-40 sm:h-52 w-full overflow-hidden bg-muted">
           <Image
             src={leadImage}
             alt={`Chantier solaire ${location.city}`}
@@ -1659,17 +2122,19 @@ function MarketplaceLeadCard({
           {/* Dégradé supérieur pour contraster les badges */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/10 to-transparent pointer-events-none" />
 
-          {/* Badges superposés en haut */}
-          <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 pointer-events-none">
+          {/* Badges superposés en haut (strictement mono-ligne) */}
+          <div className="absolute top-2.5 left-2.5 right-2.5 sm:top-3 sm:left-3 sm:right-3 flex items-center justify-between gap-1.5 pointer-events-none">
             {/* Badge Modèle */}
             {isB2B ? (
-              <span className="inline-flex items-center rounded-full bg-black/75 backdrop-blur-xs text-white text-xs font-semibold px-3 py-1.5 shadow-sm">
-                {tierMeta.label} · 100 % Exclusif
+              <span className="inline-flex items-center rounded-full bg-black/75 backdrop-blur-xs text-white text-[11px] sm:text-xs font-semibold leading-none px-2.5 py-1.5 sm:px-3 shadow-sm whitespace-nowrap shrink-0">
+                <span className="sm:hidden">B2B Exclusif</span>
+                <span className="hidden sm:inline">{tierMeta.label} · 100 % Exclusif</span>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-black/75 backdrop-blur-xs text-white text-xs font-medium px-3 py-1.5 shadow-sm">
-                <span className="font-semibold">{tierMeta.label}</span>
-                <span className="text-white/60" aria-hidden="true">•</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-black/75 backdrop-blur-xs text-white text-[11px] sm:text-xs font-medium leading-none px-2.5 py-1.5 sm:px-3 shadow-sm whitespace-nowrap shrink-0">
+                <span className="font-semibold sm:hidden">B2C</span>
+                <span className="font-semibold hidden sm:inline">{tierMeta.label}</span>
+                <span className="text-white/60 hidden sm:inline" aria-hidden="true">•</span>
                 <span className="inline-flex items-center gap-1" aria-hidden="true">
                   {slotIndicator.dots.map((color, i) => (
                     <span
@@ -1679,30 +2144,41 @@ function MarketplaceLeadCard({
                     />
                   ))}
                 </span>
-                <span className="tabular-nums font-mono">{slotIndicator.text}</span>
+                <span className="tabular-nums font-mono sm:hidden">
+                  {remainingSlots}/{maxSlots}
+                </span>
+                <span className="hidden sm:inline tabular-nums font-mono">{slotIndicator.text}</span>
               </span>
             )}
 
             {/* Badge Fraîcheur / Date */}
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-card/95 text-foreground text-xs font-semibold px-3 py-1.5 shadow-sm">
-              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-              <span suppressHydrationWarning>{freshness.label}</span>
+            <span className="inline-flex items-center gap-1 sm:gap-1.5 rounded-full bg-card/95 text-foreground text-[11px] sm:text-xs font-semibold leading-none px-2.5 py-1.5 sm:px-3 shadow-sm whitespace-nowrap shrink-0">
+              <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground shrink-0" />
+              <span suppressHydrationWarning className="sm:hidden">{compactFreshness}</span>
+              <span suppressHydrationWarning className="hidden sm:inline">{freshness.label}</span>
             </span>
           </div>
 
           {/* Flèche droite de prévisualisation (affordance visuelle) */}
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-xs transition-all pointer-events-none opacity-85 group-hover:opacity-100">
+          <div className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/30 hover:bg-black/50 text-white items-center justify-center backdrop-blur-xs transition-all pointer-events-none opacity-85 group-hover:opacity-100">
             <ChevronRight className="h-4 w-4" />
           </div>
 
-          {/* Mention discrète illustration non contractuelle */}
-          <span className="absolute bottom-2.5 right-3 text-[10px] font-medium text-white/85 bg-black/45 backdrop-blur-xs px-2.5 py-0.5 rounded-full pointer-events-none">
-            Illustration non contractuelle
+          {/* Compteur photos réelles + Mention discrète illustration non contractuelle */}
+          {photoCount > 0 && (
+            <span className="absolute bottom-2 left-2.5 sm:bottom-2.5 sm:left-3 inline-flex items-center gap-1 text-[10.5px] font-mono font-semibold tabular-nums text-white bg-black/60 backdrop-blur-xs px-2 py-0.5 rounded-full pointer-events-none">
+              <Camera className="h-3 w-3 shrink-0" />
+              <span>{photoCount} photo{photoCount > 1 ? "s" : ""}</span>
+            </span>
+          )}
+          <span className="absolute bottom-2 right-2.5 sm:bottom-2.5 sm:right-3 text-[10.5px] font-medium text-white/90 bg-black/50 backdrop-blur-xs px-2 py-0.5 rounded-full pointer-events-none whitespace-nowrap">
+            <span className="sm:hidden">Illustration</span>
+            <span className="hidden sm:inline">Illustration non contractuelle</span>
           </span>
         </div>
 
         {/* ── B. Contenu de la Carte : Titre, Puissance, Spécifications 2x2, Économie ── */}
-        <div className="p-4 sm:p-5 flex flex-col gap-3">
+        <div className="p-3.5 sm:p-5 flex flex-col gap-2.5 sm:gap-3">
           {/* Ligne 1 : Titre à gauche & Puissance kWc à droite */}
           <div className="flex items-baseline justify-between gap-2">
             <h3 className="font-bold text-base sm:text-[17px] text-foreground tracking-tight leading-tight group-hover:text-accent transition-colors truncate min-w-0">
@@ -1712,35 +2188,35 @@ function MarketplaceLeadCard({
               <span className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono tracking-tight tabular-nums">
                 {powerKwc > 0 ? powerKwc : "—"}
               </span>
-              <span className="text-xs font-bold text-muted-foreground lowercase">
+              <span className="text-xs font-bold text-muted-foreground">
                 kWc
               </span>
             </div>
           </div>
 
-          {/* Ligne 2 : Localisation & Bâtiment sur toute la largeur (Garanti sans coupure) */}
+          {/* Ligne 2 : Localisation & Bâtiment sur toute la largeur */}
           <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5 -mt-1">
             <MapPin className="h-3.5 w-3.5 text-muted-foreground/80 shrink-0" />
             <span className="truncate">{location.subtitle}</span>
           </p>
 
           {/* Ligne 3 : Badge Projet & certification GSM */}
-          <div className="-mt-1 flex flex-wrap items-center gap-1.5">
+          <div className="-mt-0.5 flex flex-wrap items-center gap-1.5">
             {isPremium ? (
-              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
-                <span className="text-emerald-500 font-bold">—</span>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[11px] sm:text-xs font-semibold whitespace-nowrap">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" aria-hidden="true" />
                 <span>Projet premium</span>
               </div>
             ) : (
-              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground text-xs font-semibold">
-                <span className="text-muted-foreground font-bold">—</span>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground text-[11px] sm:text-xs font-semibold whitespace-nowrap">
+                <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground shrink-0" aria-hidden="true" />
                 <span>Projet qualifié</span>
               </div>
             )}
             {verifSummary.phone.tier === "verified" && verifSummary.phone.compactLabel && (
               <div
                 title={verifSummary.phone.detailLabel || undefined}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-xs font-semibold"
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-[11px] sm:text-xs font-semibold whitespace-nowrap"
               >
                 <ShieldCheck className="h-3 w-3 shrink-0" />
                 <span>{verifSummary.phone.compactLabel}</span>
@@ -1749,7 +2225,7 @@ function MarketplaceLeadCard({
             {verifSummary.phone.tier === "plausible" && verifSummary.phone.compactLabel && (
               <div
                 title={verifSummary.phone.detailLabel || undefined}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border text-[11px] font-medium"
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border text-[11px] font-medium whitespace-nowrap"
               >
                 <Phone className="h-3 w-3 shrink-0" />
                 <span>{verifSummary.phone.compactLabel}</span>
@@ -1758,7 +2234,7 @@ function MarketplaceLeadCard({
             {verifSummary.email.tier === "verified" && verifSummary.email.compactLabel && (
               <div
                 title={verifSummary.email.detailLabel || undefined}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-xs font-semibold"
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-[11px] sm:text-xs font-semibold whitespace-nowrap"
               >
                 <CheckCircle2 className="h-3 w-3 shrink-0" />
                 <span>{verifSummary.email.compactLabel}</span>
@@ -1767,7 +2243,7 @@ function MarketplaceLeadCard({
             {verifSummary.email.tier === "plausible" && verifSummary.email.compactLabel && (
               <div
                 title={verifSummary.email.detailLabel || undefined}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border text-[11px] font-medium"
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border text-[11px] font-medium whitespace-nowrap"
               >
                 <Mail className="h-3 w-3 shrink-0" />
                 <span>{verifSummary.email.compactLabel}</span>
@@ -1775,98 +2251,83 @@ function MarketplaceLeadCard({
             )}
           </div>
 
-          {/* Ligne 4 : Grille Technique 2x2 dans un encart clair dédié */}
-          <div className="rounded-2xl bg-secondary/40 border border-border p-3 sm:p-3.5 grid grid-cols-2 gap-2.5 sm:gap-3 text-xs">
+          {/* Ligne 4 : Grille Technique 2x2 avec icônes alignées dans les libellés (zéro troncature sur 320px) */}
+          <div className="rounded-2xl bg-secondary/40 border border-border p-3 sm:p-3.5 grid grid-cols-2 gap-x-3 gap-y-2.5 text-xs">
             {/* 1. Toiture & Surface */}
-            <div className="flex items-start gap-2 min-w-0">
-              <Home className="h-4 w-4 text-foreground/80 shrink-0 mt-0.5" />
-              <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block font-mono">
-                  TOITURE &amp; SURFACE
-                </span>
-                <span
-                  className="font-bold text-[11px] sm:text-xs text-foreground leading-tight block truncate"
-                  title={surfaceArea > 0 ? `${surfaceArea} m² · ${rawRoof}` : "Toiture standard"}
-                >
-                  {surfaceArea > 0 ? (
-                    <>
-                      <span className="tabular-nums font-mono">{surfaceArea} m²</span> ·{" "}
-                      <span>{roofDisplay}</span>
-                    </>
-                  ) : (
-                    <span>Toiture standard</span>
-                  )}
-                </span>
-              </div>
+            <div className="min-w-0 flex flex-col gap-0.5">
+              <span className="inline-flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground font-mono whitespace-nowrap">
+                <Home className="h-3 w-3 text-foreground/70 shrink-0" />
+                <span>Toiture</span>
+              </span>
+              <span
+                className="font-bold text-xs text-foreground leading-snug block"
+                title={surfaceArea > 0 ? `${surfaceArea} m² · ${rawRoof}` : "Toiture standard"}
+              >
+                {surfaceArea > 0 ? (
+                  <>
+                    <span className="tabular-nums font-mono">{surfaceArea} m²</span> ·{" "}
+                    <span>{roofDisplay}</span>
+                  </>
+                ) : (
+                  <span>Toiture standard</span>
+                )}
+              </span>
             </div>
 
             {/* 2. Facture Élec */}
-            <div className="flex items-start gap-2 min-w-0">
-              <FileText className="h-4 w-4 text-foreground/80 shrink-0 mt-0.5" />
-              <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block font-mono">
-                  FACTURE ÉLEC.
-                </span>
-                <span
-                  className="text-[11px] sm:text-xs font-bold text-foreground leading-tight block truncate font-mono"
-                  title={
-                    annualBill > 0 && financials.estimatedAnnualConsumptionKwh > 0
-                      ? `${annualBill.toLocaleString("fr-BE")} €/an (≈ ${financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh/an)`
-                      : undefined
-                  }
-                >
-                  {annualBill > 0 ? (
-                    <span className="tabular-nums font-mono">
-                      {annualBill.toLocaleString("fr-BE")} €/an
-                      {financials.estimatedAnnualConsumptionKwh > 0 && (
-                        <span className="text-[10px] font-normal text-muted-foreground ml-1">
-                          (≈ {financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh)
-                        </span>
-                      )}
-                    </span>
-                  ) : (
-                    <span>
-                      {isB2B ? "Facture pro" : "Tarif résidentiel"}
+            <div className="min-w-0 flex flex-col gap-0.5">
+              <span className="inline-flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground font-mono whitespace-nowrap">
+                <FileText className="h-3 w-3 text-foreground/70 shrink-0" />
+                <span>Facture</span>
+              </span>
+              {annualBill > 0 ? (
+                <div className="min-w-0">
+                  <span className="text-xs font-bold text-foreground leading-snug block font-mono tabular-nums">
+                    {annualBill.toLocaleString("fr-BE")} €/an
+                  </span>
+                  {financials.estimatedAnnualConsumptionKwh > 0 && (
+                    <span className="text-[11px] text-muted-foreground font-mono tabular-nums block leading-tight">
+                      ≈ {financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh
                     </span>
                   )}
+                </div>
+              ) : (
+                <span className="text-xs font-bold text-foreground leading-snug block">
+                  {isB2B ? "Facture pro" : "Tarif résidentiel"}
                 </span>
-              </div>
+              )}
             </div>
 
             {/* 3. Échéance */}
-            <div className="flex items-start gap-2 min-w-0">
-              <Calendar className="h-4 w-4 text-foreground/80 shrink-0 mt-0.5" />
-              <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block font-mono">
-                  ÉCHÉANCE
-                </span>
-                <span className="font-bold text-[11px] sm:text-xs text-foreground leading-tight block truncate">
-                  {getTimeframeLabel(lead.timeframe || lead.project_timeline)}
-                </span>
-              </div>
+            <div className="min-w-0 flex flex-col gap-0.5">
+              <span className="inline-flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground font-mono whitespace-nowrap">
+                <Calendar className="h-3 w-3 text-foreground/70 shrink-0" />
+                <span>Échéance</span>
+              </span>
+              <span className="font-bold text-xs text-foreground leading-snug block">
+                {getTimeframeLabel(lead.timeframe || lead.project_timeline)}
+              </span>
             </div>
 
             {/* 4. Décisionnaire */}
-            <div className="flex items-start gap-2 min-w-0">
-              <User className="h-4 w-4 text-foreground/80 shrink-0 mt-0.5" />
-              <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block font-mono">
-                  DÉCISIONNAIRE
-                </span>
-                <span
-                  className="font-bold text-[11px] sm:text-xs text-foreground leading-tight block truncate"
-                  title={getOwnershipLabel(lead.ownership_status)}
-                >
-                  {getOwnershipLabel(lead.ownership_status)}
-                </span>
-              </div>
+            <div className="min-w-0 flex flex-col gap-0.5">
+              <span className="inline-flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground font-mono whitespace-nowrap">
+                <User className="h-3 w-3 text-foreground/70 shrink-0" />
+                <span>Décideur</span>
+              </span>
+              <span
+                className="font-bold text-xs text-foreground leading-snug block"
+                title={getOwnershipLabel(lead.ownership_status)}
+              >
+                {getOwnershipLabel(lead.ownership_status)}
+              </span>
             </div>
           </div>
 
-          {/* Ligne 5 : Encadré d'Économie & Marge Indicative (Teinte bleue douce) */}
-          <div className="rounded-2xl bg-accent/10 border border-accent/20 p-3 sm:p-3.5 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="h-7 w-7 rounded-lg bg-accent/15 text-accent flex items-center justify-center shrink-0">
+          {/* Ligne 5 : Encart d'Économie & Marge Indicative (Zéro collision à 320px) */}
+          <div className="rounded-2xl bg-accent/10 border border-accent/20 p-3 sm:p-3.5 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2.5 sm:flex sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="hidden sm:flex h-7 w-7 rounded-lg bg-accent/15 text-accent items-center justify-center shrink-0">
                 <svg
                   className="h-4 w-4 text-accent"
                   viewBox="0 0 24 24"
@@ -1882,20 +2343,20 @@ function MarketplaceLeadCard({
                 </svg>
               </div>
               <div className="min-w-0">
-                <span className="text-[11px] sm:text-xs font-semibold text-accent block">
+                <span className="text-[11px] sm:text-xs font-semibold text-accent block leading-tight">
                   Estimation du chantier
                 </span>
-                <span className="font-bold text-[11px] sm:text-xs text-foreground font-mono tabular-nums block whitespace-nowrap">
+                <span className="font-bold text-xs text-foreground font-mono tabular-nums block leading-snug mt-0.5">
                   {rangeText}
                 </span>
               </div>
             </div>
 
-            <div className="text-right shrink-0 pl-1.5">
-              <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground block text-right font-mono">
-                MARGE INDICATIVE
+            <div className="text-right shrink-0 pl-2 border-l border-accent/20 sm:border-l-0 sm:pl-1.5">
+              <span className="text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground block text-right font-mono whitespace-nowrap">
+                Marge est.
               </span>
-              <span className="text-xs sm:text-sm font-extrabold text-accent font-mono tabular-nums block text-right whitespace-nowrap">
+              <span className="text-xs sm:text-sm font-extrabold text-accent font-mono tabular-nums block text-right whitespace-nowrap mt-0.5">
                 {marginText}
               </span>
             </div>
@@ -1903,36 +2364,44 @@ function MarketplaceLeadCard({
         </div>
       </div>
 
-      {/* ── C. Pied de Carte : Coût en Crédits & Boutons Pilules (Inspecter & Débloquer) ── */}
-      <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-3 border-t border-border flex flex-wrap items-center justify-between gap-2">
+      {/* ── C. Pied de Carte : Coût en Crédits & Boutons Tactiles Équilibrés ── */}
+      <div className="px-3.5 sm:px-5 pb-3.5 sm:pb-5 pt-3 border-t border-border flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
         {/* Crédits ou Euros */}
-        <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
-          <Coins className="h-4 w-4 text-muted-foreground shrink-0" />
-          <div className="flex flex-col">
-            <div className="flex items-baseline gap-1">
-              <span className="font-bold text-xs sm:text-sm text-foreground font-mono tabular-nums">
+        <div className="flex items-center justify-between sm:justify-start gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Coins className="h-4 w-4 text-muted-foreground shrink-0" />
+            <div className="flex items-baseline gap-1 font-mono tabular-nums">
+              <span className="font-bold text-xs sm:text-sm text-foreground whitespace-nowrap">
                 {cost} crédits
               </span>
-              <span className="text-[11px] text-muted-foreground font-medium">ou</span>
-              <span className="font-bold text-xs sm:text-sm text-foreground font-mono tabular-nums">
-                {directFinancials.priceHtva.toFixed(2).replace(".", ",")} € <span className="text-[10px] text-muted-foreground font-normal">HT</span>
+              <span className="font-sans text-[11px] text-muted-foreground font-medium">ou</span>
+              <span className="font-bold text-xs sm:text-sm text-foreground whitespace-nowrap">
+                {directFinancials.priceHtva.toFixed(2).replace(".", ",")} €{" "}
+                <span className="text-[10.5px] text-muted-foreground font-normal">HT</span>
               </span>
             </div>
-            <span className="text-[10px] text-muted-foreground font-mono tabular-nums">
-              ({directFinancials.priceTtc.toFixed(2).replace(".", ",")} € TTC){canTakeExclusive ? " · Excl. 7 cr." : ""}
-            </span>
           </div>
+          <span className="text-[10.5px] text-muted-foreground font-mono tabular-nums sm:hidden whitespace-nowrap">
+            {canTakeExclusive ? "Excl. 7 cr." : `${directFinancials.priceTtc.toFixed(2).replace(".", ",")} € TTC`}
+          </span>
         </div>
 
-        {/* Boutons d'action pilules compacts */}
-        <div className="flex items-center gap-1.5 shrink-0 ml-auto" onClick={(e) => e.stopPropagation()}>
+        {/* Boutons d'action pleine largeur équilibrée sur mobile, pilules compactes sur desktop */}
+        <div
+          className={`w-full sm:w-auto sm:ml-auto ${
+            hasEnoughCredits
+              ? "grid grid-cols-[1fr_auto_1.35fr] gap-2 sm:flex sm:items-center sm:gap-1.5"
+              : "grid grid-cols-[1fr_1.45fr] gap-2 sm:flex sm:items-center sm:gap-1.5"
+          }`}
+          onClick={(e) => e.stopPropagation()}
+        >
           <button
             type="button"
             onClick={onInspect}
-            className="rounded-full border border-border bg-card hover:bg-secondary px-3 sm:px-3.5 py-1.5 text-xs font-semibold text-foreground shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-1 shrink-0"
+            className="min-h-[42px] sm:min-h-0 rounded-xl sm:rounded-full border border-border bg-card hover:bg-secondary px-3 sm:px-3.5 py-2 sm:py-1.5 text-xs font-semibold text-foreground shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
             title="Inspecter la fiche technique complète"
           >
-            <Eye className="h-3.5 w-3.5 text-accent" />
+            <Eye className="h-3.5 w-3.5 text-accent shrink-0" />
             <span>Inspecter</span>
           </button>
 
@@ -1941,10 +2410,11 @@ function MarketplaceLeadCard({
               <button
                 type="button"
                 onClick={onDirectPay}
-                className="rounded-full border border-border bg-secondary hover:bg-secondary/80 px-2.5 py-1.5 text-xs font-semibold text-foreground transition-all cursor-pointer flex items-center gap-1 shrink-0"
+                className="min-h-[42px] min-w-[42px] sm:min-h-0 sm:min-w-0 rounded-xl sm:rounded-full border border-border bg-secondary hover:bg-secondary/80 px-3 sm:px-2.5 py-2 sm:py-1.5 text-xs font-semibold text-foreground transition-all cursor-pointer flex items-center justify-center gap-1 shrink-0"
+                aria-label="Payer ce dossier par Bancontact ou carte"
                 title="Payer directement ce lead par Bancontact / Carte sans utiliser vos crédits"
               >
-                <CreditCard className="h-3.5 w-3.5 text-accent" />
+                <CreditCard className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-accent shrink-0" />
                 <span className="hidden sm:inline">Payer en €</span>
               </button>
 
@@ -1952,17 +2422,17 @@ function MarketplaceLeadCard({
                 type="button"
                 disabled={isBuying}
                 onClick={onPurchase}
-                className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-3.5 sm:px-4 py-1.5 text-xs font-bold shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1 shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="min-h-[42px] sm:min-h-0 rounded-xl sm:rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-3.5 sm:px-4 py-2 sm:py-1.5 text-xs font-bold shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
                 title="Débloquer immédiatement avec vos crédits"
               >
                 {isBuying ? (
                   <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
                     <span>...</span>
                   </>
                 ) : (
                   <>
-                    <Unlock className="h-3.5 w-3.5 text-primary-foreground" />
+                    <Unlock className="h-3.5 w-3.5 text-primary-foreground shrink-0" />
                     <span>Débloquer</span>
                   </>
                 )}
@@ -1972,11 +2442,24 @@ function MarketplaceLeadCard({
             <button
               type="button"
               onClick={onDirectPay}
-              className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-3.5 sm:px-4 py-1.5 text-xs font-bold shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1 shrink-0"
-              title="Payer directement ce lead par Bancontact / Carte"
+              className="min-h-[42px] sm:min-h-0 rounded-xl sm:rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-3 sm:px-4 py-2 sm:py-1.5 text-xs font-bold shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+              title={
+                complementFinancials.isHybrid
+                  ? `Utiliser vos ${complementFinancials.creditsToDebit} crédit(s) et compléter par Bancontact / Carte`
+                  : "Payer directement ce lead par Bancontact / Carte"
+              }
             >
-              <CreditCard className="h-3.5 w-3.5 text-primary-foreground" />
-              <span>Payer {directFinancials.priceHtva.toFixed(2).replace(".", ",")} € HT</span>
+              <CreditCard className="h-3.5 w-3.5 text-primary-foreground shrink-0" />
+              <span className="font-mono tabular-nums sm:hidden">
+                {complementFinancials.isHybrid
+                  ? `+${formatEurWithDecimals(complementFinancials.priceHtva)} € HT`
+                  : `${directFinancials.priceHtva.toFixed(2).replace(".", ",")} € HT`}
+              </span>
+              <span className="hidden sm:inline font-mono tabular-nums">
+                {complementFinancials.isHybrid
+                  ? `Compléter (${formatEurWithDecimals(complementFinancials.priceHtva)} € HT)`
+                  : `Payer ${directFinancials.priceHtva.toFixed(2).replace(".", ",")} € HT`}
+              </span>
             </button>
           )}
         </div>

@@ -21,6 +21,7 @@ import {
   ensureInvoiceForCreditOrder,
   ensureInvoiceForLeadPurchase,
 } from "@/lib/accounting/invoice-service"
+import { triggerPartnerReferralReward } from "@/lib/partner-referrals"
 
 async function savePartnerMollieMandateIfPresent(
   supabase: ReturnType<typeof createServiceRoleClient>,
@@ -189,6 +190,12 @@ export async function fulfillPaidCreditOrder(
     /* silent */
   }
 
+  try {
+    await triggerPartnerReferralReward(supabase, order.partner_id, "first_credit_order")
+  } catch {
+    /* non-blocking */
+  }
+
   return {
     success: true,
     newCredits,
@@ -203,6 +210,7 @@ export interface LeadFulfillmentResult {
   lead?: any
   exclusive?: boolean
   maxSlots?: number
+  newCredits?: number
   error?: string
 }
 
@@ -273,6 +281,8 @@ export async function fulfillPaidLeadDirectPurchase(
   const isB2B = lead.segment === "B2B"
   const meta = (payment.metadata as Record<string, unknown>) || {}
   const isB2CExclusive = Boolean(meta.exclusive) && !isB2B
+  const rawCreditsToDebit = Math.max(0, Math.floor(Number(meta.creditsToDebit || 0)))
+  const isHybrid = Boolean(meta.isHybrid) && rawCreditsToDebit > 0
   const baseMaxSlots =
     typeof (lead as { max_slots?: number | null }).max_slots === "number"
       ? Number((lead as { max_slots?: number | null }).max_slots)
@@ -303,17 +313,31 @@ export async function fulfillPaidLeadDirectPurchase(
     const fallbackCredits = isB2CExclusive
       ? B2C_EXCLUSIVE_CREDIT_COST
       : Number(lead.credit_cost || (isB2B ? 9 : 3))
-    const creditsToCompensate = Number(meta.credits || fallbackCredits)
-    await supabase.rpc("add_credits", { p_amount: creditsToCompensate, p_partner_id: partner.id })
+    const totalLeadCredits = Number(meta.totalCredits || meta.credits || fallbackCredits)
+    const creditsToCompensate = isHybrid
+      ? Math.max(1, totalLeadCredits - rawCreditsToDebit)
+      : totalLeadCredits
+    const { error: compErr } = await supabase.rpc("add_credits", {
+      p_partner_id: partner.id,
+      p_amount: creditsToCompensate,
+      p_type: "adjustment",
+      p_reference: `COMPENSATION_SLOTS_FULL:${leadId}`,
+    })
+    if (compErr) {
+      await supabase
+        .from("partners")
+        .update({ credits: Number(partner.credits || 0) + creditsToCompensate })
+        .eq("id", partner.id)
+    }
     return {
       success: false,
-      error: `Créneaux complets ou dossier déjà partagé avant validation. ${creditsToCompensate} crédits ont été crédités sur votre compte.`,
+      error: `Créneaux complets ou dossier déjà partagé avant validation. ${creditsToCompensate} crédit${creditsToCompensate > 1 ? "s" : ""} ont été crédités sur votre compte (vos crédits partiels n'ont pas été débités).`,
     }
   }
 
   const creditsEquivalent = isB2CExclusive
-    ? Number(meta.credits || B2C_EXCLUSIVE_CREDIT_COST)
-    : Number(meta.credits || lead.credit_cost || (isB2B ? 9 : 3))
+    ? Number(meta.totalCredits || meta.credits || B2C_EXCLUSIVE_CREDIT_COST)
+    : Number(meta.totalCredits || meta.credits || lead.credit_cost || (isB2B ? 9 : 3))
   const v2Fallback = calculateOrderFinancials(creditsEquivalent)
   const priceHtva = meta.priceHtva ? Number(meta.priceHtva).toFixed(2) : v2Fallback.priceHtva.toFixed(2)
   const vatAmount = meta.vatAmount ? Number(meta.vatAmount).toFixed(2) : v2Fallback.vatAmount.toFixed(2)
@@ -321,6 +345,9 @@ export async function fulfillPaidLeadDirectPurchase(
   const purchaseChannel =
     meta.channel === "auto_pilot" ? "auto_pilot" : "mollie_direct"
   const exclusiveTag = isB2CExclusive ? " (EXCLUSIF)" : ""
+  const purchaseNotes = isHybrid
+    ? `Achat direct en euros (Mollie: ${payment.id}) · Complément (${rawCreditsToDebit} cr. utilisés) · ${priceHtva} € HTVA (${payment.method || "Bancontact"})${exclusiveTag}`
+    : `Achat direct en euros${exclusiveTag} (Mollie: ${payment.id}) · ${priceHtva} € HTVA (${payment.method || "Bancontact"})`
 
   // 5. Insérer l'achat dans lead_purchases (avec repli si nouvelles colonnes non migrées)
   let purchase: any = null
@@ -330,7 +357,7 @@ export async function fulfillPaidLeadDirectPurchase(
     partner_id: partnerId,
     credits_spent: creditsEquivalent,
     pipeline_status: "to_contact",
-    notes: `Achat direct en euros${exclusiveTag} (Mollie: ${payment.id}) · ${priceHtva} € HTVA (${payment.method || "Bancontact"})`,
+    notes: purchaseNotes,
     purchased_at: new Date().toISOString(),
   }
 
@@ -365,6 +392,28 @@ export async function fulfillPaidLeadDirectPurchase(
   if (purchaseErr || !purchase) {
     console.error("[Mollie Lead Fulfillment] Erreur insertion lead_purchases:", purchaseErr)
     return { success: false, error: "Failed to record lead purchase" }
+  }
+
+  // 5b. Débit atomique des crédits partiels utilisés en complément
+  let effectiveNewCredits = Number(partner.credits || 0)
+  let actualDebitedCredits = 0
+  if (isHybrid && rawCreditsToDebit > 0) {
+    const { data: deductData, error: deductErr } = await supabase.rpc("deduct_credits_safe", {
+      p_partner_id: partnerId,
+      p_amount: rawCreditsToDebit,
+      p_reference: `HYBRID_LEAD:${leadId}`,
+    })
+    if (!deductErr && deductData) {
+      actualDebitedCredits = Number(deductData.debited ?? 0)
+      effectiveNewCredits = Number(deductData.new_credits ?? effectiveNewCredits)
+    } else {
+      actualDebitedCredits = Math.min(effectiveNewCredits, rawCreditsToDebit)
+      effectiveNewCredits = Math.max(0, effectiveNewCredits - actualDebitedCredits)
+      await supabase
+        .from("partners")
+        .update({ credits: effectiveNewCredits })
+        .eq("id", partnerId)
+    }
   }
 
   // 6. Clôturer le dossier si exclusivité B2C ou dernier slot acquis
@@ -431,6 +480,8 @@ export async function fulfillPaidLeadDirectPurchase(
         price_htva: priceHtva,
         vat_amount: vatAmount,
         price_ttc: priceTtc,
+        is_hybrid: isHybrid,
+        credits_debited: actualDebitedCredits,
       },
     })
   } catch (auditErr) {
@@ -541,6 +592,12 @@ export async function fulfillPaidLeadDirectPurchase(
     console.warn("[Mollie Lead Fulfillment] Notification admin échouée:", adminEmailErr)
   }
 
+  try {
+    await triggerPartnerReferralReward(supabase, partnerId, "first_direct_lead_purchase")
+  } catch {
+    /* non-blocking */
+  }
+
   return {
     success: true,
     purchaseId: purchase.id,
@@ -548,5 +605,6 @@ export async function fulfillPaidLeadDirectPurchase(
     lead,
     exclusive: isB2CExclusive || isB2B,
     maxSlots,
+    newCredits: effectiveNewCredits,
   }
 }

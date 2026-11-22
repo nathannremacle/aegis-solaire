@@ -287,7 +287,7 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-foreground/60 backdrop-blur-xs animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-foreground/60 backdrop-blur-xs animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -297,25 +297,27 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative flex flex-col w-full max-w-2xl max-h-[92vh] overflow-hidden rounded-3xl border border-border bg-card shadow-2xl animate-in zoom-in-95 duration-200"
+        className="relative flex flex-col w-full max-w-2xl max-h-[92dvh] overflow-hidden rounded-t-2xl sm:rounded-3xl border-t sm:border border-border bg-card shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200"
       >
         {/* ── 1. En-tête de la Fenêtre ── */}
-        <div className="shrink-0 px-6 pt-5 pb-4 border-b border-border bg-card">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex flex-col gap-1">
+        <div className="shrink-0 px-4 pt-2 pb-3.5 sm:px-6 sm:pt-5 sm:pb-4 border-b border-border bg-card">
+          <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-border sm:hidden" aria-hidden="true" />
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-col gap-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 border border-accent/20 px-2.5 py-0.5 font-mono text-[11px] font-bold text-accent">
-                  <Bell className="h-3.5 w-3.5" />
-                  PÉRIMÈTRE D&apos;INTERVENTION &amp; ALERTES DIRECTES
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 border border-accent/20 px-2.5 py-0.5 font-mono text-[10.5px] sm:text-[11px] font-bold text-accent">
+                  <Bell className="h-3.5 w-3.5 shrink-0" />
+                  <span className="sm:hidden">PÉRIMÈTRE &amp; ALERTES</span>
+                  <span className="hidden sm:inline">PÉRIMÈTRE D&apos;INTERVENTION &amp; ALERTES DIRECTES</span>
                 </span>
               </div>
               <h2
                 id="alert-preferences-title"
-                className="text-xl sm:text-2xl font-heading font-extrabold tracking-tight text-foreground"
+                className="text-lg sm:text-2xl font-heading font-extrabold tracking-tight text-foreground leading-snug"
               >
                 Alertes &amp; Périmètre Wallon
               </h2>
-              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              <p className="text-xs sm:text-sm text-muted-foreground leading-snug sm:leading-relaxed">
                 Configurez votre rayon d&apos;intervention et vos critères techniques pour recevoir en avant-première les opportunités photovoltaïques dès leur parution.
               </p>
             </div>
@@ -323,17 +325,17 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer shrink-0"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer shrink-0"
               title="Fermer la fenêtre (Échap)"
               aria-label="Fermer la fenêtre"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
             </button>
           </div>
         </div>
 
         {/* ── 2. Corps Formulaire Déroulant ── */}
-        <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-5 sm:p-6 flex flex-col gap-6">
+        <form onSubmit={handleSave} className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 flex flex-col gap-5 sm:gap-6">
           {/* ════════ Section A : Sélection des Provinces Wallonnes ════════ */}
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -859,7 +861,7 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
         </form>
 
         {/* ── 3. Pied d'Actions Fixe ── */}
-        <div className="shrink-0 flex items-center justify-between gap-3 p-4 sm:p-5 border-t border-border bg-card">
+        <div className="shrink-0 flex items-center justify-between gap-3 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-5 border-t border-border bg-card">
           <div className="text-xs text-muted-foreground hidden sm:block">
             <span className="font-mono font-bold text-foreground tabular-nums">
               {selectedProvinces.length}
@@ -871,14 +873,14 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
             surface{selectedSurfaces.length > 1 ? "s" : ""}
           </div>
 
-          <div className="flex items-center justify-end gap-2 w-full sm:w-auto">
+          <div className="grid grid-cols-[auto_1fr] sm:flex items-center justify-end gap-2 w-full sm:w-auto">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={onClose}
               disabled={saving}
-              className="rounded-xl text-xs font-semibold cursor-pointer border-border hover:bg-secondary text-foreground"
+              className="min-h-[44px] sm:h-9 px-4 rounded-xl text-xs font-semibold cursor-pointer border-border hover:bg-secondary text-foreground"
             >
               Annuler
             </Button>
@@ -887,7 +889,7 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="rounded-xl text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs cursor-pointer min-w-[140px]"
+              className="min-h-[44px] sm:h-9 rounded-xl text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs cursor-pointer min-w-[140px]"
             >
               {saving ? (
                 <>

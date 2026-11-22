@@ -13,6 +13,10 @@ import {
   generatePartnerPasswordSetupUrl,
 } from "@/lib/partner-auth-onboarding"
 import { isB2COptedOutEmail } from "@/lib/partner-notification-prefs"
+import {
+  recordReferralApplication,
+  resolveReferrerByCode,
+} from "@/lib/partner-referrals"
 
 function mergeAdminNotes(existing: string | null | undefined, incomingParts: string[]): string | null {
   const hasIncomingSegment = incomingParts.some((p) => /^Segments?\s+cibles?\s*:/i.test(p.trim()))
@@ -59,8 +63,24 @@ export async function POST(request: NextRequest) {
     const baseUrl = getSiteBaseUrl(request.nextUrl.origin)
     const effectiveSegment = isB2COptedOutEmail(cleanEmail) ? "B2B" : data.targetSegment
 
+    let resolvedReferrer: {
+      id: string
+      company_name: string
+      email: string
+      referral_code: string
+    } | null = null
+    if (data.referralCode) {
+      const candidate = await resolveReferrerByCode(supabase, data.referralCode)
+      if (candidate && candidate.email.toLowerCase().trim() !== cleanEmail) {
+        resolvedReferrer = candidate
+      }
+    }
+
     const incomingNotesParts = [
       data.invitedBy ? `⭐ INVITATION VIP PAR: ${data.invitedBy}` : null,
+      resolvedReferrer
+        ? `🤝 PARRAINAGE RESCERT: ${resolvedReferrer.company_name} (${resolvedReferrer.referral_code})`
+        : null,
       data.leadId ? `🎯 CHANTIER CIBLE: ${data.leadId}` : null,
       effectiveSegment ? `Segments cibles: ${effectiveSegment}` : null,
       data.powerCapacity ? `Capacité: ${data.powerCapacity}` : null,
@@ -163,22 +183,47 @@ export async function POST(request: NextRequest) {
 
     if (existingPending) {
       const mergedNotes = mergeAdminNotes(existingPending.admin_notes, incomingNotesParts)
-      const { data: updatedApp, error: updateError } = await supabase
+      const basePendingUpdate = {
+        company_name: data.companyName.trim(),
+        siret: data.siret.trim(),
+        first_name: data.firstName.trim(),
+        last_name: data.lastName.trim(),
+        job_title: data.jobTitle.trim(),
+        phone: data.phone.trim(),
+        rescert_ref: data.rescertPhotovoltaicRef.trim(),
+        regions: data.regions,
+        admin_notes: mergedNotes,
+      }
+      let { data: updatedApp, error: updateError } = await supabase
         .from("installer_applications")
         .update({
-          company_name: data.companyName.trim(),
-          siret: data.siret.trim(),
-          first_name: data.firstName.trim(),
-          last_name: data.lastName.trim(),
-          job_title: data.jobTitle.trim(),
-          phone: data.phone.trim(),
-          rescert_ref: data.rescertPhotovoltaicRef.trim(),
-          regions: data.regions,
-          admin_notes: mergedNotes,
+          ...basePendingUpdate,
+          ...(resolvedReferrer
+            ? {
+                referral_code_used: resolvedReferrer.referral_code,
+                referred_by_partner_id: resolvedReferrer.id,
+              }
+            : {}),
         })
         .eq("id", existingPending.id)
         .select("id, email, company_name, first_name, last_name")
         .single()
+
+      if (
+        updateError &&
+        (updateError.code === "42703" ||
+          updateError.message?.includes("referral_code_used") ||
+          updateError.message?.includes("referred_by_partner_id"))
+      ) {
+        const retry = await supabase
+          .from("installer_applications")
+          .update(basePendingUpdate)
+          .eq("id", existingPending.id)
+          .select("id, email, company_name, first_name, last_name")
+          .single()
+        updatedApp = retry.data
+        updateError = retry.error
+      }
 
       if (updateError || !updatedApp) {
         console.error("[installer register] DB update error:", updateError)
@@ -191,23 +236,47 @@ export async function POST(request: NextRequest) {
     } else {
       // Cas 3 : nouvelle candidature
       const adminNotes = mergeAdminNotes(null, incomingNotesParts)
-      const { data: insertedApp, error } = await supabase
+      const baseInsertPayload = {
+        company_name: data.companyName.trim(),
+        siret: data.siret.trim(),
+        first_name: data.firstName.trim(),
+        last_name: data.lastName.trim(),
+        job_title: data.jobTitle.trim(),
+        email: cleanEmail,
+        phone: data.phone.trim(),
+        rescert_ref: data.rescertPhotovoltaicRef.trim(),
+        regions: data.regions,
+        admin_notes: adminNotes,
+        status: "pending",
+      }
+      let { data: insertedApp, error } = await supabase
         .from("installer_applications")
         .insert({
-          company_name: data.companyName.trim(),
-          siret: data.siret.trim(),
-          first_name: data.firstName.trim(),
-          last_name: data.lastName.trim(),
-          job_title: data.jobTitle.trim(),
-          email: cleanEmail,
-          phone: data.phone.trim(),
-          rescert_ref: data.rescertPhotovoltaicRef.trim(),
-          regions: data.regions,
-          admin_notes: adminNotes,
-          status: "pending",
+          ...baseInsertPayload,
+          ...(resolvedReferrer
+            ? {
+                referral_code_used: resolvedReferrer.referral_code,
+                referred_by_partner_id: resolvedReferrer.id,
+              }
+            : {}),
         })
         .select("id, email, company_name, first_name, last_name")
         .single()
+
+      if (
+        error &&
+        (error.code === "42703" ||
+          error.message?.includes("referral_code_used") ||
+          error.message?.includes("referred_by_partner_id"))
+      ) {
+        const retry = await supabase
+          .from("installer_applications")
+          .insert(baseInsertPayload)
+          .select("id, email, company_name, first_name, last_name")
+          .single()
+        insertedApp = retry.data
+        error = retry.error
+      }
 
       if (error || !insertedApp) {
         console.error("[installer register] DB error:", error)
@@ -217,6 +286,15 @@ export async function POST(request: NextRequest) {
         )
       }
       targetApp = insertedApp
+    }
+
+    if (resolvedReferrer && targetApp) {
+      await recordReferralApplication(supabase, {
+        referrerPartnerId: resolvedReferrer.id,
+        applicationId: targetApp.id,
+        referredEmail: cleanEmail,
+        referredCompanyName: data.companyName.trim(),
+      })
     }
 
     // Génération du lien de validation d'email sur l'URL canonique

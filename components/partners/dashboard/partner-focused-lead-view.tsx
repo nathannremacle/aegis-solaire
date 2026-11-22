@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
 import {
+  calculateLeadComplementFinancials,
   calculateLeadDirectFinancials,
   B2C_EXCLUSIVE_CREDIT_COST,
   B2C_EXCLUSIVE_PRICE_EUR,
@@ -216,6 +217,17 @@ export function PartnerFocusedLeadView({
   const directFinancials = calculateLeadDirectFinancials({
     segment: lead.segment,
     credit_cost: cost,
+  })
+  const complementFinancials = calculateLeadComplementFinancials({
+    segment: lead.segment,
+    credit_cost: cost,
+    availableCredits: partnerCredits,
+  })
+  const exclusiveComplementFinancials = calculateLeadComplementFinancials({
+    segment: lead.segment,
+    credit_cost: cost,
+    exclusive: true,
+    availableCredits: partnerCredits,
   })
 
   const rawSurface = Math.max(0, Number(lead.surface_area || lead.surface_area_m2) || 0)
@@ -467,18 +479,18 @@ export function PartnerFocusedLeadView({
   }
 
   return (
-    <div className="mx-auto max-w-[1160px] px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+    <div className="mx-auto max-w-[1160px] px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
       {/* Barre supérieure : retour catalogue & référence dossier */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-3.5 sm:mb-4 flex flex-wrap items-center justify-between gap-2 sm:gap-3">
         <button
           type="button"
           onClick={onBackToMarketplace}
-          className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[var(--aegis-link)] underline underline-offset-4 hover:text-[var(--aegis-ink)] cursor-pointer rounded-[5px] focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
+          className="inline-flex min-h-[38px] items-center gap-1.5 text-[14px] font-medium text-[var(--aegis-link)] underline underline-offset-4 hover:text-[var(--aegis-ink)] cursor-pointer rounded-[5px] focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
         >
           <ArrowLeft className="h-4 w-4 shrink-0" />
           <span>
             {availableLeadsCount > 0
-              ? `Voir les ${availableLeadsCount} autres dossiers disponibles`
+              ? `Voir les ${availableLeadsCount} autres dossiers`
               : "Retour à la marketplace"}
           </span>
         </button>
@@ -489,19 +501,19 @@ export function PartnerFocusedLeadView({
       </div>
 
       {/* Grille 2 colonnes : Colonne principale (1fr) + Colonne d'action (340px), empilée sous 900px */}
-      <div className="grid grid-cols-1 min-[900px]:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
+      <div className="grid grid-cols-1 min-[900px]:grid-cols-[minmax(0,1fr)_340px] gap-4 sm:gap-6 items-start">
         {/* ── Colonne Principale : Résumé + Chiffres + Détails + Localisation ── */}
-        <div className="min-w-0 flex flex-col gap-6">
-          <section className="rounded-[14px] border border-[var(--aegis-border)] bg-[var(--aegis-surface)] p-5 sm:p-7">
+        <div className="min-w-0 flex flex-col gap-4 sm:gap-6">
+          <section className="rounded-[14px] border border-[var(--aegis-border)] bg-[var(--aegis-surface)] p-4 sm:p-7">
             {/* En-tête du dossier */}
-            <div className="pb-5 border-b border-[var(--aegis-divider)]">
+            <div className="pb-4 sm:pb-5 border-b border-[var(--aegis-divider)]">
               <p className="text-[13px] font-semibold text-[var(--aegis-context)]">
                 {contextLabel}
               </p>
-              <h1 className="mt-1 text-[32px] sm:text-[38px] font-bold leading-[1.14] tracking-[-0.03em] text-[var(--aegis-ink)] font-mono tabular-nums">
+              <h1 className="mt-1 text-[26px] sm:text-[38px] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--aegis-ink)] font-mono tabular-nums">
                 {headlineLocation}
               </h1>
-              <p className="mt-1.5 text-[15px] leading-[1.5] text-[var(--aegis-muted)]">
+              <p className="mt-1.5 text-[14px] sm:text-[15px] leading-[1.5] text-[var(--aegis-muted)]">
                 {propertyTypeDisplay} · {ownershipLabel}
               </p>
               <span
@@ -511,43 +523,48 @@ export function PartnerFocusedLeadView({
               </span>
             </div>
 
-            {/* Synthèse chiffrée */}
-            <div className="mt-5 rounded-[8px] border border-[var(--aegis-border)] bg-[var(--aegis-summary)] grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[var(--aegis-divider)]">
-              <div className="p-4">
-                <span className="block text-[13px] text-[var(--aegis-muted)]">
+            {/* Synthèse chiffrée : 2+1 compacte sur mobile, 3 colonnes sur sm+ */}
+            <div className="mt-4 sm:mt-5 rounded-[8px] border border-[var(--aegis-border)] bg-[var(--aegis-summary)] grid grid-cols-2 sm:grid-cols-3">
+              <div className="p-3 sm:p-4">
+                <span className="block text-[12px] sm:text-[13px] text-[var(--aegis-muted)]">
                   Puissance estimée
                 </span>
-                <strong className="mt-1 block text-[24px] sm:text-[26px] font-bold leading-[1.18] tracking-[-0.025em] text-[var(--aegis-ink)] font-mono tabular-nums">
+                <strong className="mt-1 block text-[20px] sm:text-[26px] font-bold leading-[1.18] tracking-[-0.025em] text-[var(--aegis-ink)] font-mono tabular-nums">
                   {formatPowerKwc(financials.estimatedPowerKwc)}
                 </strong>
                 {financials.estimatedPanelCount > 0 && (
-                  <span className="mt-0.5 block text-[13px] text-[var(--aegis-muted)] font-mono tabular-nums">
+                  <span className="mt-0.5 block text-[12px] sm:text-[13px] text-[var(--aegis-muted)] font-mono tabular-nums">
                     {financials.estimatedPanelCount} panneaux estimés
                   </span>
                 )}
               </div>
 
-              <div className="p-4">
-                <span className="block text-[13px] text-[var(--aegis-muted)]">
-                  Devis estimé
+              <div className="p-3 sm:p-4 border-l border-[var(--aegis-divider)] sm:order-3">
+                <span className="block text-[12px] sm:text-[13px] text-[var(--aegis-muted)]">
+                  Marge indicative
                 </span>
-                <strong className="mt-1 block text-[22px] sm:text-[24px] font-bold leading-[1.18] tracking-[-0.025em] text-[var(--aegis-ink)] font-mono tabular-nums">
-                  {minContractStr} à {maxContractStr} € HT
+                <strong className="mt-1 block text-[17px] min-[400px]:text-[20px] sm:text-[26px] font-bold leading-[1.18] tracking-[-0.025em] text-[var(--aegis-ink)] font-mono tabular-nums">
+                  <span className="sm:hidden whitespace-nowrap">
+                    ~{financials.estimatedInstallerMargin.toLocaleString("fr-BE")} € HT
+                  </span>
+                  <span className="hidden sm:inline">
+                    Env. {financials.estimatedInstallerMargin.toLocaleString("fr-BE")} € HT
+                  </span>
                 </strong>
-                <span className="mt-0.5 block text-[13px] text-[var(--aegis-muted)]">
-                  Estimation indicative
+                <span className="mt-0.5 block text-[12px] sm:text-[13px] text-[var(--aegis-muted)] font-mono tabular-nums">
+                  {financials.roiMultiplier}× le coût du dossier
                 </span>
               </div>
 
-              <div className="p-4">
-                <span className="block text-[13px] text-[var(--aegis-muted)]">
-                  Marge brute indicative
+              <div className="col-span-2 sm:col-span-1 p-3 sm:p-4 border-t sm:border-t-0 sm:border-l border-[var(--aegis-divider)] sm:order-2">
+                <span className="block text-[12px] sm:text-[13px] text-[var(--aegis-muted)]">
+                  Devis estimé
                 </span>
-                <strong className="mt-1 block text-[24px] sm:text-[26px] font-bold leading-[1.18] tracking-[-0.025em] text-[var(--aegis-ink)] font-mono tabular-nums">
-                  Env. {financials.estimatedInstallerMargin.toLocaleString("fr-BE")} € HT
+                <strong className="mt-1 block text-[20px] sm:text-[24px] font-bold leading-[1.18] tracking-[-0.025em] text-[var(--aegis-ink)] font-mono tabular-nums">
+                  {minContractStr} à {maxContractStr} € HT
                 </strong>
-                <span className="mt-0.5 block text-[13px] text-[var(--aegis-muted)] font-mono tabular-nums">
-                  {financials.roiMultiplier}× le coût du dossier
+                <span className="mt-0.5 block text-[12px] sm:text-[13px] text-[var(--aegis-muted)]">
+                  Estimation indicative
                 </span>
               </div>
             </div>
@@ -637,11 +654,10 @@ export function PartnerFocusedLeadView({
                               type="button"
                               onClick={() => setActivePhotoIndex(idx)}
                               aria-label={`Afficher la photo ${idx + 1}`}
-                              className={`relative rounded-[6px] overflow-hidden border aspect-[3/2] cursor-pointer transition-opacity focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] ${
-                                isSelected
-                                  ? "border-[var(--aegis-ink)] ring-1 ring-[var(--aegis-ink)] opacity-100"
-                                  : "border-[var(--aegis-border)] opacity-75 hover:opacity-100"
-                              }`}
+                              className={`relative rounded-[6px] overflow-hidden border aspect-[3/2] cursor-pointer transition-opacity focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] ${isSelected
+                                ? "border-[var(--aegis-ink)] ring-1 ring-[var(--aegis-ink)] opacity-100"
+                                : "border-[var(--aegis-border)] opacity-75 hover:opacity-100"
+                                }`}
                             >
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
@@ -693,13 +709,13 @@ export function PartnerFocusedLeadView({
                         <tr key={row.label}>
                           <th
                             scope="row"
-                            className={`w-[46%] py-2 pr-3 text-[14px] font-normal text-[var(--aegis-muted)] align-top ${isLast ? "" : "border-b border-[var(--aegis-divider)]"
+                            className={`w-[42%] sm:w-[46%] py-2 pr-2.5 sm:pr-3 text-[13px] sm:text-[14px] font-normal text-[var(--aegis-muted)] align-top ${isLast ? "" : "border-b border-[var(--aegis-divider)]"
                               }`}
                           >
                             {row.label}
                           </th>
                           <td
-                            className={`py-2 text-[14px] text-[var(--aegis-ink)] align-top font-mono tabular-nums ${row.italic ? "italic font-normal" : "font-semibold"
+                            className={`py-2 text-[13px] sm:text-[14px] text-[var(--aegis-ink)] align-top font-mono tabular-nums break-words ${row.italic ? "italic font-normal" : "font-semibold"
                               } ${isLast ? "" : "border-b border-[var(--aegis-divider)]"}`}
                           >
                             {row.value}
@@ -779,8 +795,8 @@ export function PartnerFocusedLeadView({
                           <span
                             title={verifSummary.phone.detailLabel || undefined}
                             className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${verifSummary.phone.tier === "verified"
-                                ? "bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)]"
-                                : "bg-[var(--aegis-surface-subtle)] border border-[var(--aegis-border)] text-[var(--aegis-muted)]"
+                              ? "bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)]"
+                              : "bg-[var(--aegis-surface-subtle)] border border-[var(--aegis-border)] text-[var(--aegis-muted)]"
                               }`}
                           >
                             {verifSummary.phone.compactLabel}
@@ -837,7 +853,7 @@ export function PartnerFocusedLeadView({
               </div>
             ) : (
               <div className="mt-4 flex flex-col gap-3 pt-3 border-t border-[var(--aegis-divider)]">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3">
                   <div>
                     <span className="flex items-center gap-1.5 text-[13px] text-[var(--aegis-muted)]">
                       <Phone className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
@@ -849,15 +865,15 @@ export function PartnerFocusedLeadView({
                     <span
                       title={verifSummary.phone.detailLabel || undefined}
                       className={`mt-1.5 inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium ${verifSummary.phone.tier === "verified"
-                          ? "bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] font-semibold"
-                          : "bg-[var(--aegis-surface-subtle)] border border-[var(--aegis-border)] text-[var(--aegis-muted)]"
+                        ? "bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] font-semibold"
+                        : "bg-[var(--aegis-surface-subtle)] border border-[var(--aegis-border)] text-[var(--aegis-muted)]"
                         }`}
                     >
                       {verifSummary.phone.compactLabel ?? phoneLabel}
                     </span>
                   </div>
 
-                  <div className="pl-3 border-l border-[var(--aegis-divider)]">
+                  <div className="pt-2.5 border-t border-[var(--aegis-divider)] min-[360px]:pt-0 min-[360px]:border-t-0 min-[360px]:pl-3 min-[360px]:border-l">
                     <span className="flex items-center gap-1.5 text-[13px] text-[var(--aegis-muted)]">
                       <Mail className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
                       <span>E-mail</span>
@@ -868,8 +884,8 @@ export function PartnerFocusedLeadView({
                     <span
                       title={verifSummary.email.detailLabel || undefined}
                       className={`mt-1.5 inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium ${verifSummary.email.tier === "verified"
-                          ? "bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] font-semibold"
-                          : "bg-[var(--aegis-surface-subtle)] border border-[var(--aegis-border)] text-[var(--aegis-muted)]"
+                        ? "bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] font-semibold"
+                        : "bg-[var(--aegis-surface-subtle)] border border-[var(--aegis-border)] text-[var(--aegis-muted)]"
                         }`}
                     >
                       {verifSummary.email.compactLabel ?? emailLabel}
@@ -888,7 +904,10 @@ export function PartnerFocusedLeadView({
           </section>
 
           {/* Bloc d'accès et d'action */}
-          <section className="rounded-[14px] border border-[var(--aegis-border)] bg-[var(--aegis-surface)] p-5">
+          <section
+            id="focused-unlock-box"
+            className="rounded-[14px] border border-[var(--aegis-border)] bg-[var(--aegis-surface)] p-4 sm:p-5"
+          >
             {isPurchased ? (
               <div>
                 <span className="block text-[13px] text-[var(--aegis-muted)]">
@@ -1051,8 +1070,18 @@ export function PartnerFocusedLeadView({
                         }}
                         className="w-full min-h-[46px] rounded-[6px] bg-[var(--aegis-ink)] hover:bg-[var(--aegis-primary-hover)] px-4 py-2.5 text-[15px] font-bold text-white cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
                       >
-                        Débloquer à l’unité ({unlockPriceEur})
+                        {complementFinancials.isHybrid
+                          ? `Utiliser ${complementFinancials.creditsToDebit} cr. + compléter (${formatEurCompact(complementFinancials.priceHtva)})`
+                          : `Débloquer à l’unité (${unlockPriceEur})`}
                       </button>
+
+                      {complementFinancials.isHybrid && (
+                        <p className="text-[12px] text-[var(--aegis-availability-text)] font-medium leading-snug">
+                          Zéro crédit bloqué : vos{" "}
+                          <span className="font-mono tabular-nums font-bold">{complementFinancials.creditsToDebit}</span>{" "}
+                          crédit{complementFinancials.creditsToDebit > 1 ? "s" : ""} disponibles seront déduits automatiquement.
+                        </p>
+                      )}
 
                       {!isB2B && takenSlots === 0 && maxSlots > 1 && (
                         <button
@@ -1061,9 +1090,11 @@ export function PartnerFocusedLeadView({
                             handleTrackUnlock("direct_pay")
                             onOpenDirectPay(lead, true)
                           }}
-                          className="w-full min-h-[40px] rounded-[6px] border border-emerald-700/35 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 text-[13px] font-bold text-emerald-900 cursor-pointer transition-colors"
+                          className="w-full min-h-[40px] rounded-[6px] border border-[var(--aegis-availability-text)]/35 bg-[var(--aegis-availability-bg)] hover:bg-[var(--aegis-availability-bg)]/80 px-3 py-2 text-[13px] font-bold text-[var(--aegis-availability-text)] cursor-pointer transition-colors"
                         >
-                          Option Exclusivité 100 % ({B2C_EXCLUSIVE_PRICE_EUR} € HT)
+                          {exclusiveComplementFinancials.isHybrid
+                            ? `Exclusivité 100 % (${exclusiveComplementFinancials.creditsToDebit} cr. + ${formatEurCompact(exclusiveComplementFinancials.priceHtva)})`
+                            : `Option Exclusivité 100 % (${B2C_EXCLUSIVE_PRICE_EUR} € HT)`}
                         </button>
                       )}
 
@@ -1269,11 +1300,10 @@ export function PartnerFocusedLeadView({
                       type="button"
                       onClick={() => setActivePhotoIndex(idx)}
                       aria-label={`Afficher la photo ${idx + 1}`}
-                      className={`relative shrink-0 w-20 aspect-[3/2] rounded-[6px] overflow-hidden border cursor-pointer transition-opacity ${
-                        isSelected
-                          ? "border-[var(--aegis-ink)] ring-1 ring-[var(--aegis-ink)] opacity-100"
-                          : "border-[var(--aegis-border)] opacity-70 hover:opacity-100"
-                      }`}
+                      className={`relative shrink-0 w-20 aspect-[3/2] rounded-[6px] overflow-hidden border cursor-pointer transition-opacity ${isSelected
+                        ? "border-[var(--aegis-ink)] ring-1 ring-[var(--aegis-ink)] opacity-100"
+                        : "border-[var(--aegis-border)] opacity-70 hover:opacity-100"
+                        }`}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
@@ -1291,6 +1321,47 @@ export function PartnerFocusedLeadView({
                 })}
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {/* Barre d'action sticky mobile (< 900px) au-dessus de la barre de navigation basse */}
+      {!isPurchased && !isClosedOrUnavailable && (
+        <div className="min-[900px]:hidden fixed inset-x-0 bottom-[calc(60px+env(safe-area-inset-bottom))] z-[35] border-t border-[var(--aegis-border)] bg-[var(--aegis-surface)]/95 backdrop-blur-md px-3.5 py-2.5 shadow-[0_-4px_16px_rgba(15,23,42,0.06)]">
+          <div className="mx-auto max-w-lg flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <strong className="block font-mono text-[15px] font-bold text-[var(--aegis-ink)] tabular-nums whitespace-nowrap">
+                {unlockPriceEur}
+              </strong>
+              <span className="block font-mono text-[11px] text-[var(--aegis-muted)] tabular-nums whitespace-nowrap">
+                ou {cost} crédits · Solde {partnerCredits}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              disabled={isBuying}
+              onClick={() => {
+                if (hasEnoughCredits) {
+                  handleTrackUnlock("credits")
+                  setConfirmingCredits(true)
+                  document
+                    .getElementById("focused-unlock-box")
+                    ?.scrollIntoView({ behavior: "smooth", block: "center" })
+                } else {
+                  handleTrackUnlock("direct_pay")
+                  onOpenDirectPay(lead, false)
+                }
+              }}
+              className="shrink-0 min-h-[42px] inline-flex items-center justify-center rounded-[6px] bg-[var(--aegis-ink)] hover:bg-[var(--aegis-primary-hover)] disabled:opacity-60 px-4 py-2 text-[13.5px] font-bold text-white cursor-pointer transition-colors"
+            >
+              {isBuying
+                ? "Déblocage…"
+                : hasEnoughCredits
+                  ? `Débloquer (${cost} cr.)`
+                  : complementFinancials.isHybrid
+                    ? `Compléter (${formatEurCompact(complementFinancials.priceHtva)})`
+                    : `Débloquer (${unlockPriceEur})`}
+            </button>
           </div>
         </div>
       )}

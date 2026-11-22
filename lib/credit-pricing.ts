@@ -247,6 +247,76 @@ export function calculateLeadDirectFinancials(lead: {
   return calculateOrderFinancials(credits)
 }
 
+export interface LeadComplementFinancials {
+  isHybrid: boolean
+  totalCredits: number
+  creditsToDebit: number
+  remainingCreditsToPay: number
+  fullPriceHtva: number
+  creditsDiscountHtva: number
+  priceHtvaCentimes: number
+  priceHtva: number
+  vatAmount: number
+  priceTtc: number
+}
+
+/**
+ * Calcule le complément exact en euros lorsque le partenaire dispose d'un solde
+ * partiel de crédits (0 < availableCredits < coût du dossier), afin qu'aucun crédit ne reste bloqué.
+ */
+export function calculateLeadComplementFinancials(params: {
+  segment?: "B2B" | "B2C" | string | null
+  credit_cost?: number | null
+  creditCost?: number | null
+  exclusive?: boolean
+  availableCredits?: number | null
+}): LeadComplementFinancials {
+  const full = calculateLeadDirectFinancials(params)
+  const totalCredits = full.credits
+  const fullPriceHtvaCentimes = full.priceHtvaCentimes
+  const safeAvailable = Math.max(0, Math.floor(Number(params.availableCredits) || 0))
+
+  if (safeAvailable <= 0 || safeAvailable >= totalCredits) {
+    return {
+      isHybrid: false,
+      totalCredits,
+      creditsToDebit: 0,
+      remainingCreditsToPay: totalCredits,
+      fullPriceHtva: full.priceHtva,
+      creditsDiscountHtva: 0,
+      priceHtvaCentimes: fullPriceHtvaCentimes,
+      priceHtva: full.priceHtva,
+      vatAmount: full.vatAmount,
+      priceTtc: full.priceTtc,
+    }
+  }
+
+  const creditsToDebit = safeAvailable
+  const remainingCreditsToPay = totalCredits - creditsToDebit
+  const priceHtvaCentimes = Math.max(
+    100,
+    Math.round((fullPriceHtvaCentimes * remainingCreditsToPay) / totalCredits)
+  )
+  const priceHtva = priceHtvaCentimes / 100
+  const vatAmountCentimes = Math.round(priceHtvaCentimes * BELGIAN_VAT_RATE)
+  const vatAmount = vatAmountCentimes / 100
+  const priceTtc = (priceHtvaCentimes + vatAmountCentimes) / 100
+  const creditsDiscountHtva = (fullPriceHtvaCentimes - priceHtvaCentimes) / 100
+
+  return {
+    isHybrid: true,
+    totalCredits,
+    creditsToDebit,
+    remainingCreditsToPay,
+    fullPriceHtva: full.priceHtva,
+    creditsDiscountHtva,
+    priceHtvaCentimes,
+    priceHtva,
+    vatAmount,
+    priceTtc,
+  }
+}
+
 /**
  * Formate un montant en euros avec 2 décimales fixes (ex: 29,50 €).
  */

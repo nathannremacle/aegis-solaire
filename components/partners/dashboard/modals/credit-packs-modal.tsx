@@ -29,7 +29,7 @@ export default function CreditPacksModal({ partner, onClose }: CreditPacksModalP
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -38,27 +38,33 @@ export default function CreditPacksModal({ partner, onClose }: CreditPacksModalP
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200 overscroll-contain"
+        className="relative w-full max-w-xl max-h-[90dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border-t sm:border border-border bg-card px-4 pt-2 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:p-6 shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200 overscroll-contain"
       >
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-4 top-4 rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
-          aria-label="Fermer la fenêtre de recharge"
-        >
-          <X className="h-5 w-5" />
-        </button>
+        <div className="mx-auto mb-2.5 h-1 w-9 rounded-full bg-border sm:hidden" aria-hidden="true" />
 
-        <div className="flex items-center gap-3">
-          <div className="rounded-xl bg-accent/15 p-2 text-accent border border-accent/20">
-            <Coins className="h-5 w-5" />
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="rounded-xl bg-accent/15 p-2 text-accent border border-accent/20 shrink-0">
+              <Coins className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-lg font-bold text-foreground leading-snug">
+                Recharger mon Solde de Crédits
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Solde actuel : <strong className="font-mono text-foreground tabular-nums">{partner.credits ?? 0} crédits</strong> • 1 crédit = {CREDIT_UNIT_PRICE_EUR.toFixed(2).replace(".", ",")} € HTVA
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-lg font-bold text-foreground">Recharger mon Solde de Crédits</h3>
-            <p className="text-xs text-muted-foreground">
-              Solde actuel : <strong className="font-mono text-foreground tabular-nums">{partner.credits ?? 0} crédits</strong> • 1 crédit = {CREDIT_UNIT_PRICE_EUR.toFixed(2).replace(".", ",")} € HTVA
-            </p>
-          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+            aria-label="Fermer la fenêtre de recharge"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -100,7 +106,7 @@ export default function CreditPacksModal({ partner, onClose }: CreditPacksModalP
               </div>
 
               <div className="mt-4 pt-3 border-t border-border">
-                <Button size="sm" variant={pack.popular ? "accent" : "outline"} className="w-full text-xs font-semibold h-9" asChild>
+                <Button size="sm" variant={pack.popular ? "accent" : "outline"} className="w-full text-xs font-semibold min-h-[42px] sm:h-9 rounded-xl" asChild>
                   <Link href={`/partenaires/dashboard/credits?pack=${pack.id}`}>
                     <span>Commander</span>
                     <ArrowRight className="h-3.5 w-3.5 ml-1" />
@@ -111,17 +117,27 @@ export default function CreditPacksModal({ partner, onClose }: CreditPacksModalP
           ))}
         </div>
 
-        <div className="mt-5 rounded-xl border border-border bg-secondary/40 p-3.5 text-xs text-muted-foreground flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
-            <span>Facturation conforme avec TVA 21% déductible. Vous pouvez aussi payer directement par lead en euros (€) depuis la marketplace sans pack préalable.</span>
+        <div className="mt-5 rounded-xl border border-border bg-secondary/40 p-3.5 text-xs text-muted-foreground flex flex-col gap-2.5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
+              <span>
+                Facturation conforme avec TVA <span className="font-mono tabular-nums">21 %</span> déductible. Vous pouvez aussi régler à l&apos;unité ou compléter un solde partiel directement en euros (zéro crédit bloqué).
+              </span>
+            </div>
+            <Button variant="ghost" size="sm" className="text-xs font-bold text-foreground shrink-0" asChild>
+              <Link href="/partenaires/dashboard/credits">
+                <span>Page crédits complète</span>
+                <ArrowRight className="h-3.5 w-3.5 ml-1" />
+              </Link>
+            </Button>
           </div>
-          <Button variant="ghost" size="sm" className="text-xs font-bold text-foreground shrink-0" asChild>
-            <Link href="/partenaires/dashboard/credits">
-              <span>Page crédits complète</span>
-              <ArrowRight className="h-3.5 w-3.5 ml-1" />
-            </Link>
-          </Button>
+          <div className="pt-2 border-t border-border/70 text-[11px] text-foreground flex items-center justify-between gap-2">
+            <span>
+              Astuce : invitez un confrère certifié RESCERT via <strong className="text-primary">Parrainage</strong> pour recevoir{" "}
+              <strong className="font-mono tabular-nums text-accent">+3 crédits offerts</strong> chacun dès son <span className="font-mono tabular-nums">1er</span> achat.
+            </span>
+          </div>
         </div>
       </div>
     </div>

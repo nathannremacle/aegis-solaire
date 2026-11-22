@@ -46,12 +46,19 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
     .maybeSingle()
 
   if (existingPurchase) {
+    const { data: partnerCreditRow } = await supabase
+      .from("partners")
+      .select("credits")
+      .eq("id", partner.id)
+      .maybeSingle()
+
     return NextResponse.json({
       status: "paid",
       alreadyUnlocked: true,
       purchaseId: existingPurchase.id,
       purchase: existingPurchase,
       lead: existingPurchase.leads,
+      newCredits: partnerCreditRow?.credits,
     })
   }
 
@@ -70,6 +77,7 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
             purchaseId: result.purchaseId,
             purchase: result.purchase,
             lead: result.lead,
+            newCredits: result.newCredits,
           })
         } else {
           return NextResponse.json({

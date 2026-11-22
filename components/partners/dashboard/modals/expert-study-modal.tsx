@@ -180,7 +180,7 @@ export default function ExpertStudyModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-foreground/60 backdrop-blur-xs animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-foreground/60 backdrop-blur-xs animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -190,43 +190,46 @@ export default function ExpertStudyModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative flex flex-col w-full max-w-2xl max-h-[92vh] bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+        className="relative flex flex-col w-full max-w-2xl max-h-[92dvh] bg-card border-t sm:border border-border rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200"
       >
         {/* ── 1. En-tête Institutionnel FinTech Slate ── */}
-        <div className="shrink-0 flex items-start justify-between gap-3 p-4 sm:p-5 border-b border-border bg-card">
-          <div className="flex items-start gap-3 min-w-0">
-            <div className="h-10 w-10 rounded-xl bg-accent/15 text-accent border border-accent/25 flex items-center justify-center shrink-0">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div className="flex flex-col gap-0.5 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[10px] uppercase tracking-wider text-accent font-bold">
-                  CELLULE TECHNIQUE
-                </span>
-                <span className="inline-flex items-center gap-1 rounded bg-accent/10 border border-accent/20 px-1.5 py-0.2 text-[10px] font-mono font-bold text-foreground">
-                  % Projet · À négocier
-                </span>
+        <div className="shrink-0 px-4 pt-2 pb-3.5 sm:p-5 border-b border-border bg-card">
+          <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-border sm:hidden" aria-hidden="true" />
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-2.5 sm:gap-3 min-w-0">
+              <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-accent/15 text-accent border border-accent/25 flex items-center justify-center shrink-0">
+                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
-              <h2
-                id="expert-modal-title"
-                className="text-base sm:text-lg font-bold text-foreground truncate"
-              >
-                Aide d&apos;un Expert &amp; Étude de Marché
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Accompagnement expert et audit technique : dimensionnement, marché Wallonie et closing B2B en échange d&apos;un pourcentage du projet, à négocier selon son envergure.
-              </p>
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-accent font-bold">
+                    CELLULE TECHNIQUE
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded bg-accent/10 border border-accent/20 px-1.5 py-0.2 text-[10px] font-mono font-bold text-foreground whitespace-nowrap">
+                    % Projet · À négocier
+                  </span>
+                </div>
+                <h2
+                  id="expert-modal-title"
+                  className="text-base sm:text-lg font-bold text-foreground leading-snug"
+                >
+                  Aide d&apos;un Expert &amp; Étude de Marché
+                </h2>
+                <p className="text-[11.5px] sm:text-xs text-muted-foreground leading-snug">
+                  Dimensionnement, marché Wallonie et closing B2B en échange d&apos;un pourcentage du projet selon son envergure.
+                </p>
+              </div>
             </div>
-          </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="shrink-0 rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
-            aria-label="Fermer"
-          >
-            <X className="h-5 w-5" />
-          </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+              aria-label="Fermer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {/* ── 2. Corps Formulaire ou Vue de Succès ── */}
@@ -402,7 +405,7 @@ export default function ExpertStudyModal({
                 onChange={(e) => setMessage(e.target.value)}
                 rows={3}
                 placeholder="Ex : Pour ce chantier B2B, le client hésite entre un onduleur hybride avec batterie 20 kWh ou une revente totale d'injection. Pouvez-vous modéliser le temps de retour sur investissement selon la déduction fiscale DPI 40 % ?"
-                className="w-full rounded-xl border border-border bg-card p-3 text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary focus:border-primary outline-hidden resize-none transition-all"
+                className="w-full rounded-xl border border-border bg-card p-3 text-sm sm:text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary focus:border-primary outline-hidden resize-none transition-all"
                 required
               />
 
@@ -446,7 +449,7 @@ export default function ExpertStudyModal({
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="+32 4XX XX XX XX"
-                      className="w-full rounded-xl border border-border bg-card pl-8.5 pr-3 py-1.5 text-xs font-mono text-foreground focus:ring-1 focus:ring-primary outline-hidden h-9"
+                      className="w-full rounded-xl border border-border bg-card pl-8.5 pr-3 py-2 text-sm sm:text-xs font-mono text-foreground focus:ring-1 focus:ring-primary outline-hidden h-11 sm:h-9"
                     />
                   </div>
                 </div>
@@ -506,18 +509,18 @@ export default function ExpertStudyModal({
             </div>
 
             {/* ── 3. Pied de Formulaire avec CTA ── */}
-            <div className="pt-2 flex items-center justify-between gap-3 border-t border-border">
+            <div className="pt-3 pb-[max(0.25rem,env(safe-area-inset-bottom))] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 border-t border-border">
               <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5 text-accent shrink-0" />
                 <span>Réponse garantie sous 24h ouvrées</span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="grid grid-cols-[auto_1fr] sm:flex items-center gap-2 w-full sm:w-auto">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={onClose}
-                  className="h-10 px-4 text-xs font-semibold cursor-pointer"
+                  className="min-h-[44px] sm:h-10 px-4 rounded-xl text-xs font-semibold cursor-pointer"
                 >
                   Annuler
                 </Button>
@@ -525,17 +528,18 @@ export default function ExpertStudyModal({
                 <Button
                   type="submit"
                   disabled={isSubmitting || !message.trim()}
-                  className="h-10 px-5 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm gap-1.5"
+                  className="min-h-[44px] sm:h-10 px-4 sm:px-5 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm gap-1.5"
                 >
                   {isSubmitting ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Transmission...
+                      <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                      <span>Transmission...</span>
                     </>
                   ) : (
                     <>
-                      <Send className="h-3.5 w-3.5" />
-                      Envoyer ma demande d&apos;étude
+                      <Send className="h-3.5 w-3.5 shrink-0" />
+                      <span className="sm:hidden">Envoyer l&apos;étude</span>
+                      <span className="hidden sm:inline">Envoyer ma demande d&apos;étude</span>
                     </>
                   )}
                 </Button>

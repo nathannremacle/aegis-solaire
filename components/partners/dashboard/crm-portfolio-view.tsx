@@ -29,6 +29,7 @@ import {
   TrendingUp,
   Compass,
   Sparkles,
+  Check,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -106,6 +107,14 @@ const SORT_OPTIONS = [
   { value: "alpha", label: "Nom client (A-Z)" },
 ]
 
+const SORT_SHORT_LABELS: Record<string, string> = {
+  recent: "Récents",
+  status: "Statut",
+  power_desc: "kWc max",
+  margin_desc: "Marge max",
+  alpha: "A-Z",
+}
+
 const PROVINCE_OPTIONS = [
   { value: "ALL", label: "Toute la Wallonie" },
   { value: "liege", label: "Liège" },
@@ -140,6 +149,21 @@ export function CrmPortfolioView({
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [selectedLeadForDrawer, setSelectedLeadForDrawer] = useState<any | null>(null)
   const [showTutorial, setShowTutorial] = useState(false)
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false)
+
+  React.useEffect(() => {
+    if (!isMobileFilterOpen) return
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsMobileFilterOpen(false)
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => {
+      document.body.style.overflow = prevOverflow
+      window.removeEventListener("keydown", onKeyDown)
+    }
+  }, [isMobileFilterOpen])
 
   // État local synchronisé avec les props pour persister les mutations après l'achèvement de la transition
   const [internalPurchases, setInternalPurchases] = useState<any[]>(purchases)
@@ -459,7 +483,7 @@ export function CrmPortfolioView({
   // État vide total du portefeuille (0 achat)
   if (optimisticPurchases.length === 0) {
     return (
-      <div className="space-y-4">
+      <div className="flex flex-col gap-4">
         {/* Tutoriel interactif complet également accessible depuis l'état vide */}
         <CrmInteractiveTour
           isOpen={showTutorial}
@@ -468,21 +492,23 @@ export function CrmPortfolioView({
           hasPurchases={false}
         />
 
-        <div className="rounded-3xl border border-border bg-card p-12 sm:p-16 text-center shadow-xs">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary/80 border border-border">
-            <Building2 className="h-8 w-8 text-muted-foreground" />
+        <div className="rounded-2xl sm:rounded-3xl border border-border bg-card p-6 sm:p-14 text-center shadow-xs">
+          <div className="mx-auto flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-secondary/80 border border-border">
+            <Building2 className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground" />
           </div>
-          <h3 className="mt-5 text-lg font-bold text-foreground">Votre CRM est actuellement vide</h3>
-          <p className="mt-2 text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
+          <h3 className="mt-4 sm:mt-5 text-base sm:text-lg font-bold text-foreground">
+            Votre CRM est actuellement vide
+          </h3>
+          <p className="mt-2 text-xs sm:text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
             Débloquez des dossiers solaires qualifiés sur la Marketplace pour obtenir leurs coordonnées
             directes vérifiées et piloter vos relances commerciales ici.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2.5 sm:gap-3 mt-5 sm:mt-6">
             <Button
               size="default"
               variant="outline"
               onClick={() => setShowTutorial(true)}
-              className="rounded-xl border-border text-foreground font-semibold text-xs px-4 shadow-2xs cursor-pointer hover:bg-secondary"
+              className="min-h-[44px] rounded-xl border-border text-foreground font-semibold text-xs px-4 shadow-2xs cursor-pointer hover:bg-secondary"
             >
               <Compass className="h-4 w-4 mr-1.5 text-accent" />
               <span>Visite guidée du CRM</span>
@@ -491,7 +517,7 @@ export function CrmPortfolioView({
               <Button
                 size="default"
                 onClick={onExploreMarketplace}
-                className="rounded-xl bg-[#0F172A] hover:bg-[#1E293B] text-white font-bold text-xs px-5 shadow-xs cursor-pointer"
+                className="min-h-[44px] rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs px-5 shadow-xs cursor-pointer"
               >
                 <span>Accéder à la Marketplace des chantiers</span>
               </Button>
@@ -502,8 +528,18 @@ export function CrmPortfolioView({
     )
   }
 
+  const activeMobileFilterCount =
+    (segmentFilter !== "ALL" ? 1 : 0) +
+    (selectedProvince !== "ALL" ? 1 : 0) +
+    (selectedStage !== "ALL" ? 1 : 0) +
+    (sortBy !== "recent" ? 1 : 0)
+
+  const selectedProvinceLabel =
+    PROVINCE_OPTIONS.find((p) => p.value === selectedProvince)?.label || "Province"
+  const selectedStageMeta = PIPELINE_STAGES.find((s) => s.id === selectedStage)
+
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3.5 sm:gap-4">
       {/* ── 0. Visite Guidée Interactive de Mon CRM (Modal pas à pas) ── */}
       <CrmInteractiveTour
         isOpen={showTutorial}
@@ -511,8 +547,227 @@ export function CrmPortfolioView({
         onExploreMarketplace={onExploreMarketplace}
         hasPurchases={optimisticPurchases.length > 0}
       />
-      {/* ── 1. Barre de Contrôle Unifiée (Identique à la Marketplace) ── */}
-      <div className="rounded-2xl border border-border bg-card p-3 sm:p-3.5 shadow-xs flex flex-col gap-3">
+      {/* ── 1. Barre de Contrôle Unifiée (Compacte Mobile < md, Complète Desktop >= md) ── */}
+      <div className="rounded-2xl border border-border bg-card p-3 sm:p-3.5 shadow-xs flex flex-col gap-2.5 sm:gap-3">
+        {/* ── 1A. Barre Compacte Mobile (< md) ── */}
+        <div className="flex flex-col gap-2.5 md:hidden">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Client, commune, tél..."
+                className="w-full h-11 rounded-xl border border-border bg-card pl-9 pr-9 py-2 text-[15px] text-foreground placeholder:text-muted-foreground outline-hidden focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                aria-label="Rechercher un dossier client"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 w-8 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
+                  aria-label="Effacer la recherche"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsMobileFilterOpen(true)}
+              className={`relative shrink-0 min-h-[44px] px-3 rounded-xl border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
+                activeMobileFilterCount > 0
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-border bg-card text-foreground hover:bg-secondary"
+              }`}
+              aria-label="Filtrer et trier vos dossiers"
+            >
+              <SlidersHorizontal className="h-4 w-4 shrink-0" />
+              <span>Filtres</span>
+              {activeMobileFilterCount > 0 && (
+                <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 font-mono text-[10px] font-bold text-primary-foreground tabular-nums">
+                  {activeMobileFilterCount}
+                </span>
+              )}
+            </button>
+
+            <div className="inline-flex items-center rounded-xl border border-border bg-secondary p-0.5 shrink-0 min-h-[44px]">
+              <button
+                type="button"
+                onClick={() => setViewMode("grid")}
+                className={`rounded-lg min-h-[38px] min-w-[38px] inline-flex items-center justify-center transition-colors cursor-pointer ${
+                  viewMode === "grid"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                aria-label="Vue grille"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("table")}
+                className={`rounded-lg min-h-[38px] min-w-[38px] inline-flex items-center justify-center transition-colors cursor-pointer ${
+                  viewMode === "table"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                aria-label="Vue liste dense"
+              >
+                <List className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 overscroll-x-contain">
+            <button
+              type="button"
+              onClick={() => setSegmentFilter("ALL")}
+              className={`shrink-0 whitespace-nowrap min-h-[34px] inline-flex items-center gap-1 rounded-full px-3 text-xs font-bold transition-all cursor-pointer ${
+                segmentFilter === "ALL"
+                  ? "bg-primary text-primary-foreground shadow-2xs"
+                  : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
+              }`}
+            >
+              <span>Tous</span>
+              <span
+                className={`font-mono text-[10px] tabular-nums ${
+                  segmentFilter === "ALL" ? "text-primary-foreground/85" : "text-muted-foreground"
+                }`}
+              >
+                ({counts.all})
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSegmentFilter("B2B")}
+              className={`shrink-0 whitespace-nowrap min-h-[34px] inline-flex items-center gap-1 rounded-full px-3 text-xs font-bold transition-all cursor-pointer ${
+                segmentFilter === "B2B"
+                  ? "bg-primary text-primary-foreground shadow-2xs"
+                  : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
+              }`}
+            >
+              <span>B2B</span>
+              <span
+                className={`font-mono text-[10px] tabular-nums ${
+                  segmentFilter === "B2B" ? "text-primary-foreground/85" : "text-muted-foreground"
+                }`}
+              >
+                ({counts.b2b})
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSegmentFilter("B2C")}
+              className={`shrink-0 whitespace-nowrap min-h-[34px] inline-flex items-center gap-1 rounded-full px-3 text-xs font-bold transition-all cursor-pointer ${
+                segmentFilter === "B2C"
+                  ? "bg-primary text-primary-foreground shadow-2xs"
+                  : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
+              }`}
+            >
+              <span>B2C</span>
+              <span
+                className={`font-mono text-[10px] tabular-nums ${
+                  segmentFilter === "B2C" ? "text-primary-foreground/85" : "text-muted-foreground"
+                }`}
+              >
+                ({counts.b2c})
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsMobileFilterOpen(true)}
+              className={`shrink-0 whitespace-nowrap min-h-[34px] inline-flex items-center gap-1 rounded-full border px-3 text-xs font-semibold cursor-pointer ${
+                selectedStage !== "ALL"
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-border bg-card text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <TrendingUp className="h-3 w-3 shrink-0" />
+              <span>{selectedStageMeta ? selectedStageMeta.label : "Statut"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsMobileFilterOpen(true)}
+              className={`shrink-0 whitespace-nowrap min-h-[34px] inline-flex items-center gap-1 rounded-full border px-3 text-xs font-semibold cursor-pointer ${
+                selectedProvince !== "ALL"
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-border bg-card text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <MapPin className="h-3 w-3 shrink-0" />
+              <span>{selectedProvince === "ALL" ? "Wallonie" : selectedProvinceLabel}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsMobileFilterOpen(true)}
+              className={`shrink-0 whitespace-nowrap min-h-[34px] inline-flex items-center gap-1 rounded-full border px-3 text-xs font-semibold cursor-pointer ${
+                sortBy !== "recent"
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-border bg-card text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <ArrowUpDown className="h-3 w-3 shrink-0" />
+              <span>{SORT_SHORT_LABELS[sortBy] || "Trier"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onOpenExpertModal?.(null)}
+              className="shrink-0 whitespace-nowrap min-h-[34px] inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-3 text-xs font-bold text-foreground cursor-pointer"
+            >
+              <Sparkles className="h-3 w-3 text-accent shrink-0" />
+              <span>Expert</span>
+            </button>
+
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="shrink-0 whitespace-nowrap min-h-[34px] inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent/10 px-2.5 text-xs font-semibold text-accent cursor-pointer"
+              >
+                <RotateCcw className="h-3 w-3" />
+                <span>Effacer</span>
+              </button>
+            )}
+          </div>
+
+          <div className="pt-2 border-t border-border/70 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+            <span className="flex items-center gap-1.5 font-medium truncate">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span className="font-mono tabular-nums truncate">
+                <strong className="text-foreground font-bold">{kpis.totalLeads}</strong>{" "}
+                dossier{kpis.totalLeads > 1 ? "s" : ""} ·{" "}
+                <strong className="text-foreground font-bold">
+                  {Math.round(kpis.totalPower).toLocaleString("fr-BE")}
+                </strong>{" "}
+                kWc ·{" "}
+                <strong className="text-emerald-700 dark:text-emerald-400 font-bold">
+                  {kpis.wonCount}
+                </strong>{" "}
+                signé{kpis.wonCount > 1 ? "s" : ""}
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowTutorial(true)}
+              className="shrink-0 inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-foreground hover:text-accent cursor-pointer"
+            >
+              <Compass className="h-3 w-3 text-accent shrink-0" />
+              <span>Guide</span>
+            </button>
+          </div>
+        </div>
+
+        {/* ── 1B. Barre Complète Desktop (>= md) ── */}
+        <div className="hidden md:flex md:flex-col md:gap-3">
         {/* Ligne 1 : Segments avec compteurs, Province, Statut Pipeline, Recherche, Tri et Switcher Grille/Tableau */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
           {/* Segments + Province + Statut Pipeline */}
@@ -531,7 +786,7 @@ export function CrmPortfolioView({
                 <span>Tous</span>
                 <span
                   className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${
-                    segmentFilter === "ALL" ? "bg-white/20 text-white" : "bg-secondary text-muted-foreground"
+                    segmentFilter === "ALL" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-secondary text-muted-foreground"
                   }`}
                 >
                   {counts.all}
@@ -550,7 +805,7 @@ export function CrmPortfolioView({
                 <span>B2B Exclusif</span>
                 <span
                   className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${
-                    segmentFilter === "B2B" ? "bg-white/20 text-white" : "bg-secondary text-muted-foreground"
+                    segmentFilter === "B2B" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-secondary text-muted-foreground"
                   }`}
                 >
                   {counts.b2b}
@@ -569,7 +824,7 @@ export function CrmPortfolioView({
                 <span>B2C Débloqué</span>
                 <span
                   className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${
-                    segmentFilter === "B2C" ? "bg-white/20 text-white" : "bg-secondary text-muted-foreground"
+                    segmentFilter === "B2C" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-secondary text-muted-foreground"
                   }`}
                 >
                   {counts.b2c}
@@ -736,6 +991,7 @@ export function CrmPortfolioView({
             </button>
           )}
         </div>
+        </div>
       </div>
 
       {/* ── 2. Rendu des Dossiers : Grille de Cartes Réalistes ou Tableau Haute Densité ── */}
@@ -776,12 +1032,136 @@ export function CrmPortfolioView({
           })}
         </div>
       ) : (
-        /* ── Vue Liste Dense Haute-Productivité (Style Marketplace) ── */
-        <div className="flex flex-col gap-1.5">
-          <div className="block sm:hidden text-center text-[11px] font-mono text-muted-foreground py-0.5">
-            ↔ Glisser horizontalement pour voir toutes les colonnes
+        /* ── Vue Liste Dense Haute-Productivité (Natif Cartes Mobile < md, Tableau Desktop >= md) ── */
+        <>
+          <div className="flex flex-col gap-2.5 md:hidden">
+            {filteredPurchases.map((item) => {
+              const isB2B = item.segment === "B2B"
+              const rawSurfaceArea = Math.max(0, Number(item.surface_area || item.surface_area_m2) || 0)
+              const rawAnnualBill = Math.max(0, Number(item.annual_electricity_bill || item.annual_bill_eur) || 0)
+              const cost = item.credits_spent ?? (isB2B ? 9 : 3)
+              const financials = calculateMarketplaceFinancials({
+                segment: item.segment,
+                surfaceArea: rawSurfaceArea,
+                surfaceType: item.surface_type,
+                roofMaterial: item.roof_material,
+                annualBill: rawAnnualBill,
+                creditCost: cost,
+                estimatedPowerKwc: item.estimated_power_kwc,
+                projectDetails: item.project_details ?? item.message,
+                qualificationMetadata: item.qualification_metadata,
+              })
+              const location = getLeadLocationInfo(item)
+              const powerKwc = financials.estimatedPowerKwc
+              const marginText = formatRoundedCurrency(financials.estimatedInstallerMargin || 0)
+
+              return (
+                <div
+                  key={item.purchase_id || item.id}
+                  onClick={() => setSelectedLeadForDrawer({ ...item, already_purchased: true })}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      setSelectedLeadForDrawer({ ...item, already_purchased: true })
+                    }
+                  }}
+                  className="rounded-2xl border border-border bg-card p-3.5 shadow-xs flex flex-col gap-2.5 cursor-pointer hover:border-primary/30 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2.5">
+                    <div className="min-w-0 flex-1">
+                      <span
+                        className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                          isB2B
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-foreground border border-border"
+                        }`}
+                      >
+                        {isB2B ? "B2B Exclusif" : "B2C Débloqué"}
+                      </span>
+                      <h3 className="font-bold text-sm text-foreground truncate mt-1">
+                        {item.company ? `${item.company} — ` : ""}
+                        {item.first_name} {item.last_name}
+                      </h3>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {location.fullTitle} · {location.provinceLabel}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-xl font-extrabold font-mono text-foreground tabular-nums">
+                        {powerKwc > 0 ? powerKwc : "—"}
+                      </span>
+                      <span className="text-[11px] font-bold text-muted-foreground ml-1">kWc</span>
+                      <span className="block font-mono text-xs font-bold text-accent tabular-nums">
+                        {marginText}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div
+                    className="flex items-center justify-between gap-2 pt-2 border-t border-border/60"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <CustomSelect
+                      value={item.pipeline_status || "to_contact"}
+                      onChange={(val) => handleStatusChange(item, val)}
+                      options={tablePipelineOptions}
+                      disabled={updatingId === (item.purchase_id || item.id || item.lead_id)}
+                      size="sm"
+                      triggerClassName="min-h-[38px] px-2.5 text-xs font-semibold"
+                      contentClassName="min-w-[160px]"
+                      ariaLabel="Modifier le statut commercial"
+                    />
+                    <span className="font-mono text-[11px] text-muted-foreground truncate">
+                      {item.phone}
+                    </span>
+                  </div>
+
+                  <div
+                    className="grid grid-cols-4 gap-1.5"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <a
+                      href={`tel:${item.phone}`}
+                      className="min-h-[42px] rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground px-2 text-xs font-bold inline-flex items-center justify-center gap-1 shadow-2xs"
+                    >
+                      <Phone className="h-3.5 w-3.5 text-accent shrink-0" />
+                      <span>Appel</span>
+                    </a>
+                    <a
+                      href={buildWhatsAppLink(item)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="min-h-[42px] rounded-xl border border-border bg-card hover:bg-secondary px-2 text-xs font-semibold text-foreground inline-flex items-center justify-center gap-1"
+                    >
+                      <MessageCircle className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                      <span>WA</span>
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedLeadForDrawer({ ...item, already_purchased: true })}
+                      className="min-h-[42px] rounded-xl border border-border bg-card hover:bg-secondary px-2 text-xs font-semibold text-foreground inline-flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <Eye className="h-3.5 w-3.5 text-accent shrink-0" />
+                      <span>Fiche</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onOpenExpertModal?.(item)}
+                      className="min-h-[42px] rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/20 px-2 text-xs font-bold text-foreground inline-flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
+                      <span>Expert</span>
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
           </div>
-          <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-xs overscroll-x-contain">
+
+          <div className="hidden md:flex md:flex-col md:gap-1.5">
+            <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-xs overscroll-x-contain">
             <table className="w-full min-w-[840px] text-left text-xs">
               <thead className="border-b border-border bg-secondary/60 text-[11px] font-bold uppercase text-muted-foreground sticky top-0">
                 <tr>
@@ -943,8 +1323,9 @@ export function CrmPortfolioView({
                 })}
               </tbody>
             </table>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* ── 3. Tiroir Latéral d'Inspection Rapide (Slide-over) ── */}
@@ -958,6 +1339,197 @@ export function CrmPortfolioView({
           onRequestTopUp={() => {}}
           onRequestExpert={(lead) => onOpenExpertModal?.(lead)}
         />
+      )}
+
+      {/* ── 4. Bottom Sheet Filtres & Tri Mobile (< md) ── */}
+      {isMobileFilterOpen && (
+        <div
+          className="fixed inset-0 z-50 md:hidden flex items-end bg-foreground/60 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsMobileFilterOpen(false)
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="crm-mobile-filter-title"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-h-[85dvh] flex flex-col rounded-t-2xl border-t border-border bg-card shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-200"
+          >
+            <div className="shrink-0 px-4 pt-2 pb-3 border-b border-border bg-card">
+              <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-border" aria-hidden="true" />
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 id="crm-mobile-filter-title" className="text-base font-bold text-foreground">
+                    Filtrer &amp; trier Mon CRM
+                  </h2>
+                  <p className="text-xs text-muted-foreground font-mono tabular-nums">
+                    {filteredPurchases.length} dossier{filteredPurchases.length > 1 ? "s" : ""} en portefeuille
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsMobileFilterOpen(false)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer"
+                  aria-label="Fermer les filtres"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 flex flex-col gap-5">
+              {/* Segment */}
+              <div className="flex flex-col gap-2">
+                <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Segment de dossier
+                </span>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: "ALL" as const, label: "Tous", count: counts.all },
+                    { id: "B2B" as const, label: "B2B Exclusif", count: counts.b2b },
+                    { id: "B2C" as const, label: "B2C Débloqué", count: counts.b2c },
+                  ].map((seg) => {
+                    const isActive = segmentFilter === seg.id
+                    return (
+                      <button
+                        key={seg.id}
+                        type="button"
+                        onClick={() => setSegmentFilter(seg.id)}
+                        className={`min-h-[44px] rounded-xl border px-2 py-2 text-xs font-bold flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-colors ${
+                          isActive
+                            ? "border-primary bg-primary text-primary-foreground shadow-2xs"
+                            : "border-border bg-card text-foreground hover:bg-secondary"
+                        }`}
+                      >
+                        <span className="leading-tight">{seg.label}</span>
+                        <span
+                          className={`font-mono text-[11px] tabular-nums ${
+                            isActive ? "text-primary-foreground/85" : "text-muted-foreground"
+                          }`}
+                        >
+                          {seg.count}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Statut Pipeline */}
+              <div className="flex flex-col gap-2">
+                <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Statut commercial
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStage("ALL")}
+                    className={`min-h-[44px] rounded-xl border px-3 py-2 text-xs font-semibold flex items-center justify-between gap-2 text-left cursor-pointer transition-colors ${
+                      selectedStage === "ALL"
+                        ? "border-primary bg-primary/5 text-primary font-bold ring-1 ring-primary/20"
+                        : "border-border bg-card text-foreground hover:bg-secondary"
+                    }`}
+                  >
+                    <span className="truncate">Tous les statuts</span>
+                    {selectedStage === "ALL" && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
+                  </button>
+                  {PIPELINE_STAGES.map((stage) => {
+                    const isActive = selectedStage === stage.id
+                    return (
+                      <button
+                        key={stage.id}
+                        type="button"
+                        onClick={() => setSelectedStage(stage.id)}
+                        className={`min-h-[44px] rounded-xl border px-3 py-2 text-xs font-semibold flex items-center justify-between gap-2 text-left cursor-pointer transition-colors ${
+                          isActive
+                            ? "border-primary bg-primary/5 text-primary font-bold ring-1 ring-primary/20"
+                            : "border-border bg-card text-foreground hover:bg-secondary"
+                        }`}
+                      >
+                        <span className="truncate">{stage.label}</span>
+                        {isActive && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Province */}
+              <div className="flex flex-col gap-2">
+                <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Province wallonne
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  {PROVINCE_OPTIONS.map((prov) => {
+                    const isActive = selectedProvince === prov.value
+                    return (
+                      <button
+                        key={prov.value}
+                        type="button"
+                        onClick={() => setSelectedProvince(prov.value)}
+                        className={`min-h-[44px] rounded-xl border px-3 py-2 text-xs font-semibold flex items-center justify-between gap-2 text-left cursor-pointer transition-colors ${
+                          isActive
+                            ? "border-primary bg-primary/5 text-primary font-bold ring-1 ring-primary/20"
+                            : "border-border bg-card text-foreground hover:bg-secondary"
+                        }`}
+                      >
+                        <span className="truncate">{prov.label}</span>
+                        {isActive && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Tri */}
+              <div className="flex flex-col gap-2">
+                <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Ordre d&apos;affichage
+                </span>
+                <div className="flex flex-col gap-1.5">
+                  {SORT_OPTIONS.map((opt) => {
+                    const isActive = sortBy === opt.value
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setSortBy(opt.value as any)}
+                        className={`min-h-[44px] rounded-xl border px-3.5 py-2 text-xs font-semibold flex items-center justify-between gap-2 text-left cursor-pointer transition-colors ${
+                          isActive
+                            ? "border-primary bg-primary/5 text-primary font-bold"
+                            : "border-border bg-card text-foreground hover:bg-secondary"
+                        }`}
+                      >
+                        <span className="min-w-0">{opt.label}</span>
+                        {isActive && <Check className="h-4 w-4 text-primary shrink-0" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="shrink-0 border-t border-border bg-card px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] grid grid-cols-[auto_1fr] gap-2.5">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={resetFilters}
+                disabled={!hasActiveFilters}
+                className="min-h-[44px] px-4 rounded-xl text-xs font-semibold cursor-pointer"
+              >
+                Réinitialiser
+              </Button>
+              <Button
+                type="button"
+                onClick={() => setIsMobileFilterOpen(false)}
+                className="min-h-[44px] rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-bold cursor-pointer"
+              >
+                Voir {filteredPurchases.length} dossier{filteredPurchases.length > 1 ? "s" : ""}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
@@ -1016,7 +1588,7 @@ function CrmPortfolioCard({
   const marginText = formatRoundedCurrency(financials.estimatedInstallerMargin || 0)
 
   const rawRoof = getRoofMaterialLabel(item.roof_material)
-  const roofDisplay = rawRoof === "Bac acier / Métallique" ? "Bac acier / Mét..." : rawRoof
+  const roofDisplay = rawRoof === "Bac acier / Métallique" ? "Bac acier" : rawRoof
 
   // Trouver l'étape actuelle
   const currentStage =
@@ -1047,11 +1619,11 @@ function CrmPortfolioCard({
           onInspect()
         }
       }}
-      className="group relative flex flex-col justify-between rounded-3xl border bg-white dark:bg-card shadow-xs hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden text-left border-slate-200/90 dark:border-border hover:border-slate-300 dark:hover:border-border/80"
+      className="group relative flex flex-col justify-between rounded-2xl sm:rounded-3xl border bg-card shadow-xs hover:shadow-md transition-all duration-300 cursor-pointer overflow-hidden text-left border-border hover:border-primary/30"
     >
       <div className="flex flex-col">
         {/* ── A. Photo de toiture avec badges superposés ── */}
-        <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-slate-100 dark:bg-muted">
+        <div className="relative h-44 sm:h-52 w-full overflow-hidden bg-muted">
           <Image
             src={leadImage}
             alt={`Chantier solaire ${location.city}`}
@@ -1062,46 +1634,47 @@ function CrmPortfolioCard({
           />
 
           {/* Dégradé supérieur pour contraster les badges */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/10 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/10 to-black/35 pointer-events-none" />
 
-          {/* Badges superposés en haut */}
-          <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 pointer-events-none">
+          {/* Badges superposés en haut (mono-ligne sans collision) */}
+          <div className="absolute top-2.5 left-2.5 right-2.5 sm:top-3 sm:left-3 sm:right-3 flex items-center justify-between gap-2 pointer-events-none">
             {/* Badge Modèle */}
-            <span className="inline-flex items-center rounded-full bg-primary text-primary-foreground text-xs font-bold px-3.5 py-1.5 shadow-sm">
-              {isB2B ? "B2B • Client Direct" : "B2C • Débloqué"}
+            <span className="inline-flex items-center rounded-full bg-primary text-primary-foreground text-[11px] sm:text-xs font-bold px-2.5 sm:px-3.5 py-1 sm:py-1.5 shadow-sm whitespace-nowrap">
+              <span className="sm:hidden">{isB2B ? "B2B Exclusif" : "B2C Débloqué"}</span>
+              <span className="hidden sm:inline">{isB2B ? "B2B • Client Direct" : "B2C • Débloqué"}</span>
             </span>
 
             {/* Badge Statut Commercial Actuel */}
             <span
-              className={`inline-flex items-center gap-1.5 rounded-full text-xs font-bold px-3 py-1.5 shadow-sm ${currentStage.badgeClass}`}
+              className={`inline-flex items-center gap-1.5 rounded-full text-[11px] sm:text-xs font-bold px-2.5 sm:px-3 py-1 sm:py-1.5 shadow-sm whitespace-nowrap ${currentStage.badgeClass}`}
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-current" />
+              <span className="h-1.5 w-1.5 rounded-full bg-current shrink-0" />
               <span>{currentStage.label}</span>
             </span>
           </div>
 
           {/* Flèche droite de prévisualisation (affordance visuelle) */}
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-xs transition-all pointer-events-none opacity-85 group-hover:opacity-100">
+          <div className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/30 hover:bg-black/50 text-white items-center justify-center backdrop-blur-xs transition-all pointer-events-none opacity-85 group-hover:opacity-100">
             <ChevronRight className="h-4 w-4" />
           </div>
 
           {/* Date de déblocage en bas à gauche */}
-          <span className="absolute bottom-2.5 left-3 text-[10px] font-medium text-white/90 bg-black/55 backdrop-blur-xs px-2.5 py-0.5 rounded-full pointer-events-none flex items-center gap-1">
-            <Calendar className="h-3 w-3 text-white/80" />
+          <span className="absolute bottom-2 left-2.5 sm:bottom-2.5 sm:left-3 text-[10px] font-medium text-white/95 bg-black/60 backdrop-blur-xs px-2.5 py-0.5 rounded-full pointer-events-none flex items-center gap-1 whitespace-nowrap">
+            <Calendar className="h-3 w-3 text-white/85 shrink-0" />
             <span>{unlockedDateLabel}</span>
           </span>
 
           {/* Mention discrète illustration */}
-          <span className="absolute bottom-2.5 right-3 text-[10px] font-medium text-white/85 bg-black/45 backdrop-blur-xs px-2.5 py-0.5 rounded-full pointer-events-none">
+          <span className="hidden sm:inline-flex absolute bottom-2.5 right-3 text-[10px] font-medium text-white/90 bg-black/50 backdrop-blur-xs px-2.5 py-0.5 rounded-full pointer-events-none whitespace-nowrap">
             Coordonnées débloquées
           </span>
         </div>
 
         {/* ── B. Contenu de la Carte : Client, Puissance, Statut 1-Tap, Spécifications 2x2, Économie ── */}
-        <div className="p-4 sm:p-5 flex flex-col gap-3">
+        <div className="p-3.5 sm:p-5 flex flex-col gap-2.5 sm:gap-3">
           {/* Ligne 1 : Nom du client à gauche & Puissance kWc à droite */}
           <div className="flex items-baseline justify-between gap-2">
-            <h3 className="font-bold text-base sm:text-[17px] text-slate-900 dark:text-foreground tracking-tight leading-tight group-hover:text-blue-900 dark:group-hover:text-primary transition-colors truncate min-w-0">
+            <h3 className="font-bold text-base sm:text-[17px] text-foreground tracking-tight leading-tight group-hover:text-primary transition-colors truncate min-w-0">
               {item.company ? `${item.company} — ` : ""}
               {item.first_name} {item.last_name}
             </h3>
@@ -1109,13 +1682,13 @@ function CrmPortfolioCard({
               <span className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono tracking-tight tabular-nums">
                 {powerKwc > 0 ? powerKwc : "—"}
               </span>
-              <span className="text-xs font-bold text-slate-500 lowercase">kWc</span>
+              <span className="text-xs font-bold text-muted-foreground">kWc</span>
             </div>
           </div>
 
           {/* Ligne 2 : Localisation exacte sur toute la largeur */}
-          <p className="text-xs text-slate-500 dark:text-muted-foreground font-medium flex items-center gap-1.5 -mt-1">
-            <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+          <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5 -mt-0.5">
+            <MapPin className="h-3.5 w-3.5 text-muted-foreground/80 shrink-0" />
             <span className="truncate">
               {item.site_address
                 ? `${item.site_address}, ${location.city} (${item.postal_code || ""})`
@@ -1124,16 +1697,16 @@ function CrmPortfolioCard({
           </p>
 
           {/* Ligne 3 : Sélecteur de statut commercial 1-Tap (Défilement fluide) */}
-          <div className="flex flex-col gap-1 -mt-0.5" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <div className="flex flex-col gap-1" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span>STATUT PIPELINE</span>
                 {isPending && (
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent animate-ping" />
                 )}
               </span>
-              <span className="text-slate-500 font-semibold lowercase">
-                {isPending ? "mise à jour..." : "cliquer pour changer"}
+              <span className="text-muted-foreground font-semibold">
+                {isPending ? "Mise à jour..." : "1 tap pour changer"}
               </span>
             </div>
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 overscroll-x-contain">
@@ -1151,10 +1724,10 @@ function CrmPortfolioCard({
                         onStatusChange(stage.id)
                       }
                     }}
-                    className={`rounded-lg border px-2.5 py-1 text-[11px] whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+                    className={`min-h-[34px] rounded-lg border px-2.5 py-1 text-[11px] whitespace-nowrap shrink-0 transition-all cursor-pointer ${
                       isActive
                         ? stage.pillActiveClass
-                        : "border-slate-200 dark:border-border bg-slate-50 dark:bg-secondary/40 text-slate-600 dark:text-muted-foreground hover:bg-slate-100 dark:hover:bg-secondary hover:text-slate-900 dark:hover:text-foreground font-medium"
+                        : "border-border bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground font-medium"
                     } ${isPending ? "opacity-60 cursor-not-allowed" : ""}`}
                   >
                     {stage.label}
@@ -1165,112 +1738,104 @@ function CrmPortfolioCard({
           </div>
 
           {/* Ligne 4 : Grille Technique & Contact Direct 2x2 dans un encart clair dédié */}
-          <div className="rounded-2xl bg-muted border border-border p-3 sm:p-3.5 grid grid-cols-2 gap-2.5 sm:gap-3 text-xs">
+          <div className="rounded-xl sm:rounded-2xl bg-muted/60 border border-border p-3 sm:p-3.5 grid grid-cols-2 gap-x-2.5 gap-y-2.5 sm:gap-3 text-xs">
             {/* 1. Téléphone direct */}
-            <div className="flex items-start gap-2 min-w-0" onClick={(e) => e.stopPropagation()}>
-              <Phone className="h-4 w-4 text-slate-700 dark:text-muted-foreground shrink-0 mt-0.5" />
-              <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                  TÉLÉPHONE DIRECT
-                </span>
-                <a
-                  href={`tel:${item.phone}`}
-                  className="font-bold text-[11px] sm:text-xs text-slate-900 dark:text-foreground font-mono tabular-nums leading-tight block truncate hover:underline"
-                  title="Appeler directement"
+            <div className="min-w-0 flex flex-col gap-0.5" onClick={(e) => e.stopPropagation()}>
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+                <Phone className="h-3 w-3 text-foreground/70 shrink-0" />
+                <span>TÉL. DIRECT</span>
+              </span>
+              <a
+                href={`tel:${item.phone}`}
+                className="font-bold text-[11.5px] sm:text-xs text-foreground font-mono tabular-nums leading-snug block truncate hover:underline"
+                title="Appeler directement"
+              >
+                {item.phone || "—"}
+              </a>
+              {verifSummary.phone.compactLabel && (
+                <span
+                  title={verifSummary.phone.detailLabel || undefined}
+                  className={`inline-flex w-fit items-center rounded px-1.5 py-0.5 text-[9.5px] font-semibold ${
+                    verifSummary.phone.tier === "verified"
+                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
+                      : "bg-secondary text-muted-foreground border border-border"
+                  }`}
                 >
-                  {item.phone || "—"}
-                </a>
-                {verifSummary.phone.compactLabel && (
-                  <span
-                    title={verifSummary.phone.detailLabel || undefined}
-                    className={`inline-flex w-fit items-center rounded px-1.5 py-0.5 text-[9.5px] font-semibold ${
-                      verifSummary.phone.tier === "verified"
-                        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
-                        : "bg-secondary text-muted-foreground border border-border"
-                    }`}
-                  >
-                    {verifSummary.phone.compactLabel}
-                  </span>
-                )}
-              </div>
+                  {verifSummary.phone.compactLabel}
+                </span>
+              )}
             </div>
 
             {/* 2. Email direct */}
-            <div className="flex items-start gap-2 min-w-0" onClick={(e) => e.stopPropagation()}>
-              <Mail className="h-4 w-4 text-slate-700 dark:text-muted-foreground shrink-0 mt-0.5" />
-              <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                  EMAIL DIRECT
-                </span>
-                <a
-                  href={`mailto:${item.email}`}
-                  className="font-bold text-[11px] sm:text-xs text-slate-900 dark:text-foreground font-mono leading-tight block truncate hover:underline"
-                  title="Envoyer un e-mail"
-                >
-                  {item.email || "—"}
-                </a>
-              </div>
+            <div className="min-w-0 flex flex-col gap-0.5" onClick={(e) => e.stopPropagation()}>
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+                <Mail className="h-3 w-3 text-foreground/70 shrink-0" />
+                <span>EMAIL DIRECT</span>
+              </span>
+              <a
+                href={`mailto:${item.email}`}
+                className="font-bold text-[11.5px] sm:text-xs text-foreground font-mono leading-snug block truncate hover:underline"
+                title="Envoyer un e-mail"
+              >
+                {item.email || "—"}
+              </a>
             </div>
 
             {/* 3. Toiture & Surface */}
-            <div className="flex items-start gap-2 min-w-0">
-              <Home className="h-4 w-4 text-slate-700 dark:text-muted-foreground shrink-0 mt-0.5" />
-              <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                  TOITURE &amp; SURFACE
-                </span>
-                <span
-                  className="font-bold text-[11px] sm:text-xs text-slate-900 dark:text-foreground leading-tight block truncate"
-                  title={surfaceArea > 0 ? `${surfaceArea} m² · ${rawRoof}` : "Toiture standard"}
-                >
-                  {surfaceArea > 0 ? (
-                    <>
-                      <span className="tabular-nums font-mono">{surfaceArea} m²</span> ·{" "}
-                      <span>{roofDisplay}</span>
-                    </>
-                  ) : (
-                    <span>Toiture standard</span>
-                  )}
-                </span>
-              </div>
+            <div className="min-w-0 flex flex-col gap-0.5">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+                <Home className="h-3 w-3 text-foreground/70 shrink-0" />
+                <span>TOITURE</span>
+              </span>
+              <span
+                className="font-bold text-[11.5px] sm:text-xs text-foreground leading-snug block"
+                title={surfaceArea > 0 ? `${surfaceArea} m² · ${rawRoof}` : "Toiture standard"}
+              >
+                {surfaceArea > 0 ? (
+                  <>
+                    <span className="tabular-nums font-mono">{surfaceArea} m²</span> ·{" "}
+                    <span>{roofDisplay}</span>
+                  </>
+                ) : (
+                  <span>Toiture standard</span>
+                )}
+              </span>
             </div>
 
             {/* 4. Facture Élec */}
-            <div className="flex items-start gap-2 min-w-0">
-              <FileText className="h-4 w-4 text-slate-700 dark:text-muted-foreground shrink-0 mt-0.5" />
-              <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block font-mono">
-                  FACTURE ÉLEC.
-                </span>
-                <span
-                  className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-foreground leading-tight block truncate font-mono"
-                  title={
-                    annualBill > 0 && financials.estimatedAnnualConsumptionKwh > 0
-                      ? `${annualBill.toLocaleString("fr-BE")} €/an (≈ ${financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh/an)`
-                      : undefined
-                  }
-                >
-                  {annualBill > 0 ? (
-                    <span className="tabular-nums">
-                      {annualBill.toLocaleString("fr-BE")} €/an
-                      {financials.estimatedAnnualConsumptionKwh > 0 && (
-                        <span className="text-[10px] font-normal text-slate-500 dark:text-muted-foreground ml-1">
-                          (≈ {financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh)
-                        </span>
-                      )}
-                    </span>
-                  ) : (
-                    <span>{isB2B ? "Facture pro" : "Tarif résidentiel"}</span>
-                  )}
-                </span>
+            <div className="min-w-0 flex flex-col gap-0.5">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+                <FileText className="h-3 w-3 text-foreground/70 shrink-0" />
+                <span>FACTURE ÉLEC.</span>
+              </span>
+              <div
+                className="text-[11.5px] sm:text-xs font-bold text-foreground leading-snug font-mono"
+                title={
+                  annualBill > 0 && financials.estimatedAnnualConsumptionKwh > 0
+                    ? `${annualBill.toLocaleString("fr-BE")} €/an (≈ ${financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh/an)`
+                    : undefined
+                }
+              >
+                {annualBill > 0 ? (
+                  <div className="tabular-nums flex flex-col">
+                    <span>{annualBill.toLocaleString("fr-BE")} €/an</span>
+                    {financials.estimatedAnnualConsumptionKwh > 0 && (
+                      <span className="text-[10px] font-normal text-muted-foreground">
+                        ≈ {financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh/an
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <span>{isB2B ? "Facture pro" : "Tarif résidentiel"}</span>
+                )}
               </div>
             </div>
           </div>
 
           {/* Ligne 5 : Encadré d'Économie & Marge Indicative (Teinte bleue douce) */}
-          <div className="rounded-2xl bg-accent/10 border border-accent/20 p-3 sm:p-3.5 flex items-center justify-between gap-2">
+          <div className="rounded-xl sm:rounded-2xl bg-accent/10 border border-accent/20 p-3 sm:p-3.5 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="h-7 w-7 rounded-lg bg-accent/15 text-accent flex items-center justify-center shrink-0">
+              <div className="hidden min-[360px]:flex h-7 w-7 rounded-lg bg-accent/15 text-accent items-center justify-center shrink-0">
                 <svg
                   className="h-4 w-4 text-accent"
                   viewBox="0 0 24 24"
@@ -1286,20 +1851,20 @@ function CrmPortfolioCard({
                 </svg>
               </div>
               <div className="min-w-0">
-                <span className="text-[11px] sm:text-xs font-semibold text-accent block">
+                <span className="text-[10.5px] sm:text-xs font-semibold text-accent block leading-tight">
                   Estimation du chantier
                 </span>
-                <span className="font-bold text-[11px] sm:text-xs text-slate-900 dark:text-foreground tabular-nums block whitespace-nowrap font-mono">
+                <span className="font-bold text-[11px] sm:text-xs text-foreground tabular-nums block font-mono leading-tight mt-0.5">
                   {rangeText}
                 </span>
               </div>
             </div>
 
-            <div className="text-right shrink-0 pl-1.5">
-              <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 block text-right">
-                MARGE INDICATIVE
+            <div className="text-right shrink-0 pl-1">
+              <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground block text-right font-mono leading-tight">
+                MARGE IND.
               </span>
-              <span className="text-xs sm:text-sm font-extrabold text-accent tabular-nums block text-right whitespace-nowrap font-mono">
+              <span className="text-xs sm:text-sm font-extrabold text-accent tabular-nums block text-right whitespace-nowrap font-mono leading-tight mt-0.5">
                 {marginText}
               </span>
             </div>
@@ -1307,27 +1872,95 @@ function CrmPortfolioCard({
         </div>
       </div>
 
-      {/* ── C. Pied de Carte : Actions Directes Pilules (Appel, WhatsApp, vCard, Fiche, Litige) ── */}
-      <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-3 border-t border-slate-100 dark:border-border flex flex-wrap items-center justify-between gap-2">
+      {/* ── C. Pied de Carte : Actions Directes (2 lignes équilibrées Mobile, Pilules Desktop) ── */}
+      <div
+        className="px-3.5 sm:px-5 pb-3.5 sm:pb-5 pt-2.5 sm:pt-3 border-t border-border/80 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Statut débloqué vérifié */}
         <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
           <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
           <div className="flex items-baseline gap-1">
-            <span className="font-bold text-xs text-slate-900 dark:text-foreground">
+            <span className="font-bold text-xs text-foreground">
               Contact vérifié
             </span>
-            <span className="text-[11px] text-slate-400 font-mono tabular-nums">
+            <span className="text-[11px] text-muted-foreground font-mono tabular-nums">
               ({cost} crédits)
             </span>
           </div>
         </div>
 
-        {/* Boutons d'action pilules compacts */}
-        <div className="flex flex-wrap items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+        {/* Actions Mobile (< sm) : 2 CTA tactiles + 4 actions secondaires */}
+        <div className="flex flex-col gap-1.5 sm:hidden w-full">
+          <div className="grid grid-cols-2 gap-2">
+            <a
+              href={`tel:${item.phone}`}
+              className="min-h-[42px] rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground px-3 text-xs font-bold shadow-xs inline-flex items-center justify-center gap-1.5"
+            >
+              <Phone className="h-3.5 w-3.5 text-accent shrink-0" />
+              <span>Appeler</span>
+            </a>
+            <a
+              href={buildWhatsAppLink(item)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="min-h-[42px] rounded-xl border border-border bg-card hover:bg-secondary px-3 text-xs font-semibold text-foreground shadow-2xs inline-flex items-center justify-center gap-1.5"
+            >
+              <MessageCircle className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+              <span>WhatsApp</span>
+            </a>
+          </div>
+          <div className="grid grid-cols-4 gap-1.5">
+            <button
+              type="button"
+              onClick={() => downloadLeadVCard(item)}
+              className="min-h-[38px] rounded-xl border border-border bg-secondary/40 hover:bg-secondary px-1.5 text-[11px] font-semibold text-foreground inline-flex items-center justify-center gap-1 cursor-pointer"
+            >
+              <UserPlus className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span>vCard</span>
+            </button>
+            <button
+              type="button"
+              onClick={onInspect}
+              className="min-h-[38px] rounded-xl border border-border bg-secondary/40 hover:bg-secondary px-1.5 text-[11px] font-semibold text-foreground inline-flex items-center justify-center gap-1 cursor-pointer"
+            >
+              <Eye className="h-3.5 w-3.5 text-accent shrink-0" />
+              <span>Fiche</span>
+            </button>
+            <button
+              type="button"
+              onClick={onOpenExpertModal}
+              className="min-h-[38px] rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/20 px-1.5 text-[11px] font-bold text-foreground inline-flex items-center justify-center gap-1 cursor-pointer"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
+              <span>Expert</span>
+            </button>
+            <button
+              type="button"
+              onClick={onOpenDispute}
+              disabled={Boolean(item.dispute_id)}
+              className="min-h-[38px] rounded-xl border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 text-destructive px-1.5 text-[11px] font-semibold disabled:opacity-50 inline-flex items-center justify-center gap-1 cursor-pointer"
+            >
+              <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
+              <span>
+                {item.dispute_status === "approved"
+                  ? "Remb."
+                  : item.dispute_status === "rejected"
+                    ? "Clos"
+                    : item.dispute_id
+                      ? "En cours"
+                      : "Litige"}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Actions Desktop (>= sm) */}
+        <div className="hidden sm:flex flex-wrap items-center gap-1.5 shrink-0">
           {/* Appel direct */}
           <a
             href={`tel:${item.phone}`}
-            className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-3 sm:px-3.5 py-1.5 text-xs font-bold shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1 shrink-0"
+            className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-3.5 py-1.5 text-xs font-bold shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1 shrink-0"
             title="Appeler directement le prospect"
           >
             <Phone className="h-3.5 w-3.5 text-accent" />
@@ -1339,7 +1972,7 @@ function CrmPortfolioCard({
             href={buildWhatsAppLink(item)}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-full border border-slate-200 dark:border-border bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-secondary px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-foreground shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-1 shrink-0"
+            className="rounded-full border border-border bg-card hover:bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-1 shrink-0"
             title="Envoyer un WhatsApp personnalisé"
           >
             <MessageCircle className="h-3.5 w-3.5 text-emerald-600" />
@@ -1350,10 +1983,10 @@ function CrmPortfolioCard({
           <button
             type="button"
             onClick={() => downloadLeadVCard(item)}
-            className="rounded-full border border-slate-200 dark:border-border bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-secondary px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-foreground shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-1 shrink-0"
+            className="rounded-full border border-border bg-card hover:bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-1 shrink-0"
             title="Exporter le contact dans vos contacts smartphone (.vcf)"
           >
-            <UserPlus className="h-3.5 w-3.5 text-slate-500" />
+            <UserPlus className="h-3.5 w-3.5 text-muted-foreground" />
             <span>vCard</span>
           </button>
 
@@ -1361,18 +1994,18 @@ function CrmPortfolioCard({
           <button
             type="button"
             onClick={onInspect}
-            className="rounded-full border border-slate-200 dark:border-border bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-secondary px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-foreground shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-1 shrink-0"
+            className="rounded-full border border-border bg-card hover:bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-1 shrink-0"
             title="Ouvrir le dossier technique complet"
           >
             <Eye className="h-3.5 w-3.5 text-accent" />
-            <span className="hidden sm:inline">Fiche</span>
+            <span>Fiche</span>
           </button>
 
           {/* Aide Expert / Étude */}
           <button
             type="button"
             onClick={onOpenExpertModal}
-            className="rounded-full border border-accent/40 bg-accent/10 hover:bg-accent/20 text-foreground px-2.5 sm:px-3 py-1.5 text-xs font-bold shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-1 shrink-0"
+            className="rounded-full border border-accent/40 bg-accent/10 hover:bg-accent/20 text-foreground px-3 py-1.5 text-xs font-bold shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center gap-1 shrink-0"
             title="Demander l'aide d'un expert pour ce dossier (% projet à négocier selon l'envergure)"
           >
             <Sparkles className="h-3.5 w-3.5 text-accent" />

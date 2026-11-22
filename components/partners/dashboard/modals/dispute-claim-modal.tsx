@@ -128,7 +128,7 @@ export default function DisputeClaimModal({ purchase, onSuccess, onClose }: Disp
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -137,29 +137,33 @@ export default function DisputeClaimModal({ purchase, onSuccess, onClose }: Disp
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200 overscroll-contain"
+        className="relative w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border-t sm:border border-border bg-card px-4 pt-2 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:p-6 shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200 overscroll-contain"
       >
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-4 top-4 rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
-          aria-label="Fermer la boîte de dialogue"
-        >
-          <X className="h-5 w-5" />
-        </button>
+        <div className="mx-auto mb-2.5 h-1 w-9 rounded-full bg-border sm:hidden" aria-hidden="true" />
 
-        <div className="flex items-center gap-3">
-          <div className="rounded-xl bg-destructive/10 p-2 text-destructive border border-destructive/20">
-            <ShieldAlert className="h-5 w-5" />
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="rounded-xl bg-destructive/10 p-2 text-destructive border border-destructive/20 shrink-0">
+              <ShieldAlert className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-lg font-bold text-foreground leading-snug">
+                Déclarer un litige (Garantie Lead · <span className="font-mono tabular-nums">7 j</span> ouvrés)
+              </h3>
+              <p className="text-xs text-muted-foreground truncate">
+                Lead : {purchase.first_name} {purchase.last_name} ({purchase.company || purchase.segment})
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-lg font-bold text-foreground">
-              Déclarer un litige (Garantie Lead · <span className="font-mono tabular-nums">7 j</span> ouvrés)
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Lead : {purchase.first_name} {purchase.last_name} ({purchase.company || purchase.segment})
-            </p>
-          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+            aria-label="Fermer la boîte de dialogue"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-4">
@@ -253,18 +257,26 @@ export default function DisputeClaimModal({ purchase, onSuccess, onClose }: Disp
               value={details}
               onChange={(e) => setDetails(e.target.value)}
               placeholder={activeReasonMeta.placeholder}
-              className="mt-1.5 w-full rounded-lg border border-border bg-background p-2.5 text-xs text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-hidden"
+              className="mt-1.5 w-full rounded-xl border border-border bg-background p-3 text-sm sm:text-xs text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-hidden"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={submitting}>
+          <div className="grid grid-cols-[auto_1fr] sm:flex items-center justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onClose}
+              disabled={submitting}
+              className="min-h-[44px] sm:h-9 px-4 rounded-xl text-xs font-semibold"
+            >
               Annuler
             </Button>
             <Button
               type="submit"
               variant="destructive"
               size="sm"
+              className="min-h-[44px] sm:h-9 px-4 rounded-xl text-xs font-bold"
               disabled={
                 submitting ||
                 eligibility.code === "TOO_EARLY_FOR_UNREACHABLE" ||

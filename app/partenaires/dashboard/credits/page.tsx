@@ -222,17 +222,17 @@ function OrderPackSection({ pack }: { pack: CreditPack }) {
           type="button"
           onClick={handleQrCodePayment}
           disabled={submitting}
-          className="h-12 w-full sm:w-auto px-7 font-bold text-xs sm:text-sm bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs justify-center shrink-0"
+          className="min-h-[48px] h-auto py-2.5 w-full sm:w-auto px-4 sm:px-7 font-bold text-xs sm:text-sm bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs justify-center shrink-0 whitespace-normal text-center leading-snug"
         >
           {submitting ? (
-            <span className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin text-accent" />
-              Génération du QR Code…
+            <span className="flex items-center justify-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin text-accent shrink-0" />
+              <span>Génération du QR Code…</span>
             </span>
           ) : (
-            <span className="flex items-center gap-2">
-              <QrCode className="h-4 w-4 text-accent" />
-              Payer par QR Code (Bancontact / Payconiq)
+            <span className="flex items-center justify-center gap-2">
+              <QrCode className="h-4 w-4 text-accent shrink-0" />
+              <span>Payer par QR Code (Bancontact / Payconiq)</span>
             </span>
           )}
         </Button>
@@ -368,7 +368,7 @@ export default function CreditsPage() {
           <div className="flex items-center gap-2.5">
             <Link
               href="/partenaires/dashboard"
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-secondary text-foreground transition-colors hover:bg-secondary/80"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-secondary text-foreground transition-colors hover:bg-secondary/80 shrink-0"
               title="Retour au Dashboard"
             >
               <ArrowLeft className="h-4 w-4" />

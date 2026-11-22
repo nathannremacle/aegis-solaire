@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
 import dynamic from "next/dynamic"
-import { Coins, Store, Briefcase, Bell, LogOut, FileText, ShieldCheck, Leaf, Sparkles } from "lucide-react"
+import { Coins, Store, Briefcase, Bell, LogOut, FileText, ShieldCheck, Users2, Sparkles, ArrowRight, Menu, X, ChevronRight, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { MarketplaceFeedView } from "./marketplace-feed-view"
@@ -16,6 +16,7 @@ const DisputeClaimModal = dynamic(() => import("./modals/dispute-claim-modal"), 
 const AlertPreferencesModal = dynamic(() => import("./modals/alert-preferences-modal"), { ssr: false })
 const CreditPacksModal = dynamic(() => import("./modals/credit-packs-modal"), { ssr: false })
 const ExpertStudyModal = dynamic(() => import("./modals/expert-study-modal"), { ssr: false })
+const PartnerReferralModal = dynamic(() => import("./modals/partner-referral-modal"), { ssr: false })
 
 export interface PartnerDashboardShellProps {
   initialPartner: any
@@ -69,9 +70,25 @@ export function PartnerDashboardShell({
   const [isPrefsOpen, setIsPrefsOpen] = React.useState(false)
   const [isCreditsOpen, setIsCreditsOpen] = React.useState(false)
   const [isExpertOpen, setIsExpertOpen] = React.useState(false)
+  const [isReferralOpen, setIsReferralOpen] = React.useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false)
   const [selectedLeadForExpert, setSelectedLeadForExpert] = React.useState<any | null>(null)
   const sessionTrackedRef = React.useRef(false)
   const deepLinkTrackedRef = React.useRef<string | null>(null)
+
+  React.useEffect(() => {
+    if (!isMobileMenuOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsMobileMenuOpen(false)
+    }
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    window.addEventListener("keydown", handleKeyDown)
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [isMobileMenuOpen])
 
   React.useEffect(() => {
     if (typeof window === "undefined") return
@@ -183,6 +200,9 @@ export function PartnerDashboardShell({
             }
             setMarketplace((prev) => prev.filter((item) => item.id !== leadId))
             setPortfolio((prev) => [purchaseRecord, ...prev])
+            if (typeof data.newCredits === "number") {
+              setCredits(data.newCredits)
+            }
             setActiveTab("portfolio")
           } else if (data.status === "cancelled") {
             toast.error("Le paiement direct a été interrompu ou refusé.", { id: toastId })
@@ -208,20 +228,21 @@ export function PartnerDashboardShell({
 
   return (
     <div className={`min-h-screen ${isFocusedLeadView ? "bg-[var(--aegis-canvas)]" : "bg-background"}`}>
-      {/* ── 1. Topbar Applicative Unique (64px) — Gain de 220px utiles dès le chargement ── */}
+      {/* ── 1. Topbar Applicative Unique ── */}
       <header className="sticky top-0 z-40 w-full border-b border-border bg-card/95 backdrop-blur-md shadow-2xs">
-        <div className="mx-auto flex h-14 sm:h-16 max-w-[1720px] items-center justify-between gap-2 px-3 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-15 md:h-16 max-w-[1720px] items-center justify-between gap-2 px-3 sm:px-6 lg:px-8">
           {/* Gauche : Logo Aegis + Navigation par Onglets Intégrés (Desktop) */}
-          <div className="flex items-center gap-3 sm:gap-6 min-w-0">
+          <div className="flex items-center gap-3 sm:gap-5 min-w-0">
             <Link
               href="/"
-              className="relative h-7 w-24 sm:h-9 sm:w-32 shrink-0 transition-opacity hover:opacity-90"
+              className="relative h-11 w-[108px] min-[360px]:h-12 min-[360px]:w-[128px] sm:h-12 sm:w-40 md:h-13 md:w-36 lg:w-44 shrink-0 transition-opacity hover:opacity-90"
               title="Retour au site Aegis Solaire"
             >
               <Image
                 src="/logo.png"
                 alt="Aegis Solaire"
                 fill
+                sizes="(max-width: 640px) 140px, 180px"
                 className="object-contain object-left"
                 priority
               />
@@ -298,6 +319,19 @@ export function PartnerDashboardShell({
                 <span className="hidden md:inline">Alertes</span>
               </button>
 
+              <button
+                type="button"
+                onClick={() => setIsReferralOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-xl px-2 sm:px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer whitespace-nowrap shrink-0"
+                title="Parrainer un confrère RESCERT (+3 crédits offerts chacun)"
+              >
+                <Users2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span className="hidden lg:inline">Parrainage</span>
+                <span className="hidden xl:inline rounded bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] font-mono tabular-nums text-[10px] px-1.5 py-0.2 font-bold">
+                  +3 cr.
+                </span>
+              </button>
+
               <Link
                 href="/partenaires/dashboard/credits"
                 className="hidden 2xl:inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all whitespace-nowrap shrink-0"
@@ -309,8 +343,8 @@ export function PartnerDashboardShell({
             </nav>
           </div>
 
-          {/* Droite : Badge Statut, Solde Portefeuille & Menu Profil */}
-          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          {/* Droite : Badge Statut, Solde Portefeuille & Outils Mobile / Déconnexion */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {/* Badge de statut partenaire (Affiché dès xl >= 1280px pour protéger l'espace des onglets) */}
             <div
               className="hidden xl:inline-flex items-center gap-1.5 rounded-xl border border-border bg-secondary/50 px-2.5 py-1 text-xs font-medium text-foreground whitespace-nowrap shrink-0"
@@ -326,20 +360,46 @@ export function PartnerDashboardShell({
             <button
               type="button"
               onClick={() => openCreditsModal("topbar")}
-              className="flex items-center gap-1.5 sm:gap-2 rounded-xl border border-accent/30 bg-accent/10 hover:bg-accent/15 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs whitespace-nowrap shrink-0"
+              className="flex items-center gap-1.5 sm:gap-2 min-h-[38px] sm:min-h-0 rounded-full sm:rounded-xl border border-accent/30 bg-accent/10 hover:bg-accent/15 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-foreground transition-all cursor-pointer shadow-2xs whitespace-nowrap shrink-0"
               title="Gérer mes crédits de déblocage"
+              aria-label={`Solde ${credits} crédits, recharger`}
             >
               <Coins className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-accent shrink-0" />
               <span className="font-mono tabular-nums text-foreground">{credits}</span>
               <span className="hidden sm:inline text-muted-foreground font-normal">crédits</span>
-              <span className="rounded-md bg-accent text-accent-foreground px-1.5 py-0.5 text-[10px] font-bold tracking-tight">
+              <span className="rounded-full sm:rounded-md bg-accent text-accent-foreground px-1.5 py-0.5 text-[10px] font-bold tracking-tight">
                 <span className="hidden sm:inline">+ Recharger</span>
                 <span className="sm:hidden">+</span>
               </span>
             </button>
 
-            {/* Menu déconnexion compact */}
-            <form action="/api/partners/logout" method="POST">
+            {/* Raccourci Alertes & Auto-Pilot (Mobile uniquement) */}
+            <button
+              type="button"
+              onClick={() => setIsPrefsOpen(true)}
+              className="md:hidden relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-foreground hover:bg-secondary transition-colors cursor-pointer shrink-0"
+              aria-label="Alertes et Auto-Pilot"
+              title="Alertes et Auto-Pilot"
+            >
+              <Bell className="h-4.5 w-4.5 text-accent" />
+              {initialPartner?.auto_buy_enabled && (
+                <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-card" />
+              )}
+            </button>
+
+            {/* Menu Outils & Compte (Mobile uniquement) */}
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-foreground hover:bg-secondary transition-colors cursor-pointer shrink-0"
+              aria-label="Menu compte et outils"
+              title="Menu compte et outils"
+            >
+              <Menu className="h-4.5 w-4.5" />
+            </button>
+
+            {/* Menu déconnexion compact (Desktop uniquement — déplacé dans le menu mobile sur smartphone) */}
+            <form action="/api/partners/logout" method="POST" className="hidden md:block">
               <Button
                 variant="ghost"
                 size="sm"
@@ -359,29 +419,43 @@ export function PartnerDashboardShell({
       <main
         className={
           isFocusedLeadView
-            ? "pb-24 md:pb-12"
-            : "mx-auto max-w-[1720px] px-3 py-4 sm:px-6 sm:py-6 lg:px-8 pb-24 md:pb-8"
+            ? "pb-[calc(9.5rem+env(safe-area-inset-bottom))] min-[900px]:pb-12"
+            : "mx-auto max-w-[1720px] px-3 py-3 sm:px-6 sm:py-6 lg:px-8 pb-[calc(5.25rem+env(safe-area-inset-bottom))] md:pb-8"
         }
       >
         {/* En-tête Institutionnel avec H1 Unique (masqué en vue fiche dossier ciblée qui porte son propre H1 localité) */}
         {!isFocusedLeadView && (
-          <div className="mb-4 sm:mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4 border-b border-border/80 pb-3 sm:pb-4">
-            <div className="flex flex-col gap-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[10px] sm:text-xs uppercase tracking-wider text-accent font-semibold">
+          <div className="mb-3 md:mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 md:gap-4 border-b border-border/80 pb-2.5 md:pb-4">
+            <div className="flex flex-col gap-0.5 md:gap-1 min-w-0">
+              <div className="hidden md:flex items-center gap-2">
+                <span className="font-mono text-xs uppercase tracking-wider text-accent font-semibold">
                   RÉSEAU OFFICIEL · INSTALLATEURS WALLONIE
                 </span>
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-400">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                   Flux Direct
                 </span>
               </div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-extrabold tracking-tight text-foreground">
-                {activeTab === "marketplace"
-                  ? "Marketplace des Chantiers Photovoltaïques"
-                  : "Portefeuille & Suivi Commercial"}
-              </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground">
+              <div className="flex items-center justify-between gap-2 min-w-0">
+                <h1 className="text-[18px] leading-tight sm:text-2xl lg:text-3xl font-heading font-extrabold tracking-tight text-foreground truncate min-w-0">
+                  {activeTab === "marketplace" ? (
+                    <>
+                      <span className="min-[350px]:hidden">Marketplace</span>
+                      <span className="hidden min-[350px]:inline">Marketplace des Chantiers</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="min-[350px]:hidden">Mon CRM</span>
+                      <span className="hidden min-[350px]:inline">Portefeuille &amp; Suivi CRM</span>
+                    </>
+                  )}
+                </h1>
+                <span className="md:hidden inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[11px] font-mono font-bold text-emerald-700 whitespace-nowrap shrink-0">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                  <span>Direct</span>
+                </span>
+              </div>
+              <p className="hidden md:block text-sm text-muted-foreground">
                 {activeTab === "marketplace"
                   ? "Projets solaires qualifiés en Wallonie : fiches techniques détaillées, puissance kWc et coordonnées directes vérifiées."
                   : "Dossiers débloqués, coordonnées complètes des décideurs et suivi des relances."}
@@ -389,24 +463,31 @@ export function PartnerDashboardShell({
             </div>
 
             {activeTab === "marketplace" && (
-              <div className="hidden xl:flex relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-r from-emerald-50/70 via-card to-card p-3 sm:p-3.5 shadow-xs items-center gap-3.5 max-w-md shrink-0">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600">
-                  <Leaf className="h-5 w-5" />
+              <button
+                type="button"
+                onClick={() => setIsReferralOpen(true)}
+                className="hidden lg:flex rounded-2xl border border-border bg-card hover:border-accent/50 p-3.5 shadow-xs items-center justify-between gap-3.5 max-w-md shrink-0 text-left cursor-pointer transition-colors"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)]">
+                    <Users2 className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-foreground truncate">
+                        Parrainez un confrère RESCERT
+                      </h3>
+                      <span className="rounded bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] font-mono tabular-nums text-[10px] font-bold px-1.5 py-0.5 shrink-0">
+                        +3 cr. chacun
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      Offert dès son 1er achat payant · Toute la Wallonie &amp; Bruxelles.
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0 pr-12">
-                  <h3 className="text-xs sm:text-sm font-bold text-foreground">Une énergie plus propre</h3>
-                  <p className="text-[11px] text-muted-foreground truncate">
-                    Ensemble pour la transition énergétique en Wallonie.
-                  </p>
-                </div>
-                <div
-                  className="absolute right-0 top-0 bottom-0 w-24 opacity-25 pointer-events-none bg-cover bg-center"
-                  style={{
-                    backgroundImage:
-                      "url('https://images.unsplash.com/photo-1509391365360-2e959784a276?q=40&w=300&auto=format&fit=crop')",
-                  }}
-                />
-              </div>
+                <ArrowRight className="h-4 w-4 text-accent shrink-0" />
+              </button>
             )}
           </div>
         )}
@@ -442,6 +523,7 @@ export function PartnerDashboardShell({
               setSelectedLeadForExpert(lead || null)
               setIsExpertOpen(true)
             }}
+            onOpenReferral={() => setIsReferralOpen(true)}
           />
         ) : (
           <CrmPortfolioView
@@ -460,42 +542,51 @@ export function PartnerDashboardShell({
       {/* ── 3. Barre de Navigation Basse Mobile (Mobile Bottom Navigation Bar) ── */}
       <nav
         aria-label="Navigation mobile"
-        className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-card/95 backdrop-blur-md border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.05)] [padding-bottom:max(0.5rem,env(safe-area-inset-bottom))]"
+        className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-card/95 backdrop-blur-md border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.05)] [padding-bottom:env(safe-area-inset-bottom)]"
       >
-        <div className="grid grid-cols-4 h-14 max-w-lg mx-auto">
+        <div className="grid grid-cols-4 h-[60px] max-w-lg mx-auto">
           {/* Tab 1: Marketplace */}
           <button
             type="button"
-            onClick={() => handleSelectTab("marketplace", "mobile_nav")}
-            className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${activeTab === "marketplace"
+            onClick={() => {
+              setActiveTargetLeadId(undefined)
+              handleSelectTab("marketplace", "mobile_nav")
+            }}
+            className={`relative flex flex-col items-center justify-center gap-0.5 min-h-[48px] text-[11px] font-semibold transition-colors cursor-pointer ${activeTab === "marketplace"
               ? "text-primary font-bold"
               : "text-muted-foreground hover:text-foreground"
               }`}
           >
+            {activeTab === "marketplace" && (
+              <span className="absolute top-0 h-0.5 w-8 rounded-full bg-primary" aria-hidden="true" />
+            )}
             <div className="relative">
               <Store className={`h-5 w-5 ${activeTab === "marketplace" ? "text-primary" : "text-muted-foreground"}`} />
               {marketplace.length > 0 && (
-                <span className="absolute -top-1 -right-2.5 rounded-full bg-accent text-accent-foreground px-1 py-0.2 text-[9px] font-mono font-bold tabular-nums shadow-2xs">
+                <span className="absolute -top-1 -right-2.5 rounded-full bg-accent text-accent-foreground px-1 py-0.2 text-[10px] font-mono font-bold tabular-nums shadow-2xs leading-tight">
                   {marketplace.length}
                 </span>
               )}
             </div>
-            <span>Marketplace</span>
+            <span>Chantiers</span>
           </button>
 
           {/* Tab 2: Mon CRM */}
           <button
             type="button"
             onClick={() => handleSelectTab("portfolio", "mobile_nav")}
-            className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${activeTab === "portfolio"
+            className={`relative flex flex-col items-center justify-center gap-0.5 min-h-[48px] text-[11px] font-semibold transition-colors cursor-pointer ${activeTab === "portfolio"
               ? "text-primary font-bold"
               : "text-muted-foreground hover:text-foreground"
               }`}
           >
+            {activeTab === "portfolio" && (
+              <span className="absolute top-0 h-0.5 w-8 rounded-full bg-primary" aria-hidden="true" />
+            )}
             <div className="relative">
               <Briefcase className={`h-5 w-5 ${activeTab === "portfolio" ? "text-primary" : "text-muted-foreground"}`} />
               {portfolio.length > 0 && (
-                <span className="absolute -top-1 -right-2.5 rounded-full bg-primary text-primary-foreground px-1 py-0.2 text-[9px] font-mono font-bold tabular-nums shadow-2xs">
+                <span className="absolute -top-1 -right-2.5 rounded-full bg-primary text-primary-foreground px-1 py-0.2 text-[10px] font-mono font-bold tabular-nums shadow-2xs leading-tight">
                   {portfolio.length}
                 </span>
               )}
@@ -503,16 +594,16 @@ export function PartnerDashboardShell({
             <span>Mon CRM</span>
           </button>
 
-          {/* Tab 3: Recharger */}
+          {/* Tab 3: Crédits */}
           <button
             type="button"
             onClick={() => openCreditsModal("mobile_nav")}
-            className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="relative flex flex-col items-center justify-center gap-0.5 min-h-[48px] text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             <div className="relative">
               <Coins className="h-5 w-5 text-accent" />
             </div>
-            <span>Recharger</span>
+            <span>Crédits</span>
           </button>
 
           {/* Tab 4: Aide Expert */}
@@ -522,13 +613,168 @@ export function PartnerDashboardShell({
               setSelectedLeadForExpert(null)
               setIsExpertOpen(true)
             }}
-            className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="relative flex flex-col items-center justify-center gap-0.5 min-h-[48px] text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             <Sparkles className="h-5 w-5 text-accent" />
-            <span>Aide Expert</span>
+            <span>Expert</span>
           </button>
         </div>
       </nav>
+
+      {/* ── 3b. Menu Compte & Outils Mobile (Bottom Sheet) ── */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-50 md:hidden flex items-end bg-foreground/60 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsMobileMenuOpen(false)
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="mobile-account-sheet-title"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-h-[85dvh] flex flex-col rounded-t-2xl border-t border-border bg-card shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-200"
+          >
+            <div className="shrink-0 px-4 pt-2 pb-3 border-b border-border bg-card">
+              <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-border" aria-hidden="true" />
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] px-2 py-0.5 text-[11px] font-semibold">
+                      <CheckCircle2 className="h-3 w-3 shrink-0" />
+                      <span>{initialPartner?.segment === "B2B" ? "Partenaire B2B" : "Artisan Agréé RESCERT"}</span>
+                    </span>
+                  </div>
+                  <h2 id="mobile-account-sheet-title" className="mt-1.5 text-base font-bold text-foreground truncate">
+                    {initialPartner?.company_name || "Espace Installateur"}
+                  </h2>
+                  {initialPartner?.email && (
+                    <p className="font-mono text-xs text-muted-foreground truncate">
+                      {initialPartner.email}
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer shrink-0"
+                  aria-label="Fermer le menu compte"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 flex flex-col gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(false)
+                  setIsReferralOpen(true)
+                }}
+                className="w-full min-h-[52px] flex items-center justify-between gap-3 rounded-xl border border-border bg-card hover:bg-secondary/50 px-3.5 py-2.5 text-left transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)]">
+                    <Users2 className="h-4.5 w-4.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-bold text-foreground">Parrainage RESCERT</span>
+                      <span className="rounded bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] font-mono tabular-nums text-[11px] font-bold px-1.5 py-0.5">
+                        +3 cr. chacun
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground block">
+                      Inviter un confrère wallon ou bruxellois
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(false)
+                  setIsPrefsOpen(true)
+                }}
+                className="w-full min-h-[52px] flex items-center justify-between gap-3 rounded-xl border border-border bg-card hover:bg-secondary/50 px-3.5 py-2.5 text-left transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                    <Bell className="h-4.5 w-4.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-sm font-bold text-foreground block">Alertes &amp; Auto-Pilot</span>
+                    <span className="text-xs text-muted-foreground block">
+                      Provinces, seuils kWc et fréquence e-mails
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              </button>
+
+              <Link
+                href="/partenaires/dashboard/credits"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="w-full min-h-[52px] flex items-center justify-between gap-3 rounded-xl border border-border bg-card hover:bg-secondary/50 px-3.5 py-2.5 text-left transition-colors"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-foreground">
+                    <FileText className="h-4.5 w-4.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-sm font-bold text-foreground block">Crédits &amp; Factures</span>
+                    <span className="text-xs text-muted-foreground block">
+                      Packs dégressifs (-24 %) et historique
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(false)
+                  setSelectedLeadForExpert(null)
+                  setIsExpertOpen(true)
+                }}
+                className="w-full min-h-[52px] flex items-center justify-between gap-3 rounded-xl border border-border bg-card hover:bg-secondary/50 px-3.5 py-2.5 text-left transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                    <Sparkles className="h-4.5 w-4.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-sm font-bold text-foreground block">Aide Expert &amp; Étude</span>
+                    <span className="text-xs text-muted-foreground block">
+                      Dimensionnement, GRD et closing B2B
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              </button>
+            </div>
+
+            <div className="shrink-0 border-t border-border bg-card px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <form action="/api/partners/logout" method="POST">
+                <Button
+                  variant="outline"
+                  type="submit"
+                  className="w-full min-h-[44px] rounded-xl text-sm font-semibold text-foreground border-border hover:bg-secondary cursor-pointer gap-2"
+                >
+                  <LogOut className="h-4 w-4 text-muted-foreground" />
+                  <span>Déconnexion de l&apos;espace partenaire</span>
+                </Button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── 4. Modales chargées à la demande uniquement ── */}
       {disputePurchase && (
@@ -539,10 +785,10 @@ export function PartnerDashboardShell({
               prev.map((item) =>
                 item.purchase_id === createdDispute.purchase_id
                   ? {
-                      ...item,
-                      dispute_id: createdDispute.id,
-                      dispute_status: createdDispute.status,
-                    }
+                    ...item,
+                    dispute_id: createdDispute.id,
+                    dispute_status: createdDispute.status,
+                  }
                   : item
               )
             )
@@ -571,6 +817,12 @@ export function PartnerDashboardShell({
             setIsExpertOpen(false)
             setSelectedLeadForExpert(null)
           }}
+        />
+      )}
+      {isReferralOpen && (
+        <PartnerReferralModal
+          partner={initialPartner}
+          onClose={() => setIsReferralOpen(false)}
         />
       )}
     </div>

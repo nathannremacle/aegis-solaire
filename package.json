@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "test:labels": "node --test scripts/test-lead-display-labels.cjs",
     "test:verification": "node --test scripts/test-lead-verification.cjs",
+    "test:mobile": "node scripts/test-marketplace-mobile.mjs",
     "verify:onboarding": "node scripts/verify-partner-onboarding.mjs"
   },
   "dependencies": {

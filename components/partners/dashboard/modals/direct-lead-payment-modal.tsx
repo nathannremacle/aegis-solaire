@@ -12,6 +12,7 @@ import {
   AlertCircle,
 } from "lucide-react"
 import {
+  calculateLeadComplementFinancials,
   calculateLeadDirectFinancials,
   B2C_EXCLUSIVE_CREDIT_COST,
   B2C_EXCLUSIVE_PRICE_EUR,
@@ -67,9 +68,11 @@ export function DirectLeadPaymentModal({
   const [error, setError] = useState<string | null>(null)
   const [exclusiveMode, setExclusiveMode] = useState(initialExclusive)
   const [enableOneClick, setEnableOneClick] = useState(false)
+  const [usePartialCredits, setUsePartialCredits] = useState(true)
 
   useEffect(() => {
     setExclusiveMode(Boolean(initialExclusive))
+    setUsePartialCredits(true)
   }, [initialExclusive, isOpen, lead?.id])
 
   useEffect(() => {
@@ -121,6 +124,15 @@ export function DirectLeadPaymentModal({
     credit_cost: cost,
     exclusive: isExclusive,
   })
+  const complement = calculateLeadComplementFinancials({
+    segment: lead.segment,
+    credit_cost: cost,
+    exclusive: isExclusive,
+    availableCredits: partnerCredits,
+  })
+  const canUsePartialCredits = complement.isHybrid && complement.creditsToDebit > 0
+  const isHybridActive = canUsePartialCredits && usePartialCredits
+  const payableFinancials = isHybridActive ? complement : financials
 
   const rawSurface = Math.max(0, Number(lead.surface_area || lead.surface_area_m2) || 0)
   const rawAnnualBill = Math.max(
@@ -154,9 +166,9 @@ export function DirectLeadPaymentModal({
       ? "bg-[var(--aegis-preference-bg)] text-[var(--aegis-preference-label)]"
       : "bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)]"
 
-  const priceHtvaLabel = `${formatEurDecimal(financials.priceHtva)} € HT`
-  const vatAmountLabel = `+ ${formatEurDecimal(financials.vatAmount)} €`
-  const priceTtcLabel = `${formatEurDecimal(financials.priceTtc)} € TTC`
+  const priceHtvaLabel = `${formatEurDecimal(payableFinancials.priceHtva)} € HT`
+  const vatAmountLabel = `+ ${formatEurDecimal(payableFinancials.vatAmount)} €`
+  const priceTtcLabel = `${formatEurDecimal(payableFinancials.priceTtc)} € TTC`
 
   const handleProceedToPayment = async () => {
     setLoading(true)
@@ -169,6 +181,7 @@ export function DirectLeadPaymentModal({
         body: JSON.stringify({
           exclusive: isExclusive,
           enableOneClick,
+          usePartialCredits: isHybridActive,
         }),
       })
 
@@ -199,7 +212,10 @@ export function DirectLeadPaymentModal({
       const res = await fetch(`/api/partners/leads/${lead.id}/one-click-buy`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ exclusive: isExclusive }),
+        body: JSON.stringify({
+          exclusive: isExclusive,
+          usePartialCredits: isHybridActive,
+        }),
       })
       const data = await res.json()
       if (!res.ok || !data.success) {
@@ -412,6 +428,54 @@ export function DirectLeadPaymentModal({
               </section>
             )}
 
+            {/* Option Zéro crédit bloqué : Complément en euros si solde partiel */}
+            {canUsePartialCredits && (
+              <section
+                aria-label="Option complément en euros"
+                className="rounded-[8px] border border-[var(--aegis-availability-text)]/35 bg-[var(--aegis-availability-bg)]/55 p-3 flex flex-col gap-2"
+              >
+                <label className="flex items-start justify-between gap-3 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={usePartialCredits}
+                    onChange={(e) => setUsePartialCredits(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <span
+                      aria-hidden="true"
+                      className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border transition-colors ${
+                        usePartialCredits
+                          ? "border-[var(--aegis-availability-text)] bg-[var(--aegis-availability-text)] text-white"
+                          : "border-[var(--aegis-input-border)] bg-[var(--aegis-surface)]"
+                      }`}
+                    >
+                      {usePartialCredits && <Check className="h-2.5 w-2.5 stroke-[3]" />}
+                    </span>
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                      <span className="text-[12.5px] font-bold text-[var(--aegis-ink)]">
+                        Zéro crédit bloqué · Utiliser mes{" "}
+                        <span className="font-mono tabular-nums">{complement.creditsToDebit}</span>{" "}
+                        crédit{complement.creditsToDebit > 1 ? "s" : ""} disponibles
+                      </span>
+                      <span className="text-[11px] leading-snug text-[var(--aegis-muted)]">
+                        Déduit{" "}
+                        <strong className="font-mono tabular-nums text-[var(--aegis-availability-text)]">
+                          -{formatEurDecimal(complement.creditsDiscountHtva)} € HT
+                        </strong>{" "}
+                        immédiatement : vous ne réglez que le complément pour les{" "}
+                        <span className="font-mono tabular-nums">{complement.remainingCreditsToPay}</span>{" "}
+                        crédit{complement.remainingCreditsToPay > 1 ? "s" : ""} manquants.
+                      </span>
+                    </div>
+                  </div>
+                  <span className="shrink-0 rounded-[5px] bg-[var(--aegis-surface)] border border-[var(--aegis-border)] px-2 py-0.5 font-mono text-[11px] font-bold tabular-nums text-[var(--aegis-ink)]">
+                    -{complement.creditsToDebit} cr.
+                  </span>
+                </label>
+              </section>
+            )}
+
             {/* Bloc B : Décompte comptable B2B */}
             <section
               aria-label="Décompte comptable B2B"
@@ -425,9 +489,31 @@ export function DirectLeadPaymentModal({
                       : "Déblocage de contact qualifié"}
                   </span>
                   <span className="shrink-0 whitespace-nowrap text-right font-mono text-[13.5px] sm:text-[14px] font-semibold tabular-nums text-[var(--aegis-ink)]">
-                    {priceHtvaLabel}
+                    {formatEurDecimal(financials.priceHtva)} € HT
                   </span>
                 </div>
+
+                {isHybridActive && (
+                  <div className="py-1.5 flex items-baseline justify-between gap-3 border-b border-[var(--aegis-divider)]">
+                    <span className="text-[12.5px] sm:text-[13px] font-semibold text-[var(--aegis-availability-text)] min-w-0">
+                      Crédits utilisés (<span className="font-mono tabular-nums">{complement.creditsToDebit}/{complement.totalCredits}</span>)
+                    </span>
+                    <span className="shrink-0 whitespace-nowrap text-right font-mono text-[13.5px] sm:text-[14px] font-bold tabular-nums text-[var(--aegis-availability-text)]">
+                      - {formatEurDecimal(complement.creditsDiscountHtva)} € HT
+                    </span>
+                  </div>
+                )}
+
+                {isHybridActive && (
+                  <div className="py-1.5 flex items-baseline justify-between gap-3 border-b border-[var(--aegis-divider)]">
+                    <span className="text-[12.5px] sm:text-[13px] font-semibold text-[var(--aegis-ink)] min-w-0">
+                      Complément net HTVA
+                    </span>
+                    <span className="shrink-0 whitespace-nowrap text-right font-mono text-[13.5px] sm:text-[14px] font-bold tabular-nums text-[var(--aegis-ink)]">
+                      {priceHtvaLabel}
+                    </span>
+                  </div>
+                )}
 
                 <div className="py-1.5 flex items-baseline justify-between gap-3">
                   <span className="text-[12.5px] sm:text-[13px] text-[var(--aegis-muted)] min-w-0">
@@ -449,7 +535,7 @@ export function DirectLeadPaymentModal({
                   </span>
                 </div>
 
-                <strong className="shrink-0 whitespace-nowrap text-right font-mono text-[19px] sm:text-[22px] font-bold leading-[1.15] tracking-[-0.025em] tabular-nums text-[var(--aegis-ink)]">
+                <strong className="shrink-0 whitespace-nowrap text-right font-mono text-[17px] sm:text-[22px] font-bold leading-[1.15] tracking-[-0.025em] tabular-nums text-[var(--aegis-ink)]">
                   {priceTtcLabel}
                 </strong>
               </div>
@@ -561,7 +647,9 @@ export function DirectLeadPaymentModal({
                 <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden="true" />
               )}
               <span>
-                Débloquer en 1 clic ({priceTtcLabel})
+                {isHybridActive
+                  ? `Débloquer en 1 clic (${complement.creditsToDebit} cr. + ${priceTtcLabel})`
+                  : `Débloquer en 1 clic (${priceTtcLabel})`}
               </span>
             </button>
           )}
@@ -580,7 +668,7 @@ export function DirectLeadPaymentModal({
               <>
                 <Lock className="h-4 w-4 shrink-0 opacity-90" aria-hidden="true" />
                 <span>
-                  Régler{" "}
+                  {isHybridActive ? "Régler le complément" : "Régler"}{" "}
                   <span className="font-mono tabular-nums whitespace-nowrap">
                     {priceTtcLabel}
                   </span>{" "}

@@ -38,6 +38,7 @@ import {
 import { Button } from "@/components/ui/button"
 import {
   formatEurWithDecimals,
+  calculateLeadComplementFinancials,
   calculateLeadDirectFinancials,
   B2C_EXCLUSIVE_CREDIT_COST,
   B2C_EXCLUSIVE_PRICE_EUR,
@@ -76,7 +77,7 @@ interface LeadInspectionDrawerProps {
   hasValidMandate?: boolean
   isBuying: boolean
   onClose: () => void
-  onPurchase: (lead: any, opts?: { exclusive?: boolean }) => void
+  onPurchase: (lead: any, opts?: { exclusive?: boolean; paymentMode?: "credits" | "direct" | "exclusive" }) => void
   onOneClickSuccess?: (lead: any, purchaseData: any) => void
   onRequestTopUp: () => void
   onRequestExpert?: (lead: any) => void
@@ -171,6 +172,17 @@ export function LeadInspectionDrawer({
   const directFinancials = calculateLeadDirectFinancials({
     segment: lead.segment,
     credit_cost: cost,
+  })
+  const complementFinancials = calculateLeadComplementFinancials({
+    segment: lead.segment,
+    credit_cost: cost,
+    availableCredits: partnerCredits,
+  })
+  const exclusiveComplementFinancials = calculateLeadComplementFinancials({
+    segment: lead.segment,
+    credit_cost: cost,
+    exclusive: true,
+    availableCredits: partnerCredits,
   })
 
   const isDemo = Boolean(lead.is_demo_preview)
@@ -287,27 +299,27 @@ export function LeadInspectionDrawer({
       <div
         ref={drawerRef}
         onClick={(e) => e.stopPropagation()}
-        className="relative flex flex-col w-full sm:max-w-[540px] h-full bg-card border-l border-border shadow-2xl overflow-hidden animate-in slide-in-from-right duration-300"
+        className="relative flex flex-col w-full sm:max-w-[540px] h-[100dvh] bg-card border-l border-border shadow-2xl overflow-hidden animate-in slide-in-from-right duration-300"
       >
-        {/* ── 1. En-tête Fixe Haute Densité ── */}
-        <div className="shrink-0 flex items-start justify-between gap-3 p-4 sm:p-5 border-b border-border bg-card">
-          <div className="flex flex-col gap-1 pr-2 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
+        {/* ── 1. En-tête Fixe Compact ── */}
+        <div className="shrink-0 flex items-start justify-between gap-2.5 px-4 py-3 sm:p-5 border-b border-border bg-card">
+          <div className="flex flex-col gap-0.5 pr-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               <span
-                className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold ${isB2B
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-secondary-foreground border border-border"
+                className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold whitespace-nowrap ${isB2B
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground border border-border"
                   }`}
               >
                 {isB2B ? "B2B • Exclusif 100%" : `B2C • ${remainingSlots}/${maxSlots} places`}
               </span>
 
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-mono text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-mono text-muted-foreground whitespace-nowrap">
                 <span className={`h-1.5 w-1.5 rounded-full ${freshness.dotClass}`} />
                 <span suppressHydrationWarning>{freshness.label}</span>
               </span>
 
-              <span className="font-mono text-[10px] text-muted-foreground/80 tabular-nums">
+              <span className="font-mono text-[10.5px] text-muted-foreground/80 tabular-nums whitespace-nowrap">
                 Ref #{lead.id ? lead.id.slice(0, 8).toUpperCase() : "SOLAR"}
               </span>
             </div>
@@ -324,7 +336,7 @@ export function LeadInspectionDrawer({
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+            className="shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
             aria-label="Fermer le panneau"
             title="Fermer le panneau (Échap)"
           >
@@ -332,36 +344,28 @@ export function LeadInspectionDrawer({
           </button>
         </div>
 
-        {/* ── 2. Corps Déroulant Haute Richesse Métier ── */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 flex flex-col gap-4 overscroll-contain">
-          {/* A. Carte Tactique avec Cercle de Floutage 3 km */}
-          <div>
-            <LeadGeoRadarMap
-              city={location.city}
-              postalCode={location.postalCode}
-              provinceLabel={location.provinceLabel}
-              isPurchased={isPurchased}
-              siteAddress={lead.site_address}
-              coords={location.coords}
-            />
-          </div>
-
-          {/* Visuels Street View / Toiture du Bâtiment (si disponible) */}
+        {/* ── 2. Corps Déroulant Mobile-First (Photos d'abord, puis Métriques, Rentabilité & Carte) ── */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-5 flex flex-col gap-3.5 sm:gap-4 overscroll-contain">
+          {/* A. Visuels Street View / Toiture du Bâtiment en priorité */}
           {activePhoto && activeRoofImageUrl && (
             <div className="rounded-xl border border-border bg-card p-3 flex flex-col gap-2 shadow-2xs">
               <div className="flex items-center justify-between gap-2">
-                <span className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-foreground uppercase tracking-wider">
-                  <Camera className="h-3.5 w-3.5 text-primary" />
-                  <span>Visuel Façade &amp; Toiture</span>
+                <span className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-foreground uppercase tracking-wider min-w-0">
+                  <Camera className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="truncate">
+                    <span className="sm:hidden">Photos du bâtiment</span>
+                    <span className="hidden sm:inline">Visuel Façade &amp; Toiture</span>
+                  </span>
                   {roofImageItems.length > 1 && (
-                    <span className="font-mono tabular-nums text-[10px] px-1.5 py-0.5 rounded bg-secondary text-foreground border border-border normal-case">
+                    <span className="font-mono tabular-nums text-[10.5px] px-1.5 py-0.5 rounded bg-secondary text-foreground border border-border normal-case shrink-0">
                       {roofImageItems.length}
                     </span>
                   )}
                 </span>
-                <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                  <CheckCircle2 className="h-3 w-3" />
-                  Dossier inspecté
+                <span className="inline-flex items-center gap-1 text-[10.5px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 whitespace-nowrap shrink-0">
+                  <CheckCircle2 className="h-3 w-3 shrink-0" />
+                  <span className="sm:hidden">Inspecté</span>
+                  <span className="hidden sm:inline">Dossier inspecté</span>
                 </span>
               </div>
 
@@ -385,9 +389,8 @@ export function LeadInspectionDrawer({
                   </span>
                 )}
                 <div
-                  className={`absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between px-3 ${
-                    activePhoto.isAiProjection ? "pb-10" : "pb-3"
-                  }`}
+                  className={`absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between px-3 ${activePhoto.isAiProjection ? "pb-10" : "pb-3"
+                    }`}
                 >
                   <span className="text-xs font-semibold text-white drop-shadow-sm flex items-center gap-1.5">
                     <Maximize2 className="h-3.5 w-3.5" />
@@ -449,11 +452,10 @@ export function LeadInspectionDrawer({
                         type="button"
                         onClick={() => setActiveImageIndex(idx)}
                         aria-label={`Afficher la photo ${idx + 1}`}
-                        className={`relative rounded-md overflow-hidden border aspect-[3/2] cursor-pointer transition-opacity ${
-                          isSelected
-                            ? "border-primary ring-1 ring-primary opacity-100"
-                            : "border-border opacity-75 hover:opacity-100"
-                        }`}
+                        className={`relative rounded-md overflow-hidden border aspect-[3/2] cursor-pointer transition-opacity ${isSelected
+                          ? "border-primary ring-1 ring-primary opacity-100"
+                          : "border-border opacity-75 hover:opacity-100"
+                          }`}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
@@ -601,11 +603,10 @@ export function LeadInspectionDrawer({
                           type="button"
                           onClick={() => setActiveImageIndex(idx)}
                           aria-label={`Afficher la photo ${idx + 1}`}
-                          className={`relative shrink-0 w-16 aspect-[3/2] rounded-md overflow-hidden border cursor-pointer transition-opacity ${
-                            isSelected
-                              ? "border-primary ring-1 ring-primary opacity-100"
-                              : "border-border opacity-70 hover:opacity-100"
-                          }`}
+                          className={`relative shrink-0 w-16 aspect-[3/2] rounded-md overflow-hidden border cursor-pointer transition-opacity ${isSelected
+                            ? "border-primary ring-1 ring-primary opacity-100"
+                            : "border-border opacity-70 hover:opacity-100"
+                            }`}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
@@ -643,36 +644,34 @@ export function LeadInspectionDrawer({
 
           {/* B. Métriques Clés en Chasse Fixe (Puissance, Facture, Production, Rentabilité) */}
           <div className="grid grid-cols-2 gap-2.5">
-            <div className="rounded-xl border border-border bg-secondary/30 p-3">
+            <div className="rounded-xl border border-border bg-secondary/30 p-3 min-w-0">
               <span className="text-[11px] text-muted-foreground uppercase tracking-wide block font-semibold">
-                Puissance Estimée
+                Puissance estimée
               </span>
               <div className="mt-1 flex items-baseline gap-1">
                 <span className="font-mono text-xl sm:text-2xl font-black text-foreground tabular-nums whitespace-nowrap">
                   {powerKwc > 0 ? powerKwc : "—"}
                 </span>
-                <span className="text-xs sm:text-sm font-semibold text-muted-foreground uppercase tracking-tight">
+                <span className="text-xs sm:text-sm font-semibold text-muted-foreground tracking-tight">
                   kWc
                 </span>
-                <span className="text-[11px] font-mono tabular-nums text-muted-foreground ml-1">
-                  ({financials.estimatedPanelCount} panneaux)
-                </span>
               </div>
-              <span className="text-[11px] text-muted-foreground font-mono tabular-nums">
+              <span className="text-[11px] text-muted-foreground font-mono tabular-nums block leading-snug mt-0.5">
+                {financials.estimatedPanelCount > 0 ? `${financials.estimatedPanelCount} panneaux · ` : ""}
                 {displaySurfaceArea > 0 ? `~${financials.usableSurfaceM2} m² utiles (${displaySurfaceArea} m² bruts)` : "Surface à dimensionner"}
               </span>
             </div>
 
-            <div className="rounded-xl border border-border bg-secondary/30 p-3">
+            <div className="rounded-xl border border-border bg-secondary/30 p-3 min-w-0">
               <span className="text-[11px] text-muted-foreground uppercase tracking-wide block font-semibold">
                 Facture / Conso
               </span>
               <div className="mt-1 flex items-baseline gap-1">
-                <span className="font-mono text-lg font-bold text-foreground tabular-nums whitespace-nowrap">
-                  {displayAnnualBill > 0 ? `${displayAnnualBill.toLocaleString("fr-BE")} €/an` : (isB2B ? "Facture pro" : "Non communiquée")}
+                <span className="font-mono text-lg sm:text-xl font-bold text-foreground tabular-nums whitespace-nowrap">
+                  {displayAnnualBill > 0 ? `${displayAnnualBill.toLocaleString("fr-BE")} €/an` : (isB2B ? "Facture pro" : "À préciser")}
                 </span>
               </div>
-              <span className="text-[11px] text-muted-foreground font-mono tabular-nums">
+              <span className="text-[11px] text-muted-foreground font-mono tabular-nums block leading-snug mt-0.5">
                 ≈ {financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh/an ({isB2B ? "HT" : "TTC"})
               </span>
             </div>
@@ -680,20 +679,20 @@ export function LeadInspectionDrawer({
 
           {/* C. Estimation Financière, Rentabilité Client & Marge Installateur */}
           <div className="rounded-xl border border-border bg-secondary/50 p-3.5 flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-foreground">Dimensionnement &amp; Rentabilité Estimée</span>
-              <span className="text-[11px] font-mono tabular-nums text-muted-foreground">Marché Wallonie 2026</span>
+            <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+              <span className="text-xs font-bold text-foreground">Dimensionnement &amp; Rentabilité</span>
+              <span className="text-[11px] font-mono tabular-nums text-muted-foreground whitespace-nowrap">Wallonie 2026</span>
             </div>
 
             <div className="grid grid-cols-2 gap-2.5 pt-1.5 border-t border-border text-xs">
               <div>
                 <span className="text-muted-foreground text-[11px] block">Devis HT estimé</span>
                 <span className="font-mono font-bold text-foreground tabular-nums">
-                  {formatRoundedCurrency(financials.estimatedContractValueRange.min).replace("~", "")} à {formatRoundedCurrency(financials.estimatedContractValueRange.max).replace("~", "")}
+                  {formatRoundedCurrency(financials.estimatedContractValueRange.min).replace("~", "").replace(/\s*€\s*HT$/i, "").trim()} à {formatRoundedCurrency(financials.estimatedContractValueRange.max).replace("~", "")}
                 </span>
               </div>
               <div>
-                <span className="text-muted-foreground text-[11px] block">Marge brute installateur ({financials.installerMarginPercent} %)</span>
+                <span className="text-muted-foreground text-[11px] block">Marge brute ({financials.installerMarginPercent} %)</span>
                 <span className="font-mono font-bold text-accent tabular-nums">
                   {formatRoundedCurrency(financials.estimatedInstallerMargin)}
                 </span>
@@ -711,6 +710,18 @@ export function LeadInspectionDrawer({
                 </span>
               </div>
             </div>
+          </div>
+
+          {/* C2. Carte Tactique avec Cercle de Floutage 3 km */}
+          <div>
+            <LeadGeoRadarMap
+              city={location.city}
+              postalCode={location.postalCode}
+              provinceLabel={location.provinceLabel}
+              isPurchased={isPurchased}
+              siteAddress={lead.site_address}
+              coords={location.coords}
+            />
           </div>
 
           {/* Attribution des places B2C */}
@@ -929,8 +940,8 @@ export function LeadInspectionDrawer({
                     <div
                       key={item.title}
                       className={`rounded-lg border px-2.5 py-2 flex flex-col gap-1 ${item.badge.tier === "verified"
-                          ? "border-emerald-500/25 bg-emerald-500/5"
-                          : "border-border bg-secondary/35"
+                        ? "border-emerald-500/25 bg-emerald-500/5"
+                        : "border-border bg-secondary/35"
                         }`}
                     >
                       <div className="flex items-center justify-between gap-1.5">
@@ -939,8 +950,8 @@ export function LeadInspectionDrawer({
                         </span>
                         <span
                           className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${item.badge.tier === "verified"
-                              ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
-                              : "bg-secondary text-muted-foreground border border-border"
+                            ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                            : "bg-secondary text-muted-foreground border border-border"
                             }`}
                         >
                           {item.badge.tier === "verified" ? "Vérifié" : "À confirmer"}
@@ -1045,8 +1056,8 @@ export function LeadInspectionDrawer({
                     <span
                       title={verificationSummary.phone.detailLabel || undefined}
                       className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${verificationSummary.phone.tier === "verified"
-                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
-                          : "bg-secondary text-muted-foreground border border-border"
+                        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                        : "bg-secondary text-muted-foreground border border-border"
                         }`}
                     >
                       {verificationSummary.phone.compactLabel}
@@ -1089,32 +1100,29 @@ export function LeadInspectionDrawer({
                 size="sm"
                 variant="outline"
                 onClick={() => onRequestExpert(lead)}
-                className="w-full h-8 text-xs font-bold border-accent/40 bg-card hover:bg-accent/10 text-foreground cursor-pointer gap-1.5 shadow-2xs"
+                className="w-full h-auto min-h-[40px] py-2 px-3 whitespace-normal text-center leading-snug text-xs font-bold border-accent/40 bg-card hover:bg-accent/10 text-foreground cursor-pointer gap-1.5 shadow-2xs"
               >
-                <Sparkles className="h-3.5 w-3.5 text-accent" />
-                <span>Solliciter un expert pour ce dossier (% projet à négocier)</span>
+                <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
+                <span>Solliciter un expert (% projet à négocier)</span>
               </Button>
             )}
           </div>
         </div>
 
-        {/* ── 3. Pied Fixe Compact & Hiérarchisé (Adapté au tiroir 540px et mobile) ── */}
-        <div className="shrink-0 border-t border-border bg-card p-3.5 sm:px-5 sm:py-4 [padding-bottom:max(1rem,env(safe-area-inset-bottom))] flex flex-col gap-2.5 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+        {/* ── 3. Pied Fixe Compact 2 Niveaux (Zone de lecture maximisée sur mobile) ── */}
+        <div className="shrink-0 border-t border-border bg-card px-3.5 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5 sm:py-4 flex flex-col gap-2 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
           {/* Rangée 1 : Synthèse tarifaire nette sur 1 ligne */}
           {!isPurchased ? (
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-              <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 min-w-0">
-                <span className="font-mono text-xl font-black text-foreground tabular-nums">
-                  {cost}
+            <div className="flex items-baseline justify-between gap-2">
+              <div className="flex items-baseline gap-1 min-w-0 font-mono tabular-nums">
+                <span className="text-sm sm:text-lg font-black text-foreground whitespace-nowrap">
+                  {cost} cr.
                 </span>
-                <span className="text-xs font-bold text-muted-foreground">
-                  crédit{cost > 1 ? "s" : ""}
-                </span>
-                <span className="text-xs text-muted-foreground">· ou</span>
-                <span className="font-mono text-sm sm:text-base font-extrabold text-foreground tabular-nums whitespace-nowrap">
+                <span className="font-sans text-[11px] text-muted-foreground">·</span>
+                <span className="text-sm sm:text-base font-extrabold text-foreground whitespace-nowrap">
                   {directFinancials.priceHtva.toFixed(2).replace(".", ",")} € HT
                 </span>
-                <span className="text-[11px] font-mono text-muted-foreground tabular-nums whitespace-nowrap">
+                <span className="hidden min-[380px]:inline text-[11px] text-muted-foreground whitespace-nowrap">
                   ({directFinancials.priceTtc.toFixed(2).replace(".", ",")} € TTC)
                 </span>
               </div>
@@ -1143,18 +1151,64 @@ export function LeadInspectionDrawer({
             </div>
           )}
 
-          {/* Rangée 2 : Actions empilées proprement (zéro écrasement / zéro bouton coupé) */}
+          {/* Rangée 2 + 3 : CTA principal + actions secondaires côte à côte dès mobile */}
           {!isPurchased && (
-            <div className="flex flex-col gap-2 w-full">
+            <div className="flex flex-col gap-1.5 sm:gap-2 w-full">
               {isDemo ? (
-                <Button
-                  variant="default"
-                  onClick={() => onPurchase(lead)}
-                  className="font-bold h-11 w-full px-4 text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm"
-                >
-                  <Unlock className="h-4 w-4 mr-1.5 shrink-0" />
-                  <span>Débloquer ce dossier ({cost} crédits)</span>
-                </Button>
+                <>
+                  <Button
+                    variant="default"
+                    onClick={() => onPurchase(lead, { exclusive: false, paymentMode: "credits" })}
+                    className="font-bold h-11 w-full px-4 text-xs sm:text-[13px] bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm"
+                  >
+                    <Unlock className="h-4 w-4 mr-1.5 shrink-0" />
+                    <span>
+                      Débloquer ce dossier (
+                      <span className="font-mono tabular-nums">{cost}</span> crédit
+                      {cost > 1 ? "s" : ""})
+                    </span>
+                  </Button>
+
+                  <div
+                    className={`grid gap-2 ${canTakeExclusiveB2C ? "grid-cols-2" : "grid-cols-1"
+                      }`}
+                  >
+                    <Button
+                      variant="outline"
+                      type="button"
+                      onClick={() => onPurchase(lead, { exclusive: false, paymentMode: "direct" })}
+                      className="font-bold h-10 px-2.5 sm:px-3 text-xs border-border hover:bg-secondary cursor-pointer w-full shadow-2xs"
+                      title="Payer directement en euros par Bancontact/Carte sans débiter vos crédits"
+                    >
+                      <CreditCard className="h-3.5 w-3.5 mr-1 text-accent shrink-0" />
+                      <span className="truncate font-mono tabular-nums sm:hidden">
+                        {directFinancials.priceHtva.toFixed(2).replace(".", ",")} € HT
+                      </span>
+                      <span className="hidden sm:inline truncate font-mono tabular-nums">
+                        Payer {directFinancials.priceHtva.toFixed(2).replace(".", ",")} € HT
+                      </span>
+                    </Button>
+
+                    {canTakeExclusiveB2C && (
+                      <Button
+                        variant="outline"
+                        type="button"
+                        onClick={() => onPurchase(lead, { exclusive: true, paymentMode: "exclusive" })}
+                        className="font-bold h-10 px-2.5 sm:px-3 text-xs border-[var(--aegis-availability-text)]/35 bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] hover:bg-[var(--aegis-availability-bg)]/80 cursor-pointer w-full shadow-2xs"
+                        title="Réserver ce dossier B2C pour vous seul (0 concurrent + e-mail prioritaire au prospect)"
+                      >
+                        <ShieldCheck className="h-3.5 w-3.5 mr-1 shrink-0" />
+                        <span className="truncate sm:hidden font-mono tabular-nums">
+                          Exclusif ({B2C_EXCLUSIVE_CREDIT_COST} cr.)
+                        </span>
+                        <span className="hidden sm:inline truncate">
+                          Exclusivité 100 % (<span className="font-mono tabular-nums">{B2C_EXCLUSIVE_CREDIT_COST}</span> cr. ·{" "}
+                          <span className="font-mono tabular-nums">{B2C_EXCLUSIVE_PRICE_EUR.toFixed(0)}</span> € HT)
+                        </span>
+                      </Button>
+                    )}
+                  </div>
+                </>
               ) : hasEnoughCredits ? (
                 <>
                   <Button
@@ -1183,8 +1237,7 @@ export function LeadInspectionDrawer({
                   </Button>
 
                   <div
-                    className={`grid gap-2 ${canTakeExclusiveB2C ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
-                      }`}
+                    className={`grid gap-2 ${canTakeExclusiveB2C ? "grid-cols-2" : "grid-cols-1"}`}
                   >
                     <Button
                       variant="outline"
@@ -1194,11 +1247,14 @@ export function LeadInspectionDrawer({
                         setDirectPayExclusive(false)
                         setIsDirectPayOpen(true)
                       }}
-                      className="font-bold h-9.5 px-3 text-xs border-border hover:bg-secondary cursor-pointer w-full shadow-2xs"
+                      className="font-bold h-10 gap-1 sm:gap-1.5 px-2 sm:px-3 text-[11.5px] sm:text-xs border-border hover:bg-secondary cursor-pointer w-full shadow-2xs"
                       title="Payer directement en euros par Bancontact/Carte sans débiter vos crédits"
                     >
-                      <CreditCard className="h-3.5 w-3.5 mr-1.5 text-accent shrink-0" />
-                      <span className="truncate font-mono tabular-nums">
+                      <CreditCard className="h-3.5 w-3.5 text-accent shrink-0" />
+                      <span className="font-mono tabular-nums whitespace-nowrap sm:hidden">
+                        {directFinancials.priceHtva.toFixed(2).replace(".", ",")} € HT
+                      </span>
+                      <span className="hidden sm:inline truncate font-mono tabular-nums">
                         Payer {directFinancials.priceHtva.toFixed(2).replace(".", ",")} € HT
                       </span>
                     </Button>
@@ -1218,11 +1274,14 @@ export function LeadInspectionDrawer({
                             setIsDirectPayOpen(true)
                           }
                         }}
-                        className="font-bold h-9.5 px-3 text-xs border-[var(--aegis-availability-text)]/35 bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] hover:bg-[var(--aegis-availability-bg)]/80 cursor-pointer w-full shadow-2xs"
+                        className="font-bold h-10 gap-1 sm:gap-1.5 px-2 sm:px-3 text-[11.5px] sm:text-xs border-[var(--aegis-availability-text)]/35 bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] hover:bg-[var(--aegis-availability-bg)]/80 cursor-pointer w-full shadow-2xs"
                         title="Réserver ce dossier B2C pour vous seul (0 concurrent + e-mail prioritaire au prospect)"
                       >
-                        <ShieldCheck className="h-3.5 w-3.5 mr-1.5 shrink-0" />
-                        <span className="truncate">
+                        <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                        <span className="sm:hidden font-mono tabular-nums whitespace-nowrap">
+                          Exclusif · {B2C_EXCLUSIVE_CREDIT_COST} cr.
+                        </span>
+                        <span className="hidden sm:inline truncate">
                           Exclusivité 100 % (<span className="font-mono tabular-nums">{B2C_EXCLUSIVE_CREDIT_COST}</span> cr. ·{" "}
                           <span className="font-mono tabular-nums">{B2C_EXCLUSIVE_PRICE_EUR.toFixed(0)}</span> € HT)
                         </span>
@@ -1244,17 +1303,30 @@ export function LeadInspectionDrawer({
                   >
                     <CreditCard className="h-4 w-4 shrink-0" />
                     <span>
-                      Payer{" "}
-                      <span className="font-mono tabular-nums">
-                        {directFinancials.priceHtva.toFixed(2).replace(".", ",")} € HT
-                      </span>{" "}
-                      en direct
+                      {complementFinancials.isHybrid ? (
+                        <>
+                          Utiliser{" "}
+                          <span className="font-mono tabular-nums">{complementFinancials.creditsToDebit}</span>{" "}
+                          cr. + compléter (
+                          <span className="font-mono tabular-nums">
+                            {complementFinancials.priceHtva.toFixed(2).replace(".", ",")} € HT
+                          </span>
+                          )
+                        </>
+                      ) : (
+                        <>
+                          Payer{" "}
+                          <span className="font-mono tabular-nums">
+                            {directFinancials.priceHtva.toFixed(2).replace(".", ",")} € HT
+                          </span>{" "}
+                          en direct
+                        </>
+                      )}
                     </span>
                   </Button>
 
                   <div
-                    className={`grid gap-2 ${canTakeExclusiveB2C ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
-                      }`}
+                    className={`grid gap-2 ${canTakeExclusiveB2C ? "grid-cols-2" : "grid-cols-1"}`}
                   >
                     <Button
                       variant="outline"
@@ -1263,10 +1335,11 @@ export function LeadInspectionDrawer({
                         recordUnlockIntent("insufficient_credits")
                         onRequestTopUp()
                       }}
-                      className="font-bold h-9.5 px-3 text-xs border-border hover:bg-secondary cursor-pointer w-full shadow-2xs"
+                      className="font-bold h-10 gap-1 sm:gap-1.5 px-2 sm:px-3 text-[11.5px] sm:text-xs border-border hover:bg-secondary cursor-pointer w-full shadow-2xs"
                     >
-                      <Coins className="h-3.5 w-3.5 mr-1.5 text-accent shrink-0" />
-                      <span className="truncate">Recharger des crédits</span>
+                      <Coins className="h-3.5 w-3.5 text-accent shrink-0" />
+                      <span className="sm:hidden whitespace-nowrap">Recharger</span>
+                      <span className="hidden sm:inline truncate">Recharger des crédits</span>
                     </Button>
 
                     {canTakeExclusiveB2C && (
@@ -1278,12 +1351,27 @@ export function LeadInspectionDrawer({
                           setDirectPayExclusive(true)
                           setIsDirectPayOpen(true)
                         }}
-                        className="font-bold h-9.5 px-3 text-xs border-[var(--aegis-availability-text)]/35 bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] hover:bg-[var(--aegis-availability-bg)]/80 cursor-pointer w-full shadow-2xs"
+                        className="font-bold h-10 gap-1 sm:gap-1.5 px-2 sm:px-3 text-[11.5px] sm:text-xs border-[var(--aegis-availability-text)]/35 bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] hover:bg-[var(--aegis-availability-bg)]/80 cursor-pointer w-full shadow-2xs"
                         title="Réserver ce dossier B2C pour vous seul (0 concurrent + e-mail prioritaire au prospect)"
                       >
-                        <ShieldCheck className="h-3.5 w-3.5 mr-1.5 shrink-0" />
-                        <span className="truncate">
-                          Exclusivité 100 % (<span className="font-mono tabular-nums">{B2C_EXCLUSIVE_PRICE_EUR.toFixed(0)}</span> € HT)
+                        <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                        <span className="sm:hidden font-mono tabular-nums whitespace-nowrap">
+                          Exclusif · {B2C_EXCLUSIVE_PRICE_EUR.toFixed(0)} €
+                        </span>
+                        <span className="hidden sm:inline truncate">
+                          {exclusiveComplementFinancials.isHybrid ? (
+                            <>
+                              Exclusivité ({exclusiveComplementFinancials.creditsToDebit} cr. +{" "}
+                              <span className="font-mono tabular-nums">
+                                {exclusiveComplementFinancials.priceHtva.toFixed(2).replace(".", ",")} € HT
+                              </span>
+                              )
+                            </>
+                          ) : (
+                            <>
+                              Exclusivité 100 % (<span className="font-mono tabular-nums">{B2C_EXCLUSIVE_PRICE_EUR.toFixed(0)}</span> € HT)
+                            </>
+                          )}
                         </span>
                       </Button>
                     )}

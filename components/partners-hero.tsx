@@ -9,7 +9,8 @@ import {
   Zap,
   Home,
   Users2,
-  FileText,
+  Camera,
+  Coins,
   MapPin,
   Play,
 } from "lucide-react"
@@ -36,6 +37,9 @@ const itemVariants = {
   },
 }
 
+const HERO_LAMBERMONT_THUMB =
+  "https://fvvdfhbqojtnnqsrthwl.supabase.co/storage/v1/object/public/lead-media/leads/867f78cd-1f86-4111-9522-efa52170902c/1795299964674-0-c07938b9.jpeg"
+
 export function PartnersHero() {
   const scrollToCandidature = () => {
     const element = document.getElementById("candidature")
@@ -54,7 +58,7 @@ export function PartnersHero() {
 
   const scrollToB2CLead = (e: React.MouseEvent) => {
     e.preventDefault()
-    const b2cCard = document.getElementById("lead-demo-b2c-1")
+    const b2cCard = document.getElementById("lead-demo-b2c-liege")
     if (b2cCard) {
       b2cCard.scrollIntoView({ behavior: "smooth", block: "center" })
       setTimeout(() => {
@@ -81,7 +85,7 @@ export function PartnersHero() {
         maskGradient="none"
       />
 
-      {/* Cinematic gradient overlays to guarantee pristine contrast on text while preserving the golden sunset & engineers */}
+      {/* Cinematic gradient overlays to guarantee pristine contrast on text */}
       <div
         className="pointer-events-none select-none absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/75 to-slate-950/20 sm:via-slate-950/65 sm:to-transparent"
         aria-hidden
@@ -99,7 +103,7 @@ export function PartnersHero() {
         aria-hidden
       />
 
-      {/* Floating Live Lead Pin (Desktop: 100% fidèle à la maquette de référence, responsive tous écrans) */}
+      {/* Floating Live Lead Pin (Desktop) */}
       <div className="hidden lg:block absolute inset-0 pointer-events-none z-15 overflow-hidden">
         <motion.div
           initial={{ opacity: 0, scale: 0.92, y: 12 }}
@@ -111,21 +115,21 @@ export function PartnersHero() {
             top: "clamp(3rem, 9.5%, 5.5rem)",
           }}
         >
-          {/* Carte Flottante Détachée Interactive (Redirige vers l'exemple B2C au clic) */}
+          {/* Carte Flottante Détachée Interactive */}
           <a
-            href="#lead-demo-b2c-1"
+            href="#lead-demo-b2c-liege"
             onClick={scrollToB2CLead}
             role="button"
             tabIndex={0}
-            aria-label="Inspecter l'exemple de chantier B2C dans la marketplace"
-            title="Cliquer pour inspecter ce chantier B2C dans la marketplace"
-            className="group/card relative z-10 flex items-center gap-3 rounded-[20px] border border-white/15 bg-primary/80 p-3 backdrop-blur-md shadow-xs w-[275px] hover:border-blue-400/50 hover:bg-primary/95 hover:shadow-sm hover:scale-[1.03] active:scale-[0.98] transition-all duration-300 cursor-pointer text-left block"
+            aria-label="Inspecter l'exemple de chantier B2C à Lambermont (4800) dans la marketplace"
+            title="Cliquer pour inspecter ce dossier réel (photo + vue 3D + SMS vérifié)"
+            className="group/card relative z-10 flex items-center gap-3 rounded-[20px] border border-white/15 bg-primary/85 p-3 backdrop-blur-md shadow-xs w-[290px] hover:border-accent/60 hover:bg-primary/95 hover:shadow-sm hover:scale-[1.03] active:scale-[0.98] transition-all duration-300 cursor-pointer text-left block"
           >
-            {/* Vignette Photo Haute Résolution (200x200 crop retina) */}
-            <div className="relative h-[68px] w-[68px] shrink-0 overflow-hidden rounded-xl border border-white/10 bg-slate-900 shadow-inner">
+            {/* Vignette Photo Réelle */}
+            <div className="relative h-[68px] w-[68px] shrink-0 overflow-hidden rounded-xl border border-white/15 bg-slate-900 shadow-inner">
               <Image
-                src="/solar/namur-unifamiliale-thumb.webp"
-                alt="Chantier solaire unifamilial à Namur"
+                src={HERO_LAMBERMONT_THUMB}
+                alt="Photo réelle chantier solaire à Lambermont (4800)"
                 fill
                 sizes="68px"
                 className="object-cover transition-transform duration-500 group-hover/card:scale-105"
@@ -135,44 +139,40 @@ export function PartnersHero() {
 
             {/* Données Métier du Chantier */}
             <div className="flex flex-col justify-center min-w-0 pr-0.5 gap-0.5">
-              {/* Badge Statut avec point vert pulsant */}
               <div className="flex items-center gap-1.5">
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-2xs" />
                 </span>
                 <span className="text-[11px] font-semibold tracking-wide text-emerald-400">
-                  Chantier en cours
+                  Tél. SMS + Vue 3D
                 </span>
               </div>
 
-              {/* Type de Bâtiment */}
-              <h3 className="text-[14px] sm:text-[15px] font-bold text-white tracking-tight leading-tight truncate group-hover/card:text-blue-300 transition-colors">
-                Maison unifamiliale
+              <h3 className="text-[14px] sm:text-[15px] font-bold text-white tracking-tight leading-tight truncate group-hover/card:text-accent transition-colors">
+                Maison · Photo &amp; 3D
               </h3>
 
-              {/* Localisation & Code Postal */}
               <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-slate-300">
                 <MapPin className="h-3.5 w-3.5 text-accent fill-accent/25 shrink-0" />
                 <span className="truncate">
-                  Namur (<span className="font-mono tabular-nums">5000</span>)
+                  Lambermont (<span className="font-mono tabular-nums">4800</span>)
                 </span>
               </div>
 
-              {/* Puissance Nominale */}
               <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-slate-200">
                 <Zap className="h-3.5 w-3.5 text-accent fill-accent shrink-0" />
                 <span className="font-mono tabular-nums font-bold text-white">
-                  9,6
+                  4,8
                 </span>
                 <span className="font-mono text-slate-300 text-[11px] font-medium">
-                  kWc
+                  kWc · <span className="tabular-nums">0/3</span> ou Exclusif
                 </span>
               </div>
             </div>
           </a>
 
-          {/* Ligne Courbe SVG reliant la carte au panneau solaire */}
+          {/* Ligne Courbe SVG */}
           <svg
             className="absolute inset-0 pointer-events-none overflow-visible z-0"
             style={{ width: "370px", height: "175px" }}
@@ -181,14 +181,14 @@ export function PartnersHero() {
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
-              d="M 275 49 C 315 49, 355 90, 370 170"
+              d="M 290 49 C 325 49, 355 90, 370 170"
               stroke="rgba(255, 255, 255, 0.55)"
               strokeWidth="1.5"
               strokeLinecap="round"
             />
           </svg>
 
-          {/* Point Chaud (Hotspot Pinpoint) sur les panneaux solaires */}
+          {/* Hotspot */}
           <div className="absolute left-[370px] top-[170px] -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10">
             <div className="relative flex h-7 w-7 items-center justify-center">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full border border-white/50 bg-white/20 opacity-60 duration-1000" />
@@ -213,7 +213,7 @@ export function PartnersHero() {
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/35 px-3.5 py-1.5 shadow-sm backdrop-blur-md">
               <ShieldCheck className="h-4 w-4 shrink-0 text-amber-400" />
               <span className="text-xs sm:text-[13px] font-medium tracking-wide text-white/95">
-                Réseau officiel des installateurs certifiés RESCERT Wallonie
+                Réseau officiel des installateurs certifiés RESCERT Wallonie &amp; Bruxelles
               </span>
             </div>
           </motion.div>
@@ -233,12 +233,16 @@ export function PartnersHero() {
             variants={itemVariants}
             className="mt-5 max-w-2xl 2xl:max-w-3xl text-pretty text-sm sm:text-base lg:text-[16px] 2xl:text-[17px] font-light leading-relaxed text-slate-200"
           >
-            Accédez à un flux continu de chantiers qualifiés sans démarchage à froid.
+            Inspectez photos réelles, vue 3D du toit et preuve téléphone SMS (OTP) avant de payer.{" "}
+            <strong className="font-semibold text-white">B2B 100 % exclusif</strong> (dès{" "}
+            <span className="font-mono tabular-nums">59 € HT</span>) et{" "}
+            <strong className="font-semibold text-white">B2C transparent</strong> (max{" "}
+            <span className="font-mono tabular-nums">3</span> dès{" "}
+            <span className="font-mono tabular-nums">19,50 € HT</span>, ou{" "}
+            <strong className="font-semibold text-white">Exclusivité Totale à 65 € HT</strong> rien que pour vous).
             <br className="hidden sm:inline" />
-            <strong className="font-semibold text-white">B2B 100% exclusif</strong> (dès 6 crédits / 59 € HT) et{" "}
-            <strong className="font-semibold text-white">B2C transparent</strong>
-            <br className="hidden sm:inline" />
-            (dès 2 crédits / 19,50 € HT · Exclusivité Totale 7 cr.). Packs jusqu&apos;à -24 % · Zéro abonnement forcé.
+            À l&apos;unité Bancontact, complément en euros (zéro crédit bloqué) ou packs jusqu&apos;à{" "}
+            <span className="font-mono tabular-nums font-semibold text-white">-24 %</span> · Zéro abonnement.
           </motion.p>
 
           {/* Action CTAs */}
@@ -246,17 +250,15 @@ export function PartnersHero() {
             variants={itemVariants}
             className="mt-7 sm:mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 sm:gap-4"
           >
-            {/* Primary CTA Button */}
             <Button
               onClick={scrollToCandidature}
               className="h-12 sm:h-13 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground font-bold px-6 sm:px-7 text-sm sm:text-base shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer border-0"
             >
               <ShieldCheck className="h-4 w-4 shrink-0" />
-              <span>Postuler au réseau RESCERT (Gratuit)</span>
+              <span>Activer mon accès gratuit (3 cr. offerts)</span>
               <ArrowRight className="h-4 w-4 shrink-0" />
             </Button>
 
-            {/* Secondary CTA Button (Glass pill) */}
             <a
               href="#apercu"
               onClick={scrollToOverview}
@@ -265,7 +267,7 @@ export function PartnersHero() {
               <div className="flex h-5 w-5 items-center justify-center rounded-full border border-white/40 shrink-0">
                 <Play className="h-2.5 w-2.5 fill-white text-white ml-0.5" />
               </div>
-              <span>Découvrir le fonctionnement</span>
+              <span>Explorer de vrais dossiers</span>
             </a>
           </motion.div>
 
@@ -279,7 +281,7 @@ export function PartnersHero() {
                 €
               </span>
               <span className="whitespace-nowrap">
-                <span className="font-mono tabular-nums">0 €</span> de frais fixes &amp; zéro abonnement forcé
+                <span className="font-mono tabular-nums">0 €</span> d&apos;abonnement · Complément en € autorisé
               </span>
             </div>
             <div className="inline-flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -287,7 +289,7 @@ export function PartnersHero() {
                 <Check className="h-3 w-3 stroke-[2.5]" />
               </span>
               <span className="whitespace-nowrap">
-                Audit toiture &amp; TVA vérifiés sous <span className="font-mono tabular-nums">48 h</span>
+                Tél. SMS (OTP), SPW ICAR &amp; vue 3D avant achat
               </span>
             </div>
             <div className="inline-flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -295,68 +297,64 @@ export function PartnersHero() {
                 <Zap className="h-3 w-3 fill-white" />
               </span>
               <span className="whitespace-nowrap">
-                Remplacement garanti si prospect injoignable sous <span className="font-mono tabular-nums">7 j</span>
+                Recrédit <span className="font-mono tabular-nums">24 h</span> si injoignable sous <span className="font-mono tabular-nums">7 j</span>
               </span>
             </div>
           </motion.div>
         </motion.div>
 
-        {/* Bottom Floating Glass Dock / Banner (Light Fintech Slate Card) */}
+        {/* Bottom Floating Dock */}
         <motion.div
           variants={itemVariants}
           initial="hidden"
           animate="visible"
-          className="mt-10 sm:mt-12 w-full rounded-2xl sm:rounded-3xl border border-neutral-200/90 bg-white/95 backdrop-blur-xl p-4 sm:p-5 lg:p-6 shadow-sm"
+          className="mt-10 sm:mt-12 w-full rounded-2xl sm:rounded-3xl border border-border bg-card/95 backdrop-blur-xl p-4 sm:p-5 lg:p-6 shadow-sm"
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 2xl:gap-8 divide-y sm:divide-y-0 sm:divide-x divide-neutral-200/80">
-            {/* Colonne 1 : 100% Exclusif */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 2xl:gap-8 divide-y sm:divide-y-0 sm:divide-x divide-border">
             <div className="flex items-center gap-3.5 sm:px-3 first:pl-0">
               <Users2 className="h-7 w-7 sm:h-8 sm:w-8 text-accent shrink-0" />
               <div>
-                <p className="text-base sm:text-[17px] font-bold text-neutral-900 tracking-tight font-heading">
-                  <span className="font-mono tabular-nums">100%</span> Exclusif
+                <p className="text-base sm:text-[17px] font-bold text-foreground tracking-tight font-heading">
+                  <span className="font-mono tabular-nums">100 %</span> Exclusif
                 </p>
-                <p className="text-xs text-neutral-600">
-                  B2B : <span className="font-mono tabular-nums font-medium text-neutral-800">1 seul</span> installateur par projet
+                <p className="text-xs text-muted-foreground">
+                  B2B <span className="font-mono tabular-nums font-medium text-foreground">1:1</span> &amp; option B2C rien que pour vous
                 </p>
               </div>
             </div>
 
-            {/* Colonne 2 : Max 3 devis */}
             <div className="flex items-center gap-3.5 pt-3 sm:pt-0 sm:px-4">
               <Home className="h-7 w-7 sm:h-8 sm:w-8 text-accent shrink-0" />
               <div>
-                <p className="text-base sm:text-[17px] font-bold text-neutral-900 tracking-tight font-heading">
+                <p className="text-base sm:text-[17px] font-bold text-foreground tracking-tight font-heading">
                   Max <span className="font-mono tabular-nums">3</span> devis
                 </p>
-                <p className="text-xs text-neutral-600">
-                  B2C : Transparence &amp; concurrence limitée
+                <p className="text-xs text-muted-foreground">
+                  En B2C partagé, places visibles en direct
                 </p>
               </div>
             </div>
 
-            {/* Colonne 3 : 524 kWc disponibles */}
             <div className="flex items-center gap-3.5 pt-3 sm:pt-0 sm:px-4">
-              <FileText className="h-7 w-7 sm:h-8 sm:w-8 text-accent shrink-0" />
+              <Camera className="h-7 w-7 sm:h-8 sm:w-8 text-accent shrink-0" />
               <div>
-                <p className="text-base sm:text-[17px] font-bold text-neutral-900 tracking-tight font-heading">
-                  <span className="font-mono tabular-nums">524 kWc</span> disponibles
+                <p className="text-base sm:text-[17px] font-bold text-foreground tracking-tight font-heading">
+                  Photos + Vue 3D
                 </p>
-                <p className="text-xs text-neutral-600">
-                  <span className="font-mono tabular-nums font-medium text-neutral-800">28</span> chantiers ouverts en direct
+                <p className="text-xs text-muted-foreground">
+                  Toiture, SMS OTP &amp; adresse SPW ICAR
                 </p>
               </div>
             </div>
 
-            {/* Colonne 4 : Couverture Wallonie */}
             <div className="flex items-center gap-3.5 pt-3 sm:pt-0 sm:px-4">
-              <MapPin className="h-7 w-7 sm:h-8 sm:w-8 text-accent shrink-0" />
+              <Coins className="h-7 w-7 sm:h-8 sm:w-8 text-accent shrink-0" />
               <div>
-                <p className="text-base sm:text-[17px] font-bold text-neutral-900 tracking-tight font-heading">
-                  Couverture Wallonie
+                <p className="text-base sm:text-[17px] font-bold text-foreground tracking-tight font-heading">
+                  Zéro crédit bloqué
                 </p>
-                <p className="text-xs text-neutral-600">
-                  Particuliers &amp; professionnels qualifiés
+                <p className="text-xs text-muted-foreground">
+                  À l&apos;unité, complément en € ou packs <span className="font-mono tabular-nums">-24 %</span>
                 </p>
               </div>
             </div>
@@ -366,4 +364,3 @@ export function PartnersHero() {
     </section>
   )
 }
-

@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server"
 import { getPartner } from "@/lib/partner-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { createLeadDirectPayment, ensureMollieCustomer } from "@/lib/mollie"
-import { calculateLeadDirectFinancials } from "@/lib/credit-pricing"
+import {
+  calculateLeadComplementFinancials,
+  calculateLeadDirectFinancials,
+} from "@/lib/credit-pricing"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 import { isShowcaseOnlyLeadId } from "@/lib/regional-leads-catalog"
 
@@ -43,7 +46,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     )
   }
 
-  let body: { exclusive?: boolean; enableOneClick?: boolean } = {}
+  let body: { exclusive?: boolean; enableOneClick?: boolean; usePartialCredits?: boolean } = {}
   try {
     const raw = await request.text()
     if (raw) body = JSON.parse(raw)
@@ -52,6 +55,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
   }
   const exclusive = Boolean(body?.exclusive)
   const enableOneClick = Boolean(body?.enableOneClick)
+  const usePartialCredits = Boolean(body?.usePartialCredits)
 
   const supabase = createServiceRoleClient()
 
@@ -128,22 +132,51 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     )
   }
 
-  // 4. Calcul arithmétique exact du montant en euros
-  const financials = calculateLeadDirectFinancials({
+  // 4. Récupérer le solde live & calculer le montant (plein ou complément hybride)
+  const { data: partnerRow } = await supabase
+    .from("partners")
+    .select("credits, mollie_customer_id")
+    .eq("id", partner.id)
+    .maybeSingle()
+
+  const livePartnerCredits = Math.max(0, Number((partnerRow as any)?.credits ?? 0))
+  const fullFinancials = calculateLeadDirectFinancials({
     segment: lead.segment,
     credit_cost: lead.credit_cost,
     exclusive,
   })
+  const complementFinancials = usePartialCredits
+    ? calculateLeadComplementFinancials({
+        segment: lead.segment,
+        credit_cost: lead.credit_cost,
+        exclusive,
+        availableCredits: livePartnerCredits,
+      })
+    : null
+  const isHybrid = Boolean(complementFinancials?.isHybrid && complementFinancials.creditsToDebit > 0)
+  const financials = isHybrid && complementFinancials
+    ? {
+        credits: complementFinancials.totalCredits,
+        priceHtva: complementFinancials.priceHtva,
+        vatAmount: complementFinancials.vatAmount,
+        priceTtc: complementFinancials.priceTtc,
+        creditsToDebit: complementFinancials.creditsToDebit,
+        totalCredits: complementFinancials.totalCredits,
+        isHybrid: true,
+      }
+    : {
+        credits: fullFinancials.credits,
+        priceHtva: fullFinancials.priceHtva,
+        vatAmount: fullFinancials.vatAmount,
+        priceTtc: fullFinancials.priceTtc,
+        creditsToDebit: 0,
+        totalCredits: fullFinancials.credits,
+        isHybrid: false,
+      }
 
   let mollieCustomerId: string | null = null
   if (enableOneClick) {
     try {
-      const { data: partnerRow } = await supabase
-        .from("partners")
-        .select("mollie_customer_id")
-        .eq("id", partner.id)
-        .maybeSingle()
-
       mollieCustomerId = await ensureMollieCustomer({
         partnerId: partner.id,
         partnerEmail: partner.email,
@@ -181,6 +214,9 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       priceHtva: financials.priceHtva,
       vatAmount: financials.vatAmount,
       credits: financials.credits,
+      creditsToDebit: financials.creditsToDebit,
+      totalCredits: financials.totalCredits,
+      isHybrid: financials.isHybrid,
       exclusive: exclusive && !isB2B,
       partnerId: partner.id,
       partnerEmail: partner.email,

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
@@ -54,9 +54,10 @@ const STEP_META = [
 const inputClass =
   "h-11 min-h-[44px] rounded-xl border-border bg-background text-base shadow-sm transition-colors focus-visible:ring-2 sm:h-12 sm:text-sm"
 
-export function InstallerRegistrationForm() {
+export function InstallerRegistrationForm({ initialReferralCode }: { initialReferralCode?: string } = {}) {
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(0)
+  const [referralCode, setReferralCode] = useState<string>(initialReferralCode?.trim().toUpperCase() || "")
   const [submittedData, setSubmittedData] = useState<{
     email: string
     companyName: string
@@ -66,6 +67,15 @@ export function InstallerRegistrationForm() {
   } | null>(null)
   const [resending, setResending] = useState(false)
   const [resendSent, setResendSent] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const params = new URLSearchParams(window.location.search)
+    const refParam = params.get("ref") || params.get("parrain")
+    if (refParam && refParam.trim()) {
+      setReferralCode(refParam.trim().toUpperCase())
+    }
+  }, [])
 
   const form = useForm<InstallerRegistrationInput>({
     resolver: zodResolver(installerRegistrationSchema),
@@ -127,7 +137,10 @@ export function InstallerRegistrationForm() {
       const res = await fetch("/api/installateurs/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          ...(referralCode ? { referralCode } : {}),
+        }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -386,6 +399,15 @@ export function InstallerRegistrationForm() {
       </div>
 
       <div className="mt-8">
+        {referralCode && (
+          <div className="mb-6 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-xs sm:text-sm text-foreground flex items-start gap-2.5">
+            <BadgeCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <span>
+              Parrainage confrère RESCERT détecté (<strong className="font-mono tabular-nums">{referralCode}</strong>) :{" "}
+              <strong className="font-mono tabular-nums text-primary">+3 crédits offerts</strong> automatiquement dès votre <span className="font-mono tabular-nums">1er</span> achat payant sur la plateforme.
+            </span>
+          </div>
+        )}
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}

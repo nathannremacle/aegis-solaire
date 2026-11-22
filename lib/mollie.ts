@@ -170,6 +170,9 @@ export type CreateLeadDirectPaymentParams = {
   vatAmount: number
   credits: number
   exclusive?: boolean
+  creditsToDebit?: number
+  totalCredits?: number
+  isHybrid?: boolean
   partnerId: string
   partnerEmail: string
   partnerCompany: string
@@ -179,7 +182,7 @@ export type CreateLeadDirectPaymentParams = {
 }
 
 /**
- * Crée un paiement Mollie pré-configuré pour l'achat direct d'un dossier lead (standard ou exclusif B2C).
+ * Crée un paiement Mollie pré-configuré pour l'achat direct d'un dossier lead (standard, exclusif B2C ou complément hybride).
  */
 export async function createLeadDirectPayment(params: CreateLeadDirectPaymentParams) {
   const mollie = getMollieClient()
@@ -192,6 +195,9 @@ export async function createLeadDirectPayment(params: CreateLeadDirectPaymentPar
     vatAmount,
     credits,
     exclusive,
+    creditsToDebit = 0,
+    totalCredits,
+    isHybrid = false,
     partnerId,
     partnerEmail,
     partnerCompany,
@@ -211,13 +217,17 @@ export async function createLeadDirectPayment(params: CreateLeadDirectPaymentPar
   const redirectUrl = `${cleanSiteUrl}/partenaires/dashboard?lead_payment=return&lead_id=${encodeURIComponent(leadId)}`
   const useFirstMandate = Boolean(enableOneClick && customerId)
   const modeTag = exclusive && leadSegment === "B2C" ? " EXCLUSIF" : ""
+  const hybridActive = Boolean(isHybrid && creditsToDebit > 0)
+  const description = hybridActive
+    ? `Aegis Solaire - Complément (${creditsToDebit} cr. + €)${modeTag} ${leadSegment} #${leadId.slice(0, 8)}${locationSuffix}`
+    : `Aegis Solaire - Déblocage${modeTag} ${leadSegment} #${leadId.slice(0, 8)}${locationSuffix}`
 
   const payment = await mollie.payments.create({
     amount: {
       currency: "EUR",
       value: amountValue,
     },
-    description: `Aegis Solaire - Déblocage${modeTag} ${leadSegment} #${leadId.slice(0, 8)}${locationSuffix}`,
+    description,
     redirectUrl,
     webhookUrl,
     ...(customerId ? { customerId } : {}),
@@ -235,6 +245,9 @@ export async function createLeadDirectPayment(params: CreateLeadDirectPaymentPar
       leadId,
       partnerId,
       credits,
+      totalCredits: totalCredits ?? credits,
+      creditsToDebit: hybridActive ? creditsToDebit : 0,
+      isHybrid: hybridActive,
       exclusive: Boolean(exclusive && leadSegment === "B2C"),
       priceHtva,
       vatAmount,
@@ -264,6 +277,9 @@ export type CreateRecurringLeadPaymentParams = {
   vatAmount: number
   credits: number
   exclusive?: boolean
+  creditsToDebit?: number
+  totalCredits?: number
+  isHybrid?: boolean
   partnerId: string
   partnerEmail: string
   partnerCompany: string
@@ -282,6 +298,11 @@ export async function createRecurringLeadPayment(params: CreateRecurringLeadPaym
   const webhookUrl = isLocalhost ? undefined : `${cleanSiteUrl}/api/webhooks/mollie`
   const locationSuffix = params.leadLocation ? ` (${params.leadLocation})` : ""
   const modeTag = params.exclusive && params.leadSegment === "B2C" ? " EXCLUSIF" : ""
+  const creditsToDebit = params.creditsToDebit ?? 0
+  const hybridActive = Boolean(params.isHybrid && creditsToDebit > 0)
+  const description = hybridActive
+    ? `Aegis Solaire Auto - Complément (${creditsToDebit} cr. + €)${modeTag} ${params.leadSegment} #${params.leadId.slice(0, 8)}${locationSuffix}`
+    : `Aegis Solaire Auto - Déblocage${modeTag} ${params.leadSegment} #${params.leadId.slice(0, 8)}${locationSuffix}`
 
   const payment = await mollie.payments.create({
     customerId: params.customerId,
@@ -291,7 +312,7 @@ export async function createRecurringLeadPayment(params: CreateRecurringLeadPaym
       currency: "EUR",
       value: params.priceTtc.toFixed(2),
     },
-    description: `Aegis Solaire Auto - Déblocage${modeTag} ${params.leadSegment} #${params.leadId.slice(0, 8)}${locationSuffix}`,
+    description,
     webhookUrl,
     metadata: {
       type: "lead_direct_purchase",
@@ -299,6 +320,9 @@ export async function createRecurringLeadPayment(params: CreateRecurringLeadPaym
       leadId: params.leadId,
       partnerId: params.partnerId,
       credits: params.credits,
+      totalCredits: params.totalCredits ?? params.credits,
+      creditsToDebit: hybridActive ? creditsToDebit : 0,
+      isHybrid: hybridActive,
       exclusive: Boolean(params.exclusive && params.leadSegment === "B2C"),
       priceHtva: params.priceHtva,
       vatAmount: params.vatAmount,

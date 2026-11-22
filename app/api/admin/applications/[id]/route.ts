@@ -4,6 +4,7 @@ import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { isB2COptedOutEmail, resolvePartnerSegment } from "@/lib/partner-notification-prefs"
 import { enrichPartnerBceData } from "@/lib/accounting/invoice-service"
+import { linkApprovedReferralPartner } from "@/lib/partner-referrals"
 
 type ApplicationRow = {
   id: string
@@ -17,6 +18,7 @@ type ApplicationRow = {
   rescert_ref: string
   regions: string[]
   admin_notes: string | null
+  referred_by_partner_id?: string | null
 }
 
 /**
@@ -109,18 +111,38 @@ async function syncPartnerFromApplication(
     initialCredits = parseInt(match[1], 10)
   }
 
-  const { data: inserted, error } = await supabase
+  const basePartnerInsert = {
+    company_name: app.company_name.trim().slice(0, 255),
+    email,
+    phone: app.phone?.trim().slice(0, 50) || null,
+    credits: 0,
+    segment: resolvedSegment,
+    target_provinces: targetProvinces,
+  }
+
+  let { data: inserted, error } = await supabase
     .from("partners")
     .insert({
-      company_name: app.company_name.trim().slice(0, 255),
-      email,
-      phone: app.phone?.trim().slice(0, 50) || null,
-      credits: 0,
-      segment: resolvedSegment,
-      target_provinces: targetProvinces,
+      ...basePartnerInsert,
+      ...(app.referred_by_partner_id
+        ? { referred_by_partner_id: app.referred_by_partner_id }
+        : {}),
     })
     .select("id")
     .single()
+
+  if (
+    error &&
+    (error.code === "42703" || error.message?.includes("referred_by_partner_id"))
+  ) {
+    const retry = await supabase
+      .from("partners")
+      .insert(basePartnerInsert)
+      .select("id")
+      .single()
+    inserted = retry.data
+    error = retry.error
+  }
 
   if (error) {
     if (error.code === "23505") {
@@ -233,6 +255,13 @@ export async function PATCH(
     const partnerId = partnerSync?.partnerId
 
     if (partnerId) {
+      linkApprovedReferralPartner(supabase, {
+        applicationId: app.id,
+        referredEmail: app.email,
+        partnerId,
+      }).catch((err) => {
+        console.warn("[admin/applications] linkApprovedReferralPartner warning:", err)
+      })
       // Enrichissement non bloquant BCE/TVA + siège social pour la facturation B2B Peppol
       enrichPartnerBceData(partnerId, app.siret).catch((err) => {
         console.warn("[admin/applications] enrichPartnerBceData warning:", err)

@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getPartner } from "@/lib/partner-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
-import { calculateLeadDirectFinancials } from "@/lib/credit-pricing"
+import {
+  calculateLeadComplementFinancials,
+  calculateLeadDirectFinancials,
+} from "@/lib/credit-pricing"
 import {
   createRecurringLeadPayment,
   getMollieClient,
@@ -30,7 +33,7 @@ export async function POST(
     return NextResponse.json({ error: "Dossier non disponible à l'achat." }, { status: 400 })
   }
 
-  let body: { exclusive?: boolean } = {}
+  let body: { exclusive?: boolean; usePartialCredits?: boolean } = {}
   try {
     const raw = await request.text()
     if (raw) body = JSON.parse(raw)
@@ -38,12 +41,13 @@ export async function POST(
     body = {}
   }
   const exclusive = Boolean(body?.exclusive)
+  const usePartialCredits = Boolean(body?.usePartialCredits)
 
   const supabase = createServiceRoleClient()
 
   const { data: partnerBilling, error: billingErr } = await supabase
     .from("partners")
-    .select("mollie_customer_id, mollie_mandate_id, mollie_mandate_status")
+    .select("credits, mollie_customer_id, mollie_mandate_id, mollie_mandate_status")
     .eq("id", partner.id)
     .single()
 
@@ -126,11 +130,40 @@ export async function POST(
       )
     }
 
-    const financials = calculateLeadDirectFinancials({
+    const livePartnerCredits = Math.max(0, Number((partnerBilling as any)?.credits ?? 0))
+    const fullFinancials = calculateLeadDirectFinancials({
       segment: lead.segment,
       credit_cost: lead.credit_cost,
       exclusive,
     })
+    const complementFinancials = usePartialCredits
+      ? calculateLeadComplementFinancials({
+          segment: lead.segment,
+          credit_cost: lead.credit_cost,
+          exclusive,
+          availableCredits: livePartnerCredits,
+        })
+      : null
+    const isHybrid = Boolean(complementFinancials?.isHybrid && complementFinancials.creditsToDebit > 0)
+    const financials = isHybrid && complementFinancials
+      ? {
+          credits: complementFinancials.totalCredits,
+          priceHtva: complementFinancials.priceHtva,
+          vatAmount: complementFinancials.vatAmount,
+          priceTtc: complementFinancials.priceTtc,
+          creditsToDebit: complementFinancials.creditsToDebit,
+          totalCredits: complementFinancials.totalCredits,
+          isHybrid: true,
+        }
+      : {
+          credits: fullFinancials.credits,
+          priceHtva: fullFinancials.priceHtva,
+          vatAmount: fullFinancials.vatAmount,
+          priceTtc: fullFinancials.priceTtc,
+          creditsToDebit: 0,
+          totalCredits: fullFinancials.credits,
+          isHybrid: false,
+        }
 
     const siteUrl =
       process.env.NEXT_PUBLIC_SITE_URL ||
@@ -151,6 +184,9 @@ export async function POST(
       priceHtva: financials.priceHtva,
       vatAmount: financials.vatAmount,
       credits: financials.credits,
+      creditsToDebit: financials.creditsToDebit,
+      totalCredits: financials.totalCredits,
+      isHybrid: financials.isHybrid,
       exclusive: exclusive && !isB2B,
       partnerId: partner.id,
       partnerEmail: partner.email,
@@ -181,6 +217,7 @@ export async function POST(
         purchaseId: fulfilled.purchaseId,
         lead: fulfilled.lead,
         exclusive: fulfilled.exclusive,
+        newCredits: fulfilled.newCredits,
       })
     }
 

@@ -90,6 +90,7 @@ export const installerRegistrationSchema = z.object({
     ),
   invitedBy: z.string().max(255).optional(),
   leadId: z.string().max(255).optional(),
+  referralCode: z.string().max(40).optional(),
 })
 
 export function getRegionsFromPostalCode(postalCode?: string): string[] {

@@ -123,7 +123,7 @@ export function CrmInteractiveTour({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-foreground/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -133,17 +133,19 @@ export function CrmInteractiveTour({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative flex flex-col w-full max-w-2xl max-h-[92vh] overflow-hidden rounded-3xl border border-border bg-card shadow-2xl animate-in zoom-in-95 duration-200"
+        className="relative flex flex-col w-full max-w-2xl max-h-[92dvh] overflow-hidden rounded-t-2xl sm:rounded-3xl border-t sm:border border-border bg-card shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200"
       >
         {/* ── 1. Barre de progression supérieure (Stepper animé 5 étapes) ── */}
-        <div className="shrink-0 px-6 pt-5 pb-3 border-b border-border bg-card">
-          <div className="flex items-center justify-between gap-4 mb-3">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 border border-accent/20 px-2.5 py-0.5 font-mono text-[11px] font-bold text-accent">
-                <Briefcase className="h-3.5 w-3.5" />
-                GUIDE OFFICIEL · MON CRM
+        <div className="shrink-0 px-4 pt-2 pb-3 sm:px-6 sm:pt-5 sm:pb-3 border-b border-border bg-card">
+          <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-border sm:hidden" aria-hidden="true" />
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 border border-accent/20 px-2.5 py-0.5 font-mono text-[10.5px] sm:text-[11px] font-bold text-accent whitespace-nowrap">
+                <Briefcase className="h-3.5 w-3.5 shrink-0" />
+                <span className="sm:hidden">GUIDE MON CRM</span>
+                <span className="hidden sm:inline">GUIDE OFFICIEL · MON CRM</span>
               </span>
-              <span className="font-mono text-xs font-bold text-muted-foreground tabular-nums">
+              <span className="font-mono text-xs font-bold text-muted-foreground tabular-nums whitespace-nowrap">
                 {currentStep + 1} / {CRM_TOUR_STEPS.length}
               </span>
             </div>
@@ -151,11 +153,11 @@ export function CrmInteractiveTour({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer shrink-0"
               title="Fermer le tutoriel (Échap)"
               aria-label="Fermer le tutoriel"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
             </button>
           </div>
 
@@ -327,7 +329,10 @@ export function CrmInteractiveTour({
                           <span>Appel</span>
                         </span>
                         <span className="text-xs font-bold text-foreground">
-                          Lien direct <code className="font-mono text-accent">tel:+32472...</code>
+                          Lien direct{" "}
+                          <span className="inline-block rounded bg-secondary px-1.5 py-0.5 font-mono text-[11px] text-accent tabular-nums">
+                            tel:+32472...
+                          </span>
                         </span>
                       </div>
                       <span className="text-[10px] font-mono font-bold bg-secondary px-2 py-0.5 rounded text-muted-foreground">
@@ -643,17 +648,17 @@ export function CrmInteractiveTour({
         </div>
 
         {/* ── 3. Pied de navigation du tutoriel ── */}
-        <div className="shrink-0 flex items-center justify-between gap-3 p-4 sm:p-5 border-t border-border bg-card">
-          <div>
+        <div className="shrink-0 flex flex-wrap items-center justify-between gap-2 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-5 border-t border-border bg-card">
+          <div className="shrink-0">
             {!isFirst ? (
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => setCurrentStep((prev) => prev - 1)}
-                className="text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
+                className="min-h-[40px] text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
               >
-                <ArrowLeft className="h-3.5 w-3.5 mr-1" />
+                <ArrowLeft className="h-3.5 w-3.5 mr-1 shrink-0" />
                 <span>Précédent</span>
               </Button>
             ) : (
@@ -662,27 +667,27 @@ export function CrmInteractiveTour({
                 variant="ghost"
                 size="sm"
                 onClick={onClose}
-                className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                className="min-h-[40px] text-xs text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 Passer
               </Button>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2 flex-1 sm:flex-initial">
             {!isLast ? (
               <Button
                 type="button"
                 variant="default"
                 size="sm"
                 onClick={() => setCurrentStep((prev) => prev + 1)}
-                className="rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-2xs"
+                className="min-h-[42px] sm:min-h-[36px] px-4 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-2xs"
               >
                 <span>Étape suivante</span>
-                <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                <ArrowRight className="h-3.5 w-3.5 ml-1 shrink-0" />
               </Button>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-end gap-2">
                 {!hasPurchases && onExploreMarketplace && (
                   <Button
                     type="button"
@@ -692,10 +697,11 @@ export function CrmInteractiveTour({
                       onClose()
                       onExploreMarketplace()
                     }}
-                    className="rounded-xl text-xs font-semibold cursor-pointer border-border hover:bg-secondary text-foreground"
+                    className="min-h-[42px] sm:min-h-[36px] px-3 rounded-xl text-xs font-semibold cursor-pointer border-border hover:bg-secondary text-foreground"
                   >
-                    <Briefcase className="h-3.5 w-3.5 mr-1 text-accent" />
-                    <span>Débloquer mon 1er chantier</span>
+                    <Briefcase className="h-3.5 w-3.5 mr-1 text-accent shrink-0" />
+                    <span className="sm:hidden">1er chantier</span>
+                    <span className="hidden sm:inline">Débloquer mon 1er chantier</span>
                   </Button>
                 )}
                 <Button
@@ -703,10 +709,10 @@ export function CrmInteractiveTour({
                   variant="default"
                   size="sm"
                   onClick={onClose}
-                  className="rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-2xs"
+                  className="min-h-[42px] sm:min-h-[36px] px-4 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-2xs"
                 >
-                  <span>Accéder à Mon CRM</span>
-                  <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  <span>Accéder au CRM</span>
+                  <ArrowRight className="h-3.5 w-3.5 ml-1 shrink-0" />
                 </Button>
               </div>
             )}
