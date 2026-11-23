@@ -3,6 +3,7 @@ import { revalidateTag, revalidatePath } from "next/cache"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { getDisputeReasonConfig } from "@/lib/disputes-policy"
+import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 import { Resend } from "resend"
 import { buildLeadDisputeResolutionEmail } from "@/lib/email-templates/installer-transactional"
 
@@ -16,6 +17,8 @@ async function sendDisputeResolutionEmail(params: {
   refundedCredits?: number
   adminNotes?: string
   reasonLabel?: string | null
+  prospectName?: string | null
+  prospectLocation?: string | null
 }) {
   if (!params.partnerEmail || !process.env.RESEND_API_KEY) return
   try {
@@ -27,6 +30,8 @@ async function sendDisputeResolutionEmail(params: {
       refundedCredits: params.refundedCredits,
       adminNotes: params.adminNotes,
       reasonLabel: params.reasonLabel ?? null,
+      prospectName: params.prospectName ?? null,
+      prospectLocation: params.prospectLocation ?? null,
     })
     await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || SUPPORT_REPLY_TO,
@@ -73,13 +78,30 @@ export async function PATCH(
   // 1. Récupérer la réclamation
   const { data: dispute, error: disputeErr } = await supabase
     .from("lead_disputes")
-    .select("*, lead_purchases(id, credits_spent), partners(id, company_name, email)")
+    .select("*, lead_purchases(id, credits_spent), partners(id, company_name, email), leads(first_name, last_name, company, segment, province)")
     .eq("id", id)
     .single()
 
   if (disputeErr || !dispute) {
     return NextResponse.json({ error: "Réclamation introuvable" }, { status: 404 })
   }
+
+  const leadInfo = dispute.leads as {
+    first_name?: string | null
+    last_name?: string | null
+    company?: string | null
+    segment?: string | null
+    province?: string | null
+  } | null
+  const fullName = [leadInfo?.first_name, leadInfo?.last_name].filter(Boolean).join(" ").trim()
+  const leadCompany = leadInfo?.company?.trim() || ""
+  const prospectName =
+    leadInfo?.segment === "B2B" && leadCompany
+      ? fullName
+        ? `${leadCompany} (${fullName})`
+        : leadCompany
+      : fullName || leadCompany || null
+  const prospectLocation = leadInfo?.province ? getProvinceDisplayLabel(leadInfo.province) : null
 
   if (dispute.status !== "pending") {
     return NextResponse.json({ error: `Cette réclamation a déjà été traitée (${dispute.status}).` }, { status: 400 })
@@ -177,6 +199,8 @@ export async function PATCH(
       refundedCredits,
       adminNotes,
       reasonLabel: dispute.reason || null,
+      prospectName,
+      prospectLocation,
     })
 
     revalidateTag("admin-badges", "max")
@@ -227,6 +251,8 @@ export async function PATCH(
       approved: false,
       adminNotes,
       reasonLabel: dispute.reason || null,
+      prospectName,
+      prospectLocation,
     })
 
     revalidateTag("admin-badges", "max")

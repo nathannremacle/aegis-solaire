@@ -289,6 +289,8 @@ export interface LeadDisputeResolutionEmailData {
   refundedCredits?: number
   adminNotes?: string | null
   reasonLabel?: string | null
+  prospectName?: string | null
+  prospectLocation?: string | null
 }
 
 export function buildLeadDisputeResolutionEmail(data: LeadDisputeResolutionEmailData): {
@@ -300,10 +302,23 @@ export function buildLeadDisputeResolutionEmail(data: LeadDisputeResolutionEmail
   const dashboardUrl = `${baseUrl}/partenaires/dashboard`
   const leadRefCode = String(data.leadId).slice(0, 8).toUpperCase()
   const company = data.companyName?.trim() || "Partenaire Installateur"
+  const prospectName = data.prospectName?.trim() || null
+  const prospectLocation = data.prospectLocation?.trim() || null
+  const prospectLabel = [prospectName, prospectLocation].filter(Boolean).join(" · ") || null
+  const dossierShortLabel = prospectName
+    ? prospectLocation
+      ? `${prospectName} (${prospectLocation})`
+      : prospectName
+    : `Dossier #${leadRefCode}`
+  const dossierTextLabel = prospectName
+    ? `le dossier ${dossierShortLabel} (#${leadRefCode})`
+    : `le dossier #${leadRefCode}`
 
   if (data.approved) {
     const refunded = Number(data.refundedCredits || 0)
-    const subject = `Garantie Lead Conforme approuvée (+${refunded} crédits recrédités · #${leadRefCode})`
+    const subject = prospectName
+      ? `Garantie Lead Conforme approuvée (+${refunded} crédits · ${dossierShortLabel})`
+      : `Garantie Lead Conforme approuvée (+${refunded} crédits recrédités · #${leadRefCode})`
 
     const bodyHtml = `
       ${renderFiguresBox(
@@ -314,8 +329,10 @@ export function buildLeadDisputeResolutionEmail(data: LeadDisputeResolutionEmail
         },
         {
           label: "Dossier concerné",
-          value: `#${leadRefCode}`,
-          sublabel: data.reasonLabel || "Garantie Lead Conforme",
+          value: prospectName || `#${leadRefCode}`,
+          sublabel: prospectLocation
+            ? `${prospectLocation} · #${leadRefCode}`
+            : data.reasonLabel || "Garantie Lead Conforme",
         }
       )}
       ${
@@ -338,12 +355,14 @@ export function buildLeadDisputeResolutionEmail(data: LeadDisputeResolutionEmail
 
     const html = renderInstallerEmailShell({
       subject,
-      preheader: `Votre réclamation sur le dossier #${leadRefCode} est approuvée : +${refunded} crédits recrédités.`,
+      preheader: prospectName
+        ? `Votre réclamation concernant ${dossierShortLabel} est approuvée : +${refunded} crédits recrédités.`
+        : `Votre réclamation sur le dossier #${leadRefCode} est approuvée : +${refunded} crédits recrédités.`,
       reference: `Dossier #${leadRefCode}`,
       context: "Garantie Lead Conforme",
       contextColor: "#1d5d45",
       headline: `+${refunded} crédit${refunded > 1 ? "s" : ""} recrédité${refunded > 1 ? "s" : ""}`,
-      subtitle: `${company} · Réclamation approuvée`,
+      subtitle: prospectLabel ? `${company} · ${prospectLabel}` : `${company} · Réclamation approuvée`,
       statusPill: { text: "Recrédit effectué", tone: "success" },
       bodyHtml,
       footerLinks: [
@@ -357,7 +376,7 @@ Dossier #${leadRefCode}
 
 Bonjour ${company},
 
-Votre réclamation concernant le dossier #${leadRefCode} a été approuvée par notre équipe conformité.
+Votre réclamation concernant ${dossierTextLabel} a été approuvée par notre équipe conformité.
 +${refunded} crédit(s) ont été immédiatement réintégrés sur votre solde installateur.
 ${data.adminNotes?.trim() ? `\nNote de l'équipe : ${data.adminNotes.trim()}\n` : ""}
 Accéder à votre espace partenaire : ${dashboardUrl}
@@ -375,7 +394,9 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
   const decisionReason =
     data.adminNotes?.trim() ||
     "Réclamation non conforme aux conditions de la Garantie Lead Conforme (Article 5 des CGV)."
-  const subject = `Décision concernant votre réclamation (Dossier #${leadRefCode})`
+  const subject = prospectName
+    ? `Décision concernant votre réclamation — ${dossierShortLabel}`
+    : `Décision concernant votre réclamation (Dossier #${leadRefCode})`
 
   const bodyHtml = `
     ${renderCalloutBox({
@@ -388,7 +409,12 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
       <tr>
         <td style="padding-top: 14px; border-top: 1px solid #e4edf1;">
           ${renderSpecsTable([
-            { label: "Dossier concerné", value: `#${leadRefCode}` },
+            ...(prospectLabel
+              ? [
+                  { label: "Dossier concerné", value: prospectLabel },
+                  { label: "Référence", value: `#${leadRefCode}` },
+                ]
+              : [{ label: "Dossier concerné", value: `#${leadRefCode}` }]),
             ...(resolvedReasonLabel ? [{ label: "Motif déclaré", value: resolvedReasonLabel }] : []),
             { label: "Statut", value: "Clôturée · Non retenue" },
             { label: "Recours / Précisions", value: "Répondez à contact@aegissolaire.com" },
@@ -410,12 +436,14 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
 
   const html = renderInstallerEmailShell({
     subject,
-    preheader: `Analyse clôturée pour votre réclamation sur le dossier #${leadRefCode}.`,
+    preheader: prospectName
+      ? `Analyse clôturée pour votre réclamation concernant ${dossierShortLabel}.`
+      : `Analyse clôturée pour votre réclamation sur le dossier #${leadRefCode}.`,
     reference: `Dossier #${leadRefCode}`,
     context: "Garantie Lead Conforme",
     contextColor: "#89610e",
     headline: "Décision sur votre réclamation",
-    subtitle: `${company} · Dossier #${leadRefCode}`,
+    subtitle: prospectLabel ? `${company} · ${prospectLabel}` : `${company} · Dossier #${leadRefCode}`,
     statusPill: { text: "Demande non retenue", tone: "warning" },
     bodyHtml,
     footerLinks: [
@@ -429,7 +457,7 @@ Dossier #${leadRefCode}
 
 Bonjour ${company},
 
-Après vérification de votre signalement concernant le dossier #${leadRefCode}, notre équipe conformité n'a pas pu donner une suite favorable à la demande de recrédit.
+Après vérification de votre signalement concernant ${dossierTextLabel}, notre équipe conformité n'a pas pu donner une suite favorable à la demande de recrédit.
 
 Motif / Précision : ${decisionReason}
 
