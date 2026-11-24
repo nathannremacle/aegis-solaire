@@ -557,6 +557,20 @@ export async function fulfillPaidLeadDirectPurchase(
         text: rendered.text,
         html: rendered.html,
       })
+
+      // Si le partenaire a acheté à l'acte et dispose de < 6 crédits, proposer l'Offre Tremplin sans appel
+      if (!isHybrid && effectiveNewCredits < 6 && creditsEquivalent < 24) {
+        const siteBase = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.aegissolaire.com").replace(/\/$/, "")
+        const netRemainingCredits = 24 - creditsEquivalent
+        const netPriceHtva = Math.max(1, 198 - Number(priceHtva)).toFixed(2).replace(".", ",")
+        await resend.emails.send({
+          from: fromEmail,
+          to: partner.email,
+          replyTo: "contact@aegissolaire.com",
+          subject: `Offre Tremplin 24h : déduisez vos ${priceHtva.replace(".", ",")} € de votre Quota Accélération`,
+          text: `Bonjour,\n\nVous venez de débloquer un dossier sur Aegis Solaire pour ${priceHtva.replace(".", ",")} € HTVA.\n\nPendant 24h, vous pouvez transformer cet achat en acompte intégralement déduit d'un Quota Accélération (24 crédits à -16 %) : ne réglez que ${netPriceHtva} € HTVA pour recevoir +${netRemainingCredits} crédits supplémentaires (Garantie Livraison 45 jours incluse, zéro abonnement) :\n${siteBase}/partenaires/dashboard/credits?pack=pack_24\n\nLa Direction des Partenariats Aegis Solaire`,
+        }).catch(() => {})
+      }
     } catch (emailErr) {
       console.error("[Mollie Lead Fulfillment] Erreur notification email installateur:", emailErr)
     }
