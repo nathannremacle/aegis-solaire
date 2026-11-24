@@ -42,7 +42,7 @@ export default async function ExpressLeadPage({
   const { data: lead, error } = await supabase
     .from("leads")
     .select(
-      "id, segment, marketplace_status, credit_cost, max_slots, province, city, postal_code, surface_type, surface_area, annual_electricity_bill, estimated_power_kwc, roof_material, timeframe, project_timeline, last_name, contact_preference, allocation_mode, qualification_metadata, roof_image_url"
+      "id, segment, marketplace_status, credit_cost, max_slots, province, city, postal_code, surface_type, surface_area, annual_electricity_bill, estimated_power_kwc, roof_material, timeframe, project_timeline, last_name, contact_preference, allocation_mode, qualification_metadata"
     )
     .eq("id", leadId)
     .maybeSingle()
@@ -109,7 +109,7 @@ export default async function ExpressLeadPage({
     qualificationMetadata: (lead.qualification_metadata as Record<string, unknown>) || null,
   })
 
-  const imageUrl = getPrimaryLeadImageItem(lead)?.url || lead.roof_image_url || null
+  const imageUrl = getPrimaryLeadImageItem(lead)?.url || null
 
   return (
     <ExpressLeadCheckoutClient
