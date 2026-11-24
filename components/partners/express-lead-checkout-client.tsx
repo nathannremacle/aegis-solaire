@@ -15,6 +15,10 @@ import {
   Mail,
   Lock,
   AlertCircle,
+  ZoomIn,
+  ChevronLeft,
+  ChevronRight,
+  X,
 } from "lucide-react"
 
 interface ExpressLeadProps {
@@ -39,7 +43,7 @@ interface ExpressLeadProps {
     maxSlots: number
     takenSlots: number
     remainingSlots: number
-    imageUrl: string | null
+    images: Array<{ url: string; isAiProjection?: boolean }>
     credits: number
     directPriceHtva: number
     exclusiveCredits: number
@@ -72,11 +76,32 @@ export function ExpressLeadCheckoutClient({
   const [loading, setLoading] = useState(false)
   const [upgrading, setUpgrading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [activeImageIdx, setActiveImageIdx] = useState(0)
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const [unlockedData, setUnlockedData] = useState<{
     purchaseId: string
     creditsSpent: number
     lead: any
   } | null>(null)
+
+  const images = Array.isArray(lead.images) ? lead.images : []
+  const safeImageIdx = images.length > 0 ? Math.min(activeImageIdx, images.length - 1) : 0
+  const activeImage = images[safeImageIdx] ?? null
+
+  useEffect(() => {
+    if (!isLightboxOpen) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsLightboxOpen(false)
+      } else if (e.key === "ArrowLeft" && images.length > 1) {
+        setActiveImageIdx((prev) => (prev - 1 + images.length) % images.length)
+      } else if (e.key === "ArrowRight" && images.length > 1) {
+        setActiveImageIdx((prev) => (prev + 1) % images.length)
+      }
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [isLightboxOpen, images.length])
 
   const canBuyExclusive = lead.takenSlots === 0 && lead.maxSlots > 1
 
@@ -328,13 +353,74 @@ export function ExpressLeadCheckoutClient({
               </p>
             </div>
 
-            {lead.imageUrl && (
-              <div className="overflow-hidden rounded-xl border border-border">
-                <img
-                  src={lead.imageUrl}
-                  alt="Aperçu toiture"
-                  className="w-full h-44 object-cover"
-                />
+            {activeImage && (
+              <div className="flex flex-col gap-2">
+                <div className="relative overflow-hidden rounded-xl border border-border bg-muted group">
+                  <button
+                    type="button"
+                    onClick={() => setIsLightboxOpen(true)}
+                    className="block w-full cursor-zoom-in focus-visible:outline-2 focus-visible:outline-ring"
+                    aria-label="Agrandir la photo du bâtiment"
+                  >
+                    <img
+                      src={activeImage.url}
+                      alt={`Aperçu toiture ${safeImageIdx + 1}`}
+                      className="w-full h-56 sm:h-64 object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                    />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsLightboxOpen(true)}
+                    className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1.5 rounded-lg bg-foreground/80 text-background px-2.5 py-1.5 text-xs font-semibold backdrop-blur-xs cursor-pointer hover:bg-foreground"
+                  >
+                    <ZoomIn className="h-3.5 w-3.5" />
+                    <span>Zoomer</span>
+                  </button>
+
+                  {images.length > 1 && (
+                    <>
+                      <span className="absolute top-2.5 right-2.5 rounded-md bg-foreground/75 text-background px-2 py-0.5 text-[11px] font-mono tabular-nums font-semibold">
+                        {safeImageIdx + 1} / {images.length}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setActiveImageIdx((prev) => (prev - 1 + images.length) % images.length)}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-foreground/75 text-background flex items-center justify-center hover:bg-foreground cursor-pointer"
+                        aria-label="Photo précédente"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveImageIdx((prev) => (prev + 1) % images.length)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-foreground/75 text-background flex items-center justify-center hover:bg-foreground cursor-pointer"
+                        aria-label="Photo suivante"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {images.length > 1 && (
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                    {images.map((img, idx) => (
+                      <button
+                        key={img.url + idx}
+                        type="button"
+                        onClick={() => setActiveImageIdx(idx)}
+                        className={`relative h-14 w-20 shrink-0 overflow-hidden rounded-lg border-2 cursor-pointer transition-all ${
+                          idx === safeImageIdx
+                            ? "border-primary ring-1 ring-primary/30"
+                            : "border-border opacity-75 hover:opacity-100"
+                        }`}
+                      >
+                        <img src={img.url} alt={`Miniature ${idx + 1}`} className="h-full w-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -461,6 +547,59 @@ export function ExpressLeadCheckoutClient({
           </div>
         )}
       </div>
+
+      {isLightboxOpen && activeImage && (
+        <div
+          className="fixed inset-0 z-50 bg-foreground/90 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => setIsLightboxOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Visionneuse photo plein écran"
+        >
+          <button
+            type="button"
+            onClick={() => setIsLightboxOpen(false)}
+            className="absolute top-4 right-4 h-10 w-10 rounded-full bg-card text-foreground flex items-center justify-center shadow-md cursor-pointer hover:bg-secondary"
+            aria-label="Fermer le zoom"
+          >
+            <X className="h-5 w-5" />
+          </button>
+
+          <div
+            className="relative max-w-5xl max-h-[88dvh] w-full flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={activeImage.url}
+              alt={`Photo plein écran ${safeImageIdx + 1}`}
+              className="max-h-[85dvh] max-w-full w-auto rounded-xl object-contain shadow-2xl"
+            />
+            {images.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setActiveImageIdx((prev) => (prev - 1 + images.length) % images.length)}
+                  className="absolute left-2 sm:left-4 h-10 w-10 rounded-full bg-card/90 text-foreground flex items-center justify-center shadow-md hover:bg-card cursor-pointer"
+                  aria-label="Photo précédente"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveImageIdx((prev) => (prev + 1) % images.length)}
+                  className="absolute right-2 sm:right-4 h-10 w-10 rounded-full bg-card/90 text-foreground flex items-center justify-center shadow-md hover:bg-card cursor-pointer"
+                  aria-label="Photo suivante"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+                <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-card/90 text-foreground px-3 py-1 text-xs font-mono tabular-nums font-bold shadow-md">
+                  {safeImageIdx + 1} / {images.length}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   )
 }

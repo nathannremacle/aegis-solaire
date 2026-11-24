@@ -3,7 +3,7 @@ import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { verifyExpressBuyToken } from "@/lib/express-buy-token"
 import { getLeadPricingTierMeta, calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
-import { getPrimaryLeadImageItem } from "@/lib/lead-images"
+import { getLeadImageItems } from "@/lib/lead-images"
 import { ExpressLeadCheckoutClient } from "@/components/partners/express-lead-checkout-client"
 
 export const dynamic = "force-dynamic"
@@ -109,7 +109,10 @@ export default async function ExpressLeadPage({
     qualificationMetadata: (lead.qualification_metadata as Record<string, unknown>) || null,
   })
 
-  const imageUrl = getPrimaryLeadImageItem(lead)?.url || null
+  const imageItems = getLeadImageItems(lead).map((item) => ({
+    url: item.url,
+    isAiProjection: Boolean(item.isAiProjection),
+  }))
 
   return (
     <ExpressLeadCheckoutClient
@@ -134,7 +137,7 @@ export default async function ExpressLeadPage({
         maxSlots,
         takenSlots: realTaken,
         remainingSlots,
-        imageUrl,
+        images: imageItems,
         credits: tierMeta.credits,
         directPriceHtva: tierMeta.directPriceHtva,
         exclusiveCredits: tierMeta.exclusiveCreditCost,
