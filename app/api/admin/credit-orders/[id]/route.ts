@@ -6,6 +6,7 @@ import { z } from "zod"
 import { Resend } from "resend"
 import { buildCreditOrderConfirmationEmail } from "@/lib/email-templates/installer-transactional"
 import { ensureInvoiceForCreditOrder } from "@/lib/accounting/invoice-service"
+import { ensurePartnerReferralCode } from "@/lib/partner-referrals"
 
 export async function PATCH(
   request: NextRequest,
@@ -74,6 +75,11 @@ export async function PATCH(
       try {
         const resend = new Resend(process.env.RESEND_API_KEY)
         const invoiceRef = issuedInvoice.invoiceNumber || order.transfer_reference || `AEGIS-${order.id.slice(0, 8).toUpperCase()}`
+        const referralCode = await ensurePartnerReferralCode(
+          supabase,
+          order.partner_id,
+          order.partners?.company_name
+        ).catch(() => null)
         const rendered = buildCreditOrderConfirmationEmail({
           orderId: order.id,
           invoiceRef,
@@ -85,6 +91,7 @@ export async function PATCH(
           vatAmount: order.vat_amount ?? 0,
           priceTtc: order.price_ttc ?? 0,
           paymentMethodLabel: "Virement bancaire",
+          referralCode,
         })
 
         resend.emails.send({

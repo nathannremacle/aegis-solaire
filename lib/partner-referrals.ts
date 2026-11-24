@@ -13,6 +13,55 @@ export const PARTNER_REFERRAL_REWARD_CREDITS = 3
 
 const REFERRAL_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
+export interface PartnerReferralShareData {
+  referralCode: string
+  referralUrl: string
+  whatsappShareMessage: string
+  whatsappUrl: string
+  mailtoSubject: string
+  mailtoBody: string
+  mailtoUrl: string
+  rewardCredits: number
+}
+
+/**
+ * Construit de manière centralisée le lien personnel de parrainage et les liens
+ * de partage 1-clic (WhatsApp et e-mail) utilisés dans le portail et les e-mails.
+ */
+export function buildPartnerReferralShareData(params: {
+  referralCode: string
+  companyName?: string | null
+  baseUrl?: string
+  rewardCredits?: number
+}): PartnerReferralShareData {
+  const cleanBase = (params.baseUrl || getEmailSiteBaseUrl()).replace(/\/$/, "")
+  const code = normalizeReferralCode(params.referralCode) || String(params.referralCode || "").trim()
+  const rewardCredits =
+    typeof params.rewardCredits === "number" && params.rewardCredits >= 0
+      ? params.rewardCredits
+      : PARTNER_REFERRAL_REWARD_CREDITS
+  const company = params.companyName?.trim() || "un partenaire RESCERT"
+  const referralUrl = `${cleanBase}/partenaires?ref=${encodeURIComponent(code)}#candidature`
+
+  const whatsappShareMessage = `Bonjour ! Nous recevons des dossiers solaires qualifiés (tél. vérifié SMS, photo + vue 3D du toit, 0 abonnement) sur Aegis Solaire. Utilise mon lien partenaire pour obtenir +${rewardCredits} crédits offerts dès ton 1er achat : ${referralUrl}`
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappShareMessage)}`
+
+  const mailtoSubject = `Invitation réseau RESCERT Aegis Solaire (+${rewardCredits} crédits offerts)`
+  const mailtoBody = `Bonjour,\n\nJe te recommande Aegis Solaire (recommandé par ${company}) pour recevoir des dossiers photovoltaïques qualifiés en Wallonie et à Bruxelles (téléphone vérifié par SMS, photos + vue 3D de la toiture, zéro abonnement mensuel).\n\nEn passant par ce lien d'inscription gratuit, tu obtiens +${rewardCredits} crédits offerts dès ton premier achat payant :\n${referralUrl}\n\nÀ bientôt !`
+  const mailtoUrl = `mailto:?subject=${encodeURIComponent(mailtoSubject)}&body=${encodeURIComponent(mailtoBody)}`
+
+  return {
+    referralCode: code,
+    referralUrl,
+    whatsappShareMessage,
+    whatsappUrl,
+    mailtoSubject,
+    mailtoBody,
+    mailtoUrl,
+    rewardCredits,
+  }
+}
+
 function isMissingSchemaError(err: { code?: string | null; message?: string | null } | null | undefined): boolean {
   if (!err) return false
   return (

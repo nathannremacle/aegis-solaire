@@ -31,21 +31,45 @@ interface InstallerDirectoryProps {
   initialInstallers: RescertInstaller[]
 }
 
-const PROVINCE_TABS = [
-  { key: "all", label: "Toute la région (784)" },
-  { key: "liege", label: "Liège (257)" },
-  { key: "hainaut", label: "Hainaut (199)" },
-  { key: "namur", label: "Namur (115)" },
-  { key: "brabant_wallon", label: "Brabant wallon (75)" },
-  { key: "bruxelles", label: "Bruxelles (69)" },
-  { key: "luxembourg", label: "Luxembourg (69)" },
-]
+const PROVINCE_DEFINITIONS = [
+  { key: "all", label: "Toute la région" },
+  { key: "liege", label: "Liège" },
+  { key: "hainaut", label: "Hainaut" },
+  { key: "namur", label: "Namur" },
+  { key: "brabant_wallon", label: "Brabant wallon" },
+  { key: "bruxelles", label: "Bruxelles" },
+  { key: "luxembourg", label: "Luxembourg" },
+] as const
+
+function normalizeSearchText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/['’\-_/.,]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
 
 export function InstallerDirectory({ initialInstallers }: InstallerDirectoryProps) {
   const [selectedProvince, setSelectedProvince] = useState<string>("all")
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [page, setPage] = useState<number>(1)
   const pageSize = 24
+
+  const provinceTabs = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const inst of initialInstallers) {
+      counts.set(inst.provinceKey, (counts.get(inst.provinceKey) ?? 0) + 1)
+    }
+    return PROVINCE_DEFINITIONS.map((def) => ({
+      key: def.key,
+      label:
+        def.key === "all"
+          ? `${def.label} (${initialInstallers.length})`
+          : `${def.label} (${counts.get(def.key) ?? 0})`,
+    }))
+  }, [initialInstallers])
 
   const filteredInstallers = useMemo(() => {
     let list = initialInstallers
@@ -54,15 +78,20 @@ export function InstallerDirectory({ initialInstallers }: InstallerDirectoryProp
       list = list.filter((i) => i.provinceKey === selectedProvince)
     }
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim()
-      list = list.filter(
-        (i) =>
-          i.companyName.toLowerCase().includes(q) ||
-          i.certifiedPerson.toLowerCase().includes(q) ||
-          i.city.toLowerCase().includes(q) ||
-          i.postalCode.includes(q)
-      )
+    const normalizedQuery = normalizeSearchText(searchQuery)
+    if (normalizedQuery) {
+      const tokens = normalizedQuery.split(" ").filter(Boolean)
+      const compactQuery = normalizedQuery.replace(/\s+/g, "")
+      list = list.filter((i) => {
+        const haystack = normalizeSearchText(
+          `${i.companyName} ${i.certifiedPerson} ${i.city} ${i.postalCode} ${i.provinceLabel}`
+        )
+        const compactHaystack = haystack.replace(/\s+/g, "")
+        return (
+          tokens.every((token) => haystack.includes(token)) ||
+          (compactQuery.length >= 3 && compactHaystack.includes(compactQuery))
+        )
+      })
     }
 
     return list
@@ -123,7 +152,7 @@ export function InstallerDirectory({ initialInstallers }: InstallerDirectoryProp
 
         {/* Onglets Régions & Provinces */}
         <div className="flex flex-wrap items-center gap-2 pt-1">
-          {PROVINCE_TABS.map((tab) => {
+          {provinceTabs.map((tab) => {
             const isActive = selectedProvince === tab.key
             return (
               <button

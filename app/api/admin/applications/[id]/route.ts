@@ -4,7 +4,10 @@ import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { isB2COptedOutEmail, resolvePartnerSegment } from "@/lib/partner-notification-prefs"
 import { enrichPartnerBceData } from "@/lib/accounting/invoice-service"
-import { linkApprovedReferralPartner } from "@/lib/partner-referrals"
+import {
+  ensurePartnerReferralCode,
+  linkApprovedReferralPartner,
+} from "@/lib/partner-referrals"
 
 type ApplicationRow = {
   id: string
@@ -310,6 +313,10 @@ export async function PATCH(
         console.error("[admin/applications] auth onboarding warning:", authErr)
       }
 
+      const referralCode = partnerId
+        ? await ensurePartnerReferralCode(supabase, partnerId, app.company_name).catch(() => null)
+        : null
+
       const emailPayload = buildInstallerMarketplaceWelcomeEmail({
         applicationId: app.id,
         partnerId: partnerId ?? null,
@@ -326,6 +333,7 @@ export async function PATCH(
           partnerSync && "initialCredits" in partnerSync
             ? Number(partnerSync.initialCredits || 0)
             : 0,
+        referralCode,
       })
 
       const sendRes = await sendInstallerEmail({

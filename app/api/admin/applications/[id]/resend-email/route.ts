@@ -22,6 +22,7 @@ import {
   getRegionalLeadSummary,
   isShowcaseOnlyLeadId,
 } from "@/lib/regional-leads-catalog"
+import { ensurePartnerReferralCode } from "@/lib/partner-referrals"
 
 export async function POST(
   request: NextRequest,
@@ -122,6 +123,10 @@ export async function POST(
         console.error("[resend-email] auth onboarding warning:", authErr)
       }
 
+      const referralCode = partner?.id
+        ? await ensurePartnerReferralCode(supabase, partner.id, app.company_name).catch(() => null)
+        : null
+
       const emailPayload = buildInstallerMarketplaceWelcomeEmail({
         applicationId: app.id,
         partnerId: partner?.id ?? null,
@@ -134,6 +139,7 @@ export async function POST(
         setupPasswordUrl,
         availableLeads,
         closedTargetLead,
+        referralCode,
       })
 
       const sendRes = await sendInstallerEmail({

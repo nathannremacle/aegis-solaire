@@ -104,6 +104,78 @@ export function AdminRelancesDashboard({
   } | null>(null)
   const [announcementTestEmail, setAnnouncementTestEmail] = useState("")
 
+  // Modal diffusion e-mail programme de parrainage RESCERT
+  const [referralModalOpen, setReferralModalOpen] = useState(false)
+  const [referralLoading, setReferralLoading] = useState(false)
+  const [referralSending, setReferralSending] = useState(false)
+  const [referralSegment, setReferralSegment] = useState<"all" | "buyers_only">("all")
+  const [referralTestEmail, setReferralTestEmail] = useState("")
+  const [referralData, setReferralData] = useState<{
+    subject: string
+    html: string
+    allEligibleCount: number
+    activeBuyerCount: number
+    recipientsPreview: { id: string; companyName: string; email: string; hasPurchased: boolean }[]
+  } | null>(null)
+
+  async function openReferralModal() {
+    setReferralModalOpen(true)
+    setReferralLoading(true)
+    try {
+      const res = await fetch("/api/admin/partners/referral-campaign")
+      if (res.ok) {
+        const json = await res.json()
+        setReferralData(json)
+      }
+    } catch {
+      toast.error("Impossible de charger l'aperçu de l'e-mail parrainage.")
+    } finally {
+      setReferralLoading(false)
+    }
+  }
+
+  async function sendReferralCampaign(mode: "test" | "broadcast") {
+    const targetCount =
+      referralSegment === "buyers_only"
+        ? (referralData?.activeBuyerCount ?? 0)
+        : (referralData?.allEligibleCount ?? 0)
+
+    if (
+      mode === "broadcast" &&
+      !confirm(
+        `Confirmer l'envoi de l'e-mail Programme Parrainage RESCERT à ${targetCount} installateur(s) (${referralSegment === "buyers_only" ? "acheteurs actifs" : "tous opt-in"}) ?`
+      )
+    ) {
+      return
+    }
+    setReferralSending(true)
+    try {
+      const res = await fetch("/api/admin/partners/referral-campaign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode,
+          segment: referralSegment,
+          testEmail: referralTestEmail.trim() || undefined,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        throw new Error(json.error || "Erreur d'envoi")
+      }
+      if (mode === "test") {
+        toast.success(`E-mail de test parrainage envoyé à ${json.sentTo}`)
+      } else {
+        toast.success(json.message || `Campagne parrainage envoyée à ${json.sentCount} partenaire(s) !`)
+        setReferralModalOpen(false)
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erreur lors de l'envoi")
+    } finally {
+      setReferralSending(false)
+    }
+  }
+
   async function openAnnouncementModal() {
     setAnnouncementOpen(true)
     setAnnouncementLoading(true)
@@ -449,6 +521,16 @@ export function AdminRelancesDashboard({
             >
               <Mail className="h-3.5 w-3.5 text-accent" />
               <span>E-mail Nouveautés</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openReferralModal}
+              className="h-8 text-xs gap-1.5 border-border"
+            >
+              <Users className="h-3.5 w-3.5 text-accent" />
+              <span>E-mail Parrainage</span>
             </Button>
 
             <Button
@@ -1595,6 +1677,132 @@ export function AdminRelancesDashboard({
                 )}
                 <span>
                   Diffuser à {announcementData?.activeRecipientCount ?? 0} installateur(s)
+                </span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 8. Modale Aperçu & Diffusion E-mail Programme Parrainage RESCERT */}
+      {referralModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/60 backdrop-blur-xs"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !referralSending) setReferralModalOpen(false)
+          }}
+        >
+          <div className="w-full max-w-3xl max-h-[90vh] flex flex-col rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border">
+              <div className="flex flex-col gap-0.5">
+                <h2 className="text-base font-bold text-foreground">
+                  E-mail lancement Programme Parrainage RESCERT
+                </h2>
+                <p className="text-xs text-muted-foreground font-mono tabular-nums">
+                  {referralData
+                    ? `${referralData.allEligibleCount} partenaire(s) opt-in · ${referralData.activeBuyerCount} acheteur(s) actif(s)`
+                    : "Chargement des destinataires..."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReferralModalOpen(false)}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
+                aria-label="Fermer la fenêtre d'aperçu parrainage"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5 bg-secondary/20 flex flex-col gap-3">
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2.5">
+                <span className="text-xs font-semibold text-muted-foreground">Cible de diffusion :</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={referralSegment === "all" ? "default" : "outline"}
+                    onClick={() => setReferralSegment("all")}
+                    className="h-7 text-xs font-mono tabular-nums"
+                  >
+                    Tous opt-in ({referralData?.allEligibleCount ?? 0})
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={referralSegment === "buyers_only" ? "default" : "outline"}
+                    onClick={() => setReferralSegment("buyers_only")}
+                    className="h-7 text-xs font-mono tabular-nums"
+                  >
+                    Acheteurs actifs ({referralData?.activeBuyerCount ?? 0})
+                  </Button>
+                </div>
+              </div>
+
+              {referralLoading ? (
+                <div className="flex items-center justify-center py-12 text-xs text-muted-foreground gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Génération de l&apos;aperçu...</span>
+                </div>
+              ) : referralData ? (
+                <div className="flex flex-col gap-3">
+                  <div className="rounded-xl border border-border bg-card px-4 py-2.5 text-xs">
+                    <span className="text-muted-foreground">Objet : </span>
+                    <strong className="text-foreground">{referralData.subject}</strong>
+                  </div>
+                  <iframe
+                    title="Aperçu E-mail Parrainage"
+                    srcDoc={referralData.html}
+                    className="w-full h-[420px] rounded-xl border border-border bg-background"
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-5 py-4 border-t border-border bg-card">
+              <div className="flex items-center gap-2">
+                <Input
+                  type="email"
+                  value={referralTestEmail}
+                  onChange={(e) => setReferralTestEmail(e.target.value)}
+                  placeholder="E-mail de test (défaut : admin)"
+                  className="h-8 text-xs w-56"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={referralSending || referralLoading}
+                  onClick={() => sendReferralCampaign("test")}
+                  className="h-8 text-xs shrink-0"
+                >
+                  Envoyer un test
+                </Button>
+              </div>
+
+              <Button
+                type="button"
+                size="sm"
+                disabled={
+                  referralSending ||
+                  referralLoading ||
+                  (referralSegment === "buyers_only"
+                    ? !referralData?.activeBuyerCount
+                    : !referralData?.allEligibleCount)
+                }
+                onClick={() => sendReferralCampaign("broadcast")}
+                className="h-8 text-xs gap-1.5 font-bold font-mono tabular-nums"
+              >
+                {referralSending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Send className="h-3.5 w-3.5" />
+                )}
+                <span>
+                  Diffuser à{" "}
+                  {referralSegment === "buyers_only"
+                    ? (referralData?.activeBuyerCount ?? 0)
+                    : (referralData?.allEligibleCount ?? 0)}{" "}
+                  installateur(s)
                 </span>
               </Button>
             </div>

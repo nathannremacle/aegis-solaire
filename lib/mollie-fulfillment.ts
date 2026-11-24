@@ -21,7 +21,10 @@ import {
   ensureInvoiceForCreditOrder,
   ensureInvoiceForLeadPurchase,
 } from "@/lib/accounting/invoice-service"
-import { triggerPartnerReferralReward } from "@/lib/partner-referrals"
+import {
+  ensurePartnerReferralCode,
+  triggerPartnerReferralReward,
+} from "@/lib/partner-referrals"
 
 async function savePartnerMollieMandateIfPresent(
   supabase: ReturnType<typeof createServiceRoleClient>,
@@ -141,6 +144,11 @@ export async function fulfillPaidCreditOrder(
       const resend = new Resend(process.env.RESEND_API_KEY)
       const fromEmail = process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com"
       const invoiceRef = issuedInvoice.invoiceNumber || order.transfer_reference || `AEGIS-${order.id.slice(0, 8).toUpperCase()}`
+      const referralCode = await ensurePartnerReferralCode(
+        supabase,
+        order.partner_id,
+        order.partners?.company_name
+      ).catch(() => null)
       const rendered = buildCreditOrderConfirmationEmail({
         orderId: order.id,
         invoiceRef,
@@ -153,6 +161,7 @@ export async function fulfillPaidCreditOrder(
         priceTtc: order.price_ttc ?? 0,
         paymentMethodLabel: payment.method || "Bancontact",
         transactionId: payment.id,
+        referralCode,
       })
 
       await resend.emails.send({
@@ -515,6 +524,12 @@ export async function fulfillPaidLeadDirectPurchase(
         ? `${lead.site_address}, ${locationSubtitle}`
         : locationSubtitle
 
+      const referralCode = await ensurePartnerReferralCode(
+        supabase,
+        partner.id,
+        partner.company_name
+      ).catch(() => null)
+
       const rendered = buildLeadDirectPurchaseConfirmationEmail({
         leadId: lead.id,
         segment: lead.segment || "B2C",
@@ -532,6 +547,7 @@ export async function fulfillPaidLeadDirectPurchase(
         priceTtc,
         paymentMethodLabel: payment.method || "Bancontact",
         transactionId: payment.id,
+        referralCode,
       })
 
       await resend.emails.send({

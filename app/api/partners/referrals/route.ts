@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getPartner } from "@/lib/partner-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import {
+  buildPartnerReferralShareData,
   ensurePartnerReferralCode,
   PARTNER_REFERRAL_REWARD_CREDITS,
 } from "@/lib/partner-referrals"
@@ -26,7 +27,12 @@ export async function GET(request: NextRequest) {
     request.nextUrl.origin ||
     "https://www.aegissolaire.com"
   ).replace(/\/$/, "")
-  const referralUrl = `${siteUrl}/partenaires?ref=${encodeURIComponent(referralCode)}#candidature`
+  const { referralUrl } = buildPartnerReferralShareData({
+    referralCode,
+    companyName: partner.company_name,
+    baseUrl: siteUrl,
+    rewardCredits: PARTNER_REFERRAL_REWARD_CREDITS,
+  })
 
   const { data: rows, error } = await supabase
     .from("partner_referrals")

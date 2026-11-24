@@ -8,6 +8,10 @@ import {
   renderSpecsTable,
   type EmailSpecRow,
 } from "@/lib/email-templates/installer-email-layout"
+import {
+  buildPartnerReferralTextFootnote,
+  renderPartnerReferralFooterBlock,
+} from "@/lib/email-templates/installer-referral-launch"
 import { getDisputeReasonConfig } from "@/lib/disputes-policy"
 
 /* ==========================================================================
@@ -27,6 +31,7 @@ export interface CreditOrderConfirmationEmailData {
   paymentMethodLabel: string
   transactionId?: string | null
   issuedDate?: string
+  referralCode?: string | null
 }
 
 export function buildCreditOrderConfirmationEmail(data: CreditOrderConfirmationEmailData): {
@@ -93,6 +98,12 @@ export function buildCreditOrderConfirmationEmail(data: CreditOrderConfirmationE
         </td>
       </tr>
     </table>
+
+    ${renderPartnerReferralFooterBlock({
+      referralCode: data.referralCode,
+      companyName: company,
+      baseUrl,
+    })}
   `
 
   const html = renderInstallerEmailShell({
@@ -111,6 +122,12 @@ export function buildCreditOrderConfirmationEmail(data: CreditOrderConfirmationE
     ],
   })
 
+  const referralText = buildPartnerReferralTextFootnote({
+    referralCode: data.referralCode,
+    companyName: company,
+    baseUrl,
+  })
+
   const text = `AEGIS SOLAIRE — CONFIRMATION & JUSTIFICATIF TVA
 Pièce ${data.invoiceRef}
 
@@ -122,7 +139,7 @@ Validité des crédits : 12 mois à compter de l'achat (Art. 4.3 des CGV).
 JUSTIFICATIF COMPTABLE B2B (ACQUITTÉ) :
 ${accountingRows.map((r) => `• ${r.label} : ${r.value}`).join("\n")}
 
-Accéder aux dossiers disponibles : ${dashboardUrl}
+Accéder aux dossiers disponibles : ${dashboardUrl}${referralText ? `\n\n${referralText}` : ""}
 
 Assistance technique : contact@aegissolaire.com
 Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
@@ -153,6 +170,7 @@ export interface LeadDirectPurchaseConfirmationData {
   paymentMethodLabel: string
   transactionId: string
   issuedDate?: string
+  referralCode?: string | null
 }
 
 export function buildLeadDirectPurchaseConfirmationEmail(
@@ -233,6 +251,12 @@ export function buildLeadDirectPurchaseConfirmationEmail(
         </td>
       </tr>
     </table>
+
+    ${renderPartnerReferralFooterBlock({
+      referralCode: data.referralCode,
+      companyName: company,
+      baseUrl,
+    })}
   `
 
   const html = renderInstallerEmailShell({
@@ -254,6 +278,12 @@ export function buildLeadDirectPurchaseConfirmationEmail(
     ],
   })
 
+  const referralText = buildPartnerReferralTextFootnote({
+    referralCode: data.referralCode,
+    companyName: company,
+    baseUrl,
+  })
+
   const text = `AEGIS SOLAIRE — DOSSIER DÉBLOQUÉ & JUSTIFICATIF TVA
 Pièce ${data.invoiceRef}
 
@@ -269,7 +299,7 @@ ${data.contactPreferenceLabel ? `• Premier contact souhaité : ${data.contactP
 JUSTIFICATIF COMPTABLE B2B (ACQUITTÉ) :
 ${accountingRows.map((r) => `• ${r.label} : ${r.value}`).join("\n")}
 
-Ouvrir la fiche complète dans votre CRM : ${leadUrl}
+Ouvrir la fiche complète dans votre CRM : ${leadUrl}${referralText ? `\n\n${referralText}` : ""}
 
 Assistance technique : contact@aegissolaire.com
 Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique

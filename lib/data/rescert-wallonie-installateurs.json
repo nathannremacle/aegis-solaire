@@ -97,7 +97,7 @@
     "email": "mikrecup@gmail.com",
     "phone": "",
     "postalCode": "1420",
-    "city": "Braine-l&#39;Alleud",
+    "city": "Braine-l'Alleud",
     "provinceKey": "brabant_wallon",
     "provinceLabel": "Brabant wallon",
     "category": "Systèmes solaires photovoltaïques",
@@ -247,6 +247,19 @@
     "certified": true
   },
   {
+    "id": "rescert-1370-99",
+    "companyName": "Vandenkerchove",
+    "certifiedPerson": "Sven Vandenkerchove",
+    "email": "vdksven@live.be",
+    "phone": "",
+    "postalCode": "1370",
+    "city": "Jodoigne",
+    "provinceKey": "brabant_wallon",
+    "provinceLabel": "Brabant wallon",
+    "category": "Systèmes solaires photovoltaïques",
+    "certified": true
+  },
+  {
     "id": "rescert-1370-97",
     "companyName": "Vincent Lizin SRL",
     "certifiedPerson": "vincent Lizin",
@@ -299,19 +312,6 @@
     "certified": true
   },
   {
-    "id": "rescert-1370-99",
-    "companyName": "Vandenkerchove",
-    "certifiedPerson": "Sven Vandenkerchove",
-    "email": "vdksven@live.be",
-    "phone": "",
-    "postalCode": "1370",
-    "city": "Lathuy",
-    "provinceKey": "brabant_wallon",
-    "provinceLabel": "Brabant wallon",
-    "category": "Systèmes solaires photovoltaïques",
-    "certified": true
-  },
-  {
     "id": "rescert-1471-125",
     "companyName": "BLIGHT",
     "certifiedPerson": "Nicolas LEMAL",
@@ -327,7 +327,7 @@
   {
     "id": "rescert-1348-60",
     "companyName": "OXIRA",
-    "certifiedPerson": "Antoine RIGAUD",
+    "certifiedPerson": "Antoine RIGAUD, François Raulier",
     "email": "antoine.rigaud@oxira.be",
     "phone": "010870023",
     "postalCode": "1348",
@@ -416,7 +416,7 @@
     "certified": true
   },
   {
-    "id": "rescert-1400-695",
+    "id": "rescert-1400-696",
     "companyName": "Miranda électricité SPRL",
     "certifiedPerson": "Gilmar Miranda Teixeira Sobrinho",
     "email": "contact@miranda-electricite.be",
@@ -599,7 +599,7 @@
   },
   {
     "id": "rescert-1367-91",
-    "companyName": "Sam&#39;Eclair srl",
+    "companyName": "Sam'Eclair srl",
     "certifiedPerson": "Kevin Delongueville",
     "email": "sameclairsrl@outlook.com",
     "phone": "0476",
@@ -767,7 +767,7 @@
     "certified": true
   },
   {
-    "id": "rescert-1410-642",
+    "id": "rescert-1410-643",
     "companyName": "Amphios srl",
     "certifiedPerson": "Evangelos Argyrakis",
     "email": "info@amphios.net",
@@ -949,7 +949,7 @@
     "certified": true
   },
   {
-    "id": "rescert-1300-713",
+    "id": "rescert-1300-715",
     "companyName": "Solena",
     "certifiedPerson": "Thomas Gailliez",
     "email": "thomas.g@solena.be",
@@ -1118,7 +1118,7 @@
     "certified": true
   },
   {
-    "id": "rescert-1082-781",
+    "id": "rescert-1082-783",
     "companyName": "AXO",
     "certifiedPerson": "Mihai Mihaescu",
     "email": "l.fernandez@axo-sa.be",
@@ -1146,7 +1146,7 @@
   {
     "id": "rescert-1000-4",
     "companyName": "Bluebridge Technics BV",
-    "certifiedPerson": "Stephane Gravensteyn",
+    "certifiedPerson": "Stephane Gravensteyn, Hans Miguet",
     "email": "stephane.gravensteyn@be.bluebridge-services.com",
     "phone": "+32472180065",
     "postalCode": "1000",
@@ -1183,7 +1183,7 @@
     "certified": true
   },
   {
-    "id": "rescert-1030-770",
+    "id": "rescert-1030-772",
     "companyName": "Atlas controle",
     "certifiedPerson": "Simon Lemaître",
     "email": "contact@wenergy-consulting.com",
@@ -1443,7 +1443,7 @@
     "certified": true
   },
   {
-    "id": "rescert-1130-782",
+    "id": "rescert-1130-784",
     "companyName": "Aurora Energie",
     "certifiedPerson": "Mathieu Bayot",
     "email": "mathieu@aurora-energie.be",
@@ -1521,7 +1521,7 @@
     "certified": true
   },
   {
-    "id": "rescert-1050-510",
+    "id": "rescert-1050-511",
     "companyName": "ATERNO BELGIQUE SRL",
     "certifiedPerson": "ROMAIN QUEANT",
     "email": "c.staat@aterno.com",
@@ -1536,7 +1536,7 @@
   {
     "id": "rescert-1090-27",
     "companyName": "AZELEC SRL",
-    "certifiedPerson": "Tanguy Frédéric",
+    "certifiedPerson": "Tanguy Frédéric, Jimmy Schotte",
     "email": "info@azelec.be",
     "phone": "024794027",
     "postalCode": "1090",
@@ -1625,7 +1625,7 @@
     "certified": true
   },
   {
-    "id": "rescert-1030-780",
+    "id": "rescert-1030-782",
     "companyName": "Atlas controle VZW",
     "certifiedPerson": "Toon Verdru",
     "email": "t.verdru@atlascontrole.be",
@@ -1729,7 +1729,7 @@
     "certified": true
   },
   {
-    "id": "rescert-1180-560",
+    "id": "rescert-1180-561",
     "companyName": "Euro Energy",
     "certifiedPerson": "Bilal Baran",
     "email": "bilal_baran@hotmail.de",
@@ -1861,7 +1861,7 @@
   {
     "id": "rescert-1150-81",
     "companyName": "L.D. Electric Systèms",
-    "certifiedPerson": "Sébastien de Maere d&#39;Aertrycke",
+    "certifiedPerson": "Sébastien de Maere d'Aertrycke",
     "email": "info@ldelec.be",
     "phone": "+32489101813",
     "postalCode": "1150",
@@ -1872,7 +1872,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6250-564",
+    "id": "rescert-6250-565",
     "companyName": "troonen",
     "certifiedPerson": "damien troonen",
     "email": "peb@energytips.be",
@@ -1885,7 +1885,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6150-539",
+    "id": "rescert-6150-540",
     "companyName": "Mayoka Florian",
     "certifiedPerson": "Florian Mayoka",
     "email": "mayoka.florian@gmail.com",
@@ -1898,7 +1898,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6150-540",
+    "id": "rescert-6150-541",
     "companyName": "Riso Nicola",
     "certifiedPerson": "Nicola Riso",
     "email": "nrelectricite2016@gmail.com",
@@ -1911,8 +1911,8 @@
     "certified": true
   },
   {
-    "id": "rescert-6150-538",
-    "companyName": "C&amp;H Technics SRL",
+    "id": "rescert-6150-539",
+    "companyName": "C&H Technics SRL",
     "certifiedPerson": "Eldar Kerimov",
     "email": "ek@chtechnics.be",
     "phone": "+324753965327",
@@ -1924,7 +1924,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7750-745",
+    "id": "rescert-7750-747",
     "companyName": "VINCENT DERONNE",
     "certifiedPerson": "VINCENT DERONNE",
     "email": "contact@dv-lec.be",
@@ -1937,7 +1937,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7326-784",
+    "id": "rescert-7326-785",
     "companyName": "Alexandre Holler",
     "certifiedPerson": "Alexandre Holler",
     "email": "administratie@gssolar.nl",
@@ -1950,7 +1950,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7181-700",
+    "id": "rescert-7181-701",
     "companyName": "Batimold",
     "certifiedPerson": "Radu Rotaru",
     "email": "batimold@gmail.com",
@@ -1963,7 +1963,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7181-698",
+    "id": "rescert-7181-699",
     "companyName": "Pedro Nuno Ferreira Ascensao",
     "certifiedPerson": "Pedro Nuno Ferreira Ascensao",
     "email": "pedroeht2016@gmail.com",
@@ -1976,7 +1976,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7181-699",
+    "id": "rescert-7181-700",
     "companyName": "Lardinois Bryan électricité",
     "certifiedPerson": "bryan lardinois",
     "email": "bryanlardinois.electricite@gmail.com",
@@ -1989,11 +1989,11 @@
     "certified": true
   },
   {
-    "id": "rescert-7800-753",
-    "companyName": "Lemaire, Vincent",
+    "id": "rescert-7800-755",
+    "companyName": "Vincent Lemaire",
     "certifiedPerson": "Vincent Lemaire",
     "email": "info@it-house.be",
-    "phone": "+32494112424",
+    "phone": "",
     "postalCode": "7800",
     "city": "Ath",
     "provinceKey": "hainaut",
@@ -2002,7 +2002,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7387-714",
+    "id": "rescert-7387-716",
     "companyName": "Jordan Steenhaut",
     "certifiedPerson": "Jordan Steenhaut",
     "email": "steenhaut-j@hotmail.com",
@@ -2015,7 +2015,20 @@
     "certified": true
   },
   {
-    "id": "rescert-7604-728",
+    "id": "rescert-7382-713",
+    "companyName": "Maurizio TERRAZZINO",
+    "certifiedPerson": "Maurizio TERRAZZINO",
+    "email": "ggelec@ggelec.be",
+    "phone": "",
+    "postalCode": "7382",
+    "city": "Audregnies",
+    "provinceKey": "hainaut",
+    "provinceLabel": "Hainaut",
+    "category": "Systèmes solaires photovoltaïques",
+    "certified": true
+  },
+  {
+    "id": "rescert-7604-730",
     "companyName": "Megawatt sprl",
     "certifiedPerson": "pierre colinet",
     "email": "info@megawatt.be",
@@ -2028,7 +2041,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6464-574",
+    "id": "rescert-6464-575",
     "companyName": "MASSON MICKAEL",
     "certifiedPerson": "MICKAEL MASSON",
     "email": "info@electricitemickaelmasson.be",
@@ -2041,7 +2054,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7971-729",
+    "id": "rescert-7971-731",
     "companyName": "Enertec",
     "certifiedPerson": "Rémi Demeure",
     "email": "info@enertec.be",
@@ -2054,7 +2067,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7830-756",
+    "id": "rescert-7830-758",
     "companyName": "DEFEVER",
     "certifiedPerson": "Philippe DEFEVER",
     "email": "philippe.defever@gmail.com",
@@ -2067,7 +2080,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7532-724",
+    "id": "rescert-7532-726",
     "companyName": "HERMANS",
     "certifiedPerson": "marius hermans",
     "email": "hermans.marius@gmail.com",
@@ -2080,7 +2093,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7970-776",
+    "id": "rescert-7970-778",
     "companyName": "BORNE4ALL SRL",
     "certifiedPerson": "Brandon Lachenal",
     "email": "info@borne4all.be",
@@ -2093,7 +2106,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7522-722",
+    "id": "rescert-7522-724",
     "companyName": "Delrue",
     "certifiedPerson": "Raphaël Delrue",
     "email": "r.delrue@rdsystems.be",
@@ -2106,7 +2119,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6200-547",
+    "id": "rescert-6200-548",
     "companyName": "Debelec SRL",
     "certifiedPerson": "Axel Debruxelles",
     "email": "contact@debelec.be",
@@ -2119,7 +2132,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6200-546",
+    "id": "rescert-6200-547",
     "companyName": "Ludovic Bequet",
     "certifiedPerson": "Ludovic Bequet",
     "email": "ludo.dungas@hotmail.com",
@@ -2132,7 +2145,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6460-507",
+    "id": "rescert-6460-508",
     "companyName": "Rabolli Guillaume",
     "certifiedPerson": "Guillaume RABOLLI",
     "email": "guillaume@ecclipse.be",
@@ -2145,7 +2158,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7090-677",
+    "id": "rescert-7090-678",
     "companyName": "Fabien MELS",
     "certifiedPerson": "Fabien MELS",
     "email": "abpbelux@hotmail.com",
@@ -2158,7 +2171,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7090-676",
+    "id": "rescert-7090-677",
     "companyName": "Renerco",
     "certifiedPerson": "Frédéric Devroede",
     "email": "renerco@outlook.com",
@@ -2171,7 +2184,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7090-674",
+    "id": "rescert-7090-675",
     "companyName": "G.A. Techniques SRL",
     "certifiedPerson": "Guillaume Arnould",
     "email": "info@ga-tech.be",
@@ -2184,7 +2197,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7620-733",
+    "id": "rescert-7620-735",
     "companyName": "prouvier",
     "certifiedPerson": "marc prouvier",
     "email": "mprouvier@hotmail.com",
@@ -2197,7 +2210,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6230-556",
+    "id": "rescert-6230-557",
     "companyName": "Créations et services électrotechniques",
     "certifiedPerson": "Bruno Pussemier",
     "email": "bruno.pussemier@gmail.com",
@@ -2210,7 +2223,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7604-730",
+    "id": "rescert-7604-732",
     "companyName": "JEM CONSULTING SRL",
     "certifiedPerson": "Jérôme EMAER",
     "email": "jerome.emaer@sofistes.be",
@@ -2223,7 +2236,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7870-763",
+    "id": "rescert-7870-765",
     "companyName": "Scaux",
     "certifiedPerson": "Dimitri Scaux",
     "email": "dim_elec@outlook.com",
@@ -2236,7 +2249,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7141-691",
+    "id": "rescert-7141-692",
     "companyName": "SRL Electricool",
     "certifiedPerson": "Jean Adam",
     "email": "jean@electricool.be",
@@ -2249,7 +2262,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7141-692",
+    "id": "rescert-7141-693",
     "companyName": "ML électricité",
     "certifiedPerson": "Loïc Mabille",
     "email": "ml.electricite@hotmail.com",
@@ -2262,7 +2275,20 @@
     "certified": true
   },
   {
-    "id": "rescert-6031-519",
+    "id": "rescert-7061-673",
+    "companyName": "Ecoptimiz",
+    "certifiedPerson": "Jérémy Gévar",
+    "email": "info@ecoptimiz.be",
+    "phone": "+32494308581",
+    "postalCode": "7061",
+    "city": "Casteau",
+    "provinceKey": "hainaut",
+    "provinceLabel": "Hainaut",
+    "category": "Systèmes solaires photovoltaïques",
+    "certified": true
+  },
+  {
+    "id": "rescert-6031-520",
     "companyName": "Adrien Dagnelie",
     "certifiedPerson": "Adrien Dagnelie",
     "email": "adrien.dagnelie.electricite@gmail.com",
@@ -2275,7 +2301,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6030-517",
+    "id": "rescert-6030-518",
     "companyName": "Anthony Devleeshouwer",
     "certifiedPerson": "Anthony Devleeshouwer",
     "email": "anthony.devleeshouwer@gmail.com",
@@ -2288,7 +2314,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6031-518",
+    "id": "rescert-6031-519",
     "companyName": "Elec Home Construct",
     "certifiedPerson": "Halil Bugdayci",
     "email": "halil@elechome.be",
@@ -2301,7 +2327,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6200-545",
+    "id": "rescert-6200-546",
     "companyName": "Allegria Marco SPRL",
     "certifiedPerson": "Marco Allegria",
     "email": "allegria.marco@skynet.be",
@@ -2314,7 +2340,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6200-582",
+    "id": "rescert-6200-583",
     "companyName": "Ets Biuso sa",
     "certifiedPerson": "GUILLAUME MARGANI",
     "email": "info.biuso@gmail.com",
@@ -2327,7 +2353,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6200-548",
+    "id": "rescert-6200-549",
     "companyName": "FABIAN SERVADIO",
     "certifiedPerson": "FABIAN SERVADIO",
     "email": "info@stenergies.be",
@@ -2340,7 +2366,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7521-721",
+    "id": "rescert-7521-723",
     "companyName": "Maz Elec",
     "certifiedPerson": "Abdelilah Mazouz",
     "email": "maz.elec7500@gmail.com",
@@ -2353,7 +2379,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7950-774",
+    "id": "rescert-7950-776",
     "companyName": "Chatel",
     "certifiedPerson": "Adrien Chatel",
     "email": "adrien.chatel@hotmail.com",
@@ -2366,7 +2392,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6460-572",
+    "id": "rescert-6460-573",
     "companyName": "quentin voogd",
     "certifiedPerson": "quentin voogd",
     "email": "lecompagnondutoit@gmail.com",
@@ -2379,7 +2405,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6460-570",
+    "id": "rescert-6460-571",
     "companyName": "GATHON",
     "certifiedPerson": "Benoit GATHON",
     "email": "benoit.gathon@gmail.com",
@@ -2392,7 +2418,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6464-573",
+    "id": "rescert-6464-574",
     "companyName": "Youri Charlier",
     "certifiedPerson": "Youri Charlier",
     "email": "ych@statechnique.be",
@@ -2405,7 +2431,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7340-708",
+    "id": "rescert-7340-709",
     "companyName": "Cüneyt Sancaktar",
     "certifiedPerson": "Cüneyt Sancaktar",
     "email": "csprotect17@gmail.com",
@@ -2418,7 +2444,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7340-707",
+    "id": "rescert-7340-708",
     "companyName": "HAYK HOVHANNISYAN",
     "certifiedPerson": "HAYK HOVHANNISYAN",
     "email": "hayk.h@gmx.net",
@@ -2431,7 +2457,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7780-748",
+    "id": "rescert-7780-750",
     "companyName": "Deriu Mathieu",
     "certifiedPerson": "Mathieu Deriu",
     "email": "mathieu@dm-elec.com",
@@ -2444,7 +2470,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7784-750",
+    "id": "rescert-7784-752",
     "companyName": "Stefano Cilli",
     "certifiedPerson": "Stefano Cilli",
     "email": "stefano.cilli@wattsyou.com",
@@ -2457,7 +2483,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7780-747",
+    "id": "rescert-7780-749",
     "companyName": "ENERDEL",
     "certifiedPerson": "Alexandre Delaby",
     "email": "contact@enerdel.be",
@@ -2470,20 +2496,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6180-541",
-    "companyName": "Anthony Fiore",
-    "certifiedPerson": "Anthony Fiore",
-    "email": "fiore.anthony18@gmail.com",
-    "phone": "",
-    "postalCode": "6180",
-    "city": "Courcelles",
-    "provinceKey": "hainaut",
-    "provinceLabel": "Hainaut",
-    "category": "Systèmes solaires photovoltaïques",
-    "certified": true
-  },
-  {
-    "id": "rescert-6180-543",
+    "id": "rescert-6180-544",
     "companyName": "Lumytec srl",
     "certifiedPerson": "David Petrosino",
     "email": "lumytec@gmail.com",
@@ -2496,7 +2509,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6180-542",
+    "id": "rescert-6180-543",
     "companyName": "KOUMAR OLIVIER",
     "certifiedPerson": "KOUMAR OLIVIER",
     "email": "j.adamo@monnaie.be",
@@ -2509,7 +2522,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7711-740",
+    "id": "rescert-7711-742",
     "companyName": "Mathieu Decorte",
     "certifiedPerson": "Mathieu Decorte",
     "email": "mathieudecorte@gmail.com",
@@ -2522,7 +2535,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7370-710",
+    "id": "rescert-7370-711",
     "companyName": "MAXELEC-SOLAR",
     "certifiedPerson": "maxime foriez",
     "email": "maximeforiez@hotmail.be",
@@ -2535,7 +2548,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7370-709",
+    "id": "rescert-7370-710",
     "companyName": "Etienne Botman",
     "certifiedPerson": "Etienne Botman",
     "email": "e.botman@outlook.be",
@@ -2548,7 +2561,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7370-711",
+    "id": "rescert-7370-712",
     "companyName": "JBELEC",
     "certifiedPerson": "Brandon jenart",
     "email": "jb-elec@outlook.be",
@@ -2561,7 +2574,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7972-778",
+    "id": "rescert-7972-780",
     "companyName": "jurgen vrancken",
     "certifiedPerson": "jurgen vrancken",
     "email": "jurgen.vrancken@gmail.com",
@@ -2574,7 +2587,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7850-761",
+    "id": "rescert-7850-763",
     "companyName": "Gui-Ohm SRL",
     "certifiedPerson": "Guillaume Delinte",
     "email": "guillaume@gui-ohm.com",
@@ -2587,7 +2600,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7850-759",
+    "id": "rescert-7850-761",
     "companyName": "Partnex",
     "certifiedPerson": "pascal alexiou",
     "email": "pascal@partnex.be",
@@ -2600,7 +2613,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7134-688",
+    "id": "rescert-7134-689",
     "companyName": "Dbp Technique Srl",
     "certifiedPerson": "Pascal Debrulle",
     "email": "info@dbptechnique.be",
@@ -2613,7 +2626,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6560-584",
+    "id": "rescert-6560-585",
     "companyName": "AJ home",
     "certifiedPerson": "Andy Liénard",
     "email": "info@ajhome.be",
@@ -2626,7 +2639,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6240-562",
+    "id": "rescert-6240-563",
     "companyName": "jérôme grenier",
     "certifiedPerson": "jérôme grenier",
     "email": "jg.energie@outlook.com",
@@ -2639,7 +2652,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7120-687",
+    "id": "rescert-7120-688",
     "companyName": "Pierre-Olivier Van Isacker",
     "certifiedPerson": "Pierre-Olivier Van Isacker",
     "email": "electricalskills@outlook.com",
@@ -2652,8 +2665,8 @@
     "certified": true
   },
   {
-    "id": "rescert-6220-553",
-    "companyName": "Art du Bâtiment &amp; de l&#39;Energie",
+    "id": "rescert-6220-554",
+    "companyName": "Art du Bâtiment & de l'Energie",
     "certifiedPerson": "Benedetto Miuccio",
     "email": "miuccio@scarlet.be",
     "phone": "+32497389815",
@@ -2665,7 +2678,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6220-551",
+    "id": "rescert-6220-552",
     "companyName": "BRUNO Giuseppe",
     "certifiedPerson": "BRUNO Giuseppe",
     "email": "emina.lebecque@cbenergy.be",
@@ -2678,7 +2691,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7880-764",
+    "id": "rescert-7880-766",
     "companyName": "Francois Bailly",
     "certifiedPerson": "Francois Bailly",
     "email": "francois-bailly@hotmail.com",
@@ -2691,7 +2704,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7880-765",
+    "id": "rescert-7880-767",
     "companyName": "Lagaese",
     "certifiedPerson": "Pierre Lagaese",
     "email": "pierre@lagaese.be",
@@ -2704,7 +2717,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7880-766",
+    "id": "rescert-7880-768",
     "companyName": "Roos Thierry - ConfortPlus",
     "certifiedPerson": "Thierry Roos",
     "email": "confortplusmail@gmail.com",
@@ -2717,26 +2730,39 @@
     "certified": true
   },
   {
-    "id": "rescert-6140-534",
+    "id": "rescert-6140-535",
     "companyName": "Didier Quenon",
     "certifiedPerson": "Didier Quenon",
     "email": "didier.quenon@gmail.com",
     "phone": "",
     "postalCode": "6140",
-    "city": "Fontaine-l&#39;Evêque",
+    "city": "Fontaine-l'Evêque",
     "provinceKey": "hainaut",
     "provinceLabel": "Hainaut",
     "category": "Systèmes solaires photovoltaïques",
     "certified": true
   },
   {
-    "id": "rescert-6140-533",
+    "id": "rescert-6140-534",
     "companyName": "Romuald DEWULF",
     "certifiedPerson": "Romuald DEWULF",
     "email": "info@rd-renov.be",
     "phone": "",
     "postalCode": "6140",
-    "city": "Fontaine-l&#39;Evêque",
+    "city": "Fontaine-l'Evêque",
+    "provinceKey": "hainaut",
+    "provinceLabel": "Hainaut",
+    "category": "Systèmes solaires photovoltaïques",
+    "certified": true
+  },
+  {
+    "id": "rescert-6141-537",
+    "companyName": "Benjamin Sacrez",
+    "certifiedPerson": "Benjamin Sacrez",
+    "email": "benjamin.sacrez@hotmail.com",
+    "phone": "",
+    "postalCode": "6141",
+    "city": "Fontaine-l'Évêque",
     "provinceKey": "hainaut",
     "provinceLabel": "Hainaut",
     "category": "Systèmes solaires photovoltaïques",
@@ -2744,19 +2770,6 @@
   },
   {
     "id": "rescert-6141-536",
-    "companyName": "Benjamin Sacrez",
-    "certifiedPerson": "Benjamin Sacrez",
-    "email": "benjamin.sacrez@hotmail.com",
-    "phone": "",
-    "postalCode": "6141",
-    "city": "Fontaine-l&#39;Évêque",
-    "provinceKey": "hainaut",
-    "provinceLabel": "Hainaut",
-    "category": "Systèmes solaires photovoltaïques",
-    "certified": true
-  },
-  {
-    "id": "rescert-6141-535",
     "companyName": "Sébastien Benetti",
     "certifiedPerson": "Sébastien Benetti",
     "email": "bmenergysprl@gmail.com",
@@ -2769,7 +2782,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7080-673",
+    "id": "rescert-7080-674",
     "companyName": "NEST INDUSTRIES SRL",
     "certifiedPerson": "Gionatan Sammartino",
     "email": "info.nest@yahoo.com",
@@ -2796,7 +2809,7 @@
   },
   {
     "id": "rescert-7080-139",
-    "companyName": "SRL Bertiaux &amp; Denis",
+    "companyName": "SRL Bertiaux & Denis",
     "certifiedPerson": "Jean-Philippe Denis",
     "email": "info@bertiaux-denis.be",
     "phone": "+32475750870",
@@ -2808,7 +2821,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7911-772",
+    "id": "rescert-7911-774",
     "companyName": "INTEC BELGIUM",
     "certifiedPerson": "Vincent Vanden Bossche",
     "email": "secretariat@intec-belgium.com",
@@ -2821,7 +2834,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6440-568",
+    "id": "rescert-6440-569",
     "companyName": "Christophe Lechat",
     "certifiedPerson": "Christophe Lechat",
     "email": "hvac@delcatelec.be",
@@ -2834,7 +2847,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6440-569",
+    "id": "rescert-6440-570",
     "companyName": "Pierre Minet",
     "certifiedPerson": "Pierre Minet",
     "email": "info@etc-couvin.be",
@@ -2847,7 +2860,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7530-723",
+    "id": "rescert-7530-725",
     "companyName": "Enolix",
     "certifiedPerson": "Pierre Wilfart",
     "email": "pierre.enolix@gmail.com",
@@ -2860,20 +2873,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6161-783",
-    "companyName": "Petec Energietechniek",
-    "certifiedPerson": "Tom Peters",
-    "email": "info@petec.nl",
-    "phone": "0031858228270",
-    "postalCode": "6161",
-    "city": "Geleen &ndash; Pays-Bas",
-    "provinceKey": "hainaut",
-    "provinceLabel": "Hainaut",
-    "category": "Systèmes solaires photovoltaïques",
-    "certified": true
-  },
-  {
-    "id": "rescert-6280-565",
+    "id": "rescert-6280-566",
     "companyName": "leroy",
     "certifiedPerson": "Jean-Pierre LEROY",
     "email": "leroyjp@gmail.com",
@@ -2886,8 +2886,8 @@
     "certified": true
   },
   {
-    "id": "rescert-7822-755",
-    "companyName": "Luc Boon &amp; Frères srl",
+    "id": "rescert-7822-757",
+    "companyName": "Luc Boon & Frères srl",
     "certifiedPerson": "Luc Boon",
     "email": "lucboon@me.com",
     "phone": "+32475733392",
@@ -2899,7 +2899,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7011-658",
+    "id": "rescert-7011-659",
     "companyName": "BeConstruction SRL",
     "certifiedPerson": "Romain BERIOT",
     "email": "romain@beconstruction.be",
@@ -2912,7 +2912,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7011-660",
+    "id": "rescert-7011-661",
     "companyName": "lion",
     "certifiedPerson": "vincent lion",
     "email": "since07@hotmail.com",
@@ -2925,7 +2925,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7011-659",
+    "id": "rescert-7011-660",
     "companyName": "Ramzi Djerbi",
     "certifiedPerson": "Ramzi Djerbi",
     "email": "dr.elec@outlook.com",
@@ -2938,10 +2938,10 @@
     "certified": true
   },
   {
-    "id": "rescert-6060-523",
+    "id": "rescert-6060-524",
     "companyName": "Benoît Adams",
     "certifiedPerson": "Benoît Adams",
-    "email": "",
+    "email": "rh@monnaie.be",
     "phone": "",
     "postalCode": "6060",
     "city": "Gilly",
@@ -2951,7 +2951,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6060-525",
+    "id": "rescert-6060-526",
     "companyName": "CNELEC SRL",
     "certifiedPerson": "Carmelo Tripi",
     "email": "info@cnelec.be",
@@ -2964,7 +2964,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6060-524",
+    "id": "rescert-6060-525",
     "companyName": "VOLT AC srl",
     "certifiedPerson": "Mohamadou Renotte",
     "email": "contact@voltac.be",
@@ -2977,7 +2977,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6060-526",
+    "id": "rescert-6060-527",
     "companyName": "IDEAL ENERGY",
     "certifiedPerson": "ZAKARIA IBNEDAOUD",
     "email": "info@ideal-energy.be",
@@ -2990,7 +2990,20 @@
     "certified": true
   },
   {
-    "id": "rescert-7900-767",
+    "id": "rescert-6534-542",
+    "companyName": "FMG Energie",
+    "certifiedPerson": "Anthony Fiore",
+    "email": "info@fmgenergie.be",
+    "phone": "+32491190026",
+    "postalCode": "6534",
+    "city": "Gozee",
+    "provinceKey": "hainaut",
+    "provinceLabel": "Hainaut",
+    "category": "Systèmes solaires photovoltaïques",
+    "certified": true
+  },
+  {
+    "id": "rescert-7900-769",
     "companyName": "Labeeuw Johan",
     "certifiedPerson": "Johan Labeeuw",
     "email": "labeeuw.johan@hotmail.com",
@@ -3003,7 +3016,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7100-678",
+    "id": "rescert-7100-679",
     "companyName": "Laurent BOUCAUX",
     "certifiedPerson": "Laurent BOUCAUX",
     "email": "lolo.boucaux@gmail.com",
@@ -3016,7 +3029,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6120-529",
+    "id": "rescert-6120-530",
     "companyName": "hainaut",
     "certifiedPerson": "guillaume hainaut",
     "email": "hainaut.guillaume@outlook.be",
@@ -3029,7 +3042,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6120-530",
+    "id": "rescert-6120-531",
     "companyName": "Hardat Youri solarconfort",
     "certifiedPerson": "Youri Hardat",
     "email": "pneuboat@hotmail.com",
@@ -3042,7 +3055,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6120-531",
+    "id": "rescert-6120-532",
     "companyName": "RENOTECA-ENERGIES (HUMBL SRL)",
     "certifiedPerson": "Adrien HUMBLET",
     "email": "info@renoteca.be",
@@ -3055,7 +3068,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7021-662",
+    "id": "rescert-7021-663",
     "companyName": "HOCETEC",
     "certifiedPerson": "Rudi Centeleghe",
     "email": "info@hocetec.be",
@@ -3068,7 +3081,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7050-666",
+    "id": "rescert-7050-667",
     "companyName": "I-Magine Electro-Techniques SRL",
     "certifiedPerson": "Nicolas Delesenne",
     "email": "info@i-magine.be",
@@ -3081,7 +3094,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7712-742",
+    "id": "rescert-7712-744",
     "companyName": "DEI SRL",
     "certifiedPerson": "Bruno Delva",
     "email": "compta@dei-sprl.be",
@@ -3094,7 +3107,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7712-741",
+    "id": "rescert-7712-743",
     "companyName": "Fred Electrique sprl",
     "certifiedPerson": "Frederic Balcaen",
     "email": "info@fred-electrique.com",
@@ -3107,7 +3120,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7110-685",
+    "id": "rescert-7110-686",
     "companyName": "Chaud et froid",
     "certifiedPerson": "Fabrice Pandullo",
     "email": "fabrice@chaud-et-froid.be",
@@ -3120,7 +3133,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7110-681",
+    "id": "rescert-7110-682",
     "companyName": "Ets Maheux S.R.L",
     "certifiedPerson": "JULIEN MAHEUX",
     "email": "ventes@maheux.be",
@@ -3133,7 +3146,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7781-749",
+    "id": "rescert-7781-751",
     "companyName": "HomEnergy Srl",
     "certifiedPerson": "Thomas Duthois",
     "email": "info@hom-energy.be",
@@ -3146,7 +3159,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7830-757",
+    "id": "rescert-7830-759",
     "companyName": "Dnv engineering srl",
     "certifiedPerson": "Jef De Nijs",
     "email": "jdn@dnv-engineering.be",
@@ -3159,7 +3172,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7022-758",
+    "id": "rescert-7022-760",
     "companyName": "vnh Elec SRL",
     "certifiedPerson": "Dider Van Nieuwenhuyse",
     "email": "didier@vnh-elec.be",
@@ -3172,7 +3185,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6120-528",
+    "id": "rescert-6120-529",
     "companyName": "Jean Baudoul",
     "certifiedPerson": "Jean Baudoul",
     "email": "julie.steinier@qcaf.be",
@@ -3185,7 +3198,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6040-693",
+    "id": "rescert-6040-694",
     "companyName": "SRL NDEPOVER",
     "certifiedPerson": "Nathan Depover",
     "email": "info@ndepover.be",
@@ -3198,7 +3211,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7050-668",
+    "id": "rescert-7050-669",
     "companyName": "Steyaert Guillaume",
     "certifiedPerson": "guillaume steyaert",
     "email": "gui.steyaert@gmail.com",
@@ -3211,7 +3224,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7050-667",
+    "id": "rescert-7050-668",
     "companyName": "T(h)inkerfox srl",
     "certifiedPerson": "Sébastien massin",
     "email": "sebastien@thinkerfox.be",
@@ -3224,7 +3237,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7540-725",
+    "id": "rescert-7540-727",
     "companyName": "Energy Connect",
     "certifiedPerson": "François Vanoverschelde",
     "email": "vanoverschelde.f@energy-connect.be",
@@ -3237,7 +3250,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7611-732",
+    "id": "rescert-7611-734",
     "companyName": "LEROY",
     "certifiedPerson": "François Leroy",
     "email": "leroydelacoordination@gmail.com",
@@ -3250,7 +3263,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7100-561",
+    "id": "rescert-7100-562",
     "companyName": "cr design",
     "certifiedPerson": "sebastien charles",
     "email": "sebastien.charles@crdesign.be",
@@ -3263,7 +3276,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7100-694",
+    "id": "rescert-7100-695",
     "companyName": "Kgn-construct Srl",
     "certifiedPerson": "Lucio Kingunia",
     "email": "kgn.construct@gmail.com",
@@ -3276,7 +3289,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7100-679",
+    "id": "rescert-7100-680",
     "companyName": "APOSTOLIS CAVALAS",
     "certifiedPerson": "APOSTOLIS CAVALAS",
     "email": "info@ac-tech.be",
@@ -3289,7 +3302,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7110-684",
+    "id": "rescert-7110-685",
     "companyName": "Mahory Duriau",
     "certifiedPerson": "Mahory Duriau",
     "email": "abmchauffage@hotmail.com",
@@ -3302,7 +3315,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7100-682",
+    "id": "rescert-7100-683",
     "companyName": "SMARO",
     "certifiedPerson": "Salvatore Marotta",
     "email": "salvatore.smaro@hotmail.com",
@@ -3315,7 +3328,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7110-663",
+    "id": "rescert-7110-664",
     "companyName": "SOLAR SYSTEM",
     "certifiedPerson": "Salvatore Gaziano",
     "email": "solarsystem.infos@gmail.com",
@@ -3328,7 +3341,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7100-680",
+    "id": "rescert-7100-681",
     "companyName": "StegoEnergy",
     "certifiedPerson": "Lucas Lambert",
     "email": "stegoenergy@gmail.com",
@@ -3341,7 +3354,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7800-751",
+    "id": "rescert-7800-753",
     "companyName": "EVOTEK",
     "certifiedPerson": "Alexandre Dupont",
     "email": "info@evotek.be",
@@ -3354,7 +3367,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7070-697",
+    "id": "rescert-7070-698",
     "companyName": "UV ECOCONCEPT",
     "certifiedPerson": "Constantin Bouchez",
     "email": "info@uv-ecoconcept.be",
@@ -3367,7 +3380,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6142-537",
+    "id": "rescert-6142-538",
     "companyName": "LAFOURT MAXIME SRL",
     "certifiedPerson": "maxime Lafourt",
     "email": "lafourt.maxime@gmail.com",
@@ -3380,7 +3393,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7850-760",
+    "id": "rescert-7850-762",
     "companyName": "Bruno Bouillon",
     "certifiedPerson": "Bruno Bouillon",
     "email": "bruno@bb-works.net",
@@ -3393,7 +3406,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7900-752",
+    "id": "rescert-7900-754",
     "companyName": "Hayette",
     "certifiedPerson": "Jean-Philippe Hayette",
     "email": "jph.hayette@gmail.com",
@@ -3406,7 +3419,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7134-689",
+    "id": "rescert-7134-690",
     "companyName": "JOFFREY MARCHI",
     "certifiedPerson": "JOFFREY MARCHI",
     "email": "info@ecochauffage.be",
@@ -3419,7 +3432,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6042-521",
+    "id": "rescert-6042-522",
     "companyName": "jamart",
     "certifiedPerson": "keenan jamart",
     "email": "kaelec.ets@gmail.com",
@@ -3432,7 +3445,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6238-559",
+    "id": "rescert-6238-560",
     "companyName": "Arnaud Bernard SRL",
     "certifiedPerson": "Arnaud Bernard",
     "email": "arnaudbernard38@gmail.com",
@@ -3445,7 +3458,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6238-558",
+    "id": "rescert-6238-559",
     "companyName": "Aubin Bardiaux",
     "certifiedPerson": "Aubin Bardiaux",
     "email": "bardiaux.bci@hotmail.com",
@@ -3458,7 +3471,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7810-777",
+    "id": "rescert-7810-779",
     "companyName": "DELTA LUMINANCE SRL",
     "certifiedPerson": "JULIEN HARPIGNY",
     "email": "info@deltaluminance.be",
@@ -3471,7 +3484,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7190-701",
+    "id": "rescert-7190-702",
     "companyName": "SMARTECO",
     "certifiedPerson": "Antoine Scaut",
     "email": "scaut.a@me.com",
@@ -3484,7 +3497,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6001-513",
+    "id": "rescert-6001-514",
     "companyName": "PIERRE GOMAND",
     "certifiedPerson": "PIERRE GOMAND",
     "email": "pierregomand@gogui.be",
@@ -3497,7 +3510,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6001-511",
+    "id": "rescert-6001-512",
     "companyName": "Bouckaert Guillaume",
     "certifiedPerson": "Guillaume Bouckaert",
     "email": "guillaume.bouckaert@hotmail.com",
@@ -3510,7 +3523,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6001-512",
+    "id": "rescert-6001-513",
     "companyName": "Csik",
     "certifiedPerson": "Johan Csik",
     "email": "csikjohan@hotmail.com",
@@ -3523,7 +3536,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6001-514",
+    "id": "rescert-6001-515",
     "companyName": "Lawarrée",
     "certifiedPerson": "Eddy Lawarrée",
     "email": "eddy.lawarree@skynet.be",
@@ -3536,7 +3549,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6001-515",
+    "id": "rescert-6001-516",
     "companyName": "Marullo",
     "certifiedPerson": "Ivan Marullo",
     "email": "support@msi-corporation.com",
@@ -3549,7 +3562,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6001-532",
+    "id": "rescert-6001-533",
     "companyName": "FLJ Project srl",
     "certifiedPerson": "Florent LEFEBVRE",
     "email": "florent@fljproject.be",
@@ -3562,7 +3575,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7850-775",
+    "id": "rescert-7850-777",
     "companyName": "ECLAIR M4CP",
     "certifiedPerson": "PHILIPPE CORTVRINT",
     "email": "phc@m4cp.be",
@@ -3575,7 +3588,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7640-734",
+    "id": "rescert-7640-736",
     "companyName": "G.T.E",
     "certifiedPerson": "giacomo zenoni",
     "email": "giacomo.zenoni@yahoo.fr",
@@ -3588,9 +3601,9 @@
     "certified": true
   },
   {
-    "id": "rescert-7110-516",
+    "id": "rescert-7110-517",
     "companyName": "Flabelec sa",
-    "certifiedPerson": "Cedric Hennaux",
+    "certifiedPerson": "Cedric Hennaux, Marc Wargnies",
     "email": "cedrichennaux@gmail.com",
     "phone": "",
     "postalCode": "7110",
@@ -3601,7 +3614,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6591-585",
+    "id": "rescert-6591-586",
     "companyName": "Jason Coemoth",
     "certifiedPerson": "Jason Coemoth",
     "email": "cojasonth@gmail.com",
@@ -3614,7 +3627,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7000-657",
+    "id": "rescert-7000-658",
     "companyName": "Florian Urbain",
     "certifiedPerson": "Florian Urbain",
     "email": "batoul.alf@fairwind.be",
@@ -3627,7 +3640,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7000-704",
+    "id": "rescert-7000-705",
     "companyName": "Ohm Control",
     "certifiedPerson": "Guilliane Druart",
     "email": "aurelie.raemdonck@ohmcontrol.be",
@@ -3640,7 +3653,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7000-690",
+    "id": "rescert-7000-691",
     "companyName": "Autonhomes",
     "certifiedPerson": "Styven Mingoia",
     "email": "info@autonhomes.com",
@@ -3653,7 +3666,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7011-661",
+    "id": "rescert-7011-662",
     "companyName": "TKAELEC SRL",
     "certifiedPerson": "Alain TANGA KENVO",
     "email": "tkaelec@gmail.com",
@@ -3666,7 +3679,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6032-520",
+    "id": "rescert-6032-521",
     "companyName": "CKELEC",
     "certifiedPerson": "Christophe Kerckhove",
     "email": "info@ckelec.be",
@@ -3679,7 +3692,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7387-712",
+    "id": "rescert-7387-714",
     "companyName": "DI VAIRA",
     "certifiedPerson": "MATHIEU DI VAIRA",
     "email": "mathieu@dhome-be.com",
@@ -3692,7 +3705,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6061-567",
+    "id": "rescert-6061-568",
     "companyName": "SA Palumbo et Fils",
     "certifiedPerson": "Fabrice Palumbo",
     "email": "fabrice@palumbo-sa.eu",
@@ -3705,7 +3718,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6110-527",
+    "id": "rescert-6110-528",
     "companyName": "CARBON CONCEPT",
     "certifiedPerson": "Ludovic Devilers",
     "email": "info@carbonconcept.be",
@@ -3718,7 +3731,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7700-738",
+    "id": "rescert-7700-740",
     "companyName": "Delectro srl",
     "certifiedPerson": "David Rasson",
     "email": "info@delectro.be",
@@ -3731,7 +3744,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7700-737",
+    "id": "rescert-7700-739",
     "companyName": "Frederic LABIS",
     "certifiedPerson": "Frederic LABIS",
     "email": "info@ingelec.be",
@@ -3744,7 +3757,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7700-735",
+    "id": "rescert-7700-737",
     "companyName": "Hubert Courcelles",
     "certifiedPerson": "Hubert Courcelles",
     "email": "hubert@courcelles.pro",
@@ -3757,7 +3770,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7700-739",
+    "id": "rescert-7700-741",
     "companyName": "VGDTECH",
     "certifiedPerson": "Yoann Vanginderdeuren",
     "email": "contact@vgdtech.be",
@@ -3770,7 +3783,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7911-773",
+    "id": "rescert-7911-775",
     "companyName": "jean-michel verhelst",
     "certifiedPerson": "jean-michel verhelst",
     "email": "jmvtoit@hotmail.be",
@@ -3783,8 +3796,8 @@
     "certified": true
   },
   {
-    "id": "rescert-7730-736",
-    "companyName": "M construct &amp; dev",
+    "id": "rescert-7730-738",
+    "companyName": "M construct & dev",
     "certifiedPerson": "Herlich vidal DJIEUFACK TIBONGNOU",
     "email": "herlichvidal303@gmail.com",
     "phone": "",
@@ -3796,7 +3809,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7332-705",
+    "id": "rescert-7332-706",
     "companyName": "Willems Olivier",
     "certifiedPerson": "Willems Olivier",
     "email": "olivier.willems@skynet.be",
@@ -3809,7 +3822,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7743-744",
+    "id": "rescert-7743-746",
     "companyName": "Gaetan Theunis",
     "certifiedPerson": "Gaetan Theunis",
     "email": "gaetan.theunis@gmail.com",
@@ -3822,7 +3835,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7743-743",
+    "id": "rescert-7743-745",
     "companyName": "Sylvain Leleu",
     "certifiedPerson": "Sylvain Leleu",
     "email": "contact@leleusylvain.be",
@@ -3835,7 +3848,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7866-762",
+    "id": "rescert-7866-764",
     "companyName": "DAVID ANDRE",
     "certifiedPerson": "DAVID ANDRE",
     "email": "davidandre1103@hotmail.com",
@@ -3848,7 +3861,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7501-719",
+    "id": "rescert-7501-721",
     "companyName": "Dedessuslesmoustier",
     "certifiedPerson": "Cedric Dedessuslesmoustier",
     "email": "cdedessuslesmoustier@gmail.com",
@@ -3861,7 +3874,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7802-754",
+    "id": "rescert-7802-756",
     "companyName": "AutoNhome Belgium",
     "certifiedPerson": "Maxime Pitton",
     "email": "info@autonhomebelgium.be",
@@ -3874,7 +3887,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7740-702",
+    "id": "rescert-7740-703",
     "companyName": "CELSIUS HVAC srl",
     "certifiedPerson": "Julien Leduc",
     "email": "cousin@favier.be",
@@ -3887,7 +3900,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7600-726",
+    "id": "rescert-7600-728",
     "companyName": "Boël Rene SRL",
     "certifiedPerson": "Pascal BOEL",
     "email": "info@rene-boel.be",
@@ -3900,7 +3913,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7904-769",
+    "id": "rescert-7904-771",
     "companyName": "cyril damien",
     "certifiedPerson": "cyril damien",
     "email": "cyrildamienelec@gmail.com",
@@ -3913,7 +3926,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6230-554",
+    "id": "rescert-6230-555",
     "companyName": "Biévelez",
     "certifiedPerson": "Fabien Biévelez",
     "email": "fbitech7@gmail.com",
@@ -3926,7 +3939,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6230-555",
+    "id": "rescert-6230-556",
     "companyName": "Nathan Clarke",
     "certifiedPerson": "Nathan Clarke",
     "email": "info@so-watts.be",
@@ -3952,7 +3965,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7390-715",
+    "id": "rescert-7390-717",
     "companyName": "ECO-CHAUFFE",
     "certifiedPerson": "Youssef GARZIAD",
     "email": "garziad@hotmail.com",
@@ -3965,20 +3978,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7390-672",
-    "companyName": "Urbanix",
-    "certifiedPerson": "Jérémy Gévar",
-    "email": "info@urbanix.be",
-    "phone": "+32494308581",
-    "postalCode": "7390",
-    "city": "Quaregnon",
-    "provinceKey": "hainaut",
-    "provinceLabel": "Hainaut",
-    "category": "Systèmes solaires photovoltaïques",
-    "certified": true
-  },
-  {
-    "id": "rescert-7390-716",
+    "id": "rescert-7390-718",
     "companyName": "LUMIWATT",
     "certifiedPerson": "philippe REUTER",
     "email": "lumiwatt@skynet.be",
@@ -3991,7 +3991,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6043-522",
+    "id": "rescert-6043-523",
     "companyName": "HBTechnics",
     "certifiedPerson": "Benoit Hellin",
     "email": "info@hbtechnics.net",
@@ -4004,7 +4004,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6210-550",
+    "id": "rescert-6210-551",
     "companyName": "Green Energy Invest",
     "certifiedPerson": "Arthur Sillis",
     "email": "admin@geinvest.be",
@@ -4017,8 +4017,8 @@
     "certified": true
   },
   {
-    "id": "rescert-7090-675",
-    "companyName": "Nov&#39;elec",
+    "id": "rescert-7090-676",
+    "companyName": "Nov'elec",
     "certifiedPerson": "Gary Bisschot",
     "email": "gary.bisschot@novelec.be",
     "phone": "+32475777898",
@@ -4030,7 +4030,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6250-563",
+    "id": "rescert-6250-564",
     "companyName": "JRMConsult",
     "certifiedPerson": "Jérémy Primavera",
     "email": "jp@jrmconsult.be",
@@ -4043,7 +4043,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7034-665",
+    "id": "rescert-7034-666",
     "companyName": "michel olivier vandycke",
     "certifiedPerson": "michel olivier vandycke",
     "email": "vandyckeoli@gmail.com",
@@ -4056,7 +4056,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7330-703",
+    "id": "rescert-7330-704",
     "companyName": "BAT-IMMO-PRO",
     "certifiedPerson": "Hassan Daidou",
     "email": "batimmopro.info@gmail.com",
@@ -4069,7 +4069,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7333-706",
+    "id": "rescert-7333-707",
     "companyName": "Wattiez, Andy",
     "certifiedPerson": "Andy Wattiez",
     "email": "electricite.aw@gmail.com",
@@ -4082,7 +4082,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6460-571",
+    "id": "rescert-6460-572",
     "companyName": "MF SMART HOME",
     "certifiedPerson": "Giuseppe Fabian MANZELLA",
     "email": "mfsmarthome@hotmail.com",
@@ -4095,7 +4095,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7180-696",
+    "id": "rescert-7180-697",
     "companyName": "Arnould Grégoire Services SRL",
     "certifiedPerson": "Grégoire Arnould",
     "email": "info@srlags.be",
@@ -4108,7 +4108,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6470-575",
+    "id": "rescert-6470-576",
     "companyName": "Gregori Lizzi SRL",
     "certifiedPerson": "Gregori Lizzi",
     "email": "lizzi.gregori@gmail.com",
@@ -4121,7 +4121,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7060-670",
+    "id": "rescert-7060-671",
     "companyName": "GOSSTA SRL",
     "certifiedPerson": "Nicolas Gosset",
     "email": "gosset.nic@gmail.com",
@@ -4134,7 +4134,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7060-671",
+    "id": "rescert-7060-672",
     "companyName": "Régis Tricoux",
     "certifiedPerson": "Régis Tricoux",
     "email": "coxent@outlook.com",
@@ -4147,7 +4147,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7060-669",
+    "id": "rescert-7060-670",
     "companyName": "Sébastien Briatte",
     "certifiedPerson": "Sébastien Briatte",
     "email": "info@briatte.be",
@@ -4160,7 +4160,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7060-544",
+    "id": "rescert-7060-545",
     "companyName": "Volteco",
     "certifiedPerson": "Livio Romano",
     "email": "livio@volteco.be",
@@ -4173,7 +4173,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7032-664",
+    "id": "rescert-7032-665",
     "companyName": "Olmatec",
     "certifiedPerson": "Mathias Olivier",
     "email": "oliviermathias@olmatec.be",
@@ -4186,7 +4186,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7973-779",
+    "id": "rescert-7973-781",
     "companyName": "FM ELEC SRL",
     "certifiedPerson": "Mathieu Flamme",
     "email": "mathieuflamme7973@gmail.com",
@@ -4199,8 +4199,8 @@
     "certified": true
   },
   {
-    "id": "rescert-6511-576",
-    "companyName": "DM Elec &amp; Solar SRL",
+    "id": "rescert-6511-577",
+    "companyName": "DM Elec & Solar SRL",
     "certifiedPerson": "Manuel Delcourt",
     "email": "info@dm-elec.eu",
     "phone": "+32493728619",
@@ -4212,7 +4212,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7110-683",
+    "id": "rescert-7110-684",
     "companyName": "CHRISTAL-ENERGIES",
     "certifiedPerson": "PASCAL CHRISTIAENS",
     "email": "info@christal-energies.be",
@@ -4225,8 +4225,8 @@
     "certified": true
   },
   {
-    "id": "rescert-7520-720",
-    "companyName": "F &amp; F ELEC SRL",
+    "id": "rescert-7520-722",
+    "companyName": "F & F ELEC SRL",
     "certifiedPerson": "Frédéric Lahaeye",
     "email": "ffelec.be@gmail.com",
     "phone": "+32495567721",
@@ -4238,7 +4238,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7901-768",
+    "id": "rescert-7901-770",
     "companyName": "Boucart Nicolas",
     "certifiedPerson": "Boucart Nicolas",
     "email": "electriciteboubert@gmail.com",
@@ -4251,7 +4251,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6230-557",
+    "id": "rescert-6230-558",
     "companyName": "Pierre Vander Elst",
     "certifiedPerson": "Pierre Vander Elst",
     "email": "pierre.vander.elst1984@gmail.com",
@@ -4264,7 +4264,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6536-583",
+    "id": "rescert-6536-584",
     "companyName": "Quentin CARON",
     "certifiedPerson": "Quentin CARON",
     "email": "qca@dbgreen.be",
@@ -4277,7 +4277,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6530-579",
+    "id": "rescert-6530-580",
     "companyName": "Ahmed Dhaou",
     "certifiedPerson": "Ahmed Dhaou",
     "email": "info@dawtechnics.be",
@@ -4290,7 +4290,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6530-577",
+    "id": "rescert-6530-578",
     "companyName": "AUVRAY-VISION SRL",
     "certifiedPerson": "Jean François Auvray",
     "email": "info@auvray-vision.be",
@@ -4303,7 +4303,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6530-581",
+    "id": "rescert-6530-582",
     "companyName": "GLF CONSTRUCT SRL",
     "certifiedPerson": "Benjamin Lentz",
     "email": "benjamin.lentz.mail@gmail.com",
@@ -4316,7 +4316,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6530-580",
+    "id": "rescert-6530-581",
     "companyName": "Interieur et Chaleur",
     "certifiedPerson": "Vincent Haine",
     "email": "contact@interieur-chaleur.be",
@@ -4329,7 +4329,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6530-578",
+    "id": "rescert-6530-579",
     "companyName": "NC Solutions Srl",
     "certifiedPerson": "Nicolas Collignon",
     "email": "nicolascollignon97@gmail.com",
@@ -4342,7 +4342,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7500-718",
+    "id": "rescert-7500-720",
     "companyName": "Antoine Poissonnier",
     "certifiedPerson": "Antoine Poissonnier",
     "email": "antoine_poissonnier@hotmail.com",
@@ -4355,7 +4355,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6183-566",
+    "id": "rescert-6183-567",
     "companyName": "M-Group Corporation",
     "certifiedPerson": "Raphael Minisci",
     "email": "raphael.minisci@mgcorp.be",
@@ -4368,7 +4368,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7120-686",
+    "id": "rescert-7120-687",
     "companyName": "Jean-François Hacardiaux",
     "certifiedPerson": "Jean-François Hacardiaux",
     "email": "contact@hacardiaux-elec.com",
@@ -4381,7 +4381,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6210-549",
+    "id": "rescert-6210-550",
     "companyName": "Elexome SRL",
     "certifiedPerson": "Jean-François Collart",
     "email": "info@elexome.be",
@@ -4394,7 +4394,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6224-552",
+    "id": "rescert-6224-553",
     "companyName": "Biddau",
     "certifiedPerson": "Antonio Biddau",
     "email": "info.dbatech@gmail.com",
@@ -4407,7 +4407,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7740-746",
+    "id": "rescert-7740-748",
     "companyName": "RFTechnics",
     "certifiedPerson": "Jean-Charles Fillet",
     "email": "jean-charles@rftechnics.be",
@@ -4420,7 +4420,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7604-727",
+    "id": "rescert-7604-729",
     "companyName": "stephan cachoir sprl",
     "certifiedPerson": "stephan cachoir",
     "email": "info@cachoir.be",
@@ -4433,7 +4433,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7608-731",
+    "id": "rescert-7608-733",
     "companyName": "Delmottelec",
     "certifiedPerson": "Eugène Koffi Acolatse",
     "email": "bureaudelmotte@gmail.com",
@@ -4446,7 +4446,7 @@
     "certified": true
   },
   {
-    "id": "rescert-7904-771",
+    "id": "rescert-7904-773",
     "companyName": "Contacts elec SRL",
     "certifiedPerson": "Damien Vermeulen",
     "email": "infocontactselec@gmail.com",
@@ -4550,7 +4550,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4821-338",
+    "id": "rescert-4821-339",
     "companyName": "Samuel Pozo",
     "certifiedPerson": "Samuel Pozo",
     "email": "samuel.pozo.becker@gmail.com",
@@ -4576,7 +4576,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4821-337",
+    "id": "rescert-4821-338",
     "companyName": "Moselec",
     "certifiedPerson": "Moise Camara",
     "email": "info@moselec.be",
@@ -4589,7 +4589,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4031-159",
+    "id": "rescert-4031-160",
     "companyName": "R-GROUP",
     "certifiedPerson": "Jérôme Levêque",
     "email": "rh@reno.energy",
@@ -4667,7 +4667,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4160-182",
+    "id": "rescert-4160-183",
     "companyName": "Eric Sainviteux",
     "certifiedPerson": "Eric Sainviteux",
     "email": "econeo.elec@outlook.com",
@@ -4680,7 +4680,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4990-396",
+    "id": "rescert-4990-397",
     "companyName": "Benjamin fransolet SRL",
     "certifiedPerson": "benjamin Fransolet",
     "email": "benjamin.fransolet@gmail.com",
@@ -4706,7 +4706,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4880-368",
+    "id": "rescert-4880-369",
     "companyName": "Christian DUMONT",
     "certifiedPerson": "Christian DUMONT",
     "email": "info@cdconceptsolar.be",
@@ -4719,7 +4719,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4880-367",
+    "id": "rescert-4880-368",
     "companyName": "Vincent Delhez",
     "certifiedPerson": "Vincent Delhez",
     "email": "info@deliso.be",
@@ -4732,7 +4732,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4880-369",
+    "id": "rescert-4880-370",
     "companyName": "Wafaa Heddari",
     "certifiedPerson": "Wafaa Heddari",
     "email": "marie-france.charlier@stassen-bc.be",
@@ -4745,7 +4745,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4880-350",
+    "id": "rescert-4880-351",
     "companyName": "LENARTZ SA",
     "certifiedPerson": "Xavier Grignard",
     "email": "info@lenartz.be",
@@ -4784,7 +4784,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4920-385",
+    "id": "rescert-4920-386",
     "companyName": "EVRD Srl",
     "certifiedPerson": "Christophe Pirotte",
     "email": "info@evrd.be",
@@ -4797,7 +4797,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4920-386",
+    "id": "rescert-4920-387",
     "companyName": "Z ELEC",
     "certifiedPerson": "IVO ZONJA",
     "email": "electricite.z.elec@gmail.com",
@@ -4810,7 +4810,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4837-340",
+    "id": "rescert-4837-341",
     "companyName": "Kistemann electricité générale",
     "certifiedPerson": "Guiseppino Kistemann",
     "email": "bureau@kistemann-elec.be",
@@ -4836,7 +4836,20 @@
     "certified": true
   },
   {
-    "id": "rescert-4959-611",
+    "id": "rescert-4671-152",
+    "companyName": "Polarsun",
+    "certifiedPerson": "Justine Magis",
+    "email": "justine.magis@polarsun.be",
+    "phone": "",
+    "postalCode": "4671",
+    "city": "Barchon",
+    "provinceKey": "liege",
+    "provinceLabel": "Liège",
+    "category": "Systèmes solaires photovoltaïques",
+    "certified": true
+  },
+  {
+    "id": "rescert-4959-612",
     "companyName": "ADB LUX Energy sàrl",
     "certifiedPerson": "Richard Demoulin",
     "email": "rdemoulin@adblux.lu",
@@ -4875,7 +4888,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4651-178",
+    "id": "rescert-4651-179",
     "companyName": "AIR AMBIANCE SA",
     "certifiedPerson": "Valentin Faway",
     "email": "info@airambiance.com",
@@ -4968,7 +4981,7 @@
   {
     "id": "rescert-4260-194",
     "companyName": "carodel",
-    "certifiedPerson": "Olivier de l&#39;Escaille",
+    "certifiedPerson": "Olivier de l'Escaille",
     "email": "olivier@carodel.net",
     "phone": "019567001",
     "postalCode": "4260",
@@ -5070,7 +5083,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4051-161",
+    "id": "rescert-4051-162",
     "companyName": "Energy home",
     "certifiedPerson": "Grégory Ferretti",
     "email": "energyhome.pro@gmail.com",
@@ -5083,7 +5096,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4032-153",
+    "id": "rescert-4032-154",
     "companyName": "PRIMUS ATEN",
     "certifiedPerson": "CLEMENT NONO TATEU",
     "email": "info@primus-aten.com",
@@ -5096,7 +5109,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4032-152",
+    "id": "rescert-4032-153",
     "companyName": "Pascal Grün",
     "certifiedPerson": "Pascal Grün",
     "email": "grupascal@icloud.com",
@@ -5135,7 +5148,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4170-186",
+    "id": "rescert-4170-187",
     "companyName": "Delens",
     "certifiedPerson": "Pierre Delens",
     "email": "delenspierre@gmail.com",
@@ -5148,7 +5161,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4170-185",
+    "id": "rescert-4170-186",
     "companyName": "Blackopper",
     "certifiedPerson": "Jean-François Defgnée",
     "email": "info@blackopper.com",
@@ -5161,7 +5174,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4170-184",
+    "id": "rescert-4170-185",
     "companyName": "CETTI ENERGY SRL",
     "certifiedPerson": "wojciech claes",
     "email": "claes.elec@outlook.be",
@@ -5213,8 +5226,8 @@
     "certified": true
   },
   {
-    "id": "rescert-4821-364",
-    "companyName": "Bertrand &amp; Darimont",
+    "id": "rescert-4821-365",
+    "companyName": "Bertrand & Darimont",
     "certifiedPerson": "Grégory Botty",
     "email": "gregbotty@msn.com",
     "phone": "",
@@ -5226,11 +5239,24 @@
     "certified": true
   },
   {
-    "id": "rescert-4820-336",
+    "id": "rescert-4820-337",
     "companyName": "Olivier Pimenta",
     "certifiedPerson": "Olivier Pimenta",
     "email": "olipims@hotmail.be",
     "phone": "",
+    "postalCode": "4820",
+    "city": "Dison",
+    "provinceKey": "liege",
+    "provinceLabel": "Liège",
+    "category": "Systèmes solaires photovoltaïques",
+    "certified": true
+  },
+  {
+    "id": "rescert-4820-336",
+    "companyName": "SRL AGD ELECTRICITE",
+    "certifiedPerson": "Alexis Genicot",
+    "email": "alexisgenicotelectricite@gmail.com",
+    "phone": "+32493745748",
     "postalCode": "4820",
     "city": "Dison",
     "provinceKey": "liege",
@@ -5252,7 +5278,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4053-165",
+    "id": "rescert-4053-166",
     "companyName": "Olivier Polet",
     "certifiedPerson": "Olivier Polet",
     "email": "olivier@htsolar.be",
@@ -5265,7 +5291,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4053-164",
+    "id": "rescert-4053-165",
     "companyName": "V-Tech",
     "certifiedPerson": "Vincent Magis",
     "email": "vincentmagis@gmail.com",
@@ -5278,7 +5304,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4053-163",
+    "id": "rescert-4053-164",
     "companyName": "Yannick GERARD",
     "certifiedPerson": "Yannick GERARD",
     "email": "y.gerard@r-group.be",
@@ -5304,7 +5330,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4480-181",
+    "id": "rescert-4480-182",
     "companyName": "Valo Energy SRL",
     "certifiedPerson": "Maxime Cornet-Delmelle",
     "email": "mco@valoenergy.be",
@@ -5330,7 +5356,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4130-174",
+    "id": "rescert-4130-175",
     "companyName": "Adrien van der Schelden",
     "certifiedPerson": "Adrien van der Schelden",
     "email": "vanderschelden.adrien@gmail.com",
@@ -5343,7 +5369,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4130-173",
+    "id": "rescert-4130-174",
     "companyName": "Pierre-Yves Gerard",
     "certifiedPerson": "Pierre-Yves Gerard",
     "email": "pyv.gerard@gmail.com",
@@ -5356,7 +5382,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4130-172",
+    "id": "rescert-4130-173",
     "companyName": "Etienne Gandin",
     "certifiedPerson": "Etienne Gandin",
     "email": "etienne.gandin@hotmail.com",
@@ -5395,7 +5421,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4700-349",
+    "id": "rescert-4700-350",
     "companyName": "Finale24 SRL",
     "certifiedPerson": "Raphael Franssen",
     "email": "secretariat@finale24.com",
@@ -5525,7 +5551,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4347-342",
+    "id": "rescert-4347-343",
     "companyName": "SOGREEN SRL",
     "certifiedPerson": "Samuel Halleux",
     "email": "s.halleux@sogreen.be",
@@ -5629,7 +5655,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4620-156",
+    "id": "rescert-4620-157",
     "companyName": "ATS solutions",
     "certifiedPerson": "azdine ounass",
     "email": "a.ounass@gmail.com",
@@ -5681,7 +5707,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4851-357",
+    "id": "rescert-4851-358",
     "companyName": "Home Project RS S.R.L.",
     "certifiedPerson": "Raphael Straet",
     "email": "raphael@home-project.be",
@@ -5714,19 +5740,6 @@
     "phone": "043438412",
     "postalCode": "4030",
     "city": "GRIVEGNEE",
-    "provinceKey": "liege",
-    "provinceLabel": "Liège",
-    "category": "Systèmes solaires photovoltaïques",
-    "certified": true
-  },
-  {
-    "id": "rescert-4181-187",
-    "companyName": "Xavier Hurdebise",
-    "certifiedPerson": "Xavier Hurdebise",
-    "email": "xavier.hurdebise@gmail.com",
-    "phone": "",
-    "postalCode": "4181",
-    "city": "Hamoir",
     "provinceKey": "liege",
     "provinceLabel": "Liège",
     "category": "Systèmes solaires photovoltaïques",
@@ -5785,7 +5798,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4280-167",
+    "id": "rescert-4280-168",
     "companyName": "GOESSENS",
     "certifiedPerson": "CHRISTOPHE GRANDRY",
     "email": "christophe_g1993@hotmail.com",
@@ -5811,7 +5824,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4841-343",
+    "id": "rescert-4841-344",
     "companyName": "Jonas Mauhin Srl",
     "certifiedPerson": "Jonas Mauhin",
     "email": "info@jonasmauhin.be",
@@ -5824,7 +5837,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4841-360",
+    "id": "rescert-4841-361",
     "companyName": "Henkens Freres",
     "certifiedPerson": "Lucas GENICOT",
     "email": "genicot.lucas@gmail.com",
@@ -5837,8 +5850,8 @@
     "certified": true
   },
   {
-    "id": "rescert-4841-341",
-    "companyName": "Energie&amp;Electricite SRL",
+    "id": "rescert-4841-342",
+    "companyName": "Energie&Electricite SRL",
     "certifiedPerson": "Jean-Philippe Guillaume",
     "email": "jpg@energie-electricite.be",
     "phone": "+32498665988",
@@ -5850,7 +5863,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4841-344",
+    "id": "rescert-4841-345",
     "companyName": "Jérémy Sofidis",
     "certifiedPerson": "Jérémy Sofidis",
     "email": "jeremysofidis@hotmail.com",
@@ -5876,7 +5889,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4681-365",
+    "id": "rescert-4681-366",
     "companyName": "Ovelec",
     "certifiedPerson": "Remi Jossa",
     "email": "info@ovelec.be",
@@ -5902,7 +5915,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4040-155",
+    "id": "rescert-4040-156",
     "companyName": "Jean-François MIR-FERNANDEZ",
     "certifiedPerson": "Jean-François MIR-FERNANDEZ",
     "email": "eleva.belgique@gmail.com",
@@ -5915,7 +5928,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4040-157",
+    "id": "rescert-4040-158",
     "companyName": "Van-elec SRL",
     "certifiedPerson": "kevin Vanaudestrade",
     "email": "info@van-elec.net",
@@ -5928,7 +5941,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4651-162",
+    "id": "rescert-4651-163",
     "companyName": "SERASOL PLUS",
     "certifiedPerson": "Patrice SERAFIN",
     "email": "patrice.s@serasolplus.be",
@@ -5980,7 +5993,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4162-183",
+    "id": "rescert-4162-184",
     "companyName": "Gaussin",
     "certifiedPerson": "Thibault Gaussin",
     "email": "gaussin.electro@gmail.com",
@@ -5993,7 +6006,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4852-359",
+    "id": "rescert-4852-360",
     "companyName": "Christopher Cuvillez",
     "certifiedPerson": "Christopher Cuvillez",
     "email": "christopher@sben-energy.com",
@@ -6084,7 +6097,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4845-351",
+    "id": "rescert-4845-352",
     "companyName": "Planete confort",
     "certifiedPerson": "Thierry Herman",
     "email": "thieherman@gmail.com",
@@ -6097,7 +6110,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4845-347",
+    "id": "rescert-4845-348",
     "companyName": "Cédric Delcour",
     "certifiedPerson": "Cédric Delcour",
     "email": "cedric.delcour@hotmail.com",
@@ -6110,7 +6123,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4845-374",
+    "id": "rescert-4845-375",
     "companyName": "Gerlaxhe-Delvenne",
     "certifiedPerson": "Damien Delvenne",
     "email": "damien@g-d.be",
@@ -6123,7 +6136,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4845-352",
+    "id": "rescert-4845-353",
     "companyName": "THIERRY JEANMART",
     "certifiedPerson": "THIERRY JEANMART",
     "email": "jeanmartth@hotmail.com",
@@ -6136,7 +6149,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4845-345",
+    "id": "rescert-4845-346",
     "companyName": "TPC",
     "certifiedPerson": "Pascal COLLARD",
     "email": "tpc@skynet.be",
@@ -6149,7 +6162,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4910-381",
+    "id": "rescert-4910-382",
     "companyName": "Alain Rentmeister",
     "certifiedPerson": "Alain Rentmeister",
     "email": "alain.rentmeister@arsol.be",
@@ -6162,7 +6175,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4910-379",
+    "id": "rescert-4910-380",
     "companyName": "Godefroid",
     "certifiedPerson": "Adrien Godefroid",
     "email": "adrien.godefroid@gmail.com",
@@ -6266,7 +6279,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4987-393",
+    "id": "rescert-4987-394",
     "companyName": "Dimitri Rondeux",
     "certifiedPerson": "Dimitri Rondeux",
     "email": "rondeuxdimitri@gmail.com",
@@ -6344,7 +6357,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4000-717",
+    "id": "rescert-4000-719",
     "companyName": "A.C.H.(SRL)",
     "certifiedPerson": "MEHDI BENSAID",
     "email": "mehdi.bensaid59@gmail.com",
@@ -6370,7 +6383,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4032-154",
+    "id": "rescert-4032-155",
     "companyName": "Clay Service",
     "certifiedPerson": "Nabil Tahri",
     "email": "clayservice@outlook.com",
@@ -6396,7 +6409,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4020-373",
+    "id": "rescert-4020-374",
     "companyName": "MW éco solutions",
     "certifiedPerson": "Stephane Matz",
     "email": "mwecosolutions@gmail.com",
@@ -6409,7 +6422,20 @@
     "certified": true
   },
   {
-    "id": "rescert-4990-394",
+    "id": "rescert-4020-148",
+    "companyName": "Simon Méan",
+    "certifiedPerson": "Simon Méan",
+    "email": "info@solar2mobility.be",
+    "phone": "",
+    "postalCode": "4020",
+    "city": "Liège",
+    "provinceKey": "liege",
+    "provinceLabel": "Liège",
+    "category": "Systèmes solaires photovoltaïques",
+    "certified": true
+  },
+  {
+    "id": "rescert-4990-395",
     "companyName": "AB ELEC",
     "certifiedPerson": "Antoine Barbette",
     "email": "antoinebarbette.elec@hotmail.com",
@@ -6422,7 +6448,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4990-395",
+    "id": "rescert-4990-396",
     "companyName": "COLIGNON",
     "certifiedPerson": "MICKAEL COLIGNON",
     "email": "mickaelcolignon705@gmail.com",
@@ -6435,7 +6461,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4830-339",
+    "id": "rescert-4830-340",
     "companyName": "Lucas Peiffer",
     "certifiedPerson": "Lucas Peiffer",
     "email": "technique@mesolution.be",
@@ -6487,7 +6513,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4141-179",
+    "id": "rescert-4141-180",
     "companyName": "ECG SRL",
     "certifiedPerson": "Christophe Gierman",
     "email": "info@ecg-elec.be",
@@ -6500,7 +6526,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4141-384",
+    "id": "rescert-4141-385",
     "companyName": "Vertical srl",
     "certifiedPerson": "Sebastien Borguet",
     "email": "sebastien.borguet@verticalsolar.be",
@@ -6526,7 +6552,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4960-376",
+    "id": "rescert-4960-377",
     "companyName": "Eco Confort Systèmes sprl",
     "certifiedPerson": "Frédéric VAN LOOY",
     "email": "sto@ecs-malmedy.com",
@@ -6539,7 +6565,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4960-391",
+    "id": "rescert-4960-392",
     "companyName": "Muller Electric SRL",
     "certifiedPerson": "Mathieu Muller",
     "email": "mathieu@mullerelectric.be",
@@ -6552,7 +6578,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4960-390",
+    "id": "rescert-4960-391",
     "companyName": "Pierre Lejoly",
     "certifiedPerson": "Pierre Lejoly",
     "email": "pierre@lejolyetfils.be",
@@ -6565,7 +6591,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4960-389",
+    "id": "rescert-4960-390",
     "companyName": "Tournesol",
     "certifiedPerson": "Fabien Huby",
     "email": "info@be-tournesol.tech",
@@ -6656,7 +6682,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4850-356",
+    "id": "rescert-4850-357",
     "companyName": "MEA SOLAR",
     "certifiedPerson": "Mohammed El Abbadi",
     "email": "info@measolar.be",
@@ -6669,7 +6695,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4850-355",
+    "id": "rescert-4850-356",
     "companyName": "Frédéric Demonthy",
     "certifiedPerson": "Frédéric Demonthy",
     "email": "info@elektro-demonthy.be",
@@ -6760,7 +6786,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4120-168",
+    "id": "rescert-4120-169",
     "companyName": "Ionaris SRL",
     "certifiedPerson": "Vincent Jamoye",
     "email": "vincent.jamoye@ionaris.be",
@@ -6773,7 +6799,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4121-170",
+    "id": "rescert-4121-171",
     "companyName": "Johnny Wirtz",
     "certifiedPerson": "Johnny Wirtz",
     "email": "wirtz@hotmail.be",
@@ -6786,7 +6812,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4120-169",
+    "id": "rescert-4120-170",
     "companyName": "Stefan Stockx",
     "certifiedPerson": "Stefan Stockx",
     "email": "stefan.stockx@enera.eu",
@@ -6864,7 +6890,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4860-363",
+    "id": "rescert-4860-364",
     "companyName": "Fabian Vanderheyden",
     "certifiedPerson": "Fabian Vanderheyden",
     "email": "f.vanderheyden@tac-services.be",
@@ -6877,7 +6903,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4860-361",
+    "id": "rescert-4860-362",
     "companyName": "Martin",
     "certifiedPerson": "Adrien Martin",
     "email": "adrien.martin@me.com",
@@ -6890,7 +6916,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4122-171",
+    "id": "rescert-4122-172",
     "companyName": "CS Tech srl",
     "certifiedPerson": "Jérôme Stenne",
     "email": "jsimmojer@skynet.be",
@@ -7033,7 +7059,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4845-375",
+    "id": "rescert-4845-376",
     "companyName": "EuroTechnical Center",
     "certifiedPerson": "olivier Peeters",
     "email": "etcenter@skynet.be",
@@ -7046,7 +7072,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4845-354",
+    "id": "rescert-4845-355",
     "companyName": "AGA Réalisations SRL",
     "certifiedPerson": "Geoffrey Moreau",
     "email": "info@agarealisations.be",
@@ -7059,7 +7085,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4845-353",
+    "id": "rescert-4845-354",
     "companyName": "LUCAS",
     "certifiedPerson": "DEJOSE LUCAS",
     "email": "lucas@ld-energy.be",
@@ -7072,7 +7098,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4845-346",
+    "id": "rescert-4845-347",
     "companyName": "Vincent Czaplicki",
     "certifiedPerson": "Vincent Czaplicki",
     "email": "vincza2466@hotmail.com",
@@ -7085,7 +7111,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4845-348",
+    "id": "rescert-4845-349",
     "companyName": "GDV Tech",
     "certifiedPerson": "Gregory FRANKAR",
     "email": "info@gdvtech.be",
@@ -7111,20 +7137,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4100-148",
-    "companyName": "Solar2Mobility",
-    "certifiedPerson": "Simon Méan",
-    "email": "info@solar2mobility.be",
-    "phone": "+32493500489",
-    "postalCode": "4100",
-    "city": "Seraing",
-    "provinceKey": "liege",
-    "provinceLabel": "Liège",
-    "category": "Systèmes solaires photovoltaïques",
-    "certified": true
-  },
-  {
-    "id": "rescert-4100-166",
+    "id": "rescert-4100-167",
     "companyName": "SOLAR STAR",
     "certifiedPerson": "ALTAN YUCEL",
     "email": "info@solarstar.be",
@@ -7151,7 +7164,7 @@
   },
   {
     "id": "rescert-4630-267",
-    "companyName": "M&amp;J Energies",
+    "companyName": "M&J Energies",
     "certifiedPerson": "olivier Fraiture",
     "email": "info@mjenergies.be",
     "phone": "+32490404417",
@@ -7202,8 +7215,8 @@
     "certified": true
   },
   {
-    "id": "rescert-4141-175",
-    "companyName": "Chauff&#39;et Vous",
+    "id": "rescert-4141-176",
+    "companyName": "Chauff'et Vous",
     "certifiedPerson": "Julien Fyon",
     "email": "direction@chauffetvous.be",
     "phone": "043847746",
@@ -7215,7 +7228,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4141-180",
+    "id": "rescert-4141-181",
     "companyName": "MATHYSEN",
     "certifiedPerson": "Vincent MATHYSEN",
     "email": "info@vmat-electricite.be",
@@ -7228,7 +7241,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4140-176",
+    "id": "rescert-4140-177",
     "companyName": "Thierry Van Buggenhout",
     "certifiedPerson": "Thierry Van Buggenhout",
     "email": "erccs@proximus.be",
@@ -7241,10 +7254,10 @@
     "certified": true
   },
   {
-    "id": "rescert-4140-177",
+    "id": "rescert-4140-178",
     "companyName": "van Weegen SV.ELEC",
     "certifiedPerson": "Stephane van Weegen",
-    "email": "sv.elec@yahoo.be",
+    "email": "info@svelec.be",
     "phone": "+32483001450",
     "postalCode": "4140",
     "city": "Sprimont Rouvreux",
@@ -7280,9 +7293,9 @@
     "certified": true
   },
   {
-    "id": "rescert-4970-392",
-    "companyName": "t&#39;Serstevens Romain",
-    "certifiedPerson": "Romain t&#39;Serstevens",
+    "id": "rescert-4970-393",
+    "companyName": "t'Serstevens Romain",
+    "certifiedPerson": "Romain t'Serstevens",
     "email": "rom2882@gmail.com",
     "phone": "",
     "postalCode": "4970",
@@ -7345,7 +7358,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4910-382",
+    "id": "rescert-4910-383",
     "companyName": "Antony Thiebaut",
     "certifiedPerson": "Antony Thiebaut",
     "email": "antonythiebaut@hotmail.com",
@@ -7358,7 +7371,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4910-378",
+    "id": "rescert-4910-379",
     "companyName": "jonathan fransolet",
     "certifiedPerson": "jonathan fransolet",
     "email": "jofransolet@gmail.com",
@@ -7371,7 +7384,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4910-377",
+    "id": "rescert-4910-378",
     "companyName": "Delfosse photovolaïque",
     "certifiedPerson": "Pierre Delfosse",
     "email": "p.delfosse@skynet.be",
@@ -7384,7 +7397,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4910-380",
+    "id": "rescert-4910-381",
     "companyName": "Pierre Maron",
     "certifiedPerson": "Pierre Maron",
     "email": "maronpierre@voo.be",
@@ -7397,7 +7410,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4890-371",
+    "id": "rescert-4890-372",
     "companyName": "Anthony Belflamme",
     "certifiedPerson": "Anthony Belflamme",
     "email": "info@perfectelec.be",
@@ -7423,7 +7436,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4890-372",
+    "id": "rescert-4890-373",
     "companyName": "Constant Engineering SRL",
     "certifiedPerson": "François Constant",
     "email": "francois.constant1982@gmail.com",
@@ -7436,8 +7449,8 @@
     "certified": true
   },
   {
-    "id": "rescert-4890-370",
-    "companyName": "Heinen B&amp;N",
+    "id": "rescert-4890-371",
+    "companyName": "Heinen B&N",
     "certifiedPerson": "nicolas Vandeberg",
     "email": "contact@heinenbn.be",
     "phone": "+32490214321",
@@ -7450,7 +7463,7 @@
   },
   {
     "id": "rescert-4890-296",
-    "companyName": "Ernst &amp; Diepart SRL",
+    "companyName": "Ernst & Diepart SRL",
     "certifiedPerson": "Jonathan ERNST",
     "email": "st@ernst-diepart.be",
     "phone": "087221033",
@@ -7475,7 +7488,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4870-366",
+    "id": "rescert-4870-367",
     "companyName": "ALTERNOT",
     "certifiedPerson": "Xavier Thonon",
     "email": "alternative.energie@outlook.be",
@@ -7488,7 +7501,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4051-160",
+    "id": "rescert-4051-161",
     "companyName": "Ferretti Benjamin",
     "certifiedPerson": "Ferretti Benjamin",
     "email": "bensfer@hotmail.com",
@@ -7619,7 +7632,7 @@
   },
   {
     "id": "rescert-4800-232",
-    "companyName": "E&amp;D Home Solutions",
+    "companyName": "E&D Home Solutions",
     "certifiedPerson": "Yann Dubois",
     "email": "info@ed-homesolutions.be",
     "phone": "+32494576528",
@@ -7670,7 +7683,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4041-158",
+    "id": "rescert-4041-159",
     "companyName": "Teka Consulting",
     "certifiedPerson": "Xavier VANDERHALLEN",
     "email": "xavier.vdh@outlook.com",
@@ -7683,7 +7696,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4950-388",
+    "id": "rescert-4950-389",
     "companyName": "yvon",
     "certifiedPerson": "marquet yvon",
     "email": "marquet.yvon@gmail.com",
@@ -7696,7 +7709,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4950-387",
+    "id": "rescert-4950-388",
     "companyName": "Grégory Mélotte",
     "certifiedPerson": "Grégory Mélotte",
     "email": "gregorymelottesprl@gmail.com",
@@ -7735,7 +7748,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4860-362",
+    "id": "rescert-4860-363",
     "companyName": "PURE ENERGIE SRL",
     "certifiedPerson": "michael miler",
     "email": "info@pure-energie.be",
@@ -7748,7 +7761,7 @@
     "certified": true
   },
   {
-    "id": "rescert-4860-383",
+    "id": "rescert-4860-384",
     "companyName": "VV-ENERGY SRL",
     "certifiedPerson": "Maxime VANMEERBEEK",
     "email": "info@vv-energy.be",
@@ -7761,8 +7774,8 @@
     "certified": true
   },
   {
-    "id": "rescert-4841-358",
-    "companyName": "Energie&amp;Electricité",
+    "id": "rescert-4841-359",
+    "companyName": "Energie&Electricité",
     "certifiedPerson": "Pierre Crutzen",
     "email": "c-energies@hotmail.com",
     "phone": "",
@@ -7800,7 +7813,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6953-643",
+    "id": "rescert-6953-644",
     "companyName": "Pascal Bande",
     "certifiedPerson": "Pascal Bande",
     "email": "pascal.bande@skynet.be",
@@ -7813,7 +7826,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6700-601",
+    "id": "rescert-6700-602",
     "companyName": "Leyder Grégory Electriciter SRL",
     "certifiedPerson": "Grégory Leyder",
     "email": "leyder.g@hotmail.com",
@@ -7826,7 +7839,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6700-602",
+    "id": "rescert-6700-603",
     "companyName": "Vincent Michel",
     "certifiedPerson": "Vincent Michel",
     "email": "vmelectricite89@gmail.com",
@@ -7839,7 +7852,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6870-628",
+    "id": "rescert-6870-629",
     "companyName": "henlumar lights",
     "certifiedPerson": "Maxime celen",
     "email": "celen_m@outlook.com",
@@ -7852,7 +7865,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6600-591",
+    "id": "rescert-6600-592",
     "companyName": "Etienne Marechal",
     "certifiedPerson": "Etienne Marechal",
     "email": "etienne.marechal@marechal-tech.be",
@@ -7865,7 +7878,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6600-588",
+    "id": "rescert-6600-589",
     "companyName": "Guiot",
     "certifiedPerson": "Olivier Guiot",
     "email": "info@guiot-elec.com",
@@ -7878,7 +7891,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6600-589",
+    "id": "rescert-6600-590",
     "companyName": "Latour habitat SRL",
     "certifiedPerson": "François Latour",
     "email": "latour.habitat@gmail.com",
@@ -7891,9 +7904,9 @@
     "certified": true
   },
   {
-    "id": "rescert-6600-590",
+    "id": "rescert-6600-591",
     "companyName": "Nicolas SRL",
-    "certifiedPerson": "Florent Marcourt",
+    "certifiedPerson": "Florent Marcourt, Frédéric Nicolas",
     "email": "florent.marcourt@nicolasgf.be",
     "phone": "061216612",
     "postalCode": "6600",
@@ -7904,7 +7917,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6600-587",
+    "id": "rescert-6600-588",
     "companyName": "Solartech Belux SRL",
     "certifiedPerson": "Jonathan Flasschoen",
     "email": "info@solartech-belux.com",
@@ -7917,7 +7930,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6600-586",
+    "id": "rescert-6600-587",
     "companyName": "SRL GHC-TECH",
     "certifiedPerson": "Pierre-Olivier Bernes",
     "email": "info@ghctech.be",
@@ -7930,7 +7943,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6687-598",
+    "id": "rescert-6687-599",
     "companyName": "Pol GASPARD",
     "certifiedPerson": "Pol GASPARD",
     "email": "ardenne-energie@skynet.be",
@@ -7943,7 +7956,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6880-629",
+    "id": "rescert-6880-630",
     "companyName": "CBelectro",
     "certifiedPerson": "christophe bodson",
     "email": "cbelectro@outlook.be",
@@ -7956,7 +7969,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6941-644",
+    "id": "rescert-6941-645",
     "companyName": "LAMELEC SA",
     "certifiedPerson": "Olivier Bayot",
     "email": "admin@lamelec.be",
@@ -7969,7 +7982,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6850-622",
+    "id": "rescert-6850-623",
     "companyName": "Gery Nollevaux Conseil",
     "certifiedPerson": "Gery Nollevaux",
     "email": "g.nollevaux@be-gnc.be",
@@ -7982,7 +7995,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6810-616",
+    "id": "rescert-6810-617",
     "companyName": "ENERGEIA",
     "certifiedPerson": "Jean-François DEBEN",
     "email": "debenchauffage@gmail.com",
@@ -7995,7 +8008,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6997-653",
+    "id": "rescert-6997-654",
     "companyName": "AB Consulting Energy SCOMM.",
     "certifiedPerson": "Alexandre Bastin",
     "email": "ab-consulting@skynet.be",
@@ -8008,7 +8021,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6997-654",
+    "id": "rescert-6997-655",
     "companyName": "JC-Electricite SRL",
     "certifiedPerson": "Joffrey Courtois",
     "email": "info@jc-electricite.be",
@@ -8021,7 +8034,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6740-606",
+    "id": "rescert-6740-607",
     "companyName": "ImmoCEE SPRL",
     "certifiedPerson": "jean-louis DUSSARD",
     "email": "info@immocee.com",
@@ -8034,7 +8047,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6800-615",
+    "id": "rescert-6800-616",
     "companyName": "Camo System",
     "certifiedPerson": "Emmanuel Rochet",
     "email": "manucamo@gmail.com",
@@ -8047,7 +8060,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6673-596",
+    "id": "rescert-6673-597",
     "companyName": "Benoît Lejeune",
     "certifiedPerson": "Benoît Lejeune",
     "email": "info@lejeuneetfils.be",
@@ -8060,7 +8073,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6723-604",
+    "id": "rescert-6723-605",
     "companyName": "Maissin Jean-Francois",
     "certifiedPerson": "Jean-Francois MAISSIN",
     "email": "jf.maissin@gmail.com",
@@ -8073,7 +8086,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6960-647",
+    "id": "rescert-6960-648",
     "companyName": "BDH sa Demoitie",
     "certifiedPerson": "Marc Sonnerat",
     "email": "info@entreprise-demoitie.be",
@@ -8086,7 +8099,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6870-627",
+    "id": "rescert-6870-628",
     "companyName": "lefebvre cedric",
     "certifiedPerson": "lefebvre cedric",
     "email": "cedric.eng@hotmail.com",
@@ -8099,8 +8112,8 @@
     "certified": true
   },
   {
-    "id": "rescert-6990-651",
-    "companyName": "Innov&amp;Vous",
+    "id": "rescert-6990-652",
+    "companyName": "Innov&Vous",
     "certifiedPerson": "Christopher De Brandt",
     "email": "info@innovetvous.be",
     "phone": "+32473380189",
@@ -8112,7 +8125,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6990-652",
+    "id": "rescert-6990-653",
     "companyName": "ENERGICA SRL",
     "certifiedPerson": "Jean-Claude JACQUEMART",
     "email": "jcj@energica.be",
@@ -8125,7 +8138,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6660-593",
+    "id": "rescert-6660-594",
     "companyName": "Florent Berthiaud",
     "certifiedPerson": "Florent Berthiaud",
     "email": "florent.berthiaud@gmail.com",
@@ -8138,7 +8151,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6662-594",
+    "id": "rescert-6662-595",
     "companyName": "GT Alternative SRL",
     "certifiedPerson": "Gaetan Thunus",
     "email": "gtalternative@outlook.com",
@@ -8151,7 +8164,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6980-649",
+    "id": "rescert-6980-650",
     "companyName": "serge etienne",
     "certifiedPerson": "serge etienne",
     "email": "info@seetech.be",
@@ -8164,7 +8177,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6982-650",
+    "id": "rescert-6982-651",
     "companyName": "Clossen Francis",
     "certifiedPerson": "Francis Clossen",
     "email": "samreechauf@gmail.com",
@@ -8177,7 +8190,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6860-625",
+    "id": "rescert-6860-626",
     "companyName": "Incoul",
     "certifiedPerson": "Quentin Incoul",
     "email": "iqelec@outlook.com",
@@ -8190,7 +8203,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6860-624",
+    "id": "rescert-6860-625",
     "companyName": "Lisa de Halleux",
     "certifiedPerson": "Lisa de Halleux",
     "email": "lisa@alterbois.be",
@@ -8203,7 +8216,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6860-626",
+    "id": "rescert-6860-627",
     "companyName": "Sean Maury",
     "certifiedPerson": "Sean Maury",
     "email": "info@ecolightenergy.be",
@@ -8216,7 +8229,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6890-630",
+    "id": "rescert-6890-631",
     "companyName": "ANCENA SRL",
     "certifiedPerson": "Stéphane Hanchir",
     "email": "hanchiretmierge@yahoo.fr",
@@ -8229,7 +8242,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6800-613",
+    "id": "rescert-6800-614",
     "companyName": "Gomes électricité",
     "certifiedPerson": "Remi Gomes",
     "email": "gomeselectricite@outlook.com",
@@ -8242,7 +8255,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6800-614",
+    "id": "rescert-6800-615",
     "companyName": "KW Energie",
     "certifiedPerson": "William Philippart",
     "email": "kwenergie@outlook.com",
@@ -8255,7 +8268,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6670-595",
+    "id": "rescert-6670-596",
     "companyName": "DEWEZ",
     "certifiedPerson": "Francis DEWEZ",
     "email": "francis.dewez@busmail.net",
@@ -8268,7 +8281,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6924-639",
+    "id": "rescert-6924-640",
     "companyName": "Francois Remy Electricité",
     "certifiedPerson": "Francois Remy",
     "email": "info@francoisremy.be",
@@ -8281,7 +8294,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6960-646",
+    "id": "rescert-6960-647",
     "companyName": "A.B.Energies SRL",
     "certifiedPerson": "Jacques Lesenfants",
     "email": "jacques.lesenfants@skynet.be",
@@ -8294,7 +8307,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6960-645",
+    "id": "rescert-6960-646",
     "companyName": "PRODEUS SRL",
     "certifiedPerson": "Etienne Counson",
     "email": "counson@gmail.com",
@@ -8307,7 +8320,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6900-633",
+    "id": "rescert-6900-634",
     "companyName": "Natural Energy",
     "certifiedPerson": "Sébastien DAVID",
     "email": "info@natural-energy.be",
@@ -8320,7 +8333,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6900-635",
+    "id": "rescert-6900-636",
     "companyName": "JEAN-MARIE MOUZON",
     "certifiedPerson": "JEAN-MARIE MOUZON",
     "email": "info@mouzonenergie.be",
@@ -8333,7 +8346,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6900-636",
+    "id": "rescert-6900-637",
     "companyName": "Enerflow",
     "certifiedPerson": "Florian Paquay",
     "email": "info@ener-flow.be",
@@ -8346,7 +8359,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6900-638",
+    "id": "rescert-6900-639",
     "companyName": "Matthieu Wuidar",
     "certifiedPerson": "Matthieu Wuidar",
     "email": "matthieu.wuidar@gmail.com",
@@ -8359,7 +8372,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6900-632",
+    "id": "rescert-6900-633",
     "companyName": "Quentin Collignon",
     "certifiedPerson": "Quentin Collignon",
     "email": "quentincollignon.pro@outlook.com",
@@ -8372,7 +8385,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6900-459",
+    "id": "rescert-6900-460",
     "companyName": "GREEN ENERGY 4 SEASONS",
     "certifiedPerson": "Stéphane FOURNEAU",
     "email": "info@ge4s.be",
@@ -8385,7 +8398,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6900-631",
+    "id": "rescert-6900-632",
     "companyName": "Dorian Batter",
     "certifiedPerson": "Dorian Batter",
     "email": "info@bsolarsystem.net",
@@ -8398,7 +8411,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6630-592",
+    "id": "rescert-6630-593",
     "companyName": "MF Partners Business srl",
     "certifiedPerson": "Fabrice Mertz",
     "email": "info@mfpartners.be",
@@ -8411,7 +8424,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6769-609",
+    "id": "rescert-6769-610",
     "companyName": "Gauméco énergies",
     "certifiedPerson": "Etienne Leroux",
     "email": "etchris_leroux@yahoo.fr",
@@ -8424,7 +8437,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6780-610",
+    "id": "rescert-6780-611",
     "companyName": "Bati Renov SRL",
     "certifiedPerson": "Lorenzo Zaccagnini",
     "email": "info@batirenov.eu",
@@ -8437,7 +8450,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6840-618",
+    "id": "rescert-6840-619",
     "companyName": "Ets Jany Gofflot",
     "certifiedPerson": "Kevin Gofflot",
     "email": "kevin.gofflot@janygofflot.be",
@@ -8450,7 +8463,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6840-617",
+    "id": "rescert-6840-618",
     "companyName": "Goebels",
     "certifiedPerson": "Benjamin Goebels",
     "email": "info@benjamingoebels.be",
@@ -8463,7 +8476,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6840-619",
+    "id": "rescert-6840-620",
     "companyName": "WF Electric Solutions",
     "certifiedPerson": "Quentin Winand",
     "email": "info@wfes.be",
@@ -8476,7 +8489,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6900-637",
+    "id": "rescert-6900-638",
     "companyName": "CBPR SRL",
     "certifiedPerson": "Yvan Plasman",
     "email": "cbpr.mail@gmail.com",
@@ -8489,7 +8502,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6850-620",
+    "id": "rescert-6850-621",
     "companyName": "Pierre Istace",
     "certifiedPerson": "Pierre Istace",
     "email": "maisonistace@skynet.be",
@@ -8502,7 +8515,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6856-623",
+    "id": "rescert-6856-624",
     "companyName": "ARNOULD Jérôme SRL",
     "certifiedPerson": "Jérôme ARNOULD",
     "email": "jerome@arnouldelec.be",
@@ -8515,7 +8528,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6850-621",
+    "id": "rescert-6850-622",
     "companyName": "NEMERY",
     "certifiedPerson": "Jean-Luc NEMERY",
     "email": "nemery.jl@skynet.be",
@@ -8528,7 +8541,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6692-600",
+    "id": "rescert-6692-601",
     "companyName": "PSRS Srl",
     "certifiedPerson": "Sebastien Piette",
     "email": "psrs.srl2022@gmail.com",
@@ -8541,7 +8554,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6717-603",
+    "id": "rescert-6717-604",
     "companyName": "Jaumotte Chauffage SRL",
     "certifiedPerson": "Dominique Jaumotte",
     "email": "info@jaumottedominique.be",
@@ -8554,7 +8567,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6800-612",
+    "id": "rescert-6800-613",
     "companyName": "SRL GL Electricite",
     "certifiedPerson": "ludwig Giot",
     "email": "giot.electricite@gmail.com",
@@ -8567,7 +8580,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6997-655",
+    "id": "rescert-6997-656",
     "companyName": "Julien Deflandre",
     "certifiedPerson": "Julien Deflandre",
     "email": "jdelec@skynet.be",
@@ -8580,7 +8593,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6680-597",
+    "id": "rescert-6680-598",
     "companyName": "Nicolas Nassogne",
     "certifiedPerson": "Nicolas Nassogne",
     "email": "nn.electricite@gmail.com",
@@ -8593,7 +8606,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6927-641",
+    "id": "rescert-6927-642",
     "companyName": "RL CONCEPTS SRL",
     "certifiedPerson": "Loic Gerome",
     "email": "rlconcept@outlook.be",
@@ -8606,7 +8619,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6927-640",
+    "id": "rescert-6927-641",
     "companyName": "Serge GEORGE",
     "certifiedPerson": "Serge GEORGE",
     "email": "info@acesun.be",
@@ -8619,7 +8632,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6971-648",
+    "id": "rescert-6971-649",
     "companyName": "Elec²d srl",
     "certifiedPerson": "Gregory Dehard",
     "email": "info@elecd.be",
@@ -8632,7 +8645,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6730-605",
+    "id": "rescert-6730-606",
     "companyName": "Farinelle SRL",
     "certifiedPerson": "Corentin Farinelle",
     "email": "corentin@farinelle.be",
@@ -8645,7 +8658,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6741-607",
+    "id": "rescert-6741-608",
     "companyName": "ALTER ENERGIES",
     "certifiedPerson": "ERPELDING MICHAËL",
     "email": "secretariat@alterenergies.be",
@@ -8658,7 +8671,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6690-599",
+    "id": "rescert-6690-600",
     "companyName": "Dem-Elec srl",
     "certifiedPerson": "Thierry Demelenne",
     "email": "thierrydemelenne@hotmail.com",
@@ -8671,7 +8684,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6760-608",
+    "id": "rescert-6760-609",
     "companyName": "Enguerrand de Formanoir Company",
     "certifiedPerson": "Enguerrand de Formanoir",
     "email": "enguerrand.deformanoir@we-green.be",
@@ -8684,7 +8697,7 @@
     "certified": true
   },
   {
-    "id": "rescert-6900-634",
+    "id": "rescert-6900-635",
     "companyName": "gée guillaume",
     "certifiedPerson": "Guillaume Gée",
     "email": "gee_guillaume@hotmail.com",
@@ -8697,7 +8710,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5340-453",
+    "id": "rescert-5340-454",
     "companyName": "ENTREPRISE JULIEN MICHAUX SRL",
     "certifiedPerson": "Julien MICHAUX",
     "email": "entreprisejulienmichaux@skynet.be",
@@ -8710,7 +8723,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5600-492",
+    "id": "rescert-5600-493",
     "companyName": "E.M.G. CONSTRUCT",
     "certifiedPerson": "sandro corsini",
     "email": "emgconstruct@live.fr",
@@ -8723,7 +8736,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5300-438",
+    "id": "rescert-5300-439",
     "companyName": "Guilmot Elec SRL",
     "certifiedPerson": "Nicolas Guilmot",
     "email": "guilmot.nico@gmail.com",
@@ -8736,7 +8749,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5300-439",
+    "id": "rescert-5300-440",
     "companyName": "HARZEE",
     "certifiedPerson": "Sébastien Harzée",
     "email": "sebastien.sebelec@gmail.com",
@@ -8749,8 +8762,8 @@
     "certified": true
   },
   {
-    "id": "rescert-5537-473",
-    "companyName": "ELECTR&#39;AMEL ECO ENERGIES",
+    "id": "rescert-5537-474",
+    "companyName": "ELECTR'AMEL ECO ENERGIES",
     "certifiedPerson": "Jean-Pol AMEL",
     "email": "direction@3-e.be",
     "phone": "082223282",
@@ -8762,7 +8775,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5520-467",
+    "id": "rescert-5520-468",
     "companyName": "AMELEC SRL",
     "certifiedPerson": "François Amelynck",
     "email": "amelynck_francois@hotmail.com",
@@ -8775,7 +8788,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5330-451",
+    "id": "rescert-5330-452",
     "companyName": "Fraselle et Fils",
     "certifiedPerson": "Nicolas Fraselle",
     "email": "info@fraselleetfils.be",
@@ -8788,7 +8801,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5336-449",
+    "id": "rescert-5336-450",
     "companyName": "LP Electricité SRL",
     "certifiedPerson": "Pascau Lesage",
     "email": "lesagep.electricite@gmail.com",
@@ -8801,7 +8814,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5570-478",
+    "id": "rescert-5570-479",
     "companyName": "Modern Solutions",
     "certifiedPerson": "Geoffrey Wilemme",
     "email": "geoffrey-wilemme@hotmail.com",
@@ -8814,7 +8827,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5001-421",
+    "id": "rescert-5001-422",
     "companyName": "ATEA SRL",
     "certifiedPerson": "Xavier De Meulder",
     "email": "info@elec-atea.be",
@@ -8827,7 +8840,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5537-474",
+    "id": "rescert-5537-475",
     "companyName": "Olivier Somme",
     "certifiedPerson": "Olivier Somme",
     "email": "somme.olivier@emmostechnology.com",
@@ -8840,7 +8853,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5310-447",
+    "id": "rescert-5310-448",
     "companyName": "Gaelios",
     "certifiedPerson": "Donatienne Portugaels",
     "email": "donatienne.portugaels@gmail.com",
@@ -8853,7 +8866,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5020-406",
+    "id": "rescert-5020-407",
     "companyName": "Martin Jasienski",
     "certifiedPerson": "Martin Jasienski",
     "email": "mjasienski@gmail.com",
@@ -8866,7 +8879,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5650-501",
+    "id": "rescert-5650-502",
     "companyName": "InserelecGreen",
     "certifiedPerson": "Jean-François Labruyère",
     "email": "info@inserelecgreen.be",
@@ -8879,7 +8892,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5590-487",
+    "id": "rescert-5590-488",
     "companyName": "Grandjean",
     "certifiedPerson": "Yannick Grandjean",
     "email": "leyanelec@gmail.com",
@@ -8893,19 +8906,6 @@
   },
   {
     "id": "rescert-5590-489",
-    "companyName": "NYSELEC SRL",
-    "certifiedPerson": "Walter Nysen",
-    "email": "nyselec@gmail.com",
-    "phone": "+32477548819",
-    "postalCode": "5590",
-    "city": "Ciney",
-    "provinceKey": "namur",
-    "provinceLabel": "Namur",
-    "category": "Systèmes solaires photovoltaïques",
-    "certified": true
-  },
-  {
-    "id": "rescert-5590-488",
     "companyName": "Vicmar",
     "certifiedPerson": "Kevin Henin",
     "email": "info@vicmar.be",
@@ -8918,7 +8918,20 @@
     "certified": true
   },
   {
-    "id": "rescert-5590-486",
+    "id": "rescert-5590-490",
+    "companyName": "Walter Nysen",
+    "certifiedPerson": "Walter Nysen",
+    "email": "nyselec@gmail.com",
+    "phone": "",
+    "postalCode": "5590",
+    "city": "Ciney",
+    "provinceKey": "namur",
+    "provinceLabel": "Namur",
+    "category": "Systèmes solaires photovoltaïques",
+    "certified": true
+  },
+  {
+    "id": "rescert-5590-487",
     "companyName": "TB elec SRL",
     "certifiedPerson": "Timothée bouillon",
     "email": "confort.elec@outlook.com",
@@ -8931,7 +8944,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5660-508",
+    "id": "rescert-5660-509",
     "companyName": "justin detrait",
     "certifiedPerson": "justin detrait",
     "email": "jdetrait.pm@gmail.com",
@@ -8944,7 +8957,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5332-490",
+    "id": "rescert-5332-491",
     "companyName": "SRL VGDH TECHNIQUES",
     "certifiedPerson": "Christophe Vangeenderhuysen",
     "email": "christophevgdh@gmail.com",
@@ -8957,7 +8970,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5630-498",
+    "id": "rescert-5630-499",
     "companyName": "Steph-Elec",
     "certifiedPerson": "stéphane paul",
     "email": "info@stephelec.be",
@@ -8970,7 +8983,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5020-407",
+    "id": "rescert-5020-408",
     "companyName": "thomas lallemand",
     "certifiedPerson": "thomas lallemand",
     "email": "lallemand.thomas@gmail.com",
@@ -8983,7 +8996,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5500-464",
+    "id": "rescert-5500-465",
     "companyName": "Hubaille",
     "certifiedPerson": "Dimitri Hubaille",
     "email": "fb677397@skynet.be",
@@ -8996,7 +9009,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5530-471",
+    "id": "rescert-5530-472",
     "companyName": "ELECTRICITE FERONT SRL",
     "certifiedPerson": "OLIVIER FERONT",
     "email": "contact@electricite-feront.be",
@@ -9009,7 +9022,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5310-446",
+    "id": "rescert-5310-447",
     "companyName": "JM Ener-Tech SRL",
     "certifiedPerson": "Justin Michaux",
     "email": "jmenertech@hotmail.com",
@@ -9022,9 +9035,9 @@
     "certified": true
   },
   {
-    "id": "rescert-5310-442",
+    "id": "rescert-5310-443",
     "companyName": "TDELEC",
-    "certifiedPerson": "Thibaut D&#39;ANS",
+    "certifiedPerson": "Thibaut D'ANS",
     "email": "fabienne.dans18@gmail.com",
     "phone": "+32492569344",
     "postalCode": "5310",
@@ -9035,7 +9048,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5101-423",
+    "id": "rescert-5101-424",
     "companyName": "RENERSYS SRL",
     "certifiedPerson": "Destrais Pascal",
     "email": "contact@renersys.be",
@@ -9048,7 +9061,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5101-405",
+    "id": "rescert-5101-406",
     "companyName": "srl Gilson et Fils",
     "certifiedPerson": "nicolas Gilson",
     "email": "info@gilsonetfils.be",
@@ -9061,7 +9074,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5530-472",
+    "id": "rescert-5530-473",
     "companyName": "VALARD ELEC SRL",
     "certifiedPerson": "Grégory Valard",
     "email": "gregory@valard-electricite.be",
@@ -9074,7 +9087,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5522-468",
+    "id": "rescert-5522-469",
     "companyName": "VAN ELDOM",
     "certifiedPerson": "Xavier Van Eldom",
     "email": "info@vaneldom.be",
@@ -9087,7 +9100,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5060-417",
+    "id": "rescert-5060-418",
     "companyName": "Apostolos Sinaplidis",
     "certifiedPerson": "Apostolos Sinaplidis",
     "email": "tollis6@gmail.com",
@@ -9100,7 +9113,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5380-462",
+    "id": "rescert-5380-463",
     "companyName": "Guillaume Louvet",
     "certifiedPerson": "Guillaume Louvet",
     "email": "guillaume.louvet@hotmail.com",
@@ -9126,7 +9139,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5380-460",
+    "id": "rescert-5380-461",
     "companyName": "R.F. Projects SRL",
     "certifiedPerson": "Loic Anciaux",
     "email": "info@rfprojects.eu",
@@ -9139,7 +9152,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5380-461",
+    "id": "rescert-5380-462",
     "companyName": "Yannis Goblet",
     "certifiedPerson": "Yannis Goblet",
     "email": "yannis.goblet@protonmail.com",
@@ -9152,7 +9165,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5380-463",
+    "id": "rescert-5380-464",
     "companyName": "mnh solutions",
     "certifiedPerson": "maxime neuville",
     "email": "srlmnhsolutions@gmail.com",
@@ -9165,7 +9178,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5070-420",
+    "id": "rescert-5070-421",
     "companyName": "Electricité Teirlijnck",
     "certifiedPerson": "Rudi Teirlijnck",
     "email": "info@teirlijnck.be",
@@ -9178,7 +9191,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5070-419",
+    "id": "rescert-5070-420",
     "companyName": "Evolt SRL",
     "certifiedPerson": "Jerome Dahy",
     "email": "contact@evolt.be",
@@ -9191,7 +9204,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5150-496",
+    "id": "rescert-5150-497",
     "companyName": "Ac elec",
     "certifiedPerson": "Christophe Barbier",
     "email": "ac.elec2019@gmail.com",
@@ -9204,7 +9217,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5650-502",
+    "id": "rescert-5650-503",
     "companyName": "Alexis Vourajeris",
     "certifiedPerson": "Alexis Vourajeris",
     "email": "ac.elec2019@gmail.com",
@@ -9217,7 +9230,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5576-482",
+    "id": "rescert-5576-483",
     "companyName": "Dardenne Gilles - Energy Systems SRL",
     "certifiedPerson": "Gilles DARDENNE",
     "email": "info@dardennegilles.be",
@@ -9230,7 +9243,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5575-481",
+    "id": "rescert-5575-482",
     "companyName": "Dimitri Persoons",
     "certifiedPerson": "Dimitri Persoons",
     "email": "dimitri@kilowattsolar.eu",
@@ -9243,7 +9256,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5030-408",
+    "id": "rescert-5030-409",
     "companyName": "B-Watt Energy SRL",
     "certifiedPerson": "Laurent Noirhomme",
     "email": "info@b-watt.be",
@@ -9256,7 +9269,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5030-411",
+    "id": "rescert-5030-412",
     "companyName": "Lorent Thierry",
     "certifiedPerson": "Thierry Lorent",
     "email": "tloelectricite@gmail.com",
@@ -9269,7 +9282,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5030-410",
+    "id": "rescert-5030-411",
     "companyName": "DURY HERVE",
     "certifiedPerson": "DURY HERVE",
     "email": "dury.stevens@skynet.be",
@@ -9282,7 +9295,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5030-409",
+    "id": "rescert-5030-410",
     "companyName": "EcoBattery SRL",
     "certifiedPerson": "Simon DE VOCHT",
     "email": "info@ecobattery.be",
@@ -9295,7 +9308,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5340-450",
+    "id": "rescert-5340-451",
     "companyName": "AD-Elec",
     "certifiedPerson": "Alexis DELHAISE",
     "email": "info@ad-elec.be",
@@ -9308,7 +9321,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5340-452",
+    "id": "rescert-5340-453",
     "companyName": "Edouard Groynne",
     "certifiedPerson": "Edouard Groynne",
     "email": "myriam.taymans@groupvhc.be",
@@ -9321,7 +9334,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5031-412",
+    "id": "rescert-5031-413",
     "companyName": "ChasingWatt",
     "certifiedPerson": "Mathieu Flame",
     "email": "mathieu.flame@chasingwatt.be",
@@ -9334,7 +9347,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5351-455",
+    "id": "rescert-5351-456",
     "companyName": "Leroy ELECTROTECHNICAL Engineering",
     "certifiedPerson": "Serge LEROY",
     "email": "serge.leroy@l2e.be",
@@ -9347,7 +9360,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5543-475",
+    "id": "rescert-5543-476",
     "companyName": "Oselect",
     "certifiedPerson": "Steve Obrecht",
     "email": "oselect@outlook.be",
@@ -9360,7 +9373,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5560-476",
+    "id": "rescert-5560-477",
     "companyName": "CP Energies",
     "certifiedPerson": "Pierre Collard",
     "email": "info.cp.energies@gmail.com",
@@ -9373,7 +9386,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5600-493",
+    "id": "rescert-5600-494",
     "companyName": "ECV TEchnics",
     "certifiedPerson": "Bastien Ittelet",
     "email": "bastien.ittelet@ecvtechnics.be",
@@ -9386,7 +9399,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5570-477",
+    "id": "rescert-5570-478",
     "companyName": "Pirnay Logan SRL",
     "certifiedPerson": "Logan PIRNAY",
     "email": "info@pirnaylogan.be",
@@ -9399,7 +9412,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5190-432",
+    "id": "rescert-5190-433",
     "companyName": "silvio ben",
     "certifiedPerson": "silvio ben",
     "email": "bensilvio2000@yahoo.fr",
@@ -9412,7 +9425,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5190-433",
+    "id": "rescert-5190-434",
     "companyName": "Kévin Demeyere",
     "certifiedPerson": "Kévin Demeyere",
     "email": "ludelec2022@gmail.com",
@@ -9425,7 +9438,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5300-440",
+    "id": "rescert-5300-441",
     "companyName": "Vanackere Benoit SPRL",
     "certifiedPerson": "Benoit Vanackere",
     "email": "benoitvanackere@hotmail.com",
@@ -9438,7 +9451,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5310-441",
+    "id": "rescert-5310-442",
     "companyName": "Alexander Energy SRL",
     "certifiedPerson": "maxim alexander",
     "email": "info@maximalexander.be",
@@ -9451,7 +9464,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5310-443",
+    "id": "rescert-5310-444",
     "companyName": "J.D. TECH SRL",
     "certifiedPerson": "Jason Delooz",
     "email": "jde.elec@gmail.com",
@@ -9464,7 +9477,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5310-445",
+    "id": "rescert-5310-446",
     "companyName": "maxime jacqmotte",
     "certifiedPerson": "maxime jacqmotte",
     "email": "jacqmottemaxime@hotmail.com",
@@ -9477,7 +9490,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5310-444",
+    "id": "rescert-5310-445",
     "companyName": "Techni Home Services",
     "certifiedPerson": "Jérôme Denis",
     "email": "info@thssprl.be",
@@ -9490,7 +9503,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5140-425",
+    "id": "rescert-5140-426",
     "companyName": "Srl bs éco énergies solution",
     "certifiedPerson": "Luca Solimando",
     "email": "bs_ees@live.be",
@@ -9503,7 +9516,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5170-431",
+    "id": "rescert-5170-432",
     "companyName": "Energy Spirit Construct",
     "certifiedPerson": "Romane Sculier",
     "email": "info@es-construct.be",
@@ -9516,20 +9529,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5020-400",
-    "companyName": "EDKG",
-    "certifiedPerson": "Karl Ghislain",
-    "email": "ghislain.edkg@gmail.com",
-    "phone": "+32475638741",
-    "postalCode": "5020",
-    "city": "Malonne",
-    "provinceKey": "namur",
-    "provinceLabel": "Namur",
-    "category": "Systèmes solaires photovoltaïques",
-    "certified": true
-  },
-  {
-    "id": "rescert-5020-404",
+    "id": "rescert-5020-405",
     "companyName": "LDC Project srl",
     "certifiedPerson": "Ludovic De Cock",
     "email": "ldcproject.srl@gmail.com",
@@ -9542,7 +9542,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5660-422",
+    "id": "rescert-5660-423",
     "companyName": "Dujacquier Electricité",
     "certifiedPerson": "Gilles Praile",
     "email": "gilles@dujacquier.eu",
@@ -9555,7 +9555,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5640-500",
+    "id": "rescert-5640-501",
     "companyName": "Frédéric Obéléréo",
     "certifiedPerson": "Frédéric Obéléréo",
     "email": "of-tronics@skynet.be",
@@ -9568,7 +9568,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5640-499",
+    "id": "rescert-5640-500",
     "companyName": "Gerein",
     "certifiedPerson": "Benjamin Gerein",
     "email": "benjamin.gerein@gmail.com",
@@ -9581,7 +9581,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5376-436",
+    "id": "rescert-5376-437",
     "companyName": "NOVO SRL",
     "certifiedPerson": "Jhonny Adam",
     "email": "novomichel@hotmail.com",
@@ -9594,7 +9594,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5621-497",
+    "id": "rescert-5621-498",
     "companyName": "Jérôme Defer",
     "certifiedPerson": "Jérôme Defer",
     "email": "jeromedefer@gmail.com",
@@ -9607,7 +9607,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5190-435",
+    "id": "rescert-5190-436",
     "companyName": "TL Lighting SRL",
     "certifiedPerson": "Thomas Ledoux",
     "email": "thomas.ledoux@tl-lighting.be",
@@ -9620,7 +9620,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5190-434",
+    "id": "rescert-5190-435",
     "companyName": "Fohal",
     "certifiedPerson": "romain fohal",
     "email": "fohalromain@gmail.com",
@@ -9646,7 +9646,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5020-402",
+    "id": "rescert-5020-403",
     "companyName": "Borsu",
     "certifiedPerson": "Nicolas Borsu",
     "email": "nicolas.borsu@outlook.be",
@@ -9659,7 +9659,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5000-397",
+    "id": "rescert-5000-398",
     "companyName": "JCB Engineering",
     "certifiedPerson": "Jean-Christian BERTHOLET",
     "email": "info@jcbengineering.be",
@@ -9672,7 +9672,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5000-399",
+    "id": "rescert-5000-400",
     "companyName": "Ohm Concept SRL",
     "certifiedPerson": "Nicola Van Kerkhove",
     "email": "nicola@ohmconcept.be",
@@ -9685,7 +9685,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5000-398",
+    "id": "rescert-5000-399",
     "companyName": "DINANT",
     "certifiedPerson": "Jean-Marc DINANT",
     "email": "info@cleanelec.net",
@@ -9698,7 +9698,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5600-491",
+    "id": "rescert-5600-492",
     "companyName": "Rudy Boudin",
     "certifiedPerson": "Rudy Boudin",
     "email": "rudyboudin@gmail.com",
@@ -9711,7 +9711,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5670-509",
+    "id": "rescert-5670-510",
     "companyName": "Gillieaux",
     "certifiedPerson": "Jeremi Gillieaux",
     "email": "jeremi_78@hotmail.com",
@@ -9724,7 +9724,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5377-457",
+    "id": "rescert-5377-458",
     "companyName": "JRC services",
     "certifiedPerson": "Jean-Robert Caudron",
     "email": "jrc.services@outlook.be",
@@ -9737,7 +9737,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5350-454",
+    "id": "rescert-5350-455",
     "companyName": "David Crefcoeur",
     "certifiedPerson": "David Crefcoeur",
     "email": "dc.realisation@gmail.com",
@@ -9750,7 +9750,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5600-495",
+    "id": "rescert-5600-496",
     "companyName": "LA TOITURE",
     "certifiedPerson": "Adrien Lapaille",
     "email": "lapaille-adrien@hotmail.com",
@@ -9763,7 +9763,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5170-430",
+    "id": "rescert-5170-431",
     "companyName": "François Poncelet",
     "certifiedPerson": "François Poncelet",
     "email": "energie@poncelet.net",
@@ -9776,7 +9776,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5170-429",
+    "id": "rescert-5170-430",
     "companyName": "thomas pimpurniaux",
     "certifiedPerson": "thomas pimpurniaux",
     "email": "toiture.pimpurniaux@gmail.com",
@@ -9789,7 +9789,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5575-479",
+    "id": "rescert-5575-480",
     "companyName": "Duaconcept",
     "certifiedPerson": "Antoine Dury",
     "email": "antoine.dury@duaconcept.com",
@@ -9802,7 +9802,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5580-483",
+    "id": "rescert-5580-484",
     "companyName": "Dawagne",
     "certifiedPerson": "Jean-François Dawagne",
     "email": "jfdawagne@skynet.be",
@@ -9815,7 +9815,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5580-484",
+    "id": "rescert-5580-485",
     "companyName": "Focant",
     "certifiedPerson": "Thomas Focant",
     "email": "thomas.focant@gmail.com",
@@ -9828,7 +9828,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5651-503",
+    "id": "rescert-5651-504",
     "companyName": "Baudson",
     "certifiedPerson": "Thomas Baudson",
     "email": "baudson.thomas@gmail.com",
@@ -9841,7 +9841,20 @@
     "certified": true
   },
   {
-    "id": "rescert-5060-413",
+    "id": "rescert-5002-401",
+    "companyName": "Karl Ghislain",
+    "certifiedPerson": "Karl Ghislain",
+    "email": "ghislain.edkg@gmail.com",
+    "phone": "",
+    "postalCode": "5002",
+    "city": "Saint Servais",
+    "provinceKey": "namur",
+    "provinceLabel": "Namur",
+    "category": "Systèmes solaires photovoltaïques",
+    "certified": true
+  },
+  {
+    "id": "rescert-5060-414",
     "companyName": "Electro Bruyr SRL",
     "certifiedPerson": "pierre bruyr",
     "email": "info@electrobruyr.be",
@@ -9854,7 +9867,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5060-416",
+    "id": "rescert-5060-417",
     "companyName": "Joël Ostachowski",
     "certifiedPerson": "Joël Ostachowski",
     "email": "ampera.belgium@gmail.com",
@@ -9867,7 +9880,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5060-414",
+    "id": "rescert-5060-415",
     "companyName": "Simelec Pro SRL",
     "certifiedPerson": "Simon Gloire",
     "email": "simon.gloire@simelecpro.be",
@@ -9880,7 +9893,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5140-424",
+    "id": "rescert-5140-425",
     "companyName": "Erwin colin",
     "certifiedPerson": "Erwin colin",
     "email": "coolinerwin@gmail.com",
@@ -9893,7 +9906,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5140-427",
+    "id": "rescert-5140-428",
     "companyName": "BEnergic srl",
     "certifiedPerson": "Carlos Vermeiren",
     "email": "info@efficience-energetique.be",
@@ -9906,7 +9919,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5140-426",
+    "id": "rescert-5140-427",
     "companyName": "TASIAUX CLIMATE FACTORY",
     "certifiedPerson": "Nathan Tasiaux",
     "email": "info@tasiauxtcf.be",
@@ -9919,7 +9932,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5377-458",
+    "id": "rescert-5377-459",
     "companyName": "srl MDelec",
     "certifiedPerson": "martin Demoulin",
     "email": "martin@mdelec.be",
@@ -9932,7 +9945,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5523-469",
+    "id": "rescert-5523-470",
     "companyName": "srl BOAG",
     "certifiedPerson": "bruno grégoire",
     "email": "info@sprlboag.be",
@@ -9945,7 +9958,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5503-465",
+    "id": "rescert-5503-466",
     "companyName": "Electricité Hayot Clément",
     "certifiedPerson": "CLEMENT HAYOT",
     "email": "clementhayot@hotmail.com",
@@ -9958,7 +9971,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5503-466",
+    "id": "rescert-5503-467",
     "companyName": "Electricité Mignon sprl",
     "certifiedPerson": "Emmanuel Mignon",
     "email": "manu@electricitemignon.be",
@@ -9971,7 +9984,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5150-428",
+    "id": "rescert-5150-429",
     "companyName": "Belgian Electronic Engineering SA",
     "certifiedPerson": "David Goossens",
     "email": "info@bee-sa.net",
@@ -9984,7 +9997,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5020-401",
+    "id": "rescert-5020-402",
     "companyName": "Fabrice Bars",
     "certifiedPerson": "Fabrice Bars",
     "email": "electrosunlight@gmail.com",
@@ -9997,7 +10010,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5020-656",
+    "id": "rescert-5020-657",
     "companyName": "Green Technical Services",
     "certifiedPerson": "Mehdi Helali",
     "email": "contact@greentechnicalservices.be",
@@ -10010,7 +10023,20 @@
     "certified": true
   },
   {
-    "id": "rescert-5651-505",
+    "id": "rescert-5060-416",
+    "companyName": "Thierry Gustin",
+    "certifiedPerson": "Thierry Gustin",
+    "email": "infos@ets-gustin.com",
+    "phone": "",
+    "postalCode": "5060",
+    "city": "TAMINES",
+    "provinceKey": "namur",
+    "provinceLabel": "Namur",
+    "category": "Systèmes solaires photovoltaïques",
+    "certified": true
+  },
+  {
+    "id": "rescert-5651-506",
     "companyName": "Luminight SNC",
     "certifiedPerson": "Julien Boulanger",
     "email": "luminight.infos@gmail.com",
@@ -10023,7 +10049,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5020-403",
+    "id": "rescert-5020-404",
     "companyName": "Watts By Sun",
     "certifiedPerson": "Sandro Calo",
     "email": "info@wattsbysun.be",
@@ -10036,7 +10062,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5651-506",
+    "id": "rescert-5651-507",
     "companyName": "RenoVal Energie",
     "certifiedPerson": "Valentin Chaussée",
     "email": "info@renovalenergie.be",
@@ -10049,7 +10075,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5060-418",
+    "id": "rescert-5060-419",
     "companyName": "Quentin Van Oostveldt",
     "certifiedPerson": "Quentin Van Oostveldt",
     "email": "info.sowatts@gmail.com",
@@ -10062,7 +10088,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5575-480",
+    "id": "rescert-5575-481",
     "companyName": "Goire Benjamin srl",
     "certifiedPerson": "benjamin goire",
     "email": "benjamingoire@gmail.com",
@@ -10075,7 +10101,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5370-456",
+    "id": "rescert-5370-457",
     "companyName": "Novawood",
     "certifiedPerson": "Philippe Leblanc",
     "email": "info@novawood.be",
@@ -10088,7 +10114,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5300-437",
+    "id": "rescert-5300-438",
     "companyName": "NG Engineering SRL",
     "certifiedPerson": "Nicolas Gouthière",
     "email": "nge@outlook.be",
@@ -10114,7 +10140,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5651-504",
+    "id": "rescert-5651-505",
     "companyName": "Open-Elec",
     "certifiedPerson": "Jordan Bauduin",
     "email": "bauduin.jordan@open-elec.be",
@@ -10127,7 +10153,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5650-494",
+    "id": "rescert-5650-495",
     "companyName": "Sv tech",
     "certifiedPerson": "Fabian Journdevant",
     "email": "jourdevant.fabian@gmail.com",
@@ -10140,7 +10166,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5310-448",
+    "id": "rescert-5310-449",
     "companyName": "SLT ENTREPRISE SRL",
     "certifiedPerson": "Lorenzo TRIGAUX",
     "email": "lorenzo@sltentreprise.be",
@@ -10153,7 +10179,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5580-485",
+    "id": "rescert-5580-486",
     "companyName": "ZIMMERMANS FABRICE SRL",
     "certifiedPerson": "Fabrice ZIMMERMANS",
     "email": "info@zimmermans.be",
@@ -10166,7 +10192,7 @@
     "certified": true
   },
   {
-    "id": "rescert-5530-470",
+    "id": "rescert-5530-471",
     "companyName": "SD ELEC",
     "certifiedPerson": "Sébastien DELIEUX",
     "email": "sebadelieux@hotmail.com",

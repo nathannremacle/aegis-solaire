@@ -9,31 +9,6 @@ import { ShieldCheck, Award, Users2 } from "lucide-react"
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.aegissolaire.com"
 
-export const metadata = {
-  title: "Annuaire Officiel des Installateurs RESCert Photovoltaïque Wallonie & Bruxelles | Aegis Solaire",
-  description:
-    "Consultez les 784 installateurs photovoltaïques certifiés RESCert en Wallonie et à Bruxelles (Liège, Namur, Hainaut, Brabant wallon, Bruxelles, Luxembourg). Revendiquez votre fiche entreprise et accédez aux chantiers solaires qualifiés sans guerre des prix.",
-  alternates: {
-    canonical: `${baseUrl}/partenaires/annuaire`,
-  },
-  openGraph: {
-    title: "Annuaire Officiel des Installateurs RESCert Photovoltaïque Wallonie & Bruxelles | Aegis Solaire",
-    description:
-      "Consultez les 784 installateurs photovoltaïques certifiés RESCert en Wallonie et à Bruxelles. Revendiquez votre fiche entreprise et accédez aux opportunités de chantiers qualifiés.",
-    url: `${baseUrl}/partenaires/annuaire`,
-    siteName: "Aegis Solaire",
-    locale: "fr_BE",
-    type: "website",
-    images: [{ url: "/logo.png", width: 1200, height: 630, alt: "Aegis Solaire" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Annuaire Officiel des Installateurs RESCert Photovoltaïque Wallonie & Bruxelles",
-    description:
-      "Consultez les 784 installateurs photovoltaïques certifiés RESCert en Wallonie et à Bruxelles.",
-  },
-}
-
 function getInstallersData(): RescertInstaller[] {
   try {
     const filePath = path.resolve(process.cwd(), "lib/data/rescert-wallonie-installateurs.json")
@@ -45,6 +20,31 @@ function getInstallersData(): RescertInstaller[] {
     console.error("Erreur lecture annuaire rescert:", err)
   }
   return []
+}
+
+export function generateMetadata() {
+  const count = getInstallersData().length
+  return {
+    title: "Annuaire Officiel des Installateurs RESCert Photovoltaïque Wallonie & Bruxelles | Aegis Solaire",
+    description: `Consultez les ${count} installateurs photovoltaïques certifiés RESCert en Wallonie et à Bruxelles (Liège, Namur, Hainaut, Brabant wallon, Bruxelles, Luxembourg). Revendiquez votre fiche entreprise et accédez aux chantiers solaires qualifiés sans guerre des prix.`,
+    alternates: {
+      canonical: `${baseUrl}/partenaires/annuaire`,
+    },
+    openGraph: {
+      title: "Annuaire Officiel des Installateurs RESCert Photovoltaïque Wallonie & Bruxelles | Aegis Solaire",
+      description: `Consultez les ${count} installateurs photovoltaïques certifiés RESCert en Wallonie et à Bruxelles. Revendiquez votre fiche entreprise et accédez aux opportunités de chantiers qualifiés.`,
+      url: `${baseUrl}/partenaires/annuaire`,
+      siteName: "Aegis Solaire",
+      locale: "fr_BE",
+      type: "website",
+      images: [{ url: "/logo.png", width: 1200, height: 630, alt: "Aegis Solaire" }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "Annuaire Officiel des Installateurs RESCert Photovoltaïque Wallonie & Bruxelles",
+      description: `Consultez les ${count} installateurs photovoltaïques certifiés RESCert en Wallonie et à Bruxelles.`,
+    },
+  }
 }
 
 export default function AnnuairePartenairesPage() {
@@ -92,14 +92,14 @@ export default function AnnuairePartenairesPage() {
               </h1>
 
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed font-sans">
-                Aegis Solaire collabore exclusivement avec les professionnels qualifiés du photovoltaïque. Retrouvez les 784 entreprises certifiées de Wallonie et de Bruxelles sélectionnées pour leur rigueur technique et leur conformité réglementaire.
+                Aegis Solaire collabore exclusivement avec les professionnels qualifiés du photovoltaïque. Retrouvez les <span className="font-mono tabular-nums font-semibold text-foreground">{installers.length}</span> entreprises certifiées de Wallonie et de Bruxelles sélectionnées pour leur rigueur technique et leur conformité réglementaire.
               </p>
 
               {/* Badges de Réassurance */}
               <div className="mt-4 flex flex-wrap items-center gap-3 text-xs font-mono text-muted-foreground">
                 <span className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 border border-border">
                   <Award className="h-3.5 w-3.5 text-accent" />
-                  <span>784 Entreprises Agréées</span>
+                  <span className="tabular-nums">{installers.length} Entreprises Agréées</span>
                 </span>
                 <span className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 border border-border">
                   <Users2 className="h-3.5 w-3.5 text-accent" />

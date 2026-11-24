@@ -9,6 +9,10 @@ import {
   renderInstallerEmailShell,
   renderSpecsTable,
 } from "@/lib/email-templates/installer-email-layout"
+import {
+  buildPartnerReferralTextFootnote,
+  renderPartnerReferralFooterBlock,
+} from "@/lib/email-templates/installer-referral-launch"
 
 const resendApiKey = process.env.RESEND_API_KEY
 const fromEmail = process.env.RESEND_FROM_EMAIL ?? "contact@aegissolaire.com"
@@ -170,6 +174,7 @@ export interface InstallerMarketplaceWelcomeData {
   availableLeads?: AvailableLeadSummary[]
   closedTargetLead?: InvitationLeadSummary | null
   welcomeCredits?: number
+  referralCode?: string | null
 }
 
 export function buildInstallerMarketplaceWelcomeEmail(data: InstallerMarketplaceWelcomeData): {
@@ -232,6 +237,12 @@ export function buildInstallerMarketplaceWelcomeEmail(data: InstallerMarketplace
     leadsTextSection = `\nDOSSIERS ACTUELLEMENT DISPONIBLES DANS VOS ZONES D'INTERVENTION :\nNous avons ${leads.length} projet(s) solaire(s) vérifié(s) actuellement en attente d'artisan partenaire :\n${listText}\n`
   }
 
+  const referralText = buildPartnerReferralTextFootnote({
+    referralCode: data.referralCode,
+    companyName: company,
+    baseUrl,
+  })
+
   const text = `Cher ${firstName},
 
 Excellente nouvelle : votre compte installateur pour ${company} a été validé avec succès par notre équipe technique${rescert} !
@@ -244,7 +255,7 @@ La Marketplace Aegis Solaire en bref :
 - Pas d’abonnement – vous ne payez que pour les demandes de devis que vous choisissez d'acquérir.
 - Fiches techniques vérifiées – toiture, consommation kWh, raccordement GRD et coordonnées complètes.
 - Concurrence maîtrisée – maximum 3 installateurs par projet résidentiel (ou option Exclusivité Totale à 1 clic) et exclusivité native en B2B.
-${welcomeCredits > 0 ? `- Solde de bienvenue offert : ${welcomeCredits} crédits sont déjà disponibles sur votre compte pour débloquer votre 1er chantier gratuitement.\n` : ""}- Pas de chantiers sélectionnés ? Zéro frais.
+${welcomeCredits > 0 ? `- Solde de bienvenue offert : ${welcomeCredits} crédits sont déjà disponibles sur votre compte pour débloquer votre 1er chantier gratuitement.\n` : ""}- Pas de chantiers sélectionnés ? Zéro frais.${referralText ? `\n\n${referralText}` : ""}
 
 Des questions ? contact@aegissolaire.com
 
@@ -354,6 +365,12 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
         </td>
       </tr>
     </table>
+
+    ${renderPartnerReferralFooterBlock({
+      referralCode: data.referralCode,
+      companyName: company,
+      baseUrl,
+    })}
   `
 
   const html = renderInstallerEmailShell({

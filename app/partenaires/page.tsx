@@ -1,4 +1,5 @@
 import Link from "next/link"
+import rescertInstallers from "@/lib/data/rescert-wallonie-installateurs.json"
 import { Footer } from "@/components/footer"
 import { InstallerRegistrationForm } from "@/components/installer-registration-form"
 import { MarketplaceLivePreview } from "@/components/marketplace-preview"
@@ -122,7 +123,7 @@ export default function PartenairesPage() {
                     Votre entreprise est déjà certifiée RESCERT en Wallonie ou à Bruxelles ?
                   </h3>
                   <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                    Consultez les <span className="font-mono tabular-nums font-semibold text-foreground">783</span> installateurs recensés sur notre annuaire public et activez votre espace partenaire avec <span className="font-mono tabular-nums font-semibold text-foreground">3</span> crédits d&apos;essai offerts.
+                    Consultez les <span className="font-mono tabular-nums font-semibold text-foreground">{rescertInstallers.length}</span> installateurs recensés sur notre annuaire public et activez votre espace partenaire avec <span className="font-mono tabular-nums font-semibold text-foreground">3</span> crédits d&apos;essai offerts.
                   </p>
                 </div>
               </div>

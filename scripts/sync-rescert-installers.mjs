@@ -29,8 +29,20 @@ function decodeDoubleBase64(str) {
   }
 }
 
-function cleanText(s) {
+function decodeHtmlEntities(s) {
   return (s || '')
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&amp;/g, '&')
+    .replace(/&apos;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ');
+}
+
+function cleanText(s) {
+  return decodeHtmlEntities(s || '')
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -131,6 +143,18 @@ async function run() {
       });
     } else {
       const existing = installersMap.get(uniqueKey);
+      if (personName) {
+        const currentPersons = existing.certifiedPerson
+          .split(',')
+          .map((p) => p.trim())
+          .filter(Boolean);
+        const alreadyHasPerson = currentPersons.some(
+          (p) => p.toLowerCase() === personName.toLowerCase()
+        );
+        if (!alreadyHasPerson) {
+          existing.certifiedPerson = [...currentPersons, personName].join(', ');
+        }
+      }
       if (!existing.email && email) existing.email = email.toLowerCase().trim();
       if (!existing.phone && phone) existing.phone = phone;
     }
