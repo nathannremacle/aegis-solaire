@@ -27,6 +27,20 @@ function resolveSupportedMimeType(contentType: string, filename: string | null):
   return null
 }
 
+function normalizeEmailAddress(raw: string): string {
+  const match = raw.match(/<([^>]+)>/)
+  return (match ? match[1] : raw).trim().toLowerCase()
+}
+
+function isAccountingInboundRecipient(
+  recipients: string[] | string | undefined,
+  expectedAddress: string
+): boolean {
+  const target = expectedAddress.trim().toLowerCase()
+  const list = Array.isArray(recipients) ? recipients : recipients ? [recipients] : []
+  return list.some((entry) => normalizeEmailAddress(entry) === target)
+}
+
 export async function POST(request: NextRequest) {
   const webhookSecret = (process.env.RESEND_INBOUND_WEBHOOK_SECRET || "").trim()
   const apiKey = (process.env.RESEND_API_KEY || "").trim()
@@ -70,6 +84,15 @@ export async function POST(request: NextRequest) {
   }
 
   const emailData = event.data
+  const accountingInboundEmail =
+    (process.env.ACCOUNTING_INBOUND_EMAIL || "factures@inbound.aegissolaire.com").trim()
+  if (!isAccountingInboundRecipient(emailData.to, accountingInboundEmail)) {
+    return NextResponse.json({
+      received: true,
+      ignored: "non_accounting_recipient",
+    })
+  }
+
   const attachments = emailData.attachments || []
   if (attachments.length === 0) {
     return NextResponse.json({ received: true, processed: 0, reason: "no_attachments" })
