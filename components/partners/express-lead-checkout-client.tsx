@@ -54,6 +54,7 @@ interface ExpressLeadProps {
   }
   token: string
   isPaymentReturn: boolean
+  isUpgraded?: boolean
   initialPurchaseId: string | null
 }
 
@@ -62,6 +63,7 @@ export function ExpressLeadCheckoutClient({
   partner,
   token,
   isPaymentReturn,
+  isUpgraded = false,
   initialPurchaseId,
 }: ExpressLeadProps) {
   const [cgvAccepted, setCgvAccepted] = useState(true)
@@ -76,10 +78,7 @@ export function ExpressLeadCheckoutClient({
     lead: any
   } | null>(null)
 
-  const canBuyExclusive =
-    lead.takenSlots === 0 &&
-    lead.maxSlots > 1 &&
-    (lead.segment === "B2B" || lead.allocationMode === "single_vetted")
+  const canBuyExclusive = lead.takenSlots === 0 && lead.maxSlots > 1
 
   const selectedPriceHtva = exclusive ? lead.exclusivePriceHtva : lead.directPriceHtva
   const selectedCredits = exclusive ? lead.exclusiveCredits : lead.credits
@@ -89,6 +88,9 @@ export function ExpressLeadCheckoutClient({
   useEffect(() => {
     if (!isPaymentReturn && !initialPurchaseId) return
     let active = true
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let attempts = 0
+
     const checkStatus = async () => {
       try {
         const res = await fetch(
@@ -101,14 +103,23 @@ export function ExpressLeadCheckoutClient({
             creditsSpent: data.purchase.credits_spent,
             lead: data.lead,
           })
+          return
+        }
+        if (active && isPaymentReturn && attempts < 3) {
+          attempts++
+          timer = setTimeout(checkStatus, 2000)
         }
       } catch {
-        // ignore
+        if (active && isPaymentReturn && attempts < 3) {
+          attempts++
+          timer = setTimeout(checkStatus, 2000)
+        }
       }
     }
     checkStatus()
     return () => {
       active = false
+      if (timer) clearTimeout(timer)
     }
   }, [isPaymentReturn, initialPurchaseId, lead.id, token, partner.id])
 
@@ -161,12 +172,14 @@ export function ExpressLeadCheckoutClient({
     setUpgrading(true)
     setError(null)
     try {
+      const returnUrl = `/partenaires/express/${encodeURIComponent(lead.id)}?t=${encodeURIComponent(token)}&payment=return&upgraded=1${partner.id ? `&pid=${encodeURIComponent(partner.id)}` : ""}`
       const res = await fetch("/api/partners/credits/upgrade-from-purchase", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           purchaseId: unlockedData.purchaseId,
           packId: "pack_24",
+          returnUrl,
         }),
       })
       const data = await res.json()
@@ -243,7 +256,16 @@ export function ExpressLeadCheckoutClient({
               </Link>
             </div>
 
-            {unlockedData.creditsSpent < 24 && (
+            {isUpgraded && (
+              <div className="rounded-2xl border border-primary/40 bg-primary/10 p-4 text-xs text-foreground flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                <span>
+                  <strong>Quota Accélération activé !</strong> Vos crédits supplémentaires ont été ajoutés avec la Garantie Livraison <span className="font-mono tabular-nums">45</span> jours.
+                </span>
+              </div>
+            )}
+
+            {!isUpgraded && unlockedData.creditsSpent < 24 && (
               <div className="rounded-2xl border-2 border-accent bg-accent/5 p-5 flex flex-col gap-3">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-accent">
                   <Zap className="h-4 w-4 shrink-0" />

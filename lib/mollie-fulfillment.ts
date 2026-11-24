@@ -13,8 +13,15 @@ import {
 } from "@/lib/email-templates/installer-transactional"
 import {
   calculateOrderFinancials,
-  B2C_EXCLUSIVE_CREDIT_COST,
+  getExclusiveCreditCost,
 } from "@/lib/credit-pricing"
+import { createExpressBuyToken } from "@/lib/express-buy-token"
+import {
+  renderActionBox,
+  renderCalloutBox,
+  renderFiguresBox,
+  renderInstallerEmailShell,
+} from "@/lib/email-templates/installer-email-layout"
 import { getValidMollieMandate } from "@/lib/mollie"
 import { sendProspectExclusiveMatchEmail } from "@/lib/prospect-exclusive-match-email"
 import {
@@ -289,16 +296,16 @@ export async function fulfillPaidLeadDirectPurchase(
 
   const isB2B = lead.segment === "B2B"
   const meta = (payment.metadata as Record<string, unknown>) || {}
-  const isB2CExclusive = Boolean(meta.exclusive) && !isB2B
+  const isExclusiveBuyout = Boolean(meta.exclusive)
   const rawCreditsToDebit = Math.max(0, Math.floor(Number(meta.creditsToDebit || 0)))
   const isHybrid = Boolean(meta.isHybrid) && rawCreditsToDebit > 0
   const baseMaxSlots =
     typeof (lead as { max_slots?: number | null }).max_slots === "number"
       ? Number((lead as { max_slots?: number | null }).max_slots)
       : isB2B
-        ? 1
+        ? 2
         : 3
-  const maxSlots = isB2CExclusive ? 1 : baseMaxSlots
+  const maxSlots = isExclusiveBuyout ? 1 : baseMaxSlots
 
   // 4. Vérifier les créneaux déjà pris par des partenaires réels
   const { data: existingPurchases } = await supabase
@@ -314,14 +321,14 @@ export async function fulfillPaidLeadDirectPurchase(
     return !isTestPartner
   }).length
 
-  if ((isB2CExclusive && currentTaken > 0) || currentTaken >= baseMaxSlots) {
+  if ((isExclusiveBuyout && currentTaken > 0) || currentTaken >= baseMaxSlots) {
     if (currentTaken >= baseMaxSlots) {
       await supabase.from("leads").update({ marketplace_status: "sold_out" }).eq("id", leadId)
     }
     console.warn("[Mollie Lead Fulfillment] Créneaux complets ou exclusivité expirée:", leadId)
-    const fallbackCredits = isB2CExclusive
-      ? B2C_EXCLUSIVE_CREDIT_COST
-      : Number(lead.credit_cost || (isB2B ? 9 : 3))
+    const fallbackCredits = isExclusiveBuyout
+      ? getExclusiveCreditCost({ segment: lead.segment, credit_cost: lead.credit_cost })
+      : Number(lead.credit_cost || (isB2B ? 13 : 3))
     const totalLeadCredits = Number(meta.totalCredits || meta.credits || fallbackCredits)
     const creditsToCompensate = isHybrid
       ? Math.max(1, totalLeadCredits - rawCreditsToDebit)
@@ -344,16 +351,20 @@ export async function fulfillPaidLeadDirectPurchase(
     }
   }
 
-  const creditsEquivalent = isB2CExclusive
-    ? Number(meta.totalCredits || meta.credits || B2C_EXCLUSIVE_CREDIT_COST)
-    : Number(meta.totalCredits || meta.credits || lead.credit_cost || (isB2B ? 9 : 3))
+  const creditsEquivalent = isExclusiveBuyout
+    ? Number(
+        meta.totalCredits ||
+          meta.credits ||
+          getExclusiveCreditCost({ segment: lead.segment, credit_cost: lead.credit_cost })
+      )
+    : Number(meta.totalCredits || meta.credits || lead.credit_cost || (isB2B ? 13 : 3))
   const v2Fallback = calculateOrderFinancials(creditsEquivalent)
   const priceHtva = meta.priceHtva ? Number(meta.priceHtva).toFixed(2) : v2Fallback.priceHtva.toFixed(2)
   const vatAmount = meta.vatAmount ? Number(meta.vatAmount).toFixed(2) : v2Fallback.vatAmount.toFixed(2)
   const priceTtc = meta.priceTtc ? Number(meta.priceTtc).toFixed(2) : v2Fallback.priceTtc.toFixed(2)
   const purchaseChannel =
     meta.channel === "auto_pilot" ? "auto_pilot" : "mollie_direct"
-  const exclusiveTag = isB2CExclusive ? " (EXCLUSIF)" : ""
+  const exclusiveTag = isExclusiveBuyout ? " (EXCLUSIF)" : ""
   const purchaseNotes = isHybrid
     ? `Achat direct en euros (Mollie: ${payment.id}) · Complément (${rawCreditsToDebit} cr. utilisés) · ${priceHtva} € HTVA (${payment.method || "Bancontact"})${exclusiveTag}`
     : `Achat direct en euros${exclusiveTag} (Mollie: ${payment.id}) · ${priceHtva} € HTVA (${payment.method || "Bancontact"})`
@@ -374,7 +385,7 @@ export async function fulfillPaidLeadDirectPurchase(
     .from("lead_purchases")
     .insert({
       ...basePurchaseRow,
-      is_exclusive: isB2CExclusive || isB2B,
+      is_exclusive: isExclusiveBuyout || baseMaxSlots === 1,
       purchase_channel: purchaseChannel,
     })
     .select()
@@ -425,8 +436,8 @@ export async function fulfillPaidLeadDirectPurchase(
     }
   }
 
-  // 6. Clôturer le dossier si exclusivité B2C ou dernier slot acquis
-  if (isB2CExclusive) {
+  // 6. Clôturer le dossier si exclusivité ou dernier slot acquis
+  if (isExclusiveBuyout) {
     const { error: exclErr } = await supabase
       .from("leads")
       .update({
@@ -442,7 +453,7 @@ export async function fulfillPaidLeadDirectPurchase(
         .eq("id", leadId)
     }
 
-    if (lead.email) {
+    if (lead.email && !isB2B) {
       const contactPref =
         (lead as { contact_preference?: string | null }).contact_preference ||
         ((lead.qualification_metadata as Record<string, unknown> | null)?.contactPreference as
@@ -562,13 +573,65 @@ export async function fulfillPaidLeadDirectPurchase(
       if (!isHybrid && effectiveNewCredits < 6 && creditsEquivalent < 24) {
         const siteBase = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.aegissolaire.com").replace(/\/$/, "")
         const netRemainingCredits = 24 - creditsEquivalent
-        const netPriceHtva = Math.max(1, 198 - Number(priceHtva)).toFixed(2).replace(".", ",")
+        const netPriceHtvaNum = Math.max(1, 198 - Number(priceHtva))
+        const netPriceHtva = netPriceHtvaNum.toFixed(2).replace(".", ",")
+        const paidFormatted = Number(priceHtva).toFixed(2).replace(".", ",")
+        const expressToken = createExpressBuyToken({
+          leadId: lead.id,
+          partnerId: partner.id,
+          rescertCompany: partner.company_name,
+          rescertEmail: partner.email,
+        })
+        const tremplinUrl = `${siteBase}/partenaires/express/${encodeURIComponent(lead.id)}?t=${encodeURIComponent(expressToken)}`
+        const tremplinSubject = `Offre Tremplin 24h : déduisez vos ${paidFormatted} € de votre Quota Accélération`
+        const tremplinText = `Bonjour,\n\nVous venez de débloquer un dossier sur Aegis Solaire pour ${paidFormatted} € HTVA.\n\nPendant 24h, transformez cet achat en acompte intégralement déduit d'un Quota Accélération (24 crédits à -16 %) : ne réglez que ${netPriceHtva} € HTVA pour recevoir +${netRemainingCredits} crédits supplémentaires (Garantie Livraison 45 jours incluse, zéro abonnement) :\n${tremplinUrl}\n\nLa Direction des Partenariats Aegis Solaire\ncontact@aegissolaire.com`
+        const tremplinHtml = renderInstallerEmailShell({
+          subject: tremplinSubject,
+          preheader: `Déduisez intégralement vos ${paidFormatted} € HTVA sur le Quota Accélération (24 crédits à -16 %).`,
+          reference: `TREMPLIN · #${lead.id.slice(0, 8).toUpperCase()}`,
+          context: "Offre Tremplin valable 24 h",
+          headline: "Ne perdez pas votre tarif à l'acte",
+          subtitle: `${partner.company_name || "Partenaire RESCERT"} · Déduction intégrale appliquée`,
+          statusPill: { text: "Garantie Livraison 45 jours incluse", tone: "success" },
+          bodyHtml: `
+            ${renderFiguresBox(
+              {
+                label: "Acompte déjà réglé (déduit)",
+                value: `-${paidFormatted} € HT`,
+                sublabel: `${creditsEquivalent} crédits utilisés`,
+              },
+              {
+                label: "Reste net à régler",
+                value: `${netPriceHtva} € HT`,
+                sublabel: `+${netRemainingCredits} crédits ajoutés (-16 %)`,
+              }
+            )}
+            ${renderActionBox({
+              kicker: "Offre valable 24 heures · Zéro abonnement",
+              title: "Convertir en Quota Accélération (24 crédits)",
+              subtext: "Priorité Auto-Pilot T+0s (30 min avant le Spot) + Garantie Cash-Back 45 jours (Art. 4.4 CGV).",
+              ctaLabel: `Activer pour ${netPriceHtva} € HTVA →`,
+              ctaUrl: tremplinUrl,
+            })}
+            ${renderCalloutBox({
+              label: "Zéro risque sur votre trésorerie",
+              value: "Si nous ne vous livrons pas assez de dossiers conformes à vos critères dans les 45 jours, le solde non consommé vous est remboursé par virement sous 48h ouvrées.",
+              tone: "info",
+            })}
+          `,
+          footerLinks: [
+            { label: "Activer mon Quota", href: tremplinUrl },
+            { label: "Assistance technique", href: "mailto:contact@aegissolaire.com" },
+          ],
+        })
+
         await resend.emails.send({
           from: fromEmail,
           to: partner.email,
           replyTo: "contact@aegissolaire.com",
-          subject: `Offre Tremplin 24h : déduisez vos ${priceHtva.replace(".", ",")} € de votre Quota Accélération`,
-          text: `Bonjour,\n\nVous venez de débloquer un dossier sur Aegis Solaire pour ${priceHtva.replace(".", ",")} € HTVA.\n\nPendant 24h, vous pouvez transformer cet achat en acompte intégralement déduit d'un Quota Accélération (24 crédits à -16 %) : ne réglez que ${netPriceHtva} € HTVA pour recevoir +${netRemainingCredits} crédits supplémentaires (Garantie Livraison 45 jours incluse, zéro abonnement) :\n${siteBase}/partenaires/dashboard/credits?pack=pack_24\n\nLa Direction des Partenariats Aegis Solaire`,
+          subject: tremplinSubject,
+          text: tremplinText,
+          html: tremplinHtml,
         }).catch(() => {})
       }
     } catch (emailErr) {
@@ -633,7 +696,7 @@ export async function fulfillPaidLeadDirectPurchase(
     purchaseId: purchase.id,
     purchase,
     lead,
-    exclusive: isB2CExclusive || isB2B,
+    exclusive: isExclusiveBuyout || isB2B,
     maxSlots,
     newCredits: effectiveNewCredits,
   }

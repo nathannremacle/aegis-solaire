@@ -167,6 +167,7 @@ export async function POST(request: NextRequest) {
 
     const credit_cost = calculateLeadCreditCost({
       segment: data.segment,
+      allocationMode: data.allocationMode,
       surfaceArea: data.surfaceArea,
       surfaceType: data.surfaceType,
       annualBill: data.annualElectricityBill,

@@ -14,8 +14,8 @@ import {
 import {
   calculateLeadComplementFinancials,
   calculateLeadDirectFinancials,
-  B2C_EXCLUSIVE_CREDIT_COST,
-  B2C_EXCLUSIVE_PRICE_EUR,
+  calculateOrderFinancials,
+  getExclusiveCreditCost,
 } from "@/lib/credit-pricing"
 import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
 import { getLeadLocationInfo } from "@/lib/lead-display-helpers"
@@ -102,13 +102,15 @@ export function DirectLeadPaymentModal({
   if (!isOpen || !lead) return null
 
   const isB2B = lead.segment === "B2B"
-  const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
+  const maxSlots = lead.max_slots ?? (isB2B ? 2 : 3)
   const remainingSlots = lead.remaining_slots ?? maxSlots
   const takenSlots = lead.taken_slots ?? Math.max(0, maxSlots - remainingSlots)
-  const canBuyExclusive = !isB2B && takenSlots === 0 && maxSlots > 1
+  const canBuyExclusive = takenSlots === 0 && maxSlots > 1
   const isExclusive = canBuyExclusive && exclusiveMode
-  const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
-  const activeCost = isExclusive ? B2C_EXCLUSIVE_CREDIT_COST : cost
+  const cost = lead.credit_cost ?? (isB2B ? 13 : 3)
+  const exclusiveCredits = getExclusiveCreditCost({ segment: lead.segment, credit_cost: cost })
+  const exclusivePriceHtva = calculateOrderFinancials(exclusiveCredits).priceHtva
+  const activeCost = isExclusive ? exclusiveCredits : cost
   const hasEnoughCredits = partnerCredits >= activeCost
 
   const location = getLeadLocationInfo(lead)
@@ -157,9 +159,10 @@ export function DirectLeadPaymentModal({
   const minContractStr = projectFinancials.estimatedContractValueRange.min.toLocaleString("fr-BE")
   const maxContractStr = projectFinancials.estimatedContractValueRange.max.toLocaleString("fr-BE")
 
-  const availabilityText = isB2B
-    ? "Exclusivité B2B · 1 seul installateur"
-    : `${remainingSlots} ${remainingSlots > 1 ? "places disponibles" : "place disponible"} sur ${maxSlots}`
+  const availabilityText =
+    isB2B && maxSlots <= 1
+      ? "Exclusivité B2B · 1 seul installateur"
+      : `${remainingSlots} ${remainingSlots > 1 ? "places disponibles" : "place disponible"} sur ${maxSlots}`
 
   const availabilityBadgeStyle =
     !isB2B && remainingSlots <= 1
@@ -417,11 +420,11 @@ export function DirectLeadPaymentModal({
                         Exclusivité 100 %
                       </span>
                       <span className="font-mono text-[12px] font-bold tabular-nums text-emerald-800">
-                        {formatEurDecimal(B2C_EXCLUSIVE_PRICE_EUR)} € HT
+                        {formatEurDecimal(exclusivePriceHtva)} € HT
                       </span>
                     </div>
                     <p className="mt-0.5 text-[11px] text-emerald-800/85 leading-snug">
-                      {B2C_EXCLUSIVE_CREDIT_COST} crédits · 0 concurrent + e-mail prioritaire au prospect.
+                      {exclusiveCredits} crédits · 0 concurrent + attribution prioritaire.
                     </p>
                   </button>
                 </div>
@@ -485,7 +488,7 @@ export function DirectLeadPaymentModal({
                 <div className="py-1.5 flex items-baseline justify-between gap-3 border-b border-[var(--aegis-divider)]">
                   <span className="text-[12.5px] sm:text-[13px] text-[var(--aegis-muted)] min-w-0">
                     {isExclusive
-                      ? "Déblocage Exclusivité Totale B2C (0 concurrent)"
+                      ? "Déblocage Exclusivité Totale (0 concurrent)"
                       : "Déblocage de contact qualifié"}
                   </span>
                   <span className="shrink-0 whitespace-nowrap text-right font-mono text-[13.5px] sm:text-[14px] font-semibold tabular-nums text-[var(--aegis-ink)]">

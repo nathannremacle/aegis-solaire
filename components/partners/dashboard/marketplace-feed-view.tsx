@@ -56,7 +56,7 @@ import {
   formatEurWithDecimals,
   calculateLeadComplementFinancials,
   calculateLeadDirectFinancials,
-  B2C_EXCLUSIVE_CREDIT_COST,
+  getExclusiveCreditCost,
 } from "@/lib/credit-pricing"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 import { isShowcaseOnlyLeadId } from "@/lib/regional-leads-catalog"
@@ -514,10 +514,10 @@ export function MarketplaceFeedView({
       return
     }
     const isB2B = lead.segment === "B2B"
-    const isExclusiveBuyout = Boolean(opts?.exclusive) && !isB2B
+    const isExclusiveBuyout = Boolean(opts?.exclusive)
     const cost = isExclusiveBuyout
-      ? B2C_EXCLUSIVE_CREDIT_COST
-      : (lead.credit_cost ?? (isB2B ? 9 : 3))
+      ? getExclusiveCreditCost({ segment: lead.segment, credit_cost: lead.credit_cost })
+      : (lead.credit_cost ?? (isB2B ? 13 : 3))
 
     trackPartnerActivity({
       eventType: "unlock_intent",
@@ -1135,7 +1135,7 @@ export function MarketplaceFeedView({
                         method: "direct_pay",
                         segment: lead.segment ?? null,
                         province: lead.province ?? null,
-                        creditCost: lead.credit_cost ?? (lead.segment === "B2B" ? 9 : 3),
+                        creditCost: lead.credit_cost ?? (lead.segment === "B2B" ? 13 : 3),
                         partnerCredits,
                       },
                     })
@@ -1151,9 +1151,9 @@ export function MarketplaceFeedView({
               <div className="flex flex-col gap-3 md:hidden">
                 {filteredLeads.map((lead) => {
                   const isB2B = lead.segment === "B2B"
-                  const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
+                  const maxSlots = lead.max_slots ?? (isB2B ? 2 : 3)
                   const remainingSlots = lead.remaining_slots ?? maxSlots
-                  const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
+                  const cost = lead.credit_cost ?? (isB2B ? 13 : 3)
                   const hasEnoughCredits = partnerCredits >= cost
                   const directFinancials = calculateLeadDirectFinancials({ segment: lead.segment, credit_cost: cost })
                   const complementFinancials = calculateLeadComplementFinancials({
@@ -1423,9 +1423,9 @@ export function MarketplaceFeedView({
                   <tbody className="divide-y divide-border">
                     {filteredLeads.map((lead) => {
                       const isB2B = lead.segment === "B2B"
-                      const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
+                      const maxSlots = lead.max_slots ?? (isB2B ? 2 : 3)
                       const remainingSlots = lead.remaining_slots ?? maxSlots
-                      const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
+                      const cost = lead.credit_cost ?? (isB2B ? 13 : 3)
                       const tableComplement = calculateLeadComplementFinancials({
                         segment: lead.segment,
                         credit_cost: cost,
@@ -1760,10 +1760,10 @@ export function MarketplaceFeedView({
             const newRecord = buildPurchasedCrmRecord(
               purchasedLead,
               data,
-              data.exclusive && purchasedLead.segment === "B2C"
-                ? B2C_EXCLUSIVE_CREDIT_COST
-                : (purchasedLead.credit_cost ?? 3),
-              Boolean(data.exclusive || purchasedLead.segment === "B2B")
+              data.exclusive
+                ? getExclusiveCreditCost({ segment: purchasedLead.segment, credit_cost: purchasedLead.credit_cost })
+                : (purchasedLead.credit_cost ?? (purchasedLead.segment === "B2B" ? 13 : 3)),
+              Boolean(data.exclusive || (purchasedLead.max_slots ?? 2) === 1)
             )
             const nextCredits =
               typeof data.newCredits === "number" ? data.newCredits : partnerCredits
@@ -1792,8 +1792,8 @@ export function MarketplaceFeedView({
           setDirectPayExclusive(false)
           if (target) {
             const needed = wantsExcl
-              ? B2C_EXCLUSIVE_CREDIT_COST
-              : (target.credit_cost ?? (target.segment === "B2B" ? 9 : 3))
+              ? getExclusiveCreditCost({ segment: target.segment, credit_cost: target.credit_cost })
+              : (target.credit_cost ?? (target.segment === "B2B" ? 13 : 3))
             if (partnerCredits >= needed) {
               handlePurchase(target, { exclusive: wantsExcl })
               return
@@ -1805,10 +1805,10 @@ export function MarketplaceFeedView({
           const newRecord = buildPurchasedCrmRecord(
             purchasedLead,
             data,
-            data.exclusive && purchasedLead.segment === "B2C"
-              ? B2C_EXCLUSIVE_CREDIT_COST
-              : (purchasedLead.credit_cost ?? 3),
-            Boolean(data.exclusive || purchasedLead.segment === "B2B")
+            data.exclusive
+              ? getExclusiveCreditCost({ segment: purchasedLead.segment, credit_cost: purchasedLead.credit_cost })
+              : (purchasedLead.credit_cost ?? (purchasedLead.segment === "B2B" ? 13 : 3)),
+            Boolean(data.exclusive || (purchasedLead.max_slots ?? 2) === 1)
           )
           const nextCredits =
             typeof data.newCredits === "number" ? data.newCredits : partnerCredits
@@ -2015,9 +2015,12 @@ function MarketplaceLeadCard({
   onDirectPay: () => void
 }) {
   const isB2B = lead.segment === "B2B"
-  const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
+  const maxSlots = lead.max_slots ?? (isB2B ? 2 : 3)
   const remainingSlots = lead.remaining_slots ?? maxSlots
-  const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
+  const cost = lead.credit_cost ?? (isB2B ? 13 : 3)
+  const isQuoteAudit =
+    lead.allocation_mode === "quote_audit_2" ||
+    lead.qualification_metadata?.lead_intent_type === "quote_audit_ready"
   const hasEnoughCredits = partnerCredits >= cost
   const directFinancials = calculateLeadDirectFinancials({ segment: lead.segment, credit_cost: cost })
   const complementFinancials = calculateLeadComplementFinancials({
@@ -2125,10 +2128,17 @@ function MarketplaceLeadCard({
           {/* Badges superposés en haut (strictement mono-ligne) */}
           <div className="absolute top-2.5 left-2.5 right-2.5 sm:top-3 sm:left-3 sm:right-3 flex items-center justify-between gap-1.5 pointer-events-none">
             {/* Badge Modèle */}
-            {isB2B ? (
+            {isQuoteAudit ? (
+              <span className="inline-flex items-center rounded-full bg-emerald-700/90 backdrop-blur-xs text-white text-[11px] sm:text-xs font-semibold leading-none px-2.5 py-1.5 sm:px-3 shadow-sm whitespace-nowrap shrink-0">
+                <span className="sm:hidden">Contre-Offre · {remainingSlots}/{maxSlots}</span>
+                <span className="hidden sm:inline">Contre-Offre Prêt-à-Signer · {remainingSlots}/{maxSlots}</span>
+              </span>
+            ) : isB2B ? (
               <span className="inline-flex items-center rounded-full bg-black/75 backdrop-blur-xs text-white text-[11px] sm:text-xs font-semibold leading-none px-2.5 py-1.5 sm:px-3 shadow-sm whitespace-nowrap shrink-0">
-                <span className="sm:hidden">B2B Exclusif</span>
-                <span className="hidden sm:inline">{tierMeta.label} · 100 % Exclusif</span>
+                <span className="sm:hidden">{maxSlots <= 1 ? "B2B Exclusif" : `B2B · ${remainingSlots}/${maxSlots}`}</span>
+                <span className="hidden sm:inline">
+                  {maxSlots <= 1 ? `${tierMeta.label} · 100 % Exclusif` : `${tierMeta.label} · ${remainingSlots}/${maxSlots} places`}
+                </span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-black/75 backdrop-blur-xs text-white text-[11px] sm:text-xs font-medium leading-none px-2.5 py-1.5 sm:px-3 shadow-sm whitespace-nowrap shrink-0">

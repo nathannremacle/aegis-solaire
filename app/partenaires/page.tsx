@@ -212,7 +212,7 @@ export default function PartenairesPage() {
                       EXCLUSIVITÉ TOTALE B2C
                     </span>
                     <span className="font-mono text-xs font-bold text-accent tabular-nums">
-                      7 cr. (65,00 € HT)
+                      6 à 12 cr. (59 à 119 € HT)
                     </span>
                   </div>
                   <h3 className="text-lg font-bold text-foreground font-heading">
@@ -234,21 +234,21 @@ export default function PartenairesPage() {
                   <div className="flex items-center justify-between gap-2">
                     <span className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1 font-mono text-xs font-bold text-primary-foreground">
                       <Building2 className="h-3.5 w-3.5" />
-                      B2B · 100 % EXCLUSIF
+                      B2B · MAX 2 OU EXCLUSIF
                     </span>
                     <span className="font-mono text-xs font-bold text-accent tabular-nums">
-                      6 à 12 cr. (59 à 118 € HT)
+                      8 à 20 cr. (79 à 195 € HT)
                     </span>
                   </div>
                   <h3 className="text-lg font-bold text-foreground font-heading">
-                    1 seul installateur par chantier tertiaire
+                    Appel d&apos;offres restreint ou exclusivité totale B2B
                   </h3>
                   <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                    Toitures industrielles, PME, hangars agricoles et ombrières de parking (&gt; <span className="font-mono tabular-nums">30 kWc</span>). Dès l&apos;achat, la fiche est clôturée et vous négociez sans guerre des prix.
+                    Toitures industrielles, PME, hangars agricoles et ombrières de parking (&gt; <span className="font-mono tabular-nums">30 kWc</span>). Plafonné à <span className="font-mono tabular-nums">2</span> bureaux d&apos;études max ou verrouillable en exclusivité totale (+ Conciergerie CFO DPI <span className="font-mono tabular-nums">40 %</span>).
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2 pt-4 border-t border-border text-xs font-mono text-muted-foreground">
-                  <span className="rounded-lg bg-secondary px-2.5 py-1 border border-border">1:1 natif</span>
+                  <span className="rounded-lg bg-secondary px-2.5 py-1 border border-border">Max 2 ou Exclu</span>
                   <span className="rounded-lg bg-secondary px-2.5 py-1 border border-border">TVA BCE vérifiée</span>
                 </div>
               </div>
@@ -323,7 +323,7 @@ export default function PartenairesPage() {
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="h-4 w-4 text-accent shrink-0" />
                         <span className="font-semibold text-foreground">
-                          <span className="font-mono tabular-nums">100 %</span> Exclusif B2B · Max <span className="font-mono tabular-nums">3</span> B2C ou Exclusivité Totale (<span className="font-mono tabular-nums">65 € HT</span>)
+                          Max <span className="font-mono tabular-nums">2</span> B2B (ou Exclu) · Max <span className="font-mono tabular-nums">3</span> B2C (ou Exclu <span className="font-mono tabular-nums">59–119 € HT</span>)
                         </span>
                       </div>
                     </td>
@@ -707,7 +707,7 @@ export default function PartenairesPage() {
                   Exemple concret d&apos;exploitation (Chantier B2B toiture PME)
                 </span>
                 <p className="text-xs sm:text-sm text-foreground leading-relaxed">
-                  Débloquez <span className="font-mono tabular-nums">1</span> dossier B2B toiture industrielle à <strong className="font-mono tabular-nums">9 crédits</strong> (soit <span className="font-mono tabular-nums font-semibold">88,50 € HT</span> à l&apos;unité). Signez un chantier de <span className="font-mono tabular-nums font-semibold">60 kWc</span> (~<span className="font-mono tabular-nums">54 000 € HT</span>). Votre marge brute moyenne réalisée dépasse <strong className="font-mono tabular-nums font-bold text-accent">9 000 € HT</strong>. Le retour sur investissement est immédiat dès le premier dossier transformé.
+                  Débloquez <span className="font-mono tabular-nums">1</span> dossier B2B toiture industrielle PME à <strong className="font-mono tabular-nums">8 crédits</strong> (soit <span className="font-mono tabular-nums font-semibold">79,00 € HT</span> à l&apos;unité, ou <span className="font-mono tabular-nums font-semibold">60,00 € HT</span> via Quota Régie). Signez un chantier de <span className="font-mono tabular-nums font-semibold">60 kWc</span> (~<span className="font-mono tabular-nums">54 000 € HT</span>). Votre marge brute moyenne réalisée dépasse <strong className="font-mono tabular-nums font-bold text-accent">9 000 € HT</strong>. Le retour sur investissement est immédiat dès le premier dossier transformé.
                 </p>
               </div>
             </div>
@@ -917,7 +917,7 @@ export default function PartenairesPage() {
               <div className="p-5 rounded-2xl bg-secondary/40 border border-border flex flex-col gap-2">
                 <h3 className="font-bold text-foreground font-heading">Puis-je acheter un dossier résidentiel rien que pour moi ?</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Oui. Tout dossier B2C qui affiche encore <span className="font-mono tabular-nums font-semibold text-foreground">0/3</span> places prises propose l&apos;option <strong className="text-foreground">Exclusivité Totale</strong> (<strong className="font-mono tabular-nums">7</strong> crédits ou <strong className="font-mono tabular-nums">65 € HT</strong>). Le chantier disparaît aussitôt pour tous vos concurrents et nous informons le particulier de votre attribution prioritaire.
+                  Oui. Tout dossier B2C qui affiche encore <span className="font-mono tabular-nums font-semibold text-foreground">0/3</span> places prises (ou B2B à <span className="font-mono tabular-nums font-semibold text-foreground">0/2</span>) propose l&apos;option <strong className="text-foreground">Exclusivité Totale</strong> (<strong className="font-mono tabular-nums">6 à 12</strong> crédits soit <strong className="font-mono tabular-nums">59 à 119 € HT</strong> en B2C). Le chantier disparaît aussitôt pour tous vos concurrents.
                 </p>
               </div>
 
@@ -949,7 +949,7 @@ export default function PartenairesPage() {
                   <Link href="/cgv" className="font-semibold text-foreground underline underline-offset-4 hover:text-accent">
                     CGV
                   </Link>
-                  ) et ne restent jamais bloqués grâce au complément en euros.
+                  ), ne restent jamais bloqués grâce au complément en euros, et le premier Quota Prioritaire bénéficie d&apos;une Garantie Cash-Back de <strong className="font-mono tabular-nums text-foreground">45 jours</strong> (Art. 4.4).
                 </p>
               </div>
             </div>

@@ -18,8 +18,8 @@ import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
 import {
   calculateLeadComplementFinancials,
   calculateLeadDirectFinancials,
-  B2C_EXCLUSIVE_CREDIT_COST,
-  B2C_EXCLUSIVE_PRICE_EUR,
+  calculateOrderFinancials,
+  getExclusiveCreditCost,
 } from "@/lib/credit-pricing"
 import {
   getConsumptionLabel,
@@ -208,10 +208,12 @@ export function PartnerFocusedLeadView({
 
   const isB2B = lead.segment === "B2B"
   const isWithdrawn = Boolean(lead.is_withdrawn_from_marketplace)
-  const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
+  const maxSlots = lead.max_slots ?? (isB2B ? 2 : 3)
   const remainingSlots = lead.remaining_slots ?? maxSlots
   const takenSlots = lead.taken_slots ?? Math.max(0, maxSlots - remainingSlots)
-  const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
+  const cost = lead.credit_cost ?? (isB2B ? 13 : 3)
+  const exclusiveCredits = getExclusiveCreditCost({ segment: lead.segment, credit_cost: cost })
+  const exclusivePriceHtva = calculateOrderFinancials(exclusiveCredits).priceHtva
   const hasEnoughCredits = partnerCredits >= cost
 
   const directFinancials = calculateLeadDirectFinancials({
@@ -1041,12 +1043,12 @@ export function PartnerFocusedLeadView({
                         Débloquer à l’unité ({unlockPriceEur} · Bancontact / Carte)
                       </button>
 
-                      {!isB2B && takenSlots === 0 && maxSlots > 1 && (
+                      {takenSlots === 0 && maxSlots > 1 && (
                         <button
                           type="button"
                           disabled={isBuying}
                           onClick={() => {
-                            if (partnerCredits >= B2C_EXCLUSIVE_CREDIT_COST) {
+                            if (partnerCredits >= exclusiveCredits) {
                               handleTrackUnlock("credits")
                               onPurchaseWithCredits(lead, true)
                             } else {
@@ -1056,7 +1058,7 @@ export function PartnerFocusedLeadView({
                           }}
                           className="w-full min-h-[40px] rounded-[6px] border border-emerald-700/35 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 text-[13px] font-bold text-emerald-900 cursor-pointer transition-colors"
                         >
-                          Réserver l&apos;Exclusivité 100 % ({B2C_EXCLUSIVE_CREDIT_COST} cr. · {B2C_EXCLUSIVE_PRICE_EUR} € HT)
+                          Réserver l&apos;Exclusivité 100 % ({exclusiveCredits} cr. · {exclusivePriceHtva.toFixed(0)} € HT)
                         </button>
                       )}
                     </>
@@ -1083,7 +1085,7 @@ export function PartnerFocusedLeadView({
                         </p>
                       )}
 
-                      {!isB2B && takenSlots === 0 && maxSlots > 1 && (
+                      {takenSlots === 0 && maxSlots > 1 && (
                         <button
                           type="button"
                           onClick={() => {
@@ -1094,7 +1096,7 @@ export function PartnerFocusedLeadView({
                         >
                           {exclusiveComplementFinancials.isHybrid
                             ? `Exclusivité 100 % (${exclusiveComplementFinancials.creditsToDebit} cr. + ${formatEurCompact(exclusiveComplementFinancials.priceHtva)})`
-                            : `Option Exclusivité 100 % (${B2C_EXCLUSIVE_PRICE_EUR} € HT)`}
+                            : `Option Exclusivité 100 % (${exclusivePriceHtva.toFixed(0)} € HT)`}
                         </button>
                       )}
 

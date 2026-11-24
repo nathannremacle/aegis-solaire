@@ -101,7 +101,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     typeof (lead as { max_slots?: number | null }).max_slots === "number"
       ? Number((lead as { max_slots?: number | null }).max_slots)
       : isB2B
-        ? 1
+        ? 2
         : 3
 
   const { data: existingPurchases } = await supabase
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     )
   }
 
-  if (exclusive && !isB2B && realTakenCount > 0) {
+  if (exclusive && realTakenCount > 0) {
     return NextResponse.json(
       { error: "Ce dossier a déjà été partiellement attribué et ne peut plus être acheté en exclusivité." },
       { status: 400 }
@@ -217,7 +217,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       creditsToDebit: financials.creditsToDebit,
       totalCredits: financials.totalCredits,
       isHybrid: financials.isHybrid,
-      exclusive: exclusive && !isB2B,
+      exclusive: Boolean(exclusive),
       partnerId: partner.id,
       partnerEmail: partner.email,
       partnerCompany: partner.company_name,

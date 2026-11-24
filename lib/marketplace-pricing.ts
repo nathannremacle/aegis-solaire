@@ -64,6 +64,7 @@ export type LeadPricingTier = "eco" | "standard" | "premium"
  */
 export function calculateLeadCreditCost(lead: {
   segment: "B2B" | "B2C" | string
+  allocationMode?: string | null
   surfaceArea?: number | null
   surfaceType?: string | null
   annualBill?: number | null
@@ -106,24 +107,29 @@ export function calculateLeadCreditCost(lead: {
       horizon.includes("long") ||
       horizon.includes("renseigne")
 
+    const isSingleVetted =
+      lead.allocationMode === "single_vetted" ||
+      lead.qualificationMetadata?.allocation_mode === "single_vetted"
+
+    let baseTier = B2C_CREDIT_COST // 3 crédits Standard (29,50 € HTVA)
     if (
       (wantsBattery || (wantsIrve && bill >= 1800)) ||
       area >= 75 ||
       bill >= 2500 ||
       (isUrgent && bill >= 1600)
     ) {
-      return 4 // B2C Premium (39,00 € HTVA)
-    }
-
-    if (
+      baseTier = 4 // B2C Premium (39,00 € HTVA)
+    } else if (
       (bill > 0 && bill < 1100 && !wantsIrve) ||
       (area > 0 && area <= 25) ||
       (isExploring && !wantsBattery && !wantsIrve)
     ) {
-      return 2 // B2C Éco (19,50 € HTVA)
+      baseTier = 2 // B2C Éco (19,50 € HTVA)
     }
 
-    return B2C_CREDIT_COST // 3 crédits Standard (29,50 € HTVA)
+    return isSingleVetted
+      ? getExclusiveCreditCost({ segment: "B2C", credit_cost: baseTier })
+      : baseTier
   }
 
   // Segment B2B Appel d'Offres Restreint (2 slots)

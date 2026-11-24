@@ -30,10 +30,28 @@ export async function GET(request: NextRequest) {
     resolvedPartnerId = data?.id || null
   }
 
-  if (paymentId && resolvedPartnerId) {
+  let resolvedPaymentId = paymentId
+  if (!resolvedPaymentId && resolvedPartnerId) {
+    const { data: auditRows } = await supabase
+      .from("audit_log")
+      .select("details")
+      .eq("action", "express_checkout_initiated")
+      .eq("entity_id", leadId)
+      .order("created_at", { ascending: false })
+      .limit(5)
+
+    const matching = (auditRows || []).find(
+      (r: any) => r?.details?.partner_id === resolvedPartnerId && r?.details?.payment_id
+    )
+    if (matching?.details?.payment_id) {
+      resolvedPaymentId = String(matching.details.payment_id)
+    }
+  }
+
+  if (resolvedPaymentId && resolvedPartnerId) {
     try {
       const mollie = getMollieClient()
-      const payment = await mollie.payments.get(paymentId)
+      const payment = await mollie.payments.get(resolvedPaymentId)
       if (payment.status === "paid") {
         await fulfillPaidLeadDirectPurchase(leadId, resolvedPartnerId, payment)
       }

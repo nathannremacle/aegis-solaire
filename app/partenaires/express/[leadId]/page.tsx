@@ -13,10 +13,10 @@ export default async function ExpressLeadPage({
   searchParams,
 }: {
   params: Promise<{ leadId: string }>
-  searchParams: Promise<{ t?: string; payment?: string; pid?: string }>
+  searchParams: Promise<{ t?: string; payment?: string; pid?: string; upgraded?: string }>
 }) {
   const { leadId } = await params
-  const { t, payment, pid } = await searchParams
+  const { t, payment, pid, upgraded } = await searchParams
 
   const tokenPayload = verifyExpressBuyToken(t, leadId)
   if (!tokenPayload) {
@@ -73,25 +73,23 @@ export default async function ExpressLeadPage({
   if (partnerId) {
     const { data: pRow } = await supabase
       .from("partners")
-      .select("id, company_name, credits, company_vat")
+      .select("id, company_name, credits")
       .eq("id", partnerId)
       .maybeSingle()
     if (pRow) {
       partnerCredits = Number(pRow.credits || 0)
       partnerCompany = pRow.company_name || partnerCompany
-      partnerVat = pRow.company_vat || partnerVat
     }
   } else if (tokenPayload.rescertEmail) {
     const { data: pRow } = await supabase
       .from("partners")
-      .select("id, company_name, credits, company_vat")
+      .select("id, company_name, credits")
       .eq("email", tokenPayload.rescertEmail.trim().toLowerCase())
       .maybeSingle()
     if (pRow) {
       partnerId = pRow.id
       partnerCredits = Number(pRow.credits || 0)
       partnerCompany = pRow.company_name || partnerCompany
-      partnerVat = pRow.company_vat || partnerVat
     }
   }
 
@@ -151,6 +149,7 @@ export default async function ExpressLeadPage({
       }}
       token={t || ""}
       isPaymentReturn={payment === "return"}
+      isUpgraded={upgraded === "1"}
       initialPurchaseId={existingPurchase?.id || null}
     />
   )

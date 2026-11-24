@@ -97,10 +97,8 @@ export async function POST(request: NextRequest) {
           .insert({
             company_name: companyName,
             email: cleanEmail,
-            status: "approved",
             credits: 0,
             segment: "BOTH",
-            company_vat: tokenPayload.rescertVat || null,
           })
           .select("id, company_name, email, credits, mollie_customer_id")
           .single()
@@ -207,6 +205,22 @@ export async function POST(request: NextRequest) {
       customerId: mollieCustomerId,
       enableOneClick,
     })
+
+    try {
+      await supabase.from("audit_log").insert({
+        admin_email: "system:express",
+        action: "express_checkout_initiated",
+        entity_type: "lead",
+        entity_id: leadId,
+        details: {
+          partner_id: partnerId,
+          payment_id: paymentId,
+          exclusive,
+        },
+      })
+    } catch {
+      // Non bloquant
+    }
 
     return NextResponse.json({
       success: true,

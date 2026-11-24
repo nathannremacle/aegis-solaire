@@ -4,6 +4,12 @@ import { getAdminUser } from "@/lib/admin-auth"
 import { B2C_QUOTE_AUDIT_CREDIT_COST, B2C_QUOTE_AUDIT_MAX_SLOTS } from "@/lib/credit-pricing"
 import { computeWalloniaQuoteBenchmark } from "@/lib/quote-audit-extractor"
 import { triggerPostPublishDispatch } from "@/lib/lead-relance-engine"
+import {
+  renderCalloutBox,
+  renderFiguresBox,
+  renderInstallerEmailShell,
+  renderSpecsTable,
+} from "@/lib/email-templates/installer-email-layout"
 import { Resend } from "resend"
 
 export const dynamic = "force-dynamic"
@@ -124,12 +130,78 @@ export async function POST(
   if (process.env.RESEND_API_KEY && audit.email) {
     try {
       const resend = new Resend(process.env.RESEND_API_KEY)
+      const subject = `Résultat de votre contrôle devis solaire (${kwc} kWc) — Aegis Solaire`
+      const benchRange = `${bench.benchmarkMinTvac.toLocaleString("fr-BE")} € – ${bench.benchmarkMaxTvac.toLocaleString("fr-BE")} € TVAC`
+      const overchargeLabel =
+        bench.estimatedOverchargeEur > 0
+          ? `+${bench.estimatedOverchargeEur.toLocaleString("fr-BE")} € au-dessus du plafond`
+          : "Dans la fourchette du marché"
+      const text = `Bonjour,\n\nLa Cellule Technique Aegis Solaire a terminé l'analyse indépendante de votre devis (${kwc} kWc${batteryKwh > 0 ? ` + Batterie ${batteryKwh} kWh` : ""}).\n\nFourchette de référence RESCERT Tier-1 Wallonie 2026 : ${benchRange}.\n${bench.estimatedOverchargeEur > 0 ? `Écart constaté par rapport au plafond du marché : +${bench.estimatedOverchargeEur.toLocaleString("fr-BE")} €.` : "Votre devis se situe dans la fourchette compétitive du marché."}\n\n${publishToMarketplace ? "Conformément à votre demande, nous avons activé la mise en concurrence encadrée auprès de 2 installateurs certifiés RESCERT de votre province (cahier des charges Tier-1 strict, zéro divulgation de votre devis actuel)." : "Si vous souhaitez recevoir jusqu'à 2 contre-propositions RESCERT pour comparer, répondez simplement à cet e-mail."}\n\nL'équipe Technique Aegis Solaire\ncontact@aegissolaire.com`
+      const html = renderInstallerEmailShell({
+        subject,
+        preheader: `Analyse indépendante de votre devis (${kwc} kWc) : fourchette de référence ${benchRange}.`,
+        reference: `AUDIT · #${audit.id.slice(0, 8).toUpperCase()}`,
+        context: "Cellule Technique Aegis Solaire · De votre côté",
+        headline: "Résultat de votre contre-expertise devis",
+        subtitle: `${kwc} kWc${batteryKwh > 0 ? ` + Batterie ${batteryKwh} kWh` : ""} · ${audit.postal_code}`,
+        statusPill: {
+          text:
+            bench.estimatedOverchargeEur > 0
+              ? `Écart détecté : ${overchargeLabel}`
+              : "Devis cohérent avec le marché Wallonie 2026",
+          tone: bench.estimatedOverchargeEur > 0 ? "warning" : "success",
+        },
+        bodyHtml: `
+          ${renderFiguresBox(
+            {
+              label: "Référence RESCERT Tier-1 2026",
+              value: benchRange,
+              sublabel: `${kwc} kWc${batteryKwh > 0 ? ` + ${batteryKwh} kWh` : ""}`,
+            },
+            {
+              label: "Diagnostic tarifaire",
+              value: overchargeLabel,
+              sublabel: quotedPriceTvac > 0 ? `Offre analysée : ${quotedPriceTvac.toLocaleString("fr-BE")} € TVAC` : "Analyse technique effectuée",
+            }
+          )}
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 16px; width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding-top: 14px; border-top: 1px solid #E6EDF1;">
+                ${renderSpecsTable([
+                  { label: "Puissance analysée", value: `${kwc} kWc` },
+                  ...(batteryKwh > 0 ? [{ label: "Stockage batterie", value: `${batteryKwh} kWh` }] : []),
+                  { label: "Exigence qualité", value: "Panneaux Tier-1, conformité RGIE & Synergrid C10/11" },
+                  {
+                    label: "Suite donnée",
+                    value: publishToMarketplace
+                      ? "Mise en concurrence activée auprès de 2 installateurs RESCERT max (devis initial confidentiel)"
+                      : "Conseil neutre transmis par écrit — aucune transmission sans votre accord",
+                  },
+                ])}
+              </td>
+            </tr>
+          </table>
+          ${renderCalloutBox({
+            label: "Zéro contrepartie sur la qualité · 100 % gratuit",
+            value: publishToMarketplace
+              ? "Les installateurs RESCERT sollicités savent qu'ils sont mis en concurrence sur un cahier des charges Tier-1 strict sans jamais voir votre document concurrent."
+              : "Si vous souhaitez comparer avec 2 offres RESCERT de votre région sans centre d'appels, répondez simplement à cet e-mail.",
+            tone: "info",
+          })}
+        `,
+        footerLinks: [
+          { label: "Assistance technique", href: "mailto:contact@aegissolaire.com" },
+          { label: "Aegis Solaire", href: "https://www.aegissolaire.com" },
+        ],
+      })
+
       await resend.emails.send({
         from: process.env.RESEND_FROM_EMAIL || "contact@aegissolaire.com",
         to: audit.email,
         replyTo: "contact@aegissolaire.com",
-        subject: `Résultat de votre contrôle devis solaire (${kwc} kWc) — Aegis Solaire`,
-        text: `Bonjour,\n\nLa Cellule Technique Aegis Solaire a terminé l'analyse indépendante de votre devis (${kwc} kWc${batteryKwh > 0 ? ` + Batterie ${batteryKwh} kWh` : ""}).\n\nFourchette de référence RESCERT Tier-1 Wallonie 2026 : ${bench.benchmarkMinTvac.toLocaleString("fr-BE")} € à ${bench.benchmarkMaxTvac.toLocaleString("fr-BE")} € TVAC.\n${bench.estimatedOverchargeEur > 0 ? `Écart constaté par rapport au plafond du marché : +${bench.estimatedOverchargeEur.toLocaleString("fr-BE")} €.` : "Votre devis se situe dans la fourchette compétitive du marché."}\n\n${publishToMarketplace ? "Conformément à votre demande, nous avons activé la mise en concurrence encadrée auprès de 2 installateurs certifiés RESCERT de votre province (cahier des charges Tier-1 strict, zéro divulgation de votre devis actuel)." : "Si vous souhaitez recevoir jusqu'à 2 contre-propositions RESCERT pour comparer, répondez simplement à cet e-mail."}\n\nL'équipe Technique Aegis Solaire\ncontact@aegissolaire.com`,
+        subject,
+        text,
+        html,
       })
     } catch {
       // non-blocking

@@ -90,7 +90,7 @@ export async function POST(
     typeof (lead as { max_slots?: number | null }).max_slots === "number"
       ? Number((lead as { max_slots?: number | null }).max_slots)
       : isB2B
-        ? 1
+        ? 2
         : 3
 
   const { data: purchases } = await supabase
@@ -111,7 +111,7 @@ export async function POST(
     return !isTest
   }).length
 
-  if (realTaken >= maxSlots || (exclusive && !isB2B && realTaken > 0)) {
+  if (realTaken >= maxSlots || (exclusive && realTaken > 0)) {
     return NextResponse.json(
       { error: "Les créneaux ou l'exclusivité ne sont plus disponibles pour ce dossier." },
       { status: 400 }
@@ -187,7 +187,7 @@ export async function POST(
       creditsToDebit: financials.creditsToDebit,
       totalCredits: financials.totalCredits,
       isHybrid: financials.isHybrid,
-      exclusive: exclusive && !isB2B,
+      exclusive: Boolean(exclusive),
       partnerId: partner.id,
       partnerEmail: partner.email,
       partnerCompany: partner.company_name,

@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const purchaseId = typeof body?.purchaseId === "string" ? body.purchaseId.trim() : ""
     const packId = body?.packId === "pack_60" ? "pack_60" : "pack_24"
+    const rawReturnUrl = typeof body?.returnUrl === "string" ? body.returnUrl.trim() : ""
     const partnerFromAuth = await getPartner()
 
     const supabase = createServiceRoleClient()
@@ -105,6 +106,13 @@ export async function POST(request: NextRequest) {
       process.env.NEXT_PUBLIC_SITE_URL ||
       request.headers.get("origin") ||
       "https://www.aegissolaire.com"
+    const cleanSiteUrl = siteUrl.replace(/\/$/, "")
+    const redirectUrlOverride =
+      rawReturnUrl && (rawReturnUrl.startsWith(cleanSiteUrl) || rawReturnUrl.startsWith("/"))
+        ? rawReturnUrl.startsWith("/")
+          ? `${cleanSiteUrl}${rawReturnUrl}`
+          : rawReturnUrl
+        : null
 
     const { paymentId, checkoutUrl } = await createCreditOrderPayment({
       orderId: order.id,
@@ -114,7 +122,8 @@ export async function POST(request: NextRequest) {
       partnerId: partner.id,
       partnerEmail: partner.email,
       partnerCompany: partner.company_name,
-      siteUrl,
+      siteUrl: cleanSiteUrl,
+      redirectUrlOverride,
       customerId: partner.mollie_customer_id,
       enableOneClick: true,
     })

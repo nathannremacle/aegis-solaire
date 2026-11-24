@@ -21,6 +21,14 @@ import {
 } from "@/lib/credit-pricing"
 import { createExpressBuyToken } from "@/lib/express-buy-token"
 import { estimateDistanceBetweenPostcodesKm } from "@/lib/belgium-postcodes-geo"
+import { buildRescertOptoutUrl } from "@/lib/rescert-optout-tokens"
+import {
+  renderActionBox,
+  renderCalloutBox,
+  renderFiguresBox,
+  renderInstallerEmailShell,
+  renderSpecsTable,
+} from "@/lib/email-templates/installer-email-layout"
 import rescertInstallersRaw from "@/lib/data/rescert-wallonie-installateurs.json"
 import { createRecurringLeadPayment, getMollieClient, getValidMollieMandate } from "@/lib/mollie"
 import { fulfillPaidLeadDirectPurchase } from "@/lib/mollie-fulfillment"
@@ -1132,16 +1140,10 @@ export async function dispatchLeadWave(
       rescertEmail: partner.email,
     })
     const expressUrl = `${siteBaseUrl}/partenaires/express/${encodeURIComponent(lead.id)}?t=${encodeURIComponent(expressToken)}`
-    const rendered = renderInstallerLeadTeaserEmail(emailData)
-    const subject = rendered.subject
-    const text = rendered.text.replace(
-      new RegExp(`${siteBaseUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/partenaires(?:/dashboard)?[^\\s]*`, "g"),
-      expressUrl
-    )
-    const html = rendered.html.replace(
-      new RegExp(`${siteBaseUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/partenaires(?:/dashboard)?[^"'\\s]*`, "g"),
-      expressUrl
-    )
+    const { subject, text, html } = renderInstallerLeadTeaserEmail({
+      ...emailData,
+      expressCheckoutUrl: expressUrl,
+    })
     const notifUrls = buildPartnerNotificationUrls(siteBaseUrl, partner.id, partner.email)
 
     if (resend) {
@@ -1455,16 +1457,10 @@ export async function dispatchLeadToSpecificPartners(
       rescertEmail: partner.email,
     })
     const expressUrl = `${siteBaseUrl}/partenaires/express/${encodeURIComponent(lead.id)}?t=${encodeURIComponent(expressToken)}`
-    const rendered = renderInstallerLeadTeaserEmail(emailData)
-    const subject = rendered.subject
-    const text = rendered.text.replace(
-      new RegExp(`${siteBaseUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/partenaires(?:/dashboard)?[^\\s]*`, "g"),
-      expressUrl
-    )
-    const html = rendered.html.replace(
-      new RegExp(`${siteBaseUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/partenaires(?:/dashboard)?[^"'\\s]*`, "g"),
-      expressUrl
-    )
+    const { subject, text, html } = renderInstallerLeadTeaserEmail({
+      ...emailData,
+      expressCheckoutUrl: expressUrl,
+    })
     const notifUrls = buildPartnerNotificationUrls(siteBaseUrl, partner.id, partner.email)
 
     if (resend) {
@@ -3371,16 +3367,84 @@ async function dispatchRescertSniperForLead(
       distanceKm: c.dist,
     })
     const expressUrl = `${siteBaseUrl}/partenaires/express/${encodeURIComponent(lead.id)}?t=${encodeURIComponent(token)}`
+    const optoutUrl = buildRescertOptoutUrl(siteBaseUrl, c.email)
     const distLabel = c.dist !== null ? `${c.dist.toFixed(1).replace(".", ",")} km` : "proche"
     const cityLabel = lead.city || lead.province || "Wallonie"
+    const powerKwcLabel = lead.estimated_power_kwc
+      ? `${Number(lead.estimated_power_kwc).toFixed(1).replace(".", ",")} kWc`
+      : "À confirmer"
+    const subject = `Chantier photovoltaïque vérifié à ${cityLabel} (${lead.postal_code}) — à ${distLabel} de ${c.company}`
+    const text = `Bonjour,\n\nUn dossier photovoltaïque vérifié à ${cityLabel} (${lead.postal_code}) est situé à ${distLabel} de ${c.company}. Il reste ${remainingSlots} créneau(x) libre(s) sur un maximum de ${lead.max_slots || 3} installateurs.\n\nPuissance cible : ${powerKwcLabel}\nDroit d'accès unitaire : ${priceHtva} € HTVA (zéro abonnement, accès Bancontact direct sans mot de passe) :\n${expressUrl}\n\nLa Direction des Partenariats Aegis Solaire\ncontact@aegissolaire.com\n\n--\nPlateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique.\nNe plus recevoir d'alertes chantiers : ${optoutUrl}`
+
+    const html = renderInstallerEmailShell({
+      subject,
+      preheader: `Chantier vérifié à ${distLabel} de ${c.company} · ${remainingSlots} créneau(x) libre(s) · ${priceHtva} € HTVA.`,
+      reference: `SNIPER · #${lead.id.slice(0, 8).toUpperCase()}`,
+      context: `Chantier à ${distLabel} de votre siège`,
+      headline: `${cityLabel} (${lead.postal_code})`,
+      subtitle: `${c.company} · Agrément RESCERT pré-identifié`,
+      statusPill: {
+        text: `${remainingSlots}/${lead.max_slots || 3} créneau(x) disponible(s)`,
+        tone: "warning",
+      },
+      bodyHtml: `
+        ${renderFiguresBox(
+          {
+            label: "Distance estimée",
+            value: distLabel,
+            sublabel: `${cityLabel} (${lead.postal_code})`,
+          },
+          {
+            label: "Droit d'accès unitaire",
+            value: `${priceHtva} € HT`,
+            sublabel: `${powerKwcLabel} · Zéro abonnement`,
+          }
+        )}
+        ${renderActionBox({
+          kicker: "Accès direct mobile sans mot de passe",
+          title: "Débloquer en 8s via Bancontact",
+          subtext: "Identité propriétaire OTP vérifiée · Garantie Anti-Fake 7 jours ouvrés.",
+          ctaLabel: "Inspecter la fiche chantier →",
+          ctaUrl: expressUrl,
+        })}
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 16px; width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding-top: 14px; border-top: 1px solid #E6EDF1;">
+              ${renderSpecsTable([
+                { label: "Localisation", value: `${cityLabel} (${lead.postal_code})` },
+                { label: "Puissance cible", value: powerKwcLabel },
+                { label: "Plafond concurrence", value: `Max ${lead.max_slots || 3} installateurs RESCERT` },
+                { label: "Facturation", value: "Facture pro TVA 21 % immédiate (INIT42)" },
+              ])}
+            </td>
+          </tr>
+        </table>
+        ${renderCalloutBox({
+          label: "Votre agrément RESCERT est déjà identifié",
+          value: "Aucun mot de passe préalable requis : le lien se verrouille automatiquement dès que le dernier créneau est attribué.",
+          tone: "info",
+        })}
+      `,
+      footerNote: "Communication professionnelle B2B adressée aux titulaires d'un agrément public RESCERT Photovoltaïque.",
+      footerLinks: [
+        { label: "Inspecter le chantier", href: expressUrl },
+        { label: "Assistance technique", href: "mailto:contact@aegissolaire.com" },
+        { label: "Ne plus recevoir d'alertes", href: optoutUrl },
+      ],
+    })
 
     try {
       await resend.emails.send({
         from: fromEmail,
         to: c.email,
         replyTo: replyToEmail,
-        subject: `Chantier photovoltaïque vérifié à ${cityLabel} (${lead.postal_code}) — à ${distLabel} de ${c.company}`,
-        text: `Bonjour,\n\nUn dossier photovoltaïque vérifié à ${cityLabel} (${lead.postal_code}) est situé à ${distLabel} de ${c.company}. Il reste ${remainingSlots} créneau(x) libre(s) sur un maximum de ${lead.max_slots || 3} installateurs.\n\nDroit d'accès unitaire : ${priceHtva} € HTVA (zéro abonnement, accès Bancontact direct sans mot de passe) :\n${expressUrl}\n\nLa Direction des Partenariats Aegis Solaire\ncontact@aegissolaire.com`,
+        subject,
+        text,
+        html,
+        headers: {
+          "List-Unsubscribe": `<${optoutUrl}>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        },
       })
       sent++
     } catch {

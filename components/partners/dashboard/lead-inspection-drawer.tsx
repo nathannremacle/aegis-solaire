@@ -40,8 +40,8 @@ import {
   formatEurWithDecimals,
   calculateLeadComplementFinancials,
   calculateLeadDirectFinancials,
-  B2C_EXCLUSIVE_CREDIT_COST,
-  B2C_EXCLUSIVE_PRICE_EUR,
+  calculateOrderFinancials,
+  getExclusiveCreditCost,
 } from "@/lib/credit-pricing"
 import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
 import {
@@ -163,10 +163,15 @@ export function LeadInspectionDrawer({
   if (!lead) return null
 
   const isB2B = lead.segment === "B2B"
-  const maxSlots = lead.max_slots ?? (isB2B ? 1 : 3)
+  const maxSlots = lead.max_slots ?? (isB2B ? 2 : 3)
   const remainingSlots = lead.remaining_slots ?? maxSlots
   const takenSlots = lead.taken_slots ?? Math.max(0, maxSlots - remainingSlots)
-  const cost = lead.credit_cost ?? (isB2B ? 9 : 3)
+  const cost = lead.credit_cost ?? (isB2B ? 13 : 3)
+  const exclusiveCredits = getExclusiveCreditCost({ segment: lead.segment, credit_cost: cost })
+  const exclusivePriceHtva = calculateOrderFinancials(exclusiveCredits).priceHtva
+  const isQuoteAudit =
+    lead.allocation_mode === "quote_audit_2" ||
+    lead.qualification_metadata?.lead_intent_type === "quote_audit_ready"
   const hasEnoughCredits = partnerCredits >= cost
 
   const directFinancials = calculateLeadDirectFinancials({
@@ -215,7 +220,7 @@ export function LeadInspectionDrawer({
     (lead as { freshness_label?: string }).freshness_label,
     lead.reconfirmed_at || lead.qualification_metadata?.reconfirmed_at
   )
-  const canTakeExclusiveB2C = !isB2B && takenSlots === 0 && maxSlots > 1 && !isPurchased
+  const canTakeExclusiveB2C = takenSlots === 0 && maxSlots > 1 && !isPurchased
   const sanitized = sanitizeLeadNotes(lead.project_details, lead.message)
   const specs = sanitized.specs
 
@@ -306,12 +311,21 @@ export function LeadInspectionDrawer({
           <div className="flex flex-col gap-0.5 pr-1 min-w-0">
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               <span
-                className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold whitespace-nowrap ${isB2B
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground border border-border"
-                  }`}
+                className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold whitespace-nowrap ${
+                  isQuoteAudit
+                    ? "bg-emerald-600 text-white"
+                    : isB2B
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground border border-border"
+                }`}
               >
-                {isB2B ? "B2B • Exclusif 100%" : `B2C • ${remainingSlots}/${maxSlots} places`}
+                {isQuoteAudit
+                  ? `Contre-Offre • ${remainingSlots}/${maxSlots} places`
+                  : isB2B && maxSlots <= 1
+                    ? "B2B • Exclusif 100%"
+                    : isB2B
+                      ? `B2B • ${remainingSlots}/${maxSlots} places`
+                      : `B2C • ${remainingSlots}/${maxSlots} places`}
               </span>
 
               <span className="inline-flex items-center gap-1.5 text-[11px] font-mono text-muted-foreground whitespace-nowrap">
@@ -1199,11 +1213,11 @@ export function LeadInspectionDrawer({
                       >
                         <ShieldCheck className="h-3.5 w-3.5 mr-1 shrink-0" />
                         <span className="truncate sm:hidden font-mono tabular-nums">
-                          Exclusif ({B2C_EXCLUSIVE_CREDIT_COST} cr.)
+                          Exclusif ({exclusiveCredits} cr.)
                         </span>
                         <span className="hidden sm:inline truncate">
-                          Exclusivité 100 % (<span className="font-mono tabular-nums">{B2C_EXCLUSIVE_CREDIT_COST}</span> cr. ·{" "}
-                          <span className="font-mono tabular-nums">{B2C_EXCLUSIVE_PRICE_EUR.toFixed(0)}</span> € HT)
+                          Exclusivité 100 % (<span className="font-mono tabular-nums">{exclusiveCredits}</span> cr. ·{" "}
+                          <span className="font-mono tabular-nums">{exclusivePriceHtva.toFixed(0)}</span> € HT)
                         </span>
                       </Button>
                     )}
@@ -1265,7 +1279,7 @@ export function LeadInspectionDrawer({
                         type="button"
                         disabled={isBuying}
                         onClick={() => {
-                          if (partnerCredits >= B2C_EXCLUSIVE_CREDIT_COST) {
+                          if (partnerCredits >= exclusiveCredits) {
                             recordUnlockIntent("credits")
                             onPurchase(lead, { exclusive: true })
                           } else {
@@ -1275,15 +1289,15 @@ export function LeadInspectionDrawer({
                           }
                         }}
                         className="font-bold h-10 gap-1 sm:gap-1.5 px-2 sm:px-3 text-[11.5px] sm:text-xs border-[var(--aegis-availability-text)]/35 bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] hover:bg-[var(--aegis-availability-bg)]/80 cursor-pointer w-full shadow-2xs"
-                        title="Réserver ce dossier B2C pour vous seul (0 concurrent + e-mail prioritaire au prospect)"
+                        title="Réserver ce dossier pour vous seul (0 concurrent)"
                       >
                         <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
                         <span className="sm:hidden font-mono tabular-nums whitespace-nowrap">
-                          Exclusif · {B2C_EXCLUSIVE_CREDIT_COST} cr.
+                          Exclusif · {exclusiveCredits} cr.
                         </span>
                         <span className="hidden sm:inline truncate">
-                          Exclusivité 100 % (<span className="font-mono tabular-nums">{B2C_EXCLUSIVE_CREDIT_COST}</span> cr. ·{" "}
-                          <span className="font-mono tabular-nums">{B2C_EXCLUSIVE_PRICE_EUR.toFixed(0)}</span> € HT)
+                          Exclusivité 100 % (<span className="font-mono tabular-nums">{exclusiveCredits}</span> cr. ·{" "}
+                          <span className="font-mono tabular-nums">{exclusivePriceHtva.toFixed(0)}</span> € HT)
                         </span>
                       </Button>
                     )}
@@ -1356,7 +1370,7 @@ export function LeadInspectionDrawer({
                       >
                         <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
                         <span className="sm:hidden font-mono tabular-nums whitespace-nowrap">
-                          Exclusif · {B2C_EXCLUSIVE_PRICE_EUR.toFixed(0)} €
+                          Exclusif · {exclusivePriceHtva.toFixed(0)} €
                         </span>
                         <span className="hidden sm:inline truncate">
                           {exclusiveComplementFinancials.isHybrid ? (
@@ -1369,7 +1383,7 @@ export function LeadInspectionDrawer({
                             </>
                           ) : (
                             <>
-                              Exclusivité 100 % (<span className="font-mono tabular-nums">{B2C_EXCLUSIVE_PRICE_EUR.toFixed(0)}</span> € HT)
+                              Exclusivité 100 % (<span className="font-mono tabular-nums">{exclusivePriceHtva.toFixed(0)}</span> € HT)
                             </>
                           )}
                         </span>
@@ -1394,7 +1408,7 @@ export function LeadInspectionDrawer({
           }}
           onSwitchToCredits={(exclusiveChoice) => {
             setIsDirectPayOpen(false)
-            const needed = exclusiveChoice ? B2C_EXCLUSIVE_CREDIT_COST : cost
+            const needed = exclusiveChoice ? exclusiveCredits : cost
             if (partnerCredits >= needed) {
               onPurchase(lead, { exclusive: Boolean(exclusiveChoice) })
             } else {

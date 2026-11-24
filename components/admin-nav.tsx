@@ -101,6 +101,11 @@ export function AdminNav({
           label: "Relances Mails",
           icon: SendHorizonal,
         },
+        {
+          href: "/admin/devis-audits",
+          label: "Audits Devis",
+          icon: ClipboardCheck,
+        },
       ],
     },
     {

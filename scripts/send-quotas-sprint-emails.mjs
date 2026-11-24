@@ -136,6 +136,62 @@ async function main() {
     const optoutUrl = buildOptoutUrl(baseUrl, email)
     const quotaUrl = `${baseUrl}/partenaires/dashboard/credits`
     const subject = `${provLabel} : 3 sièges prioritaires RESCERT (0 € d'abonnement · Garantie 45j)`
+    const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr-BE">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>${subject}</title></head>
+<body style="margin:0;padding:0;background-color:#EEF2F4;font-family:Arial,Helvetica,sans-serif;color:#142D42;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#EEF2F4;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="640" style="width:100%;max-width:640px;background-color:#FFFFFF;border:1px solid #DCE5EB;border-radius:10px;overflow:hidden;border-collapse:separate;">
+          <tr>
+            <td style="padding:20px 28px;border-bottom:1px solid #E6EDF1;">
+              <img src="${baseUrl}/logo.png" alt="Aegis Solaire" width="132" height="72" style="display:block;border:0;" />
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 28px;">
+              <p style="margin:0 0 6px 0;font-size:13px;font-weight:bold;color:#305A76;">Contingent Provincial · ${provLabel}</p>
+              <h1 style="margin:0 0 12px 0;font-size:22px;line-height:1.25;font-weight:bold;color:#142D42;">3 sièges prioritaires RESCERT ouverts</h1>
+              <span style="display:inline-block;padding:4px 10px;border-radius:5px;background-color:#E8F2ED;color:#1D5D45;font-size:12px;font-weight:bold;font-variant-numeric:tabular-nums;">0 € d'abonnement · Garantie Cash-Back 45 jours</span>
+              <p style="margin:16px 0 12px 0;font-size:15px;line-height:1.5;color:#142D42;">Bonjour, Aegis Solaire ouvre ce mois-ci <strong>3 Quotas Prioritaires en Auto-Pilot</strong> sur la province de <strong>${provLabel}</strong>.</p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:14px 0;background-color:#F0F5F8;border:1px solid #DCE5EB;border-radius:8px;">
+                <tr>
+                  <td width="50%" style="padding:12px 15px;vertical-align:top;">
+                    <span style="display:block;font-size:13px;color:#4D6374;">Priorité chronologique</span>
+                    <strong style="display:block;font-size:20px;color:#142D42;font-variant-numeric:tabular-nums;">T+0s (30 min avant Spot)</strong>
+                    <span style="display:block;font-size:12px;color:#4D6374;">Max 3 B2C / Max 2 B2B</span>
+                  </td>
+                  <td width="50%" style="padding:12px 15px;border-left:1px solid #DCE5EB;vertical-align:top;">
+                    <span style="display:block;font-size:13px;color:#4D6374;">Quotas sans risque</span>
+                    <strong style="display:block;font-size:20px;color:#142D42;font-variant-numeric:tabular-nums;">198 € ou 450 € HTVA</strong>
+                    <span style="display:block;font-size:12px;color:#4D6374;">Remboursé sous 48h si non livré à 45j</span>
+                  </td>
+                </tr>
+              </table>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:18px 0;">
+                <tr>
+                  <td align="center">
+                    <a href="${quotaUrl}" target="_blank" style="display:inline-block;padding:12px 24px;background-color:#142D42;color:#FFFFFF;font-size:14px;font-weight:bold;text-decoration:none;border-radius:6px;">Voir les places libres sur ${provLabel} &rarr;</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:12px 0 0 0;font-size:13px;line-height:1.5;color:#4D6374;">Pas encore de compte ? Répondez simplement <strong>« OK ${provLabel} »</strong> avec vos communes cibles : nous configurons votre accès sous 2h sans aucun appel commercial.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:14px 28px;background-color:#F6F8FA;border-top:1px solid #E6EDF1;font-size:12px;color:#4D6374;line-height:1.5;">
+              <a href="mailto:contact@aegissolaire.com" style="color:#194767;text-decoration:underline;margin-right:12px;">contact@aegissolaire.com</a>
+              <a href="${optoutUrl}" style="color:#194767;text-decoration:underline;">Ne plus recevoir d'alertes B2B</a><br />
+              Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
     const text = `Bonjour,
 
 Aegis Solaire ouvre ce mois-ci 3 Quotas Prioritaires en Auto-Pilot sur la province de ${provLabel} (parmi les installateurs certifiés RESCERT de la zone).
@@ -167,6 +223,7 @@ Ne plus recevoir d'alertes B2B : ${optoutUrl}`
         replyTo: "contact@aegissolaire.com",
         subject,
         text,
+        html,
         headers: {
           "List-Unsubscribe": `<${optoutUrl}>`,
           "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",

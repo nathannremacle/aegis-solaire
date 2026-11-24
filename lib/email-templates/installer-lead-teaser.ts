@@ -18,6 +18,7 @@ import {
   buildPartnerNotificationUrls,
   buildPartnerExpressLeadUrls,
 } from "@/lib/partner-notification-tokens"
+import { calculateOrderFinancials, getExclusiveCreditCost } from "@/lib/credit-pricing"
 import { getLeadVerificationSummary } from "@/lib/lead-verification-display"
 import {
   AI_PROJECTION_BADGE_SHORT,
@@ -70,6 +71,7 @@ export interface InstallerLeadTeaserData {
   takenSlots: number
   maxSlots: number
   creditCost: number
+  expressCheckoutUrl?: string | null
   financials: FinancialEstimates
   engagement?: {
     hasInspected?: boolean
@@ -340,10 +342,17 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
   const subject = buildLeadEmailSubject(data)
   const baseUrl = getSiteBaseUrl()
   const expressUrls = buildPartnerExpressLeadUrls(baseUrl, data.partner.id, data.lead.id)
-  const dashboardLeadUrl = expressUrls.inspectLeadUrl
-  const directCheckoutLeadUrl = expressUrls.directCheckoutLeadUrl
+  const dashboardLeadUrl = data.expressCheckoutUrl || expressUrls.inspectLeadUrl
+  const directCheckoutLeadUrl = data.expressCheckoutUrl || expressUrls.directCheckoutLeadUrl
   const creditsOrderUrl = expressUrls.creditsUrl
   const notifUrls = buildPartnerNotificationUrls(baseUrl, data.partner.id)
+  const exclusiveCreditsCost = getExclusiveCreditCost({
+    segment: data.lead.segment,
+    credit_cost: data.creditCost,
+  })
+  const exclusivePriceLabel = calculateOrderFinancials(exclusiveCreditsCost)
+    .priceHtva.toFixed(2)
+    .replace(".", ",")
   const logoUrl = `${baseUrl}/logo.png`
 
   const { provinceLabel, headlineLocation, locPhrase } = getLeadLocationInfo(data.lead)
@@ -489,7 +498,7 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
   let availabilityBg = "#e8f2ed"
   let availabilityColor = "#1d5d45"
 
-  if (isB2B) {
+  if (isB2B && data.maxSlots <= 1) {
     availabilityText = "Exclusivité B2B · 1 seul installateur"
     availabilityBg = "#e8f2ed"
     availabilityColor = "#1d5d45"
@@ -626,9 +635,8 @@ ${contactPreferenceDisplay ? `• Premier contact souhaité : ${contactPreferenc
 • Secteur : ${provinceLabel}
 
 DÉBLOCAGE DES COORDONNÉES :
-• Tarif : ${creditCostEur} ou ${data.creditCost} crédits (Solde disponible : ${data.partner.credits} crédit${data.partner.credits > 1 ? "s" : ""})${!isB2B && data.takenSlots === 0 && remainingSlots > 0 ? `\n• Option Exclusivité Totale B2C (0 concurrent) : 65,00 € HTVA ou 7 crédits` : ""}
-• Consulter le dossier : ${dashboardLeadUrl}
-• Débloquer à l'unité (Bancontact / Carte) : ${directCheckoutLeadUrl}
+• Tarif : ${creditCostEur} ou ${data.creditCost} crédits (Solde disponible : ${data.partner.credits} crédit${data.partner.credits > 1 ? "s" : ""})${data.takenSlots === 0 && data.maxSlots > 1 && remainingSlots > 0 ? `\n• Option Exclusivité Totale (0 concurrent) : ${exclusivePriceLabel} € HTVA ou ${exclusiveCreditsCost} crédits` : ""}
+• Consulter & débloquer en 8s : ${directCheckoutLeadUrl}
 • Gérer mes crédits : ${creditsOrderUrl}
 
 DÉTAILS DU CHANTIER :
@@ -798,7 +806,7 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
                           <span style="display: block; color: #4d6374; font-size: 13px; line-height: 1.35;">Déblocage des coordonnées</span>
                           <strong class="tabular" style="display: block; margin: 2px 0; font-size: 19px; font-weight: bold; line-height: 1.2; letter-spacing: -0.02em; color: #142d42; font-variant-numeric: tabular-nums;">${escapeHtml(creditCostEur)} ou ${data.creditCost} crédits</strong>
                           <span class="tabular" style="display: block; color: #4d6374; font-size: 13px; line-height: 1.35; font-variant-numeric: tabular-nums;">Solde disponible &middot; ${data.partner.credits} crédit${data.partner.credits > 1 ? "s" : ""}</span>
-                          ${!isB2B && data.takenSlots === 0 && remainingSlots > 0 ? `<span class="tabular" style="display: block; margin-top: 4px; font-size: 12px; font-weight: bold; color: #1d5d45; font-variant-numeric: tabular-nums;">Exclusivit&eacute; totale possible (7 cr. &middot; 65 &euro; HT)</span>` : ""}
+                          ${data.takenSlots === 0 && data.maxSlots > 1 && remainingSlots > 0 ? `<span class="tabular" style="display: block; margin-top: 4px; font-size: 12px; font-weight: bold; color: #1d5d45; font-variant-numeric: tabular-nums;">Exclusivit&eacute; totale possible (${exclusiveCreditsCost} cr. &middot; ${exclusivePriceLabel} &euro; HT)</span>` : ""}
                         </td>
                         <td class="actions-td action-cell" width="47%" style="width: 47%; padding-left: 14px; text-align: center; vertical-align: middle;">
                           <a href="${escapeHtml(dashboardLeadUrl)}" target="_blank" style="display: block; padding: 10px 12px; border: 1px solid #142d42; border-radius: 6px; background-color: #142d42; color: #ffffff; font-size: 15px; font-weight: bold; text-decoration: none; text-align: center;">Consulter le dossier &rarr;</a>

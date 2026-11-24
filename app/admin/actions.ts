@@ -118,7 +118,7 @@ export async function publishLeadAction(leadId: string, creditCost?: number) {
     status: "qualified",
     marketplace_status: "available",
     credit_cost: finalCost,
-    pricing_version: "v2",
+    pricing_version: "v4",
     qualification_metadata: mergedMeta,
     updated_at: nowIso,
   }
@@ -517,7 +517,7 @@ export async function assignLeadAction(
   const { data: lead, error: leadErr } = await supabase
     .from("leads")
     .select(
-      "id, first_name, last_name, email, phone, job_title, company, segment, surface_type, surface_area, annual_electricity_bill, estimated_roi_years, estimated_savings, message, credit_cost, status, marketplace_status, qualification_metadata"
+      "id, first_name, last_name, email, phone, job_title, company, segment, max_slots, surface_type, surface_area, annual_electricity_bill, estimated_roi_years, estimated_savings, message, credit_cost, status, marketplace_status, qualification_metadata"
     )
     .eq("id", leadId)
     .single()
@@ -526,7 +526,12 @@ export async function assignLeadAction(
     throw new Error("Lead introuvable.")
   }
 
-  const maxSlots = lead.segment === "B2B" ? 1 : 3
+  const maxSlots =
+    typeof (lead as { max_slots?: number | null }).max_slots === "number"
+      ? Number((lead as { max_slots?: number | null }).max_slots)
+      : lead.segment === "B2B"
+        ? 2
+        : 3
 
   // Vérifier les attributions déjà existantes pour ce lead dans lead_purchases
   const { data: existingPurchases, error: purCheckErr } = await supabase
@@ -647,7 +652,7 @@ export async function assignLeadAction(
       status: "qualified",
       marketplace_status: isSoldOut ? "sold_out" : "available",
       credit_cost: costPerPartner,
-      pricing_version: "v2",
+      pricing_version: "v4",
       updated_at: new Date().toISOString(),
     })
     .eq("id", leadId)

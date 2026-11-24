@@ -91,6 +91,7 @@ export type CreateCreditOrderPaymentParams = {
   partnerEmail: string
   partnerCompany: string
   siteUrl: string
+  redirectUrlOverride?: string | null
   customerId?: string | null
   enableOneClick?: boolean
 }
@@ -111,6 +112,7 @@ export async function createCreditOrderPayment(params: CreateCreditOrderPaymentP
     partnerEmail,
     partnerCompany,
     siteUrl,
+    redirectUrlOverride,
     customerId,
     enableOneClick,
   } = params
@@ -121,7 +123,9 @@ export async function createCreditOrderPayment(params: CreateCreditOrderPaymentP
   const isLocalhost =
     cleanSiteUrl.includes("localhost") || cleanSiteUrl.includes("127.0.0.1")
   const webhookUrl = isLocalhost ? undefined : `${cleanSiteUrl}/api/webhooks/mollie`
-  const redirectUrl = `${cleanSiteUrl}/partenaires/dashboard/credits?payment=return&order_id=${orderId}`
+  const redirectUrl =
+    redirectUrlOverride ||
+    `${cleanSiteUrl}/partenaires/dashboard/credits?payment=return&order_id=${orderId}`
 
   const useFirstMandate = Boolean(enableOneClick && customerId)
 
@@ -220,7 +224,7 @@ export async function createLeadDirectPayment(params: CreateLeadDirectPaymentPar
     redirectUrlOverride ||
     `${cleanSiteUrl}/partenaires/dashboard?lead_payment=return&lead_id=${encodeURIComponent(leadId)}`
   const useFirstMandate = Boolean(enableOneClick && customerId)
-  const modeTag = exclusive && leadSegment === "B2C" ? " EXCLUSIF" : ""
+  const modeTag = exclusive ? " EXCLUSIF" : ""
   const hybridActive = Boolean(isHybrid && creditsToDebit > 0)
   const description = hybridActive
     ? `Aegis Solaire - Complément (${creditsToDebit} cr. + €)${modeTag} ${leadSegment} #${leadId.slice(0, 8)}${locationSuffix}`
@@ -252,7 +256,7 @@ export async function createLeadDirectPayment(params: CreateLeadDirectPaymentPar
       totalCredits: totalCredits ?? credits,
       creditsToDebit: hybridActive ? creditsToDebit : 0,
       isHybrid: hybridActive,
-      exclusive: Boolean(exclusive && leadSegment === "B2C"),
+      exclusive: Boolean(exclusive),
       priceHtva,
       vatAmount,
       priceTtc,
@@ -301,7 +305,7 @@ export async function createRecurringLeadPayment(params: CreateRecurringLeadPaym
     cleanSiteUrl.includes("localhost") || cleanSiteUrl.includes("127.0.0.1")
   const webhookUrl = isLocalhost ? undefined : `${cleanSiteUrl}/api/webhooks/mollie`
   const locationSuffix = params.leadLocation ? ` (${params.leadLocation})` : ""
-  const modeTag = params.exclusive && params.leadSegment === "B2C" ? " EXCLUSIF" : ""
+  const modeTag = params.exclusive ? " EXCLUSIF" : ""
   const creditsToDebit = params.creditsToDebit ?? 0
   const hybridActive = Boolean(params.isHybrid && creditsToDebit > 0)
   const description = hybridActive
@@ -327,7 +331,7 @@ export async function createRecurringLeadPayment(params: CreateRecurringLeadPaym
       totalCredits: params.totalCredits ?? params.credits,
       creditsToDebit: hybridActive ? creditsToDebit : 0,
       isHybrid: hybridActive,
-      exclusive: Boolean(params.exclusive && params.leadSegment === "B2C"),
+      exclusive: Boolean(params.exclusive),
       priceHtva: params.priceHtva,
       vatAmount: params.vatAmount,
       priceTtc: params.priceTtc,
