@@ -50,6 +50,7 @@ export type ProspectConfirmationPayload = {
   estimatedSavings?: number | null
   estimatedROIYears?: number | null
   province?: string | null
+  allocationMode?: string | null
 }
 
 export function buildProspectConfirmationEmail(payload: ProspectConfirmationPayload): {
@@ -58,6 +59,7 @@ export function buildProspectConfirmationEmail(payload: ProspectConfirmationPayl
   html: string
 } {
   const isB2C = payload.segment === "B2C"
+  const isSingleVetted = isB2C && payload.allocationMode === "single_vetted"
   const rawName = payload.firstName?.trim() || "Bonjour"
   const baseUrl = getEmailSiteBaseUrl()
   const surface = payload.surfaceArea
@@ -166,9 +168,16 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
     }
 
     ${renderCalloutBox({
-      label: "Pourquoi Aegis Solaire vous obtient un meilleur prix à qualité égale ?",
-      value:
-        "Lorsqu'un installateur répond via Aegis Solaire, il sait qu'il est comparé à armes égales sur un cahier des charges strict (matériel Tier-1, garantie décennale, certification RESCERT). Il ne peut ni rogner sur la qualité, ni gonfler ses prix : c'est vous qui gardez le pouvoir de négociation, en toute sérénité.",
+      label: isSingleVetted
+        ? "Barème Officiel €/kWc Wallonie 2026 & Grille de Contrôle Tier-1"
+        : !isB2C
+          ? "Inclus gratuitement : Visa de Conformité Avant Acompte (B2B)"
+          : "Pourquoi Aegis Solaire vous obtient un meilleur prix à qualité égale ?",
+      value: isSingleVetted
+        ? "Votre étude est confiée à 1 seul installateur RESCERT sélectionné (zéro démarchage multiple). Pour contrôler son offre en toute sérénité : en 2026 en Wallonie, un tarif juste Tier-1 hors batterie se situe entre 1 150 € et 1 350 € HTVA/kWc installé (comptez +350 à +550 €/kWh pour une batterie LFP). Exigez la référence exacte des panneaux Tier-1, de l'onduleur Synergrid C10/11 et le passage RGIE inclus."
+        : !isB2C
+          ? "Dès que vous retenez une proposition finale, transmettez le bon de commande à notre Cellule Technique (contact@aegissolaire.com) avant versement de l'acompte pour obtenir sous 24 h votre Visa Gratuit de Conformité Cahier des Charges (Tier-1, Synergrid C10/11, DPI 40 % & garanties décennales)."
+          : "Lorsqu'un installateur répond via Aegis Solaire, il sait qu'il est comparé à armes égales sur un cahier des charges strict (matériel Tier-1, garantie décennale, certification RESCERT). Il ne peut ni rogner sur la qualité, ni gonfler ses prix : c'est vous qui gardez le pouvoir de négociation, en toute sérénité.",
       tone: "info",
     })}
 

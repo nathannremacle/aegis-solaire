@@ -286,6 +286,26 @@ export default function CreditsPage() {
     fetchCredits()
   }, [fetchCredits])
 
+  const [provinceQuotas, setProvinceQuotas] = useState<
+    Array<{
+      key: string
+      label: string
+      maxSeats: number
+      takenSeats: number
+      remainingSeats: number
+      isPartnerActiveHere: boolean
+    }>
+  >([])
+
+  useEffect(() => {
+    fetch("/api/partners/quotas")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.provinces) setProvinceQuotas(d.provinces)
+      })
+      .catch(() => {})
+  }, [])
+
   // Vérification automatique au retour d'une session de paiement Mollie & lecture de ?pack=
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -478,13 +498,65 @@ export default function CreditsPage() {
                   </h4>
                   <p className="text-muted-foreground mt-0.5">
                     {(partner?.credits ?? 0) < 3
-                      ? "Solde insuffisant pour débloquer un nouveau dossier. Un dossier B2C requiert 3 crédits (29,50 € HTVA) et un B2B exclusif requiert 9 crédits (88,50 € HTVA)."
-                      : "Votre solde permet de débloquer un dossier B2C (3 crédits = 29,50 € HTVA), mais est insuffisant pour un dossier B2B exclusif (9 crédits = 88,50 € HTVA)."}
+                      ? "Solde insuffisant pour débloquer un nouveau dossier. Un dossier B2C standard requiert 3 crédits (29,50 € HTVA) et un B2B PME/Standard requiert 8 à 13 crédits (79 € à 129 € HTVA)."
+                      : "Votre solde permet de débloquer un dossier B2C (3 crédits = 29,50 € HTVA), mais est insuffisant pour un dossier B2B Standard (13 crédits = 129,00 € HTVA)."}
                   </p>
                 </div>
               </div>
             )}
           </motion.div>
+
+          {/* Quotas Prioritaires par Province (Embargo 30 min + Garantie 45 Jours) */}
+          {provinceQuotas.length > 0 && (
+            <motion.div variants={itemVariants}>
+              <div className="rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-2xs">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border pb-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
+                      <h3 className="text-sm font-bold text-foreground">
+                        Quotas Prioritaires par Province (Embargo <span className="font-mono tabular-nums">30</span> min · Garantie <span className="font-mono tabular-nums">45</span>j)
+                      </h3>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Maximum <span className="font-mono tabular-nums">3</span> titulaires Auto-Pilot par province. Les titulaires reçoivent les dossiers à <span className="font-mono tabular-nums">T+0s</span> avant diffusion marketplace.
+                    </p>
+                  </div>
+                  <span className="rounded-md bg-secondary px-2.5 py-1 text-[11px] font-semibold text-foreground border border-border self-start sm:self-auto">
+                    Garantie Cash-Back <span className="font-mono tabular-nums">45</span> jours (Art. <span className="font-mono tabular-nums">4.4</span> CGV)
+                  </span>
+                </div>
+                <div className="mt-3.5 grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {provinceQuotas.map((pq) => (
+                    <div
+                      key={pq.key}
+                      className={`rounded-xl border p-3 ${
+                        pq.isPartnerActiveHere
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-secondary/30"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-xs font-bold text-foreground">{pq.label}</span>
+                        {pq.isPartnerActiveHere && (
+                          <span className="text-[10px] font-bold text-primary">Actif</span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-xs font-mono tabular-nums text-muted-foreground">
+                        {pq.remainingSeats > 0 ? (
+                          <span className="text-foreground font-semibold">
+                            {pq.remainingSeats}/{pq.maxSeats} libres
+                          </span>
+                        ) : (
+                          <span>Complet ({pq.maxSeats}/{pq.maxSeats})</span>
+                        )}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           {/* Grille des Packs (Responsive 1 col mobile, 3 col desktop) */}
           <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">

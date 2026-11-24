@@ -9,8 +9,8 @@ import {
   CREDIT_UNIT_PRICE_CENTIMES,
   B2C_CREDIT_COST,
   B2B_CREDIT_COST,
-  B2C_EXCLUSIVE_CREDIT_COST,
-  B2C_EXCLUSIVE_PRICE_EUR,
+  B2C_QUOTE_AUDIT_CREDIT_COST,
+  getExclusiveCreditCost,
   calculateOrderFinancials,
 } from "./credit-pricing"
 import {
@@ -90,6 +90,9 @@ export function calculateLeadCreditCost(lead: {
     details.includes("borne")
 
   if (lead.segment === "B2C") {
+    if (lead.qualificationMetadata?.lead_intent_type === "quote_audit_ready") {
+      return B2C_QUOTE_AUDIT_CREDIT_COST // 5 crédits Contre-Offre Prêt-à-Signer (49,00 € HTVA)
+    }
     const isUrgent =
       horizon.includes("immediat") ||
       horizon.includes("asap") ||
@@ -123,16 +126,16 @@ export function calculateLeadCreditCost(lead: {
     return B2C_CREDIT_COST // 3 crédits Standard (29,50 € HTVA)
   }
 
-  // Segment B2B Exclusif
+  // Segment B2B Appel d'Offres Restreint (2 slots)
   const isGroundOrBrownfield =
     surface === "friche" || surface === "terrain" || surface === "sol"
   if (isGroundOrBrownfield || area >= 1200 || bill >= 30000) {
-    return 12 // B2B Grand Compte (118,00 € HTVA)
+    return 20 // B2B Grand Compte (195,00 € HTVA / slot)
   }
   if ((bill > 0 && bill < 8500) || (area > 0 && area < 400 && bill < 12000)) {
-    return 6 // B2B PME (59,00 € HTVA)
+    return 8 // B2B PME (79,00 € HTVA / slot)
   }
-  return B2B_CREDIT_COST // 9 crédits Standard (88,50 € HTVA)
+  return B2B_CREDIT_COST // 13 crédits Standard (129,00 € HTVA / slot)
 }
 
 export function getLeadPricingTierMeta(lead: {
@@ -160,15 +163,18 @@ export function getLeadPricingTierMeta(lead: {
 
   const rawTier = (lead.pricing_tier ?? lead.pricingTier ?? "").toLowerCase()
   if (lead.segment === "B2B") {
-    if (credits <= 6 || rawTier === "eco") {
+    if (credits <= 8 || rawTier === "eco") {
       tier = "eco"
       label = "B2B PME"
-    } else if (credits >= 12 || rawTier === "premium") {
+    } else if (credits >= 20 || rawTier === "premium") {
       tier = "premium"
       label = "B2B Grand Compte"
     }
   } else {
-    if (credits <= 2 || rawTier === "eco") {
+    if (credits === B2C_QUOTE_AUDIT_CREDIT_COST) {
+      tier = "premium"
+      label = "Contre-Offre Prêt-à-Signer"
+    } else if (credits <= 2 || rawTier === "eco") {
       tier = "eco"
       label = "B2C Éco"
     } else if (credits >= 4 || rawTier === "premium") {
@@ -177,15 +183,19 @@ export function getLeadPricingTierMeta(lead: {
     }
   }
 
+  const exclusiveCredits = getExclusiveCreditCost({
+    segment: lead.segment,
+    credit_cost: credits,
+  })
+  const exclusiveFin = calculateOrderFinancials(exclusiveCredits)
+
   return {
     tier,
     label,
     credits,
     directPriceHtva: fin.priceHtva,
-    exclusiveCreditCost:
-      lead.segment === "B2C" ? B2C_EXCLUSIVE_CREDIT_COST : credits,
-    exclusivePriceHtva:
-      lead.segment === "B2C" ? B2C_EXCLUSIVE_PRICE_EUR : fin.priceHtva,
+    exclusiveCreditCost: exclusiveCredits,
+    exclusivePriceHtva: exclusiveFin.priceHtva,
   }
 }
 

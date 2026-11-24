@@ -12,7 +12,16 @@ import {
   OPTOUT_RELANCES_MARKER,
 } from "@/lib/partner-notification-prefs"
 import { buildPartnerNotificationUrls } from "@/lib/partner-notification-tokens"
-import { B2C_EXCLUSIVE_CREDIT_COST, calculateOrderFinancials } from "@/lib/credit-pricing"
+import {
+  B2C_EXCLUSIVE_CREDIT_COST,
+  calculateCreditPackFinancials,
+  calculateOrderFinancials,
+  getExclusiveCreditCost,
+  resolveCreditPack,
+} from "@/lib/credit-pricing"
+import { createExpressBuyToken } from "@/lib/express-buy-token"
+import { estimateDistanceBetweenPostcodesKm } from "@/lib/belgium-postcodes-geo"
+import rescertInstallersRaw from "@/lib/data/rescert-wallonie-installateurs.json"
 import { createRecurringLeadPayment, getMollieClient, getValidMollieMandate } from "@/lib/mollie"
 import { fulfillPaidLeadDirectPurchase } from "@/lib/mollie-fulfillment"
 import { sendLeadAssignedEmail } from "@/lib/notify-installateur"
@@ -33,7 +42,8 @@ const replyToEmail = process.env.RESEND_REPLY_TO ?? "contact@aegissolaire.com"
 
 /** Quotas de vente stricts */
 export const MAX_SLOTS_B2C = 3 // Partagé 3 installateurs max
-export const MAX_SLOTS_B2B = 1 // Exclusivité 100%
+export const MAX_SLOTS_B2B = 2 // Appel d'offres restreint 2 bureaux d'études (ou 1 si exclusivité)
+export const AUTO_PILOT_EMBARGO_MS = 30 * 60 * 1000 // Embargo prioritaire de 30 min pour Titulaires Auto-Pilot
 
 /** Cooldowns en heures ouvrées réelles (Europe/Brussels) */
 export const COOLDOWN_WAVE_1_TO_2_MS = 6 * 60 * 60 * 1000 // 6 heures ouvrées après Vague 1
@@ -1114,8 +1124,24 @@ export async function dispatchLeadWave(
       },
     }
 
-    const { subject, text, html } = renderInstallerLeadTeaserEmail(emailData)
     const siteBaseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.aegissolaire.com").replace(/\/$/, "")
+    const expressToken = createExpressBuyToken({
+      leadId: lead.id,
+      partnerId: partner.id,
+      rescertCompany: partner.company_name,
+      rescertEmail: partner.email,
+    })
+    const expressUrl = `${siteBaseUrl}/partenaires/express/${encodeURIComponent(lead.id)}?t=${encodeURIComponent(expressToken)}`
+    const rendered = renderInstallerLeadTeaserEmail(emailData)
+    const subject = rendered.subject
+    const text = rendered.text.replace(
+      new RegExp(`${siteBaseUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/partenaires(?:/dashboard)?[^\\s]*`, "g"),
+      expressUrl
+    )
+    const html = rendered.html.replace(
+      new RegExp(`${siteBaseUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/partenaires(?:/dashboard)?[^"'\\s]*`, "g"),
+      expressUrl
+    )
     const notifUrls = buildPartnerNotificationUrls(siteBaseUrl, partner.id, partner.email)
 
     if (resend) {
@@ -1145,8 +1171,14 @@ export async function dispatchLeadWave(
       console.log(`[Lead Relance DEV] Envoi simulé à ${partner.email} — Objet: ${subject}`)
     }
 
-    // Alerte SMS optionnelle (strictement activée uniquement si TWILIO_* est configuré en prod)
-    if (waveNumber === 1 && scoreInfo.tier === "tier_1" && partner.phone && !candidate.isTest) {
+    // Alerte SMS optionnelle (strictement réservée aux partenaires ayant opt-in explicitement)
+    if (
+      waveNumber === 1 &&
+      scoreInfo.tier === "tier_1" &&
+      partner.phone &&
+      Boolean((partner as any).sms_alerts_opt_in) &&
+      !candidate.isTest
+    ) {
       pendingSmsPromises.push(
         sendOptionalSmsUrgencyAlert({
           toPhone: partner.phone,
@@ -1415,8 +1447,24 @@ export async function dispatchLeadToSpecificPartners(
         : undefined,
     }
 
-    const { subject, text, html } = renderInstallerLeadTeaserEmail(emailData)
     const siteBaseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.aegissolaire.com").replace(/\/$/, "")
+    const expressToken = createExpressBuyToken({
+      leadId: lead.id,
+      partnerId: partner.id,
+      rescertCompany: partner.company_name,
+      rescertEmail: partner.email,
+    })
+    const expressUrl = `${siteBaseUrl}/partenaires/express/${encodeURIComponent(lead.id)}?t=${encodeURIComponent(expressToken)}`
+    const rendered = renderInstallerLeadTeaserEmail(emailData)
+    const subject = rendered.subject
+    const text = rendered.text.replace(
+      new RegExp(`${siteBaseUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/partenaires(?:/dashboard)?[^\\s]*`, "g"),
+      expressUrl
+    )
+    const html = rendered.html.replace(
+      new RegExp(`${siteBaseUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/partenaires(?:/dashboard)?[^"'\\s]*`, "g"),
+      expressUrl
+    )
     const notifUrls = buildPartnerNotificationUrls(siteBaseUrl, partner.id, partner.email)
 
     if (resend) {
@@ -1840,8 +1888,10 @@ export async function processPendingLeadRelances(): Promise<CronRelanceSummary> 
     let nextWave = 0
 
     if (currentWave === 0) {
-      // Vague 1 initiale n'a jamais été envoyée
-      nextWave = 1
+      // Embargo prioritaire de 30 min réservé aux Titulaires Auto-Pilot avant diffusion Vague 1 Spot
+      if (now - publishedAtMs >= AUTO_PILOT_EMBARGO_MS) {
+        nextWave = 1
+      }
     } else if (currentWave === 1 && businessElapsedMs >= COOLDOWN_WAVE_1_TO_2_MS) {
       // 6 heures ouvrées écoulées depuis la Vague 1 -> Vague 2
       nextWave = 2
@@ -1862,6 +1912,25 @@ export async function processPendingLeadRelances(): Promise<CronRelanceSummary> 
         }
       } catch (waveErr) {
         console.error(`[Cron Relances] Erreur sur le lead #${lead.id}:`, waveErr)
+      }
+    }
+
+    // 3. Sniper Géolocalisé < 20 km à H+2h sur le vivier RESCERT si des créneaux restent ouverts
+    const SNIPER_AGE_MS = 2 * 60 * 60 * 1000
+    const metaObj =
+      lead.qualification_metadata && typeof lead.qualification_metadata === "object"
+        ? (lead.qualification_metadata as Record<string, unknown>)
+        : {}
+    if (
+      publishedAgeMs >= SNIPER_AGE_MS &&
+      takenSlots < maxSlots &&
+      lead.postal_code &&
+      !metaObj.sniper_sent_at
+    ) {
+      try {
+        await dispatchRescertSniperForLead(supabase, lead, maxSlots - takenSlots, metaObj)
+      } catch (sniperErr) {
+        console.warn(`[Sniper 20km] Erreur non bloquante sur lead #${lead.id}:`, sniperErr)
       }
     } else {
       skippedCount++
@@ -2877,12 +2946,28 @@ export async function runAutoMatchForLead(leadId: string): Promise<AutoMatchResu
   }
 
   // 2. Récupérer les partenaires Auto-Pilot actifs (résilient si colonnes non migrées)
-  const { data: autoPartners, error: partnersErr } = await supabase
+  let autoPartners: any[] | null = null
+  let partnersErr: any = null
+  const primaryAutoRes = await supabase
     .from("partners")
     .select(
-      "id, company_name, email, phone, credits, segment, target_provinces, target_surfaces, min_facture, is_test, auto_buy_enabled, auto_buy_weekly_cap, auto_buy_include_b2c_exclusive, mollie_customer_id, mollie_mandate_id, mollie_mandate_status"
+      "id, company_name, email, phone, credits, segment, target_provinces, target_surfaces, min_facture, is_test, auto_buy_enabled, auto_buy_weekly_cap, auto_buy_include_b2c_exclusive, auto_topup_enabled, auto_topup_pack_id, mollie_customer_id, mollie_mandate_id, mollie_mandate_status"
     )
     .eq("auto_buy_enabled", true)
+
+  if (primaryAutoRes.error && primaryAutoRes.error.code === "42703") {
+    const legacyAutoRes = await supabase
+      .from("partners")
+      .select(
+        "id, company_name, email, phone, credits, segment, target_provinces, target_surfaces, min_facture, is_test, auto_buy_enabled, auto_buy_weekly_cap, auto_buy_include_b2c_exclusive, mollie_customer_id, mollie_mandate_id, mollie_mandate_status"
+      )
+      .eq("auto_buy_enabled", true)
+    autoPartners = legacyAutoRes.data
+    partnersErr = legacyAutoRes.error
+  } else {
+    autoPartners = primaryAutoRes.data
+    partnersErr = primaryAutoRes.error
+  }
 
   if (partnersErr) {
     // Migration 202611180001 non encore appliquée ou aucun partenaire éligible
@@ -2960,8 +3045,13 @@ export async function runAutoMatchForLead(leadId: string): Promise<AutoMatchResu
     if (takenSlots >= maxSlots) break
 
     const wantsExclusiveB2C =
-      !isB2B && takenSlots === 0 && Boolean(partner.auto_buy_include_b2c_exclusive)
-    const requiredCredits = wantsExclusiveB2C ? B2C_EXCLUSIVE_CREDIT_COST : creditCost
+      !isB2B &&
+      takenSlots === 0 &&
+      Boolean(partner.auto_buy_include_b2c_exclusive) &&
+      lead.allocation_mode === "single_vetted"
+    const requiredCredits = wantsExclusiveB2C
+      ? getExclusiveCreditCost({ segment: lead.segment, credit_cost: creditCost })
+      : creditCost
     const hasWalletCredits = (partner.credits || 0) >= requiredCredits
 
     if (hasWalletCredits) {
@@ -3144,12 +3234,15 @@ export async function runAutoMatchForLead(leadId: string): Promise<AutoMatchResu
 export interface PostPublishDispatchResult {
   autoMatch: AutoMatchResult
   wave1: DispatchWaveResult | null
+  embargoActive?: boolean
 }
 
 /**
  * Exécute de façon fiable et séquentielle la chaîne post-publication :
- * 1) Attribution automatique Auto-Pilot
- * 2) Si des créneaux restent disponibles, envoi de la Vague 1
+ * 1) Attribution automatique Auto-Pilot à T+0s
+ * 2) Si des créneaux restent disponibles :
+ *    - Si au moins un Titulaire Auto-Pilot existe sur le territoire, applique l'embargo de 30 min (Vague 1 déclenchée par le cron à T+30m)
+ *    - Sinon, envoi immédiat de la Vague 1
  */
 export async function triggerPostPublishDispatch(
   leadId: string
@@ -3168,7 +3261,25 @@ export async function triggerPostPublishDispatch(
   }
 
   if (autoMatch.isFullySold) {
-    return { autoMatch, wave1: null }
+    return { autoMatch, wave1: null, embargoActive: false }
+  }
+
+  // Vérifier si la province compte des Titulaires Auto-Pilot actifs (pour l'embargo de 30 min)
+  let hasActiveQuotaHolders = false
+  try {
+    const supabase = createServiceRoleClient()
+    const { count } = await supabase
+      .from("partners")
+      .select("id", { count: "exact", head: true })
+      .eq("auto_buy_enabled", true)
+      .gte("credits", 6)
+    hasActiveQuotaHolders = (count || 0) > 0
+  } catch {
+    hasActiveQuotaHolders = false
+  }
+
+  if (hasActiveQuotaHolders) {
+    return { autoMatch, wave1: null, embargoActive: true }
   }
 
   let wave1: DispatchWaveResult | null = null
@@ -3178,8 +3289,108 @@ export async function triggerPostPublishDispatch(
     console.error(`[PostPublishDispatch] Erreur dispatchLeadWave(${leadId}, 1):`, err)
   }
 
-  return { autoMatch, wave1 }
+  return { autoMatch, wave1, embargoActive: false }
 }
+
+/**
+ * Sniper Géolocalisé < 20 km à H+2h : cible les installateurs RESCERT proches du chantier
+ * lorsqu'il reste des créneaux ouverts, avec lien Express Bancontact sans login.
+ */
+async function dispatchRescertSniperForLead(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  lead: any,
+  remainingSlots: number,
+  metaObj: Record<string, unknown>
+): Promise<number> {
+  if (!resendApiKey || !lead.postal_code) return 0
+
+  const maxRadiusKm = lead.province === "luxembourg" ? 30 : 20
+  const list = Array.isArray(rescertInstallersRaw)
+    ? rescertInstallersRaw
+    : (rescertInstallersRaw as any)?.installateurs || (rescertInstallersRaw as any)?.items || []
+
+  // Exclure les e-mails déjà désinscrits (rescert_optouts) ou partenaires déjà notifiés
+  const [optoutsRes, existingPartnersRes] = await Promise.all([
+    supabase.from("rescert_optouts").select("email"),
+    supabase.from("partners").select("email"),
+  ])
+  const optoutSet = new Set(
+    ((optoutsRes.data as any[]) || []).map((r) => String(r.email || "").toLowerCase().trim())
+  )
+  const existingPartnerSet = new Set(
+    ((existingPartnersRes.data as any[]) || []).map((r) => String(r.email || "").toLowerCase().trim())
+  )
+
+  const candidates = (list as any[])
+    .map((item) => {
+      const email = String(item.email || "").toLowerCase().trim()
+      const cp = String(item.postalCode || item.postal_code || item.cp || "").trim()
+      const dist = estimateDistanceBetweenPostcodesKm(lead.postal_code, cp)
+      return {
+        email,
+        company: String(item.companyName || item.company_name || item.entreprise || item.nom || "Installateur RESCERT"),
+        vat: String(item.vat || item.bce || ""),
+        city: String(item.city || item.commune || ""),
+        dist,
+      }
+    })
+    .filter(
+      (c) =>
+        c.email.includes("@") &&
+        c.dist !== null &&
+        c.dist <= maxRadiusKm &&
+        !optoutSet.has(c.email) &&
+        !existingPartnerSet.has(c.email)
+    )
+    .sort((a, b) => (a.dist ?? 99) - (b.dist ?? 99))
+    .slice(0, 15)
+
+  const nowIso = new Date().toISOString()
+  await supabase
+    .from("leads")
+    .update({
+      qualification_metadata: { ...metaObj, sniper_sent_at: nowIso, sniper_count: candidates.length },
+    })
+    .eq("id", lead.id)
+
+  if (candidates.length === 0) return 0
+
+  const resend = new Resend(resendApiKey)
+  const siteBaseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.aegissolaire.com").replace(/\/$/, "")
+  const creditCost = Number(lead.credit_cost) || calculateLeadCreditCost(lead)
+  const priceHtva = calculateOrderFinancials(creditCost).priceHtva.toFixed(2).replace(".", ",")
+
+  let sent = 0
+  for (const c of candidates) {
+    const token = createExpressBuyToken({
+      leadId: lead.id,
+      rescertEmail: c.email,
+      rescertCompany: c.company,
+      rescertVat: c.vat || null,
+      rescertCity: c.city || null,
+      distanceKm: c.dist,
+    })
+    const expressUrl = `${siteBaseUrl}/partenaires/express/${encodeURIComponent(lead.id)}?t=${encodeURIComponent(token)}`
+    const distLabel = c.dist !== null ? `${c.dist.toFixed(1).replace(".", ",")} km` : "proche"
+    const cityLabel = lead.city || lead.province || "Wallonie"
+
+    try {
+      await resend.emails.send({
+        from: fromEmail,
+        to: c.email,
+        replyTo: replyToEmail,
+        subject: `Chantier photovoltaïque vérifié à ${cityLabel} (${lead.postal_code}) — à ${distLabel} de ${c.company}`,
+        text: `Bonjour,\n\nUn dossier photovoltaïque vérifié à ${cityLabel} (${lead.postal_code}) est situé à ${distLabel} de ${c.company}. Il reste ${remainingSlots} créneau(x) libre(s) sur un maximum de ${lead.max_slots || 3} installateurs.\n\nDroit d'accès unitaire : ${priceHtva} € HTVA (zéro abonnement, accès Bancontact direct sans mot de passe) :\n${expressUrl}\n\nLa Direction des Partenariats Aegis Solaire\ncontact@aegissolaire.com`,
+      })
+      sent++
+    } catch {
+      // non-blocking
+    }
+  }
+
+  return sent
+}
+
 
 
 

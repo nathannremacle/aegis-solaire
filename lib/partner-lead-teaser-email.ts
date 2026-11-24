@@ -23,12 +23,18 @@ function getEnvPartnerAlertRecipients(): string[] {
     .filter((s) => s.length > 0 && s.includes("@"))
 }
 
-function dashboardUrl(): string {
-  return `${getEmailSiteBaseUrl()}/partenaires`
+function dashboardUrl(leadId?: string, expressToken?: string): string {
+  const base = getEmailSiteBaseUrl()
+  if (leadId && expressToken) {
+    return `${base}/partenaires/express/${encodeURIComponent(leadId)}?t=${encodeURIComponent(expressToken)}`
+  }
+  return `${base}/partenaires`
 }
 
 export type PartnerLeadTeaserPayload = {
   targetEmails: string[]
+  leadId?: string
+  expressToken?: string
   segment?: string
   province: string
   provinceFreeText?: string | null
@@ -55,7 +61,7 @@ export function buildPartnerLeadTeaserContent(payload: PartnerLeadTeaserPayload)
     payload.projectDetails && payload.projectDetails.trim() !== ""
       ? payload.projectDetails.trim()
       : "—"
-  const ctaUrl = dashboardUrl()
+  const ctaUrl = dashboardUrl(payload.leadId, payload.expressToken)
 
   const subject = `Nouveau projet B2B solaire disponible — ${provinceLabel}`
 

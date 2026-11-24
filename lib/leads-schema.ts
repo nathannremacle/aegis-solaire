@@ -196,6 +196,7 @@ export const leadSubmitSchema = z
     sessionId: z.string().optional(),
     phoneVerificationToken: z.string().max(1024).optional(),
     contactPreference: z.enum(["written_first", "direct_call"]).default("written_first").optional(),
+    allocationMode: z.enum(["shared_3", "single_vetted"]).default("shared_3").optional(),
   })
   .superRefine((data, ctx) => {
     // 0. Contrôle strict e-mail (typos fréquentes, domaines jetables, placeholders)

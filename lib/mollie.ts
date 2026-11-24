@@ -177,6 +177,7 @@ export type CreateLeadDirectPaymentParams = {
   partnerEmail: string
   partnerCompany: string
   siteUrl: string
+  redirectUrlOverride?: string | null
   customerId?: string | null
   enableOneClick?: boolean
 }
@@ -202,6 +203,7 @@ export async function createLeadDirectPayment(params: CreateLeadDirectPaymentPar
     partnerEmail,
     partnerCompany,
     siteUrl,
+    redirectUrlOverride,
     customerId,
     enableOneClick,
   } = params
@@ -214,7 +216,9 @@ export async function createLeadDirectPayment(params: CreateLeadDirectPaymentPar
   const webhookUrl = isLocalhost ? undefined : `${cleanSiteUrl}/api/webhooks/mollie`
 
   const locationSuffix = leadLocation ? ` (${leadLocation})` : ""
-  const redirectUrl = `${cleanSiteUrl}/partenaires/dashboard?lead_payment=return&lead_id=${encodeURIComponent(leadId)}`
+  const redirectUrl =
+    redirectUrlOverride ||
+    `${cleanSiteUrl}/partenaires/dashboard?lead_payment=return&lead_id=${encodeURIComponent(leadId)}`
   const useFirstMandate = Boolean(enableOneClick && customerId)
   const modeTag = exclusive && leadSegment === "B2C" ? " EXCLUSIF" : ""
   const hybridActive = Boolean(isHybrid && creditsToDebit > 0)

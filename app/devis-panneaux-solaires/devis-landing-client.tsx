@@ -161,6 +161,7 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
   const [address, setAddress] = useState("")
   const [remarks, setRemarks] = useState("")
   const [contactPreference, setContactPreference] = useState<"written_first" | "direct_call">("written_first")
+  const [allocationMode, setAllocationMode] = useState<"shared_3" | "single_vetted">("shared_3")
   const [partnerConsent, setPartnerConsent] = useState(false)
   const [newsletterConsent, setNewsletterConsent] = useState(false)
   const [fax_number, setFaxNumber] = useState("") // honeypot
@@ -629,6 +630,7 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
       phone: phoneValidation.normalized,
       phoneVerificationToken,
       contactPreference,
+      allocationMode,
       surfaceType: "toiture",
       surfaceArea: calculatedSurface,
       estimatedPowerKwc: b2cCalc.installedPowerKwc,
@@ -666,6 +668,7 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
         estimatedPanelCount: b2cCalc.estimatedPanelCount,
         annualProductionKwh: b2cCalc.annualProductionKwh,
         contactPreference,
+        allocation_mode: allocationMode,
         remarks: remarks.trim() || null,
         ...utmData,
       },
@@ -1611,6 +1614,63 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
                             </div>
                           </div>
 
+                          {/* ── Rangée 3 bis : Choix du mode de mise en concurrence (3 offres vs 1 seul installateur + Benchmark) ── */}
+                          <div className="flex flex-col gap-1.5 pt-0.5">
+                            <Label className="text-[13px] font-semibold text-[var(--aegis-ink)] flex items-center gap-1.5">
+                              <ShieldCheck className="h-4 w-4 text-[var(--aegis-focus)] shrink-0" />
+                              <span>Comment défendre votre budget ?</span>
+                            </Label>
+                            <div role="radiogroup" className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              <button
+                                type="button"
+                                role="radio"
+                                aria-checked={allocationMode === "shared_3"}
+                                onClick={() => setAllocationMode("shared_3")}
+                                className={`p-2.5 rounded-[8px] border text-left transition-colors duration-150 cursor-pointer flex flex-col justify-between gap-1 ${
+                                  allocationMode === "shared_3"
+                                    ? "border-2 border-[var(--aegis-preference-accent)] bg-[var(--aegis-preference-bg)]"
+                                    : "border-[var(--aegis-input-border)]/45 bg-[var(--aegis-surface)] hover:bg-[var(--aegis-surface-subtle)]"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className="text-[12px] font-bold text-[var(--aegis-ink)]">
+                                    Mise en concurrence (<span className="font-mono tabular-nums">3</span> offres)
+                                  </span>
+                                  <span className="px-1.5 py-0.5 rounded-[4px] bg-accent-solar text-accent-solar-foreground border border-[var(--aegis-preference-accent)] text-[10px] font-bold leading-none">
+                                    -18 % moy.
+                                  </span>
+                                </div>
+                                <span className="text-[11px] leading-[1.35] text-[var(--aegis-muted)]">
+                                  Jusqu&apos;à <span className="font-mono tabular-nums">3</span> installateurs RESCERT comparés sur cahier des charges Tier-1 strict.
+                                </span>
+                              </button>
+
+                              <button
+                                type="button"
+                                role="radio"
+                                aria-checked={allocationMode === "single_vetted"}
+                                onClick={() => setAllocationMode("single_vetted")}
+                                className={`p-2.5 rounded-[8px] border text-left transition-colors duration-150 cursor-pointer flex flex-col justify-between gap-1 ${
+                                  allocationMode === "single_vetted"
+                                    ? "border-2 border-[var(--aegis-preference-accent)] bg-[var(--aegis-preference-bg)]"
+                                    : "border-[var(--aegis-input-border)]/45 bg-[var(--aegis-surface)] hover:bg-[var(--aegis-surface-subtle)]"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className="text-[12px] font-bold text-[var(--aegis-ink)]">
+                                    <span className="font-mono tabular-nums">1</span> seul installateur + Barème
+                                  </span>
+                                  <span className="px-1.5 py-0.5 rounded-[4px] bg-secondary text-foreground border border-border text-[10px] font-bold leading-none">
+                                    Zéro démarchage
+                                  </span>
+                                </div>
+                                <span className="text-[11px] leading-[1.35] text-[var(--aegis-muted)]">
+                                  <span className="font-mono tabular-nums">1</span> artisan RESCERT sélectionné + notre Barème officiel €/kWc 2026 par e-mail.
+                                </span>
+                              </button>
+                            </div>
+                          </div>
+
                           {/* Consentement RGPD conforme APD & modale réseau */}
                           <div className="flex flex-col gap-1.5 pt-2.5 border-t border-[var(--aegis-divider)]">
                             <label className="flex items-start gap-2.5 cursor-pointer">
@@ -1621,9 +1681,20 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
                                 className="mt-0.5 border-[var(--aegis-input-border)] data-[state=checked]:bg-[var(--aegis-ink)] data-[state=checked]:border-[var(--aegis-ink)] focus-visible:outline-2 focus-visible:outline-[var(--aegis-focus)] focus-visible:outline-offset-[3px]"
                               />
                               <span className="text-[12px] text-[var(--aegis-muted)] leading-[1.45]">
-                                J&apos;accepte de recevoir gratuitement jusqu&apos;à{" "}
-                                <span className="font-mono tabular-nums font-semibold text-[var(--aegis-ink)]">3</span>{" "}
-                                devis d&apos;installateurs RESCert en province de{" "}
+                                J&apos;accepte de recevoir gratuitement{" "}
+                                {allocationMode === "single_vetted" ? (
+                                  <>
+                                    <span className="font-mono tabular-nums font-semibold text-[var(--aegis-ink)]">1</span>{" "}
+                                    étude prioritaire d&apos;un installateur RESCERT
+                                  </>
+                                ) : (
+                                  <>
+                                    jusqu&apos;à{" "}
+                                    <span className="font-mono tabular-nums font-semibold text-[var(--aegis-ink)]">3</span>{" "}
+                                    devis d&apos;installateurs RESCERT
+                                  </>
+                                )}{" "}
+                                en province de{" "}
                                 <span className="font-semibold text-[var(--aegis-ink)]">
                                   {getProvinceDisplayLabel(province)}
                                 </span>{" "}
@@ -1650,6 +1721,15 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
                                 .
                               </span>
                             </label>
+                            <p className="text-[11px] text-[var(--aegis-muted)]">
+                              Vous avez déjà reçu un devis ailleurs ?{" "}
+                              <Link
+                                href="/verifier-mon-devis"
+                                className="underline underline-offset-4 text-[var(--aegis-link)] font-semibold hover:text-[var(--aegis-ink)]"
+                              >
+                                Faites-le contrôler gratuitement avant de signer →
+                              </Link>
+                            </p>
                             {showConsentError && (
                               <p className="text-[12px] text-[var(--aegis-danger-text)] font-medium" role="alert">
                                 Veuillez accepter ces conditions pour valider votre demande.

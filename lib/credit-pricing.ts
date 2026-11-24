@@ -1,15 +1,17 @@
 /**
- * Tarification unifiée Aegis Solaire — Value-Based Pricing & Packs Dégressifs (V3)
+ * Tarification unifiée Aegis Solaire — Value-Based Pricing, ARPL & Quotas Prioritaires (V4)
  *
  * Règle fondamentale :
- * - B2C Éco / Standard / Premium : 2 / 3 / 4 crédits (soit 19,50 € / 29,50 € / 39,00 € HTVA direct)
- * - B2C Exclusivité Totale (rachat des 3 slots si 0 acheteur) : 7 crédits (soit 65,00 € HTVA direct)
- * - B2B PME / Standard / Grand Compte : 6 / 9 / 12 crédits (soit 59,00 € / 88,50 € / 118,00 € HTVA)
- * - Packs prépayés multiples de 3 & 12 : -8,5 % à -24 % vs tarif unitaire à l'acte
+ * - B2C Éco / Standard / Premium (max 3 slots) : 2 / 3 / 4 crédits (19,50 € / 29,50 € / 39,00 € HTVA)
+ * - B2C Contre-Offre Prêt-à-Signer (max 2 slots) : 5 crédits (49,00 € HTVA)
+ * - B2C Exclusivité Native Indexée (0 slot pris) : 6 / 9 / 12 crédits (59,00 € / 89,00 € / 119,00 € HTVA)
+ * - B2B Appel d'Offres Restreint (max 2 slots) : 8 / 13 / 20 crédits (79,00 € / 129,00 € / 195,00 € HTVA)
+ * - B2B Exclusivité Totale + Conciergerie CFO : 15 / 24 / 40 crédits (149,00 € / 239,00 € / 390,00 € HTVA)
+ * - Packs & Quotas Prioritaires : -8,5 % à -24 % vs tarif unitaire à l'acte
  * - TVA belge applicable : 21 %
  */
 
-export const PRICING_VERSION = "v2" as const
+export const PRICING_VERSION = "v4" as const
 
 /** Prix unitaire de référence à l'acte en centimes HTVA (2 950 centimes / 3 = ~983 centimes) */
 export const CREDIT_UNIT_PRICE_CENTIMES = Math.round(2950 / 3) // 983 centimes (~9,83 € HTVA)
@@ -32,15 +34,26 @@ export const B2C_MAX_SLOTS = 3
 export const B2C_LEAD_PRICE_EUR = 29.5 // 29,50 € HTVA
 export const B2C_MAX_REVENUE_EUR = B2C_LEAD_PRICE_EUR * B2C_MAX_SLOTS // 88.50 € HTVA
 
-/** Option Exclusivité Totale B2C (si aucun autre installateur n'a encore débloqué le dossier) */
-export const B2C_EXCLUSIVE_CREDIT_COST = 7
-export const B2C_EXCLUSIVE_PRICE_EUR = 65.0 // 65,00 € HTVA
+/** Dossier Contre-Offre Prêt-à-Signer (max 2 slots) */
+export const B2C_QUOTE_AUDIT_CREDIT_COST = 5
+export const B2C_QUOTE_AUDIT_PRICE_EUR = 49.0 // 49,00 € HTVA
+export const B2C_QUOTE_AUDIT_MAX_SLOTS = 2
 
-/** Tarification B2B Professionnel (référence Standard) */
-export const B2B_CREDIT_COST = 9
-export const B2B_MAX_SLOTS = 1
-export const B2B_LEAD_PRICE_EUR = 88.5 // 88,50 € HTVA
-export const B2B_MAX_REVENUE_EUR = B2B_LEAD_PRICE_EUR // 88.50 € HTVA
+/** Option Exclusivité Totale B2C Standard (indexée 6/9/12 selon palier) */
+export const B2C_EXCLUSIVE_CREDIT_COST = 9
+export const B2C_EXCLUSIVE_PRICE_EUR = 89.0 // 89,00 € HTVA
+
+/** Tarification B2B Professionnel (Appel d'Offres Restreint à 2 bureaux d'études) */
+export const B2B_CREDIT_COST = 13
+export const B2B_MAX_SLOTS = 2
+export const B2B_LEAD_PRICE_EUR = 129.0 // 129,00 € HTVA par slot
+export const B2B_MAX_REVENUE_EUR = B2B_LEAD_PRICE_EUR * B2B_MAX_SLOTS // 258.00 € HTVA
+
+/** Exclusivité Totale B2B + Conciergerie CFO (référence Standard) */
+export const B2B_EXCLUSIVE_CREDIT_COST = 24
+export const B2B_EXCLUSIVE_PRICE_EUR = 239.0 // 239,00 € HTVA
+export const B2B_SUCCESS_FEE_STANDARD_EUR = 1500 // 40–150 kWc
+export const B2B_SUCCESS_FEE_ENTERPRISE_EUR = 3000 // > 150 kWc
 
 export interface CreditPackDefinition {
   id: string
@@ -62,10 +75,40 @@ const LEAD_TIER_CENTIMES: Record<number, number> = {
   2: 1950, // 19,50 € HTVA (B2C Éco)
   3: 2950, // 29,50 € HTVA (B2C Standard)
   4: 3900, // 39,00 € HTVA (B2C Premium)
-  6: 5900, // 59,00 € HTVA (B2B PME)
-  7: 6500, // 65,00 € HTVA (B2C Exclusivité Totale)
-  9: 8850, // 88,50 € HTVA (B2B Standard)
-  12: 11800, // 118,00 € HTVA (B2B Grand Compte)
+  5: 4900, // 49,00 € HTVA (B2C Contre-Offre Prêt-à-Signer)
+  6: 5900, // 59,00 € HTVA (B2C Éco Exclusif / Archive B2B PME)
+  7: 6500, // 65,00 € HTVA (Archive B2C Exclusif)
+  8: 7900, // 79,00 € HTVA (B2B PME · 2 slots)
+  9: 8900, // 89,00 € HTVA (B2C Standard Exclusif / Archive B2B Standard)
+  12: 11900, // 119,00 € HTVA (B2C Premium & Contre-Offre Exclusif)
+  13: 12900, // 129,00 € HTVA (B2B Standard · 2 slots)
+  15: 14900, // 149,00 € HTVA (B2B PME Exclusif)
+  20: 19500, // 195,00 € HTVA (B2B Grand Compte · 2 slots)
+  24: 23900, // 239,00 € HTVA (B2B Standard Exclusif + Conciergerie CFO)
+  40: 39000, // 390,00 € HTVA (B2B Grand Compte Exclusif + Conciergerie CFO)
+}
+
+/**
+ * Calcule le coût en crédits de l'Exclusivité Totale selon le segment et le palier du dossier.
+ */
+export function getExclusiveCreditCost(lead: {
+  segment?: "B2B" | "B2C" | string | null
+  credit_cost?: number | null
+  creditCost?: number | null
+}): number {
+  const baseCredits =
+    Number(lead.credit_cost ?? lead.creditCost) ||
+    (lead.segment === "B2B" ? B2B_CREDIT_COST : B2C_CREDIT_COST)
+
+  if (lead.segment === "B2B") {
+    if (baseCredits <= 8) return 15 // B2B PME Exclusif (149,00 € HTVA)
+    if (baseCredits <= 13) return 24 // B2B Standard Exclusif (239,00 € HTVA)
+    return 40 // B2B Grand Compte Exclusif (390,00 € HTVA)
+  }
+
+  if (baseCredits <= 2) return 6 // B2C Éco Exclusif (59,00 € HTVA)
+  if (baseCredits === 3) return 9 // B2C Standard Exclusif (89,00 € HTVA)
+  return 12 // B2C Premium / Contre-Offre Exclusif (119,00 € HTVA)
 }
 
 /**
@@ -228,7 +271,7 @@ export function calculateOrderFinancials(credits: number) {
 
 /**
  * Calcule avec exactitude comptable en centimes les montants d'un achat direct de lead en euros.
- * Prend en compte le mode exclusif B2C (7 crédits = 65,00 € HTVA).
+ * Prend en compte l'exclusivité indexée B2C (6/9/12 cr.) et B2B (15/24/40 cr.) ou le complément hybride.
  */
 export function calculateLeadDirectFinancials(lead: {
   segment?: "B2B" | "B2C" | string | null
@@ -236,8 +279,8 @@ export function calculateLeadDirectFinancials(lead: {
   creditCost?: number | null
   exclusive?: boolean
 }) {
-  if (lead.exclusive && lead.segment !== "B2B") {
-    return calculateOrderFinancials(B2C_EXCLUSIVE_CREDIT_COST)
+  if (lead.exclusive) {
+    return calculateOrderFinancials(getExclusiveCreditCost(lead))
   }
   const credits =
     lead.credit_cost ??

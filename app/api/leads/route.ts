@@ -535,10 +535,25 @@ export async function POST(request: NextRequest) {
           admin_alert_trigger: verifiedPhoneProof ? "immediate_otp_verified" : "immediate",
         }
 
+    const resolvedAllocationMode =
+      data.segment === "B2B"
+        ? "b2b_tender_2"
+        : data.allocationMode === "single_vetted"
+          ? "single_vetted"
+          : "shared_3"
+    const resolvedMaxSlots =
+      data.segment === "B2B"
+        ? 2
+        : resolvedAllocationMode === "single_vetted"
+          ? 1
+          : 3
+
     const insertPayload: Record<string, unknown> = {
       segment: data.segment,
       marketplace_status: "pending_review",
       credit_cost,
+      max_slots: resolvedMaxSlots,
+      allocation_mode: resolvedAllocationMode,
       media_partner_code: mediaPartnerCode,
       first_name,
       last_name,
@@ -582,6 +597,7 @@ export async function POST(request: NextRequest) {
       qualification_metadata: {
         ...(data.qualificationMetadata ?? {}),
         ...adminAlertTrackingMeta,
+        allocation_mode: resolvedAllocationMode,
         estimatedPanelCount: financials.estimatedPanelCount,
         annualProductionKwh: financials.annualProductionKwh,
         usableSurfaceM2: financials.usableSurfaceM2,
@@ -664,6 +680,8 @@ export async function POST(request: NextRequest) {
       delete fallbackPayload.phone_verification_method
       delete fallbackPayload.phone_carrier
       delete fallbackPayload.phone_line_type
+      delete fallbackPayload.allocation_mode
+      delete fallbackPayload.max_slots
 
       const fallbackResult = await supabase.from("leads").insert(fallbackPayload).select().single()
       inserted = fallbackResult.data
@@ -712,6 +730,7 @@ export async function POST(request: NextRequest) {
           estimatedSavings: computedSavings,
           estimatedROIYears: computedRoiYears,
           province: canonicalProvince,
+          allocationMode: resolvedAllocationMode,
         })
           .then(async (res) => {
             if (res.success && res.emailId) {
