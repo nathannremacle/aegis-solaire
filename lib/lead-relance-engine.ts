@@ -39,7 +39,7 @@ import { sendProspectReconfirmEmail } from "@/lib/prospect-reconfirm-email"
 import { sendProspectReferralEmail } from "@/lib/prospect-referral-email"
 import { getLeadImages, getPrimaryLeadImageItem } from "@/lib/lead-images"
 import b2cOptoutEmails from "@/lib/data/b2c-optout-emails.json"
-import rescertOptoutEmails from "@/lib/data/optout-emails.json"
+import { loadGlobalEmailBlacklist, safeSendResendEmail } from "@/lib/email-blacklist"
 
 // ==============================================================================
 // 1. CONFIGURATION & CONSTANTES MÉTIER
@@ -1149,19 +1149,24 @@ export async function dispatchLeadWave(
 
     if (resend) {
       try {
-        const { error: sendErr } = await resend.emails.send({
-          from: fromEmail,
-          to: partner.email,
-          replyTo: replyToEmail,
-          subject,
-          text,
-          html,
-          headers: {
-            "List-Unsubscribe": `<${notifUrls.muteAllUrl}>, <mailto:contact@aegissolaire.com?subject=Desabonnement%20alertes>`,
-            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        const { blocked, error: sendErr } = await safeSendResendEmail(
+          resend,
+          {
+            from: fromEmail,
+            to: partner.email,
+            replyTo: replyToEmail,
+            subject,
+            text,
+            html,
+            headers: {
+              "List-Unsubscribe": `<${notifUrls.muteAllUrl}>, <mailto:contact@aegissolaire.com?subject=Desabonnement%20alertes>`,
+              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+            },
           },
-        })
+          { supabase, context: "LEAD_RELANCE" }
+        )
 
+        if (blocked) continue
         if (sendErr) {
           console.error(`[Lead Relance] Échec d'envoi à ${partner.email}:`, sendErr)
           continue
@@ -1466,18 +1471,23 @@ export async function dispatchLeadToSpecificPartners(
 
     if (resend) {
       try {
-        const { error: sendErr } = await resend.emails.send({
-          from: fromEmail,
-          to: partner.email,
-          replyTo: replyToEmail,
-          subject,
-          text,
-          html,
-          headers: {
-            "List-Unsubscribe": `<${notifUrls.muteAllUrl}>, <mailto:contact@aegissolaire.com?subject=Desabonnement%20alertes>`,
-            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        const { blocked, error: sendErr } = await safeSendResendEmail(
+          resend,
+          {
+            from: fromEmail,
+            to: partner.email,
+            replyTo: replyToEmail,
+            subject,
+            text,
+            html,
+            headers: {
+              "List-Unsubscribe": `<${notifUrls.muteAllUrl}>, <mailto:contact@aegissolaire.com?subject=Desabonnement%20alertes>`,
+              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+            },
           },
-        })
+          { supabase, context: "MANUAL_DISPATCH" }
+        )
+        if (blocked) continue
         if (sendErr) {
           console.error(`[Manual Dispatch] Échec d'envoi à ${partner.email}:`, sendErr)
           continue
@@ -3306,35 +3316,28 @@ async function dispatchRescertSniperForLead(
     ? rescertInstallersRaw
     : (rescertInstallersRaw as any)?.installateurs || (rescertInstallersRaw as any)?.items || []
 
-  // Exclure impérativement toute liste noire (fichiers locaux + audit_log + partners) et les partenaires existants
-  const [optoutsRes, existingPartnersRes] = await Promise.all([
-    supabase.from("audit_log").select("entity_id").eq("action", "RESCERT_OUTREACH_OPTOUT"),
-    supabase.from("partners").select("email, email_notifications_enabled, target_surfaces"),
-  ])
-  if (optoutsRes.error || existingPartnersRes.error) {
-    console.error("[dispatchRescertSniperForLead] Erreur lecture liste noire Supabase, envoi annulé :", optoutsRes.error || existingPartnersRes.error)
+  // Exclure impérativement toute liste noire via le garde-fou centralisé (fail-closed)
+  let optoutSet: Set<string>
+  try {
+    optoutSet = await loadGlobalEmailBlacklist(supabase)
+  } catch (blacklistErr) {
+    console.error("[dispatchRescertSniperForLead] Liste noire indisponible, envoi annulé :", blacklistErr)
     return 0
   }
 
-  const optoutSet = new Set<string>([
-    ...((Array.isArray(rescertOptoutEmails) ? rescertOptoutEmails : []) as string[]).map((e) =>
-      String(e || "").toLowerCase().trim()
-    ),
-    ...((Array.isArray(b2cOptoutEmails) ? b2cOptoutEmails : []) as string[]).map((e) =>
-      String(e || "").toLowerCase().trim()
-    ),
-    ...((optoutsRes.data as any[]) || []).map((r) => String(r.entity_id || "").toLowerCase().trim()),
-  ])
-  const existingPartnerSet = new Set<string>()
-  for (const p of (existingPartnersRes.data as any[]) || []) {
-    const em = String(p.email || "").toLowerCase().trim()
-    if (!em) continue
-    existingPartnerSet.add(em)
-    const surfaces = Array.isArray(p.target_surfaces) ? p.target_surfaces : []
-    if (p.email_notifications_enabled === false || surfaces.includes(OPTOUT_ALL_MARKER)) {
-      optoutSet.add(em)
-    }
+  const { data: existingPartnersData, error: existingPartnersError } = await supabase
+    .from("partners")
+    .select("email")
+  if (existingPartnersError) {
+    console.error("[dispatchRescertSniperForLead] Erreur lecture partners, envoi annulé :", existingPartnersError)
+    return 0
   }
+
+  const existingPartnerSet = new Set<string>(
+    ((existingPartnersData as Array<{ email?: string | null }>) || [])
+      .map((p) => String(p.email || "").toLowerCase().trim())
+      .filter(Boolean)
+  )
 
   const candidates = (list as any[])
     .map((item) => {
@@ -3453,19 +3456,23 @@ async function dispatchRescertSniperForLead(
     })
 
     try {
-      await resend.emails.send({
-        from: fromEmail,
-        to: c.email,
-        replyTo: replyToEmail,
-        subject,
-        text,
-        html,
-        headers: {
-          "List-Unsubscribe": `<${optoutUrl}>`,
-          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      const { blocked, error: sendErr } = await safeSendResendEmail(
+        resend,
+        {
+          from: fromEmail,
+          to: c.email,
+          replyTo: replyToEmail,
+          subject,
+          text,
+          html,
+          headers: {
+            "List-Unsubscribe": `<${optoutUrl}>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          },
         },
-      })
-      sent++
+        { blacklistSet: optoutSet, context: "RESCERT_SNIPER" }
+      )
+      if (!blocked && !sendErr) sent++
     } catch {
       // non-blocking
     }

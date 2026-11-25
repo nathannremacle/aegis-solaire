@@ -1,4 +1,5 @@
 import { Resend } from "resend"
+import { safeSendResendEmail } from "@/lib/email-blacklist"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 import { getSurfaceTypeLabel, getGrdLabel } from "@/lib/lead-display-helpers"
 import {
@@ -191,14 +192,18 @@ export async function sendPartnerLeadTeaserEmails(payload: PartnerLeadTeaserPayl
   }
 
   const resend = new Resend(resendApiKey)
-  const { error } = await resend.emails.send({
-    from: fromEmail,
-    to: recipients,
-    replyTo: replyToEmail,
-    subject,
-    text,
-    html,
-  })
+  const { error } = await safeSendResendEmail(
+    resend,
+    {
+      from: fromEmail,
+      to: recipients,
+      replyTo: replyToEmail,
+      subject,
+      text,
+      html,
+    },
+    { context: "PARTNER_LEAD_TEASER" }
+  )
 
   if (error) {
     console.error("[Partner teaser] Resend error:", error)

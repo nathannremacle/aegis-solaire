@@ -65,6 +65,12 @@ async function recordOptout(email: string) {
       details: { optedOutAt: new Date().toISOString(), source: "1_click_link" },
     })
   }
+
+  // Synchroniser également sur partners si l'installateur possède un compte
+  await supabase
+    .from("partners")
+    .update({ email_notifications_enabled: false })
+    .ilike("email", email)
 }
 
 export async function GET(request: NextRequest) {
