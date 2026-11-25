@@ -93,15 +93,51 @@ async function main() {
     return obj
   })
 
-  // Exclure les désinscrits rescert_optouts via Supabase
+  // Exclure impérativement toute liste noire (fichiers locaux + Supabase audit_log & partners)
   const optoutSet = new Set()
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
-    const { data } = await supabase.from("rescert_optouts").select("email")
-    for (const r of data || []) {
-      if (r.email) optoutSet.add(String(r.email).toLowerCase().trim())
+  const localOptoutFiles = [
+    path.resolve(process.cwd(), "lib/data/optout-emails.json"),
+    path.resolve(process.cwd(), "lib/data/b2c-optout-emails.json"),
+  ]
+  if (!fs.existsSync(localOptoutFiles[0])) {
+    console.error("Fichier liste noire introuvable :", localOptoutFiles[0])
+    process.exit(1)
+  }
+  for (const filePath of localOptoutFiles) {
+    if (fs.existsSync(filePath)) {
+      const list = JSON.parse(fs.readFileSync(filePath, "utf8"))
+      for (const em of Array.isArray(list) ? list : []) {
+        if (em) optoutSet.add(String(em).toLowerCase().trim())
+      }
     }
   }
+
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("Variables Supabase manquantes : impossible de vérifier la liste noire en base.")
+    process.exit(1)
+  }
+
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+  const [optoutsRes, partnersRes] = await Promise.all([
+    supabase.from("audit_log").select("entity_id").eq("action", "RESCERT_OUTREACH_OPTOUT"),
+    supabase.from("partners").select("email, email_notifications_enabled, target_surfaces"),
+  ])
+  if (optoutsRes.error || partnersRes.error) {
+    console.error("Erreur lecture liste noire Supabase :", optoutsRes.error || partnersRes.error)
+    process.exit(1)
+  }
+  for (const r of optoutsRes.data || []) {
+    if (r.entity_id) optoutSet.add(String(r.entity_id).toLowerCase().trim())
+  }
+  for (const p of partnersRes.data || []) {
+    const em = String(p.email || "").toLowerCase().trim()
+    if (!em) continue
+    const surfaces = Array.isArray(p.target_surfaces) ? p.target_surfaces : []
+    if (p.email_notifications_enabled === false || surfaces.includes("__optout_all__")) {
+      optoutSet.add(em)
+    }
+  }
+  console.log(`Liste noire chargée : ${optoutSet.size} e-mails exclus (fichiers + audit_log + partners).`)
 
   const targets = rows.filter((r) => {
     const email = (r.email || "").toLowerCase().trim()

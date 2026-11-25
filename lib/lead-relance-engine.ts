@@ -39,6 +39,7 @@ import { sendProspectReconfirmEmail } from "@/lib/prospect-reconfirm-email"
 import { sendProspectReferralEmail } from "@/lib/prospect-referral-email"
 import { getLeadImages, getPrimaryLeadImageItem } from "@/lib/lead-images"
 import b2cOptoutEmails from "@/lib/data/b2c-optout-emails.json"
+import rescertOptoutEmails from "@/lib/data/optout-emails.json"
 
 // ==============================================================================
 // 1. CONFIGURATION & CONSTANTES MÉTIER
@@ -3305,17 +3306,35 @@ async function dispatchRescertSniperForLead(
     ? rescertInstallersRaw
     : (rescertInstallersRaw as any)?.installateurs || (rescertInstallersRaw as any)?.items || []
 
-  // Exclure les e-mails déjà désinscrits (rescert_optouts) ou partenaires déjà notifiés
+  // Exclure impérativement toute liste noire (fichiers locaux + audit_log + partners) et les partenaires existants
   const [optoutsRes, existingPartnersRes] = await Promise.all([
-    supabase.from("rescert_optouts").select("email"),
-    supabase.from("partners").select("email"),
+    supabase.from("audit_log").select("entity_id").eq("action", "RESCERT_OUTREACH_OPTOUT"),
+    supabase.from("partners").select("email, email_notifications_enabled, target_surfaces"),
   ])
-  const optoutSet = new Set(
-    ((optoutsRes.data as any[]) || []).map((r) => String(r.email || "").toLowerCase().trim())
-  )
-  const existingPartnerSet = new Set(
-    ((existingPartnersRes.data as any[]) || []).map((r) => String(r.email || "").toLowerCase().trim())
-  )
+  if (optoutsRes.error || existingPartnersRes.error) {
+    console.error("[dispatchRescertSniperForLead] Erreur lecture liste noire Supabase, envoi annulé :", optoutsRes.error || existingPartnersRes.error)
+    return 0
+  }
+
+  const optoutSet = new Set<string>([
+    ...((Array.isArray(rescertOptoutEmails) ? rescertOptoutEmails : []) as string[]).map((e) =>
+      String(e || "").toLowerCase().trim()
+    ),
+    ...((Array.isArray(b2cOptoutEmails) ? b2cOptoutEmails : []) as string[]).map((e) =>
+      String(e || "").toLowerCase().trim()
+    ),
+    ...((optoutsRes.data as any[]) || []).map((r) => String(r.entity_id || "").toLowerCase().trim()),
+  ])
+  const existingPartnerSet = new Set<string>()
+  for (const p of (existingPartnersRes.data as any[]) || []) {
+    const em = String(p.email || "").toLowerCase().trim()
+    if (!em) continue
+    existingPartnerSet.add(em)
+    const surfaces = Array.isArray(p.target_surfaces) ? p.target_surfaces : []
+    if (p.email_notifications_enabled === false || surfaces.includes(OPTOUT_ALL_MARKER)) {
+      optoutSet.add(em)
+    }
+  }
 
   const candidates = (list as any[])
     .map((item) => {
