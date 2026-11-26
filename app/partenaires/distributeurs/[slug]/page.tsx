@@ -196,7 +196,7 @@ export default async function DistributorCobrandedLandingPage({
                       Max 3
                     </span>
                     <span className="text-[11px] text-muted-foreground leading-tight">
-                      Poseurs B2C (1 en B2B)
+                      Poseurs B2C (2 max B2B)
                     </span>
                   </div>
                   <div className="rounded-2xl border border-border bg-background p-3.5 flex flex-col gap-0.5">

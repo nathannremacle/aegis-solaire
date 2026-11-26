@@ -19,7 +19,7 @@ export interface InstallerPlatformUpdateEmailParams {
 /**
  * E-mail explicatif destiné aux installateurs partenaires présentant l'ensemble
  * des nouveautés de la plateforme : packs dégressifs (-8,5 % à -24 %),
- * tarification calibrée sur la taille des projets, exclusivité totale B2C (7 cr.),
+ * tarification calibrée sur la taille des projets, exclusivité totale B2C (6 à 12 cr.),
  * Auto-Pilot plafonné, paiement 1-clic et cascade intra-journée.
  */
 export function buildInstallerPlatformUpdateEmail(
@@ -72,7 +72,7 @@ export function buildInstallerPlatformUpdateEmail(
       { label: "B2C Éco (petits toits / horizon > 6 mois)", value: "2 crédits (19,50 € HT à l'acte)" },
       { label: "B2C Standard (résidentiel classique)", value: "3 crédits (29,50 € HT à l'acte)" },
       { label: "B2C Premium (grande surface / batterie / IRVE)", value: "4 crédits (39,00 € HT à l'acte)" },
-      { label: "B2B Exclusif (PME / Standard / Grand Compte)", value: "6, 9 ou 12 crédits (59 € à 118 € HT)" },
+      { label: "B2B Appel d'Offres Restreint (max 2)", value: "8, 13 ou 20 crédits (79 € à 195 € HT) · ou Exclusivité 15–40 cr." },
     ])}
 
     <h2 style="margin: 24px 0 12px 0; padding-top: 16px; border-top: 1px solid #E6EDF1; font-size: 18px; line-height: 1.25; font-weight: bold; color: #142D42;">
@@ -80,7 +80,7 @@ export function buildInstallerPlatformUpdateEmail(
     </h2>
     <p style="margin: 0 0 12px 0; font-size: 15px; line-height: 1.5; color: #142D42;">
       Lorsqu&rsquo;un nouveau dossier résidentiel n&rsquo;a encore aucun acheteur (<span style="display: inline-block; padding: 1px 6px; border-radius: 5px; background-color: #E8F2ED; color: #1D5D45; font-weight: bold; font-variant-numeric: tabular-nums;">0/3</span>), vous pouvez désormais
-      <strong>réserver l&rsquo;exclusivité totale à 100&nbsp;% pour <span style="font-variant-numeric: tabular-nums;">7</span> crédits (ou <span style="font-variant-numeric: tabular-nums;">65&nbsp;€&nbsp;HT</span> direct)</strong> au lieu de <span style="font-variant-numeric: tabular-nums;">3×</span> le prix.
+      <strong>réserver l&rsquo;exclusivité totale à 100&nbsp;% dès <span style="font-variant-numeric: tabular-nums;">6</span> crédits (<span style="font-variant-numeric: tabular-nums;">59 à 119&nbsp;€&nbsp;HT</span> selon le palier)</strong> au lieu de <span style="font-variant-numeric: tabular-nums;">3×</span> le prix.
     </p>
     ${renderCalloutBox({
       label: "Protection automatique de votre taux de closing",
@@ -113,7 +113,7 @@ export function buildInstallerPlatformUpdateEmail(
   const html = renderInstallerEmailShell({
     subject,
     preheader:
-      "Packs dégressifs dès 7,50 €/crédit (-24 %), exclusivité totale B2C à 7 crédits, tarifs dès 19,50 € HT et mode Auto-Pilot.",
+      "Packs dégressifs dès 7,50 €/crédit (-24 %), exclusivité totale B2C dès 6 crédits (59 € HT), B2B max 2 dès 79 € HT et mode Auto-Pilot.",
     reference: "Mise à jour réseau",
     context: "Nouveautés Partenaires",
     contextColor: "#1D5D45",
@@ -145,9 +145,9 @@ export function buildInstallerPlatformUpdateEmail(
     "",
     "2. TARIFS CALIBRÉS SUR LA VALEUR RÉELLE DU PROJET :",
     "- B2C Éco : 2 cr. (19,50 € HT) | B2C Standard : 3 cr. (29,50 € HT) | B2C Premium : 4 cr. (39,00 € HT)",
-    "- B2B Exclusif : 6 cr. PME (59 € HT) | 9 cr. Standard (88,50 € HT) | 12 cr. Grand Compte (118 € HT)",
+    "- B2B Max 2 : 8 cr. PME (79 € HT) | 13 cr. Standard (129 € HT) | 20 cr. Grand Compte (195 € HT) (ou Exclusivité 15–40 cr.)",
     "",
-    "3. EXCLUSIVITÉ TOTALE B2C (7 crédits / 65 € HT) :",
+    "3. EXCLUSIVITÉ TOTALE B2C (6 à 12 crédits / 59 à 119 € HT) :",
     "Si vous êtes le premier sur un dossier résidentiel (0/3), réservez l'exclusivité à 100 %.",
     "Notre Cellule Technique envoie automatiquement un e-mail de réassurance au prospect lui présentant votre prise en charge prioritaire RESCERT.",
     "",

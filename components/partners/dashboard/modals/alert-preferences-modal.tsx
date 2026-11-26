@@ -885,8 +885,7 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
                   >
                     <div className="flex flex-col gap-0.5 min-w-0">
                       <span className="text-xs font-bold text-foreground">
-                        Exclusivité Totale B2C automatique ({" "}
-                        <span className="font-mono tabular-nums">7</span> crédits )
+                        Exclusivité Totale B2C automatique (<span className="font-mono tabular-nums">6 à 12</span> crédits)
                       </span>
                       <span className="text-[11px] text-muted-foreground leading-snug">
                         Si le particulier est encore à <span className="font-mono tabular-nums font-semibold text-foreground">0/3</span>, réserve les{" "}
@@ -936,8 +935,8 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
                       {Number(partner?.credits ?? 0)} crédits
                     </strong>
                     {" "}— <span className="font-mono tabular-nums">2–4</span> cr. B2C partagé,{" "}
-                    <span className="font-mono tabular-nums">7</span> cr. B2C exclusif,{" "}
-                    <span className="font-mono tabular-nums">6–12</span> cr. B2B).
+                    <span className="font-mono tabular-nums">6–12</span> cr. B2C exclusif,{" "}
+                    <span className="font-mono tabular-nums">8–20</span> cr. B2B (max 2).
                   </span>
                 </li>
                 <li className="flex items-start gap-1.5">

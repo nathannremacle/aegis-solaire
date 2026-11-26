@@ -11,7 +11,7 @@ export function InstallerRoiCalculator() {
   const [leadsPerMonth, setLeadsPerMonth] = useState<number>(6)
   const [conversionRate, setConversionRate] = useState<number>(33) // 33% = 1 chantier sur 3
 
-  // Paramètres économiques par segment (Barème V2 : 11,50 € HTVA / crédit)
+  // Paramètres économiques par segment (Barème V4 : 9,83 € HTVA / crédit à l'acte)
   // Basé sur le marché wallon réel 2026 (sans sur-évaluation)
   const economics = useMemo(() => {
     switch (projectType) {
@@ -25,8 +25,8 @@ export function InstallerRoiCalculator() {
         }
       case "b2b":
         return {
-          avgCreditCost: 9,
-          avgCreditEuro: 88.5, // 9 crédits = 88,50 €
+          avgCreditCost: 13,
+          avgCreditEuro: 129.0, // 13 crédits = 129,00 € HTVA (B2B Standard · max 2)
           avgContractValue: 72000, // toiture tertiaire PME moyenne (~80 kWc)
           avgGrossMargin: 11500, // ~16% marge brute tertiaire
           label: "Tertiaire & PME B2B (25 à 250 kWc)",
@@ -34,8 +34,8 @@ export function InstallerRoiCalculator() {
       case "mixed":
       default:
         return {
-          avgCreditCost: 4.8, // 70% x 3 + 30% x 9 = 4,8 crédits
-          avgCreditEuro: 47.2, // 70% x 29,50 € + 30% x 88,50 € = 47,20 €
+          avgCreditCost: 6.0, // 70% x 3 + 30% x 13 = 6,0 crédits
+          avgCreditEuro: 59.35, // 70% x 29,50 € + 30% x 129,00 € = 59,35 €
           avgContractValue: 26000, // moyenne pondérée 70% B2C (6 200 €) / 30% B2B (72 000 €)
           avgGrossMargin: 4320, // marge brute pondérée (70% x 1 240 € + 30% x 11 500 €)
           label: "Mixte (70% Résidentiel / 30% Tertiaire)",

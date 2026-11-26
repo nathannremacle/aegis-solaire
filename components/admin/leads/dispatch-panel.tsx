@@ -238,7 +238,7 @@ export function DispatchPanel({
           <div className="flex items-center gap-1.5 font-mono text-xs">
             <span className="text-muted-foreground">Places :</span>
             <span className="font-bold tabular-nums text-foreground">
-              {maxSlots} max ({segment === "B2B" ? "Exclusif" : "Concurrent"})
+              {maxSlots} max ({maxSlots <= 1 ? "Exclusif" : "Concurrent"})
             </span>
           </div>
         </div>
@@ -340,15 +340,15 @@ export function DispatchPanel({
         <div>
           <Label className="text-muted-foreground block font-medium">Coût du dossier</Label>
           <span className="text-[10px] text-muted-foreground font-mono">
-            Value-Based · {segment === "B2B" ? "B2B exclusif" : "B2C résidentiel (Excl. 7 cr.)"}
+            Value-Based · {segment === "B2B" ? "B2B (Max 2 ou Exclusif)" : "B2C résidentiel (Excl. 6–12 cr.)"}
           </span>
         </div>
         <div className="flex items-center gap-1.5 font-mono">
           <span className="rounded-md bg-secondary px-2.5 py-1 text-xs font-bold text-foreground border border-border tabular-nums">
-            {creditCost || (segment === "B2B" ? 9 : 3)} cr.
+            {creditCost || (segment === "B2B" ? 13 : 3)} cr.
           </span>
           <span className="text-[11px] text-muted-foreground tabular-nums">
-            ({formatEurWithDecimals(calculateOrderFinancials(creditCost || (segment === "B2B" ? 9 : 3)).priceHtva)} € HT)
+            ({formatEurWithDecimals(calculateOrderFinancials(creditCost || (segment === "B2B" ? 13 : 3)).priceHtva)} € HT)
           </span>
         </div>
       </div>

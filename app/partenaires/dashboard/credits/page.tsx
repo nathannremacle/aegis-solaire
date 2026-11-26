@@ -692,7 +692,7 @@ export default function CreditsPage() {
                     Vous préférez payer à l&apos;unité sans pack ?
                   </h4>
                   <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                    Sur la marketplace, vous pouvez également débloquer chaque chantier individuellement en euros par Bancontact ou Carte bancaire (dès 19,50 € HT en B2C, 65 € HT en Exclusivité Totale B2C, et dès 59,00 € HT en B2B exclusif). Les packs prépayés offrent jusqu&apos;à -24 % de remise immédiate.
+                    Sur la marketplace, vous pouvez également débloquer chaque chantier individuellement en euros par Bancontact ou Carte bancaire (dès 19,50 € HT en B2C, 59 à 119 € HT en Exclusivité Totale B2C, et dès 79,00 € HT en B2B max 2 ou Exclusivité Totale). Les packs prépayés offrent jusqu&apos;à -24 % de remise immédiate.
                   </p>
                 </div>
               </div>

@@ -234,12 +234,12 @@ export function PartnersHero() {
             className="mt-5 max-w-2xl 2xl:max-w-3xl text-pretty text-sm sm:text-base lg:text-[16px] 2xl:text-[17px] font-light leading-relaxed text-slate-200"
           >
             Inspectez photos réelles, vue 3D du toit et preuve téléphone SMS (OTP) avant de payer.{" "}
-            <strong className="font-semibold text-white">B2B 100 % exclusif</strong> (dès{" "}
-            <span className="font-mono tabular-nums">59 € HT</span>) et{" "}
+            <strong className="font-semibold text-white">B2B plafonné à 2 max ou Exclusif</strong> (dès{" "}
+            <span className="font-mono tabular-nums">79 € HT</span>) et{" "}
             <strong className="font-semibold text-white">B2C transparent</strong> (max{" "}
             <span className="font-mono tabular-nums">3</span> dès{" "}
             <span className="font-mono tabular-nums">19,50 € HT</span>, ou{" "}
-            <strong className="font-semibold text-white">Exclusivité Totale à 65 € HT</strong> rien que pour vous).
+            <strong className="font-semibold text-white">Exclusivité Totale dès 59 € HT</strong> rien que pour vous).
             <br className="hidden sm:inline" />
             À l&apos;unité Bancontact, complément en euros (zéro crédit bloqué) ou packs jusqu&apos;à{" "}
             <span className="font-mono tabular-nums font-semibold text-white">-24 %</span> · Zéro abonnement.

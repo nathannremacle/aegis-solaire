@@ -877,7 +877,7 @@ export function MarketplaceFeedView({
                       }`}
                   >
                     <span className="sm:hidden">B2B</span>
-                    <span className="hidden sm:inline">B2B Exclusif</span>
+                    <span className="hidden sm:inline">B2B Tertiaire</span>
                     <span
                       className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${segmentFilter === "B2B"
                           ? "bg-white/20 text-white"
@@ -1077,7 +1077,7 @@ export function MarketplaceFeedView({
                     <>
                       <strong className="font-bold">Mode paiement à la carte actif</strong> — Débloquez chaque chantier par Bancontact / Carte dès{" "}
                       <span className="font-mono font-bold tabular-nums">19,50 € HT</span> (ou{" "}
-                      <span className="font-mono font-bold tabular-nums">65 € HT</span> en Exclusivité Totale B2C) sans pack préalable, ou réduisez vos coûts avec un Pack Crédits (<span className="font-mono font-bold tabular-nums">-24 %</span>).
+                      <span className="font-mono font-bold tabular-nums">59 à 119 € HT</span> en Exclusivité Totale B2C) sans pack préalable, ou réduisez vos coûts avec un Pack Crédits (<span className="font-mono font-bold tabular-nums">-24 %</span>).
                     </>
                   )}
                 </div>
@@ -1216,7 +1216,7 @@ export function MarketplaceFeedView({
                                   : "bg-secondary text-foreground border border-border"
                                 }`}
                             >
-                              {isB2B ? "B2B Exclusif" : `B2C (${remainingSlots}/${maxSlots})`}
+                              {isB2B ? (maxSlots <= 1 ? "B2B Exclusif" : `B2B (${remainingSlots}/${maxSlots})`) : `B2C (${remainingSlots}/${maxSlots})`}
                             </span>
                             <span className="font-mono text-[10px] text-muted-foreground flex items-center gap-1">
                               <span className={`h-1.5 w-1.5 rounded-full ${freshness.dotClass}`} />
@@ -1483,7 +1483,7 @@ export function MarketplaceFeedView({
                                   : "bg-secondary text-foreground border border-border"
                                 }`}
                             >
-                              {isB2B ? "B2B Exclusif" : `B2C (${remainingSlots}/${maxSlots})`}
+                              {isB2B ? (maxSlots <= 1 ? "B2B Exclusif" : `B2B (${remainingSlots}/${maxSlots})`) : `B2C (${remainingSlots}/${maxSlots})`}
                             </span>
                           </td>
 
@@ -1701,7 +1701,10 @@ export function MarketplaceFeedView({
                     estimatedPowerKwc: closedLead.estimated_power_kwc,
                     qualificationMetadata: closedLead.qualification_metadata,
                   })
-                  const maxSlotsLabel = isClosedB2B ? "1/1 exclusif" : `${closedLead.max_slots || 3}/${closedLead.max_slots || 3} réservé`
+                  const maxSlotsLabel =
+                    isClosedB2B && (closedLead.max_slots ?? 2) <= 1
+                      ? "1/1 exclusif"
+                      : `${closedLead.max_slots || (isClosedB2B ? 2 : 3)}/${closedLead.max_slots || (isClosedB2B ? 2 : 3)} réservé`
 
                   return (
                     <div
@@ -1864,7 +1867,7 @@ export function MarketplaceFeedView({
                 <div className="grid grid-cols-3 gap-2">
                   {[
                     { id: "ALL" as const, label: "Tous", count: counts.all },
-                    { id: "B2B" as const, label: "B2B Exclusif", count: counts.b2b },
+                    { id: "B2B" as const, label: "B2B Tertiaire", count: counts.b2b },
                     { id: "B2C" as const, label: "B2C Partagé", count: counts.b2c },
                   ].map((seg) => {
                     const isActive = segmentFilter === seg.id
@@ -2035,6 +2038,7 @@ function MarketplaceLeadCard({
   })
   const slotIndicator = getB2CSlotIndicator(remainingSlots)
   const canTakeExclusive = !isB2B && remainingSlots >= maxSlots && maxSlots > 1
+  const exclusiveCredits = getExclusiveCreditCost({ segment: lead.segment, credit_cost: cost })
 
   const rawSurfaceArea = Math.max(0, Number(lead.surface_area || lead.surface_area_m2) || 0)
   const rawAnnualBill = Math.max(0, Number(lead.annual_electricity_bill || lead.annual_bill_eur) || 0)
@@ -2392,7 +2396,7 @@ function MarketplaceLeadCard({
             </div>
           </div>
           <span className="text-[10.5px] text-muted-foreground font-mono tabular-nums sm:hidden whitespace-nowrap">
-            {canTakeExclusive ? "Excl. 7 cr." : `${directFinancials.priceTtc.toFixed(2).replace(".", ",")} € TTC`}
+            {canTakeExclusive ? `Excl. ${exclusiveCredits} cr.` : `${directFinancials.priceTtc.toFixed(2).replace(".", ",")} € TTC`}
           </span>
         </div>
 

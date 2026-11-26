@@ -374,6 +374,13 @@ function MarketplaceLeadCardPreview({
   })
   const slotIndicator = getB2CSlotIndicator(remainingSlots)
   const canTakeExclusive = !isB2B && remainingSlots >= maxSlots && maxSlots > 1
+  const exclusivePriceHtva = Math.round(
+    calculateLeadDirectFinancials({
+      segment: lead.segment,
+      credit_cost: cost,
+      exclusive: true,
+    }).priceHtva
+  )
 
   const imageItems = getLeadImageItems(lead)
   const realPhotoIdx = imageItems.findIndex((img) => !img.isAiProjection)
@@ -473,9 +480,17 @@ function MarketplaceLeadCardPreview({
           <div className="absolute top-2.5 left-2.5 right-2.5 sm:top-3 sm:left-3 sm:right-3 flex items-center justify-between gap-2 pointer-events-none">
             {isB2B ? (
               <span className="inline-flex items-center rounded-full bg-black/75 backdrop-blur-xs text-white text-[11px] sm:text-xs font-semibold px-2.5 sm:px-3 py-1 sm:py-1.5 shadow-sm whitespace-nowrap">
-                <span className="sm:hidden">B2B Exclusif</span>
+                <span className="sm:hidden">{maxSlots <= 1 ? "B2B Exclusif" : `B2B · ${remainingSlots}/${maxSlots}`}</span>
                 <span className="hidden sm:inline">
-                  {tierMeta.label} · <span className="font-mono tabular-nums ml-1">100 %</span> Exclusif
+                  {maxSlots <= 1 ? (
+                    <>
+                      {tierMeta.label} · <span className="font-mono tabular-nums ml-1">100 %</span> Exclusif
+                    </>
+                  ) : (
+                    <>
+                      {tierMeta.label} · <span className="font-mono tabular-nums ml-1">{remainingSlots}/{maxSlots}</span> places
+                    </>
+                  )}
                 </span>
               </span>
             ) : (
@@ -598,7 +613,7 @@ function MarketplaceLeadCardPreview({
             )}
             {canTakeExclusive && (
               <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/25 text-[11px] font-bold font-mono tabular-nums">
-                <span>Exclusivité 100 % dispo (65 € HT)</span>
+                <span>Exclusivité 100 % dispo ({exclusivePriceHtva} € HT)</span>
               </div>
             )}
           </div>
@@ -976,7 +991,7 @@ export function MarketplaceLivePreview() {
                 }`}
               >
                 <span className="sm:hidden">B2B</span>
-                <span className="hidden sm:inline">B2B Exclusif</span>
+                <span className="hidden sm:inline">B2B Tertiaire</span>
                 <span
                   className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${
                     segmentFilter === "B2B"
@@ -1206,7 +1221,7 @@ export function MarketplaceLivePreview() {
                               : "bg-secondary text-foreground border border-border"
                           }`}
                         >
-                          {isB2B ? "B2B Exclusif" : `B2C (${remainingSlots}/${maxSlots})`}
+                          {isB2B ? (maxSlots <= 1 ? "B2B Exclusif" : `B2B (${remainingSlots}/${maxSlots})`) : `B2C (${remainingSlots}/${maxSlots})`}
                         </span>
                         <span className="font-mono text-[10px] text-muted-foreground flex items-center gap-1">
                           <span className={`h-1.5 w-1.5 rounded-full ${freshness.dotClass}`} />
@@ -1323,7 +1338,7 @@ export function MarketplaceLivePreview() {
                               : "bg-secondary text-foreground border border-border"
                           }`}
                         >
-                          {isB2B ? "B2B Exclusif" : `B2C (${remainingSlots}/${maxSlots})`}
+                          {isB2B ? (maxSlots <= 1 ? "B2B Exclusif" : `B2B (${remainingSlots}/${maxSlots})`) : `B2C (${remainingSlots}/${maxSlots})`}
                         </span>
                       </td>
 
@@ -1527,7 +1542,7 @@ export function MarketplaceLivePreview() {
                 <span className="text-[11px] text-muted-foreground block font-mono">Modèle choisi</span>
                 <strong className="text-foreground">
                   {leadForSignupModal.segment === "B2B"
-                    ? "B2B 100 % Exclusif"
+                    ? "B2B (Max 2 ou Exclusivité Totale)"
                     : signupIntentMode === "exclusive"
                       ? "Exclusivité Totale B2C (0 concurrent)"
                       : signupIntentMode === "direct"

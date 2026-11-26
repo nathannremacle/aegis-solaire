@@ -33,7 +33,7 @@ const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.aegissolaire.co
 export const metadata = {
   title: "Devenir Partenaire Installateur RESCERT | Marketplace Photovoltaïque Wallonie",
   description:
-    "Marketplace de chantiers solaires qualifiés en Wallonie : photos réelles, vue 3D du toit et téléphone vérifié par SMS (OTP). B2B 100 % exclusif, B2C Max 3 ou Exclusivité Totale (65 € HT), complément en euros sans crédit bloqué, alertes Auto-Pilot, packs jusqu'à -24 % et parrainage +3 crédits.",
+    "Marketplace de chantiers solaires qualifiés en Wallonie : photos réelles, vue 3D du toit et téléphone vérifié par SMS (OTP). B2B Max 2 ou Exclusivité Totale, B2C Max 3 ou Exclusivité Totale (59 à 119 € HT), complément en euros sans crédit bloqué, alertes Auto-Pilot, packs jusqu'à -24 % et parrainage +3 crédits.",
   alternates: {
     canonical: `${baseUrl}/partenaires`,
   },
@@ -235,7 +235,7 @@ export default function PartenairesPage() {
                 </div>
               </div>
 
-              {/* Carte 3 : B2B 100% Exclusif */}
+              {/* Carte 3 : B2B Max 2 ou Exclusif */}
               <div className="rounded-3xl border border-border bg-card p-6 sm:p-7 text-left shadow-xs flex flex-col justify-between gap-5">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between gap-2">
@@ -492,11 +492,11 @@ export default function PartenairesPage() {
                     <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-border">
                       <div className="flex items-center gap-2 text-xs">
                         <Check className="h-4 w-4 text-accent shrink-0 stroke-[2.5]" />
-                        <span>Résidentiel B2C : <strong className="font-mono tabular-nums text-foreground">19,50 € à 39,00 € HT</strong> (ou Exclusivité <strong className="font-mono tabular-nums">65,00 € HT</strong>)</span>
+                        <span>Résidentiel B2C : <strong className="font-mono tabular-nums text-foreground">19,50 € à 39,00 € HT</strong> (ou Exclusivité <strong className="font-mono tabular-nums">59 à 119 € HT</strong>)</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs">
                         <Check className="h-4 w-4 text-accent shrink-0 stroke-[2.5]" />
-                        <span>Tertiaire / PME B2B : <strong className="font-mono tabular-nums text-foreground">59,00 € à 118,00 € HT</strong> (<span className="font-mono tabular-nums">100 %</span> exclusif)</span>
+                        <span>Tertiaire / PME B2B : <strong className="font-mono tabular-nums text-foreground">79,00 € à 195,00 € HT</strong> (<span className="font-mono tabular-nums">max 2</span> ou Exclusivité)</span>
                       </div>
                     </div>
                   </div>
@@ -748,7 +748,7 @@ export default function PartenairesPage() {
                     ))}
                   </div>
                   <p className="text-xs sm:text-sm text-muted-foreground italic leading-relaxed">
-                    « La fin des leads vendus à <span className="font-mono tabular-nums">8</span> concurrents qui cassent les prix. En B2B comme en Exclusivité Totale B2C, on travaille sereinement sur des dossiers complets avec photos de la toiture. »
+                    « La fin des leads vendus à <span className="font-mono tabular-nums">8</span> concurrents qui cassent les prix. En B2B (<span className="font-mono tabular-nums">2</span> max ou exclusif) comme en Exclusivité Totale B2C, on travaille sereinement sur des dossiers complets avec photos de la toiture. »
                   </p>
                 </div>
                 <div className="pt-3 border-t border-border flex items-center justify-between">

@@ -298,7 +298,7 @@ export function buildRescertWaveInviteEmail(params: RescertWaveInviteParams): {
       { label: "Téléphone vérifié par SMS", value: "Validation obligatoire par code SMS (OTP) + contrôle opérateur" },
       { label: "Photos + vue 3D du toit", value: "Visuels du bâtiment & reconstitution 3D visibles avant déblocage" },
       { label: "Abonnement mensuel", value: "0 €/mois — aucun engagement ni forfait" },
-      { label: "Concurrence plafonnée", value: "Max 3 artisans B2C (ou Exclusivité 65 € HT) · B2B 100 % exclusif" },
+      { label: "Concurrence plafonnée", value: "Max 3 artisans B2C (ou Exclusivité dès 59 € HT) · Max 2 en B2B (ou exclusif)" },
       { label: "Garantie prospect joignable", value: "Injoignable après 3 essais → recrédit sous 24 h ouvrées" },
     ])}
 
@@ -353,7 +353,7 @@ export function buildRescertWaveInviteEmail(params: RescertWaveInviteParams): {
     "- 1er dossier B2C offert : 3 crédits offerts dès validation RESCERT (0 €/mois d'abonnement, sans carte bancaire)",
     "- Téléphone vérifié par SMS (code OTP) + contrôle ligne opérateur + adresse certifiée SPW ICAR",
     "- Photos réelles du bien + vue 3D indicative du toit visibles avant de débloquer",
-    "- Concurrence limitée à 3 installateurs max en B2C (ou Exclusivité Totale à 65 € HT) · B2B 100 % exclusif",
+    "- Concurrence limitée à 3 installateurs max en B2C (ou Exclusivité Totale dès 59 € HT) · Max 2 en B2B (ou exclusif)",
     "- Garantie prospect joignable : recrédit sous 24 h ouvrées",
     "",
     `Activer votre accès pré-rempli : ${inviteUrl}`,
