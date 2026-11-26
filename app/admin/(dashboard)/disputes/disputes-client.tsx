@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/table"
 import {
   ShieldAlert,
+  ShieldBan,
   ShieldCheck,
   CheckCircle2,
   XCircle,
@@ -43,6 +44,7 @@ import Link from "next/link"
 import { cn } from "@/lib/utils"
 import type { AdminDisputeRecord } from "@/lib/admin/disputes-data"
 import {
+  DEFAULT_DISPUTE_SUSPENSION_REASON,
   DISPUTE_ABUSE_THRESHOLD_PERCENT,
   getDisputeReasonConfig,
 } from "@/lib/disputes-policy"
@@ -75,6 +77,15 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
   const [selectedDisputeToReject, setSelectedDisputeToReject] = useState<DisputeItem | null>(null)
   const [rejectionNotes, setRejectionNotes] = useState("")
   const [rejecting, setRejecting] = useState(false)
+
+  // Modal de suspension / réactivation des litiges partenaire (Art. 5.6 CGV)
+  const [suspensionTargetPartner, setSuspensionTargetPartner] = useState<{
+    id: string
+    companyName: string
+    currentlySuspended: boolean
+  } | null>(null)
+  const [suspensionReason, setSuspensionReason] = useState(DEFAULT_DISPUTE_SUSPENSION_REASON)
+  const [savingSuspension, setSavingSuspension] = useState(false)
 
   const refreshDisputes = async () => {
     setLoading(true)
@@ -198,6 +209,59 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
       toast.error(err.message || "Erreur lors du rejet")
     } finally {
       setRejecting(false)
+    }
+  }
+
+  // Confirmer la suspension ou réactivation de la faculté de litige (Art. 5.6 CGV)
+  const handleConfirmToggleSuspension = async () => {
+    if (!suspensionTargetPartner) return
+    const nextSuspended = !suspensionTargetPartner.currentlySuspended
+    setSavingSuspension(true)
+    try {
+      const res = await fetch(`/api/admin/partners/${suspensionTargetPartner.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-request": "true",
+        },
+        body: JSON.stringify({
+          disputesSuspended: nextSuspended,
+          disputesSuspendedReason: nextSuspended ? suspensionReason.trim() : null,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Impossible de mettre à jour le statut de litige")
+      }
+
+      setDisputes((prev) =>
+        prev.map((d) =>
+          d.partner_id === suspensionTargetPartner.id && d.partners
+            ? {
+                ...d,
+                partners: {
+                  ...d.partners,
+                  disputes_suspended: nextSuspended,
+                  disputes_suspended_at: data.disputes_suspended_at ?? null,
+                  disputes_suspended_reason: data.disputes_suspended_reason ?? null,
+                },
+              }
+            : d
+        )
+      )
+
+      toast.success(
+        nextSuspended
+          ? `Faculté de litige suspendue pour ${suspensionTargetPartner.companyName} (Art. 5.6 CGV).`
+          : `Faculté de litige réactivée pour ${suspensionTargetPartner.companyName}.`
+      )
+      setSuspensionTargetPartner(null)
+      router.refresh()
+    } catch (err: any) {
+      toast.error(err.message || "Erreur lors de la mise à jour")
+    } finally {
+      setSavingSuspension(false)
     }
   }
 
@@ -497,8 +561,8 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
                         <span className="text-[11px] text-muted-foreground truncate pl-5">
                           {dispute.partners?.email || "—"}
                         </span>
-                        {stats30d && stats30d.purchases30d > 0 && (
-                          <div className="pl-5 pt-0.5 flex flex-wrap items-center gap-1.5">
+                        <div className="pl-5 pt-0.5 flex flex-wrap items-center gap-1.5">
+                          {stats30d && stats30d.purchases30d > 0 && (
                             <span
                               className={cn(
                                 "inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[10px] tabular-nums font-medium border",
@@ -511,8 +575,50 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
                               30j : {stats30d.disputes30d}/{stats30d.purchases30d} ({stats30d.disputeRatePct}%)
                               {stats30d.exceedsAbuseThreshold ? ` · >${DISPUTE_ABUSE_THRESHOLD_PERCENT}%` : ""}
                             </span>
-                          </div>
-                        )}
+                          )}
+                          {dispute.partners?.disputes_suspended && (
+                            <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold bg-destructive/15 text-destructive border border-destructive/30">
+                              <ShieldBan className="h-2.5 w-2.5" />
+                              Litiges suspendus
+                            </span>
+                          )}
+                          {dispute.partners?.id && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSuspensionReason(
+                                  dispute.partners?.disputes_suspended_reason ||
+                                    DEFAULT_DISPUTE_SUSPENSION_REASON
+                                )
+                                setSuspensionTargetPartner({
+                                  id: dispute.partners!.id,
+                                  companyName: dispute.partners!.company_name || "Installateur",
+                                  currentlySuspended: Boolean(dispute.partners?.disputes_suspended),
+                                })
+                              }}
+                              className={cn(
+                                "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium border transition-colors cursor-pointer",
+                                dispute.partners.disputes_suspended
+                                  ? "border-border bg-secondary hover:bg-secondary/80 text-foreground"
+                                  : stats30d?.exceedsAbuseThreshold
+                                    ? "border-destructive/40 bg-destructive/10 hover:bg-destructive/20 text-destructive font-semibold"
+                                    : "border-border bg-card hover:bg-secondary text-muted-foreground hover:text-foreground"
+                              )}
+                              title={
+                                dispute.partners.disputes_suspended
+                                  ? "Réactiver le dépôt de litiges pour cet installateur"
+                                  : "Suspendre la faculté de litige (CGV Art. 5.6)"
+                              }
+                            >
+                              <ShieldBan className="h-2.5 w-2.5" />
+                              <span>
+                                {dispute.partners.disputes_suspended
+                                  ? "Réactiver litiges"
+                                  : "Suspendre litiges"}
+                              </span>
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
 
@@ -798,6 +904,67 @@ export function DisputesClient({ initialDisputes }: DisputesClientProps) {
               disabled={rejecting}
             >
               {rejecting ? "Enregistrement…" : "Rejeter le litige"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialogue de Suspension / Réactivation des Litiges (Art. 5.6 CGV) */}
+      <Dialog
+        open={Boolean(suspensionTargetPartner)}
+        onOpenChange={(open) => !open && setSuspensionTargetPartner(null)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <ShieldBan className="h-5 w-5" />
+              <span>
+                {suspensionTargetPartner?.currentlySuspended
+                  ? "Réactiver la faculté de litige"
+                  : "Suspendre la faculté de litige (Art. 5.6 CGV)"}
+              </span>
+            </DialogTitle>
+            <DialogDescription>
+              {suspensionTargetPartner?.currentlySuspended
+                ? `L'installateur ${suspensionTargetPartner.companyName} pourra à nouveau déposer des contestations de leads.`
+                : `Bloque immédiatement le dépôt de nouveaux litiges pour ${suspensionTargetPartner?.companyName} (taux > ${DISPUTE_ABUSE_THRESHOLD_PERCENT} % ou abus manifeste).`}
+            </DialogDescription>
+          </DialogHeader>
+
+          {suspensionTargetPartner && !suspensionTargetPartner.currentlySuspended && (
+            <div className="flex flex-col gap-2 py-2">
+              <Label htmlFor="suspensionReason" className="text-xs">
+                Motif affiché à l&apos;installateur (Art. 5.6 CGV)
+              </Label>
+              <Textarea
+                id="suspensionReason"
+                value={suspensionReason}
+                onChange={(e) => setSuspensionReason(e.target.value)}
+                className="text-xs resize-none h-24"
+              />
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSuspensionTargetPartner(null)}
+              disabled={savingSuspension}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant={suspensionTargetPartner?.currentlySuspended ? "default" : "destructive"}
+              size="sm"
+              onClick={handleConfirmToggleSuspension}
+              disabled={savingSuspension}
+            >
+              {savingSuspension
+                ? "Enregistrement…"
+                : suspensionTargetPartner?.currentlySuspended
+                  ? "Confirmer la réactivation"
+                  : "Confirmer la suspension"}
             </Button>
           </DialogFooter>
         </DialogContent>

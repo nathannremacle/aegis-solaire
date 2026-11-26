@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
+import { revalidatePath, revalidateTag } from "next/cache"
 import { getAdminUser } from "@/lib/admin-auth"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
+import { setPartnerDisputePrivilege } from "@/lib/partner-dispute-privilege"
 
 export async function PATCH(
   request: NextRequest,
@@ -12,6 +14,34 @@ export async function PATCH(
   const { id } = await params
   const body = await request.json()
   const supabase = createServiceRoleClient()
+
+  if (typeof body.disputesSuspended === "boolean") {
+    const result = await setPartnerDisputePrivilege({
+      supabase,
+      partnerId: id,
+      suspended: body.disputesSuspended,
+      reason:
+        typeof body.disputesSuspendedReason === "string"
+          ? body.disputesSuspendedReason
+          : null,
+      adminEmail: user.email || "contact@aegissolaire.com",
+    })
+
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status })
+    }
+
+    revalidateTag("admin-badges", "max")
+    revalidatePath("/admin/disputes")
+    revalidatePath("/admin/partners")
+    revalidatePath("/partenaires/dashboard")
+
+    return NextResponse.json({
+      success: true,
+      partnerId: id,
+      ...result.data,
+    })
+  }
 
   if (typeof body.addCredits === "number" && body.addCredits > 0) {
     const { data: newCredits, error } = await supabase.rpc("add_credits", {

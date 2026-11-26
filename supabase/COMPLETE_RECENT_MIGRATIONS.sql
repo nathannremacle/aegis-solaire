@@ -1289,3 +1289,18 @@ $$;
 
 REVOKE ALL ON FUNCTION public.reward_partner_referral_if_eligible(uuid, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.reward_partner_referral_if_eligible(uuid, text) TO service_role;
+
+
+-- ==============================================================================
+-- MIGRATION : 202611260001_partner_dispute_suspension.sql
+-- ==============================================================================
+
+ALTER TABLE public.partners
+  ADD COLUMN IF NOT EXISTS disputes_suspended boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS disputes_suspended_at timestamptz,
+  ADD COLUMN IF NOT EXISTS disputes_suspended_reason text,
+  ADD COLUMN IF NOT EXISTS disputes_suspended_by text;
+
+CREATE INDEX IF NOT EXISTS idx_partners_disputes_suspended
+  ON public.partners (disputes_suspended)
+  WHERE disputes_suspended = true;

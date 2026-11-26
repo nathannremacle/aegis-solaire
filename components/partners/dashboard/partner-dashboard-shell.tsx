@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
 import dynamic from "next/dynamic"
-import { Coins, Store, Briefcase, Bell, LogOut, FileText, ShieldCheck, Users2, Sparkles, ArrowRight, Menu, X, ChevronRight, CheckCircle2 } from "lucide-react"
+import { Coins, Store, Briefcase, Bell, LogOut, FileText, ShieldCheck, Users2, Sparkles, ArrowRight, Menu, X, ChevronRight, CheckCircle2, Award } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { MarketplaceFeedView } from "./marketplace-feed-view"
@@ -17,6 +17,7 @@ const AlertPreferencesModal = dynamic(() => import("./modals/alert-preferences-m
 const CreditPacksModal = dynamic(() => import("./modals/credit-packs-modal"), { ssr: false })
 const ExpertStudyModal = dynamic(() => import("./modals/expert-study-modal"), { ssr: false })
 const PartnerReferralModal = dynamic(() => import("./modals/partner-referral-modal"), { ssr: false })
+const PartnerToolsBadgeModal = dynamic(() => import("./modals/partner-tools-badge-modal"), { ssr: false })
 
 export interface PartnerDashboardShellProps {
   initialPartner: any
@@ -71,6 +72,7 @@ export function PartnerDashboardShell({
   const [isCreditsOpen, setIsCreditsOpen] = React.useState(false)
   const [isExpertOpen, setIsExpertOpen] = React.useState(false)
   const [isReferralOpen, setIsReferralOpen] = React.useState(false)
+  const [isToolsOpen, setIsToolsOpen] = React.useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false)
   const [selectedLeadForExpert, setSelectedLeadForExpert] = React.useState<any | null>(null)
   const sessionTrackedRef = React.useRef(false)
@@ -330,6 +332,16 @@ export function PartnerDashboardShell({
                 <span className="hidden xl:inline rounded bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] font-mono tabular-nums text-[10px] px-1.5 py-0.2 font-bold">
                   +3 cr.
                 </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsToolsOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-xl px-2 sm:px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer whitespace-nowrap shrink-0"
+                title="Récupérer mon badge RESCERT Vérifié & Calculateur DPI 40 %"
+              >
+                <Award className="h-3.5 w-3.5 text-accent shrink-0" />
+                <span className="hidden lg:inline">Badge &amp; Outils</span>
               </button>
 
               <Link
@@ -717,6 +729,16 @@ export function PartnerDashboardShell({
                 <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
               </button>
 
+              <button
+                type="button"
+                onClick={() => setIsToolsOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-xl px-2 sm:px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer whitespace-nowrap shrink-0"
+                title="Récupérer mon badge RESCERT Vérifié & Calculateur DPI 40 %"
+              >
+                <Award className="h-3.5 w-3.5 text-accent shrink-0" />
+                <span className="hidden lg:inline">Badge &amp; Outils</span>
+              </button>
+
               <Link
                 href="/partenaires/dashboard/credits"
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -735,6 +757,28 @@ export function PartnerDashboardShell({
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
               </Link>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(false)
+                  setIsToolsOpen(true)
+                }}
+                className="w-full min-h-[52px] flex items-center justify-between gap-3 rounded-xl border border-border bg-card hover:bg-secondary/50 px-3.5 py-2.5 text-left transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                    <Award className="h-4.5 w-4.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-sm font-bold text-foreground block">Badge RESCERT &amp; DPI 40 %</span>
+                    <span className="text-xs text-muted-foreground block">
+                      Widget site web + Note CFO PDF marque blanche
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              </button>
 
               <button
                 type="button"
@@ -780,6 +824,8 @@ export function PartnerDashboardShell({
       {disputePurchase && (
         <DisputeClaimModal
           purchase={disputePurchase}
+          disputesSuspended={Boolean(initialPartner?.disputes_suspended)}
+          disputesSuspendedReason={initialPartner?.disputes_suspended_reason ?? null}
           onSuccess={(createdDispute) => {
             setPortfolio((prev) =>
               prev.map((item) =>
@@ -823,6 +869,12 @@ export function PartnerDashboardShell({
         <PartnerReferralModal
           partner={initialPartner}
           onClose={() => setIsReferralOpen(false)}
+        />
+      )}
+      {isToolsOpen && (
+        <PartnerToolsBadgeModal
+          partner={initialPartner}
+          onClose={() => setIsToolsOpen(false)}
         />
       )}
     </div>

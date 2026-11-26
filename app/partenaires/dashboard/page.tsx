@@ -10,6 +10,7 @@ import {
   isShowcaseOnlyLeadId,
 } from "@/lib/regional-leads-catalog"
 import { resolvePartnerSegment } from "@/lib/partner-notification-prefs"
+import { fetchPartnerDisputePrivilege } from "@/lib/partner-dispute-privilege"
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -131,6 +132,7 @@ async function PartnerDashboardLoader({
   let initialPartner = partnerRow
   let initialMarketplace: any[] = []
   let initialPortfolio: any[] = []
+  const disputePrivilegePromise = fetchPartnerDisputePrivilege(admin, partnerId)
 
   let rpcSuccess = false
   // 1. Appel de la RPC atomique get_partner_dashboard_init
@@ -373,6 +375,14 @@ async function PartnerDashboardLoader({
       .slice(0, 6)
   } catch (closedErr) {
     console.warn("[partner-dashboard] recently closed leads fallback:", closedErr)
+  }
+
+  const disputePrivilege = await disputePrivilegePromise
+  initialPartner = {
+    ...initialPartner,
+    disputes_suspended: disputePrivilege.disputes_suspended,
+    disputes_suspended_at: disputePrivilege.disputes_suspended_at,
+    disputes_suspended_reason: disputePrivilege.disputes_suspended_reason,
   }
 
   return (

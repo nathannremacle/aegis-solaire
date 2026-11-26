@@ -19,6 +19,9 @@ export type PartnerRow = {
   auth_user_id: string | null
   created_at: string
   updated_at: string
+  disputes_suspended?: boolean
+  disputes_suspended_at?: string | null
+  disputes_suspended_reason?: string | null
 }
 
 const PARTNER_SELECT_COLUMNS =

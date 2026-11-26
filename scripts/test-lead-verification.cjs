@@ -555,6 +555,8 @@ test("Soft OTP & Politique de Litiges alignée : non-bloquant à la soumission, 
   const thirtyHoursAgo = new Date(now - 30 * 60 * 60 * 1000).toISOString()
   const elevenDaysAgo = new Date(now - 11 * 24 * 60 * 60 * 1000).toISOString()
   const validDetails = "Appelé le 18/11 à 10h, 15h et 19/11 à 11h + SMS envoyé sans réponse."
+  const validWrongNumberDetails =
+    "Appelé le 18/11 à 10h15, message opérateur numéro non attribué et e-mail en erreur."
 
   const tooEarlyUnreachable = disputesPolicy.checkDisputeEligibility({
     reason: "unreachable",
@@ -573,9 +575,86 @@ test("Soft OTP & Politique de Litiges alignée : non-bloquant à la soumission, 
     reason: "wrong_number",
     purchasedAt: twoHoursAgo,
     nowMs: now,
-    details: validDetails,
+    details: validWrongNumberDetails,
+    wrongNumberProof: "operator_unassigned",
+    requireWrongNumberProof: true,
   })
   assert.equal(immediateWrongNumber.eligible, true)
+
+  // Garde-fou anti-contournement : "Ne répond pas après 6 appelés" sous wrong_number doit être bloqué
+  const misclassifiedWrongNumber = disputesPolicy.checkDisputeEligibility({
+    reason: "wrong_number",
+    purchasedAt: twoHoursAgo,
+    nowMs: now,
+    details: "Ne répond pas après 6 appelés",
+    contactPreference: "written_first",
+    wrongNumberProof: "operator_unassigned",
+    requireWrongNumberProof: true,
+    phoneVerified: true,
+    wrongNumberVerifiedAck: true,
+  })
+  assert.equal(misclassifiedWrongNumber.eligible, false)
+  assert.equal(misclassifiedWrongNumber.code, "MISCLASSIFIED_UNREACHABLE")
+  assert.match(misclassifiedWrongNumber.error, /Écrit d'abord/)
+
+  const missingProofWrongNumber = disputesPolicy.checkDisputeEligibility({
+    reason: "wrong_number",
+    purchasedAt: twoHoursAgo,
+    nowMs: now,
+    details: validWrongNumberDetails,
+    requireWrongNumberProof: true,
+  })
+  assert.equal(missingProofWrongNumber.eligible, false)
+  assert.equal(missingProofWrongNumber.code, "WRONG_NUMBER_PROOF_REQUIRED")
+
+  const missingOtpAckWrongNumber = disputesPolicy.checkDisputeEligibility({
+    reason: "wrong_number",
+    purchasedAt: twoHoursAgo,
+    nowMs: now,
+    details: validWrongNumberDetails,
+    wrongNumberProof: "operator_unassigned",
+    requireWrongNumberProof: true,
+    phoneVerified: true,
+    wrongNumberVerifiedAck: false,
+  })
+  assert.equal(missingOtpAckWrongNumber.eligible, false)
+  assert.equal(missingOtpAckWrongNumber.code, "WRONG_NUMBER_VERIFIED_ACK_REQUIRED")
+
+  const validOtpAckWrongNumber = disputesPolicy.checkDisputeEligibility({
+    reason: "wrong_number",
+    purchasedAt: twoHoursAgo,
+    nowMs: now,
+    details: validWrongNumberDetails,
+    wrongNumberProof: "operator_unassigned",
+    requireWrongNumberProof: true,
+    phoneVerified: true,
+    wrongNumberVerifiedAck: true,
+  })
+  assert.equal(validOtpAckWrongNumber.eligible, true)
+
+  // Garde-fou exclusions Art. 5.4 CGV sous motif 'other'
+  for (const excludedText of [
+    "La personne a changé d avis ne veut plus installer de panneaux.",
+    "Le prospect trouve le devis trop cher et refuse le devis.",
+    "Présence d'amiante découverte sur la toiture lors de la visite.",
+  ]) {
+    const resArt54 = disputesPolicy.checkDisputeEligibility({
+      reason: "other",
+      purchasedAt: twoHoursAgo,
+      nowMs: now,
+      details: excludedText,
+    })
+    assert.equal(resArt54.eligible, false, `Aurait dû bloquer Art. 5.4 : ${excludedText}`)
+    assert.equal(resArt54.code, "EXCLUDED_BY_ART_5_4")
+  }
+
+  const validOtherAnomaly = disputesPolicy.checkDisputeEligibility({
+    reason: "other",
+    purchasedAt: twoHoursAgo,
+    nowMs: now,
+    details: "Fausse identité manifeste sur la fiche : nom et adresse totalement incohérents.",
+  })
+  assert.equal(validOtherAnomaly.eligible, true)
 
   const missingDiligence = disputesPolicy.checkDisputeEligibility({
     reason: "unreachable",

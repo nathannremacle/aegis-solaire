@@ -11,6 +11,28 @@ export type DisputeReasonId =
   | "duplicate"
   | "other"
 
+export type WrongNumberProofId = "operator_unassigned" | "email_bounce"
+
+export const WRONG_NUMBER_PROOF_OPTIONS: Array<{
+  id: WrongNumberProofId
+  label: string
+  description: string
+}> = [
+  {
+    id: "operator_unassigned",
+    label: "Numéro non attribué / hors service (message opérateur)",
+    description: "Annonce réseau formelle « numéro non attribué » ou ligne inexistante",
+  },
+  {
+    id: "email_bounce",
+    label: "Adresse e-mail en erreur technique permanente (rebond / bounce)",
+    description: "Retour SMTP « Address not found » / « User unknown »",
+  },
+]
+
+export const DEFAULT_DISPUTE_SUSPENSION_REASON =
+  "Suspension de la garantie Lead (Art. 5.6 CGV) suite au dépassement du seuil contractuel de 8 % de litiges sur 30 jours glissants ou soumission de réclamations non conformes."
+
 export type DisputeStatus = "pending" | "approved" | "rejected"
 
 export const DISPUTE_MAX_WINDOW_DAYS = 10 // Équivalent contractuel de 7 jours ouvrés
@@ -128,8 +150,147 @@ export interface DisputeEligibilityResult {
     | "TOO_EARLY_FOR_UNREACHABLE"
     | "DETAILS_TOO_SHORT"
     | "DILIGENCE_NOT_CONFIRMED"
+    | "MISCLASSIFIED_UNREACHABLE"
+    | "WRONG_NUMBER_PROOF_REQUIRED"
+    | "WRONG_NUMBER_VERIFIED_ACK_REQUIRED"
+    | "EXCLUDED_BY_ART_5_4"
   error?: string
   remainingHoursForUnreachable?: number
+}
+
+function normalizeDisputeText(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/['’`]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+/**
+ * Détecte si une justification soumise sous `wrong_number` décrit en réalité
+ * un prospect qui ne répond pas aux appels (motif `unreachable`, CGV Art. 5.3.2).
+ */
+export function detectUnreachableClaimInWrongNumber(details: string | null | undefined): boolean {
+  const norm = normalizeDisputeText(details ?? "")
+  if (!norm) return false
+
+  const explicitTechnicalKeywords = [
+    "non attribue",
+    "pas attribue",
+    "hors service",
+    "inexistant",
+    "n existe pas",
+    "numero invalide",
+    "faux numero",
+    "numero errone",
+    "rebond",
+    "bounce",
+    "undeliverable",
+    "address not found",
+    "user unknown",
+    "boite introuvable",
+    "adresse introuvable",
+  ]
+  if (explicitTechnicalKeywords.some((kw) => norm.includes(kw))) {
+    return false
+  }
+
+  const unreachablePatterns = [
+    /\bne\s+repond(?:s|ent)?\s+pas\b/,
+    /\brepond\s+pas\b/,
+    /\bpas\s+de\s+reponse\b/,
+    /\bsans\s+reponse\b/,
+    /\baucune\s+reponse\b/,
+    /\binjoignable\b/,
+    /\bne\s+decroche\s+pas\b/,
+    /\bdecroche\s+pas\b/,
+    /\bsonne\s+dans\s+le\s+vide\b/,
+    /\brepondeur\b/,
+    /\bmessagerie\s+vocale\b/,
+    /\bboite\s+vocale\b/,
+    /\b\d+\s*(?:appel|appels|appeles|tentatives?)\b/,
+  ]
+  return unreachablePatterns.some((re) => re.test(norm))
+}
+
+export type Art54ExclusionCategory = "changed_mind" | "price_or_quote" | "roof_constraint"
+
+/**
+ * Détecte sous le motif `other` les situations expressément exclues de la garantie
+ * par l'article 5.4 des CGV (prospect ayant changé d'avis, refus de devis/budget,
+ * ou contrainte technique découverte sur site).
+ */
+export function detectExcludedReasonArt54(
+  details: string | null | undefined
+): { excluded: boolean; category?: Art54ExclusionCategory; error?: string } {
+  const norm = normalizeDisputeText(details ?? "")
+  if (!norm) return { excluded: false }
+
+  const changedMindPatterns = [
+    /\b(?:a|ont)\s+change\s+d\s+avis\b/,
+    /\bchange\s+d\s+avis\b/,
+    /\bchangement\s+d\s+avis\b/,
+    /\bne\s+veut\s+plus\b/,
+    /\bn\s+en\s+veut\s+plus\b/,
+    /\bne\s+souhaite\s+plus\b/,
+    /\bplus\s+interesse(?:e|s)?\b/,
+    /\bpas\s+interesse(?:e|s)?\b/,
+    /\brenonce\s+(?:a|au)\b/,
+    /\babandonne\s+(?:le|son)\s+projet\b/,
+    /\bannule\s+son\s+projet\b/,
+  ]
+  if (changedMindPatterns.some((re) => re.test(norm))) {
+    return {
+      excluded: true,
+      category: "changed_mind",
+      error:
+        "Motif exclu par l'article 5.4 des CGV : un prospect qui a été joint et a changé d'avis ou renonce à son projet ne donne pas droit à un recrédit.",
+    }
+  }
+
+  const priceOrQuotePatterns = [
+    /\btrop\s+cher\b/,
+    /\brefuse\s+le\s+devis\b/,
+    /\brefus\s+du\s+devis\b/,
+    /\bhors\s+budget\b/,
+    /\bbudget\s+insuffisant\b/,
+    /\btrouve\s+moins\s+cher\b/,
+    /\bpas\s+d\s+accord\s+(?:sur|avec)\s+le\s+(?:prix|tarif|devis)\b/,
+  ]
+  if (priceOrQuotePatterns.some((re) => re.test(norm))) {
+    return {
+      excluded: true,
+      category: "price_or_quote",
+      error:
+        "Motif exclu par l'article 5.4 des CGV : le refus de votre proposition tarifaire, du dimensionnement ou des délais de pose ne donne pas droit à un recrédit.",
+    }
+  }
+
+  const roofConstraintPatterns = [
+    /\bamiante\b/,
+    /\bardoises?\s+friables?\b/,
+    /\btoiture\s+(?:vetuste|trop\s+fragile|inadaptee)\b/,
+    /\bcharpente\s+(?:trop\s+faible|vetuste)\b/,
+    /\bcapacite\s+reseau\b/,
+  ]
+  if (roofConstraintPatterns.some((re) => re.test(norm))) {
+    return {
+      excluded: true,
+      category: "roof_constraint",
+      error:
+        "Motif exclu par l'article 5.4 des CGV : les contraintes techniques du bâtiment ou du réseau découvertes en visite technique (amiante, ardoises friables, RGIE, GRD) ne sont pas couvertes par la garantie.",
+    }
+  }
+
+  return { excluded: false }
+}
+
+export function getWrongNumberProofLabel(proof: WrongNumberProofId): string {
+  return (
+    WRONG_NUMBER_PROOF_OPTIONS.find((opt) => opt.id === proof)?.label ?? proof
+  )
 }
 
 export function checkDisputeEligibility(params: {
@@ -140,6 +301,11 @@ export function checkDisputeEligibility(params: {
   contactPreference?: string | null
   diligenceConfirmed?: boolean
   skipDetailsCheck?: boolean
+  wrongNumberProof?: WrongNumberProofId | null
+  requireWrongNumberProof?: boolean
+  phoneVerified?: boolean | null
+  emailVerified?: boolean | null
+  wrongNumberVerifiedAck?: boolean
 }): DisputeEligibilityResult {
   const nowMs = params.nowMs ?? Date.now()
 
@@ -191,8 +357,61 @@ export function checkDisputeEligibility(params: {
     }
   }
 
+  if (params.reason === "wrong_number") {
+    if (
+      params.requireWrongNumberProof &&
+      params.wrongNumberProof !== "operator_unassigned" &&
+      params.wrongNumberProof !== "email_bounce"
+    ) {
+      return {
+        eligible: false,
+        code: "WRONG_NUMBER_PROOF_REQUIRED",
+        error:
+          "Précisez l'anomalie technique constatée : message opérateur « numéro non attribué » ou rebond e-mail permanent.",
+      }
+    }
+
+    const chosenChannelVerified =
+      (params.wrongNumberProof === "operator_unassigned" && Boolean(params.phoneVerified)) ||
+      (params.wrongNumberProof === "email_bounce" && Boolean(params.emailVerified)) ||
+      (!params.wrongNumberProof && (Boolean(params.phoneVerified) || Boolean(params.emailVerified)))
+
+    if (chosenChannelVerified && params.wrongNumberVerifiedAck === false) {
+      return {
+        eligible: false,
+        code: "WRONG_NUMBER_VERIFIED_ACK_REQUIRED",
+        error:
+          "Ce canal a été techniquement vérifié (Tél OTP / Mail OK). Confirmez avoir constaté une erreur réseau ou serveur formelle et non une absence de réponse.",
+      }
+    }
+  }
+
   if (!params.skipDetailsCheck) {
-    const len = (params.details ?? "").trim().length
+    const trimmed = (params.details ?? "").trim()
+    if (params.reason === "wrong_number" && detectUnreachableClaimInWrongNumber(trimmed)) {
+      const writtenHint =
+        params.contactPreference === "written_first"
+          ? " et avec au moins 1 contact écrit préalable (préférence « Écrit d'abord »)"
+          : ""
+      return {
+        eligible: false,
+        code: "MISCLASSIFIED_UNREACHABLE",
+        error: `Un prospect qui ne répond pas aux appels ne relève pas du motif « Numéro erroné / e-mail inexistant ». Sélectionnez « Prospect injoignable après 3 tentatives sur ≥ 24 h »${writtenHint} (Art. 5.3 CGV).`,
+      }
+    }
+
+    if (params.reason === "other") {
+      const art54Check = detectExcludedReasonArt54(trimmed)
+      if (art54Check.excluded) {
+        return {
+          eligible: false,
+          code: "EXCLUDED_BY_ART_5_4",
+          error: art54Check.error,
+        }
+      }
+    }
+
+    const len = trimmed.length
     if (len < MIN_DISPUTE_DETAILS_LENGTH) {
       return {
         eligible: false,

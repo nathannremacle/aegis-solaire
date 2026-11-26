@@ -9,8 +9,11 @@ import {
   checkDisputeEligibility,
   computePartnerDisputeStats30d,
   getDisputeReasonConfig,
+  getWrongNumberProofLabel,
   type DisputeReasonId,
+  type WrongNumberProofId,
 } from "@/lib/disputes-policy"
+import { fetchPartnerDisputePrivilege } from "@/lib/partner-dispute-privilege"
 import {
   getEmailSiteBaseUrl,
   renderActionBox,
@@ -30,19 +33,30 @@ export async function GET() {
   const admin = createServiceRoleClient()
 
   try {
-    const { data: disputes, error } = await admin
-      .from("lead_disputes")
-      .select("id, lead_id, purchase_id, reason, details, status, admin_notes, credits_refunded, created_at, resolved_at")
-      .eq("partner_id", partner.id)
-      .order("created_at", { ascending: false })
+    const [{ data: disputes, error }, privilege] = await Promise.all([
+      admin
+        .from("lead_disputes")
+        .select("id, lead_id, purchase_id, reason, details, status, admin_notes, credits_refunded, created_at, resolved_at")
+        .eq("partner_id", partner.id)
+        .order("created_at", { ascending: false }),
+      fetchPartnerDisputePrivilege(admin, partner.id),
+    ])
 
     if (error) {
-      return NextResponse.json({ disputes: [] })
+      return NextResponse.json({
+        disputes: [],
+        disputesSuspended: privilege.disputes_suspended,
+        disputesSuspendedReason: privilege.disputes_suspended_reason,
+      })
     }
 
-    return NextResponse.json({ disputes: disputes ?? [] })
+    return NextResponse.json({
+      disputes: disputes ?? [],
+      disputesSuspended: privilege.disputes_suspended,
+      disputesSuspendedReason: privilege.disputes_suspended_reason,
+    })
   } catch {
-    return NextResponse.json({ disputes: [] })
+    return NextResponse.json({ disputes: [], disputesSuspended: false, disputesSuspendedReason: null })
   }
 }
 
@@ -52,12 +66,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
   }
 
+  const admin = createServiceRoleClient()
+  const privilege = await fetchPartnerDisputePrivilege(admin, partner.id)
+  if (privilege.disputes_suspended) {
+    return NextResponse.json(
+      {
+        error:
+          "La faculté de déclarer de nouveaux litiges est actuellement suspendue sur votre compte conformément à l'article 5.6 des CGV. Contactez contact@aegissolaire.com.",
+        code: "DISPUTES_SUSPENDED",
+        reason: privilege.disputes_suspended_reason,
+      },
+      { status: 403 }
+    )
+  }
+
   let body: {
     leadId?: string
     purchaseId?: string
     reason?: DisputeReasonId
     details?: string
     diligenceConfirmed?: boolean
+    wrongNumberProof?: WrongNumberProofId
+    wrongNumberVerifiedAck?: boolean
   }
 
   try {
@@ -66,7 +96,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Corps de requête invalide" }, { status: 400 })
   }
 
-  const { leadId, purchaseId, reason, details, diligenceConfirmed } = body
+  const {
+    leadId,
+    purchaseId,
+    reason,
+    details,
+    diligenceConfirmed,
+    wrongNumberProof,
+    wrongNumberVerifiedAck,
+  } = body
   const trimmedDetails = details?.trim() || ""
 
   if (!leadId || !purchaseId || !reason || !trimmedDetails) {
@@ -76,8 +114,6 @@ export async function POST(request: Request) {
   if (!VALID_DISPUTE_REASON_IDS.includes(reason)) {
     return NextResponse.json({ error: "Motif de réclamation non reconnu." }, { status: 400 })
   }
-
-  const admin = createServiceRoleClient()
 
   // Vérifier la légitimité de l'achat + métadonnées du lead (contact_preference, vérifications)
   const { data: purchase, error: purchaseErr } = await admin
@@ -100,7 +136,7 @@ export async function POST(request: Request) {
     leadRel?.qualification_metadata?.contactPreference ||
     null
 
-  // Vérifier les règles contractuelles (Article 5 des CGV : fenêtre 7j ouvrés, délai min 24h si injoignable, diligence, 20 car. min)
+  // Vérifier les règles contractuelles (Article 5 des CGV : fenêtre 7j ouvrés, délai min 24h si injoignable, diligence, 20 car. min, garde-fou wrong_number)
   const eligibility = checkDisputeEligibility({
     reason,
     purchasedAt: purchase.purchased_at,
@@ -108,11 +144,17 @@ export async function POST(request: Request) {
     contactPreference,
     diligenceConfirmed:
       typeof diligenceConfirmed === "boolean" ? diligenceConfirmed : undefined,
+    wrongNumberProof: wrongNumberProof ?? null,
+    requireWrongNumberProof: reason === "wrong_number",
+    phoneVerified: Boolean(leadRel?.phone_verified),
+    emailVerified: Boolean(leadRel?.email_verified),
+    wrongNumberVerifiedAck:
+      typeof wrongNumberVerifiedAck === "boolean" ? wrongNumberVerifiedAck : undefined,
   })
 
   if (!eligibility.eligible) {
     return NextResponse.json(
-      { error: eligibility.error || "Réclamation non recevable." },
+      { error: eligibility.error || "Réclamation non recevable.", code: eligibility.code },
       { status: 400 }
     )
   }
@@ -130,6 +172,11 @@ export async function POST(request: Request) {
     }, { status: 409 })
   }
 
+  const storedDetails =
+    reason === "wrong_number" && wrongNumberProof
+      ? `[${getWrongNumberProofLabel(wrongNumberProof)}] ${trimmedDetails}`
+      : trimmedDetails
+
   const { data: dispute, error: insertErr } = await admin
     .from("lead_disputes")
     .insert({
@@ -137,7 +184,7 @@ export async function POST(request: Request) {
       purchase_id: purchaseId,
       lead_id: leadId,
       reason,
-      details: trimmedDetails,
+      details: storedDetails,
       status: "pending",
       credits_refunded: 0,
     })

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,7 @@ import {
   Plus,
   Eye,
   AlertTriangle,
+  ShieldBan,
   ShieldCheck,
   CheckCircle2,
   ExternalLink,
@@ -50,6 +52,11 @@ import { cn } from "@/lib/utils"
 import { AdminNetworkInviteHub } from "@/components/admin/admin-network-invite-hub"
 import { PartnerPurchasesDialog } from "@/components/admin/partner-purchases-dialog"
 import type { PartnerTelemetryAnalytics } from "@/lib/partner-telemetry"
+import {
+  DEFAULT_DISPUTE_SUSPENSION_REASON,
+  DISPUTE_ABUSE_THRESHOLD_PERCENT,
+  type PartnerDisputeStats30d,
+} from "@/lib/disputes-policy"
 
 /* ═══════════════════════════════════════════════════════
    Types
@@ -92,6 +99,10 @@ type Partner = {
   target_provinces: string[] | null
   created_at: string
   is_test?: boolean
+  disputes_suspended?: boolean
+  disputes_suspended_at?: string | null
+  disputes_suspended_reason?: string | null
+  disputeStats30d?: PartnerDisputeStats30d
   stats: {
     leadsPurchased: number
     creditsSpent: number
@@ -159,6 +170,11 @@ export default function AdminPartnersPage() {
   // Modale des achats de leads
   const [purchasesModalPartner, setPurchasesModalPartner] = useState<Partner | null>(null)
   const [deepLinkHandled, setDeepLinkHandled] = useState(false)
+
+  // Modale de suspension / réactivation de la faculté de litige (Art. 5.6 CGV)
+  const [disputeSuspensionPartner, setDisputeSuspensionPartner] = useState<Partner | null>(null)
+  const [disputeSuspensionReason, setDisputeSuspensionReason] = useState(DEFAULT_DISPUTE_SUSPENSION_REASON)
+  const [savingDisputeSuspension, setSavingDisputeSuspension] = useState(false)
 
   // Charger les partenaires
   const loadPartners = async () => {
@@ -253,6 +269,51 @@ export default function AdminPartnersPage() {
   // Consulter les achats d'un partenaire
   function openPurchases(partner: Partner) {
     setPurchasesModalPartner(partner)
+  }
+
+  async function handleToggleDisputeSuspension() {
+    if (!disputeSuspensionPartner) return
+    const nextSuspended = !Boolean(disputeSuspensionPartner.disputes_suspended)
+    setSavingDisputeSuspension(true)
+    try {
+      const res = await fetch(`/api/admin/partners/${disputeSuspensionPartner.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-request": "true",
+        },
+        body: JSON.stringify({
+          disputesSuspended: nextSuspended,
+          disputesSuspendedReason: nextSuspended ? disputeSuspensionReason.trim() : null,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Erreur lors de la mise à jour")
+      }
+      setPartners((prev) =>
+        prev.map((p) =>
+          p.id === disputeSuspensionPartner.id
+            ? {
+                ...p,
+                disputes_suspended: nextSuspended,
+                disputes_suspended_at: data.disputes_suspended_at ?? null,
+                disputes_suspended_reason: data.disputes_suspended_reason ?? null,
+              }
+            : p
+        )
+      )
+      toast.success(
+        nextSuspended
+          ? `Litiges suspendus pour ${disputeSuspensionPartner.company_name} (Art. 5.6 CGV).`
+          : `Litiges réactivés pour ${disputeSuspensionPartner.company_name}.`
+      )
+      setDisputeSuspensionPartner(null)
+    } catch (err: any) {
+      toast.error(err.message || "Erreur lors de la mise à jour du statut litige")
+    } finally {
+      setSavingDisputeSuspension(false)
+    }
   }
 
   async function openPartnerActivity(partner: Partner) {
@@ -1172,6 +1233,24 @@ export default function AdminPartnersPage() {
                                 CERTIFIÉ
                               </Badge>
                             )}
+                            {partner.disputes_suspended && (
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] font-mono py-0 h-4 bg-destructive/15 text-destructive border-destructive/30 font-semibold"
+                                title={partner.disputes_suspended_reason || "Faculté de litige suspendue (Art. 5.6 CGV)"}
+                              >
+                                LITIGES SUSPENDUS
+                              </Badge>
+                            )}
+                            {partner.disputeStats30d?.exceedsAbuseThreshold && (
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] font-mono tabular-nums py-0 h-4 bg-destructive/10 text-destructive border-destructive/30 font-semibold"
+                                title={`Ratio litiges 30j > ${DISPUTE_ABUSE_THRESHOLD_PERCENT} % (Art. 5.6 CGV)`}
+                              >
+                                30j : {partner.disputeStats30d.disputes30d}/{partner.disputeStats30d.purchases30d} ({partner.disputeStats30d.disputeRatePct}%)
+                              </Badge>
+                            )}
                           </div>
                           <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                             <span className="flex items-center gap-1">
@@ -1327,6 +1406,31 @@ export default function AdminPartnersPage() {
                           >
                             <Eye className="h-3 w-3" />
                             <span>Achats</span>
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant={partner.disputes_suspended ? "secondary" : "outline"}
+                            className={cn(
+                              "h-7 text-xs gap-1",
+                              !partner.disputes_suspended && partner.disputeStats30d?.exceedsAbuseThreshold
+                                ? "border-destructive/40 text-destructive hover:bg-destructive/10"
+                                : ""
+                            )}
+                            onClick={() => {
+                              setDisputeSuspensionReason(
+                                partner.disputes_suspended_reason || DEFAULT_DISPUTE_SUSPENSION_REASON
+                              )
+                              setDisputeSuspensionPartner(partner)
+                            }}
+                            title={
+                              partner.disputes_suspended
+                                ? "Réactiver le dépôt de litiges"
+                                : "Suspendre la faculté de litige (Art. 5.6 CGV)"
+                            }
+                          >
+                            <ShieldBan className="h-3 w-3" />
+                            <span>{partner.disputes_suspended ? "Réactiver" : "Litiges"}</span>
                           </Button>
                         </div>
                       </TableCell>
@@ -1567,6 +1671,67 @@ export default function AdminPartnersPage() {
               onClick={() => setActivityModalPartner(null)}
             >
               Fermer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialogue de Suspension / Réactivation des Litiges (Art. 5.6 CGV) */}
+      <Dialog
+        open={Boolean(disputeSuspensionPartner)}
+        onOpenChange={(open) => !open && setDisputeSuspensionPartner(null)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <ShieldBan className="h-5 w-5" />
+              <span>
+                {disputeSuspensionPartner?.disputes_suspended
+                  ? "Réactiver la faculté de litige"
+                  : "Suspendre la faculté de litige (Art. 5.6 CGV)"}
+              </span>
+            </DialogTitle>
+            <DialogDescription>
+              {disputeSuspensionPartner?.disputes_suspended
+                ? `L'installateur ${disputeSuspensionPartner.company_name} pourra à nouveau déposer des contestations de leads.`
+                : `Bloque immédiatement le dépôt de nouveaux litiges pour ${disputeSuspensionPartner?.company_name}.`}
+            </DialogDescription>
+          </DialogHeader>
+
+          {disputeSuspensionPartner && !disputeSuspensionPartner.disputes_suspended && (
+            <div className="flex flex-col gap-2 py-2">
+              <Label htmlFor="partnerDisputeSuspensionReason" className="text-xs">
+                Motif affiché à l&apos;installateur (Art. 5.6 CGV)
+              </Label>
+              <Textarea
+                id="partnerDisputeSuspensionReason"
+                value={disputeSuspensionReason}
+                onChange={(e) => setDisputeSuspensionReason(e.target.value)}
+                className="text-xs resize-none h-24"
+              />
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDisputeSuspensionPartner(null)}
+              disabled={savingDisputeSuspension}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant={disputeSuspensionPartner?.disputes_suspended ? "default" : "destructive"}
+              size="sm"
+              onClick={handleToggleDisputeSuspension}
+              disabled={savingDisputeSuspension}
+            >
+              {savingDisputeSuspension
+                ? "Enregistrement…"
+                : disputeSuspensionPartner?.disputes_suspended
+                  ? "Confirmer la réactivation"
+                  : "Confirmer la suspension"}
             </Button>
           </DialogFooter>
         </DialogContent>
