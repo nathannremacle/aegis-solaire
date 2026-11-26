@@ -19,16 +19,16 @@ export function InstallerRoiCalculator() {
         return {
           avgCreditCost: 3,
           avgCreditEuro: 29.5, // 3 crédits = 29,50 €
-          avgContractValue: 6200, // panier moyen résidentiel réaliste (~4,8 kWc + options éventuelles)
-          avgGrossMargin: 1240, // ~20% marge brute installateur résidentiel
-          label: "Résidentiel B2C (2,6 à 10 kWc)",
+          avgContractValue: 4800, // panier moyen résidentiel réaliste (~5,3 kWc en 480 Wc)
+          avgNetMargin: 1630, // ~34% marge nette installateur résidentiel
+          label: "Résidentiel B2C (2,4 à 10 kWc)",
         }
       case "b2b":
         return {
           avgCreditCost: 13,
           avgCreditEuro: 129.0, // 13 crédits = 129,00 € HTVA (B2B Standard · max 2)
           avgContractValue: 72000, // toiture tertiaire PME moyenne (~80 kWc)
-          avgGrossMargin: 11500, // ~16% marge brute tertiaire
+          avgNetMargin: 23000, // ~32% marge nette tertiaire
           label: "Tertiaire & PME B2B (25 à 250 kWc)",
         }
       case "mixed":
@@ -36,8 +36,8 @@ export function InstallerRoiCalculator() {
         return {
           avgCreditCost: 6.0, // 70% x 3 + 30% x 13 = 6,0 crédits
           avgCreditEuro: 59.35, // 70% x 29,50 € + 30% x 129,00 € = 59,35 €
-          avgContractValue: 26000, // moyenne pondérée 70% B2C (6 200 €) / 30% B2B (72 000 €)
-          avgGrossMargin: 4320, // marge brute pondérée (70% x 1 240 € + 30% x 11 500 €)
+          avgContractValue: 25000, // moyenne pondérée 70% B2C (4 800 €) / 30% B2B (72 000 €)
+          avgNetMargin: 8040, // marge nette pondérée (70% x 1 630 € + 30% x 23 000 €)
           label: "Mixte (70% Résidentiel / 30% Tertiaire)",
         }
     }
@@ -49,11 +49,11 @@ export function InstallerRoiCalculator() {
     const totalCreditCostEuro = leadsPerMonth * economics.avgCreditEuro
     const signedProjects = Math.max(0, Math.round((leadsPerMonth * conversionRate) / 100))
     const totalTurnover = signedProjects * economics.avgContractValue
-    const totalGrossMargin = signedProjects * economics.avgGrossMargin
-    const netReturn = totalGrossMargin - totalCreditCostEuro
+    const totalNetMargin = signedProjects * economics.avgNetMargin
+    const netReturn = totalNetMargin - totalCreditCostEuro
     const roiMultiplier =
-      totalCreditCostEuro > 0 && totalGrossMargin > 0
-        ? Math.round(totalGrossMargin / totalCreditCostEuro)
+      totalCreditCostEuro > 0 && totalNetMargin > 0
+        ? Math.round(totalNetMargin / totalCreditCostEuro)
         : 0
 
     return {
@@ -61,7 +61,7 @@ export function InstallerRoiCalculator() {
       totalCreditCostEuro,
       signedProjects,
       totalTurnover,
-      totalGrossMargin,
+      totalNetMargin,
       netReturn,
       roiMultiplier,
     }
@@ -202,12 +202,12 @@ export function InstallerRoiCalculator() {
               Bilan Financier Mensuel Estimé
             </span>
 
-            {/* Marge brute */}
+            {/* Marge nette */}
             <div className="border-b border-border pb-3">
-              <span className="text-xs text-muted-foreground block">Marge brute estimée pour votre entreprise :</span>
+              <span className="text-xs text-muted-foreground block">Marge nette estimée pour votre entreprise :</span>
               <div className="mt-1 flex items-baseline gap-1">
                 <span className="font-mono text-3xl sm:text-4xl font-extrabold text-accent tabular-nums">
-                  ~{calculations.totalGrossMargin.toLocaleString("fr-BE")} €
+                  ~{calculations.totalNetMargin.toLocaleString("fr-BE")} €
                 </span>
                 <span className="text-xs font-mono font-bold text-accent">HT / mois</span>
               </div>

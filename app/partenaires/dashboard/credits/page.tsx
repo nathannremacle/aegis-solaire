@@ -668,9 +668,9 @@ export default function CreditsPage() {
                   </p>
                 </div>
                 <div className="rounded-xl bg-card p-3 border border-border">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Marge brute estimée (~22%)</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Marge nette estimée (~32%)</span>
                   <p className="mt-1 text-sm font-bold font-mono text-accent tabular-nums">
-                    ~{(Math.floor(currentPack.credits / 9) * 7700).toLocaleString("fr-BE")} € à {(Math.floor(currentPack.credits / 9) * 13200).toLocaleString("fr-BE")} €
+                    ~{(Math.floor(currentPack.credits / 9) * 11200).toLocaleString("fr-BE")} € à {(Math.floor(currentPack.credits / 9) * 19200).toLocaleString("fr-BE")} €
                   </p>
                 </div>
               </div>

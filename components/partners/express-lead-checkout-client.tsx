@@ -432,7 +432,7 @@ export function ExpressLeadCheckoutClient({
                 </span>
               </div>
               <div className="rounded-xl bg-secondary/50 border border-border p-3">
-                <span className="text-[11px] text-muted-foreground block">Marge brute estimée</span>
+                <span className="text-[11px] text-muted-foreground block">Marge nette indicative</span>
                 <span className="text-sm font-mono tabular-nums font-bold text-foreground">
                   ~{lead.estimatedMargin.toLocaleString("fr-BE")} € HTVA
                 </span>

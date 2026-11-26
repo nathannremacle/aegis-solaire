@@ -259,7 +259,7 @@ export function MarketplaceInteractiveTour({
                   </div>
 
                   <div className="flex items-center justify-between text-xs pt-1 border-t border-border">
-                    <span className="text-muted-foreground">Marge brute estimée installateur</span>
+                    <span className="text-muted-foreground">Marge nette indicative installateur</span>
                     <span className="font-mono font-bold text-accent tabular-nums">~3 200 € HT</span>
                   </div>
                 </div>

@@ -160,12 +160,13 @@ test('B2C solar calculation engine does not over-evaluate 3000-4000 kWh resident
     hasEv: 'non',
   })
 
-  // Doit recommander ~3.0 kWc (7 panneaux de 435 Wc), et jamais 5.6 kWc !
-  assert.equal(res.estimatedPanelCount, 7)
-  assert.equal(res.installedPowerKwc, 3)
+  // Doit recommander ~2.9 kWc (6 panneaux de 480 Wc), et jamais 5.6 kWc !
+  assert.equal(res.estimatedPanelCount, 6)
+  assert.equal(res.installedPowerKwc, 2.9)
+  assert.equal(res.sizingLimiter, 'consumption')
   assert.ok(res.autoconsumptionRate >= 30 && res.autoconsumptionRate <= 42)
-  // Wallonie post-2024 (sans compteur qui tourne à l'envers) : retour réaliste 8 à 11 ans sans batterie
-  assert.ok(res.roiYears >= 8.0 && res.roiYears <= 11.0)
+  // Wallonie post-2024 (sans compteur qui tourne à l'envers) : retour réaliste 7.5 à 11 ans sans batterie
+  assert.ok(res.roiYears >= 7.5 && res.roiYears <= 11.0)
 
   // "hesite" sur la batterie ne doit pas facturer une batterie fantôme de 3 000 €
   const resHesite = solar.calculateB2CSolarROI({
@@ -204,9 +205,68 @@ test('B2C solar calculation engine does not over-evaluate 3000-4000 kWh resident
 
   assert.equal(legacyLeadFin.normalizedAnnualBill, 1150)
   assert.equal(legacyLeadFin.normalizedSurfaceAreaM2, 42)
-  assert.equal(legacyLeadFin.estimatedPowerKwc, 3)
-  assert.equal(legacyLeadFin.estimatedPanelCount, 7)
-  assert.ok(legacyLeadFin.estimatedInstallerMargin < 1100) // ~700 € HT (20%), loin des 2 000 € gonflés d'avant
+  assert.equal(legacyLeadFin.estimatedPowerKwc, 2.9)
+  assert.equal(legacyLeadFin.estimatedPanelCount, 6)
+  assert.equal(legacyLeadFin.installerMarginPercent, 34)
+  assert.ok(legacyLeadFin.estimatedInstallerMargin >= 950 && legacyLeadFin.estimatedInstallerMargin <= 1200)
+
+  // Cas de référence M. Perello (4800 Lambermont : mitoyenne, tuiles, medium 42 m², 5 000–6 000 kWh/an)
+  const perelloFin = pricing.calculateMarketplaceFinancials({
+    segment: 'B2C',
+    surfaceArea: 42,
+    surfaceType: 'toiture',
+    roofMaterial: 'tuiles',
+    annualBill: 1820,
+    projectDetails:
+      'Consommation annuelle: 5 000 – 6 000 kWh/an | Type de bien: Maison mitoyenne (2 ou 3 façades) | Couverture toiture: tuiles',
+    qualificationMetadata: {
+      consumptionKwh: '5000_6000',
+      roofSurface: 'medium',
+      roofType: 'tuiles',
+    },
+  })
+  assert.equal(perelloFin.estimatedPanelCount, 10)
+  assert.equal(perelloFin.estimatedPowerKwc, 4.8)
+  assert.equal(perelloFin.sizingLimiter, 'balanced')
+  assert.ok(perelloFin.estimatedContractValue >= 4250 && perelloFin.estimatedContractValue <= 4450)
+  assert.equal(perelloFin.installerMarginPercent, 34)
+  assert.ok(perelloFin.estimatedInstallerMargin >= 1400 && perelloFin.estimatedInstallerMargin <= 1550)
+
+  // Bridage par la toiture : petite toiture (22 m², mitoyenne) + grosse consommation (> 6 000 kWh)
+  const roofLimitedFin = pricing.calculateMarketplaceFinancials({
+    segment: 'B2C',
+    surfaceArea: 22,
+    surfaceType: 'toiture',
+    roofMaterial: 'tuiles',
+    annualBill: 2300,
+    projectDetails: 'Consommation annuelle: gt_6000 | Type de bien: maison_mitoyenne | Surface toiture: small',
+    qualificationMetadata: {
+      consumptionKwh: 'gt_6000',
+      roofSurface: 'small',
+      propertyType: 'house_2f',
+    },
+  })
+  assert.equal(roofLimitedFin.sizingLimiter, 'roof')
+  assert.ok(roofLimitedFin.estimatedPanelCount <= 6)
+  assert.ok(roofLimitedFin.estimatedPowerKwc <= 2.9)
+
+  // Bridage par la consommation : grande toiture (65 m², 4 façades) + petite consommation (< 3 000 kWh)
+  const consoLimitedFin = pricing.calculateMarketplaceFinancials({
+    segment: 'B2C',
+    surfaceArea: 65,
+    surfaceType: 'toiture',
+    roofMaterial: 'tuiles',
+    annualBill: 820,
+    projectDetails: 'Consommation annuelle: lt_3000 | Type de bien: maison_4f | Surface toiture: large',
+    qualificationMetadata: {
+      consumptionKwh: 'lt_3000',
+      roofSurface: 'large',
+      propertyType: 'house_4f',
+    },
+  })
+  assert.equal(consoLimitedFin.sizingLimiter, 'consumption')
+  assert.equal(consoLimitedFin.estimatedPanelCount, 5)
+  assert.equal(consoLimitedFin.estimatedPowerKwc, 2.4)
 })
 
 test('B2B solar calculation engine sizes realistically on daytime load without 115% oversizing', () => {
@@ -224,7 +284,7 @@ test('B2B solar calculation engine sizes realistically on daytime load without 1
     roofMaterial: 'bac_acier',
   })
 
-  // Surface médiane 280 m² (et non 400 m²), puissance ~30 kWc (et non 55 kWc)
+  // Surface médiane 280 m² (et non 400 m²), puissance ~28-35 kWc (et non 55 kWc)
   assert.equal(b2b.surfaceAreaM2, 280)
   assert.ok(b2b.installedPowerKwc >= 25 && b2b.installedPowerKwc <= 35)
   assert.ok(b2b.estimatedRoiYears >= 5.0 && b2b.estimatedRoiYears <= 8.5)
@@ -240,6 +300,24 @@ test('B2B solar calculation engine sizes realistically on daytime load without 1
   })
   assert.equal(fin.normalizedSurfaceAreaM2, 280)
   assert.equal(fin.estimatedPowerKwc, b2b.installedPowerKwc)
+  assert.ok(fin.installerMarginPercent >= 30 && fin.installerMarginPercent <= 33)
+
+  // Bridage B2B par toiture vs consommation
+  const b2bRoofLimited = solar.calculateB2BSolarROI({
+    surfaceType: 'toiture',
+    surfaceAreaM2: 180,
+    annualElectricityBill: 45000,
+    roofMaterial: 'plat_epdm',
+  })
+  assert.equal(b2bRoofLimited.sizingLimiter, 'roof')
+
+  const b2bConsoLimited = solar.calculateB2BSolarROI({
+    surfaceType: 'toiture',
+    surfaceAreaM2: 1800,
+    annualElectricityBill: 8000,
+    roofMaterial: 'bac_acier',
+  })
+  assert.equal(b2bConsoLimited.sizingLimiter, 'consumption')
 })
 
 test('Meta lead tracking filter blocks internal tests, duplicates, low score and B2C VoIP while allowing valid Walloon owners', () => {

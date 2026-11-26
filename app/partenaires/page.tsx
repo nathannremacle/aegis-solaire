@@ -95,7 +95,7 @@ export default function PartenairesPage() {
                   Carte radar 3 km &amp; Marge
                 </h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Visualisez la commune exacte dans un rayon anonymisé de <span className="font-mono tabular-nums">3 km</span>, la puissance kWc recommandée, la fourchette de devis et votre marge brute indicative.
+                  Visualisez la commune exacte dans un rayon anonymisé de <span className="font-mono tabular-nums">3 km</span>, la puissance kWc recommandée, la fourchette de devis et votre marge nette indicative.
                 </p>
               </div>
 
@@ -441,7 +441,7 @@ export default function PartenairesPage() {
                 Simulateur de rentabilité : Anticipez votre carnet de commandes
               </h2>
               <p className="text-sm sm:text-base text-muted-foreground">
-                Découvrez la marge brute prévisionnelle générée chaque mois selon vos disponibilités de pose.
+                Découvrez la marge nette prévisionnelle générée chaque mois selon vos disponibilités de pose.
               </p>
             </div>
 
@@ -714,7 +714,7 @@ export default function PartenairesPage() {
                   Exemple concret d&apos;exploitation (Chantier B2B toiture PME)
                 </span>
                 <p className="text-xs sm:text-sm text-foreground leading-relaxed">
-                  Débloquez <span className="font-mono tabular-nums">1</span> dossier B2B toiture industrielle PME à <strong className="font-mono tabular-nums">8 crédits</strong> (soit <span className="font-mono tabular-nums font-semibold">79,00 € HT</span> à l&apos;unité, ou <span className="font-mono tabular-nums font-semibold">60,00 € HT</span> via Quota Régie). Signez un chantier de <span className="font-mono tabular-nums font-semibold">60 kWc</span> (~<span className="font-mono tabular-nums">54 000 € HT</span>). Votre marge brute moyenne réalisée dépasse <strong className="font-mono tabular-nums font-bold text-accent">9 000 € HT</strong>. Le retour sur investissement est immédiat dès le premier dossier transformé.
+                  Débloquez <span className="font-mono tabular-nums">1</span> dossier B2B toiture industrielle PME à <strong className="font-mono tabular-nums">8 crédits</strong> (soit <span className="font-mono tabular-nums font-semibold">79,00 € HT</span> à l&apos;unité, ou <span className="font-mono tabular-nums font-semibold">60,00 € HT</span> via Quota Régie). Signez un chantier de <span className="font-mono tabular-nums font-semibold">60 kWc</span> (~<span className="font-mono tabular-nums">54 000 € HT</span>). Votre marge nette moyenne réalisée dépasse <strong className="font-mono tabular-nums font-bold text-accent">17 000 € HT</strong>. Le retour sur investissement est immédiat dès le premier dossier transformé.
                 </p>
               </div>
             </div>

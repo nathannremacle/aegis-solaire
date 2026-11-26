@@ -2274,7 +2274,7 @@ export function LeadDrawer({
               <div className="flex flex-col p-2 rounded-lg bg-secondary/30 border border-border/50">
                 <dt className="text-muted-foreground text-[11px] flex items-center gap-1">
                   <TrendingUp className="h-2.5 w-2.5" />
-                  Marge installateur
+                  Marge nette installateur
                 </dt>
                 <dd className="font-mono tabular-nums font-bold text-primary mt-0.5">
                   ≈ {financials.estimatedInstallerMargin.toLocaleString("fr-BE")} € ({financials.installerMarginPercent}%)

@@ -18,8 +18,8 @@ export const SOLAR_CONSTANTS = {
   /** Gisement solaire de référence en Wallonie (kWh/kWc/an, plein Sud, inclinaison 35°) */
   BELGIUM_YIELD_KWH_PER_KWC: 920,
 
-  /** Puissance unitaire d'un panneau monocristallin N-Type Tier-1 standard (Wc) */
-  STANDARD_PANEL_POWER_WC: 435,
+  /** Puissance unitaire d'un panneau monocristallin N-Type Tier-1 standard (Wc, standard 2026) */
+  STANDARD_PANEL_POWER_WC: 480,
 
   /** Dégradation annuelle linéaire des panneaux Tier-1 (garantie 25 ans) */
   ANNUAL_DEGRADATION_RATE: 0.005, // 0.5% / an
@@ -97,13 +97,13 @@ export function getUsableKwcPerM2(
   const prop = (propertyType || "").toLowerCase()
 
   if (isB2C) {
-    let kwcPerM2 = 0.133 // ~7,5 m² bruts par kWc sur toiture inclinée (tuiles/ardoises)
+    let kwcPerM2 = 0.140 // ~7,1 m² bruts par kWc sur toiture inclinée (modules 480 Wc, zones rives/obstacles)
     if (roof.includes("plat") || roof.includes("epdm")) {
-      kwcPerM2 = 0.105 // ~9,5 m² bruts par kWc sur toiture plate (écartement anti-ombrage)
+      kwcPerM2 = 0.110 // ~9,1 m² bruts par kWc sur toiture plate (écartement anti-ombrage)
     }
     // Maison mitoyenne (2-3 façades) : contraintes de mitoyenneté et largeur de pan réduite
-    if (prop.includes("mitoyen")) {
-      kwcPerM2 *= 0.90
+    if (prop.includes("mitoyen") || prop.includes("2f") || prop.includes("3f")) {
+      kwcPerM2 *= 0.88
     }
     return kwcPerM2
   }
@@ -111,9 +111,9 @@ export function getUsableKwcPerM2(
   // Segment B2B
   if (surf === "parking") return 0.125 // ~8,0 m² par kWc (ombrières)
   if (surf === "terrain") return 0.100 // ~10,0 m² par kWc (espacement rangées au sol)
-  if (roof.includes("plat") || roof.includes("epdm")) return 0.108 // ~9,25 m² par kWc (exutoires, acrotères, lestage)
+  if (roof.includes("plat") || roof.includes("epdm")) return 0.110 // ~9,1 m² par kWc (exutoires, acrotères, lestage)
   if (roof.includes("bac_acier") || roof.includes("acier")) return 0.125 // ~8,0 m² par kWc (pose rail sur nervures)
-  return 0.115 // Moyenne industrielle prudente (~8,7 m² par kWc)
+  return 0.118 // Moyenne industrielle prudente (~8,5 m² par kWc)
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -147,6 +147,7 @@ export type B2BCalculationResult = {
   co2AvoidedTons: number
   inverterType: string
   sizingRationale: string
+  sizingLimiter: "roof" | "consumption" | "balanced"
 }
 
 export function calculateB2BSolarROI(input: B2BCalculationInput): B2BCalculationResult {
@@ -168,16 +169,27 @@ export function calculateB2BSolarROI(input: B2BCalculationInput): B2BCalculation
   const variableBill = Math.max(annualBill * 0.85, annualBill - SOLAR_CONSTANTS.B2B_FIXED_METER_FEES_HT)
   const estimatedConsumptionKwh = Math.round(variableBill / SOLAR_CONSTANTS.B2B_ELECTRICITY_PRICE_HT)
 
-  // 4. Dimensionnement économique rationnel (sans batterie industrielle) :
+  // 4. Dimensionnement dynamique strict : min(capacité physique toiture, besoin consommation diurne)
   // En B2B wallon, le tarif d'injection (~0,045 €/kWh) est presque 5x inférieur au kWh évité (0,21 €/kWh).
-  // Pour maintenir ~68-75% d'autoconsommation et ne pas sur-investir en panneaux inutiles l'été et le week-end,
-  // la puissance crête optimale se situe à ~0,68 kWc par MWh consommé annuellement.
+  // La puissance crête optimale côté consommation se situe à ~0,68 kWc par MWh consommé annuellement.
   const optimalPowerForConsoKwc = (estimatedConsumptionKwh * 0.68) / 1000
-  const rawTargetPowerKwc = Math.min(maxRoofPowerKwc, Math.max(10, optimalPowerForConsoKwc))
-
-  // Quantification par multiples de panneaux de 435 Wc (minimum 20 panneaux = 8,7 kWc si petite toiture)
-  const panelCount = Math.max(16, Math.round((rawTargetPowerKwc * 1000) / SOLAR_CONSTANTS.STANDARD_PANEL_POWER_WC))
-  const installedPowerKwc = Math.round(panelCount * (SOLAR_CONSTANTS.STANDARD_PANEL_POWER_WC / 1000) * 10) / 10
+  const maxRoofPanels = Math.max(
+    10,
+    Math.floor((maxRoofPowerKwc * 1000) / SOLAR_CONSTANTS.STANDARD_PANEL_POWER_WC)
+  )
+  const targetConsoPanels = Math.max(
+    16,
+    Math.round((Math.max(10, optimalPowerForConsoKwc) * 1000) / SOLAR_CONSTANTS.STANDARD_PANEL_POWER_WC)
+  )
+  const panelCount = Math.min(maxRoofPanels, targetConsoPanels)
+  const installedPowerKwc =
+    Math.round(panelCount * (SOLAR_CONSTANTS.STANDARD_PANEL_POWER_WC / 1000) * 10) / 10
+  const sizingLimiter: "roof" | "consumption" | "balanced" =
+    maxRoofPanels < targetConsoPanels
+      ? "roof"
+      : maxRoofPanels > targetConsoPanels
+        ? "consumption"
+        : "balanced"
   const usableSurfaceM2 = Math.min(surfaceM2, Math.round(panelCount * 2.1))
 
   // 5. Production annuelle (kWh) selon type de pose
@@ -251,9 +263,11 @@ export function calculateB2BSolarROI(input: B2BCalculationInput): B2BCalculation
       : "Onduleur Triphasé string"
 
   const sizingRationale =
-    maxRoofPowerKwc < optimalPowerForConsoKwc
+    sizingLimiter === "roof"
       ? `Limité par la surface exploitable (${usableSurfaceM2} m² utiles sur ${surfaceM2} m² bruts)`
-      : `Dimensionné sur la consommation diurne PME (≈ ${Math.round(estimatedConsumptionKwh / 1000)} MWh/an)`
+      : sizingLimiter === "balanced"
+        ? `Équilibre optimal toiture & consommation (${panelCount} panneaux · ≈ ${Math.round(estimatedConsumptionKwh / 1000)} MWh/an)`
+        : `Dimensionné sur la consommation diurne PME (≈ ${Math.round(estimatedConsumptionKwh / 1000)} MWh/an)`
 
   return {
     surfaceAreaM2: surfaceM2,
@@ -273,6 +287,7 @@ export function calculateB2BSolarROI(input: B2BCalculationInput): B2BCalculation
     co2AvoidedTons,
     inverterType,
     sizingRationale,
+    sizingLimiter,
   }
 }
 
@@ -313,6 +328,7 @@ export type B2CCalculationResult = {
   contractRangeHT: { min: number; max: number }
   inverterType: string
   sizingRationale: string
+  sizingLimiter: "roof" | "consumption" | "balanced"
 }
 
 export function calculateB2CSolarROI(input: B2CCalculationInput): B2CCalculationResult {
@@ -338,7 +354,7 @@ export function calculateB2CSolarROI(input: B2CCalculationInput): B2CCalculation
     consumptionKwh = Math.min(consumptionKwh, 2800)
   }
 
-  // 2. Capacité physique maximale de la toiture (kWc)
+  // 2. Capacité physique maximale de la toiture (kWc & nombre de panneaux 480 Wc)
   let maxRoofKwc = 10
   if (input.surfaceAreaM2 && input.surfaceAreaM2 > 0) {
     const kwcPerM2 = getUsableKwcPerM2("B2C", input.roofMaterial, "toiture", input.propertyType)
@@ -347,22 +363,30 @@ export function calculateB2CSolarROI(input: B2CCalculationInput): B2CCalculation
     maxRoofKwc = input.roofKwc
   }
 
-  // 3. Dimensionnement économique optimal (Wallonie post-2024 sans compteur qui tourne à l'envers) :
-  // - Sans batterie ni VE : ~0,86 kWc par 1 000 kWh consommés évite la surproduction estivale bradée à 0,045 €/kWh
-  // - Avec batterie ou VE : ~0,98 kWc par 1 000 kWh consommés
-  const sizingRatioPerMwh = batteryConfirmed || evConfirmedOrPlanned ? 0.98 : 0.86
-  const targetPowerFromConsoKwc = (consumptionKwh / 1000) * sizingRatioPerMwh
-
-  const rawClampedKwc = Math.min(10, Math.max(2.6, Math.min(maxRoofKwc, targetPowerFromConsoKwc)))
-  // Si la toiture elle-même est très petite (< 2.6 kWc), on respecte la limite physique de la toiture (min 5 panneaux = 2.2 kWc)
-  const effectiveKwc = maxRoofKwc < 2.6 ? Math.max(2.2, maxRoofKwc) : rawClampedKwc
-
-  const panelCount = Math.min(
-    23,
-    Math.max(5, Math.round((effectiveKwc * 1000) / SOLAR_CONSTANTS.STANDARD_PANEL_POWER_WC))
+  const maxRoofPanels = Math.min(
+    21,
+    Math.max(5, Math.floor((maxRoofKwc * 1000) / SOLAR_CONSTANTS.STANDARD_PANEL_POWER_WC))
   )
+
+  // 3. Dimensionnement dynamique strict : min(capacité physique toiture, besoin consommation)
+  // - Sans batterie ni VE : ~0,88 kWc par 1 000 kWh consommés évite la surproduction estivale bradée à 0,045 €/kWh
+  // - Avec batterie ou VE : ~0,98 kWc par 1 000 kWh consommés
+  const sizingRatioPerMwh = batteryConfirmed || evConfirmedOrPlanned ? 0.98 : 0.88
+  const targetPowerFromConsoKwc = (consumptionKwh / 1000) * sizingRatioPerMwh
+  const targetConsoPanels = Math.min(
+    21,
+    Math.max(5, Math.round((targetPowerFromConsoKwc * 1000) / SOLAR_CONSTANTS.STANDARD_PANEL_POWER_WC))
+  )
+
+  const panelCount = Math.min(maxRoofPanels, targetConsoPanels)
   const installedPowerKwc =
     Math.round(panelCount * (SOLAR_CONSTANTS.STANDARD_PANEL_POWER_WC / 1000) * 10) / 10
+  const sizingLimiter: "roof" | "consumption" | "balanced" =
+    maxRoofPanels < targetConsoPanels
+      ? "roof"
+      : maxRoofPanels > targetConsoPanels
+        ? "consumption"
+        : "balanced"
   const usableSurfaceM2 = Math.round(panelCount * 2.0)
 
   // 4. Production annuelle réelle en Wallonie (kWh/an)
@@ -406,11 +430,10 @@ export function calculateB2CSolarROI(input: B2CCalculationInput): B2CCalculation
   const injectedVal = injectedKwh * SOLAR_CONSTANTS.INJECTION_PRICE_PER_KWH
   const annualSavings = Math.round(selfConsumedVal + injectedVal)
 
-  // 7. Coût d'installation clé en main réaliste en Wallonie (€ HT et € TTC à 6% TVA)
-  // Frais fixes incompressibles (mise en sécurité/échafaudage, coffret, raccordement, contrôle RGIE agréé) : 1 150 € HT
-  // + Coût matériel & pose par kWc dégressif : ~730 à 790 € HT / kWc
-  const fixedCostHT = 1150
-  const variablePerKwcHT = installedPowerKwc >= 7 ? 730 : installedPowerKwc >= 4.5 ? 760 : 790
+  // 7. Coût d'installation clé en main réaliste en Wallonie 2026 (€ HT et € TTC à 6% TVA)
+  // Calé sur ~0,90–0,91 €/Wc à 4,8 kWc (10 × 480 Wc) : frais fixes 900 € HT + 680 à 750 €/kWc
+  const fixedCostHT = 900
+  const variablePerKwcHT = installedPowerKwc >= 7 ? 680 : installedPowerKwc >= 4.5 ? 720 : 750
   let roofComplexityMultiplier = 1.0
   const roofLower = (input.roofMaterial || "").toLowerCase()
   if (roofLower.includes("ardoise")) roofComplexityMultiplier = 1.06 // Crochets ardoises spécifiques
@@ -462,9 +485,11 @@ export function calculateB2CSolarROI(input: B2CCalculationInput): B2CCalculation
       : "String Monophasé (≤ 5 kVA)"
 
   const sizingRationale =
-    maxRoofKwc < targetPowerFromConsoKwc
+    sizingLimiter === "roof"
       ? `Plafonné par la surface utile toiture (${usableSurfaceM2} m² utiles)`
-      : `Calibré pour ${consumptionKwh.toLocaleString("fr-BE")} kWh/an (${finalAutoconsumptionRate}% autoconso.)`
+      : sizingLimiter === "balanced"
+        ? `Équilibre optimal toiture & consommation (${panelCount} panneaux · ${consumptionKwh.toLocaleString("fr-BE")} kWh/an)`
+        : `Calibré pour ${consumptionKwh.toLocaleString("fr-BE")} kWh/an (${finalAutoconsumptionRate}% autoconso.)`
 
   return {
     installedPowerKwc,
@@ -485,5 +510,6 @@ export function calculateB2CSolarROI(input: B2CCalculationInput): B2CCalculation
     contractRangeHT: { min: minContractHT, max: maxContractHT },
     inverterType,
     sizingRationale,
+    sizingLimiter,
   }
 }

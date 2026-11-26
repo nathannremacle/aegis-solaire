@@ -550,7 +550,7 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
       value: annualBillShort,
     },
     {
-      label: "Marge brute indicative",
+      label: "Marge nette indicative",
       value: estimatedMarginShort,
     }
   )

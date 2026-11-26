@@ -137,7 +137,7 @@ const SORT_OPTIONS: { value: MarketplaceSortOption; label: string; badge?: strin
   { value: "cost_desc", label: "Prix du lead : Plus élevé (crédits ↘)", badge: "Premium" },
   { value: "contract_desc", label: "Valeur chantier : Maximale (€ HT)", badge: "Gros projet" },
   { value: "contract_asc", label: "Valeur chantier : Modérée (€ HT)" },
-  { value: "margin_desc", label: "Marge brute estimée : Max (€)", badge: "Rentable" },
+  { value: "margin_desc", label: "Marge nette estimée : Max (€)", badge: "Rentable" },
   { value: "power_desc", label: "Puissance estimée : Max (kWc)", badge: "Puissance" },
   { value: "power_asc", label: "Puissance estimée : Min (kWc)" },
   { value: "surface_desc", label: "Surface toiture : Plus grande (m²)" },

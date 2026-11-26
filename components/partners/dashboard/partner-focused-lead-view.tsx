@@ -544,7 +544,7 @@ export function PartnerFocusedLeadView({
 
               <div className="p-3 sm:p-4 border-l border-[var(--aegis-divider)] sm:order-3">
                 <span className="block text-[12px] sm:text-[13px] text-[var(--aegis-muted)]">
-                  Marge indicative
+                  Marge nette indicative
                 </span>
                 <strong className="mt-1 block text-[17px] min-[400px]:text-[20px] sm:text-[26px] font-bold leading-[1.18] tracking-[-0.025em] text-[var(--aegis-ink)] font-mono tabular-nums">
                   <span className="sm:hidden whitespace-nowrap">

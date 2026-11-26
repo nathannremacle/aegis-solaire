@@ -602,6 +602,9 @@ export async function POST(request: NextRequest) {
         estimatedPanelCount: financials.estimatedPanelCount,
         annualProductionKwh: financials.annualProductionKwh,
         usableSurfaceM2: financials.usableSurfaceM2,
+        estimatedNetMarginEur: financials.estimatedInstallerMargin,
+        installerMarginPercent: financials.installerMarginPercent,
+        sizingLimiter: financials.sizingLimiter,
         verifications: {
           emailMx: verifications.emailMx,
           walloniaAddress: verifications.walloniaAddress,

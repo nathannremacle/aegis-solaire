@@ -38,6 +38,7 @@ export interface FinancialEstimates {
   co2AvoidedTonsPerYear: number
   inverterType: string
   sizingRationale: string
+  sizingLimiter: "roof" | "consumption" | "balanced"
   installerMarginPercent: number
   estimatedContractValue: number
   estimatedContractValueRange: { min: number; max: number }
@@ -522,8 +523,8 @@ export function calculateMarketplaceFinancials(lead: {
       hasEv: signals.hasEv,
     })
 
-    // Marge brute réaliste installateur résidentiel en Wallonie (~20 % sur devis HTVA)
-    const installerMarginPercent = 20
+    // Marge nette chantier installateur résidentiel en Wallonie (~34 % sur devis HTVA, coûts directs inclus)
+    const installerMarginPercent = 34
     const avgContract = b2cCalc.totalNetCostHT
     const estimatedInstallerMargin = Math.round(avgContract * (installerMarginPercent / 100))
     const roiMultiplier = Math.max(1, Math.round(estimatedInstallerMargin / (leadCostEuros || 1)))
@@ -544,6 +545,7 @@ export function calculateMarketplaceFinancials(lead: {
       co2AvoidedTonsPerYear: b2cCalc.co2AvoidedTons,
       inverterType: b2cCalc.inverterType,
       sizingRationale: b2cCalc.sizingRationale,
+      sizingLimiter: b2cCalc.sizingLimiter,
       installerMarginPercent,
       estimatedContractValue: avgContract,
       estimatedContractValueRange: {
@@ -552,7 +554,7 @@ export function calculateMarketplaceFinancials(lead: {
       },
       estimatedInstallerMargin,
       roiMultiplier,
-      roiDescription: `Marge brute estimée ≈ ${roiMultiplier}× le coût du lead`,
+      roiDescription: `Marge nette estimée ≈ ${roiMultiplier}× le coût du lead`,
       leadCostEuros,
       creditCostEur: leadCostEuros,
       revenueEstimatePerYear: b2cCalc.annualSavings,
@@ -568,9 +570,9 @@ export function calculateMarketplaceFinancials(lead: {
       annualElectricityBill: normalizedAnnualBill,
     })
 
-    // Marge brute installateur B2B dégressive selon la taille du chantier (appels d'offres B2B)
+    // Marge nette chantier installateur B2B dégressive selon la taille (calibrée sur cas réels : 30–33 %)
     const installerMarginPercent =
-      b2bCalc.installedPowerKwc > 100 ? 14 : b2bCalc.installedPowerKwc > 35 ? 16 : 18
+      b2bCalc.installedPowerKwc > 100 ? 30 : b2bCalc.installedPowerKwc > 35 ? 32 : 33
     const avgContract = b2bCalc.totalCapexEstimate
     const estimatedInstallerMargin = Math.round(avgContract * (installerMarginPercent / 100))
     const roiMultiplier = Math.max(1, Math.round(estimatedInstallerMargin / (leadCostEuros || 1)))
@@ -591,6 +593,7 @@ export function calculateMarketplaceFinancials(lead: {
       co2AvoidedTonsPerYear: b2bCalc.co2AvoidedTons,
       inverterType: b2bCalc.inverterType,
       sizingRationale: b2bCalc.sizingRationale,
+      sizingLimiter: b2bCalc.sizingLimiter,
       installerMarginPercent,
       estimatedContractValue: avgContract,
       estimatedContractValueRange: {
@@ -599,7 +602,7 @@ export function calculateMarketplaceFinancials(lead: {
       },
       estimatedInstallerMargin,
       roiMultiplier,
-      roiDescription: `Marge brute estimée ≈ ${roiMultiplier}× le coût du lead`,
+      roiDescription: `Marge nette estimée ≈ ${roiMultiplier}× le coût du lead`,
       leadCostEuros,
       creditCostEur: leadCostEuros,
       revenueEstimatePerYear: b2bCalc.estimatedAnnualSavings,

@@ -823,7 +823,7 @@ export function calculateLeadRoiRatio(estimatedMargin: number, creditCost: numbe
   } else if (ratioPercent < 1.0) {
     roiBadgeText = `Coût d'acquisition : ${ratioPercent.toFixed(1).replace(".", ",")} % du chantier`
   } else {
-    roiBadgeText = `Marge brute ≈ ${roiMultiplier}× le coût du lead`
+    roiBadgeText = `Marge nette ≈ ${roiMultiplier}× le coût du lead`
   }
 
   return {

@@ -767,7 +767,7 @@ export function LeadInspectionDrawer({
                 </span>
               </div>
               <div>
-                <span className="text-muted-foreground text-[11px] block">Marge brute ({financials.installerMarginPercent} %)</span>
+                <span className="text-muted-foreground text-[11px] block">Marge nette ({financials.installerMarginPercent} %)</span>
                 <span className="font-mono font-bold text-accent tabular-nums">
                   {formatRoundedCurrency(financials.estimatedInstallerMargin)}
                 </span>

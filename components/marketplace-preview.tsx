@@ -1557,7 +1557,7 @@ export function MarketplaceLivePreview() {
                 </strong>
               </div>
               <div>
-                <span className="text-[11px] text-muted-foreground block font-mono">Marge brute estimée</span>
+                <span className="text-[11px] text-muted-foreground block font-mono">Marge nette indicative</span>
                 <strong className="text-accent font-mono tabular-nums">
                   {formatRoundedCurrency(
                     calculateMarketplaceFinancials({
