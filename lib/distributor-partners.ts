@@ -1,4 +1,23 @@
+import fs from "node:fs"
+import path from "node:path"
 import type { SupabaseClient } from "@supabase/supabase-js"
+
+/**
+ * Résout le chemin public du logo local d'un distributeur (ex. /logos/distributeurs/carbomat.png)
+ * si un fichier .svg, .png ou .webp existe dans public/logos/distributeurs/.
+ */
+export function resolveDistributorLogoPath(slug: string | null | undefined): string | null {
+  const clean = slugifyDistributorName(slug || "")
+  if (!clean) return null
+  const dir = path.resolve(process.cwd(), "public", "logos", "distributeurs")
+  for (const ext of ["svg", "png", "webp"]) {
+    const candidate = path.join(dir, `${clean}.${ext}`)
+    if (fs.existsSync(candidate)) {
+      return `/logos/distributeurs/${clean}.${ext}`
+    }
+  }
+  return null
+}
 
 export interface DistributorPartnerRecord {
   id: string

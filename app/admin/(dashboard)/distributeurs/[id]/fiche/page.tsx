@@ -2,6 +2,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft, BadgeCheck, Building2, CheckCircle2, Coins, ShieldCheck } from "lucide-react"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
+import { resolveDistributorLogoPath } from "@/lib/distributor-partners"
 import { PrintButton } from "@/components/admin/print-fiche-button"
 
 export const dynamic = "force-dynamic"
@@ -25,6 +26,7 @@ export default async function DistributorPitchSheetPage({
 
   const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.aegissolaire.com").replace(/\/$/, "")
   const cobrandedUrl = `${baseUrl}/partenaires/distributeurs/${dist.slug}`
+  const distributorLogo = resolveDistributorLogoPath(dist.slug)
 
   return (
     <div className="flex flex-col gap-6 max-w-4xl mx-auto">
@@ -42,7 +44,22 @@ export default async function DistributorPitchSheetPage({
       {/* Fiche A4 1 Page Win-Win */}
       <article className="rounded-3xl border border-border bg-card p-8 sm:p-10 flex flex-col gap-6 shadow-xs print:border-0 print:shadow-none print:p-2">
         <header className="border-b border-border pb-5 flex flex-wrap items-start justify-between gap-4">
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-3 pb-1">
+              <img src="/logo.png" alt="Aegis Solaire" className="h-7 w-auto object-contain" />
+              <span className="font-mono text-sm text-muted-foreground">×</span>
+              {distributorLogo ? (
+                <img
+                  src={distributorLogo}
+                  alt={dist.company_name}
+                  className="h-7 w-auto max-w-[180px] object-contain"
+                />
+              ) : (
+                <span className="font-heading text-base font-extrabold text-foreground">
+                  {dist.company_name}
+                </span>
+              )}
+            </div>
             <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
               Accord de Partenariat Win-Win · Wallonie &amp; Bruxelles
             </span>
@@ -105,7 +122,7 @@ export default async function DistributorPitchSheetPage({
             </div>
             <div className="flex items-start gap-2">
               <CheckCircle2 className="h-4 w-4 text-accent shrink-0 mt-0.5" />
-              <span>Concurrence strictement plafonnée : max 3 en B2C (ou exclusif), 100 % exclusif en B2B.</span>
+              <span>Concurrence strictement plafonnée : max 3 en B2C (ou exclusif), max 2 en B2B (ou exclusif).</span>
             </div>
             <div className="flex items-start gap-2">
               <CheckCircle2 className="h-4 w-4 text-accent shrink-0 mt-0.5" />
