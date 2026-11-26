@@ -8,6 +8,7 @@ const HIDDEN_PREFIXES = [
   "/astuce",
   "/devis-panneaux-solaires",
   "/partenaires/dashboard",
+  "/partenaires/distributeurs/",
   "/partenaires/invitation",
   "/partenaires/verification",
   "/partenaires/leads",
