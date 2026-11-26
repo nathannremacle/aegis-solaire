@@ -100,6 +100,8 @@ export function LeadInspectionDrawer({
   const [isImageModalOpen, setIsImageModalOpen] = React.useState(false)
   const [activeImageIndex, setActiveImageIndex] = React.useState(0)
   const [showAiDisclaimer, setShowAiDisclaimer] = React.useState(false)
+  const [showMicroFeedback, setShowMicroFeedback] = React.useState(false)
+  const [microFeedbackSent, setMicroFeedbackSent] = React.useState(false)
 
   const roofImageItems = getLeadImageItems(lead)
   const safeImageIndexHook =
@@ -109,7 +111,66 @@ export function LeadInspectionDrawer({
     setActiveImageIndex(0)
     setIsImageModalOpen(false)
     setShowAiDisclaimer(false)
+    setShowMicroFeedback(false)
+    setMicroFeedbackSent(false)
   }, [lead?.id])
+
+  useEffect(() => {
+    if (!lead?.id || lead?.is_demo_preview) return
+    const alreadyBought = Boolean(
+      lead?.already_purchased ||
+        lead?.purchase_id ||
+        (lead?.email && !lead.email.includes("***") && !lead.email.includes("—"))
+    )
+    if (alreadyBought) return
+
+    try {
+      const lastTs = Number(localStorage.getItem("aegis_micro_feedback_ts") || "0")
+      if (Number.isFinite(lastTs) && lastTs > 0 && Date.now() - lastTs < 14 * 24 * 60 * 60 * 1000) {
+        return
+      }
+    } catch {
+      // localStorage indisponible
+    }
+
+    const timer = window.setTimeout(() => {
+      setShowMicroFeedback(true)
+    }, 20000)
+    return () => window.clearTimeout(timer)
+  }, [lead?.id, lead?.is_demo_preview, lead?.already_purchased, lead?.purchase_id, lead?.email])
+
+  const submitMicroFeedback = async (
+    reason: "out_of_zone" | "too_small" | "competition" | "price"
+  ) => {
+    setMicroFeedbackSent(true)
+    try {
+      localStorage.setItem("aegis_micro_feedback_ts", String(Date.now()))
+    } catch {
+      // non-blocking
+    }
+    try {
+      await fetch("/api/partners/feedback-1click", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leadId: lead?.id || null,
+          reason,
+          source: "drawer_in_app",
+        }),
+      })
+    } catch {
+      // non-blocking
+    }
+  }
+
+  const dismissMicroFeedback = () => {
+    setShowMicroFeedback(false)
+    try {
+      localStorage.setItem("aegis_micro_feedback_ts", String(Date.now()))
+    } catch {
+      // non-blocking
+    }
+  }
 
   useEffect(() => {
     setShowAiDisclaimer(false)
@@ -1119,6 +1180,46 @@ export function LeadInspectionDrawer({
                 <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
                 <span>Solliciter un expert (% projet à négocier)</span>
               </Button>
+            )}
+
+            {!isPurchased && !isDemo && showMicroFeedback && (
+              <div className="rounded-xl border border-border bg-secondary/40 p-3 flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-bold text-foreground">
+                    {microFeedbackSent
+                      ? "Merci ! Vos préférences seront mieux calibrées."
+                      : "Qu'est-ce qui vous retient sur ce dossier ? (1 clic)"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={dismissMicroFeedback}
+                    className="text-muted-foreground hover:text-foreground cursor-pointer p-0.5"
+                    aria-label="Fermer la question rapide"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                {!microFeedbackSent && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { id: "out_of_zone" as const, label: "Zone hors secteur" },
+                      { id: "too_small" as const, label: "Projet trop petit" },
+                      { id: "competition" as const, label: "Concurrence (3 devis)" },
+                      { id: "price" as const, label: "Tarif du dossier" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => submitMicroFeedback(opt.id)}
+                        className="rounded-lg border border-border bg-card hover:border-primary hover:bg-primary/5 px-2.5 py-1 text-[11px] font-medium text-foreground transition-colors cursor-pointer"
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>

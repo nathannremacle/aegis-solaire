@@ -32,6 +32,7 @@ import {
   ensurePartnerReferralCode,
   triggerPartnerReferralReward,
 } from "@/lib/partner-referrals"
+import { triggerDistributorBonusReward } from "@/lib/distributor-partners"
 
 async function savePartnerMollieMandateIfPresent(
   supabase: ReturnType<typeof createServiceRoleClient>,
@@ -208,6 +209,12 @@ export async function fulfillPaidCreditOrder(
 
   try {
     await triggerPartnerReferralReward(supabase, order.partner_id, "first_credit_order")
+  } catch {
+    /* non-blocking */
+  }
+
+  try {
+    await triggerDistributorBonusReward(supabase, order.partner_id, "first_credit_order")
   } catch {
     /* non-blocking */
   }
@@ -687,6 +694,12 @@ export async function fulfillPaidLeadDirectPurchase(
 
   try {
     await triggerPartnerReferralReward(supabase, partnerId, "first_direct_lead_purchase")
+  } catch {
+    /* non-blocking */
+  }
+
+  try {
+    await triggerDistributorBonusReward(supabase, partnerId, "first_direct_lead_purchase")
   } catch {
     /* non-blocking */
   }

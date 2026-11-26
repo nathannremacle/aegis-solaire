@@ -17,6 +17,10 @@ import {
   recordReferralApplication,
   resolveReferrerByCode,
 } from "@/lib/partner-referrals"
+import {
+  resolveDistributorByCodeOrSlug,
+  type DistributorPartnerRecord,
+} from "@/lib/distributor-partners"
 
 function mergeAdminNotes(existing: string | null | undefined, incomingParts: string[]): string | null {
   const hasIncomingSegment = incomingParts.some((p) => /^Segments?\s+cibles?\s*:/i.test(p.trim()))
@@ -76,10 +80,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    let resolvedDistributor: DistributorPartnerRecord | null = null
+    if (data.distributorCode) {
+      resolvedDistributor = await resolveDistributorByCodeOrSlug(supabase, data.distributorCode)
+    } else if (data.referralCode && !resolvedReferrer) {
+      resolvedDistributor = await resolveDistributorByCodeOrSlug(supabase, data.referralCode)
+    }
+
     const incomingNotesParts = [
       data.invitedBy ? `⭐ INVITATION VIP PAR: ${data.invitedBy}` : null,
       resolvedReferrer
         ? `🤝 PARRAINAGE RESCERT: ${resolvedReferrer.company_name} (${resolvedReferrer.referral_code})`
+        : null,
+      resolvedDistributor
+        ? `📦 ALLIÉ DISTRIBUTEUR: ${resolvedDistributor.company_name} (${resolvedDistributor.referral_code})`
         : null,
       data.leadId ? `🎯 CHANTIER CIBLE: ${data.leadId}` : null,
       effectiveSegment ? `Segments cibles: ${effectiveSegment}` : null,
@@ -204,6 +218,12 @@ export async function POST(request: NextRequest) {
                 referred_by_partner_id: resolvedReferrer.id,
               }
             : {}),
+          ...(resolvedDistributor
+            ? {
+                distributor_partner_id: resolvedDistributor.id,
+                distributor_code_used: resolvedDistributor.referral_code,
+              }
+            : {}),
         })
         .eq("id", existingPending.id)
         .select("id, email, company_name, first_name, last_name")
@@ -213,7 +233,9 @@ export async function POST(request: NextRequest) {
         updateError &&
         (updateError.code === "42703" ||
           updateError.message?.includes("referral_code_used") ||
-          updateError.message?.includes("referred_by_partner_id"))
+          updateError.message?.includes("referred_by_partner_id") ||
+          updateError.message?.includes("distributor_partner_id") ||
+          updateError.message?.includes("distributor_code_used"))
       ) {
         const retry = await supabase
           .from("installer_applications")
@@ -259,6 +281,12 @@ export async function POST(request: NextRequest) {
                 referred_by_partner_id: resolvedReferrer.id,
               }
             : {}),
+          ...(resolvedDistributor
+            ? {
+                distributor_partner_id: resolvedDistributor.id,
+                distributor_code_used: resolvedDistributor.referral_code,
+              }
+            : {}),
         })
         .select("id, email, company_name, first_name, last_name")
         .single()
@@ -267,7 +295,9 @@ export async function POST(request: NextRequest) {
         error &&
         (error.code === "42703" ||
           error.message?.includes("referral_code_used") ||
-          error.message?.includes("referred_by_partner_id"))
+          error.message?.includes("referred_by_partner_id") ||
+          error.message?.includes("distributor_partner_id") ||
+          error.message?.includes("distributor_code_used"))
       ) {
         const retry = await supabase
           .from("installer_applications")

@@ -21,6 +21,8 @@ import {
   BellOff,
   MailCheck,
   Wallet,
+  Smartphone,
+  CalendarDays,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
@@ -164,6 +166,12 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
   const [mollieMandateStatus, setMollieMandateStatus] = useState<string>(
     partner?.mollie_mandate_status || "none"
   )
+  const [smsAlertsOptIn, setSmsAlertsOptIn] = useState<boolean>(
+    Boolean(partner?.sms_alerts_opt_in)
+  )
+  const [weeklyDigestEnabled, setWeeklyDigestEnabled] = useState<boolean>(
+    partner?.weekly_digest_enabled !== false
+  )
 
   useEffect(() => {
     let active = true
@@ -182,6 +190,12 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
         }
         if (data.preferences.mollieMandateStatus) {
           setMollieMandateStatus(data.preferences.mollieMandateStatus)
+        }
+        if (typeof data.preferences.smsAlertsOptIn === "boolean") {
+          setSmsAlertsOptIn(data.preferences.smsAlertsOptIn)
+        }
+        if (typeof data.preferences.weeklyDigestEnabled === "boolean") {
+          setWeeklyDigestEnabled(data.preferences.weeklyDigestEnabled)
         }
       })
       .catch(() => undefined)
@@ -250,6 +264,8 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
           minFacture,
           segment: selectedSegment,
           notificationMode,
+          smsAlertsOptIn,
+          weeklyDigestEnabled,
           autoBuyEnabled,
           autoBuyWeeklyCap,
           autoBuyIncludeB2cExclusive,
@@ -267,12 +283,14 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
         partner.target_surfaces = data?.preferences?.targetSurfacesRaw ?? selectedSurfaces
         partner.min_facture = minFacture
         partner.segment = selectedSegment
+        partner.sms_alerts_opt_in = smsAlertsOptIn
+        partner.weekly_digest_enabled = weeklyDigestEnabled
         partner.auto_buy_enabled = autoBuyEnabled
         partner.auto_buy_weekly_cap = autoBuyWeeklyCap
         partner.auto_buy_include_b2c_exclusive = autoBuyIncludeB2cExclusive
       }
 
-      toast.success("Vos alertes et préférences d'e-mails ont été enregistrées !")
+      toast.success("Vos alertes e-mails, SMS et préférences ont été enregistrées !")
       onClose()
     } catch (err: any) {
       toast.error(err.message || "Erreur lors de l'enregistrement des préférences")
@@ -672,6 +690,94 @@ export default function AlertPreferencesModal({ partner, onClose }: AlertPrefere
                   </button>
                 )
               })}
+            </div>
+
+            {/* Alertes SMS temps réel (Opt-in / Opt-out indépendant) */}
+            <div className="pt-2 flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wider font-mono">
+                  <Smartphone className="h-3.5 w-3.5 text-accent shrink-0" />
+                  <span>Alertes SMS temps réel</span>
+                </label>
+                {partner?.phone && (
+                  <span className="font-mono text-[11px] text-muted-foreground tabular-nums truncate">
+                    {partner.phone}
+                  </span>
+                )}
+              </div>
+
+              <div className="rounded-2xl border border-border bg-card p-3.5 flex items-center justify-between gap-3">
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-foreground">
+                      {smsAlertsOptIn ? "Alertes SMS activées" : "Alertes SMS désactivées (0 SMS)"}
+                    </span>
+                    <span
+                      className={`rounded-md px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide ${
+                        smsAlertsOptIn
+                          ? "bg-[var(--aegis-availability-bg)] text-[var(--aegis-availability-text)] border border-[var(--aegis-availability-text)]/25"
+                          : "bg-secondary text-muted-foreground border border-border"
+                      }`}
+                    >
+                      {smsAlertsOptIn ? "Actif" : "Coupé"}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground leading-snug">
+                    <span className="font-mono tabular-nums">1</span> SMS uniquement lorsqu&apos;un nouveau chantier vérifié correspond à votre zone. Gratuit et désactivable à tout moment ici ou en <span className="font-mono tabular-nums">1</span> clic dans chaque SMS.
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={smsAlertsOptIn}
+                  aria-label="Activer ou désactiver les alertes SMS"
+                  onClick={() => setSmsAlertsOptIn((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
+                    smsAlertsOptIn ? "bg-primary" : "bg-border"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-xs transition-transform ${
+                      smsAlertsOptIn ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Récapitulatif hebdomadaire local */}
+              <div className="rounded-2xl border border-border bg-card p-3.5 flex items-center justify-between gap-3">
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground mt-0.5">
+                    <CalendarDays className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <span className="text-xs font-bold text-foreground">
+                      Récapitulatif hebdomadaire local (lundi matin)
+                    </span>
+                    <span className="text-[11px] text-muted-foreground leading-snug">
+                      Synthèse factuelle des chantiers vérifiés et attribués dans vos provinces.
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={weeklyDigestEnabled}
+                  aria-label="Activer ou désactiver le récapitulatif hebdomadaire"
+                  onClick={() => setWeeklyDigestEnabled((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
+                    weeklyDigestEnabled ? "bg-primary" : "bg-border"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-xs transition-transform ${
+                      weeklyDigestEnabled ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
           </div>
 

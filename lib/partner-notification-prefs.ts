@@ -191,3 +191,54 @@ export function doesSurfaceMatchPreference(
   })
 }
 
+/**
+ * Normalise un numéro de téléphone belge (ou frontalier +33/+352) vers le format E.164
+ * utilisable par Twilio SMS (ex. "0476 12 34 56" -> "+32476123456").
+ * Retourne null si le numéro est trop court ou manifestement invalide.
+ */
+export function normalizeBelgianPhoneToE164(raw: string | null | undefined): string | null {
+  if (!raw || typeof raw !== "string") return null
+  const trimmed = raw.trim()
+  if (!trimmed) return null
+
+  let cleaned = trimmed.replace(/[\s.\-()/]/g, "")
+  if (cleaned.startsWith("00")) {
+    cleaned = `+${cleaned.slice(2)}`
+  }
+
+  if (cleaned.startsWith("+")) {
+    const digits = cleaned.slice(1).replace(/\D/g, "")
+    if (digits.length < 10 || digits.length > 15) return null
+    if (digits.startsWith("320") && digits.length >= 11) {
+      return `+32${digits.slice(3)}`
+    }
+    return `+${digits}`
+  }
+
+  const digitsOnly = cleaned.replace(/\D/g, "")
+  if (!digitsOnly) return null
+
+  if (digitsOnly.startsWith("32")) {
+    const rest = digitsOnly.slice(2).replace(/^0+/, "")
+    const full = `32${rest}`
+    return full.length >= 10 && full.length <= 12 ? `+${full}` : null
+  }
+
+  if (digitsOnly.startsWith("0")) {
+    const withoutZero = digitsOnly.slice(1)
+    // Numéro mobile ou fixe belge (8 à 9 chiffres sans le 0 initial)
+    if (withoutZero.length >= 8 && withoutZero.length <= 9) {
+      return `+32${withoutZero}`
+    }
+    return null
+  }
+
+  // Cas rare saisi sans 0 initial (ex: 476123456)
+  if (digitsOnly.startsWith("4") && digitsOnly.length === 9) {
+    return `+32${digitsOnly}`
+  }
+
+  return null
+}
+
+

@@ -16,6 +16,7 @@ import {
   Flame,
   SendHorizonal,
   ShoppingCart,
+  Building2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AdminLogoutButton } from "@/components/admin-logout-button"
@@ -115,6 +116,11 @@ export function AdminNav({
           href: "/admin/partners",
           label: "Installateurs",
           icon: Users,
+        },
+        {
+          href: "/admin/distributeurs",
+          label: "Grossistes PV",
+          icon: Building2,
         },
         {
           href: "/admin/applications",

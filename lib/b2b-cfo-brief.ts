@@ -86,3 +86,120 @@ export function buildB2BCfoBrief(params: {
       "Simulation technico-économique indicative basée sur les paramètres publics SPW Énergie, Wallonie Entreprendre (Easy'Green) et CIR 92 (DPI 40 %), à faire valider par votre expert-comptable ITAA. Aegis Solaire n'agit ni comme intermédiaire de crédit ni comme conseiller fiscal.",
   }
 }
+
+export interface DetailedDpiSimulationInput {
+  powerKwc: number
+  capexPerWc?: number
+  annualBillEur?: number
+  electricityPriceEurKwh?: number
+  selfConsumptionRate?: number
+  isocRate?: 0.2 | 0.25
+  clientCompanyName?: string
+  clientProvince?: string
+  installerCompanyName?: string
+}
+
+export interface DetailedDpiSimulationResult {
+  powerKwc: number
+  capexPerWc: number
+  annualProductionKwh: number
+  selfConsumedKwh: number
+  injectedKwh: number
+  estimatedCapexHtva: number
+  dpi40DeductionBaseEur: number
+  isocTaxShieldEur: number
+  netEffectiveCapexEur: number
+  annualSavingsYear1Eur: number
+  paybackYearsWithoutDpi: number
+  paybackYearsWithDpi: number
+  cumulativeNetGain15YearsEur: number
+  cumulativeNetGain25YearsEur: number
+  cvEligible: boolean
+  easyGreenEligible: boolean
+  isocRatePercent: number
+  clientCompanyName: string
+  clientProvince: string
+  installerCompanyName: string
+  disclaimer: string
+}
+
+/**
+ * Simulation financière B2B détaillée (DPI majorée 40 %, bouclier ISoc 20 %/25 %,
+ * ROI avec/sans DPI, gain net cumulé 15/25 ans) pour l'outil gratuit installateurs.
+ */
+export function buildDetailedDpiSimulation(
+  input: DetailedDpiSimulationInput
+): DetailedDpiSimulationResult {
+  const powerKwc = Math.min(2000, Math.max(5, Math.round((Number(input.powerKwc) || 40) * 10) / 10))
+  const defaultCapexPerWc = powerKwc >= 200 ? 0.85 : powerKwc >= 80 ? 0.95 : 1.08
+  const capexPerWc = Math.min(2.5, Math.max(0.55, Number(input.capexPerWc) || defaultCapexPerWc))
+  const electricityPriceEurKwh = Math.min(
+    0.6,
+    Math.max(0.1, Number(input.electricityPriceEurKwh) || 0.24)
+  )
+  const selfConsumptionRate = Math.min(
+    0.95,
+    Math.max(0.25, Number(input.selfConsumptionRate) || 0.68)
+  )
+  const isocRate = input.isocRate === 0.2 ? 0.2 : 0.25
+
+  const annualProductionKwh = Math.round(powerKwc * 930)
+  const selfConsumedKwh = Math.round(annualProductionKwh * selfConsumptionRate)
+  const injectedKwh = Math.max(0, annualProductionKwh - selfConsumedKwh)
+
+  const estimatedCapexHtva = Math.round(powerKwc * 1000 * capexPerWc)
+  const dpi40DeductionBaseEur = Math.round(estimatedCapexHtva * 0.4)
+  const isocTaxShieldEur = Math.round(dpi40DeductionBaseEur * isocRate)
+  const netEffectiveCapexEur = Math.max(0, estimatedCapexHtva - isocTaxShieldEur)
+
+  // Injection valorisée prudemment à 0,045 €/kWh + autoconsommation au prix réseau évité
+  const rawAnnualSavings = Math.round(
+    selfConsumedKwh * electricityPriceEurKwh + injectedKwh * 0.045
+  )
+  const billCap = Number(input.annualBillEur) > 0 ? Math.round(Number(input.annualBillEur) * 0.82) : rawAnnualSavings
+  const annualSavingsYear1Eur = Math.max(500, Math.min(rawAnnualSavings, billCap || rawAnnualSavings))
+
+  const paybackYearsWithoutDpi =
+    Math.round((estimatedCapexHtva / annualSavingsYear1Eur) * 10) / 10
+  const paybackYearsWithDpi =
+    Math.round((netEffectiveCapexEur / annualSavingsYear1Eur) * 10) / 10
+
+  // Projection sur 15 ans et 25 ans (dégradation linéaire -0,4%/an, inflation énergie +2%/an, O&M 1,2%/an du CAPEX)
+  const annualOmEur = Math.round(estimatedCapexHtva * 0.012)
+  let cumulativeCash = -netEffectiveCapexEur
+  let cumulative15 = 0
+  for (let year = 1; year <= 25; year++) {
+    const degradation = Math.pow(0.996, year - 1)
+    const energyEscalation = Math.pow(1.02, year - 1)
+    const netYearCash = Math.round(
+      annualSavingsYear1Eur * degradation * energyEscalation - annualOmEur
+    )
+    cumulativeCash += netYearCash
+    if (year === 15) cumulative15 = cumulativeCash
+  }
+
+  return {
+    powerKwc,
+    capexPerWc,
+    annualProductionKwh,
+    selfConsumedKwh,
+    injectedKwh,
+    estimatedCapexHtva,
+    dpi40DeductionBaseEur,
+    isocTaxShieldEur,
+    netEffectiveCapexEur,
+    annualSavingsYear1Eur,
+    paybackYearsWithoutDpi,
+    paybackYearsWithDpi,
+    cumulativeNetGain15YearsEur: cumulative15,
+    cumulativeNetGain25YearsEur: cumulativeCash,
+    cvEligible: powerKwc > 10,
+    easyGreenEligible: estimatedCapexHtva >= 25000 && estimatedCapexHtva <= 1000000,
+    isocRatePercent: Math.round(isocRate * 100),
+    clientCompanyName: input.clientCompanyName?.trim() || "Entreprise PME / Tertiaire",
+    clientProvince: input.clientProvince?.trim() || "Wallonie",
+    installerCompanyName: input.installerCompanyName?.trim() || "Installateur Partenaire RESCERT",
+    disclaimer:
+      "Simulation technico-économique indicative basée sur les paramètres publics SPW Énergie, Wallonie Entreprendre (Easy'Green) et CIR 92 (DPI majorée 40 %), à faire valider par l'expert-comptable ITAA du client. Document produit à titre informatif.",
+  }
+}

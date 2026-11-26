@@ -44,6 +44,7 @@ export interface PartnerNotificationUrls {
   manageUrl: string
   noRelancesUrl: string
   muteAllUrl: string
+  muteSmsUrl: string
   dashboardAlertsUrl: string
 }
 
@@ -55,7 +56,7 @@ export interface PartnerExpressLeadUrls {
 }
 
 /**
- * Construit les liens directs de gestion de fréquence e-mail pour les pieds de mail installateurs.
+ * Construit les liens directs de gestion de fréquence e-mail et SMS pour les pieds de mail et SMS installateurs.
  */
 export function buildPartnerNotificationUrls(
   baseUrl: string,
@@ -71,8 +72,38 @@ export function buildPartnerNotificationUrls(
     manageUrl: `${cleanBase}/partenaires/notifications?partner=${encodedPartner}&token=${encodedToken}`,
     noRelancesUrl: `${cleanBase}/partenaires/notifications?partner=${encodedPartner}&token=${encodedToken}&mode=new_only`,
     muteAllUrl: `${cleanBase}/partenaires/notifications?partner=${encodedPartner}&token=${encodedToken}&mode=none`,
+    muteSmsUrl: `${cleanBase}/partenaires/notifications?partner=${encodedPartner}&token=${encodedToken}&sms=0`,
     dashboardAlertsUrl: `${cleanBase}/partenaires/dashboard?alerts=1&partner=${encodedPartner}&token=${encodedToken}`,
   }
+}
+
+export type PartnerMicroFeedbackReason =
+  | "price"
+  | "out_of_zone"
+  | "too_small"
+  | "competition"
+  | "other"
+
+/**
+ * Construit un lien signé 1-clic pour enregistrer un micro-feedback comportemental depuis un e-mail.
+ */
+export function buildPartnerFeedback1ClickUrl(
+  baseUrl: string,
+  partnerId: string,
+  reason: PartnerMicroFeedbackReason,
+  options?: { leadId?: string | null; email?: string | null }
+): string {
+  const cleanBase = baseUrl.replace(/\/$/, "")
+  const token = createPartnerUnsubscribeToken(partnerId, options?.email)
+  const params = new URLSearchParams({
+    partner: partnerId,
+    token,
+    reason,
+  })
+  if (options?.leadId) {
+    params.set("lead", options.leadId)
+  }
+  return `${cleanBase}/api/partners/feedback-1click?${params.toString()}`
 }
 
 /**

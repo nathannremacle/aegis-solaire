@@ -54,10 +54,22 @@ const STEP_META = [
 const inputClass =
   "h-11 min-h-[44px] rounded-xl border-border bg-background text-base shadow-sm transition-colors focus-visible:ring-2 sm:h-12 sm:text-sm"
 
-export function InstallerRegistrationForm({ initialReferralCode }: { initialReferralCode?: string } = {}) {
+export function InstallerRegistrationForm({
+  initialReferralCode,
+  initialDistributorCode,
+  distributorName,
+}: {
+  initialReferralCode?: string
+  initialDistributorCode?: string
+  distributorName?: string
+} = {}) {
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(0)
   const [referralCode, setReferralCode] = useState<string>(initialReferralCode?.trim().toUpperCase() || "")
+  const [distributorCode, setDistributorCode] = useState<string>(
+    initialDistributorCode?.trim().toUpperCase() || ""
+  )
+  const [claimedCompany, setClaimedCompany] = useState<string | null>(null)
   const [submittedData, setSubmittedData] = useState<{
     email: string
     companyName: string
@@ -74,6 +86,33 @@ export function InstallerRegistrationForm({ initialReferralCode }: { initialRefe
     const refParam = params.get("ref") || params.get("parrain")
     if (refParam && refParam.trim()) {
       setReferralCode(refParam.trim().toUpperCase())
+    }
+    const distParam = params.get("dist") || params.get("distributeur")
+    if (distParam && distParam.trim()) {
+      setDistributorCode(distParam.trim().toUpperCase())
+    }
+    const claimId = params.get("claim")
+    if (claimId && claimId.trim()) {
+      fetch(`/api/installateurs/rescert-lookup?id=${encodeURIComponent(claimId.trim())}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((payload) => {
+          const inst = payload?.installer
+          if (!inst) return
+          setClaimedCompany(inst.companyName)
+          if (inst.companyName && !form.getValues("companyName")) {
+            form.setValue("companyName", inst.companyName)
+          }
+          if (inst.firstName && !form.getValues("firstName")) {
+            form.setValue("firstName", inst.firstName)
+          }
+          if (inst.lastName && !form.getValues("lastName")) {
+            form.setValue("lastName", inst.lastName)
+          }
+          if (Array.isArray(inst.regions) && inst.regions.length > 0 && form.getValues("regions").length === 0) {
+            form.setValue("regions", inst.regions)
+          }
+        })
+        .catch(() => undefined)
     }
   }, [])
 
@@ -140,6 +179,7 @@ export function InstallerRegistrationForm({ initialReferralCode }: { initialRefe
         body: JSON.stringify({
           ...values,
           ...(referralCode ? { referralCode } : {}),
+          ...(distributorCode ? { distributorCode } : {}),
         }),
       })
       const data = await res.json()
@@ -399,6 +439,25 @@ export function InstallerRegistrationForm({ initialReferralCode }: { initialRefe
       </div>
 
       <div className="mt-8">
+        {claimedCompany && (
+          <div className="mb-4 rounded-xl border border-accent/25 bg-accent/5 px-4 py-3 text-xs sm:text-sm text-foreground flex items-start gap-2.5">
+            <BadgeCheck className="h-4 w-4 text-accent shrink-0 mt-0.5" />
+            <span>
+              Revendication de fiche RESCERT pré-remplie pour{" "}
+              <strong className="text-foreground">{claimedCompany}</strong>. Vérifiez ou complétez vos informations ci-dessous.
+            </span>
+          </div>
+        )}
+        {distributorCode && (
+          <div className="mb-4 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-xs sm:text-sm text-foreground flex items-start gap-2.5">
+            <BadgeCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <span>
+              Recommandé via notre allié distributeur{" "}
+              <strong className="text-foreground">{distributorName || distributorCode}</strong> :{" "}
+              <strong className="font-mono tabular-nums text-primary">+3 crédits offerts</strong> automatiquement dès votre <span className="font-mono tabular-nums">1er</span> achat payant.
+            </span>
+          </div>
+        )}
         {referralCode && (
           <div className="mb-6 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-xs sm:text-sm text-foreground flex items-start gap-2.5">
             <BadgeCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />

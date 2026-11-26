@@ -27,7 +27,7 @@ export async function GET() {
   const fullRes = await admin
     .from("partners")
     .select(
-      "id, email, segment, target_provinces, target_surfaces, min_facture, email_notifications_enabled, email_relances_enabled, auto_buy_enabled, auto_buy_weekly_cap, auto_buy_include_b2c_exclusive, auto_topup_enabled, auto_topup_pack_id, sms_alerts_opt_in, mollie_mandate_status"
+      "id, email, phone, segment, target_provinces, target_surfaces, min_facture, min_kwc, weekly_digest_enabled, email_notifications_enabled, email_relances_enabled, auto_buy_enabled, auto_buy_weekly_cap, auto_buy_include_b2c_exclusive, auto_topup_enabled, auto_topup_pack_id, sms_alerts_opt_in, mollie_mandate_status"
     )
     .eq("id", partner.id)
     .single()
@@ -36,12 +36,15 @@ export async function GET() {
     fullRes.error &&
     (fullRes.error.code === "42703" ||
       fullRes.error.message?.includes("auto_buy") ||
-      fullRes.error.message?.includes("mollie_mandate_status"))
+      fullRes.error.message?.includes("mollie_mandate_status") ||
+      fullRes.error.message?.includes("min_kwc") ||
+      fullRes.error.message?.includes("weekly_digest_enabled") ||
+      fullRes.error.message?.includes("sms_alerts_opt_in"))
   ) {
     const legacyRes = await admin
       .from("partners")
       .select(
-        "id, email, segment, target_provinces, target_surfaces, min_facture, email_notifications_enabled, email_relances_enabled"
+        "id, email, phone, segment, target_provinces, target_surfaces, min_facture, email_notifications_enabled, email_relances_enabled"
       )
       .eq("id", partner.id)
       .single()
@@ -62,6 +65,8 @@ export async function GET() {
       provinces: data?.target_provinces ?? ["liege", "namur", "hainaut"],
       surfaces: getCleanTargetSurfaces(data?.target_surfaces),
       minFacture: data?.min_facture ?? 5000,
+      minKwc: Number(data?.min_kwc) || 0,
+      phone: data?.phone || null,
       segment: getEffectivePartnerSegment(data ?? partner),
       notificationMode: getPartnerNotificationMode(data),
       autoBuyEnabled: Boolean(data?.auto_buy_enabled),
@@ -70,6 +75,7 @@ export async function GET() {
       autoTopupEnabled: Boolean(data?.auto_topup_enabled),
       autoTopupPackId: data?.auto_topup_pack_id || "pack_24",
       smsAlertsOptIn: Boolean(data?.sms_alerts_opt_in),
+      weeklyDigestEnabled: data?.weekly_digest_enabled !== false,
       mollieMandateStatus: data?.mollie_mandate_status || "none",
     },
   })
@@ -85,6 +91,7 @@ async function handleUpdate(request: Request) {
     provinces?: string[]
     surfaces?: string[]
     minFacture?: number
+    minKwc?: number
     segment?: PartnerSegmentPreference
     notificationMode?: PartnerNotificationMode
     autoBuyEnabled?: boolean
@@ -93,6 +100,7 @@ async function handleUpdate(request: Request) {
     autoTopupEnabled?: boolean
     autoTopupPackId?: string
     smsAlertsOptIn?: boolean
+    weeklyDigestEnabled?: boolean
   }
 
   try {
@@ -151,6 +159,12 @@ async function handleUpdate(request: Request) {
       autoPilotFields.sms_alerts_opt_in_at = new Date().toISOString()
     }
   }
+  if (typeof body.weeklyDigestEnabled === "boolean") {
+    autoPilotFields.weekly_digest_enabled = body.weeklyDigestEnabled
+  }
+  if (typeof body.minKwc === "number" && Number.isFinite(body.minKwc)) {
+    autoPilotFields.min_kwc = Math.max(0, Math.min(1000, Math.round(body.minKwc)))
+  }
 
   const { error: fullError } = await admin
     .from("partners")
@@ -168,13 +182,26 @@ async function handleUpdate(request: Request) {
     (fullError.code === "42703" ||
       fullError.message?.includes("email_notifications_enabled") ||
       fullError.message?.includes("email_relances_enabled") ||
-      fullError.message?.includes("auto_buy"))
+      fullError.message?.includes("auto_buy") ||
+      fullError.message?.includes("weekly_digest_enabled") ||
+      fullError.message?.includes("min_kwc") ||
+      fullError.message?.includes("sms_alerts_opt_in"))
   ) {
-    const fallbackRes = await admin
-      .from("partners")
-      .update(baseUpdateData)
-      .eq("id", partner.id)
-    updateError = fallbackRes.error
+    // Fallback granulaire : tenter de sauver au moins sms_alerts_opt_in + baseUpdateData
+    const minimalExtended: Record<string, unknown> = { ...baseUpdateData }
+    if (typeof body.smsAlertsOptIn === "boolean") {
+      minimalExtended.sms_alerts_opt_in = body.smsAlertsOptIn
+    }
+    const smsRes = await admin.from("partners").update(minimalExtended).eq("id", partner.id)
+    if (smsRes.error && (smsRes.error.code === "42703" || smsRes.error.message?.includes("sms_alerts_opt_in"))) {
+      const fallbackRes = await admin
+        .from("partners")
+        .update(baseUpdateData)
+        .eq("id", partner.id)
+      updateError = fallbackRes.error
+    } else {
+      updateError = smsRes.error
+    }
   }
 
   if (updateError) {
@@ -189,8 +216,16 @@ async function handleUpdate(request: Request) {
       surfaces: cleanSurfaces,
       targetSurfacesRaw: encodedSurfaces,
       minFacture: body.minFacture ?? partner.min_facture,
+      minKwc:
+        typeof body.minKwc === "number"
+          ? Math.max(0, Math.min(1000, Math.round(body.minKwc)))
+          : undefined,
       segment: resolvedSegment ?? getEffectivePartnerSegment(partner),
       notificationMode: resolvedMode,
+      smsAlertsOptIn:
+        typeof body.smsAlertsOptIn === "boolean" ? body.smsAlertsOptIn : undefined,
+      weeklyDigestEnabled:
+        typeof body.weeklyDigestEnabled === "boolean" ? body.weeklyDigestEnabled : undefined,
       autoBuyEnabled: typeof body.autoBuyEnabled === "boolean" ? body.autoBuyEnabled : undefined,
       autoBuyWeeklyCap:
         typeof body.autoBuyWeeklyCap === "number"

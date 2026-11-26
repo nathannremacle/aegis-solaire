@@ -127,12 +127,19 @@ export default function PartenairesPage() {
                   </p>
                 </div>
               </div>
-              <Button asChild size="sm" variant="outline" className="border-border hover:border-accent hover:text-accent font-mono text-xs font-semibold shrink-0">
-                <Link href="/partenaires/annuaire">
-                  Consulter l&apos;annuaire RESCERT
-                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-                </Link>
-              </Button>
+              <div className="flex flex-wrap gap-2 shrink-0">
+                <Button asChild size="sm" variant="outline" className="border-border hover:border-accent hover:text-accent font-mono text-xs font-semibold">
+                  <Link href="/partenaires/outils/calculateur-dpi-b2b">
+                    Calculateur DPI 40 % gratuit
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="outline" className="border-border hover:border-accent hover:text-accent font-mono text-xs font-semibold">
+                  <Link href="/partenaires/annuaire">
+                    Consulter l&apos;annuaire RESCERT
+                    <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
         </section>

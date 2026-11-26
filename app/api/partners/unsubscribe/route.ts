@@ -23,6 +23,8 @@ async function persistPartnerNotificationMode(
     surfaces?: string[]
     minFacture?: number
     segment?: PartnerSegmentPreference | null
+    smsAlertsOptIn?: boolean
+    weeklyDigestEnabled?: boolean
   }
 ) {
   const admin = createServiceRoleClient()
@@ -45,12 +47,24 @@ async function persistPartnerNotificationMode(
     baseUpdates.segment = extra.segment
   }
 
+  const optionalUpdates: Record<string, unknown> = {}
+  if (typeof extra?.smsAlertsOptIn === "boolean") {
+    optionalUpdates.sms_alerts_opt_in = extra.smsAlertsOptIn
+    if (extra.smsAlertsOptIn) {
+      optionalUpdates.sms_alerts_opt_in_at = new Date().toISOString()
+    }
+  }
+  if (typeof extra?.weeklyDigestEnabled === "boolean") {
+    optionalUpdates.weekly_digest_enabled = extra.weeklyDigestEnabled
+  }
+
   const { error: fullError } = await admin
     .from("partners")
     .update({
       ...baseUpdates,
       email_notifications_enabled: mode !== "none",
       email_relances_enabled: mode === "all",
+      ...optionalUpdates,
     })
     .eq("id", partnerId)
 
@@ -58,16 +72,55 @@ async function persistPartnerNotificationMode(
     fullError &&
     (fullError.code === "42703" ||
       fullError.message?.includes("email_notifications_enabled") ||
-      fullError.message?.includes("email_relances_enabled"))
+      fullError.message?.includes("email_relances_enabled") ||
+      fullError.message?.includes("sms_alerts_opt_in") ||
+      fullError.message?.includes("weekly_digest_enabled"))
   ) {
-    const { error: fallbackError } = await admin
-      .from("partners")
-      .update(baseUpdates)
-      .eq("id", partnerId)
-    return { error: fallbackError, cleanSurfaces, encodedSurfaces }
+    const smsOnly: Record<string, unknown> = { ...baseUpdates }
+    if (typeof extra?.smsAlertsOptIn === "boolean") {
+      smsOnly.sms_alerts_opt_in = extra.smsAlertsOptIn
+    }
+    const { error: smsErr } = await admin.from("partners").update(smsOnly).eq("id", partnerId)
+    if (smsErr && (smsErr.code === "42703" || smsErr.message?.includes("sms_alerts_opt_in"))) {
+      const { error: fallbackError } = await admin
+        .from("partners")
+        .update(baseUpdates)
+        .eq("id", partnerId)
+      return { error: fallbackError, cleanSurfaces, encodedSurfaces }
+    }
+    return { error: smsErr, cleanSurfaces, encodedSurfaces }
   }
 
   return { error: fullError, cleanSurfaces, encodedSurfaces }
+}
+
+async function fetchPartnerForNotifications(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  partnerId: string
+) {
+  const full = await admin
+    .from("partners")
+    .select(
+      "id, company_name, email, phone, segment, target_provinces, target_surfaces, min_facture, email_notifications_enabled, email_relances_enabled, sms_alerts_opt_in, weekly_digest_enabled"
+    )
+    .eq("id", partnerId)
+    .maybeSingle()
+
+  if (
+    full.error &&
+    (full.error.code === "42703" ||
+      full.error.message?.includes("sms_alerts_opt_in") ||
+      full.error.message?.includes("weekly_digest_enabled"))
+  ) {
+    return admin
+      .from("partners")
+      .select(
+        "id, company_name, email, phone, segment, target_provinces, target_surfaces, min_facture, email_notifications_enabled, email_relances_enabled"
+      )
+      .eq("id", partnerId)
+      .maybeSingle()
+  }
+  return full
 }
 
 export async function GET(request: NextRequest) {
@@ -80,11 +133,7 @@ export async function GET(request: NextRequest) {
   }
 
   const admin = createServiceRoleClient()
-  const { data: partner, error } = await admin
-    .from("partners")
-    .select("id, company_name, email, segment, target_provinces, target_surfaces, min_facture, email_notifications_enabled, email_relances_enabled")
-    .eq("id", partnerId)
-    .maybeSingle()
+  const { data: partner, error } = await fetchPartnerForNotifications(admin, partnerId)
 
   if (error || !partner) {
     return NextResponse.json({ error: "Compte partenaire introuvable." }, { status: 404 })
@@ -95,11 +144,14 @@ export async function GET(request: NextRequest) {
       id: partner.id,
       companyName: partner.company_name,
       email: partner.email,
+      phone: (partner as any).phone ?? null,
       segment: getEffectivePartnerSegment(partner),
       provinces: partner.target_provinces ?? [],
       surfaces: getCleanTargetSurfaces(partner.target_surfaces),
       minFacture: partner.min_facture ?? 0,
       notificationMode: getPartnerNotificationMode(partner),
+      smsAlertsOptIn: Boolean((partner as any).sms_alerts_opt_in),
+      weeklyDigestEnabled: (partner as any).weekly_digest_enabled !== false,
     },
   })
 }
@@ -110,9 +162,12 @@ export async function POST(request: NextRequest) {
   let token = (searchParams.get("token") || "").trim()
   let modeParam: unknown = searchParams.get("mode")
   let segmentParam: unknown = searchParams.get("segment")
+  let smsParam: unknown = searchParams.get("sms")
   let extraProvinces: string[] | undefined
   let extraSurfaces: string[] | undefined
   let extraMinFacture: number | undefined
+  let extraSmsOptIn: boolean | undefined
+  let extraWeeklyDigest: boolean | undefined
 
   const contentType = request.headers.get("content-type") || ""
   if (contentType.includes("application/json")) {
@@ -125,6 +180,8 @@ export async function POST(request: NextRequest) {
       if (Array.isArray(body.provinces)) extraProvinces = body.provinces
       if (Array.isArray(body.surfaces)) extraSurfaces = body.surfaces
       if (typeof body.minFacture === "number") extraMinFacture = body.minFacture
+      if (typeof body.smsAlertsOptIn === "boolean") extraSmsOptIn = body.smsAlertsOptIn
+      if (typeof body.weeklyDigestEnabled === "boolean") extraWeeklyDigest = body.weeklyDigestEnabled
     } catch {
       return NextResponse.json({ error: "Payload JSON invalide." }, { status: 400 })
     }
@@ -136,6 +193,12 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  if (extraSmsOptIn === undefined && (smsParam === "0" || smsParam === "false")) {
+    extraSmsOptIn = false
+  } else if (extraSmsOptIn === undefined && (smsParam === "1" || smsParam === "true")) {
+    extraSmsOptIn = true
+  }
+
   if (!partnerId || !verifyPartnerUnsubscribeToken(partnerId, token)) {
     return NextResponse.json({ error: "Lien de gestion invalide ou expiré." }, { status: 403 })
   }
@@ -143,11 +206,7 @@ export async function POST(request: NextRequest) {
   const requestedSegment = normalizePartnerSegment(segmentParam)
 
   const admin = createServiceRoleClient()
-  const { data: partner, error: fetchErr } = await admin
-    .from("partners")
-    .select("id, company_name, email, segment, target_provinces, target_surfaces, min_facture, email_notifications_enabled, email_relances_enabled")
-    .eq("id", partnerId)
-    .maybeSingle()
+  const { data: partner, error: fetchErr } = await fetchPartnerForNotifications(admin, partnerId)
 
   if (fetchErr || !partner) {
     return NextResponse.json({ error: "Compte partenaire introuvable." }, { status: 404 })
@@ -168,6 +227,8 @@ export async function POST(request: NextRequest) {
       surfaces: extraSurfaces,
       minFacture: extraMinFacture,
       segment: requestedSegment,
+      smsAlertsOptIn: extraSmsOptIn,
+      weeklyDigestEnabled: extraWeeklyDigest,
     }
   )
 
@@ -183,6 +244,12 @@ export async function POST(request: NextRequest) {
     success: true,
     notificationMode: mode,
     segment: requestedSegment ?? getEffectivePartnerSegment(partner),
+    smsAlertsOptIn:
+      extraSmsOptIn !== undefined ? extraSmsOptIn : Boolean((partner as any).sms_alerts_opt_in),
+    weeklyDigestEnabled:
+      extraWeeklyDigest !== undefined
+        ? extraWeeklyDigest
+        : (partner as any).weekly_digest_enabled !== false,
     surfaces: cleanSurfaces,
     provinces: extraProvinces ?? partner.target_provinces ?? [],
     minFacture: extraMinFacture ?? partner.min_facture ?? 0,

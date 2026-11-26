@@ -22,6 +22,7 @@ type ApplicationRow = {
   regions: string[]
   admin_notes: string | null
   referred_by_partner_id?: string | null
+  distributor_partner_id?: string | null
 }
 
 /**
@@ -130,13 +131,18 @@ async function syncPartnerFromApplication(
       ...(app.referred_by_partner_id
         ? { referred_by_partner_id: app.referred_by_partner_id }
         : {}),
+      ...(app.distributor_partner_id
+        ? { distributor_partner_id: app.distributor_partner_id }
+        : {}),
     })
     .select("id")
     .single()
 
   if (
     error &&
-    (error.code === "42703" || error.message?.includes("referred_by_partner_id"))
+    (error.code === "42703" ||
+      error.message?.includes("referred_by_partner_id") ||
+      error.message?.includes("distributor_partner_id"))
   ) {
     const retry = await supabase
       .from("partners")

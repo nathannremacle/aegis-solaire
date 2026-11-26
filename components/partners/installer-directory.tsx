@@ -51,11 +51,43 @@ function normalizeSearchText(value: string): string {
     .trim()
 }
 
+function slugifyInstaller(value: string): string {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+}
+
 export function InstallerDirectory({ initialInstallers }: InstallerDirectoryProps) {
   const [selectedProvince, setSelectedProvince] = useState<string>("all")
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [page, setPage] = useState<number>(1)
   const pageSize = 24
+
+  const slugById = useMemo(() => {
+    const used = new Set<string>()
+    const map = new Map<string, string>()
+    initialInstallers.forEach((item, idx) => {
+      const base = [
+        slugifyInstaller(item.companyName) || "installateur",
+        slugifyInstaller(item.city),
+        slugifyInstaller(item.postalCode),
+      ]
+        .filter(Boolean)
+        .join("-")
+      let slug = base
+      if (!slug || used.has(slug)) {
+        const suffix = slugifyInstaller(item.id.replace(/^rescert-/i, "")) || String(idx + 1)
+        slug = `${base || "installateur"}-${suffix}`
+      }
+      if (used.has(slug)) slug = `${slug}-${idx + 1}`
+      used.add(slug)
+      map.set(item.id, slug)
+    })
+    return map
+  }, [initialInstallers])
 
   const provinceTabs = useMemo(() => {
     const counts = new Map<string, number>()
@@ -150,7 +182,7 @@ export function InstallerDirectory({ initialInstallers }: InstallerDirectoryProp
           />
         </div>
 
-        {/* Onglets Régions & Provinces */}
+        {/* Onglets Régions & Provinces + Liens SEO directs */}
         <div className="flex flex-wrap items-center gap-2 pt-1">
           {provinceTabs.map((tab) => {
             const isActive = selectedProvince === tab.key
@@ -161,7 +193,7 @@ export function InstallerDirectory({ initialInstallers }: InstallerDirectoryProp
                   setSelectedProvince(tab.key)
                   setPage(1)
                 }}
-                className={`rounded-lg px-3.5 py-1.5 text-xs font-mono transition-all ${
+                className={`rounded-lg px-3.5 py-1.5 text-xs font-mono transition-all cursor-pointer ${
                   isActive
                     ? "bg-primary text-primary-foreground font-bold shadow-xs"
                     : "bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80 border border-border"
@@ -171,6 +203,19 @@ export function InstallerDirectory({ initialInstallers }: InstallerDirectoryProp
               </button>
             )
           })}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono text-muted-foreground">
+          <span>Pages provinciales indexées :</span>
+          {PROVINCE_DEFINITIONS.filter((d) => d.key !== "all").map((prov) => (
+            <Link
+              key={prov.key}
+              href={`/partenaires/annuaire/province/${prov.key}`}
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              {prov.label}
+            </Link>
+          ))}
         </div>
       </div>
 
@@ -198,11 +243,9 @@ export function InstallerDirectory({ initialInstallers }: InstallerDirectoryProp
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {paginatedList.map((installer) => {
-            const claimUrl = `/partenaires/invitation?company=${encodeURIComponent(
-              installer.companyName
-            )}&name=${encodeURIComponent(
-              installer.certifiedPerson
-            )}&code=${encodeURIComponent(installer.postalCode)}&par=Annuaire+RESCert`
+            const detailSlug = slugById.get(installer.id) || installer.id
+            const detailHref = `/partenaires/annuaire/${encodeURIComponent(detailSlug)}`
+            const claimUrl = `/partenaires?claim=${encodeURIComponent(installer.id)}#candidature`
 
             return (
               <div
@@ -221,9 +264,12 @@ export function InstallerDirectory({ initialInstallers }: InstallerDirectoryProp
                   </div>
 
                   <div>
-                    <h3 className="font-heading text-base font-bold text-foreground group-hover:text-accent transition-colors line-clamp-1">
+                    <Link
+                      href={detailHref}
+                      className="font-heading text-base font-bold text-foreground group-hover:text-accent transition-colors line-clamp-1 block"
+                    >
                       {installer.companyName}
-                    </h3>
+                    </Link>
                     <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                       <MapPin className="h-3 w-3 shrink-0" />
                       <span>{installer.postalCode} {installer.city}</span>
@@ -246,15 +292,23 @@ export function InstallerDirectory({ initialInstallers }: InstallerDirectoryProp
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-border">
+                <div className="mt-4 pt-3 border-t border-border flex items-center gap-2">
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 font-mono text-xs font-semibold"
+                  >
+                    <Link href={detailHref}>Voir fiche</Link>
+                  </Button>
                   <Button
                     asChild
                     size="sm"
-                    className="w-full bg-secondary hover:bg-primary hover:text-primary-foreground text-foreground border border-border font-mono text-xs font-semibold transition-all group-hover:border-primary"
+                    className="flex-1 bg-secondary hover:bg-primary hover:text-primary-foreground text-foreground border border-border font-mono text-xs font-semibold transition-all group-hover:border-primary"
                   >
                     <Link href={claimUrl}>
-                      Revendiquer cette fiche
-                      <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                      Revendiquer
+                      <ArrowRight className="ml-1 h-3.5 w-3.5" />
                     </Link>
                   </Button>
                 </div>

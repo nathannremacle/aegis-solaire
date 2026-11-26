@@ -6,7 +6,8 @@ import { z } from "zod"
 import { Resend } from "resend"
 import { buildCreditOrderConfirmationEmail } from "@/lib/email-templates/installer-transactional"
 import { ensureInvoiceForCreditOrder } from "@/lib/accounting/invoice-service"
-import { ensurePartnerReferralCode } from "@/lib/partner-referrals"
+import { ensurePartnerReferralCode, triggerPartnerReferralReward } from "@/lib/partner-referrals"
+import { triggerDistributorBonusReward } from "@/lib/distributor-partners"
 
 export async function PATCH(
   request: NextRequest,
@@ -109,6 +110,13 @@ export async function PATCH(
     revalidateTag("admin-badges", "max")
     revalidateTag("admin-kpis", "max")
     revalidatePath("/admin", "layout")
+
+    try {
+      await triggerPartnerReferralReward(supabase, order.partner_id, "first_credit_order")
+      await triggerDistributorBonusReward(supabase, order.partner_id, "first_bank_transfer_order")
+    } catch {
+      /* non-blocking */
+    }
 
     return NextResponse.json({
       success: true,

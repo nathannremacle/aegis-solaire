@@ -24,13 +24,27 @@ export const metadata = {
 export default async function PartnerNotificationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ partner?: string; token?: string; mode?: string; segment?: string }>
+  searchParams: Promise<{
+    partner?: string
+    token?: string
+    mode?: string
+    segment?: string
+    sms?: string
+    feedback?: string
+  }>
 }) {
   const params = await searchParams
   const partnerId = (params.partner || "").trim()
   const token = (params.token || "").trim()
   const requestedMode = params.mode
   const requestedSegment = normalizePartnerSegment(params.segment)
+  const requestedSms =
+    params.sms === "0" || params.sms === "false"
+      ? false
+      : params.sms === "1" || params.sms === "true"
+        ? true
+        : null
+  const feedbackReason = params.feedback?.trim() || null
 
   const isTokenValid = Boolean(partnerId && verifyPartnerUnsubscribeToken(partnerId, token))
 
@@ -38,33 +52,69 @@ export default async function PartnerNotificationsPage({
     id: string
     company_name: string
     email: string
+    phone?: string | null
     segment: string | null
     target_surfaces: string[] | null
     email_notifications_enabled?: boolean | null
     email_relances_enabled?: boolean | null
+    sms_alerts_opt_in?: boolean | null
+    weekly_digest_enabled?: boolean | null
   } | null = null
 
   let currentMode: PartnerNotificationMode = "all"
   let currentSegment: PartnerSegmentPreference = "BOTH"
+  let currentSmsOptIn = false
+  let currentWeeklyDigest = true
   let autoAppliedMode: PartnerNotificationMode | null = null
+  let autoAppliedSms: boolean | null = null
 
   if (isTokenValid) {
     const admin = createServiceRoleClient()
-    const { data } = await admin
+    let fetchedPartner: any = null
+    const fullRes = await admin
       .from("partners")
-      .select("id, company_name, email, segment, target_surfaces, email_notifications_enabled, email_relances_enabled")
+      .select(
+        "id, company_name, email, phone, segment, target_surfaces, email_notifications_enabled, email_relances_enabled, sms_alerts_opt_in, weekly_digest_enabled"
+      )
       .eq("id", partnerId)
       .maybeSingle()
 
-    if (data) {
-      partner = data
-      currentMode = getPartnerNotificationMode(data)
-      currentSegment = getEffectivePartnerSegment(data)
+    if (
+      fullRes.error &&
+      (fullRes.error.code === "42703" ||
+        fullRes.error.message?.includes("sms_alerts_opt_in") ||
+        fullRes.error.message?.includes("weekly_digest_enabled"))
+    ) {
+      const legacyRes = await admin
+        .from("partners")
+        .select(
+          "id, company_name, email, phone, segment, target_surfaces, email_notifications_enabled, email_relances_enabled"
+        )
+        .eq("id", partnerId)
+        .maybeSingle()
+      fetchedPartner = legacyRes.data
+    } else {
+      fetchedPartner = fullRes.data
+    }
 
-      if (isValidPartnerNotificationMode(requestedMode) || requestedSegment) {
-        const nextMode = isValidPartnerNotificationMode(requestedMode) ? requestedMode : currentMode
+    if (fetchedPartner) {
+      partner = fetchedPartner
+      currentMode = getPartnerNotificationMode(fetchedPartner)
+      currentSegment = getEffectivePartnerSegment(fetchedPartner)
+      currentSmsOptIn = Boolean(fetchedPartner.sms_alerts_opt_in)
+      currentWeeklyDigest = fetchedPartner.weekly_digest_enabled !== false
+
+      if (
+        isValidPartnerNotificationMode(requestedMode) ||
+        requestedSegment ||
+        requestedSms !== null
+      ) {
+        const nextMode = isValidPartnerNotificationMode(requestedMode)
+          ? requestedMode
+          : currentMode
         const nextSegment = requestedSegment ?? currentSegment
-        const cleanSurfaces = getCleanTargetSurfaces(data.target_surfaces)
+        const nextSms = requestedSms !== null ? requestedSms : currentSmsOptIn
+        const cleanSurfaces = getCleanTargetSurfaces(fetchedPartner.target_surfaces)
         const encodedSurfaces = applyNotificationModeToSurfaces(cleanSurfaces, nextMode)
         const baseUpdates = {
           target_surfaces: encodedSurfaces,
@@ -78,22 +128,28 @@ export default async function PartnerNotificationsPage({
             ...baseUpdates,
             email_notifications_enabled: nextMode !== "none",
             email_relances_enabled: nextMode === "all",
+            sms_alerts_opt_in: nextSms,
           })
-          .eq("id", data.id)
+          .eq("id", fetchedPartner.id)
 
         if (
           fullErr &&
           (fullErr.code === "42703" ||
             fullErr.message?.includes("email_notifications_enabled") ||
-            fullErr.message?.includes("email_relances_enabled"))
+            fullErr.message?.includes("email_relances_enabled") ||
+            fullErr.message?.includes("sms_alerts_opt_in"))
         ) {
-          await admin.from("partners").update(baseUpdates).eq("id", data.id)
+          await admin.from("partners").update(baseUpdates).eq("id", fetchedPartner.id)
         }
 
         currentMode = nextMode
         currentSegment = nextSegment
+        currentSmsOptIn = nextSms
         if (isValidPartnerNotificationMode(requestedMode)) {
           autoAppliedMode = requestedMode
+        }
+        if (requestedSms !== null) {
+          autoAppliedSms = requestedSms
         }
       }
     }
@@ -142,9 +198,14 @@ export default async function PartnerNotificationsPage({
               token={token}
               companyName={partner.company_name}
               email={partner.email}
+              phone={partner.phone ?? null}
               initialMode={currentMode}
               initialSegment={currentSegment}
+              initialSmsOptIn={currentSmsOptIn}
+              initialWeeklyDigest={currentWeeklyDigest}
               autoAppliedMode={autoAppliedMode}
+              autoAppliedSms={autoAppliedSms}
+              feedbackReason={feedbackReason}
             />
           )}
         </div>

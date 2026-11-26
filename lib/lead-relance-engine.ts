@@ -8,6 +8,7 @@ import {
   doesSurfaceMatchPreference,
   getEffectivePartnerSegment,
   getPartnerNotificationMode,
+  normalizeBelgianPhoneToE164,
   OPTOUT_ALL_MARKER,
   OPTOUT_RELANCES_MARKER,
 } from "@/lib/partner-notification-prefs"
@@ -765,19 +766,37 @@ export async function getEligiblePartnersForWave(
     // Tolérance si la table partner_activity_events n'est pas encore migrée
   }
 
-  // 3. Récupérer tous les partenaires actifs
+  // 3. Récupérer tous les partenaires actifs (tolérant si min_kwc / sms_alerts_opt_in pas encore migrés)
   let allPartners: any[] = []
   if (preloaded?.allPartners) {
     allPartners = preloaded.allPartners
   } else {
-    const { data: fetchedPartners, error: partnersErr } = await supabase
+    const fullPartnersRes = await supabase
       .from("partners")
-      .select("id, company_name, email, phone, credits, segment, target_provinces, target_surfaces, min_facture, is_test, email_notifications_enabled, email_relances_enabled")
+      .select(
+        "id, company_name, email, phone, credits, segment, target_provinces, target_surfaces, min_facture, min_kwc, is_test, email_notifications_enabled, email_relances_enabled, sms_alerts_opt_in"
+      )
 
-    if (partnersErr || !fetchedPartners || fetchedPartners.length === 0) {
+    if (
+      fullPartnersRes.error &&
+      (fullPartnersRes.error.code === "42703" ||
+        fullPartnersRes.error.message?.includes("min_kwc") ||
+        fullPartnersRes.error.message?.includes("sms_alerts_opt_in"))
+    ) {
+      const legacyRes = await supabase
+        .from("partners")
+        .select(
+          "id, company_name, email, phone, credits, segment, target_provinces, target_surfaces, min_facture, is_test, email_notifications_enabled, email_relances_enabled"
+        )
+      if (legacyRes.error || !legacyRes.data || legacyRes.data.length === 0) {
+        return []
+      }
+      allPartners = legacyRes.data
+    } else if (fullPartnersRes.error || !fullPartnersRes.data || fullPartnersRes.data.length === 0) {
       return []
+    } else {
+      allPartners = fullPartnersRes.data
     }
-    allPartners = fetchedPartners
   }
 
   if (allPartners.length === 0) {
@@ -816,13 +835,21 @@ export async function getEligiblePartnersForWave(
       if (dailyCount >= MAX_DAILY_NOTIFICATIONS_PER_PARTNER) continue
     }
 
-    // Respecter les préférences de fréquence d'alertes e-mail de l'installateur
+    // Respecter les préférences de fréquence d'alertes e-mail et SMS de l'installateur
     const notifMode = getPartnerNotificationMode(partner)
-    if (notifMode === "none") continue
+    const smsOptIn = Boolean((partner as any).sms_alerts_opt_in && partner.phone)
+    if (notifMode === "none" && !(waveNumber === 1 && smsOptIn)) continue
     if (notifMode === "new_only" && (waveNumber > 1 || countForLead >= 1)) continue
 
-    // Vérifier l'adresse e-mail
-    if (!partner.email || !partner.email.includes("@")) continue
+    // Respecter le seuil minimal de puissance kWc si configuré
+    const partnerMinKwc = Number((partner as any).min_kwc) || 0
+    const leadKwc = Number(lead.estimated_power_kwc) || 0
+    if (partnerMinKwc > 0 && leadKwc > 0 && leadKwc < partnerMinKwc) {
+      continue
+    }
+
+    // Vérifier l'adresse e-mail (sauf si seul le canal SMS est actif)
+    if (notifMode !== "none" && (!partner.email || !partner.email.includes("@"))) continue
 
     const scoreInfo = calculatePartnerMatchScore(partner, {
       segment: lead.segment,
@@ -1146,43 +1173,46 @@ export async function dispatchLeadWave(
       expressCheckoutUrl: expressUrl,
     })
     const notifUrls = buildPartnerNotificationUrls(siteBaseUrl, partner.id, partner.email)
+    const partnerNotifMode = getPartnerNotificationMode(partner)
 
-    if (resend) {
-      try {
-        const { blocked, error: sendErr } = await safeSendResendEmail(
-          resend,
-          {
-            from: fromEmail,
-            to: partner.email,
-            replyTo: replyToEmail,
-            subject,
-            text,
-            html,
-            headers: {
-              "List-Unsubscribe": `<${notifUrls.muteAllUrl}>, <mailto:contact@aegissolaire.com?subject=Desabonnement%20alertes>`,
-              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    if (partnerNotifMode !== "none") {
+      if (resend) {
+        try {
+          const { blocked, error: sendErr } = await safeSendResendEmail(
+            resend,
+            {
+              from: fromEmail,
+              to: partner.email,
+              replyTo: replyToEmail,
+              subject,
+              text,
+              html,
+              headers: {
+                "List-Unsubscribe": `<${notifUrls.muteAllUrl}>, <mailto:contact@aegissolaire.com?subject=Desabonnement%20alertes>`,
+                "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+              },
             },
-          },
-          { supabase, context: "LEAD_RELANCE" }
-        )
+            { supabase, context: "LEAD_RELANCE" }
+          )
 
-        if (blocked) continue
-        if (sendErr) {
-          console.error(`[Lead Relance] Échec d'envoi à ${partner.email}:`, sendErr)
+          if (blocked) continue
+          if (sendErr) {
+            console.error(`[Lead Relance] Échec d'envoi à ${partner.email}:`, sendErr)
+            continue
+          }
+        } catch (sendException) {
+          console.error(`[Lead Relance] Exception d'envoi à ${partner.email}:`, sendException)
           continue
         }
-      } catch (sendException) {
-        console.error(`[Lead Relance] Exception d'envoi à ${partner.email}:`, sendException)
-        continue
+      } else {
+        console.log(`[Lead Relance DEV] Envoi simulé à ${partner.email} — Objet: ${subject}`)
       }
-    } else {
-      console.log(`[Lead Relance DEV] Envoi simulé à ${partner.email} — Objet: ${subject}`)
     }
 
     // Alerte SMS optionnelle (strictement réservée aux partenaires ayant opt-in explicitement)
     if (
       waveNumber === 1 &&
-      scoreInfo.tier === "tier_1" &&
+      (scoreInfo.tier === "tier_1" || scoreInfo.isExactProvince) &&
       partner.phone &&
       Boolean((partner as any).sms_alerts_opt_in) &&
       !candidate.isTest
@@ -1194,6 +1224,8 @@ export async function dispatchLeadWave(
           segment: lead.segment || "B2C",
           powerKwc: financials.estimatedPowerKwc,
           creditCost,
+          expressUrl,
+          muteSmsUrl: notifUrls.muteSmsUrl,
         }).catch(() => undefined)
       )
     }
@@ -2180,7 +2212,21 @@ const getUpcomingRelancesScheduleCached = cache(async (): Promise<UpcomingRelanc
     ).catch(() => ({ data: [] as any[], error: null })),
     supabase
       .from("partners")
-      .select("id, company_name, email, phone, credits, segment, target_provinces, target_surfaces, min_facture, is_test, email_notifications_enabled, email_relances_enabled"),
+      .select(
+        "id, company_name, email, phone, credits, segment, target_provinces, target_surfaces, min_facture, min_kwc, is_test, email_notifications_enabled, email_relances_enabled, sms_alerts_opt_in"
+      )
+      .then((res) =>
+        res.error &&
+        (res.error.code === "42703" ||
+          res.error.message?.includes("min_kwc") ||
+          res.error.message?.includes("sms_alerts_opt_in"))
+          ? supabase
+              .from("partners")
+              .select(
+                "id, company_name, email, phone, credits, segment, target_provinces, target_surfaces, min_facture, is_test, email_notifications_enabled, email_relances_enabled"
+              )
+          : res
+      ),
   ])
 
   const allPurchases = (purchasesRes.data as any[]) || []
@@ -2859,17 +2905,21 @@ async function sendOptionalSmsUrgencyAlert(params: {
   segment: string
   powerKwc: number
   creditCost: number
+  expressUrl?: string
+  muteSmsUrl?: string
 }): Promise<void> {
   const accountSid = process.env.TWILIO_ACCOUNT_SID
   const authToken = process.env.TWILIO_AUTH_TOKEN
   const fromNumber = process.env.TWILIO_FROM_NUMBER
   if (!accountSid || !authToken || !fromNumber || !params.toPhone) return
 
-  const cleanPhone = params.toPhone.replace(/[^+\d]/g, "")
-  if (!cleanPhone.startsWith("+") || cleanPhone.length < 10) return
+  const cleanPhone = normalizeBelgianPhoneToE164(params.toPhone)
+  if (!cleanPhone) return
 
   const kwcLabel = params.powerKwc > 0 ? `${params.powerKwc} kWc` : "PV"
-  const body = `Aegis Solaire: Nouveau chantier ${params.segment} ${kwcLabel} a ${params.city} (${params.creditCost} cr.). Consultez votre espace partenaire.`
+  const actionPart = params.expressUrl ? ` Voir: ${params.expressUrl}` : " Consultez votre espace partenaire."
+  const stopPart = params.muteSmsUrl ? ` | Stop SMS: ${params.muteSmsUrl}` : ""
+  const body = `Aegis Solaire: Nouveau chantier ${params.segment} ${kwcLabel} a ${params.city} (${params.creditCost} cr.).${actionPart}${stopPart}`
   const credentials = Buffer.from(`${accountSid}:${authToken}`).toString("base64")
 
   await fetch(
