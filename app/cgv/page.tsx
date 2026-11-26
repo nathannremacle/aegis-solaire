@@ -60,7 +60,7 @@ export default function CGV() {
               <strong className="text-foreground">Lead :</strong> Fiche d&apos;information technique et déclarative relative à un projet d&apos;installation photovoltaïque ou de transition énergétique en Wallonie ou en Belgique, renseignée par un Prospect via les formulaires ou le simulateur ROI de la Plateforme, comprenant des coordonnées de contact et des paramètres techniques déclaratifs.
             </li>
             <li>
-              <strong className="text-foreground">Lead B2B :</strong> Dossier issu du segment professionnel (bâtiments tertiaires, industriels, toitures &gt; 500 m², ombrières de parking &gt; 1 500 m²). Vendu sous licence d&apos;exploitation exclusive à un (1) seul Partenaire Installateur.
+              <strong className="text-foreground">Lead B2B :</strong> Dossier issu du segment professionnel (bâtiments tertiaires, industriels, toitures &gt; 500 m², ombrières de parking &gt; 1 500 m²). Mis à disposition en appel d&apos;offres restreint à un maximum de deux (2) Partenaires Installateurs (ou sous licence d&apos;Exclusivité Totale à un (1) seul Partenaire).
             </li>
             <li>
               <strong className="text-foreground">Lead B2C :</strong> Dossier issu du segment résidentiel particulier. Mis à disposition d&apos;un maximum de trois (3) Partenaires Installateurs distincts afin de permettre au particulier de comparer plusieurs offres techniques.

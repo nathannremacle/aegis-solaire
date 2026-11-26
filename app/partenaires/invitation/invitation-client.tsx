@@ -403,7 +403,7 @@ export function InvitationClient({
                     </li>
                     <li className="flex items-start gap-2 text-sm">
                       <span className="font-mono text-primary font-semibold tabular-nums">02.</span>
-                      <span><strong>Attribution ciblée :</strong> exclusivité totale en B2B (<span className="font-mono tabular-nums">1:1</span>) pour vous permettre d'étudier et négocier sereinement chaque dossier d'envergure, et maximum <span className="font-mono tabular-nums">3</span> installateurs qualifiés en B2C.</span>
+                      <span><strong>Attribution ciblée :</strong> maximum <span className="font-mono tabular-nums">2</span> bureaux d&apos;études en B2B (ou exclusivité totale <span className="font-mono tabular-nums">1:1</span>) pour vous permettre d&apos;étudier et négocier sereinement chaque dossier d&apos;envergure, et maximum <span className="font-mono tabular-nums">3</span> installateurs qualifiés en B2C.</span>
                     </li>
                     <li className="flex items-start gap-2 text-sm">
                       <span className="font-mono text-primary font-semibold tabular-nums">03.</span>
@@ -489,7 +489,7 @@ export function InvitationClient({
                           </span>
                         </div>
                         <span className="mt-1 block font-sans text-[11px] font-normal normal-case text-muted-foreground">
-                          Exclusivité B2B, audit téléphonique & 0 € d'abonnement
+                          B2B plafonné à 2 max (ou exclusif), audit téléphonique &amp; 0 € d&apos;abonnement
                         </span>
                       </th>
                     </tr>
@@ -513,7 +513,7 @@ export function InvitationClient({
                         <div className="flex items-start gap-2.5">
                           <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                           <span>
-                            <strong className="text-primary font-bold">1 seul installateur en B2B</strong> (<span className="font-mono tabular-nums font-semibold text-primary">100%</span> exclusif) · Max <strong className="font-mono tabular-nums font-bold text-primary">3</strong> en B2C pour préserver un taux de signature élevé
+                            <strong className="text-primary font-bold">Max <span className="font-mono tabular-nums">2</span> installateurs en B2B</strong> (ou <span className="font-mono tabular-nums font-semibold text-primary">100 %</span> exclusif) · Max <strong className="font-mono tabular-nums font-bold text-primary">3</strong> en B2C pour préserver un taux de signature élevé
                           </span>
                         </div>
                       </td>

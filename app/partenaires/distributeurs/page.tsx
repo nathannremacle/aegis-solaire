@@ -72,7 +72,7 @@ export default function DistributeursProgrammePage() {
                 Zéro concurrence sauvage
               </h2>
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Téléphone vérifié par code SMS (OTP), photos et vue <span className="font-mono tabular-nums">3D</span> du toit, plafond strict de <span className="font-mono tabular-nums">3</span> installateurs en résidentiel et <span className="font-mono tabular-nums">100 %</span> exclusif sur nos dossiers B2B tertiaires.
+                Téléphone vérifié par code SMS (OTP), photos et vue <span className="font-mono tabular-nums">3D</span> du toit, plafond strict de <span className="font-mono tabular-nums">3</span> installateurs en résidentiel et <span className="font-mono tabular-nums">2</span> maximum en B2B tertiaire (ou exclusif).
               </p>
             </div>
 

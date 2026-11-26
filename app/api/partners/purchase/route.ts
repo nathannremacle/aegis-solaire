@@ -178,14 +178,14 @@ export async function POST(request: Request) {
         }
       })
 
-      const isExclusivePurchase = Boolean(result?.exclusive ?? (exclusive || lead.segment === "B2B"))
+      const isExclusivePurchase = Boolean(result?.exclusive ?? (exclusive || lead.max_slots === 1))
       const maxSlots =
         isExclusivePurchase
           ? 1
           : typeof lead.max_slots === "number"
             ? lead.max_slots
             : lead.segment === "B2B"
-              ? 1
+              ? 2
               : 3
       const takenSlots = buyers.length > 0 ? buyers.length : 1
 
@@ -250,7 +250,7 @@ export async function POST(request: Request) {
     purchase_id: purchaseId,
     creditsSpent,
     creditsRemaining,
-    exclusive: Boolean(result?.exclusive ?? (exclusive || lead?.segment === "B2B")),
+    exclusive: Boolean(result?.exclusive ?? (exclusive || lead?.max_slots === 1)),
     lead,
   })
 }

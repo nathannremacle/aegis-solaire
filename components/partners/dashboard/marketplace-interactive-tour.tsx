@@ -192,15 +192,15 @@ export function MarketplaceInteractiveTour({
                   <div className="rounded-xl border border-primary/30 bg-card p-3.5 space-y-2 shadow-xs">
                     <div className="flex items-center justify-between">
                       <span className="inline-flex items-center rounded-md bg-primary text-primary-foreground px-2 py-0.5 text-xs font-bold">
-                        B2B · 100% Exclusif
+                        B2B · Max 2 ou Exclusif
                       </span>
                       <Building2 className="h-4 w-4 text-primary" />
                     </div>
                     <p className="text-xs font-bold text-foreground">
-                      1 seul installateur sur le dossier
+                      Max 2 bureaux d&apos;études (ou 1 en Exclusivité Totale)
                     </p>
                     <p className="text-[11px] text-muted-foreground leading-normal">
-                      Aucun concurrent sur cette opportunité. Idéal pour les chantiers PME, hangars, surfaces commerciales et toitures industrielles.
+                      Appel d&apos;offres restreint à 2 installateurs maximum, avec option rachat exclusif 1:1. Idéal pour les chantiers PME, hangars, surfaces commerciales et toitures industrielles.
                     </p>
                   </div>
 

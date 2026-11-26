@@ -290,7 +290,9 @@ export function buildLeadEmailSubject(data: InstallerLeadTeaserData): string {
 
   if (data.waveNumber === 1) {
     if (isB2B) {
-      return `Nouveau projet B2B exclusif ${locPhrase} (${power}) — Dossier #${refCode}`
+      return isB2B && data.maxSlots <= 1
+        ? `Nouveau projet B2B exclusif ${locPhrase} (${power}) — Dossier #${refCode}`
+        : `Nouveau projet B2B ${locPhrase} (${power}) — ${remainingSlots === 1 ? "1 place dispo" : `${remainingSlots} places dispo`} (#${refCode})`
     }
     return `Nouveau dossier photovoltaïque ${locPhrase} — ${remainingSlots === 1 ? "1 place dispo" : `${remainingSlots} places dispo`} (#${refCode})`
   }
@@ -307,7 +309,9 @@ export function buildLeadEmailSubject(data: InstallerLeadTeaserData): string {
 
   if (data.waveNumber === 2) {
     if (isB2B) {
-      return `Rappel : Projet B2B exclusif disponible ${locPhrase} (${power})`
+      return data.maxSlots <= 1
+        ? `Rappel : Projet B2B exclusif disponible ${locPhrase} (${power})`
+        : `Rappel : Projet B2B disponible ${locPhrase} (${power}) — ${remainingSlots}/${data.maxSlots} places`
     }
     if (remainingSlots === 1) {
       return `Dernière place disponible — Projet solaire ${locPhrase} (${power})`
@@ -319,7 +323,9 @@ export function buildLeadEmailSubject(data: InstallerLeadTeaserData): string {
   }
 
   if (isB2B) {
-    return `Projet B2B exclusif toujours disponible ${locPhrase} (${power})`
+    return data.maxSlots <= 1
+      ? `Projet B2B exclusif toujours disponible ${locPhrase} (${power})`
+      : `Projet B2B toujours disponible ${locPhrase} (${power}) — ${remainingSlots}/${data.maxSlots} places`
   }
   if (remainingSlots === 1) {
     return `Dernière place disponible : Installation solaire ${locPhrase}`
@@ -470,7 +476,7 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
       contextText = "Rappel · Dossier consulté"
     } else if (isB2B) {
       contextColor = "#89610e"
-      contextText = "Rappel · Projet B2B exclusif disponible"
+      contextText = data.maxSlots <= 1 ? "Rappel · Projet B2B exclusif disponible" : "Rappel · Projet B2B disponible"
     } else if (data.takenSlots > 0) {
       contextColor = "#89610e"
       contextText = "Rappel · Dossier photovoltaïque disponible"
@@ -481,7 +487,7 @@ export function renderInstallerLeadTeaserEmail(data: InstallerLeadTeaserData): {
   } else if (data.waveNumber >= 3) {
     if (isB2B) {
       contextColor = "#305a76"
-      contextText = "Projet B2B · Exclusivité toujours disponible"
+      contextText = data.maxSlots <= 1 ? "Projet B2B · Exclusivité toujours disponible" : "Projet B2B · Places toujours disponibles"
     } else if (remainingSlots === 1) {
       contextColor = "#991b1b"
       contextText = "Dernière place disponible"

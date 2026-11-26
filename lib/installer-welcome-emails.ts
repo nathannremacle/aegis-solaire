@@ -78,7 +78,7 @@ Prochaines étapes de votre intégration :
 Aegis Solaire en bref :
 - Pas d'abonnement – 100 % à la carte, aucun engagement mensuel ni frais cachés.
 - Fiches techniques complètes – surface de toiture, consommation kWh et coordonnées vérifiées avant transmission.
-- Concurrence plafonnée – 3 installateurs maximum par projet résidentiel et exclusivité stricte (1 seul artisan) en B2B.
+- Concurrence plafonnée – 3 installateurs maximum par projet résidentiel et 2 installateurs maximum (ou Exclusivité Totale) en B2B.
 - Pas de chantiers sélectionnés ? Zéro coût.
 
 Des questions sur votre adhésion ? contact@aegissolaire.com
@@ -126,7 +126,7 @@ Conformément au RGPD, vous disposez d'un droit d'accès et d'opposition (dpo@ae
           </h2>
           ${renderSpecsTable([
             { label: "Abonnement", value: "Aucun · 100 % à la carte" },
-            { label: "Concurrence", value: "Max 3 artisans B2C · Exclusif en B2B" },
+            { label: "Concurrence", value: "Max 3 artisans B2C · Max 2 en B2B (ou exclusif)" },
             { label: "Qualification", value: "Toiture, facture & coordonnées vérifiées" },
           ])}
         </td>
@@ -223,10 +223,10 @@ export function buildInstallerMarketplaceWelcomeEmail(data: InstallerMarketplace
   if (hasLeads) {
     const listText = leads
       .map((l) => {
-        const seg = l.segment === "B2B" ? "PRO B2B · Exclusif" : "Résidentiel B2C"
+        const seg = l.segment === "B2B" ? "PRO B2B" : "Résidentiel B2C"
         const quota =
-          l.segment === "B2B"
-            ? "1 seul artisan"
+          l.segment === "B2B" && l.maxSlots <= 1
+            ? "1 seul artisan (Exclusif)"
             : `${l.remainingSlots}/${l.maxSlots} place${l.remainingSlots > 1 ? "s" : ""} restante${l.remainingSlots > 1 ? "s" : ""}`
         const loc = `${l.postalCode ? l.postalCode + " " : ""}${l.city || l.provinceLabel}`
         const directUrl = getDirectLeadInspectUrl(l.id)
@@ -254,7 +254,7 @@ ${hasSetupPasswordUrl ? `Définir votre mot de passe et accéder à la Marketpla
 La Marketplace Aegis Solaire en bref :
 - Pas d’abonnement – vous ne payez que pour les demandes de devis que vous choisissez d'acquérir.
 - Fiches techniques vérifiées – toiture, consommation kWh, raccordement GRD et coordonnées complètes.
-- Concurrence maîtrisée – maximum 3 installateurs par projet résidentiel (ou option Exclusivité Totale à 1 clic) et exclusivité native en B2B.
+- Concurrence maîtrisée – maximum 3 installateurs par projet résidentiel (ou option Exclusivité Totale à 1 clic) et 2 installateurs maximum en B2B (ou Exclusivité Totale).
 ${welcomeCredits > 0 ? `- Solde de bienvenue offert : ${welcomeCredits} crédits sont déjà disponibles sur votre compte pour débloquer votre 1er chantier gratuitement.\n` : ""}- Pas de chantiers sélectionnés ? Zéro frais.${referralText ? `\n\n${referralText}` : ""}
 
 Des questions ? contact@aegissolaire.com
@@ -359,7 +359,7 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
           </h2>
           ${renderSpecsTable([
             { label: "Modèle tarifaire", value: "100 % à la carte · Zéro abonnement" },
-            { label: "Concurrence", value: "Max 3 artisans B2C · Exclusif B2B" },
+            { label: "Concurrence", value: "Max 3 artisans B2C · Max 2 B2B (ou exclusif)" },
             { label: "Zones d'alerte", value: "Modifiables à tout moment" },
           ])}
         </td>

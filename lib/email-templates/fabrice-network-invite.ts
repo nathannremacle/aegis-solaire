@@ -143,7 +143,7 @@ Je t'écris pour te présenter Aegis Solaire, la plateforme dédiée aux install
 Notre fonctionnement est conçu pour éliminer les faux numéros et les mauvaises surprises sur chantier :
 1. Téléphone vérifié par SMS (code OTP) + contrôle opérateur et e-mail confirmé avant publication (avec garantie recrédit sous 24 h ouvrées si le prospect reste injoignable).
 2. Photos réelles du bien + vue 3D indicative du toit visibles avant déblocage, avec surface, toiture, facture réelle et adresse certifiée SPW ICAR.
-3. Concurrence plafonnée à 3 artisans max en B2C (ou Exclusivité Totale) et exclusivité 100 % en B2B — 0 € d'abonnement, 0 commission.
+3. Concurrence plafonnée à 3 artisans max en B2C (ou Exclusivité Totale) et max 2 en B2B (ou Exclusivité Totale) — 0 € d'abonnement, 0 commission.
 ${noteBlock}${creditsBlockTutoiement}
 Tu peux activer ton accès et débloquer ton 1er dossier offert en 2 minutes ici :
 ${data.inviteUrl}
@@ -160,7 +160,7 @@ Email : contact@aegissolaire.com`.trim()
     const bonus = showCredits
       ? ` Votre 1er dossier B2C est offert (${creditsCount} crédits d'accueil, 0 € à débourser) : ${data.inviteUrl} .`
       : ` Activez votre accès réservé ici : ${data.inviteUrl} .`
-    return `Bonjour ${name}, l'équipe Aegis Solaire vous invite à découvrir nos chantiers photovoltaïques vérifiés en Wallonie : téléphone vérifié par SMS (OTP), photos du bâtiment + vue 3D du toit avant déblocage, max 3 artisans en B2C / exclusif en B2B, 0 € d'abonnement.${bonus} Questions : contact@aegissolaire.com`.trim()
+    return `Bonjour ${name}, l'équipe Aegis Solaire vous invite à découvrir nos chantiers photovoltaïques vérifiés en Wallonie : téléphone vérifié par SMS (OTP), photos du bâtiment + vue 3D du toit avant déblocage, max 3 artisans en B2C / max 2 en B2B (ou exclusif), 0 € d'abonnement.${bonus} Questions : contact@aegissolaire.com`.trim()
   }
 
   // Vouvoiement
@@ -171,7 +171,7 @@ La Direction des Partenariats Aegis Solaire vous invite à rejoindre notre rése
 Notre fonctionnement tranche nettement avec les courtiers classiques :
 1. Téléphone vérifié par SMS (code OTP) + contrôle opérateur et e-mail confirmé avant publication (avec garantie recrédit sous 24 h ouvrées si le prospect est injoignable).
 2. Photos du bâtiment + vue 3D indicative du toit visibles avant déblocage, avec surface, toiture, facture d'électricité et adresse certifiée SPW ICAR.
-3. Concurrence plafonnée à 3 installateurs maximum en B2C (ou Exclusivité Totale) et exclusivité 100 % en B2B — 0 € d'abonnement et 0 commission.
+3. Concurrence plafonnée à 3 installateurs maximum en B2C (ou Exclusivité Totale) et max 2 en B2B (ou Exclusivité Totale) — 0 € d'abonnement et 0 commission.
 ${noteBlock}${creditsBlockVouvoiement}
 Vous pouvez activer votre accès et consulter les dossiers disponibles en 2 minutes ici :
 ${data.inviteUrl}
@@ -194,7 +194,7 @@ export function buildPartnerWhatsAppMessage(data: PartnerInviteData): string {
     ? ` (votre 1er dossier B2C est offert : ${data.freeCredits} crédits d'accueil, 0 € à débourser)`
     : ""
 
-  return `Bonjour ${name}, la Direction des Partenariats Aegis Solaire vous invite sur notre plateforme wallonne : téléphone vérifié par SMS (OTP), photos du bien + vue 3D du toit avant déblocage, max 3 installateurs B2C / exclusif B2B, 0 € d'abonnement. Voici votre accès privilégié${bonus} : ${data.inviteUrl} . Contact : contact@aegissolaire.com`
+  return `Bonjour ${name}, la Direction des Partenariats Aegis Solaire vous invite sur notre plateforme wallonne : téléphone vérifié par SMS (OTP), photos du bien + vue 3D du toit avant déblocage, max 3 installateurs B2C / max 2 B2B (ou exclusif), 0 € d'abonnement. Voici votre accès privilégié${bonus} : ${data.inviteUrl} . Contact : contact@aegissolaire.com`
 }
 
 /**
@@ -267,7 +267,7 @@ export function renderPartnerInviteHtml(data: PartnerInviteData, customBodyText?
       { label: "1er dossier B2C offert", value: `${creditsCount} crédits d'accueil offerts (0 € sans carte bancaire)` },
       { label: "Téléphone vérifié par SMS", value: "Code SMS (OTP) validé par le prospect + contrôle opérateur" },
       { label: "Photos + vue 3D du toit", value: "Visuels réels et reconstitution 3D indicative sur la fiche" },
-      { label: "Concurrence plafonnée", value: "Max 3 artisans B2C · Exclusivité totale 100 % en B2B" },
+      { label: "Concurrence plafonnée", value: "Max 3 artisans B2C · Max 2 en B2B (ou exclusif)" },
       { label: "Garantie joignabilité", value: "Injoignable après 3 essais → recrédit sous 24 h ouvrées" },
     ])}
 

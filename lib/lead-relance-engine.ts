@@ -3134,7 +3134,7 @@ export async function runAutoMatchForLead(leadId: string): Promise<AutoMatchResu
           partnerId: partner.id,
           companyName: partner.company_name || "Partenaire",
           mode: "wallet",
-          exclusive: wantsExclusiveB2C || isB2B,
+          exclusive: Boolean(rpcRes.exclusive) || wantsExclusiveB2C || maxSlots <= 1,
         })
 
         realBuyers.push({
@@ -3267,7 +3267,7 @@ export async function runAutoMatchForLead(leadId: string): Promise<AutoMatchResu
                 partnerId: partner.id,
                 companyName: partner.company_name || "Partenaire",
                 mode: "mollie_mandate",
-                exclusive: wantsExclusiveB2C || isB2B,
+                exclusive: Boolean(fulfilled.exclusive) || wantsExclusiveB2C || maxSlots <= 1,
               })
               takenSlots = wantsExclusiveB2C ? maxSlots : takenSlots + 1
               if (wantsExclusiveB2C) break

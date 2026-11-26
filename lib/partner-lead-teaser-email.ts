@@ -69,7 +69,7 @@ export function buildPartnerLeadTeaserContent(payload: PartnerLeadTeaserPayload)
   const text = `AEGIS SOLAIRE — NOUVEAU PROJET B2B QUALIFIÉ
 Tiers de Confiance Wallon · Agrément RESCERT & CWaPE
 
-Un nouveau dossier photovoltaïque B2B exclusif est disponible sur la marketplace Aegis Solaire.
+Un nouveau dossier photovoltaïque B2B qualifié est disponible sur la marketplace Aegis Solaire.
 
 Caractéristiques du projet :
 • Type d'implantation : ${typeLabel}
@@ -82,7 +82,7 @@ Caractéristiques du projet :
 Débloquer ce dossier sur votre Dashboard :
 ${ctaUrl}
 
-Règle d'attribution B2B : Exclusivité 100% garantie (1 seul installateur partenaire).
+Règle d'attribution B2B : 2 installateurs partenaires maximum (ou option Exclusivité Totale).
 
 Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège, Belgique.
 `.trim()
@@ -103,8 +103,8 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
 
     ${renderActionBox({
     kicker: "Attribution B2B",
-    title: "Exclusivité 100 % garantie",
-    subtext: "1 seul installateur partenaire sur ce projet.",
+    title: "Max 2 partenaires (ou Exclusivité)",
+    subtext: "Appel d'offres restreint à 2 installateurs maximum sur ce projet.",
     ctaLabel: "Débloquer sur le Dashboard →",
     ctaUrl: ctaUrl,
   })}
@@ -141,12 +141,12 @@ Plateforme éditée par INIT42 (Nathan Remacle) · BCE BE 1039.899.980 · Liège
 
   const html = renderInstallerEmailShell({
     subject,
-    preheader: `Projet B2B exclusif en ${provinceLabel} · ${surface} · ${facture}.`,
+    preheader: `Projet B2B qualifié en ${provinceLabel} · ${surface} · ${facture}.`,
     reference: `B2B · ${provinceLabel}`,
     context: "Nouveau projet photovoltaïque B2B",
     headline: provinceLabel,
     subtitle: `${typeLabel} · ${surface}`,
-    statusPill: { text: "Exclusivité B2B · 1 seul installateur", tone: "success" },
+    statusPill: { text: "B2B · Max 2 installateurs (ou Exclusif)", tone: "success" },
     bodyHtml,
     footerLinks: [
       { label: "Assistance technique", href: "mailto:contact@aegissolaire.com" },

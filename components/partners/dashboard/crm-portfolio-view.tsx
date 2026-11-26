@@ -802,7 +802,7 @@ export function CrmPortfolioView({
                     : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
                 }`}
               >
-                <span>B2B Exclusif</span>
+                <span>B2B Tertiaire</span>
                 <span
                   className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${
                     segmentFilter === "B2B" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-secondary text-muted-foreground"
@@ -1078,7 +1078,7 @@ export function CrmPortfolioView({
                             : "bg-secondary text-foreground border border-border"
                         }`}
                       >
-                        {isB2B ? "B2B Exclusif" : "B2C Débloqué"}
+                        {isB2B ? "B2B Débloqué" : "B2C Débloqué"}
                       </span>
                       <h3 className="font-bold text-sm text-foreground truncate mt-1">
                         {item.company ? `${item.company} — ` : ""}
@@ -1212,7 +1212,7 @@ export function CrmPortfolioView({
                               : "bg-secondary text-foreground border border-border"
                           }`}
                         >
-                          {isB2B ? "B2B Exclusif" : "B2C Débloqué"}
+                          {isB2B ? "B2B Débloqué" : "B2C Débloqué"}
                         </span>
                       </td>
 
@@ -1387,7 +1387,7 @@ export function CrmPortfolioView({
                 <div className="grid grid-cols-3 gap-2">
                   {[
                     { id: "ALL" as const, label: "Tous", count: counts.all },
-                    { id: "B2B" as const, label: "B2B Exclusif", count: counts.b2b },
+                    { id: "B2B" as const, label: "B2B Tertiaire", count: counts.b2b },
                     { id: "B2C" as const, label: "B2C Débloqué", count: counts.b2c },
                   ].map((seg) => {
                     const isActive = segmentFilter === seg.id
@@ -1640,7 +1640,7 @@ function CrmPortfolioCard({
           <div className="absolute top-2.5 left-2.5 right-2.5 sm:top-3 sm:left-3 sm:right-3 flex items-center justify-between gap-2 pointer-events-none">
             {/* Badge Modèle */}
             <span className="inline-flex items-center rounded-full bg-primary text-primary-foreground text-[11px] sm:text-xs font-bold px-2.5 sm:px-3.5 py-1 sm:py-1.5 shadow-sm whitespace-nowrap">
-              <span className="sm:hidden">{isB2B ? "B2B Exclusif" : "B2C Débloqué"}</span>
+              <span className="sm:hidden">{isB2B ? "B2B Débloqué" : "B2C Débloqué"}</span>
               <span className="hidden sm:inline">{isB2B ? "B2B • Client Direct" : "B2C • Débloqué"}</span>
             </span>
 

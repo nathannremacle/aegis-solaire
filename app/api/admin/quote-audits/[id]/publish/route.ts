@@ -153,41 +153,41 @@ export async function POST(
         },
         bodyHtml: `
           ${renderFiguresBox(
-            {
-              label: "Référence RESCERT Tier-1 2026",
-              value: benchRange,
-              sublabel: `${kwc} kWc${batteryKwh > 0 ? ` + ${batteryKwh} kWh` : ""}`,
-            },
-            {
-              label: "Diagnostic tarifaire",
-              value: overchargeLabel,
-              sublabel: quotedPriceTvac > 0 ? `Offre analysée : ${quotedPriceTvac.toLocaleString("fr-BE")} € TVAC` : "Analyse technique effectuée",
-            }
-          )}
+          {
+            label: "Référence RESCERT Tier-1 2026",
+            value: benchRange,
+            sublabel: `${kwc} kWc${batteryKwh > 0 ? ` + ${batteryKwh} kWh` : ""}`,
+          },
+          {
+            label: "Diagnostic tarifaire",
+            value: overchargeLabel,
+            sublabel: quotedPriceTvac > 0 ? `Offre analysée : ${quotedPriceTvac.toLocaleString("fr-BE")} € TVAC` : "Analyse technique effectuée",
+          }
+        )}
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 16px; width: 100%; border-collapse: collapse;">
             <tr>
               <td style="padding-top: 14px; border-top: 1px solid #E6EDF1;">
                 ${renderSpecsTable([
-                  { label: "Puissance analysée", value: `${kwc} kWc` },
-                  ...(batteryKwh > 0 ? [{ label: "Stockage batterie", value: `${batteryKwh} kWh` }] : []),
-                  { label: "Exigence qualité", value: "Panneaux Tier-1, conformité RGIE & Synergrid C10/11" },
-                  {
-                    label: "Suite donnée",
-                    value: publishToMarketplace
-                      ? "Mise en concurrence activée auprès de 2 installateurs RESCERT max (devis initial confidentiel)"
-                      : "Conseil neutre transmis par écrit — aucune transmission sans votre accord",
-                  },
-                ])}
+          { label: "Puissance analysée", value: `${kwc} kWc` },
+          ...(batteryKwh > 0 ? [{ label: "Stockage batterie", value: `${batteryKwh} kWh` }] : []),
+          { label: "Exigence qualité", value: "Panneaux Tier-1, conformité RGIE & Synergrid C10/11" },
+          {
+            label: "Suite donnée",
+            value: publishToMarketplace
+              ? "Mise en concurrence activée auprès de 2 installateurs RESCERT max (devis initial confidentiel)"
+              : "Conseil neutre transmis par écrit — aucune transmission sans votre accord",
+          },
+        ])}
               </td>
             </tr>
           </table>
           ${renderCalloutBox({
-            label: "Zéro contrepartie sur la qualité · 100 % gratuit",
-            value: publishToMarketplace
-              ? "Les installateurs RESCERT sollicités savent qu'ils sont mis en concurrence sur un cahier des charges Tier-1 strict sans jamais voir votre document concurrent."
-              : "Si vous souhaitez comparer avec 2 offres RESCERT de votre région sans centre d'appels, répondez simplement à cet e-mail.",
-            tone: "info",
-          })}
+          label: "Zéro contrepartie sur la qualité · 100 % gratuit",
+          value: publishToMarketplace
+            ? "Les installateurs RESCERT sollicités savent qu'ils sont mis en concurrence sur un cahier des charges Tier-1 strict sans jamais voir votre document concurrent."
+            : "Si vous souhaitez comparer avec 2 offres RESCERT de votre région sans centre d'appels, répondez simplement à cet e-mail.",
+          tone: "info",
+        })}
         `,
         footerLinks: [
           { label: "Assistance technique", href: "mailto:contact@aegissolaire.com" },

@@ -384,7 +384,7 @@ export function DpiCalculatorClient({
                   Exportez cette Note CFO en PDF à votre nom d&apos;entreprise
                 </h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  L&apos;inscription est <strong className="font-mono tabular-nums text-foreground">100 % gratuite</strong> et sans abonnement : vous débloquez la marque blanche PDF et recevez nos projets B2B exclusifs en Wallonie.
+                  L&apos;inscription est <strong className="font-mono tabular-nums text-foreground">100 % gratuite</strong> et sans abonnement : vous débloquez la marque blanche PDF et recevez nos projets B2B qualifiés en Wallonie (2 installateurs max ou exclusivité).
                 </p>
               </div>
               <Button asChild size="sm" className="rounded-xl text-xs font-bold gap-2 shrink-0">

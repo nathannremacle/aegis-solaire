@@ -215,7 +215,7 @@ export function EmailPreviewDrawer({
           <div className="flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground font-mono">
             <span>De : noreply@aegissolaire.com</span>
             <span>Répondre à : contact@aegissolaire.com</span>
-            <span>Garantie : Concurrence plafonnée (Max 3 / Exclusif B2B)</span>
+            <span>Garantie : Concurrence plafonnée (Max 3 B2C / Max 2 B2B)</span>
           </div>
         </div>
 

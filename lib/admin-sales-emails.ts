@@ -205,10 +205,11 @@ export async function sendAdminLeadSaleNotification(
   let slotBadgeColor: string
 
   if (remainingSlots === 0) {
-    slotStatusLabel = isB2B
-      ? "0 / 1 place restante — Exclusif vendu (Sold Out)"
-      : `0 / ${maxSlots} place restante — Complet (Sold Out)`
-    slotShortSubject = isB2B ? "Vendu exclusif (0/1)" : `Complet (0/${maxSlots})`
+    slotStatusLabel =
+      maxSlots <= 1
+        ? "0 / 1 place restante — Exclusif vendu (Sold Out)"
+        : `0 / ${maxSlots} place restante — Complet (Sold Out)`
+    slotShortSubject = maxSlots <= 1 ? "Vendu exclusif (0/1)" : `Complet (0/${maxSlots})`
     slotBadgeBg = "#FEF2F2"
     slotBadgeBorder = "#FECACA"
     slotBadgeColor = "#B91C1C"

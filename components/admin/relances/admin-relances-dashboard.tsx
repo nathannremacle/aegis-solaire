@@ -51,7 +51,7 @@ const WAVE_OPTIONS = [
 
 const SEGMENT_OPTIONS = [
   { value: "ALL", label: "Tous les segments" },
-  { value: "B2B", label: "B2B Tertiaire (Exclusif)" },
+  { value: "B2B", label: "B2B Tertiaire (Max 2)" },
   { value: "B2C", label: "B2C Résidentiel (Max 3)" },
 ]
 import { RelancesKpiBar } from "./relances-kpi-bar"
@@ -774,7 +774,7 @@ export function AdminRelancesDashboard({
                           </Badge>
 
                           <Badge variant="outline" className="font-mono text-[10px]">
-                            {isB2B ? "B2B Exclusif (1 place)" : "B2C Partagé (3 max)"}
+                            {isB2B ? "B2B Tertiaire (2 max)" : "B2C Partagé (3 max)"}
                           </Badge>
                         </div>
 

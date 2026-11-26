@@ -709,7 +709,7 @@ export async function fulfillPaidLeadDirectPurchase(
     purchaseId: purchase.id,
     purchase,
     lead,
-    exclusive: isExclusiveBuyout || isB2B,
+    exclusive: isExclusiveBuyout || maxSlots <= 1,
     maxSlots,
     newCredits: effectiveNewCredits,
   }

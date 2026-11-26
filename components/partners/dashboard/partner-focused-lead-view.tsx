@@ -369,9 +369,10 @@ export function PartnerFocusedLeadView({
 
   // Contexte & statut de disponibilité (Guide §3, §4, §8)
   let contextLabel = isB2B ? "Nouveau projet photovoltaïque B2B" : "Nouveau dossier photovoltaïque"
-  let availabilityText = isB2B
-    ? "Exclusivité B2B · 1 seul installateur"
-    : `${remainingSlots} ${remainingSlots > 1 ? "places disponibles" : "place disponible"} sur ${maxSlots}`
+  let availabilityText =
+    isB2B && maxSlots <= 1
+      ? "Exclusivité B2B · 1 seul installateur"
+      : `${remainingSlots} ${remainingSlots > 1 ? "places disponibles" : "place disponible"} sur ${maxSlots}`
   let availabilityTone: "success" | "warning" | "danger" = "success"
 
   if (isPurchased) {
@@ -1119,12 +1120,12 @@ export function PartnerFocusedLeadView({
                     Coordonnées complètes affichées à l’écran et envoyées par e-mail dès validation.
                   </p>
                   <p>
-                    {isB2B
+                    {isB2B && maxSlots <= 1
                       ? "Exclusivité absolue : ce dossier est réservé à 1 seul installateur."
                       : `Attribution limitée à ${maxSlots} installateurs maximum (${remainingSlots} ${remainingSlots > 1 ? "places disponibles" : "place disponible"}).`}
                   </p>
 
-                  {!isB2B && takenSlots > 0 && (
+                  {takenSlots > 0 && maxSlots > 1 && (
                     <div className="flex flex-col gap-1 pt-1 text-[12px] font-mono tabular-nums">
                       {Array.from({ length: maxSlots }).map((_, idx) => {
                         const isTaken = idx < takenSlots
