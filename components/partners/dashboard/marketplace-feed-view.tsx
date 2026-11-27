@@ -45,12 +45,14 @@ import {
   Bell,
   Users2,
   ArrowRight,
+  BatteryCharging,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
   calculateMarketplaceFinancials,
   getLeadPricingTierMeta,
+  type LeadPricingTier,
 } from "@/lib/marketplace-pricing"
 import {
   formatEurWithDecimals,
@@ -60,7 +62,7 @@ import {
 } from "@/lib/credit-pricing"
 import { getProvinceDisplayLabel } from "@/lib/belgium-regions"
 import { isShowcaseOnlyLeadId } from "@/lib/regional-leads-catalog"
-import { getLeadImages } from "@/lib/lead-images"
+import { getLeadImages, getLeadImageItems, type LeadImageItem } from "@/lib/lead-images"
 import {
   getLeadLocationInfo,
   formatRoundedCurrency,
@@ -167,6 +169,53 @@ function getCompactFreshnessLabel(label: string): string {
   if (lower.includes("hier")) return "Hier"
   if (lower === "audit technique vérifié") return "Audit vérifié"
   return trimmed.replace(/^Vérifié\s+/i, "")
+}
+
+/**
+ * Ordonne les visuels d'un dossier avec les photos réelles ("Vue de face") en priorité (index 0)
+ * suivies des projections 3D ("Projection 3D"), en préservant l'ordre relatif.
+ */
+function getOrderedLeadImageItems(lead: any): LeadImageItem[] {
+  const items = getLeadImageItems(lead)
+  if (items.length <= 1) return items
+  const realPhotos = items.filter((item) => !item.isAiProjection)
+  const projections = items.filter((item) => item.isAiProjection)
+  return [...realPhotos, ...projections]
+}
+
+function getLeadHasBattery(lead: any, financials: { includesBattery?: boolean }): boolean {
+  return Boolean(
+    financials.includesBattery ||
+    lead?.qualification_metadata?.has_battery === true ||
+    lead?.qualification_metadata?.has_battery === "oui" ||
+    lead?.qualification_metadata?.battery === true
+  )
+}
+
+function getTierVisualStyles(tier: LeadPricingTier, isQuoteAudit: boolean) {
+  const effectiveTier: LeadPricingTier = isQuoteAudit ? "premium" : tier
+  if (effectiveTier === "eco") {
+    return {
+      cardBorderClass:
+        "border-[1.5px] border-tier-eco-border hover:border-tier-eco-border",
+      badgeBgClass: "bg-tier-eco-badge text-white",
+      rowBorderClass: "border-l-4 border-l-tier-eco-border",
+    }
+  }
+  if (effectiveTier === "premium") {
+    return {
+      cardBorderClass:
+        "border-2 border-tier-premium-border hover:border-tier-premium-border",
+      badgeBgClass: "bg-tier-premium-badge text-white",
+      rowBorderClass: "border-l-4 border-l-tier-premium-border",
+    }
+  }
+  return {
+    cardBorderClass:
+      "border-[1.5px] border-tier-standard-border hover:border-tier-standard-border",
+    badgeBgClass: "bg-tier-standard-badge text-white",
+    rowBorderClass: "border-l-4 border-l-tier-standard-border",
+  }
 }
 
 import { CustomSelect } from "@/components/ui/custom-select"
@@ -699,11 +748,10 @@ export function MarketplaceFeedView({
               <button
                 type="button"
                 onClick={() => setIsMobileFilterOpen(true)}
-                className={`inline-flex h-11 items-center gap-1.5 rounded-xl border px-3 text-xs font-bold transition-colors cursor-pointer shrink-0 ${
-                  sheetActiveCount > 0
-                    ? "border-primary bg-primary/5 text-primary"
-                    : "border-border bg-card text-foreground hover:bg-secondary"
-                }`}
+                className={`inline-flex h-11 items-center gap-1.5 rounded-xl border px-3 text-xs font-bold transition-colors cursor-pointer shrink-0 ${sheetActiveCount > 0
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-border bg-card text-foreground hover:bg-secondary"
+                  }`}
                 aria-label="Ouvrir les filtres et le tri"
               >
                 <SlidersHorizontal className="h-4 w-4 shrink-0" />
@@ -731,17 +779,15 @@ export function MarketplaceFeedView({
               <button
                 type="button"
                 onClick={() => setSegmentFilter("ALL")}
-                className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors ${
-                  segmentFilter === "ALL"
-                    ? "bg-primary text-primary-foreground font-bold shadow-2xs"
-                    : "border border-border bg-card text-foreground hover:bg-secondary"
-                }`}
+                className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors ${segmentFilter === "ALL"
+                  ? "bg-primary text-primary-foreground font-bold shadow-2xs"
+                  : "border border-border bg-card text-foreground hover:bg-secondary"
+                  }`}
               >
                 <span>Tous</span>
                 <span
-                  className={`font-mono text-[11px] tabular-nums ${
-                    segmentFilter === "ALL" ? "text-primary-foreground/85" : "text-muted-foreground"
-                  }`}
+                  className={`font-mono text-[11px] tabular-nums ${segmentFilter === "ALL" ? "text-primary-foreground/85" : "text-muted-foreground"
+                    }`}
                 >
                   {counts.all}
                 </span>
@@ -750,17 +796,15 @@ export function MarketplaceFeedView({
               <button
                 type="button"
                 onClick={() => setSegmentFilter("B2B")}
-                className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors ${
-                  segmentFilter === "B2B"
-                    ? "bg-primary text-primary-foreground font-bold shadow-2xs"
-                    : "border border-border bg-card text-foreground hover:bg-secondary"
-                }`}
+                className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors ${segmentFilter === "B2B"
+                  ? "bg-primary text-primary-foreground font-bold shadow-2xs"
+                  : "border border-border bg-card text-foreground hover:bg-secondary"
+                  }`}
               >
                 <span>B2B</span>
                 <span
-                  className={`font-mono text-[11px] tabular-nums ${
-                    segmentFilter === "B2B" ? "text-primary-foreground/85" : "text-muted-foreground"
-                  }`}
+                  className={`font-mono text-[11px] tabular-nums ${segmentFilter === "B2B" ? "text-primary-foreground/85" : "text-muted-foreground"
+                    }`}
                 >
                   {counts.b2b}
                 </span>
@@ -769,17 +813,15 @@ export function MarketplaceFeedView({
               <button
                 type="button"
                 onClick={() => setSegmentFilter("B2C")}
-                className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors ${
-                  segmentFilter === "B2C"
-                    ? "bg-primary text-primary-foreground font-bold shadow-2xs"
-                    : "border border-border bg-card text-foreground hover:bg-secondary"
-                }`}
+                className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors ${segmentFilter === "B2C"
+                  ? "bg-primary text-primary-foreground font-bold shadow-2xs"
+                  : "border border-border bg-card text-foreground hover:bg-secondary"
+                  }`}
               >
                 <span>B2C</span>
                 <span
-                  className={`font-mono text-[11px] tabular-nums ${
-                    segmentFilter === "B2C" ? "text-primary-foreground/85" : "text-muted-foreground"
-                  }`}
+                  className={`font-mono text-[11px] tabular-nums ${segmentFilter === "B2C" ? "text-primary-foreground/85" : "text-muted-foreground"
+                    }`}
                 >
                   {counts.b2c}
                 </span>
@@ -790,11 +832,10 @@ export function MarketplaceFeedView({
               <button
                 type="button"
                 onClick={() => setIsMobileFilterOpen(true)}
-                className={`inline-flex min-h-[36px] items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors ${
-                  selectedProvince !== "ALL"
-                    ? "border-accent bg-accent/10 text-accent font-bold"
-                    : "border-border bg-card text-foreground hover:bg-secondary"
-                }`}
+                className={`inline-flex min-h-[36px] items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors ${selectedProvince !== "ALL"
+                  ? "border-accent bg-accent/10 text-accent font-bold"
+                  : "border-border bg-card text-foreground hover:bg-secondary"
+                  }`}
               >
                 <MapPin className="h-3.5 w-3.5 shrink-0" />
                 <span>{selectedProvince === "ALL" ? "Wallonie" : selectedProvinceLabel}</span>
@@ -803,11 +844,10 @@ export function MarketplaceFeedView({
               <button
                 type="button"
                 onClick={() => setIsMobileFilterOpen(true)}
-                className={`inline-flex min-h-[36px] items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors ${
-                  sortBy !== "recent"
-                    ? "border-accent bg-accent/10 text-accent font-bold"
-                    : "border-border bg-card text-foreground hover:bg-secondary"
-                }`}
+                className={`inline-flex min-h-[36px] items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors ${sortBy !== "recent"
+                  ? "border-accent bg-accent/10 text-accent font-bold"
+                  : "border-border bg-card text-foreground hover:bg-secondary"
+                  }`}
               >
                 <ArrowUpDown className="h-3.5 w-3.5 shrink-0" />
                 <span>{SORT_SHORT_LABELS[sortBy]}</span>
@@ -853,15 +893,15 @@ export function MarketplaceFeedView({
                     type="button"
                     onClick={() => setSegmentFilter("ALL")}
                     className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${segmentFilter === "ALL"
-                        ? "bg-primary text-primary-foreground shadow-2xs"
-                        : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
+                      ? "bg-primary text-primary-foreground shadow-2xs"
+                      : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
                       }`}
                   >
                     <span>Tous</span>
                     <span
                       className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${segmentFilter === "ALL"
-                          ? "bg-white/20 text-white"
-                          : "bg-secondary text-muted-foreground"
+                        ? "bg-white/20 text-white"
+                        : "bg-secondary text-muted-foreground"
                         }`}
                     >
                       {counts.all}
@@ -872,16 +912,16 @@ export function MarketplaceFeedView({
                     type="button"
                     onClick={() => setSegmentFilter("B2B")}
                     className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${segmentFilter === "B2B"
-                        ? "bg-primary text-primary-foreground shadow-2xs"
-                        : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
+                      ? "bg-primary text-primary-foreground shadow-2xs"
+                      : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
                       }`}
                   >
                     <span className="sm:hidden">B2B</span>
                     <span className="hidden sm:inline">B2B Tertiaire</span>
                     <span
                       className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${segmentFilter === "B2B"
-                          ? "bg-white/20 text-white"
-                          : "bg-secondary text-muted-foreground"
+                        ? "bg-white/20 text-white"
+                        : "bg-secondary text-muted-foreground"
                         }`}
                     >
                       {counts.b2b}
@@ -892,16 +932,16 @@ export function MarketplaceFeedView({
                     type="button"
                     onClick={() => setSegmentFilter("B2C")}
                     className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${segmentFilter === "B2C"
-                        ? "bg-primary text-primary-foreground shadow-2xs"
-                        : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
+                      ? "bg-primary text-primary-foreground shadow-2xs"
+                      : "border border-border bg-card text-foreground hover:bg-secondary font-semibold"
                       }`}
                   >
                     <span className="sm:hidden">B2C</span>
                     <span className="hidden sm:inline">B2C Partagé</span>
                     <span
                       className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono tabular-nums ${segmentFilter === "B2C"
-                          ? "bg-white/20 text-white"
-                          : "bg-secondary text-muted-foreground"
+                        ? "bg-white/20 text-white"
+                        : "bg-secondary text-muted-foreground"
                         }`}
                     >
                       {counts.b2c}
@@ -994,8 +1034,8 @@ export function MarketplaceFeedView({
                     type="button"
                     onClick={() => setViewMode("grid")}
                     className={`rounded-lg p-1.5 transition-colors cursor-pointer ${viewMode === "grid"
-                        ? "bg-primary text-primary-foreground shadow-2xs"
-                        : "text-muted-foreground hover:text-foreground"
+                      ? "bg-primary text-primary-foreground shadow-2xs"
+                      : "text-muted-foreground hover:text-foreground"
                       }`}
                     title="Vue grille (Cartes)"
                     aria-label="Vue grille"
@@ -1006,8 +1046,8 @@ export function MarketplaceFeedView({
                     type="button"
                     onClick={() => setViewMode("table")}
                     className={`rounded-lg p-1.5 transition-colors cursor-pointer ${viewMode === "table"
-                        ? "bg-primary text-primary-foreground shadow-2xs"
-                        : "text-muted-foreground hover:text-foreground"
+                      ? "bg-primary text-primary-foreground shadow-2xs"
+                      : "text-muted-foreground hover:text-foreground"
                       }`}
                     title="Vue liste dense"
                     aria-label="Vue liste dense"
@@ -1147,13 +1187,16 @@ export function MarketplaceFeedView({
           ) : (
             /* ── Vue Liste Dense Haute-Productivité (Mobile Card-List + Desktop 8-Col Table) ── */
             <div className="flex flex-col gap-3">
-              {/* Version Mobile (< md) : Fiches denses ultra-lisibles */}
+              {/* Version Mobile (< md) : Fiches denses Idée 4 avec miniature et contour de gamme */}
               <div className="flex flex-col gap-3 md:hidden">
                 {filteredLeads.map((lead) => {
                   const isB2B = lead.segment === "B2B"
                   const maxSlots = lead.max_slots ?? (isB2B ? 2 : 3)
                   const remainingSlots = lead.remaining_slots ?? maxSlots
                   const cost = lead.credit_cost ?? (isB2B ? 13 : 3)
+                  const isQuoteAudit =
+                    lead.allocation_mode === "quote_audit_2" ||
+                    lead.qualification_metadata?.lead_intent_type === "quote_audit_ready"
                   const hasEnoughCredits = partnerCredits >= cost
                   const directFinancials = calculateLeadDirectFinancials({ segment: lead.segment, credit_cost: cost })
                   const complementFinancials = calculateLeadComplementFinancials({
@@ -1161,6 +1204,12 @@ export function MarketplaceFeedView({
                     credit_cost: cost,
                     availableCredits: partnerCredits,
                   })
+                  const tierMeta = getLeadPricingTierMeta({
+                    segment: lead.segment,
+                    credit_cost: cost,
+                    pricing_tier: lead.pricing_tier,
+                  })
+                  const tierStyles = getTierVisualStyles(tierMeta.tier, isQuoteAudit)
                   const isBuying = buyingId === lead.id
                   const surfaceArea = Math.max(0, Number(lead.surface_area || lead.surface_area_m2) || 0)
                   const annualBill = Math.max(0, Number(lead.annual_electricity_bill || lead.annual_bill_eur) || 0)
@@ -1177,6 +1226,10 @@ export function MarketplaceFeedView({
                     qualificationMetadata: lead.qualification_metadata,
                   })
 
+                  const hasBattery = getLeadHasBattery(lead, financials)
+                  const orderedImages = getOrderedLeadImageItems(lead)
+                  const thumbUrl = orderedImages[0]?.url ?? (isB2B ? B2B_SOLAR_IMAGE : B2C_SOLAR_IMAGE)
+                  const photoCount = orderedImages.length
                   const location = getLeadLocationInfo(lead)
                   const freshness = getLeadFreshness(
                     lead.created_at,
@@ -1199,64 +1252,86 @@ export function MarketplaceFeedView({
                     email_delivery_status: lead.email_delivery_status,
                     qualification_metadata: lead.qualification_metadata,
                   })
-                  const photoCount = getLeadImages(lead).length
+                  const compactTierLabel = isQuoteAudit
+                    ? `Contre-Offre · ${remainingSlots}/${maxSlots}`
+                    : `${tierMeta.label} · ${remainingSlots}/${maxSlots}`
 
                   return (
                     <div
                       key={lead.id}
                       onClick={() => setSelectedLeadForDrawer(lead)}
-                      className="rounded-2xl border border-border bg-card p-3.5 shadow-xs flex flex-col gap-2.5 cursor-pointer hover:border-accent/40 transition-colors"
+                      className={`rounded-2xl bg-card p-3.5 shadow-xs flex flex-col gap-2.5 cursor-pointer transition-colors ${tierStyles.cardBorderClass}`}
                     >
-                      <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-3">
+                        <div className="relative h-14 w-16 shrink-0 rounded-xl overflow-hidden border border-border bg-muted">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={thumbUrl}
+                            alt={`Toiture ${location.city}`}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                          {photoCount > 1 && (
+                            <span className="absolute bottom-1 right-1 rounded bg-foreground/85 px-1 py-0.2 font-mono text-[9.5px] font-bold tabular-nums text-background leading-tight">
+                              {photoCount}
+                            </span>
+                          )}
+                        </div>
+
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 flex-wrap">
+                          <div className="flex items-center justify-between gap-2">
                             <span
-                              className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold ${isB2B
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-secondary text-foreground border border-border"
-                                }`}
+                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10.5px] font-bold whitespace-nowrap ${tierStyles.badgeBgClass}`}
                             >
-                              {isB2B ? (maxSlots <= 1 ? "B2B Exclusif" : `B2B (${remainingSlots}/${maxSlots})`) : `B2C (${remainingSlots}/${maxSlots})`}
+                              {compactTierLabel}
                             </span>
-                            <span className="font-mono text-[10px] text-muted-foreground flex items-center gap-1">
-                              <span className={`h-1.5 w-1.5 rounded-full ${freshness.dotClass}`} />
-                              {freshness.label}
-                            </span>
-                            {mobileVerif.phone.compactLabel && (
-                              <span
-                                title={mobileVerif.phone.detailLabel || undefined}
-                                className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold ${
-                                  mobileVerif.phone.tier === "verified"
-                                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
-                                    : "bg-secondary text-muted-foreground border border-border"
-                                }`}
-                              >
-                                {mobileVerif.phone.tier === "verified" ? (
-                                  <ShieldCheck className="h-2.5 w-2.5 shrink-0" />
-                                ) : (
-                                  <Phone className="h-2.5 w-2.5 shrink-0" />
-                                )}
-                                <span>{mobileVerif.phone.compactLabel}</span>
+                            <div className="text-right shrink-0">
+                              <span className="text-lg font-extrabold font-mono text-foreground tabular-nums">
+                                {powerKwc > 0 ? powerKwc : "—"}
                               </span>
-                            )}
-                            {photoCount > 0 && (
-                              <span className="inline-flex items-center gap-1 font-mono tabular-nums text-[10px] text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded font-semibold">
-                                <Camera className="h-2.5 w-2.5" />
-                                {photoCount > 1 ? `${photoCount} photos` : "Photo"}
-                              </span>
-                            )}
+                              <span className="text-[10px] font-bold text-muted-foreground ml-1">kWc</span>
+                            </div>
                           </div>
                           <h3 className="font-bold text-sm text-foreground truncate mt-1">
                             {location.fullTitle}
                           </h3>
-                          <p className="text-xs text-muted-foreground truncate">{location.provinceLabel}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {location.provinceLabel} · <span suppressHydrationWarning>{getCompactFreshnessLabel(freshness.label)}</span>
+                          </p>
                         </div>
-                        <div className="text-right shrink-0">
-                          <span className="text-xl font-extrabold font-mono text-foreground tabular-nums">
-                            {powerKwc > 0 ? powerKwc : "—"}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {hasBattery && (
+                          <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10.5px] font-bold bg-orange-50 text-orange-900 border border-orange-300">
+                            <BatteryCharging className="h-3 w-3 shrink-0" />
+                            <span>Batterie demandée</span>
                           </span>
-                          <span className="text-[10px] font-bold text-muted-foreground ml-1">kWc</span>
-                        </div>
+                        )}
+                        {mobileVerif.phone.compactLabel && (
+                          <span
+                            title={mobileVerif.phone.detailLabel || undefined}
+                            className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10.5px] font-semibold ${mobileVerif.phone.tier === "verified"
+                              ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                              : "bg-secondary text-muted-foreground border border-border"
+                              }`}
+                          >
+                            <Phone className="h-3 w-3 shrink-0" />
+                            <span>{mobileVerif.phone.compactLabel}</span>
+                          </span>
+                        )}
+                        {mobileVerif.email.compactLabel && (
+                          <span
+                            title={mobileVerif.email.detailLabel || undefined}
+                            className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10.5px] font-semibold ${mobileVerif.email.tier === "verified"
+                              ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                              : "bg-secondary text-muted-foreground border border-border"
+                              }`}
+                          >
+                            <Mail className="h-3 w-3 shrink-0" />
+                            <span>{mobileVerif.email.compactLabel}</span>
+                          </span>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-2 gap-2 text-xs py-2 border-y border-border/60">
@@ -1267,7 +1342,7 @@ export function MarketplaceFeedView({
                           </span>
                         </div>
                         <div>
-                          <span className="text-[10px] text-muted-foreground block font-mono">MARGE ESTIMÉE</span>
+                          <span className="text-[10px] text-muted-foreground block font-mono">MARGE NETTE EST.</span>
                           <span className="font-bold font-mono text-accent tabular-nums block">
                             {marginText}
                           </span>
@@ -1290,7 +1365,7 @@ export function MarketplaceFeedView({
                             className="min-h-[42px] rounded-xl border border-border bg-secondary hover:bg-secondary/80 px-3 py-2 text-xs font-semibold text-foreground cursor-pointer flex items-center justify-center gap-1.5"
                           >
                             <Eye className="h-4 w-4 text-accent shrink-0" />
-                            <span>Voir</span>
+                            <span>Inspecter</span>
                           </button>
                           {hasEnoughCredits ? (
                             <button
@@ -1328,14 +1403,15 @@ export function MarketplaceFeedView({
                 })}
               </div>
 
-              {/* Version Desktop (md+) : Tableau 8 colonnes dense haute productivité */}
+              {/* Version Desktop (md+) : Tableau Deal Rows Idée 4 avec miniature et colonne Gamme */}
               <div className="hidden md:block overflow-x-auto rounded-2xl border border-border bg-card shadow-xs overscroll-x-contain">
-                <table className="w-full min-w-[840px] text-left text-xs">
+                <table className="w-full min-w-[920px] text-left text-xs">
                   <thead className="border-b border-border bg-secondary/60 text-[11px] font-bold uppercase text-muted-foreground sticky top-0">
                     <tr>
-                      <th className="px-4 py-3">Modèle</th>
-                      <th className="px-4 py-3">Localisation</th>
-                      <th className="px-4 py-3">
+                      <th className="px-3.5 py-3">Toiture</th>
+                      <th className="px-3.5 py-3">Gamme</th>
+                      <th className="px-3.5 py-3">Localisation &amp; Vérif.</th>
+                      <th className="px-3.5 py-3">
                         <button
                           type="button"
                           onClick={() => setSortBy((prev) => (prev === "power_desc" ? "power_asc" : "power_desc"))}
@@ -1345,13 +1421,13 @@ export function MarketplaceFeedView({
                           <span>Puissance</span>
                           <ArrowUpDown
                             className={`h-3 w-3 ${sortBy === "power_desc" || sortBy === "power_asc"
-                                ? "text-accent font-bold"
-                                : "text-muted-foreground/40 group-hover:text-muted-foreground"
+                              ? "text-accent font-bold"
+                              : "text-muted-foreground/40 group-hover:text-muted-foreground"
                               }`}
                           />
                         </button>
                       </th>
-                      <th className="px-4 py-3">
+                      <th className="px-3.5 py-3">
                         <button
                           type="button"
                           onClick={() => setSortBy("surface_desc")}
@@ -1361,47 +1437,31 @@ export function MarketplaceFeedView({
                           <span>Toiture &amp; Surface</span>
                           <ArrowUpDown
                             className={`h-3 w-3 ${sortBy === "surface_desc"
-                                ? "text-accent font-bold"
-                                : "text-muted-foreground/40 group-hover:text-muted-foreground"
+                              ? "text-accent font-bold"
+                              : "text-muted-foreground/40 group-hover:text-muted-foreground"
                               }`}
                           />
                         </button>
                       </th>
-                      <th className="px-4 py-3">
+                      <th className="px-3.5 py-3">
                         <button
                           type="button"
                           onClick={() =>
                             setSortBy((prev) => (prev === "margin_desc" ? "contract_desc" : "margin_desc"))
                           }
                           className="inline-flex items-center gap-1 font-bold uppercase hover:text-foreground cursor-pointer transition-colors group select-none"
-                          title="Trier par marge estimée ou valeur de chantier"
+                          title="Trier par marge nette estimée ou valeur de chantier"
                         >
-                          <span>Marge Estimée</span>
+                          <span>Marge nette est.</span>
                           <ArrowUpDown
                             className={`h-3 w-3 ${sortBy === "margin_desc" || sortBy === "contract_desc"
-                                ? "text-accent font-bold"
-                                : "text-muted-foreground/40 group-hover:text-muted-foreground"
+                              ? "text-accent font-bold"
+                              : "text-muted-foreground/40 group-hover:text-muted-foreground"
                               }`}
                           />
                         </button>
                       </th>
-                      <th className="px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={() => setSortBy((prev) => (prev === "recent" ? "oldest" : "recent"))}
-                          className="inline-flex items-center gap-1 font-bold uppercase hover:text-foreground cursor-pointer transition-colors group select-none"
-                          title="Trier par fraîcheur / date d'audit"
-                        >
-                          <span>Fraîcheur</span>
-                          <ArrowUpDown
-                            className={`h-3 w-3 ${sortBy === "recent" || sortBy === "oldest"
-                                ? "text-accent font-bold"
-                                : "text-muted-foreground/40 group-hover:text-muted-foreground"
-                              }`}
-                          />
-                        </button>
-                      </th>
-                      <th className="px-4 py-3">
+                      <th className="px-3.5 py-3">
                         <button
                           type="button"
                           onClick={() => setSortBy((prev) => (prev === "cost_asc" ? "cost_desc" : "cost_asc"))}
@@ -1411,13 +1471,13 @@ export function MarketplaceFeedView({
                           <span>Tarif</span>
                           <ArrowUpDown
                             className={`h-3 w-3 ${sortBy === "cost_asc" || sortBy === "cost_desc"
-                                ? "text-accent font-bold"
-                                : "text-muted-foreground/40 group-hover:text-muted-foreground"
+                              ? "text-accent font-bold"
+                              : "text-muted-foreground/40 group-hover:text-muted-foreground"
                               }`}
                           />
                         </button>
                       </th>
-                      <th className="px-4 py-3 text-right">Actions</th>
+                      <th className="px-3.5 py-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -1426,6 +1486,15 @@ export function MarketplaceFeedView({
                       const maxSlots = lead.max_slots ?? (isB2B ? 2 : 3)
                       const remainingSlots = lead.remaining_slots ?? maxSlots
                       const cost = lead.credit_cost ?? (isB2B ? 13 : 3)
+                      const isQuoteAudit =
+                        lead.allocation_mode === "quote_audit_2" ||
+                        lead.qualification_metadata?.lead_intent_type === "quote_audit_ready"
+                      const tierMeta = getLeadPricingTierMeta({
+                        segment: lead.segment,
+                        credit_cost: cost,
+                        pricing_tier: lead.pricing_tier,
+                      })
+                      const tierStyles = getTierVisualStyles(tierMeta.tier, isQuoteAudit)
                       const tableComplement = calculateLeadComplementFinancials({
                         segment: lead.segment,
                         credit_cost: cost,
@@ -1447,12 +1516,16 @@ export function MarketplaceFeedView({
                         qualificationMetadata: lead.qualification_metadata,
                       })
 
+                      const hasBattery = getLeadHasBattery(lead, financials)
+                      const orderedImages = getOrderedLeadImageItems(lead)
+                      const thumbUrl = orderedImages[0]?.url ?? (isB2B ? B2B_SOLAR_IMAGE : B2C_SOLAR_IMAGE)
+                      const photoCount = orderedImages.length
                       const location = getLeadLocationInfo(lead)
                       const freshness = getLeadFreshness(
-                    lead.created_at,
-                    undefined,
-                    lead.reconfirmed_at || lead.qualification_metadata?.reconfirmed_at
-                  )
+                        lead.created_at,
+                        undefined,
+                        lead.reconfirmed_at || lead.qualification_metadata?.reconfirmed_at
+                      )
                       const powerKwc = financials.estimatedPowerKwc
                       const tableVerif = getLeadVerificationSummary({
                         segment: lead.segment,
@@ -1468,6 +1541,11 @@ export function MarketplaceFeedView({
                         email_delivery_status: lead.email_delivery_status,
                         qualification_metadata: lead.qualification_metadata,
                       })
+                      const rowTierLabel = isQuoteAudit
+                        ? "Contre-Offre"
+                        : isB2B && maxSlots <= 1
+                          ? `${tierMeta.label} Excl.`
+                          : tierMeta.label
 
                       return (
                         <tr
@@ -1475,57 +1553,92 @@ export function MarketplaceFeedView({
                           onClick={() => setSelectedLeadForDrawer(lead)}
                           className="hover:bg-secondary/50 transition-colors cursor-pointer group"
                         >
-                          {/* Modèle Commercial */}
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <span
-                              className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold ${isB2B
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-secondary text-foreground border border-border"
-                                }`}
-                            >
-                              {isB2B ? (maxSlots <= 1 ? "B2B Exclusif" : `B2B (${remainingSlots}/${maxSlots})`) : `B2C (${remainingSlots}/${maxSlots})`}
-                            </span>
+                          {/* Miniature Toiture */}
+                          <td className={`px-3.5 py-3 ${tierStyles.rowBorderClass}`}>
+                            <div className="relative h-12 w-16 rounded-lg overflow-hidden border border-border bg-muted">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={thumbUrl}
+                                alt={`Toiture ${location.city}`}
+                                className="h-full w-full object-cover"
+                                loading="lazy"
+                              />
+                              {photoCount > 1 && (
+                                <span className="absolute bottom-0.5 right-0.5 rounded bg-foreground/85 px-1 py-0.2 font-mono text-[9px] font-bold tabular-nums text-background leading-tight">
+                                  {photoCount}
+                                </span>
+                              )}
+                            </div>
                           </td>
 
-                          {/* Localisation */}
-                          <td className="px-4 py-3 text-foreground font-medium">
+                          {/* Colonne Gamme */}
+                          <td className="px-3.5 py-3 whitespace-nowrap">
+                            <div className="flex flex-col items-start gap-1">
+                              <span
+                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${tierStyles.badgeBgClass}`}
+                              >
+                                {rowTierLabel}
+                              </span>
+                              <span className="font-mono text-[10.5px] text-muted-foreground tabular-nums">
+                                {remainingSlots}/{maxSlots} places
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Localisation & Vérifications */}
+                          <td className="px-3.5 py-3 text-foreground font-medium">
                             <div className="font-bold group-hover:text-primary transition-colors">
                               {location.fullTitle}
                             </div>
-                            <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                              <span className="text-[11px] text-muted-foreground">{location.provinceLabel}</span>
+                            <div className="text-[11px] text-muted-foreground">
+                              {location.provinceLabel} · <span suppressHydrationWarning>{freshness.label}</span>
+                            </div>
+                            <div className="mt-1 flex flex-wrap items-center gap-1">
+                              {hasBattery && (
+                                <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold bg-orange-50 text-orange-900 border border-orange-300">
+                                  <BatteryCharging className="h-2.5 w-2.5 shrink-0" />
+                                  <span>Batterie</span>
+                                </span>
+                              )}
                               {tableVerif.phone.compactLabel && (
                                 <span
                                   title={tableVerif.phone.detailLabel || undefined}
-                                  className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold ${
-                                    tableVerif.phone.tier === "verified"
-                                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
-                                      : "bg-secondary text-muted-foreground border border-border"
-                                  }`}
+                                  className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold ${tableVerif.phone.tier === "verified"
+                                    ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                    : "bg-secondary text-muted-foreground border border-border"
+                                    }`}
                                 >
-                                  {tableVerif.phone.tier === "verified" ? (
-                                    <ShieldCheck className="h-2.5 w-2.5 shrink-0" />
-                                  ) : (
-                                    <Phone className="h-2.5 w-2.5 shrink-0" />
-                                  )}
+                                  <Phone className="h-2.5 w-2.5 shrink-0" />
                                   <span>{tableVerif.phone.compactLabel}</span>
+                                </span>
+                              )}
+                              {tableVerif.email.compactLabel && (
+                                <span
+                                  title={tableVerif.email.detailLabel || undefined}
+                                  className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold ${tableVerif.email.tier === "verified"
+                                    ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                    : "bg-secondary text-muted-foreground border border-border"
+                                    }`}
+                                >
+                                  <Mail className="h-2.5 w-2.5 shrink-0" />
+                                  <span>{tableVerif.email.compactLabel}</span>
                                 </span>
                               )}
                             </div>
                           </td>
 
                           {/* Puissance */}
-                          <td className="px-4 py-3 text-foreground whitespace-nowrap">
+                          <td className="px-3.5 py-3 text-foreground whitespace-nowrap">
                             <div className="flex items-baseline gap-1">
                               <span className="font-mono font-bold text-sm tabular-nums">
                                 {powerKwc > 0 ? powerKwc : "—"}
                               </span>
-                              <span className="text-[10px] font-semibold text-muted-foreground uppercase">kWc</span>
+                              <span className="text-[10px] font-semibold text-muted-foreground">kWc</span>
                             </div>
                           </td>
 
                           {/* Toiture & Surface */}
-                          <td className="px-4 py-3 text-foreground">
+                          <td className="px-3.5 py-3 text-foreground">
                             <div className="font-mono tabular-nums font-semibold">
                               {surfaceArea > 0 ? `${surfaceArea} m²` : "À dimensionner"}
                             </div>
@@ -1534,8 +1647,8 @@ export function MarketplaceFeedView({
                             </div>
                           </td>
 
-                          {/* Marge Estimée */}
-                          <td className="px-4 py-3 text-foreground whitespace-nowrap">
+                          {/* Marge nette est. */}
+                          <td className="px-3.5 py-3 text-foreground whitespace-nowrap">
                             <div className="font-mono font-bold text-accent tabular-nums">
                               {formatRoundedCurrency(financials.estimatedInstallerMargin)}
                             </div>
@@ -1544,16 +1657,8 @@ export function MarketplaceFeedView({
                             </div>
                           </td>
 
-                          {/* Fraîcheur */}
-                          <td className="px-4 py-3 whitespace-nowrap font-mono text-[11px] text-muted-foreground">
-                            <span className="inline-flex items-center gap-1.5">
-                              <span className={`h-1.5 w-1.5 rounded-full ${freshness.dotClass}`} />
-                              <span suppressHydrationWarning className="tabular-nums font-medium text-foreground/80">{freshness.label}</span>
-                            </span>
-                          </td>
-
                           {/* Tarif */}
-                          <td className="px-4 py-3 whitespace-nowrap font-mono text-foreground font-bold tabular-nums">
+                          <td className="px-3.5 py-3 whitespace-nowrap font-mono text-foreground font-bold tabular-nums">
                             <div>{cost} crédits</div>
                             <div className="text-[10px] text-muted-foreground font-medium">
                               ou {formatEurWithDecimals(financials.leadCostEuros)}
@@ -1561,7 +1666,7 @@ export function MarketplaceFeedView({
                           </td>
 
                           {/* Actions */}
-                          <td className="px-4 py-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <td className="px-3.5 py-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-1.5">
                               <Button
                                 size="sm"
@@ -1876,17 +1981,15 @@ export function MarketplaceFeedView({
                         key={seg.id}
                         type="button"
                         onClick={() => setSegmentFilter(seg.id)}
-                        className={`min-h-[44px] rounded-xl border px-2 py-2 text-xs font-bold flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-colors ${
-                          isActive
-                            ? "border-primary bg-primary text-primary-foreground shadow-2xs"
-                            : "border-border bg-card text-foreground hover:bg-secondary"
-                        }`}
+                        className={`min-h-[44px] rounded-xl border px-2 py-2 text-xs font-bold flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-colors ${isActive
+                          ? "border-primary bg-primary text-primary-foreground shadow-2xs"
+                          : "border-border bg-card text-foreground hover:bg-secondary"
+                          }`}
                       >
                         <span className="leading-tight">{seg.label}</span>
                         <span
-                          className={`font-mono text-[11px] tabular-nums ${
-                            isActive ? "text-primary-foreground/85" : "text-muted-foreground"
-                          }`}
+                          className={`font-mono text-[11px] tabular-nums ${isActive ? "text-primary-foreground/85" : "text-muted-foreground"
+                            }`}
                         >
                           {seg.count}
                         </span>
@@ -1909,11 +2012,10 @@ export function MarketplaceFeedView({
                         key={prov.value}
                         type="button"
                         onClick={() => setSelectedProvince(prov.value)}
-                        className={`min-h-[44px] rounded-xl border px-3 py-2 text-xs font-semibold flex items-center justify-between gap-2 text-left cursor-pointer transition-colors ${
-                          isActive
-                            ? "border-primary bg-primary/5 text-primary font-bold ring-1 ring-primary/20"
-                            : "border-border bg-card text-foreground hover:bg-secondary"
-                        }`}
+                        className={`min-h-[44px] rounded-xl border px-3 py-2 text-xs font-semibold flex items-center justify-between gap-2 text-left cursor-pointer transition-colors ${isActive
+                          ? "border-primary bg-primary/5 text-primary font-bold ring-1 ring-primary/20"
+                          : "border-border bg-card text-foreground hover:bg-secondary"
+                          }`}
                       >
                         <span className="truncate">{prov.label}</span>
                         {isActive && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
@@ -1936,11 +2038,10 @@ export function MarketplaceFeedView({
                         key={opt.value}
                         type="button"
                         onClick={() => setSortBy(opt.value)}
-                        className={`min-h-[44px] rounded-xl border px-3.5 py-2 text-xs font-semibold flex items-center justify-between gap-2 text-left cursor-pointer transition-colors ${
-                          isActive
-                            ? "border-primary bg-primary/5 text-primary font-bold"
-                            : "border-border bg-card text-foreground hover:bg-secondary"
-                        }`}
+                        className={`min-h-[44px] rounded-xl border px-3.5 py-2 text-xs font-semibold flex items-center justify-between gap-2 text-left cursor-pointer transition-colors ${isActive
+                          ? "border-primary bg-primary/5 text-primary font-bold"
+                          : "border-border bg-card text-foreground hover:bg-secondary"
+                          }`}
                       >
                         <span className="min-w-0">{opt.label}</span>
                         <div className="flex items-center gap-1.5 shrink-0">
@@ -1996,7 +2097,253 @@ export function MarketplaceFeedView({
 }
 
 /**
- * Composant de Carte de Chantier (Exacte réplique de la maquette fournie par l'utilisateur)
+ * Galerie média adaptative de la carte chantier :
+ * - 0 photo : visuel unique générique non contractuel + mention "Image non contractuelle"
+ * - 1 photo : pleine largeur avec protection portrait automatique (arrière-plan flouté)
+ * - 2+ photos : carrousel tactile sur mobile (< sm) et double-vignette Rendu D1 sur desktop (sm+)
+ */
+function LeadCardMediaGallery({
+  items,
+  isB2B,
+  city,
+  tierLabel,
+  badgeBgClass,
+  priority,
+}: {
+  items: LeadImageItem[]
+  isB2B: boolean
+  city: string
+  tierLabel: string
+  badgeBgClass: string
+  priority: boolean
+}) {
+  const [activeIdx, setActiveIdx] = useState(0)
+  const [portraitUrls, setPortraitUrls] = useState<Record<string, boolean>>({})
+  const touchStartXRef = React.useRef<number | null>(null)
+
+  const total = items.length
+  const safeIdx = total > 0 ? activeIdx % total : 0
+
+  const handleImageLoad = (url: string, e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget
+    if (img.naturalHeight > img.naturalWidth && !portraitUrls[url]) {
+      setPortraitUrls((prev) => ({ ...prev, [url]: true }))
+    }
+  }
+
+  const goPrev = (e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    if (total <= 1) return
+    setActiveIdx((prev) => (prev - 1 + total) % total)
+  }
+
+  const goNext = (e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    if (total <= 1) return
+    setActiveIdx((prev) => (prev + 1) % total)
+  }
+
+  const renderTierBadge = () => (
+    <div className="absolute top-2.5 left-2.5 right-2.5 z-10 flex items-center pointer-events-none">
+      <span
+        className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold leading-none shadow-sm whitespace-nowrap ${badgeBgClass}`}
+      >
+        {tierLabel}
+      </span>
+    </div>
+  )
+
+  const renderPhotoLabel = (item: LeadImageItem) => (
+    <span className="pointer-events-none absolute bottom-2 left-2 z-10 inline-flex items-center gap-1.5 rounded-md bg-foreground/80 px-2 py-0.5 text-[10.5px] font-semibold text-background backdrop-blur-xs">
+      <span
+        className={`h-1.5 w-1.5 rounded-full shrink-0 ${item.isAiProjection ? "bg-accent-solar" : "bg-emerald-500"
+          }`}
+      />
+      <span>{item.isAiProjection ? "Projection 3D" : "Vue de face"}</span>
+    </span>
+  )
+
+  const renderSmartImage = (item: LeadImageItem, altText: string, eager: boolean) => {
+    const isPortrait = Boolean(portraitUrls[item.url])
+    if (isPortrait) {
+      return (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={item.url}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full scale-110 object-cover blur-md brightness-[0.6] pointer-events-none"
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={item.url}
+            alt={altText}
+            onLoad={(e) => handleImageLoad(item.url, e)}
+            loading={eager ? "eager" : "lazy"}
+            className="relative z-1 h-full w-full object-contain"
+          />
+        </>
+      )
+    }
+
+    return (
+      /* eslint-disable-next-line @next/next/no-img-element */
+      <img
+        src={item.url}
+        alt={altText}
+        onLoad={(e) => handleImageLoad(item.url, e)}
+        loading={eager ? "eager" : "lazy"}
+        className="h-full w-full object-cover object-[50%_35%] transition-transform duration-500 group-hover:scale-[1.03]"
+      />
+    )
+  }
+
+  // Cas 0 photo : image unique générique existante + mention "Image non contractuelle"
+  if (total === 0) {
+    const fallbackUrl = isB2B ? B2B_SOLAR_IMAGE : B2C_SOLAR_IMAGE
+    return (
+      <div className="relative h-44 sm:h-[196px] w-full overflow-hidden rounded-xl bg-muted border border-border/60">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={fallbackUrl}
+          alt={`Chantier solaire ${city}`}
+          loading={priority ? "eager" : "lazy"}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/25 pointer-events-none" />
+        {renderTierBadge()}
+        <span className="pointer-events-none absolute bottom-2 right-2 z-10 rounded-md bg-foreground/75 px-2 py-0.5 text-[10.5px] font-medium text-background backdrop-blur-xs whitespace-nowrap">
+          Image non contractuelle
+        </span>
+      </div>
+    )
+  }
+
+  // Cas 1 photo : cadre unique pleine largeur
+  if (total === 1) {
+    const onlyItem = items[0]
+    return (
+      <div className="relative h-48 sm:h-[196px] w-full overflow-hidden rounded-xl bg-primary/95 border border-border/60">
+        {renderSmartImage(onlyItem, `Chantier solaire ${city}`, priority)}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/45 pointer-events-none z-2" />
+        {renderTierBadge()}
+        {renderPhotoLabel(onlyItem)}
+        <span className="pointer-events-none absolute bottom-2 right-2 z-10 rounded-md bg-foreground/80 px-2 py-0.5 font-mono text-[10.5px] font-bold tabular-nums text-background backdrop-blur-xs">
+          1/1
+        </span>
+      </div>
+    )
+  }
+
+  // Cas 2+ photos : Mobile carrousel tactile plein cadre + Desktop double-vignette Rendu D1
+  const currentItem = items[safeIdx]
+  const nextIdx = (safeIdx + 1) % total
+  const nextItem = items[nextIdx]
+
+  return (
+    <>
+      {/* Mobile (< sm) : Carrousel plein cadre avec swipe tactile + flèches */}
+      <div
+        className="relative sm:hidden h-52 w-full overflow-hidden rounded-xl bg-primary/95 border border-border/60 touch-pan-y"
+        onTouchStart={(e) => {
+          touchStartXRef.current = e.touches[0]?.clientX ?? null
+        }}
+        onTouchEnd={(e) => {
+          const startX = touchStartXRef.current
+          touchStartXRef.current = null
+          if (startX === null) return
+          const endX = e.changedTouches[0]?.clientX ?? startX
+          const delta = endX - startX
+          if (Math.abs(delta) >= 35) {
+            if (delta < 0) goNext()
+            else goPrev()
+          }
+        }}
+      >
+        {renderSmartImage(currentItem, `Chantier solaire ${city} (${safeIdx + 1}/${total})`, priority)}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/50 pointer-events-none z-2" />
+        {renderTierBadge()}
+
+        <button
+          type="button"
+          onClick={goPrev}
+          aria-label="Photo précédente"
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full bg-card/95 text-foreground shadow-md cursor-pointer active:scale-95"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={goNext}
+          aria-label="Photo suivante"
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full bg-card/95 text-foreground shadow-md cursor-pointer active:scale-95"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+
+        {renderPhotoLabel(currentItem)}
+
+        <div className="pointer-events-none absolute bottom-2.5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 rounded-full bg-foreground/65 px-2 py-1 backdrop-blur-xs">
+          {items.map((_, dotIdx) => (
+            <span
+              key={dotIdx}
+              className={`h-1.5 rounded-full transition-all ${dotIdx === safeIdx ? "w-3 bg-background" : "w-1.5 bg-background/45"
+                }`}
+            />
+          ))}
+        </div>
+
+        <span className="pointer-events-none absolute bottom-2 right-2 z-10 rounded-md bg-foreground/80 px-2 py-0.5 font-mono text-[10.5px] font-bold tabular-nums text-background backdrop-blur-xs">
+          {safeIdx + 1}/{total}
+        </span>
+      </div>
+
+      {/* Desktop (sm+) : Double-vignette Rendu D1 (Vue de face à gauche + Projection/suivante à droite) */}
+      <div className="hidden sm:grid relative grid-cols-[1.52fr_1fr] gap-2 h-[196px]">
+        <div className="relative h-full w-full overflow-hidden rounded-xl bg-primary/95 border border-border/60">
+          {renderSmartImage(currentItem, `Chantier solaire ${city} (${safeIdx + 1}/${total})`, priority)}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/45 pointer-events-none z-2" />
+          {renderTierBadge()}
+          {renderPhotoLabel(currentItem)}
+        </div>
+
+        <div className="relative h-full w-full overflow-hidden rounded-xl bg-primary/95 border border-border/60">
+          {renderSmartImage(nextItem, `Chantier solaire ${city} (${nextIdx + 1}/${total})`, priority)}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/50 pointer-events-none z-2" />
+          {renderPhotoLabel(nextItem)}
+          <span className="pointer-events-none absolute bottom-2 right-2 z-10 rounded-md bg-foreground/80 px-2 py-0.5 font-mono text-[10.5px] font-bold tabular-nums text-background backdrop-blur-xs">
+            {total === 2 ? "2 photos" : `${safeIdx + 1}/${total}`}
+          </span>
+        </div>
+
+        {total >= 3 && (
+          <>
+            <button
+              type="button"
+              onClick={goPrev}
+              aria-label="Photo précédente"
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-card/95 text-foreground shadow-md hover:bg-card cursor-pointer active:scale-95"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={goNext}
+              aria-label="Photo suivante"
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-card/95 text-foreground shadow-md hover:bg-card cursor-pointer active:scale-95"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </>
+        )}
+      </div>
+    </>
+  )
+}
+
+/**
+ * Composant de Carte de Chantier (Rendu D1 Final + Mobile-First)
  */
 function MarketplaceLeadCard({
   lead,
@@ -2036,7 +2383,7 @@ function MarketplaceLeadCard({
     credit_cost: cost,
     pricing_tier: lead.pricing_tier,
   })
-  const slotIndicator = getB2CSlotIndicator(remainingSlots)
+  const tierStyles = getTierVisualStyles(tierMeta.tier, isQuoteAudit)
   const canTakeExclusive = !isB2B && remainingSlots >= maxSlots && maxSlots > 1
   const exclusiveCredits = getExclusiveCreditCost({ segment: lead.segment, credit_cost: cost })
 
@@ -2055,6 +2402,8 @@ function MarketplaceLeadCard({
     qualificationMetadata: lead.qualification_metadata,
   })
 
+  const hasBattery = getLeadHasBattery(lead, financials)
+  const orderedImages = getOrderedLeadImageItems(lead)
   const location = getLeadLocationInfo(lead)
   const freshness = getLeadFreshness(
     lead.created_at,
@@ -2065,9 +2414,6 @@ function MarketplaceLeadCard({
   const surfaceArea = financials.normalizedSurfaceAreaM2
   const annualBill = financials.normalizedAnnualBill
 
-  // 1 image dédiée non contractuelle : teinte froide/acier pour B2B, teinte chaude/terracotta pour B2C
-  const leadImage = isB2B ? B2B_SOLAR_IMAGE : B2C_SOLAR_IMAGE
-
   // Formatage financier précis (sans répétition € HT sur les deux bornes)
   const minText = formatRoundedCurrency(financials.estimatedContractValueRange?.min || 0).replace("~", "")
   const maxText = formatRoundedCurrency(financials.estimatedContractValueRange?.max || 0).replace("~", "")
@@ -2077,11 +2423,8 @@ function MarketplaceLeadCard({
 
   const rawRoof = getRoofMaterialLabel(lead.roof_material)
   const roofDisplay = rawRoof === "Bac acier / Métallique" ? "Bac acier" : rawRoof
-  const photoCount = getLeadImages(lead).length
   const compactFreshness = getCompactFreshnessLabel(freshness.label)
 
-  // Projet premium si puissance élevée ou score élevé
-  const isPremium = isB2B || powerKwc >= 20 || (lead.lead_score && lead.lead_score >= 70)
   const verifSummary = getLeadVerificationSummary({
     segment: lead.segment,
     phone: lead.phone,
@@ -2097,6 +2440,12 @@ function MarketplaceLeadCard({
     qualification_metadata: lead.qualification_metadata,
   })
 
+  const tierBadgeLabel = isQuoteAudit
+    ? `Contre-Offre · ${remainingSlots}/${maxSlots}`
+    : isB2B && maxSlots <= 1
+      ? `${tierMeta.label} · Exclusif`
+      : `${tierMeta.label} · ${remainingSlots}/${maxSlots}`
+
   return (
     <div
       id={`lead-${lead.id}`}
@@ -2109,97 +2458,29 @@ function MarketplaceLeadCard({
           onInspect()
         }
       }}
-      className={`group relative flex flex-col justify-between rounded-3xl border bg-card shadow-xs hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden text-left ${isTargeted
-          ? "border-accent ring-2 ring-accent/30 shadow-md"
-          : "border-border hover:border-accent/40"
+      className={`group relative flex flex-col justify-between gap-3 rounded-2xl sm:rounded-3xl bg-card p-3 shadow-xs hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden text-left ${tierStyles.cardBorderClass} ${isTargeted ? "ring-2 ring-accent/40 shadow-md" : ""
         }`}
     >
-      <div className="flex flex-col">
-        {/* ── A. Photo de toiture avec badges superposés et mention non contractuelle ── */}
-        <div className="relative h-40 sm:h-52 w-full overflow-hidden bg-muted">
-          <Image
-            src={leadImage}
-            alt={`Chantier solaire ${location.city}`}
-            fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-            priority={index < 3}
-          />
+      <div className="flex flex-col gap-3">
+        {/* ── A. Galerie Média Réelle (0 / 1 / 2+ photos, Mobile Carrousel + Desktop D1) ── */}
+        <LeadCardMediaGallery
+          items={orderedImages}
+          isB2B={isB2B}
+          city={location.city}
+          tierLabel={tierBadgeLabel}
+          badgeBgClass={tierStyles.badgeBgClass}
+          priority={index < 3}
+        />
 
-          {/* Dégradé supérieur pour contraster les badges */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/10 to-transparent pointer-events-none" />
-
-          {/* Badges superposés en haut (strictement mono-ligne) */}
-          <div className="absolute top-2.5 left-2.5 right-2.5 sm:top-3 sm:left-3 sm:right-3 flex items-center justify-between gap-1.5 pointer-events-none">
-            {/* Badge Modèle */}
-            {isQuoteAudit ? (
-              <span className="inline-flex items-center rounded-full bg-emerald-700/90 backdrop-blur-xs text-white text-[11px] sm:text-xs font-semibold leading-none px-2.5 py-1.5 sm:px-3 shadow-sm whitespace-nowrap shrink-0">
-                <span className="sm:hidden">Contre-Offre · {remainingSlots}/{maxSlots}</span>
-                <span className="hidden sm:inline">Contre-Offre Prêt-à-Signer · {remainingSlots}/{maxSlots}</span>
-              </span>
-            ) : isB2B ? (
-              <span className="inline-flex items-center rounded-full bg-black/75 backdrop-blur-xs text-white text-[11px] sm:text-xs font-semibold leading-none px-2.5 py-1.5 sm:px-3 shadow-sm whitespace-nowrap shrink-0">
-                <span className="sm:hidden">{maxSlots <= 1 ? "B2B Exclusif" : `B2B · ${remainingSlots}/${maxSlots}`}</span>
-                <span className="hidden sm:inline">
-                  {maxSlots <= 1 ? `${tierMeta.label} · 100 % Exclusif` : `${tierMeta.label} · ${remainingSlots}/${maxSlots} places`}
-                </span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-black/75 backdrop-blur-xs text-white text-[11px] sm:text-xs font-medium leading-none px-2.5 py-1.5 sm:px-3 shadow-sm whitespace-nowrap shrink-0">
-                <span className="font-semibold sm:hidden">B2C</span>
-                <span className="font-semibold hidden sm:inline">{tierMeta.label}</span>
-                <span className="text-white/60 hidden sm:inline" aria-hidden="true">•</span>
-                <span className="inline-flex items-center gap-1" aria-hidden="true">
-                  {slotIndicator.dots.map((color, i) => (
-                    <span
-                      key={i}
-                      className="h-2 w-2 rounded-full shrink-0"
-                      style={{ backgroundColor: color }}
-                    />
-                  ))}
-                </span>
-                <span className="tabular-nums font-mono sm:hidden">
-                  {remainingSlots}/{maxSlots}
-                </span>
-                <span className="hidden sm:inline tabular-nums font-mono">{slotIndicator.text}</span>
-              </span>
-            )}
-
-            {/* Badge Fraîcheur / Date */}
-            <span className="inline-flex items-center gap-1 sm:gap-1.5 rounded-full bg-card/95 text-foreground text-[11px] sm:text-xs font-semibold leading-none px-2.5 py-1.5 sm:px-3 shadow-sm whitespace-nowrap shrink-0">
-              <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground shrink-0" />
-              <span suppressHydrationWarning className="sm:hidden">{compactFreshness}</span>
-              <span suppressHydrationWarning className="hidden sm:inline">{freshness.label}</span>
-            </span>
-          </div>
-
-          {/* Flèche droite de prévisualisation (affordance visuelle) */}
-          <div className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/30 hover:bg-black/50 text-white items-center justify-center backdrop-blur-xs transition-all pointer-events-none opacity-85 group-hover:opacity-100">
-            <ChevronRight className="h-4 w-4" />
-          </div>
-
-          {/* Compteur photos réelles + Mention discrète illustration non contractuelle */}
-          {photoCount > 0 && (
-            <span className="absolute bottom-2 left-2.5 sm:bottom-2.5 sm:left-3 inline-flex items-center gap-1 text-[10.5px] font-mono font-semibold tabular-nums text-white bg-black/60 backdrop-blur-xs px-2 py-0.5 rounded-full pointer-events-none">
-              <Camera className="h-3 w-3 shrink-0" />
-              <span>{photoCount} photo{photoCount > 1 ? "s" : ""}</span>
-            </span>
-          )}
-          <span className="absolute bottom-2 right-2.5 sm:bottom-2.5 sm:right-3 text-[10.5px] font-medium text-white/90 bg-black/50 backdrop-blur-xs px-2 py-0.5 rounded-full pointer-events-none whitespace-nowrap">
-            <span className="sm:hidden">Illustration</span>
-            <span className="hidden sm:inline">Illustration non contractuelle</span>
-          </span>
-        </div>
-
-        {/* ── B. Contenu de la Carte : Titre, Puissance, Spécifications 2x2, Économie ── */}
-        <div className="p-3.5 sm:p-5 flex flex-col gap-2.5 sm:gap-3">
+        {/* ── B. Contenu de la Carte (Couleurs 100 % uniformisées) ── */}
+        <div className="px-1 sm:px-1.5 flex flex-col gap-2.5">
           {/* Ligne 1 : Titre à gauche & Puissance kWc à droite */}
           <div className="flex items-baseline justify-between gap-2">
-            <h3 className="font-bold text-base sm:text-[17px] text-foreground tracking-tight leading-tight group-hover:text-accent transition-colors truncate min-w-0">
+            <h3 className="font-bold text-base sm:text-[18px] text-foreground tracking-tight leading-tight group-hover:text-accent transition-colors truncate min-w-0">
               {location.fullTitle}
             </h3>
             <div className="text-right shrink-0 flex items-baseline justify-end gap-1 pl-1.5">
-              <span className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono tracking-tight tabular-nums">
+              <span className="text-2xl sm:text-[26px] font-extrabold text-foreground font-mono tracking-tight tabular-nums leading-none">
                 {powerKwc > 0 ? powerKwc : "—"}
               </span>
               <span className="text-xs font-bold text-muted-foreground">
@@ -2208,68 +2489,72 @@ function MarketplaceLeadCard({
             </div>
           </div>
 
-          {/* Ligne 2 : Localisation & Bâtiment sur toute la largeur */}
-          <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5 -mt-1">
-            <MapPin className="h-3.5 w-3.5 text-muted-foreground/80 shrink-0" />
-            <span className="truncate">{location.subtitle}</span>
-          </p>
-
-          {/* Ligne 3 : Badge Projet & certification GSM */}
-          <div className="-mt-0.5 flex flex-wrap items-center gap-1.5">
-            {isPremium ? (
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[11px] sm:text-xs font-semibold whitespace-nowrap">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" aria-hidden="true" />
-                <span>Projet premium</span>
-              </div>
-            ) : (
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground text-[11px] sm:text-xs font-semibold whitespace-nowrap">
-                <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground shrink-0" aria-hidden="true" />
-                <span>Projet qualifié</span>
-              </div>
-            )}
-            {verifSummary.phone.tier === "verified" && verifSummary.phone.compactLabel && (
-              <div
-                title={verifSummary.phone.detailLabel || undefined}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-[11px] sm:text-xs font-semibold whitespace-nowrap"
-              >
-                <ShieldCheck className="h-3 w-3 shrink-0" />
-                <span>{verifSummary.phone.compactLabel}</span>
-              </div>
-            )}
-            {verifSummary.phone.tier === "plausible" && verifSummary.phone.compactLabel && (
-              <div
-                title={verifSummary.phone.detailLabel || undefined}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border text-[11px] font-medium whitespace-nowrap"
-              >
-                <Phone className="h-3 w-3 shrink-0" />
-                <span>{verifSummary.phone.compactLabel}</span>
-              </div>
-            )}
-            {verifSummary.email.tier === "verified" && verifSummary.email.compactLabel && (
-              <div
-                title={verifSummary.email.detailLabel || undefined}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-[11px] sm:text-xs font-semibold whitespace-nowrap"
-              >
-                <CheckCircle2 className="h-3 w-3 shrink-0" />
-                <span>{verifSummary.email.compactLabel}</span>
-              </div>
-            )}
-            {verifSummary.email.tier === "plausible" && verifSummary.email.compactLabel && (
-              <div
-                title={verifSummary.email.detailLabel || undefined}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border text-[11px] font-medium whitespace-nowrap"
-              >
-                <Mail className="h-3 w-3 shrink-0" />
-                <span>{verifSummary.email.compactLabel}</span>
-              </div>
-            )}
+          {/* Ligne 2 : Localisation à gauche & Fraîcheur à droite */}
+          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground font-medium -mt-1">
+            <span className="inline-flex items-center gap-1.5 min-w-0">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground/80 shrink-0" />
+              <span className="truncate">{location.subtitle}</span>
+            </span>
+            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground shrink-0 whitespace-nowrap">
+              <Calendar className="h-3 w-3 shrink-0" />
+              <span suppressHydrationWarning className="sm:hidden">{compactFreshness}</span>
+              <span suppressHydrationWarning className="hidden sm:inline">{freshness.label}</span>
+            </span>
           </div>
 
-          {/* Ligne 4 : Grille Technique 2x2 avec icônes alignées dans les libellés (zéro troncature sur 320px) */}
-          <div className="rounded-2xl bg-secondary/40 border border-border p-3 sm:p-3.5 grid grid-cols-2 gap-x-3 gap-y-2.5 text-xs">
+          {/* Ligne 3 : Batterie demandée & Vérifications SMS / E-mail mises en valeur (Lucide, zéro emoji) */}
+          {(hasBattery || verifSummary.phone.compactLabel || verifSummary.email.compactLabel) && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {hasBattery && (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-orange-50 text-orange-900 border border-orange-300 text-xs font-bold whitespace-nowrap">
+                  <BatteryCharging className="h-3.5 w-3.5 shrink-0" />
+                  <span>Batterie demandée</span>
+                </div>
+              )}
+              {verifSummary.phone.tier === "verified" && verifSummary.phone.compactLabel && (
+                <div
+                  title={verifSummary.phone.detailLabel || undefined}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold whitespace-nowrap"
+                >
+                  <Phone className="h-3.5 w-3.5 shrink-0" />
+                  <span>{verifSummary.phone.compactLabel}</span>
+                </div>
+              )}
+              {verifSummary.phone.tier === "plausible" && verifSummary.phone.compactLabel && (
+                <div
+                  title={verifSummary.phone.detailLabel || undefined}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-secondary text-muted-foreground border border-border text-xs font-medium whitespace-nowrap"
+                >
+                  <Phone className="h-3.5 w-3.5 shrink-0" />
+                  <span>{verifSummary.phone.compactLabel}</span>
+                </div>
+              )}
+              {verifSummary.email.tier === "verified" && verifSummary.email.compactLabel && (
+                <div
+                  title={verifSummary.email.detailLabel || undefined}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold whitespace-nowrap"
+                >
+                  <Mail className="h-3.5 w-3.5 shrink-0" />
+                  <span>{verifSummary.email.compactLabel}</span>
+                </div>
+              )}
+              {verifSummary.email.tier === "plausible" && verifSummary.email.compactLabel && (
+                <div
+                  title={verifSummary.email.detailLabel || undefined}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-secondary text-muted-foreground border border-border text-xs font-medium whitespace-nowrap"
+                >
+                  <Mail className="h-3.5 w-3.5 shrink-0" />
+                  <span>{verifSummary.email.compactLabel}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Ligne 4 : Grille Technique (2x2 sur mobile, 4 colonnes sur sm+) */}
+          <div className="rounded-xl bg-secondary/40 border border-border p-3 grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-2.5 text-xs">
             {/* 1. Toiture & Surface */}
             <div className="min-w-0 flex flex-col gap-0.5">
-              <span className="inline-flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground font-mono whitespace-nowrap">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono whitespace-nowrap">
                 <Home className="h-3 w-3 text-foreground/70 shrink-0" />
                 <span>Toiture</span>
               </span>
@@ -2290,7 +2575,7 @@ function MarketplaceLeadCard({
 
             {/* 2. Facture Élec */}
             <div className="min-w-0 flex flex-col gap-0.5">
-              <span className="inline-flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground font-mono whitespace-nowrap">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono whitespace-nowrap">
                 <FileText className="h-3 w-3 text-foreground/70 shrink-0" />
                 <span>Facture</span>
               </span>
@@ -2300,7 +2585,7 @@ function MarketplaceLeadCard({
                     {annualBill.toLocaleString("fr-BE")} €/an
                   </span>
                   {financials.estimatedAnnualConsumptionKwh > 0 && (
-                    <span className="text-[11px] text-muted-foreground font-mono tabular-nums block leading-tight">
+                    <span className="text-[10.5px] text-muted-foreground font-mono tabular-nums block leading-tight">
                       ≈ {financials.estimatedAnnualConsumptionKwh.toLocaleString("fr-BE")} kWh
                     </span>
                   )}
@@ -2314,7 +2599,7 @@ function MarketplaceLeadCard({
 
             {/* 3. Échéance */}
             <div className="min-w-0 flex flex-col gap-0.5">
-              <span className="inline-flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground font-mono whitespace-nowrap">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono whitespace-nowrap">
                 <Calendar className="h-3 w-3 text-foreground/70 shrink-0" />
                 <span>Échéance</span>
               </span>
@@ -2325,7 +2610,7 @@ function MarketplaceLeadCard({
 
             {/* 4. Décisionnaire */}
             <div className="min-w-0 flex flex-col gap-0.5">
-              <span className="inline-flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground font-mono whitespace-nowrap">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono whitespace-nowrap">
                 <User className="h-3 w-3 text-foreground/70 shrink-0" />
                 <span>Décideur</span>
               </span>
@@ -2338,8 +2623,8 @@ function MarketplaceLeadCard({
             </div>
           </div>
 
-          {/* Ligne 5 : Encart d'Économie & Marge Indicative (Zéro collision à 320px) */}
-          <div className="rounded-2xl bg-accent/10 border border-accent/20 p-3 sm:p-3.5 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2.5 sm:flex sm:items-center sm:justify-between">
+          {/* Ligne 5 : Encart Estimation du chantier & Marge nette est. (100 % uniforme partout) */}
+          <div className="rounded-xl bg-accent/10 border border-accent/20 p-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2.5 sm:flex sm:items-center sm:justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="hidden sm:flex h-7 w-7 rounded-lg bg-accent/15 text-accent items-center justify-center shrink-0">
                 <svg
@@ -2367,8 +2652,8 @@ function MarketplaceLeadCard({
             </div>
 
             <div className="text-right shrink-0 pl-2 border-l border-accent/20 sm:border-l-0 sm:pl-1.5">
-              <span className="text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground block text-right font-mono whitespace-nowrap">
-                Marge est.
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block text-right font-mono whitespace-nowrap">
+                Marge nette est.
               </span>
               <span className="text-xs sm:text-sm font-extrabold text-accent font-mono tabular-nums block text-right whitespace-nowrap mt-0.5">
                 {marginText}
@@ -2378,9 +2663,8 @@ function MarketplaceLeadCard({
         </div>
       </div>
 
-      {/* ── C. Pied de Carte : Coût en Crédits & Boutons Tactiles Équilibrés ── */}
-      <div className="px-3.5 sm:px-5 pb-3.5 sm:pb-5 pt-3 border-t border-border flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-        {/* Crédits ou Euros */}
+      {/* ── C. Pied de Carte : Coût en Crédits & Boutons Tactiles Uniformisés ── */}
+      <div className="px-1 sm:px-1.5 pt-2.5 border-t border-border flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center justify-between sm:justify-start gap-2 shrink-0">
           <div className="flex items-center gap-1.5 min-w-0">
             <Coins className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -2400,13 +2684,11 @@ function MarketplaceLeadCard({
           </span>
         </div>
 
-        {/* Boutons d'action pleine largeur équilibrée sur mobile, pilules compactes sur desktop */}
         <div
-          className={`w-full sm:w-auto sm:ml-auto ${
-            hasEnoughCredits
-              ? "grid grid-cols-[1fr_auto_1.35fr] gap-2 sm:flex sm:items-center sm:gap-1.5"
-              : "grid grid-cols-[1fr_1.45fr] gap-2 sm:flex sm:items-center sm:gap-1.5"
-          }`}
+          className={`w-full sm:w-auto sm:ml-auto ${hasEnoughCredits
+            ? "grid grid-cols-[1fr_auto_1.35fr] gap-2 sm:flex sm:items-center sm:gap-1.5"
+            : "grid grid-cols-[1fr_1.45fr] gap-2 sm:flex sm:items-center sm:gap-1.5"
+            }`}
           onClick={(e) => e.stopPropagation()}
         >
           <button

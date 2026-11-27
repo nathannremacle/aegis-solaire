@@ -85,6 +85,14 @@
   --aegis-danger-bg: #FFF1F0;
   --aegis-danger-text: #9A2F2B;
   --aegis-input-border: #7E919F;
+
+  /* Gammes Marketplace (Contours & Badges contrastés WCAG >= 5:1) */
+  --tier-eco-border: #059669;
+  --tier-eco-badge: #047857;
+  --tier-standard-border: #142D42;
+  --tier-standard-badge: #142D42;
+  --tier-premium-border: #C2410C;
+  --tier-premium-badge: #C2410C;
 }
 
 @theme inline {
@@ -124,6 +132,12 @@
   --color-status-disputed: var(--status-disputed);
   --color-status-converted: var(--status-converted);
   --color-status-archived: var(--status-archived);
+  --color-tier-eco-border: var(--tier-eco-border);
+  --color-tier-eco-badge: var(--tier-eco-badge);
+  --color-tier-standard-border: var(--tier-standard-border);
+  --color-tier-standard-badge: var(--tier-standard-badge);
+  --color-tier-premium-border: var(--tier-premium-border);
+  --color-tier-premium-badge: var(--tier-premium-badge);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
