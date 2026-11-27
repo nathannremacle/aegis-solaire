@@ -20,6 +20,9 @@ import {
   ShieldCheck,
   TrendingDown,
   AlertTriangle,
+  Home,
+  Building,
+  Building2,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -85,8 +88,72 @@ const AD_HOOK_LINES: Record<string, string> = {
     "Aegis Solaire est de votre côté : jusqu'à 3 installateurs RESCERT mis en concurrence sur votre toiture pour -18 % en moyenne, sans compromis qualité.",
   V25_FACTURE_2026_4X5:
     "Payez le juste prix pour vos panneaux solaires : 3 artisans RESCERT comparés sur un cahier des charges Tier-1 strict, gratuitement en 45 s.",
+  V3_AD1_RENTABILITE_AUTOCONSO_4X5:
+    "Estimez votre économie 2026 en 45 s : nous mettons jusqu'à 3 installateurs certifiés RESCERT en concurrence pour vous obtenir le meilleur prix, sans compromis sur la qualité.",
+  V3_AD2_CONCURRENCE_1850_MAISON_4X5:
+    "Même toiture, jusqu'à 1 850 € d'écart : Aegis Solaire organise la mise en concurrence entre jusqu'à 3 installateurs RESCERT locaux — 100 % gratuit, 1er contact écrit respecté.",
   ASTUCE_PROPRIETAIRE:
     "L'astuce entre propriétaires : en mettant jusqu'à 3 installateurs RESCERT en concurrence sur un cahier des charges Tier-1 identique, ils réduisent leur marge dès le 1er devis (-18 % en moyenne, jusqu'à 1 850 € d'écart).",
+}
+
+const AD_H1_BY_CONTENT: Record<string, { lead: React.ReactNode; accent: React.ReactNode }> = {
+  V2_AD2_RENTABILITE_2026_GPT: {
+    lead: (
+      <>
+        Solaire <span className="font-mono tabular-nums">2026</span> en Wallonie&nbsp;:
+      </>
+    ),
+    accent: (
+      <>
+        calculez votre gain réel en <span className="font-mono tabular-nums">45&nbsp;s</span>.
+      </>
+    ),
+  },
+  V3_AD1_RENTABILITE_AUTOCONSO_4X5: {
+    lead: (
+      <>
+        Solaire <span className="font-mono tabular-nums">2026</span> en Wallonie&nbsp;:
+      </>
+    ),
+    accent: (
+      <>
+        calculez votre gain réel en <span className="font-mono tabular-nums">45&nbsp;s</span>.
+      </>
+    ),
+  },
+  V2_AD1_ECART_1850_GPT: {
+    lead: (
+      <>
+        Jusqu&apos;à <span className="font-mono tabular-nums">1&nbsp;850&nbsp;€</span> d&apos;écart sur la même toiture.
+      </>
+    ),
+    accent: (
+      <>
+        Comparez jusqu&apos;à <span className="font-mono tabular-nums">3</span> devis RESCERT.
+      </>
+    ),
+  },
+  V3_AD2_CONCURRENCE_1850_MAISON_4X5: {
+    lead: (
+      <>
+        Jusqu&apos;à <span className="font-mono tabular-nums">1&nbsp;850&nbsp;€</span> d&apos;écart sur la même toiture.
+      </>
+    ),
+    accent: (
+      <>
+        Comparez jusqu&apos;à <span className="font-mono tabular-nums">3</span> devis RESCERT.
+      </>
+    ),
+  },
+}
+
+const DEFAULT_AD_H1 = {
+  lead: <>Panneaux solaires en Wallonie&nbsp;:</>,
+  accent: (
+    <>
+      comparez jusqu&apos;à <span className="font-mono tabular-nums">3</span> devis RESCERT.
+    </>
+  ),
 }
 
 const PROPERTY_TYPES = [
@@ -783,12 +850,14 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
   }
 
   const progressPercent = Math.round((step / totalSteps) * 100)
+  const activeHookKey = utmData.utm_content || initialHookKey || ""
+  const activeH1 = AD_H1_BY_CONTENT[activeHookKey] ?? DEFAULT_AD_H1
 
   return (
     <div className="min-h-dvh bg-background text-foreground flex flex-col justify-between font-sans selection:bg-accent/15 selection:text-foreground [overflow-anchor:none]">
       
-      {/* ── HEADER MINIMAL : Logo Aegis Solaire en haut à gauche ── */}
-      <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2.5 pb-1.5 sm:pt-5 sm:pb-2 shrink-0 flex items-center justify-between">
+      {/* ── HEADER MINIMAL : Logo Aegis Solaire en haut à gauche + badge réassurance compact ── */}
+      <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2.5 pb-1.5 sm:pt-5 sm:pb-2 shrink-0 flex items-center justify-between gap-3">
         <Link href="/" className="flex items-center gap-2 group" aria-label="Aegis Solaire - Accueil">
           <div className="relative h-9 sm:h-14 md:h-16 w-36 sm:w-60 md:w-72">
             <Image
@@ -801,6 +870,11 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
             />
           </div>
         </Link>
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-secondary border border-border px-2.5 py-1 text-[11px] sm:text-xs font-semibold text-foreground shrink-0">
+          <Star className="h-3 w-3 fill-accent-solar text-accent-solar shrink-0" />
+          <span className="font-mono tabular-nums">4,9/5</span>
+          <span className="text-muted-foreground font-medium">· Wallonie</span>
+        </div>
       </header>
 
       {/* ── CORPS CENTRAL : Structure Mobile-First + Split-Screen Desktop ── */}
@@ -810,15 +884,14 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
           {/* ── BLOC 1 : H1 & Promesse (Compact mobile above-the-fold) ── */}
           <div className="order-1 lg:order-none lg:col-span-6 lg:col-start-1 lg:row-start-1 flex flex-col gap-1 sm:gap-2">
             <h1 className="text-[22px] leading-[1.15] sm:text-4xl lg:text-[40px] font-bold tracking-tight text-foreground font-heading lg:leading-[1.14]">
-              La meilleure offre solaire ?{" "}
+              {activeH1.lead}{" "}
               <span className="text-primary sm:block">
-                Comparez jusqu&apos;à 3 devis.
+                {activeH1.accent}
               </span>
             </h1>
 
             <p className="text-xs sm:text-base text-muted-foreground leading-snug sm:leading-relaxed mt-0.5 sm:mt-1">
-              {(utmData.utm_content && AD_HOOK_LINES[utmData.utm_content]) ||
-                (initialHookKey && AD_HOOK_LINES[initialHookKey]) || (
+              {(activeHookKey && AD_HOOK_LINES[activeHookKey]) || (
                 <>
                   Nous mettons les installateurs certifiés <strong className="text-foreground font-semibold">RESCERT</strong> de votre région en concurrence pour vous obtenir le meilleur prix, sans aucun compromis sur la qualité.
                 </>
@@ -931,19 +1004,20 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
                           </div>
                           <span className="text-[13px] font-bold text-[var(--aegis-ink)] shrink-0 font-mono tabular-nums">
                             Étape {step} sur {totalSteps}
+                            {step === 1 && " · ~45 s"}
                           </span>
                         </div>
 
                         {step < 6 && (
-                          <div className="hidden sm:flex flex-wrap items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                             <span className="px-2.5 py-0.5 rounded-[5px] bg-[var(--aegis-preference-bg)] text-[11px] font-semibold text-[var(--aegis-preference-label)] border border-[var(--aegis-preference-accent)]/40">
-                              Certifiés RESCert
+                              RESCERT Wallonie
+                            </span>
+                            <span className="px-2.5 py-0.5 rounded-[5px] bg-[var(--aegis-surface-subtle)] text-[11px] font-medium text-[var(--aegis-ink)] border border-[var(--aegis-border)] font-mono tabular-nums">
+                              100 % gratuit
                             </span>
                             <span className="px-2.5 py-0.5 rounded-[5px] bg-[var(--aegis-surface-subtle)] text-[11px] font-medium text-[var(--aegis-ink)] border border-[var(--aegis-border)]">
-                              Gratuit &amp; sans engagement
-                            </span>
-                            <span className="px-2.5 py-0.5 rounded-[5px] bg-[var(--aegis-surface-subtle)] text-[11px] font-medium text-[var(--aegis-ink)] border border-[var(--aegis-border)]">
-                              Artisans locaux
+                              0 démarchage
                             </span>
                           </div>
                         )}
@@ -984,6 +1058,12 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
                           </p>
                           {PROPERTY_TYPES.map((item) => {
                             const isChecked = propertyType === item.id
+                            const IconComponent =
+                              item.id === "maison_4f"
+                                ? Home
+                                : item.id === "maison_mitoyenne"
+                                  ? Building
+                                  : Building2
                             return (
                               <button
                                 key={item.id}
@@ -995,9 +1075,14 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
                                     : "border-[var(--aegis-input-border)]/45 bg-[var(--aegis-surface)] text-[var(--aegis-ink)] hover:bg-[var(--aegis-surface-subtle)] hover:border-[var(--aegis-ink)]/50 font-medium"
                                 }`}
                               >
-                                <div className="flex flex-col">
-                                  <span className="text-[15px] sm:text-[16px] font-bold text-[var(--aegis-ink)]">{item.label}</span>
-                                  <span className="text-[13px] text-[var(--aegis-muted)] mt-0.5 font-normal">{item.sublabel}</span>
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <span className="h-9 w-9 rounded-[8px] bg-secondary text-foreground flex items-center justify-center shrink-0">
+                                    <IconComponent className="h-4 w-4" />
+                                  </span>
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="text-[15px] sm:text-[16px] font-bold text-[var(--aegis-ink)]">{item.label}</span>
+                                    <span className="text-[13px] text-[var(--aegis-muted)] mt-0.5 font-normal">{item.sublabel}</span>
+                                  </div>
                                 </div>
                                 {isChecked ? (
                                   <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent-solar text-accent-solar-foreground shrink-0">
@@ -1298,7 +1383,7 @@ export function DevisLandingClient({ initialHookKey }: { initialHookKey?: string
                               <div className="flex flex-col gap-0.5 text-[13px] leading-[1.45]">
                                 <span className="font-bold">Zone non couverte ({cleanedPostalCode})</span>
                                 <span className="text-[var(--aegis-ink)]">
-                                  Notre comparateur RESCert intervient exclusivement en Wallonie (codes postaux{" "}
+                                  Notre comparateur RESCERT intervient exclusivement en Wallonie (codes postaux{" "}
                                   <span className="font-mono tabular-nums font-semibold">1300-1499</span> et{" "}
                                   <span className="font-mono tabular-nums font-semibold">4000-7999</span>).
                                 </span>

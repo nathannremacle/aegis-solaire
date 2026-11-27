@@ -14,7 +14,7 @@ export function CookieConsentBanner() {
   }
   if (consent && !editing) return (
     <button type="button" onClick={() => setEditing(true)}
-      className="fixed bottom-3 left-3 z-50 rounded-lg border bg-white px-3 py-2 text-xs text-slate-700 shadow-sm">
+      className="fixed bottom-3 left-3 z-50 rounded-lg border border-border bg-card px-3 py-2 text-xs text-muted-foreground hover:text-foreground shadow-sm transition-colors cursor-pointer">
       Gérer mes cookies
     </button>
   )
@@ -22,32 +22,32 @@ export function CookieConsentBanner() {
   return (
     <aside
       aria-label="Consentement relatif aux cookies"
-      className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-50 bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300"
+      className="fixed bottom-0 inset-x-0 sm:bottom-4 sm:right-5 sm:left-auto sm:max-w-sm z-50 bg-card/98 backdrop-blur-xs border-t border-border sm:rounded-xl sm:border px-3 py-2.5 sm:p-4 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-300"
     >
-      <div className="flex items-start gap-3">
-        <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-          <ShieldCheck className="h-5 w-5 text-primary" />
+      <div className="flex items-center sm:items-start gap-2.5 sm:gap-3">
+        <div className="hidden sm:flex h-8 w-8 rounded-lg bg-primary/10 text-primary items-center justify-center shrink-0 mt-0.5">
+          <ShieldCheck className="h-4 w-4 text-primary" />
         </div>
-        <div className="flex-1 text-xs text-slate-600 leading-relaxed">
-          <p className="font-bold text-slate-900 text-sm mb-1">Respect de votre vie privée</p>
-          Aegis Solaire utilise des traceurs pour mesurer l&apos;efficacité de ses campagnes et optimiser la simulation de devis.{" "}
+        <div className="flex-1 text-[11px] sm:text-xs text-muted-foreground leading-snug">
+          <p className="hidden sm:block font-bold text-foreground text-sm mb-1">Respect de votre vie privée</p>
+          Cookies de mesure de campagne.{" "}
           <Link href="/politique-confidentialite" className="underline font-semibold text-primary">
-            En savoir plus
-          </Link>.
+            Politique
+          </Link>
         </div>
       </div>
-      <div className="mt-4 flex items-center gap-2.5">
+      <div className="mt-2 sm:mt-3.5 flex items-center gap-2">
         <button
           type="button"
           onClick={() => handleConsent(false)}
-          className="flex-1 h-10 px-3 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+          className="flex-1 h-9 px-3 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-secondary transition-colors cursor-pointer"
         >
-          Continuer sans accepter
+          Refuser
         </button>
         <button
           type="button"
           onClick={() => handleConsent(true)}
-          className="flex-1 h-10 px-3 rounded-xl bg-primary hover:bg-primary/90 text-xs font-bold text-primary-foreground shadow-xs transition-colors cursor-pointer"
+          className="flex-1 h-9 px-3 rounded-lg bg-primary hover:bg-primary/90 text-xs font-semibold text-primary-foreground shadow-2xs transition-colors cursor-pointer"
         >
           Accepter
         </button>

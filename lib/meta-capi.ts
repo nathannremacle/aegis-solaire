@@ -100,11 +100,10 @@ export interface MetaCapiEventParams {
  */
 export async function sendMetaConversionApiEvent(params: MetaCapiEventParams): Promise<boolean> {
   const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID || "1672474437601117"
-  const accessToken =
-    process.env.META_CAPI_ACCESS_TOKEN ||
-    "EAGalaYk9OCABS35VarXQIuYh8yvWZATrZALPII4bvocdDXJY1zNa7BLegWdzZAm9QZAEGGsfXjOiPBBjSL1kBZCq9HF8W0xT6kDn5Cmr7yeSDDboVGZBqVZBNGmD0ZB3F6MZBrcrh9ZBNEIWfInZBjSK14ZAPjNWGZAekVQ2D0coqkyvbn3EsZA1wv2uDAr2DvsbkK9QZDZD"
+  const accessToken = process.env.META_CAPI_ACCESS_TOKEN
 
   if (!pixelId || !accessToken) {
+    console.warn("[Meta CAPI] META_CAPI_ACCESS_TOKEN ou NEXT_PUBLIC_META_PIXEL_ID manquant — événement ignoré.")
     return false
   }
 
