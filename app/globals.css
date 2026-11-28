@@ -359,3 +359,73 @@
   }
 }
 
+/* ==========================================================================
+   Cartes Marketplace — Coins adoucis & fondu périphérique vers le blanc
+   ========================================================================== */
+@layer components {
+  .marketplace-tier-card {
+    background-color: var(--card);
+    border: 1px solid color-mix(in srgb, var(--tier-tone) var(--tier-border-mix), var(--border));
+    background-image:
+      radial-gradient(250px 185px at 0% 0%, color-mix(in srgb, var(--tier-tone) var(--tier-corner-a), transparent) 0%, transparent 72%),
+      radial-gradient(230px 170px at 100% 0%, color-mix(in srgb, var(--tier-tone) var(--tier-corner-b), transparent) 0%, transparent 70%),
+      radial-gradient(230px 170px at 0% 100%, color-mix(in srgb, var(--tier-tone) var(--tier-corner-b), transparent) 0%, transparent 70%),
+      radial-gradient(250px 185px at 100% 100%, color-mix(in srgb, var(--tier-tone) var(--tier-corner-a), transparent) 0%, transparent 72%);
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--tier-tone) 8%, transparent),
+      inset 0 0 28px -5px color-mix(in srgb, var(--tier-tone) var(--tier-inset-mix), transparent),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      0 1px 2px rgba(15, 23, 42, 0.04),
+      0 12px 28px -12px color-mix(in srgb, var(--tier-tone) var(--tier-drop-mix), rgba(15, 23, 42, 0.12));
+    transition-property: border-color, box-shadow;
+    transition-duration: 200ms;
+    transition-timing-function: ease-out;
+  }
+
+  .marketplace-tier-card:hover {
+    border-color: color-mix(in srgb, var(--tier-tone) var(--tier-border-hover-mix), var(--border));
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--tier-tone) 10%, transparent),
+      inset 0 0 30px -5px color-mix(in srgb, var(--tier-tone) var(--tier-inset-hover-mix), transparent),
+      inset 0 1px 0 rgba(255, 255, 255, 0.95),
+      0 2px 6px rgba(15, 23, 42, 0.05),
+      0 16px 34px -12px color-mix(in srgb, var(--tier-tone) var(--tier-drop-hover-mix), rgba(15, 23, 42, 0.16));
+  }
+
+  .marketplace-tier-eco {
+    --tier-tone: var(--tier-eco-border);
+    --tier-border-mix: 34%;
+    --tier-border-hover-mix: 50%;
+    --tier-inset-mix: 21%;
+    --tier-inset-hover-mix: 24%;
+    --tier-corner-a: 10.5%;
+    --tier-corner-b: 7.5%;
+    --tier-drop-mix: 20%;
+    --tier-drop-hover-mix: 28%;
+  }
+
+  .marketplace-tier-standard {
+    --tier-tone: var(--tier-standard-border);
+    --tier-border-mix: 30%;
+    --tier-border-hover-mix: 46%;
+    --tier-inset-mix: 19%;
+    --tier-inset-hover-mix: 22%;
+    --tier-corner-a: 9.5%;
+    --tier-corner-b: 6.5%;
+    --tier-drop-mix: 18%;
+    --tier-drop-hover-mix: 25%;
+  }
+
+  .marketplace-tier-premium {
+    --tier-tone: var(--tier-premium-border);
+    --tier-border-mix: 38%;
+    --tier-border-hover-mix: 54%;
+    --tier-inset-mix: 22%;
+    --tier-inset-hover-mix: 26%;
+    --tier-corner-a: 11.5%;
+    --tier-corner-b: 8%;
+    --tier-drop-mix: 22%;
+    --tier-drop-hover-mix: 30%;
+  }
+}
+

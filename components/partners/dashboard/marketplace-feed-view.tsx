@@ -196,23 +196,20 @@ function getTierVisualStyles(tier: LeadPricingTier, isQuoteAudit: boolean) {
   const effectiveTier: LeadPricingTier = isQuoteAudit ? "premium" : tier
   if (effectiveTier === "eco") {
     return {
-      cardBorderClass:
-        "border-[1.5px] border-tier-eco-border hover:border-tier-eco-border",
+      cardBorderClass: "marketplace-tier-card marketplace-tier-eco",
       badgeBgClass: "bg-tier-eco-badge text-white",
       rowBorderClass: "border-l-4 border-l-tier-eco-border",
     }
   }
   if (effectiveTier === "premium") {
     return {
-      cardBorderClass:
-        "border-2 border-tier-premium-border hover:border-tier-premium-border",
+      cardBorderClass: "marketplace-tier-card marketplace-tier-premium",
       badgeBgClass: "bg-tier-premium-badge text-white",
       rowBorderClass: "border-l-4 border-l-tier-premium-border",
     }
   }
   return {
-    cardBorderClass:
-      "border-[1.5px] border-tier-standard-border hover:border-tier-standard-border",
+    cardBorderClass: "marketplace-tier-card marketplace-tier-standard",
     badgeBgClass: "bg-tier-standard-badge text-white",
     rowBorderClass: "border-l-4 border-l-tier-standard-border",
   }
@@ -2203,7 +2200,7 @@ function LeadCardMediaGallery({
   if (total === 0) {
     const fallbackUrl = isB2B ? B2B_SOLAR_IMAGE : B2C_SOLAR_IMAGE
     return (
-      <div className="relative h-44 sm:h-[196px] w-full overflow-hidden rounded-xl bg-muted border border-border/60">
+      <div className="relative h-44 sm:h-[196px] w-full overflow-hidden rounded-[10px] sm:rounded-[14px] bg-muted border border-border/60">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={fallbackUrl}
@@ -2224,7 +2221,7 @@ function LeadCardMediaGallery({
   if (total === 1) {
     const onlyItem = items[0]
     return (
-      <div className="relative h-48 sm:h-[196px] w-full overflow-hidden rounded-xl bg-primary/95 border border-border/60">
+      <div className="relative h-48 sm:h-[196px] w-full overflow-hidden rounded-[10px] sm:rounded-[14px] bg-primary/95 border border-border/60">
         {renderSmartImage(onlyItem, `Chantier solaire ${city}`, priority)}
         <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/45 pointer-events-none z-2" />
         {renderTierBadge()}
@@ -2245,7 +2242,7 @@ function LeadCardMediaGallery({
     <>
       {/* Mobile (< sm) : Carrousel plein cadre avec swipe tactile + flèches */}
       <div
-        className="relative sm:hidden h-52 w-full overflow-hidden rounded-xl bg-primary/95 border border-border/60 touch-pan-y"
+        className="relative sm:hidden h-52 w-full overflow-hidden rounded-[10px] sm:rounded-[14px] bg-primary/95 border border-border/60 touch-pan-y"
         onTouchStart={(e) => {
           touchStartXRef.current = e.touches[0]?.clientX ?? null
         }}
@@ -2301,14 +2298,14 @@ function LeadCardMediaGallery({
 
       {/* Desktop (sm+) : Double-vignette Rendu D1 (Vue de face à gauche + Projection/suivante à droite) */}
       <div className="hidden sm:grid relative grid-cols-[1.52fr_1fr] gap-2 h-[196px]">
-        <div className="relative h-full w-full overflow-hidden rounded-xl bg-primary/95 border border-border/60">
+        <div className="relative h-full w-full overflow-hidden rounded-[10px] sm:rounded-[14px] bg-primary/95 border border-border/60">
           {renderSmartImage(currentItem, `Chantier solaire ${city} (${safeIdx + 1}/${total})`, priority)}
           <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/45 pointer-events-none z-2" />
           {renderTierBadge()}
           {renderPhotoLabel(currentItem)}
         </div>
 
-        <div className="relative h-full w-full overflow-hidden rounded-xl bg-primary/95 border border-border/60">
+        <div className="relative h-full w-full overflow-hidden rounded-[10px] sm:rounded-[14px] bg-primary/95 border border-border/60">
           {renderSmartImage(nextItem, `Chantier solaire ${city} (${nextIdx + 1}/${total})`, priority)}
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/50 pointer-events-none z-2" />
           {renderPhotoLabel(nextItem)}
@@ -2458,7 +2455,7 @@ function MarketplaceLeadCard({
           onInspect()
         }
       }}
-      className={`group relative flex flex-col justify-between gap-3 rounded-2xl sm:rounded-3xl bg-card p-3 shadow-xs hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden text-left ${tierStyles.cardBorderClass} ${isTargeted ? "ring-2 ring-accent/40 shadow-md" : ""
+      className={`group relative flex flex-col justify-between gap-3 rounded-[22px] sm:rounded-[26px] p-3 cursor-pointer overflow-hidden text-left ${tierStyles.cardBorderClass} ${isTargeted ? "outline-2 outline-offset-2 outline-accent/45" : ""
         }`}
     >
       <div className="flex flex-col gap-3">
