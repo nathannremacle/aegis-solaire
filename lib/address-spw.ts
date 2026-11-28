@@ -35,6 +35,18 @@ export interface AddressSuggestion {
 }
 
 export type AddressResolutionLevel = "house" | "street" | "locality" | "none"
+export type AddressCoordinatesPrecision =
+  | "house"
+  | "interpolated"
+  | "street"
+  | "locality"
+  | "none"
+export type AddressCoordinatesSource =
+  | "SPW_ICAR_HOUSE"
+  | "SPW_GEOLIST_HOUSE"
+  | "OSM_BUILDING_SPW_ANCHORED"
+  | "SPW_NEIGHBORS_INTERPOLATED"
+  | null
 
 export interface VerifiedBelgianAddressResult {
   validInWallonia: boolean
@@ -52,6 +64,8 @@ export interface VerifiedBelgianAddressResult {
   source: "SPW_ICAR"
   rawCandidatesCount: number
   coordinates?: { lat: number; lng: number } | null
+  coordinatesPrecision?: AddressCoordinatesPrecision
+  coordinatesSource?: AddressCoordinatesSource
   googleMapsUrl?: string
   googleEarthUrl?: string
   streetViewUrl?: string
@@ -62,11 +76,24 @@ const SPW_BASE = "https://geoservices.wallonie.be/geocodeWS"
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24 // 24 heures
 const MAX_CACHED_ZONES = 350
 
+interface SpwGeocodedHouse {
+  name: string
+  num: number | null
+  lat: number
+  lng: number
+}
+
 const streetCache = new Map<
   string,
   { expiresAt: number; items: SpwStreetDirectoryItem[] }
 >()
 const streetInflight = new Map<string, Promise<SpwStreetDirectoryItem[]>>()
+
+const streetHousesCache = new Map<
+  number,
+  { expiresAt: number; items: SpwGeocodedHouse[] }
+>()
+const streetHousesInflight = new Map<number, Promise<SpwGeocodedHouse[]>>()
 
 const localityCache = new Map<
   string,
@@ -449,11 +476,460 @@ export async function suggestBelgianStreets(params: {
   }
 }
 
+function haversineMeters(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number }
+): number {
+  const R = 6371000
+  const toRad = (deg: number) => (deg * Math.PI) / 180
+  const dLat = toRad(b.lat - a.lat)
+  const dLng = toRad(b.lng - a.lng)
+  const sinLat = Math.sin(dLat / 2)
+  const sinLng = Math.sin(dLng / 2)
+  const h =
+    sinLat * sinLat +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * sinLng * sinLng
+  return 2 * R * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))
+}
+
+function parseHouseParts(raw: string): {
+  rawNorm: string
+  stem: string | null
+  numeric: number | null
+  suffix: string
+} {
+  const rawNorm = raw.trim().toLowerCase().replace(/\s+/g, "")
+  const m = rawNorm.match(/^(\d{1,4})(.*)$/)
+  if (!m) {
+    return { rawNorm, stem: null, numeric: null, suffix: rawNorm }
+  }
+  const stem = m[1]
+  const numeric = parseInt(stem, 10)
+  return {
+    rawNorm,
+    stem,
+    numeric: Number.isFinite(numeric) ? numeric : null,
+    suffix: (m[2] ?? "").replace(/^[-/]+/, "/"),
+  }
+}
+
+function isCompatibleHouseNumber(
+  targetRaw: string,
+  candidateRaw: string
+): { match: boolean; exact: boolean } {
+  const target = parseHouseParts(targetRaw)
+  const cand = parseHouseParts(candidateRaw)
+  if (!target.rawNorm || !cand.rawNorm) return { match: false, exact: false }
+  if (target.rawNorm === cand.rawNorm) return { match: true, exact: true }
+  if (!target.stem || !cand.stem || target.stem !== cand.stem) {
+    return { match: false, exact: false }
+  }
+
+  // Sous-numéro de boîte / fraction ("33/2" vs "33", ou "33" vs "33/1")
+  const targetIsSubOrBare = !target.suffix || target.suffix.startsWith("/")
+  const candIsSubOrBare = !cand.suffix || cand.suffix.startsWith("/")
+  if (targetIsSubOrBare && candIsSubOrBare) {
+    return { match: true, exact: false }
+  }
+
+  // Si l'un a un suffixe alphabétique ("33a") et l'autre aucun suffixe ("33"), compatible en secours ;
+  // si les deux ont des suffixes alphabétiques différents ("33a" vs "33b"), refuser.
+  if (!target.suffix || !cand.suffix) {
+    return { match: true, exact: false }
+  }
+
+  return { match: target.suffix === cand.suffix, exact: target.suffix === cand.suffix }
+}
+
+/**
+ * Récupère (et met en cache 24h) tous les numéros de maison géocodés SPW ICAR d'une rue.
+ */
+async function getSpwStreetHouses(streetIdent: number): Promise<SpwGeocodedHouse[]> {
+  if (!streetIdent || !Number.isFinite(streetIdent)) return []
+
+  const now = Date.now()
+  const cached = streetHousesCache.get(streetIdent)
+  if (cached && cached.expiresAt > now) {
+    return cached.items
+  }
+
+  const inflight = streetHousesInflight.get(streetIdent)
+  if (inflight) return inflight
+
+  const task = (async (): Promise<SpwGeocodedHouse[]> => {
+    try {
+      const url = `${SPW_BASE}/geolist?street=${encodeURIComponent(String(streetIdent))}&house=*&geom=true&crs=EPSG:4326`
+      const res = await fetch(url, { signal: AbortSignal.timeout(4500) })
+      if (!res.ok) return []
+      const data = await res.json()
+      const candidates = Array.isArray(data?.candidates) ? data.candidates : []
+      const items: SpwGeocodedHouse[] = []
+      const seen = new Set<string>()
+
+      for (const c of candidates) {
+        const name = c?.house?.name ? String(c.house.name).trim() : ""
+        const coords = Array.isArray(c?.house?.geometry?.coordinates)
+          ? c.house.geometry.coordinates
+          : null
+        if (!name || !coords || coords.length < 2) continue
+        const lat = Number(coords[1])
+        const lng = Number(coords[0])
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue
+        const key = name.toLowerCase()
+        if (seen.has(key)) continue
+        seen.add(key)
+        const parsed = parseHouseParts(name)
+        items.push({ name, num: parsed.numeric, lat, lng })
+      }
+
+      setWithLimit(streetHousesCache, streetIdent, {
+        expiresAt: Date.now() + CACHE_TTL_MS,
+        items,
+      })
+      return items
+    } catch {
+      return []
+    } finally {
+      streetHousesInflight.delete(streetIdent)
+    }
+  })()
+
+  streetHousesInflight.set(streetIdent, task)
+  return task
+}
+
+function findBracketingSpwNeighbors(
+  houses: SpwGeocodedHouse[],
+  targetNum: number
+): { lower: SpwGeocodedHouse | null; upper: SpwGeocodedHouse | null } {
+  const numericHouses = houses.filter((h): h is SpwGeocodedHouse & { num: number } => h.num !== null)
+  const findPair = (pool: Array<SpwGeocodedHouse & { num: number }>) => {
+    let lower: (SpwGeocodedHouse & { num: number }) | null = null
+    let upper: (SpwGeocodedHouse & { num: number }) | null = null
+    for (const h of pool) {
+      if (h.num < targetNum && (!lower || h.num > lower.num)) {
+        lower = h
+      } else if (h.num > targetNum && (!upper || h.num < upper.num)) {
+        upper = h
+      }
+    }
+    return { lower, upper }
+  }
+
+  const sameParity = numericHouses.filter((h) => h.num % 2 === targetNum % 2)
+  const parityPair = findPair(sameParity)
+  if (
+    parityPair.lower &&
+    parityPair.upper &&
+    parityPair.upper.num - parityPair.lower.num <= 24 &&
+    haversineMeters(parityPair.lower, parityPair.upper) <= 650
+  ) {
+    return parityPair
+  }
+
+  return findPair(numericHouses)
+}
+
+function interpolateFromSpwNeighbors(
+  houses: SpwGeocodedHouse[],
+  targetHouse: string
+): { lat: number; lng: number } | null {
+  const targetNum = parseHouseParts(targetHouse).numeric
+  if (targetNum === null || houses.length < 2) return null
+
+  const { lower, upper } = findBracketingSpwNeighbors(houses, targetNum)
+  if (!lower || !upper || lower.num === null || upper.num === null) return null
+
+  const spanNum = upper.num - lower.num
+  const dist = haversineMeters(lower, upper)
+  if (spanNum <= 0 || spanNum > 24 || dist > 600) return null
+
+  const t = (targetNum - lower.num) / spanNum
+  return {
+    lat: Number((lower.lat + t * (upper.lat - lower.lat)).toFixed(7)),
+    lng: Number((lower.lng + t * (upper.lng - lower.lng)).toFixed(7)),
+  }
+}
+
+async function resolveAnchoredOsmBuildingCoords(params: {
+  canonicalStreet: string
+  houseNumber: string
+  officialPostalCode: string
+  officialSection: string
+  officialCity: string
+  spwHouses: SpwGeocodedHouse[]
+  streetAnchorCoords: { lat: number; lng: number } | null
+}): Promise<{ lat: number; lng: number } | null> {
+  const {
+    canonicalStreet,
+    houseNumber,
+    officialPostalCode,
+    officialSection,
+    officialCity,
+    spwHouses,
+    streetAnchorCoords,
+  } = params
+
+  const parsedTarget = parseHouseParts(houseNumber)
+  const targetStem = parsedTarget.stem || houseNumber
+  const localityHint = officialSection || officialCity
+  const anchorPoint =
+    spwHouses.length > 0
+      ? { lat: spwHouses[0].lat, lng: spwHouses[0].lng }
+      : streetAnchorCoords
+
+  const bracketing =
+    parsedTarget.numeric !== null
+      ? findBracketingSpwNeighbors(spwHouses, parsedTarget.numeric)
+      : { lower: null, upper: null }
+
+  const validateCandidate = (cand: {
+    lat: number
+    lng: number
+    countryCode?: string
+    postcode?: string
+    street?: string
+    houseNumber?: string
+  }): { exact: boolean; distScore: number } | null => {
+    if (!Number.isFinite(cand.lat) || !Number.isFinite(cand.lng)) return null
+    if (cand.countryCode && cand.countryCode.toUpperCase() !== "BE") return null
+    if (!cand.postcode || cand.postcode.trim() !== officialPostalCode) return null
+    if (!cand.houseNumber) return null
+    const houseCompat = isCompatibleHouseNumber(houseNumber, cand.houseNumber)
+    if (!houseCompat.match) return null
+
+    const streetSim = cand.street ? computeStreetMatchScore(canonicalStreet, cand.street) : 0
+    if (streetSim < 85) return null
+
+    // Contrôle spatial strict ancré sur les bâtiments officiels SPW de la rue
+    const pt = { lat: cand.lat, lng: cand.lng }
+    if (bracketing.lower && bracketing.upper) {
+      const pairDist = haversineMeters(bracketing.lower, bracketing.upper)
+      const maxAllowed = Math.max(650, pairDist * 1.8 + 250)
+      const nearestBracket = Math.min(
+        haversineMeters(pt, bracketing.lower),
+        haversineMeters(pt, bracketing.upper)
+      )
+      if (nearestBracket > maxAllowed) return null
+      return { exact: houseCompat.exact, distScore: nearestBracket }
+    }
+
+    if (spwHouses.length > 0) {
+      let minDist = Infinity
+      for (const h of spwHouses) {
+        const d = haversineMeters(pt, h)
+        if (d < minDist) minDist = d
+      }
+      if (minDist > 1500) return null
+      return { exact: houseCompat.exact, distScore: minDist }
+    }
+
+    if (streetAnchorCoords) {
+      const distToStreet = haversineMeters(pt, streetAnchorCoords)
+      if (distToStreet > 2500) return null
+      return { exact: houseCompat.exact, distScore: distToStreet }
+    }
+
+    return { exact: houseCompat.exact, distScore: 0 }
+  }
+
+  // 1. Photon OSM géolocalisé sur l'ancre SPW
+  try {
+    const q = `${canonicalStreet} ${targetStem}, ${officialPostalCode} ${localityHint}`.trim()
+    const url = new URL("https://photon.komoot.io/api/")
+    url.searchParams.set("q", q)
+    url.searchParams.set("limit", "8")
+    url.searchParams.set("lang", "fr")
+    if (anchorPoint) {
+      url.searchParams.set("lat", String(anchorPoint.lat))
+      url.searchParams.set("lon", String(anchorPoint.lng))
+    }
+
+    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(2800) })
+    if (res.ok) {
+      const data = await res.json()
+      const features = Array.isArray(data?.features) ? data.features : []
+      let best: { lat: number; lng: number; exact: boolean; distScore: number } | null = null
+
+      for (const f of features) {
+        const props = f?.properties || {}
+        const coords = Array.isArray(f?.geometry?.coordinates) ? f.geometry.coordinates : null
+        if (!coords || coords.length < 2) continue
+        const lat = Number(coords[1])
+        const lng = Number(coords[0])
+        const check = validateCandidate({
+          lat,
+          lng,
+          countryCode: props.countrycode ? String(props.countrycode) : undefined,
+          postcode: props.postcode ? String(props.postcode) : undefined,
+          street: props.street ? String(props.street) : props.name ? String(props.name) : undefined,
+          houseNumber: props.housenumber ? String(props.housenumber) : undefined,
+        })
+        if (!check) continue
+        if (
+          !best ||
+          (check.exact && !best.exact) ||
+          (check.exact === best.exact && check.distScore < best.distScore)
+        ) {
+          best = { lat, lng, ...check }
+        }
+      }
+
+      if (best) {
+        return { lat: Number(best.lat.toFixed(7)), lng: Number(best.lng.toFixed(7)) }
+      }
+    }
+  } catch {
+    // Fallback Nominatim si Photon indisponible
+  }
+
+  // 2. Fallback Nominatim OSM (filtré par rue + CP exact + Belgique)
+  try {
+    const nomUrl = new URL("https://nominatim.openstreetmap.org/search")
+    nomUrl.searchParams.set("street", `${targetStem} ${canonicalStreet}`.trim())
+    nomUrl.searchParams.set("postalcode", officialPostalCode)
+    nomUrl.searchParams.set("country", "Belgium")
+    nomUrl.searchParams.set("format", "json")
+    nomUrl.searchParams.set("addressdetails", "1")
+    nomUrl.searchParams.set("limit", "5")
+
+    const res = await fetch(nomUrl.toString(), {
+      headers: {
+        "User-Agent": "AegisSolaire-AddressVerifier/1.0 (+https://aegissolaire.com)",
+        Accept: "application/json",
+      },
+      signal: AbortSignal.timeout(3000),
+    })
+    if (res.ok) {
+      const rows = await res.json()
+      const list = Array.isArray(rows) ? rows : []
+      let best: { lat: number; lng: number; exact: boolean; distScore: number } | null = null
+
+      for (const row of list) {
+        const addr = row?.address || {}
+        const lat = Number(row?.lat)
+        const lng = Number(row?.lon)
+        const check = validateCandidate({
+          lat,
+          lng,
+          countryCode: addr.country_code ? String(addr.country_code) : undefined,
+          postcode: addr.postcode ? String(addr.postcode) : undefined,
+          street: addr.road ? String(addr.road) : undefined,
+          houseNumber: addr.house_number ? String(addr.house_number) : undefined,
+        })
+        if (!check) continue
+        if (
+          !best ||
+          (check.exact && !best.exact) ||
+          (check.exact === best.exact && check.distScore < best.distScore)
+        ) {
+          best = { lat, lng, ...check }
+        }
+      }
+
+      if (best) {
+        return { lat: Number(best.lat.toFixed(7)), lng: Number(best.lng.toFixed(7)) }
+      }
+    }
+  } catch {
+    // Non-bloquant
+  }
+
+  return null
+}
+
+/**
+ * Résout des coordonnées fiables au niveau bâtiment (jamais le centroïde d'une rue ou commune)
+ * lorsque SPW ICAR confirme le bâtiment/la rue sans fournir house.geometry.
+ */
+async function resolveWalloniaBuildingCoordinates(params: {
+  streetIdent: number | null
+  canonicalStreet: string
+  houseNumber: string
+  officialPostalCode: string
+  officialSection: string
+  officialCity: string
+  streetAnchorCoords: { lat: number; lng: number } | null
+}): Promise<{
+  coordinates: { lat: number; lng: number } | null
+  coordinatesPrecision: AddressCoordinatesPrecision
+  coordinatesSource: AddressCoordinatesSource
+}> {
+  const {
+    streetIdent,
+    canonicalStreet,
+    houseNumber,
+    officialPostalCode,
+    officialSection,
+    officialCity,
+    streetAnchorCoords,
+  } = params
+
+  const spwHouses = streetIdent ? await getSpwStreetHouses(streetIdent) : []
+
+  // 1. Vérifier si geolist possède quand même une géométrie pour ce numéro ou son radical
+  if (spwHouses.length > 0) {
+    let bestGeolist: { house: SpwGeocodedHouse; exact: boolean } | null = null
+    for (const h of spwHouses) {
+      const compat = isCompatibleHouseNumber(houseNumber, h.name)
+      if (!compat.match) continue
+      if (!bestGeolist || (compat.exact && !bestGeolist.exact)) {
+        bestGeolist = { house: h, exact: compat.exact }
+      }
+    }
+    if (bestGeolist) {
+      return {
+        coordinates: {
+          lat: Number(bestGeolist.house.lat.toFixed(7)),
+          lng: Number(bestGeolist.house.lng.toFixed(7)),
+        },
+        coordinatesPrecision: "house",
+        coordinatesSource: "SPW_GEOLIST_HOUSE",
+      }
+    }
+  }
+
+  // 2. Bâtiment OSM strictement vérifié sur le CP officiel, la voirie SPW et les voisins SPW
+  const osmBuilding = await resolveAnchoredOsmBuildingCoords({
+    canonicalStreet,
+    houseNumber,
+    officialPostalCode,
+    officialSection,
+    officialCity,
+    spwHouses,
+    streetAnchorCoords,
+  })
+  if (osmBuilding) {
+    return {
+      coordinates: osmBuilding,
+      coordinatesPrecision: "house",
+      coordinatesSource: "OSM_BUILDING_SPW_ANCHORED",
+    }
+  }
+
+  // 3. Interpolation entre les numéros officiels SPW encadrants de la même rue
+  const interpolated = interpolateFromSpwNeighbors(spwHouses, houseNumber)
+  if (interpolated) {
+    return {
+      coordinates: interpolated,
+      coordinatesPrecision: "interpolated",
+      coordinatesSource: "SPW_NEIGHBORS_INTERPOLATED",
+    }
+  }
+
+  return {
+    coordinates: null,
+    coordinatesPrecision: "street",
+    coordinatesSource: null,
+  }
+}
+
 export function buildMapLinks(params: {
   streetAddress?: string | null
   postalCode?: string | null
   city?: string | null
   coordinates?: { lat: number; lng: number } | null
+  coordinatesPrecision?: AddressCoordinatesPrecision | null
 }): { googleMapsUrl: string; googleEarthUrl: string; walOnMapUrl: string } {
   const addressParts = [params.streetAddress, params.postalCode, params.city]
     .map((s) => (s ?? "").trim())
@@ -463,7 +939,12 @@ export function buildMapLinks(params: {
     addressParts.length > 0 ? [...addressParts, "Belgique"].join(", ") : "Wallonie, Belgique"
   const walOnMapAddressQuery = addressParts.join(" ")
 
-  const rawCoords = params.coordinates
+  const precisionBlocked =
+    params.coordinatesPrecision === "street" ||
+    params.coordinatesPrecision === "locality" ||
+    params.coordinatesPrecision === "none"
+
+  const rawCoords = precisionBlocked ? null : params.coordinates
   const validCoords =
     rawCoords &&
       typeof rawCoords.lat === "number" &&
@@ -656,8 +1137,12 @@ export async function verifyWalloniaAddressStrict(params: {
         for (const c of matchingPostalCandidates) {
           const cStreetName = c?.street?.name ? String(c.street.name) : ""
           const sim = cStreetName ? computeStreetMatchScore(queryStreet, cStreetName) : 0
-          // Favoriser un candidat qui a aussi `house`
-          const bonus = c?.house?.name ? 10 : 0
+          // Favoriser un candidat qui a `house` et encore plus s'il a `house.geometry`
+          const bonus =
+            (c?.house?.name ? 10 : 0) +
+            (Array.isArray(c?.house?.geometry?.coordinates) && c.house.geometry.coordinates.length >= 2
+              ? 5
+              : 0)
           if (sim + bonus > bestStreetSim) {
             bestStreetSim = sim + bonus
             bestCand = c
@@ -671,11 +1156,15 @@ export async function verifyWalloniaAddressStrict(params: {
         if (bestCand && pureStreetSim >= 70) {
           const houseObj = bestCand.house
           const streetObj = bestCand.street
-          const geom = houseObj?.geometry || streetObj?.geometry || bestCand.city?.geometry
-          const coordsArray = Array.isArray(geom?.coordinates) ? geom.coordinates : null
-          const coordinates =
-            coordsArray && coordsArray.length >= 2
-              ? { lat: Number(coordsArray[1]), lng: Number(coordsArray[0]) }
+          const houseGeomCoords = Array.isArray(houseObj?.geometry?.coordinates)
+            ? houseObj.geometry.coordinates
+            : null
+          const streetGeomCoords = Array.isArray(streetObj?.geometry?.coordinates)
+            ? streetObj.geometry.coordinates
+            : null
+          const streetAnchorCoords =
+            streetGeomCoords && streetGeomCoords.length >= 2
+              ? { lat: Number(streetGeomCoords[1]), lng: Number(streetGeomCoords[0]) }
               : null
 
           const houseVerified = Boolean(houseObj?.name)
@@ -684,7 +1173,7 @@ export async function verifyWalloniaAddressStrict(params: {
           const officialPostalCode = String(bestCand.zone?.ident || cleanPostal)
           const resolvedStreet = candStreetName
 
-          // Préserver le suffixe d'entrée ("113c", "12A", "4bis") si SPW normalise sur le radical numérique ("113")
+          // Préserver le suffixe d'entrée ("113c", "12A", "4bis", "33/2") si SPW normalise sur le radical numérique
           const rawSpwHouse = houseObj?.name ? String(houseObj.name).trim() : null
           const parsedHouseTrimmed = parsed.houseNumber?.trim() || null
           let resolvedHouse = parsedHouseTrimmed
@@ -700,6 +1189,33 @@ export async function verifyWalloniaAddressStrict(params: {
             }
           } else if (rawSpwHouse) {
             resolvedHouse = rawSpwHouse
+          }
+
+          let coordinates: { lat: number; lng: number } | null = null
+          let coordinatesPrecision: AddressCoordinatesPrecision = "street"
+          let coordinatesSource: AddressCoordinatesSource = null
+
+          if (houseGeomCoords && houseGeomCoords.length >= 2) {
+            coordinates = {
+              lat: Number(houseGeomCoords[1]),
+              lng: Number(houseGeomCoords[0]),
+            }
+            coordinatesPrecision = "house"
+            coordinatesSource = "SPW_ICAR_HOUSE"
+          } else if (resolvedHouse) {
+            const streetIdent = Number(streetObj?.ident || canonicalCandidateStreet?.streetIdent || 0) || null
+            const resolved = await resolveWalloniaBuildingCoordinates({
+              streetIdent,
+              canonicalStreet: resolvedStreet,
+              houseNumber: resolvedHouse,
+              officialPostalCode,
+              officialSection,
+              officialCity,
+              streetAnchorCoords,
+            })
+            coordinates = resolved.coordinates
+            coordinatesPrecision = resolved.coordinatesPrecision
+            coordinatesSource = resolved.coordinatesSource
           }
 
           const resolutionLevel: AddressResolutionLevel = houseVerified
@@ -718,6 +1234,7 @@ export async function verifyWalloniaAddressStrict(params: {
             postalCode: officialPostalCode,
             city: officialSection || officialCity,
             coordinates,
+            coordinatesPrecision,
           })
 
           return {
@@ -736,6 +1253,8 @@ export async function verifyWalloniaAddressStrict(params: {
             source: "SPW_ICAR",
             rawCandidatesCount: matchingPostalCandidates.length,
             coordinates,
+            coordinatesPrecision,
+            coordinatesSource,
             ...links,
           }
         }
@@ -748,10 +1267,53 @@ export async function verifyWalloniaAddressStrict(params: {
       if (localities.length > 0) {
         const primary = localities[0]
         const streetSim = canonicalCandidateStreet ? 100 : 0
+        // Fallback si SPW geocode n'a rien remonté mais que la rue existe dans l'annuaire geolist du CP
+        if (canonicalCandidateStreet && parsed.houseNumber) {
+          const resolved = await resolveWalloniaBuildingCoordinates({
+            streetIdent: canonicalCandidateStreet.streetIdent || null,
+            canonicalStreet: canonicalCandidateStreet.streetName,
+            houseNumber: parsed.houseNumber,
+            officialPostalCode: cleanPostal,
+            officialSection: canonicalCandidateStreet.section || primary.name,
+            officialCity: primary.city || cleanCity,
+            streetAnchorCoords: null,
+          })
+          const formattedFallbackAddr = `${canonicalCandidateStreet.streetName} ${parsed.houseNumber}`.trim()
+          const links = buildMapLinks({
+            streetAddress: formattedFallbackAddr,
+            postalCode: cleanPostal,
+            city: canonicalCandidateStreet.section || primary.city || cleanCity,
+            coordinates: resolved.coordinates,
+            coordinatesPrecision: resolved.coordinatesPrecision,
+          })
+          return {
+            validInWallonia: true,
+            resolutionLevel: "street",
+            streetVerified: true,
+            houseVerified: false,
+            hasHouseNumber,
+            postalMismatch: false,
+            officialCity: primary.city,
+            officialSection: canonicalCandidateStreet.section || primary.name,
+            officialPostalCode: cleanPostal,
+            canonicalStreet: canonicalCandidateStreet.streetName,
+            houseNumber: parsed.houseNumber,
+            confidenceScore: 65,
+            source: "SPW_ICAR",
+            rawCandidatesCount: localities.length,
+            coordinates: resolved.coordinates,
+            coordinatesPrecision: resolved.coordinatesPrecision,
+            coordinatesSource: resolved.coordinatesSource,
+            ...links,
+          }
+        }
+
         const links = buildMapLinks({
-          streetAddress: rawStreetAddr || parsed.street,
+          streetAddress: canonicalCandidateStreet
+            ? [canonicalCandidateStreet.streetName, parsed.houseNumber].filter(Boolean).join(" ")
+            : rawStreetAddr || parsed.street,
           postalCode: cleanPostal,
-          city: primary.city || cleanCity,
+          city: canonicalCandidateStreet?.section || primary.city || cleanCity,
           coordinates: null,
         })
         return {
@@ -770,6 +1332,8 @@ export async function verifyWalloniaAddressStrict(params: {
           source: "SPW_ICAR",
           rawCandidatesCount: localities.length,
           coordinates: null,
+          coordinatesPrecision: streetSim >= 72 ? "street" : "locality",
+          coordinatesSource: null,
           ...links,
         }
       }

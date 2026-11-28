@@ -2,7 +2,12 @@ import { Resend } from "resend"
 import { createHmac } from "crypto"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { detectLeadRiskFlags } from "./admin/lead-risk"
-import { buildMapLinks, type AddressResolutionLevel } from "./address-spw"
+import {
+  buildMapLinks,
+  type AddressCoordinatesPrecision,
+  type AddressCoordinatesSource,
+  type AddressResolutionLevel,
+} from "./address-spw"
 import { hasBelgianHouseNumber, isValidFrBePhone } from "./leads-validation"
 import { calculateLeadScore } from "./lead-score"
 import { calculateMarketplaceFinancials, calculateLeadCreditCost } from "./marketplace-pricing"
@@ -76,6 +81,8 @@ export type WalloniaAddressData = {
   houseNumber?: string | null
   confidenceScore: number
   coordinates?: { lat: number; lng: number } | null
+  coordinatesPrecision?: AddressCoordinatesPrecision
+  coordinatesSource?: AddressCoordinatesSource
   googleMapsUrl?: string
   googleEarthUrl?: string
   streetViewUrl?: string
@@ -550,11 +557,16 @@ Aegis Solaire · Notification interne`
 
   const addressLinksHtml = payload.siteAddress
     ? (() => {
+        const canonicalStreetAddress =
+          spw?.canonicalStreet && (spw?.houseNumber || payload.siteAddress)
+            ? [spw.canonicalStreet, spw.houseNumber].filter(Boolean).join(" ") || payload.siteAddress
+            : payload.siteAddress
         const mapLinks = buildMapLinks({
-          streetAddress: payload.siteAddress,
-          postalCode: payload.postalCode,
-          city: payload.city,
+          streetAddress: canonicalStreetAddress,
+          postalCode: spw?.officialPostalCode || payload.postalCode,
+          city: spw?.officialSection || spw?.officialCity || payload.city,
           coordinates: spw?.coordinates ?? null,
+          coordinatesPrecision: spw?.coordinatesPrecision ?? null,
         })
         const hasNum = hasBelgianHouseNumber(payload.siteAddress)
         return `<strong>${escapeHtml(payload.siteAddress)}</strong>${

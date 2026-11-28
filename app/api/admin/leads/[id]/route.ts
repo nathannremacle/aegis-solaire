@@ -85,6 +85,7 @@ export async function PATCH(
     postal_code,
     city,
     province,
+    reverify_address,
     first_name,
     last_name,
     email,
@@ -211,7 +212,9 @@ export async function PATCH(
     city !== undefined ||
     province !== undefined
 
-  if (addressEdited || contactEdited) {
+  const reverifyAddress = reverify_address === true && !addressEdited
+
+  if (addressEdited || reverifyAddress || contactEdited) {
     const { data: existing } = await supabase
       .from("leads")
       .select(
@@ -273,6 +276,13 @@ export async function PATCH(
       nextVerifs.walloniaAddress = spwVerification
       nextVerifs.addressManuallyCorrectedAt = new Date().toISOString()
       nextVerifs.addressManuallyCorrectedBy = user.email
+    } else if (reverifyAddress) {
+      const spwVerification = await verifyWalloniaAddressSpw({
+        postalCode: existing.postal_code,
+        city: existing.city,
+        streetAddress: existing.site_address,
+      })
+      nextVerifs.walloniaAddress = spwVerification
     }
 
     if (contactEdited) {
@@ -323,7 +333,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Erreur lors de la mise à jour du lead" }, { status: 500 })
   }
 
-  if (addressEdited || contactEdited || status !== undefined || marketplace_status !== undefined) {
+  if (addressEdited || reverifyAddress || contactEdited || status !== undefined || marketplace_status !== undefined) {
     revalidateTag("admin-kpis", "max")
     revalidateTag("admin-badges", "max")
     revalidateTag("marketplace-feed", "max")

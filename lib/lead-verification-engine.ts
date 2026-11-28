@@ -1,6 +1,8 @@
 import { resolveMx } from "node:dns/promises"
 import {
   verifyWalloniaAddressStrict,
+  type AddressCoordinatesPrecision,
+  type AddressCoordinatesSource,
   type AddressResolutionLevel,
 } from "./address-spw"
 import {
@@ -40,6 +42,8 @@ export interface WalloniaAddressVerificationResult {
   source: "SPW_ICAR"
   rawCandidatesCount: number
   coordinates?: { lat: number; lng: number } | null
+  coordinatesPrecision?: AddressCoordinatesPrecision
+  coordinatesSource?: AddressCoordinatesSource
   googleMapsUrl?: string
   googleEarthUrl?: string
   streetViewUrl?: string

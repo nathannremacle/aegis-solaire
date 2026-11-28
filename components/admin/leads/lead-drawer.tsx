@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useTransition } from "react"
+import { useState, useEffect, useRef, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import {
   Sheet,
@@ -74,7 +74,7 @@ import {
   BelgianStreetNumberFields,
 } from "@/components/address/belgian-address-fields"
 import { hasBelgianHouseNumber } from "@/lib/leads-validation"
-import { buildMapLinks } from "@/lib/address-spw"
+import { buildMapLinks, type AddressCoordinatesPrecision } from "@/lib/address-spw"
 import { calculateLeadScore } from "@/lib/lead-score"
 import { calculateMarketplaceFinancials } from "@/lib/marketplace-pricing"
 import { parseLeadProjectDetails } from "@/lib/lead-display-helpers"
@@ -258,6 +258,7 @@ export function LeadDrawer({
   const [editCompany, setEditCompany] = useState(lead?.company ?? "")
   const [editCompanyVat, setEditCompanyVat] = useState(lead?.company_vat ?? "")
   const [editSegment, setEditSegment] = useState<string>(lead?.segment ?? "B2C")
+  const autoReverifiedIdsRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     if (lead) {
@@ -291,6 +292,41 @@ export function LeadDrawer({
       setMarketplacePatch(null)
     }
   }, [lead])
+
+  // Auto-réparation silencieuse des leads existants vérifiés avant la mise à jour de précision GPS
+  useEffect(() => {
+    if (!open || !lead?.id || !lead.site_address || !lead.postal_code) return
+    const existingSpw = (
+      (lead.qualification_metadata?.verifications as Record<string, unknown> | undefined)
+        ?.walloniaAddress as Record<string, unknown> | undefined
+    )
+    if (existingSpw?.coordinatesPrecision !== undefined) return
+    if (autoReverifiedIdsRef.current.has(lead.id)) return
+
+    autoReverifiedIdsRef.current.add(lead.id)
+    let cancelled = false
+    fetch(`/api/admin/leads/${lead.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "x-admin-request": "true" },
+      body: JSON.stringify({ reverify_address: true }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (!cancelled && json?.qualification_metadata) {
+          setAddressPatch((prev) => ({
+            ...(prev ?? {}),
+            qualification_metadata: json.qualification_metadata,
+          }))
+        }
+      })
+      .catch(() => {
+        // Non-bloquant si hors-ligne ou erreur transitoire
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [open, lead])
 
   const effectiveFirstName =
     contactPatch && "first_name" in contactPatch
@@ -1437,13 +1473,37 @@ export function LeadDrawer({
               const isHouseVerified = Boolean(spwVerif?.houseVerified)
               const isStreetVerified = Boolean(spwVerif?.streetVerified)
               const coords = (spwVerif?.coordinates as { lat: number; lng: number } | null | undefined) ?? null
+              const coordsPrecision = (spwVerif?.coordinatesPrecision as AddressCoordinatesPrecision | undefined) ?? null
+              const coordsSource = (spwVerif?.coordinatesSource as string | null | undefined) ?? null
+              const canonicalStreetAddr =
+                typeof spwVerif?.canonicalStreet === "string" &&
+                (typeof spwVerif?.houseNumber === "string" || effectiveSiteAddress)
+                  ? [spwVerif.canonicalStreet, typeof spwVerif?.houseNumber === "string" ? spwVerif.houseNumber : null]
+                      .filter(Boolean)
+                      .join(" ") || effectiveSiteAddress
+                  : effectiveSiteAddress
               const mapLinks = buildMapLinks({
-                streetAddress: effectiveSiteAddress,
-                postalCode: effectivePostalCode,
-                city: effectiveCity,
+                streetAddress: canonicalStreetAddr,
+                postalCode:
+                  (typeof spwVerif?.officialPostalCode === "string" ? spwVerif.officialPostalCode : null) ||
+                  effectivePostalCode,
+                city:
+                  (typeof spwVerif?.officialSection === "string" ? spwVerif.officialSection : null) ||
+                  (typeof spwVerif?.officialCity === "string" ? spwVerif.officialCity : null) ||
+                  effectiveCity,
                 coordinates: coords,
+                coordinatesPrecision: coordsPrecision,
               })
               const contactPref = (effectiveMeta?.contactPreference as string | undefined) || "written_first"
+              const hasValidBuildingCoords =
+                Boolean(coords) &&
+                typeof coords?.lat === "number" &&
+                typeof coords?.lng === "number" &&
+                Number.isFinite(coords.lat) &&
+                Number.isFinite(coords.lng) &&
+                coordsPrecision !== "street" &&
+                coordsPrecision !== "locality" &&
+                coordsPrecision !== "none"
 
               return (
                 <div className="rounded-lg bg-secondary/50 border border-border p-3 flex flex-col gap-2.5">
@@ -1454,9 +1514,24 @@ export function LeadDrawer({
                         Adresse du Chantier
                       </span>
                       {isHouseVerified ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">
+                        <span
+                          title={
+                            coordsSource === "OSM_BUILDING_SPW_ANCHORED"
+                              ? "Numéro certifié SPW ICAR · Point bâtiment localisé et validé par les numéros SPW encadrants"
+                              : coordsSource === "SPW_NEIGHBORS_INTERPOLATED"
+                                ? "Numéro certifié SPW ICAR · Point GPS interpolé entre les bâtiments SPW voisins de la rue"
+                                : hasValidBuildingCoords
+                                  ? "Adresse et point bâtiment certifiés SPW ICAR"
+                                  : "Numéro certifié administrativement SPW ICAR sans point GPS cadastral (liens cartes par adresse officielle)"
+                          }
+                          className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 border border-emerald-500/20"
+                        >
                           <CheckCircle2 className="h-2.5 w-2.5" />
-                          SPW ICAR exacte
+                          {coordsSource === "SPW_NEIGHBORS_INTERPOLATED"
+                            ? "SPW ICAR exacte · GPS interpolé"
+                            : !hasValidBuildingCoords
+                              ? "SPW ICAR · sans point GPS"
+                              : "SPW ICAR exacte"}
                         </span>
                       ) : !effectiveSiteAddress || !hasHouse ? (
                         <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-destructive/10 text-destructive border border-destructive/20">
@@ -1625,15 +1700,16 @@ export function LeadDrawer({
 
                         <div className="flex flex-wrap items-center gap-1.5">
                           {(() => {
-                            const hasCoords =
-                              Boolean(coords) &&
-                              typeof coords?.lat === "number" &&
-                              typeof coords?.lng === "number" &&
-                              Number.isFinite(coords.lat) &&
-                              Number.isFinite(coords.lng)
+                            const hasCoords = hasValidBuildingCoords
                             const coordsLabel = hasCoords && coords
                               ? `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`
                               : ""
+                            const coordsSourceLabel =
+                              coordsSource === "OSM_BUILDING_SPW_ANCHORED"
+                                ? "coordonnées bâtiment OSM ancrées SPW"
+                                : coordsSource === "SPW_NEIGHBORS_INTERPOLATED"
+                                  ? "coordonnées interpolées entre voisins SPW"
+                                  : "coordonnées SPW ICAR"
 
                             return (
                               <>
@@ -1643,8 +1719,8 @@ export function LeadDrawer({
                                   rel="noopener noreferrer"
                                   title={
                                     hasCoords
-                                      ? `Ouvrir Google Maps sur les coordonnées SPW ICAR (${coordsLabel})`
-                                      : "Rechercher l'adresse sur Google Maps"
+                                      ? `Ouvrir Google Maps sur les ${coordsSourceLabel} (${coordsLabel})`
+                                      : "Rechercher l'adresse officielle sur Google Maps"
                                   }
                                   className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded border border-border bg-card hover:bg-muted text-foreground"
                                 >
@@ -1656,8 +1732,8 @@ export function LeadDrawer({
                                   rel="noopener noreferrer"
                                   title={
                                     hasCoords
-                                      ? `Ouvrir Google Earth sur les coordonnées SPW ICAR (${coordsLabel})`
-                                      : "Rechercher l'adresse sur Google Earth"
+                                      ? `Ouvrir Google Earth sur les ${coordsSourceLabel} (${coordsLabel})`
+                                      : "Rechercher l'adresse officielle sur Google Earth"
                                   }
                                   className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded border border-border bg-card hover:bg-muted text-foreground"
                                 >
@@ -1669,8 +1745,8 @@ export function LeadDrawer({
                                   rel="noopener noreferrer"
                                   title={
                                     hasCoords
-                                      ? `Ouvrir WalOnMap sur les coordonnées SPW ICAR (${coordsLabel})`
-                                      : "Rechercher l'adresse sur WalOnMap"
+                                      ? `Ouvrir WalOnMap sur les ${coordsSourceLabel} (${coordsLabel})`
+                                      : "Rechercher l'adresse officielle sur WalOnMap"
                                   }
                                   className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded border border-border bg-card hover:bg-muted text-foreground"
                                 >

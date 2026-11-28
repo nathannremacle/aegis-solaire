@@ -23,6 +23,7 @@ function loadTs(relPath, cache = new Map()) {
     AbortSignal,
     setTimeout,
     clearTimeout,
+    fetch: (...args) => globalThis.fetch(...args),
     require: (name) => {
       if (name.startsWith("@/")) {
         const resolved = resolveTsFile(path.join(__dirname, "..", name.slice(2)))
@@ -1098,6 +1099,181 @@ test("buildMapLinks : deep-links directs Maps, Google Earth et WalOnMap par coor
     "https://earth.google.com/web/search/Wallonie%2C%20Belgique"
   )
   assert.equal(empty.walOnMapUrl, "https://geoportail.wallonie.be/carte")
+
+  // 4. Coordonnées de niveau "street" / "locality" -> ignorées (jamais de centroïde de rue sur Maps/WalOnMap)
+  const streetPrecision = addressSpw.buildMapLinks({
+    streetAddress: "Rue du Centre 33/2",
+    postalCode: "5170",
+    city: "Lesve",
+    coordinates: { lat: 50.3703345, lng: 4.7685551 },
+    coordinatesPrecision: "street",
+  })
+  assert.equal(
+    streetPrecision.googleMapsUrl,
+    "https://www.google.com/maps/search/?api=1&query=Rue%20du%20Centre%2033%2F2%2C%205170%2C%20Lesve%2C%20Belgique"
+  )
+  assert.equal(
+    streetPrecision.walOnMapUrl,
+    "https://geoportail.wallonie.be/carte#ADR=Rue%20du%20Centre%2033%2F2%205170%20Lesve|SHOW=true"
+  )
+})
+
+test("verifyWalloniaAddressStrict : ne retourne jamais street.geometry quand house.geometry manque (ancrage SPW + OSM + interpolation)", async () => {
+  const originalFetch = globalThis.fetch
+  const mkResp = (body, ok = true) => ({
+    ok,
+    status: ok ? 200 : 500,
+    async json() {
+      return body
+    },
+  })
+
+  try {
+    // Cas 1 : SPW confirme le n° 33 sans house.geometry (Rue du Centre 33/2, 5170 Lesve) -> OSM ancré SPW validé
+    globalThis.fetch = async (url) => {
+      const u = String(url)
+      if (u.includes("/geolist?zone=5170&street=*")) {
+        return mkResp({
+          candidates: [
+            {
+              city: { ident: "92101", name: "Profondeville" },
+              zone: { ident: "5170", name: "Lesve" },
+              street: { ident: 7754984, name: "Rue du Centre" },
+            },
+          ],
+        })
+      }
+      if (u.includes("/geocode?")) {
+        return mkResp({
+          candidates: [
+            {
+              score: 112,
+              city: { ident: "92101", name: "Profondeville" },
+              zone: { ident: "5170", name: "Lesve" },
+              street: {
+                ident: 7754984,
+                name: "Rue du Centre",
+                geometry: { type: "Point", coordinates: [4.7685551, 50.3703345] }, // centroïde dans les champs !
+              },
+              house: { ident: 411034, name: "33", rrn: "4801" }, // PAS de house.geometry !
+            },
+          ],
+        })
+      }
+      if (u.includes("/geolist?street=7754984")) {
+        return mkResp({
+          candidates: [
+            {
+              house: { name: "31", geometry: { coordinates: [4.7779819, 50.3761059] } },
+            },
+            {
+              house: { name: "35", geometry: { coordinates: [4.7770101, 50.3753542] } },
+            },
+          ],
+        })
+      }
+      if (u.includes("photon.komoot.io")) {
+        return mkResp({
+          features: [
+            // Mauvais résultat hors CP (5537) qui doit être rejeté
+            {
+              properties: {
+                countrycode: "BE",
+                postcode: "5537",
+                street: "Rue du Centre",
+                housenumber: "33",
+              },
+              geometry: { coordinates: [4.8410914, 50.3037686] },
+            },
+            // Bon bâtiment dans 5170 Lesve juste entre SPW 31 et 35
+            {
+              properties: {
+                countrycode: "BE",
+                postcode: "5170",
+                street: "Rue du Centre",
+                housenumber: "33",
+              },
+              geometry: { coordinates: [4.777221, 50.375473] },
+            },
+          ],
+        })
+      }
+      return mkResp({}, false)
+    }
+
+    const res = await addressSpw.verifyWalloniaAddressStrict({
+      postalCode: "5170",
+      city: "Lesve",
+      streetAddress: "Rue du Centre 33/2",
+    })
+    assert.equal(res.houseVerified, true)
+    assert.equal(res.coordinatesPrecision, "house")
+    assert.equal(res.coordinatesSource, "OSM_BUILDING_SPW_ANCHORED")
+    assert.ok(res.coordinates)
+    assert.ok(Math.abs(res.coordinates.lat - 50.375473) < 1e-5)
+    assert.ok(Math.abs(res.coordinates.lng - 4.777221) < 1e-5)
+    assert.notEqual(Number(res.coordinates.lat.toFixed(4)), 50.3703)
+    assert.match(res.googleMapsUrl, /50\.375473,4\.777221/)
+
+    // Cas 2 : Même situation mais OSM ne trouve rien -> interpolation entre SPW 31 et 35
+    const freshSpw = loadTs("lib/address-spw.ts")
+    globalThis.fetch = async (url) => {
+      const u = String(url)
+      if (u.includes("/geolist?zone=5170&street=*")) {
+        return mkResp({
+          candidates: [
+            {
+              city: { ident: "92101", name: "Profondeville" },
+              zone: { ident: "5170", name: "Lesve" },
+              street: { ident: 7754984, name: "Rue du Centre" },
+            },
+          ],
+        })
+      }
+      if (u.includes("/geocode?")) {
+        return mkResp({
+          candidates: [
+            {
+              score: 112,
+              city: { ident: "92101", name: "Profondeville" },
+              zone: { ident: "5170", name: "Lesve" },
+              street: {
+                ident: 7754984,
+                name: "Rue du Centre",
+                geometry: { type: "Point", coordinates: [4.7685551, 50.3703345] },
+              },
+              house: { ident: 411034, name: "33", rrn: "4801" },
+            },
+          ],
+        })
+      }
+      if (u.includes("/geolist?street=7754984")) {
+        return mkResp({
+          candidates: [
+            { house: { name: "31", geometry: { coordinates: [4.7779819, 50.3761059] } } },
+            { house: { name: "35", geometry: { coordinates: [4.7770101, 50.3753542] } } },
+          ],
+        })
+      }
+      if (u.includes("photon.komoot.io") || u.includes("nominatim.openstreetmap.org")) {
+        return mkResp({ features: [] })
+      }
+      return mkResp({}, false)
+    }
+
+    const interp = await freshSpw.verifyWalloniaAddressStrict({
+      postalCode: "5170",
+      city: "Lesve",
+      streetAddress: "Rue du Centre 33/2",
+    })
+    assert.equal(interp.coordinatesPrecision, "interpolated")
+    assert.equal(interp.coordinatesSource, "SPW_NEIGHBORS_INTERPOLATED")
+    assert.ok(interp.coordinates)
+    assert.ok(interp.coordinates.lat > 50.3753 && interp.coordinates.lat < 50.3762)
+    assert.ok(interp.coordinates.lng > 4.777 && interp.coordinates.lng < 4.778)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
 })
 
 
