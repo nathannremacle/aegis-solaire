@@ -258,7 +258,7 @@ export function LeadDrawer({
   const [editCompany, setEditCompany] = useState(lead?.company ?? "")
   const [editCompanyVat, setEditCompanyVat] = useState(lead?.company_vat ?? "")
   const [editSegment, setEditSegment] = useState<string>(lead?.segment ?? "B2C")
-  const autoReverifiedIdsRef = useRef<Set<string>>(new Set())
+  const autoReverifiedMetaRef = useRef<Map<string, Record<string, unknown>>>(new Map())
 
   useEffect(() => {
     if (lead) {
@@ -301,9 +301,17 @@ export function LeadDrawer({
         ?.walloniaAddress as Record<string, unknown> | undefined
     )
     if (existingSpw?.coordinatesPrecision !== undefined) return
-    if (autoReverifiedIdsRef.current.has(lead.id)) return
 
-    autoReverifiedIdsRef.current.add(lead.id)
+    const cachedMeta = autoReverifiedMetaRef.current.get(lead.id)
+    if (cachedMeta) {
+      setAddressPatch((prev) => ({
+        ...(prev ?? {}),
+        qualification_metadata: cachedMeta,
+      }))
+      return
+    }
+
+    autoReverifiedMetaRef.current.set(lead.id, lead.qualification_metadata ?? {})
     let cancelled = false
     fetch(`/api/admin/leads/${lead.id}`, {
       method: "PATCH",
@@ -312,21 +320,25 @@ export function LeadDrawer({
     })
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
-        if (!cancelled && json?.qualification_metadata) {
-          setAddressPatch((prev) => ({
-            ...(prev ?? {}),
-            qualification_metadata: json.qualification_metadata,
-          }))
+        if (json?.qualification_metadata) {
+          autoReverifiedMetaRef.current.set(lead.id, json.qualification_metadata)
+          if (!cancelled) {
+            setAddressPatch((prev) => ({
+              ...(prev ?? {}),
+              qualification_metadata: json.qualification_metadata,
+            }))
+            router.refresh()
+          }
         }
       })
       .catch(() => {
-        // Non-bloquant si hors-ligne ou erreur transitoire
+        autoReverifiedMetaRef.current.delete(lead.id)
       })
 
     return () => {
       cancelled = true
     }
-  }, [open, lead])
+  }, [open, lead, router])
 
   const effectiveFirstName =
     contactPatch && "first_name" in contactPatch
